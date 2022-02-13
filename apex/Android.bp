@@ -30,6 +30,7 @@ android_app_certificate {
 apex {
     name: "com.android.ondevicepersonalization",
     manifest: "manifest.json",
+    apps: ["OnDevicePersonalization"],
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
     key: "com.android.ondevicepersonalization.key",
     min_sdk_version: "Tiramisu",
