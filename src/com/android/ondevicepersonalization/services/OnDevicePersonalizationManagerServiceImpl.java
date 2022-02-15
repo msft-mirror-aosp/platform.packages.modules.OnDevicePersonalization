@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.personalization.services;
+package com.android.ondevicepersonalization.services;
 
 import android.app.Service;
 import android.content.Intent;
@@ -25,5 +25,17 @@ public class OnDevicePersonalizationManagerServiceImpl extends Service {
     @Override
     public IBinder onBind(Intent intent) {
         return null;
+    }
+
+    String getVersion() {
+        return "1.0";
+    }
+
+    final class OnDevicePersonalizationManagerServiceDelegate
+            extends IOnDevicePersonalizationManagerService.Stub {
+        @Override
+        public String getVersion() {
+            return OnDevicePersonalizationManagerServiceImpl.this.getVersion();
+        }
     }
 }
