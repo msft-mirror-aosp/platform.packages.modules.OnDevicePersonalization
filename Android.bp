@@ -27,6 +27,12 @@ java_defaults {
 }
 
 filegroup {
+    name: "ondevicepersonalization-aidl",
+    srcs: ["src/**/*.aidl"],
+    path: "src",
+}
+
+filegroup {
     name: "ondevicepersonalization-sources",
     srcs: [
         "src/**/*.java",
@@ -37,6 +43,7 @@ filegroup {
 android_app {
     name: "OnDevicePersonalization",
     srcs: [
+        ":ondevicepersonalization-aidl",
         ":ondevicepersonalization-sources",
     ],
     libs: [
