@@ -25,3 +25,36 @@ java_defaults {
     },
     min_sdk_version: "Tiramisu",
 }
+
+filegroup {
+    name: "ondevicepersonalization-aidl",
+    srcs: ["src/**/*.aidl"],
+    path: "src",
+}
+
+filegroup {
+    name: "ondevicepersonalization-sources",
+    srcs: [
+        "src/**/*.java",
+    ],
+    path: "src",
+}
+
+android_app {
+    name: "OnDevicePersonalization",
+    srcs: [
+        ":ondevicepersonalization-aidl",
+        ":ondevicepersonalization-sources",
+    ],
+    libs: [
+        "framework-ondevicepersonalization",
+    ],
+    sdk_version: "module_current",
+    min_sdk_version: "Tiramisu",
+    updatable: true,
+    certificate: "platform",
+    apex_available: ["com.android.ondevicepersonalization"],
+    defaults: [
+        "ondevicepersonalization-java-defaults",
+    ],
+}
