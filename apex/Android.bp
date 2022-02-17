@@ -27,6 +27,11 @@ android_app_certificate {
     certificate: "com.android.ondevicepersonalization",
 }
 
+sdk {
+    name: "ondevicepersonalization-module-sdk",
+    bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
+}
+
 bootclasspath_fragment {
     name: "com.android.ondevicepersonalization-bootclasspath-fragment",
     contents: ["framework-ondevicepersonalization"],
