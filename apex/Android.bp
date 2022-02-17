@@ -27,11 +27,33 @@ android_app_certificate {
     certificate: "com.android.ondevicepersonalization",
 }
 
+bootclasspath_fragment {
+    name: "com.android.ondevicepersonalization-bootclasspath-fragment",
+    contents: ["framework-ondevicepersonalization"],
+    apex_available: ["com.android.ondevicepersonalization"],
+
+    // The bootclasspath_fragments that provide APIs on which this depends.
+    fragments: [
+        {
+            apex: "com.android.art",
+            module: "art-bootclasspath-fragment",
+        },
+    ],
+
+    // Additional stubs libraries that this fragment's contents use which are
+    // not provided by another bootclasspath_fragment.
+    additional_stubs: [
+        "android-non-updatable",
+    ],
+}
+
 apex {
     name: "com.android.ondevicepersonalization",
     manifest: "manifest.json",
+    apps: ["OnDevicePersonalization"],
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
     key: "com.android.ondevicepersonalization.key",
+    bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
     min_sdk_version: "Tiramisu",
     updatable: true,
 }
