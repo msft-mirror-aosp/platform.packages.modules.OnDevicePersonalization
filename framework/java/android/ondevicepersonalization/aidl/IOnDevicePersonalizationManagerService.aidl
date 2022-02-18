@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services;
+package android.ondevicepersonalization.aidl;
 
 /** @hide */
 interface IOnDevicePersonalizationManagerService {

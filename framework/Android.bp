@@ -17,10 +17,21 @@ package {
 }
 
 filegroup {
+    name: "framework-ondevicepersonalization-aidl",
+    srcs: [
+        "java/**/*.aidl",
+    ],
+    visibility: [
+        "//frameworks/base",
+        "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
+    path: "java",
+}
+
+filegroup {
     name: "framework-ondevicepersonalization-sources",
     srcs: [
         "java/**/*.java",
-        "java/**/*.aidl",
     ],
     visibility: [
         "//frameworks/base",
@@ -31,7 +42,10 @@ filegroup {
 
 java_sdk_library {
     name: "framework-ondevicepersonalization",
-    srcs: [":framework-ondevicepersonalization-sources"],
+    srcs: [
+        ":framework-ondevicepersonalization-aidl",
+        ":framework-ondevicepersonalization-sources",
+    ],
     sdk_version: "module_current",
     defaults: [
         "framework-module-defaults",
