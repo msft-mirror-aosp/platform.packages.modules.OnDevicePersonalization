@@ -20,16 +20,9 @@ package {
 java_defaults {
     name: "ondevicepersonalization-java-defaults",
     lint: {
-        error_checks: ["NewApi"],
         strict_updatability_linting: true,
     },
     min_sdk_version: "Tiramisu",
-}
-
-filegroup {
-    name: "ondevicepersonalization-aidl",
-    srcs: ["src/**/*.aidl"],
-    path: "src",
 }
 
 filegroup {
@@ -43,8 +36,8 @@ filegroup {
 android_app {
     name: "OnDevicePersonalization",
     srcs: [
-        ":ondevicepersonalization-aidl",
         ":ondevicepersonalization-sources",
+        ":framework-ondevicepersonalization-aidl",
     ],
     libs: [
         "framework-ondevicepersonalization",
