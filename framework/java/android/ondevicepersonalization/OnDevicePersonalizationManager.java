@@ -60,6 +60,8 @@ public class OnDevicePersonalizationManager {
         }
     };
 
+    private static final int BIND_SERVICE_INTERVAL_MS = 1000;
+    private static final int BIND_SERVICE_RETRY_TIMES = 3;
     /**
      * Gets OnDevicePersonalization version.
      *
@@ -73,16 +75,25 @@ public class OnDevicePersonalizationManager {
                         intent, mContext.getPackageManager());
                 intent.setComponent(serviceComponent);
                 boolean r = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-                if (r) {
-                    return "bindService is successful";
+                if (!r) {
+                    return null;
                 }
-                return "bindService is failed";
+                int retries = 0;
+                while (!mBound && retries++ < BIND_SERVICE_RETRY_TIMES) {
+                    Thread.sleep(BIND_SERVICE_INTERVAL_MS);
+                }
+                if (mBound) {
+                    return mService.getVersion();
+                }
             } else {
                 return mService.getVersion();
             }
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
+        } catch (InterruptedException e) {
+            e.printStackTrace();
         }
+        return null;
     }
     /**
      * Find the ComponentName of the service, given its intent and package manager.
