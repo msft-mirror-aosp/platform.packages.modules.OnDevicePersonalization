@@ -35,5 +35,7 @@ android_test {
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
-    test_suites: ["general-tests"],
+    test_suites: [
+        "general-tests",
+    ],
 }
