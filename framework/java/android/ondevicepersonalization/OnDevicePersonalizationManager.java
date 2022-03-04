@@ -73,6 +73,11 @@ public class OnDevicePersonalizationManager {
                 Intent intent = new Intent("android.OnDevicePersonalizationService");
                 ComponentName serviceComponent = resolveService(
                         intent, mContext.getPackageManager());
+                if (serviceComponent == null) {
+                    Slog.e(TAG, "Invalid component for ondevicepersonalization service");
+                    return null;
+                }
+
                 intent.setComponent(serviceComponent);
                 boolean r = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
                 if (!r) {
@@ -92,6 +97,7 @@ public class OnDevicePersonalizationManager {
             throw e.rethrowAsRuntimeException();
         } catch (InterruptedException e) {
             e.printStackTrace();
+            throw new RuntimeException(e);
         }
         return null;
     }
