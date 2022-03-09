@@ -59,6 +59,5 @@ apex {
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
     key: "com.android.ondevicepersonalization.key",
     bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
-    min_sdk_version: "Tiramisu",
-    updatable: true,
+    defaults: ["t-launched-apex-module"],
 }
