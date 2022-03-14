@@ -39,6 +39,9 @@ import java.util.List;
  * @hide
  */
 public class OnDevicePersonalizationManager {
+    public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
+            "on_device_personalization_service";
+
     private boolean mBound = false;
     private static final String TAG = "OdpManager";
 
