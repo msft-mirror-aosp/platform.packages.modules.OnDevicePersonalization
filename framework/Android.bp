@@ -66,3 +66,12 @@ java_defaults {
     ],
     defaults_visibility: ["//visibility:public"],
 }
+
+// defaults for tests that need to build against framework-odp's @hide APIs
+java_defaults {
+    name: "framework-ondevicepersonalization-test-defaults",
+    sdk_version: "module_Tiramisu",
+    libs: [
+        "framework-ondevicepersonalization.impl",
+    ],
+}
