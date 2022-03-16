@@ -27,6 +27,12 @@
         android:layout_height="wrap_content">
 
         <Button
+            android:id="@+id/get_version_button"
+            android:layout_height="wrap_content"
+            android:layout_width="wrap_content"
+            style="?android:attr/buttonBarButtonStyle"
+            android:text="@string/get_version" />
+        <Button
             android:id="@+id/bind_service_button"
             android:layout_height="wrap_content"
             android:layout_width="wrap_content"

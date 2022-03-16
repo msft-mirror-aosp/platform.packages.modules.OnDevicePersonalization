@@ -16,12 +16,12 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.tests.ondevicepersonalization.services" >
+          package="com.android.ondevicepersonalization.services" >
 
     <application android:label="OnDevicePersonalizationManagerServicesTests">
         <uses-library android:name="android.test.runner"/>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.tests.ondevicepersonalization.services"
+                     android:targetPackage="com.android.ondevicepersonalization.services"
                      android:label="Tests of OnDevicePersonalizationManagerService"/>
 </manifest>
