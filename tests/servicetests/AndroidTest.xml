@@ -28,6 +28,6 @@
 
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
         <option name="hidden-api-checks" value="false" />
-        <option name="package" value="com.android.ondevicepersonalization.services"/>
+        <option name="package" value="com.android.ondevicepersonalization.servicetests"/>
     </test>
 </configuration>
