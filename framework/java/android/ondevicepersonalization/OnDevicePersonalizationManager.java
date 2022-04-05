@@ -16,6 +16,7 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ComponentName;
@@ -32,6 +33,7 @@ import android.os.RemoteException;
 import android.util.Slog;
 
 import java.util.List;
+import java.util.concurrent.Executor;
 
 /**
  * OnDevicePersonalization Manager.
@@ -65,19 +67,20 @@ public class OnDevicePersonalizationManager {
         mContext = context;
     }
 
-    private final ServiceConnection mConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            mService = IOnDevicePersonalizationManagerService.Stub.asInterface(service);
-            mBound = true;
-        }
+    private final ServiceConnection mConnection =
+            new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    mService = IOnDevicePersonalizationManagerService.Stub.asInterface(service);
+                    mBound = true;
+                }
 
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mService = null;
-            mBound = false;
-        }
-    };
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    mService = null;
+                    mBound = false;
+                }
+            };
 
     private static final int BIND_SERVICE_INTERVAL_MS = 1000;
     private static final int BIND_SERVICE_RETRY_TIMES = 3;
@@ -97,7 +100,10 @@ public class OnDevicePersonalizationManager {
      *
      * @hide
      */
-    public void init(Bundle params, InitCallback callback) {
+    public void init(
+            @NonNull Bundle params,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull InitCallback callback) {
         try {
             bindService();
             if (mBound) {
@@ -105,11 +111,12 @@ public class OnDevicePersonalizationManager {
                         new IInitOnDevicePersonalizationCallback.Stub() {
                             @Override
                             public void onSuccess(IBinder token) {
-                                callback.onSuccess(token);
+                                executor.execute(() -> callback.onSuccess(token));
                             }
+
                             @Override
                             public void onError(int errorCode) {
-                                callback.onError(errorCode);
+                                executor.execute(() -> callback.onError(errorCode));
                             }
                         };
                 mService.init(params, callbackWrapper);
@@ -152,10 +159,10 @@ public class OnDevicePersonalizationManager {
      *
      * @return ComponentName of the service. Null if the service is not found.
      */
-    private @Nullable ComponentName resolveService(@NonNull Intent intent,
-            @NonNull PackageManager pm) {
-        List<ResolveInfo> services = pm.queryIntentServices(intent,
-                PackageManager.ResolveInfoFlags.of(0));
+    private @Nullable ComponentName resolveService(
+            @NonNull Intent intent, @NonNull PackageManager pm) {
+        List<ResolveInfo> services =
+                pm.queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(0));
         if (services == null || services.isEmpty()) {
             Slog.e(TAG, "Failed to find ondevicepersonalization service");
             return null;
@@ -163,8 +170,8 @@ public class OnDevicePersonalizationManager {
 
         for (int i = 0; i < services.size(); i++) {
             ResolveInfo ri = services.get(i);
-            ComponentName resolved = new ComponentName(
-                    ri.serviceInfo.packageName, ri.serviceInfo.name);
+            ComponentName resolved =
+                    new ComponentName(ri.serviceInfo.packageName, ri.serviceInfo.name);
             // There should only be one matching service inside the given package.
             // If there's more than one, return the first one found.
             return resolved;
