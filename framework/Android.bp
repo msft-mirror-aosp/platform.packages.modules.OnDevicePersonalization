@@ -51,6 +51,9 @@ java_sdk_library {
         "framework-module-defaults",
         "ondevicepersonalization-java-defaults",
     ],
+    permitted_packages: [
+        "android.ondevicepersonalization",
+    ],
     impl_library_visibility: ["//visibility:public"],
     min_sdk_version: "Tiramisu",
     apex_available: ["com.android.ondevicepersonalization"],
@@ -65,4 +68,13 @@ java_defaults {
         "framework-res",
     ],
     defaults_visibility: ["//visibility:public"],
+}
+
+// defaults for tests that need to build against framework-odp's @hide APIs
+java_defaults {
+    name: "framework-ondevicepersonalization-test-defaults",
+    sdk_version: "module_Tiramisu",
+    libs: [
+        "framework-ondevicepersonalization.impl",
+    ],
 }
