@@ -27,6 +27,8 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import java.util.concurrent.Executors;
+
 public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
     private OnDevicePersonalizationManager mOdpManager = null;
@@ -71,6 +73,7 @@ public class MainActivity extends Activity {
                     } else {
                         mOdpManager.init(
                                 new Bundle(),
+                                Executors.newSingleThreadExecutor(),
                                 new OnDevicePersonalizationManager.InitCallback() {
                                     @Override
                                     public void onSuccess(IBinder token) {
