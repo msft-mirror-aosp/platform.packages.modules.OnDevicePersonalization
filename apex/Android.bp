@@ -76,4 +76,5 @@ apex {
     key: "com.android.ondevicepersonalization.key",
     bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
     defaults: ["t-launched-apex-module"],
+    prebuilts: ["current_sdkinfo"],
 }
