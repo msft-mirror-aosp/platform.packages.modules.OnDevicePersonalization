@@ -41,6 +41,7 @@ android_app {
     ],
     libs: [
         "framework-ondevicepersonalization",
+        "framework-annotations-lib",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
