@@ -45,7 +45,7 @@ public class MainActivity extends Activity {
         setContentView(R.layout.activity_main);
         mContext = getApplicationContext();
         if (mOdpManager == null) {
-            mOdpManager = new OnDevicePersonalizationManager(mContext);
+            mOdpManager = mContext.getSystemService(OnDevicePersonalizationManager.class);
         }
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setZOrderOnTop(true);
