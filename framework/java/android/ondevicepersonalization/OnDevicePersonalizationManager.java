@@ -24,11 +24,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
 import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagerService;
-import android.os.Bundle;
 import android.os.IBinder;
-import android.os.RemoteException;
 import android.util.Slog;
 
 import java.util.List;
@@ -47,19 +44,6 @@ public class OnDevicePersonalizationManager {
 
     private IOnDevicePersonalizationManagerService mService;
     private final Context mContext;
-
-    /**
-     * Callback that returns the result of the init() API.
-     *
-     * @hide
-     */
-    public interface InitCallback {
-        /** Called when init() succeeds. */
-        void onSuccess(IBinder token);
-
-        /** Called when init() fails */
-        void onError(int errorCode);
-    }
 
     public OnDevicePersonalizationManager(Context context) {
         mContext = context;
@@ -91,62 +75,6 @@ public class OnDevicePersonalizationManager {
     public String getVersion() {
         return VERSION;
     }
-
-    /**
-     * Initializes the OnDevicePersonalizationManager.
-     *
-     * @hide
-     */
-    public void init(Bundle params, InitCallback callback) {
-        try {
-            bindService();
-            if (mBound) {
-                IInitOnDevicePersonalizationCallback callbackWrapper =
-                        new IInitOnDevicePersonalizationCallback.Stub() {
-                            @Override
-                            public void onSuccess(IBinder token) {
-                                callback.onSuccess(token);
-                            }
-                            @Override
-                            public void onError(int errorCode) {
-                                callback.onError(errorCode);
-                            }
-                        };
-                mService.init(params, callbackWrapper);
-            }
-        } catch (RemoteException e) {
-            throw e.rethrowAsRuntimeException();
-        }
-    }
-
-    /** Bind to the service, if not already bound. */
-    private void bindService() {
-        if (!mBound) {
-            try {
-                Intent intent = new Intent("android.OnDevicePersonalizationService");
-                ComponentName serviceComponent =
-                        resolveService(intent, mContext.getPackageManager());
-                if (serviceComponent == null) {
-                    Slog.e(TAG, "Invalid component for ondevicepersonalization service");
-                    return;
-                }
-
-                intent.setComponent(serviceComponent);
-                boolean r = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-                if (!r) {
-                    return;
-                }
-                int retries = 0;
-                while (!mBound && retries++ < BIND_SERVICE_RETRY_TIMES) {
-                    Thread.sleep(BIND_SERVICE_INTERVAL_MS);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
-            }
-        }
-    }
-
     /**
      * Find the ComponentName of the service, given its intent and package manager.
      *

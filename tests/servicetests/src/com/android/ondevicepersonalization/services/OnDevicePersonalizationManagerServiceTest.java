@@ -17,13 +17,6 @@
 package com.android.ondevicepersonalization.services;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.os.RemoteException;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -41,44 +34,7 @@ public class OnDevicePersonalizationManagerServiceTest {
     public void testVersion() throws Exception {
         assertEquals(mService.getVersion(), "1.0");
     }
-
-    @Test
-    public void testSuccessfulInit() throws Exception {
-        FakeInitOnDevicePersonalizationCallback callback =
-                new FakeInitOnDevicePersonalizationCallback();
-        Bundle bundle = new Bundle();
-        mService.init(bundle, callback);
-
-        assertTrue(callback.isInitSuccess());
-        IBinder token = callback.getToken();
-        assertNotNull(token);
-    }
-
     private static class FakeOnDevicePersonalizationManagerService
             extends OnDevicePersonalizationManagerServiceImpl {
-    }
-
-    private static class FakeInitOnDevicePersonalizationCallback
-            extends IInitOnDevicePersonalizationCallback.Stub {
-        private IBinder mToken;
-        private boolean mInitSuccess;
-
-        @Override
-        public void onSuccess(IBinder token) throws RemoteException {
-            mToken = token;
-            mInitSuccess = true;
-        }
-
-        @Override
-        public void onError(int errorCode) throws RemoteException {
-        }
-
-        public boolean isInitSuccess() {
-            return mInitSuccess;
-        }
-
-        public IBinder getToken() {
-            return mToken;
-        }
     }
 }
