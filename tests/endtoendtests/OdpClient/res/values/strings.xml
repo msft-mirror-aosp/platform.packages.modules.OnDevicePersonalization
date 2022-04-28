@@ -15,13 +15,7 @@
   ~ limitations under the License.
   -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.ondevicepersonalization.servicetests" >
-
-    <application android:label="OnDevicePersonalizationManagerServicesTests">
-        <uses-library android:name="android.test.runner"/>
-    </application>
-    <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.ondevicepersonalization.servicetests"
-                     android:label="Tests of OnDevicePersonalizationManagerService"/>
-</manifest>
+<resources>
+    <string name="title_activity_main" description="Launcher title">Odp Test</string>
+    <string name="bind_service">Bind Service</string>
+</resources>
