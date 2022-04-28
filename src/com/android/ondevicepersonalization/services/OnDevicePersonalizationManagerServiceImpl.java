@@ -18,13 +18,21 @@ package com.android.ondevicepersonalization.services;
 
 import android.app.Service;
 import android.content.Intent;
+import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagerService;
 import android.os.IBinder;
 
 /** Implementation of OnDevicePersonalization Service */
 public class OnDevicePersonalizationManagerServiceImpl extends Service {
+    private IOnDevicePersonalizationManagerService.Stub mBinder;
+
+    @Override
+    public void onCreate() {
+        mBinder = new OnDevicePersonalizationManagerServiceDelegate();
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return mBinder;
     }
 
     String getVersion() {

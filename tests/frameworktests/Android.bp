@@ -1,4 +1,4 @@
-// Copyright (C) 2022 The Android Open Source Project
+// Copyright (C) 2022 The Android Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,29 +12,32 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// Make test APK
+// ============================================================
+
 package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
 android_test {
-    name: "OnDevicePersonalizationManagerServicesTests",
-    srcs: [
-        "src/**/*.java",
-        ":framework-ondevicepersonalization-aidl",
-        ":ondevicepersonalization-sources",
-    ],
-    libs: [
-        "android.test.base",
-        "android.test.runner",
+    name: "FrameworkOnDevicePersonalizationTests",
+    srcs: ["**/*.java"],
+    defaults: ["framework-ondevicepersonalization-test-defaults"],
+    min_sdk_version: "Tiramisu",
+    target_sdk_version: "Tiramisu",
+    static_libs: [
+        "androidx.test.core",
+        "androidx.test.ext.junit",
+        "androidx.test.rules",
+        "frameworks-base-testutils",
+        "guava",
+        "mockito-target-minus-junit4",
         "truth-prebuilt",
     ],
-    static_libs: [
-        "androidx.test.ext.junit",
-        "androidx.test.ext.truth",
-        "androidx.test.rules",
+    libs: [
+        "android.test.runner",
+        "android.test.base",
     ],
-    target_sdk_version: "current",
-    min_sdk_version: "Tiramisu",
     test_suites: [
         "general-tests",
     ],
