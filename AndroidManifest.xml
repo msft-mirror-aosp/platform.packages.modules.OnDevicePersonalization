@@ -21,10 +21,14 @@
     package="com.android.ondevicepersonalization.services"
     android:versionCode="1"
     android:versionName="T-initial">
-    <application>
-        <service android:name=".OnDevicePersonalizationServiceImpl" android:exported="true" >
+    <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
+    <application android:forceQueryable="true">
+        <service android:name=".OnDevicePersonalizationManagerServiceImpl" android:exported="true" >
             <intent-filter>
-                <action android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationService" />
+                <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
     </application>
