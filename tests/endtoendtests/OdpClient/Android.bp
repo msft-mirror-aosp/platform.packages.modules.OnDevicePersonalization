@@ -16,26 +16,22 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
-android_test {
-    name: "OnDevicePersonalizationManagerServicesTests",
+android_test_helper_app {
+    name: "OdpClient",
+    defaults: ["platform_app_defaults"],
+    platform_apis: true,
     srcs: [
-        "src/**/*.java",
+        "src/**/odpclient/*.java",
+        ":framework-ondevicepersonalization-sources",
         ":framework-ondevicepersonalization-aidl",
         ":ondevicepersonalization-sources",
     ],
-    libs: [
-        "android.test.base",
-        "android.test.runner",
-        "truth-prebuilt",
-    ],
     static_libs: [
-        "androidx.test.ext.junit",
-        "androidx.test.ext.truth",
-        "androidx.test.rules",
+        "androidx.annotation_annotation",
+        "androidx.core_core",
     ],
-    target_sdk_version: "current",
-    min_sdk_version: "Tiramisu",
-    test_suites: [
-        "general-tests",
+    resource_dirs: [
+        "res",
     ],
+    manifest: "AndroidManifest.xml",
 }
