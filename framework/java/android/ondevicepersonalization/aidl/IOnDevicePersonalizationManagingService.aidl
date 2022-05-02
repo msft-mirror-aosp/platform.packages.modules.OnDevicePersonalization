@@ -20,7 +20,7 @@ import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback
 import android.os.Bundle;
 
 /** @hide */
-interface IOnDevicePersonalizationManagerService {
+interface IOnDevicePersonalizationManagingService {
     String getVersion();
     void init(in Bundle params, in IInitOnDevicePersonalizationCallback callback);
 }
