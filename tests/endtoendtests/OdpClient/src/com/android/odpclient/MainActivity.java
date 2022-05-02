@@ -18,7 +18,7 @@ package com.android.odpclient;
 
 import android.app.Activity;
 import android.content.Context;
-import android.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.ondevicepersonalization.OnDevicePersonalizationManaging;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
@@ -31,7 +31,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
-    private OnDevicePersonalizationManager mOdpManager = null;
+    private OnDevicePersonalizationManaging mOdpManaging = null;
 
     private Button mGetVersionButton;
     private Button mBindButton;
@@ -44,8 +44,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = getApplicationContext();
-        if (mOdpManager == null) {
-            mOdpManager = mContext.getSystemService(OnDevicePersonalizationManager.class);
+        if (mOdpManaging == null) {
+            mOdpManaging = mContext.getSystemService(OnDevicePersonalizationManaging.class);
         }
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setZOrderOnTop(true);
@@ -58,23 +58,23 @@ public class MainActivity extends Activity {
 
     private void registerGetVersionButton() {
         mGetVersionButton.setOnClickListener(v -> {
-            if (mOdpManager == null) {
-                makeToast("OnDevicePersonalizationManager is null");
+            if (mOdpManaging == null) {
+                makeToast("OnDevicePersonalizationManaging is null");
             } else {
-                makeToast(mOdpManager.getVersion());
+                makeToast(mOdpManaging.getVersion());
             }
         });
     }
     private void registerBindServiceButton() {
         mBindButton.setOnClickListener(
                 v -> {
-                    if (mOdpManager == null) {
-                        makeToast("OnDevicePersonalizationManager is null");
+                    if (mOdpManaging == null) {
+                        makeToast("OnDevicePersonalizationManaging is null");
                     } else {
-                        mOdpManager.init(
+                        mOdpManaging.init(
                                 new Bundle(),
                                 Executors.newSingleThreadExecutor(),
-                                new OnDevicePersonalizationManager.InitCallback() {
+                                new OnDevicePersonalizationManaging.InitCallback() {
                                     @Override
                                     public void onSuccess(IBinder token) {
                                         makeToast("init() success: " + token.toString());
