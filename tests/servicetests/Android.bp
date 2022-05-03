@@ -37,5 +37,6 @@ android_test {
     min_sdk_version: "Tiramisu",
     test_suites: [
         "general-tests",
+        "mts-ondevicepersonalization",
     ],
 }
