@@ -31,11 +31,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationManagerServiceTest {
-    private OnDevicePersonalizationManagerServiceImpl mService;
+public class OnDevicePersonalizationManagingServiceTest {
+    private OnDevicePersonalizationManagingServiceImpl mService;
     @Before
     public void setup() throws Exception {
-        mService = new FakeOnDevicePersonalizationManagerService();
+        mService = new FakeOnDevicePersonalizationManagingService();
     }
     @Test
     public void testVersion() throws Exception {
@@ -54,8 +54,8 @@ public class OnDevicePersonalizationManagerServiceTest {
         assertNotNull(token);
     }
 
-    private static class FakeOnDevicePersonalizationManagerService
-            extends OnDevicePersonalizationManagerServiceImpl {
+    private static class FakeOnDevicePersonalizationManagingService
+            extends OnDevicePersonalizationManagingServiceImpl {
     }
 
     private static class FakeInitOnDevicePersonalizationCallback

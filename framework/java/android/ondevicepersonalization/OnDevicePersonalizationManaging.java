@@ -26,7 +26,7 @@ import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
-import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagerService;
+import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -36,18 +36,18 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
- * OnDevicePersonalization Manager.
+ * OnDevicePersonalization Managing.
  *
  * @hide
  */
-public class OnDevicePersonalizationManager {
+public class OnDevicePersonalizationManaging {
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
 
     private boolean mBound = false;
-    private static final String TAG = "OdpManager";
+    private static final String TAG = "OdpManaging";
 
-    private IOnDevicePersonalizationManagerService mService;
+    private IOnDevicePersonalizationManagingService mService;
     private final Context mContext;
 
     /**
@@ -63,7 +63,7 @@ public class OnDevicePersonalizationManager {
         void onError(int errorCode);
     }
 
-    public OnDevicePersonalizationManager(Context context) {
+    public OnDevicePersonalizationManaging(Context context) {
         mContext = context;
     }
 
@@ -71,7 +71,7 @@ public class OnDevicePersonalizationManager {
             new ServiceConnection() {
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
-                    mService = IOnDevicePersonalizationManagerService.Stub.asInterface(service);
+                    mService = IOnDevicePersonalizationManagingService.Stub.asInterface(service);
                     mBound = true;
                 }
 
@@ -96,7 +96,7 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Initializes the OnDevicePersonalizationManager.
+     * Initializes the OnDevicePersonalizationManaging.
      *
      * @hide
      */

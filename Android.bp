@@ -37,7 +37,6 @@ android_app {
     name: "OnDevicePersonalization",
     srcs: [
         ":ondevicepersonalization-sources",
-        ":framework-ondevicepersonalization-aidl",
     ],
     libs: [
         "framework-ondevicepersonalization",

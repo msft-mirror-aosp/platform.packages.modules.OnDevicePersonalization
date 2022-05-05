@@ -19,19 +19,19 @@ package com.android.ondevicepersonalization.services;
 import android.app.Service;
 import android.content.Intent;
 import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
-import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagerService;
+import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 
 /** Implementation of OnDevicePersonalization Service */
-public class OnDevicePersonalizationManagerServiceImpl extends Service {
-    private IOnDevicePersonalizationManagerService.Stub mBinder;
+public class OnDevicePersonalizationManagingServiceImpl extends Service {
+    private IOnDevicePersonalizationManagingService.Stub mBinder;
 
     @Override
     public void onCreate() {
-        mBinder = new OnDevicePersonalizationManagerServiceDelegate();
+        mBinder = new OnDevicePersonalizationManagingServiceDelegate();
     }
 
     @Override
@@ -52,15 +52,15 @@ public class OnDevicePersonalizationManagerServiceImpl extends Service {
         }
     }
 
-    final class OnDevicePersonalizationManagerServiceDelegate
-            extends IOnDevicePersonalizationManagerService.Stub {
+    final class OnDevicePersonalizationManagingServiceDelegate
+            extends IOnDevicePersonalizationManagingService.Stub {
         @Override
         public String getVersion() {
-            return OnDevicePersonalizationManagerServiceImpl.this.getVersion();
+            return OnDevicePersonalizationManagingServiceImpl.this.getVersion();
         }
         @Override
         public void init(Bundle params, IInitOnDevicePersonalizationCallback callback) {
-            OnDevicePersonalizationManagerServiceImpl.this.init(params, callback);
+            OnDevicePersonalizationManagingServiceImpl.this.init(params, callback);
         }
     }
 }
