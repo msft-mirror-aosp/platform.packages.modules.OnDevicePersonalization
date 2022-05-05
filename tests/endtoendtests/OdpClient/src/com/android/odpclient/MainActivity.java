@@ -20,20 +20,13 @@ import android.app.Activity;
 import android.content.Context;
 import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.os.Bundle;
-import android.os.IBinder;
-import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
-import android.widget.Toast;
-
-import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
-    private static final String TAG = "OdpClient";
     private OnDevicePersonalizationManager mOdpManager = null;
 
-    private Button mGetVersionButton;
     private Button mBindButton;
     private SurfaceView mRenderedView;
 
@@ -47,50 +40,21 @@ public class MainActivity extends Activity {
         if (mOdpManager == null) {
             mOdpManager = new OnDevicePersonalizationManager(mContext);
         }
+
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setZOrderOnTop(true);
         mRenderedView.setVisibility(View.INVISIBLE);
-        mGetVersionButton = findViewById(R.id.get_version_button);
         mBindButton = findViewById(R.id.bind_service_button);
-        registerGetVersionButton();
         registerBindServiceButton();
     }
 
-    private void registerGetVersionButton() {
-        mGetVersionButton.setOnClickListener(v -> {
+    private void registerBindServiceButton() {
+        mBindButton.setOnClickListener(v -> {
             if (mOdpManager == null) {
-                makeToast("OnDevicePersonalizationManager is null");
+                mBindButton.setText("OnDevicePersonalizationManager is null");
             } else {
-                makeToast(mOdpManager.getVersion());
+                mBindButton.setText(mOdpManager.getVersion());
             }
         });
-    }
-    private void registerBindServiceButton() {
-        mBindButton.setOnClickListener(
-                v -> {
-                    if (mOdpManager == null) {
-                        makeToast("OnDevicePersonalizationManager is null");
-                    } else {
-                        mOdpManager.init(
-                                new Bundle(),
-                                Executors.newSingleThreadExecutor(),
-                                new OnDevicePersonalizationManager.InitCallback() {
-                                    @Override
-                                    public void onSuccess(IBinder token) {
-                                        makeToast("init() success: " + token.toString());
-                                    }
-
-                                    @Override
-                                    public void onError(int errorCode) {
-                                        makeToast("init() error: " + errorCode);
-                                    }
-                                });
-                    }
-                });
-    }
-
-    private void makeToast(String message) {
-        Log.i(TAG, message);
-        runOnUiThread(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
     }
 }
