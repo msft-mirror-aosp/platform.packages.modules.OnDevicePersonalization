@@ -42,6 +42,9 @@ android_app {
         "framework-ondevicepersonalization",
         "framework-annotations-lib",
     ],
+    static_libs: [
+        "guava",
+    ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
     updatable: true,
