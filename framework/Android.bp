@@ -61,7 +61,7 @@ java_sdk_library {
 
 java_defaults {
     name: "framework-ondevicepersonalization-cts-defaults",
-    sdk_version: "core_Tiramisu",
+    sdk_version: "core_current",
     libs: [
         "framework-ondevicepersonalization.impl",
         "framework",
