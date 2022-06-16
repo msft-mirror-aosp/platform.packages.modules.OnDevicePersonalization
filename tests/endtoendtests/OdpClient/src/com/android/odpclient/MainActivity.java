@@ -18,15 +18,22 @@ package com.android.odpclient;
 
 import android.app.Activity;
 import android.content.Context;
-import android.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.ondevicepersonalization.OnDevicePersonalizationManaging;
 import android.os.Bundle;
+import android.os.IBinder;
+import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.Toast;
+
+import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
-    private OnDevicePersonalizationManager mOdpManager = null;
+    private static final String TAG = "OdpClient";
+    private OnDevicePersonalizationManaging mOdpManaging = null;
 
+    private Button mGetVersionButton;
     private Button mBindButton;
     private SurfaceView mRenderedView;
 
@@ -37,24 +44,53 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = getApplicationContext();
-        if (mOdpManager == null) {
-            mOdpManager = new OnDevicePersonalizationManager(mContext);
+        if (mOdpManaging == null) {
+            mOdpManaging = mContext.getSystemService(OnDevicePersonalizationManaging.class);
         }
-
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setZOrderOnTop(true);
         mRenderedView.setVisibility(View.INVISIBLE);
+        mGetVersionButton = findViewById(R.id.get_version_button);
         mBindButton = findViewById(R.id.bind_service_button);
+        registerGetVersionButton();
         registerBindServiceButton();
     }
 
-    private void registerBindServiceButton() {
-        mBindButton.setOnClickListener(v -> {
-            if (mOdpManager == null) {
-                mBindButton.setText("OnDevicePersonalizationManager is null");
+    private void registerGetVersionButton() {
+        mGetVersionButton.setOnClickListener(v -> {
+            if (mOdpManaging == null) {
+                makeToast("OnDevicePersonalizationManaging is null");
             } else {
-                mBindButton.setText(mOdpManager.getVersion());
+                makeToast(mOdpManaging.getVersion());
             }
         });
+    }
+    private void registerBindServiceButton() {
+        mBindButton.setOnClickListener(
+                v -> {
+                    if (mOdpManaging == null) {
+                        makeToast("OnDevicePersonalizationManaging is null");
+                    } else {
+                        mOdpManaging.init(
+                                new Bundle(),
+                                Executors.newSingleThreadExecutor(),
+                                new OnDevicePersonalizationManaging.InitCallback() {
+                                    @Override
+                                    public void onSuccess(IBinder token) {
+                                        makeToast("init() success: " + token.toString());
+                                    }
+
+                                    @Override
+                                    public void onError(int errorCode) {
+                                        makeToast("init() error: " + errorCode);
+                                    }
+                                });
+                    }
+                });
+    }
+
+    private void makeToast(String message) {
+        Log.i(TAG, message);
+        runOnUiThread(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
     }
 }
