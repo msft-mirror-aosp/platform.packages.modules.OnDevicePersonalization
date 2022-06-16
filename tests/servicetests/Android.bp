@@ -17,7 +17,7 @@ package {
 }
 
 android_test {
-    name: "OnDevicePersonalizationManagerServicesTests",
+    name: "OnDevicePersonalizationManagingServicesTests",
     srcs: [
         "src/**/*.java",
         ":framework-ondevicepersonalization-aidl",
@@ -37,5 +37,6 @@ android_test {
     min_sdk_version: "Tiramisu",
     test_suites: [
         "general-tests",
+        "mts-ondevicepersonalization",
     ],
 }
