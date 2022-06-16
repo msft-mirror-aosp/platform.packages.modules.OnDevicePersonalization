@@ -20,6 +20,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 
 /** @hide */
-oneway interface IInitCodeCallback {
-    void onInitCodeFinished(IBinder token, in Bundle params);
+oneway interface IInitOnDevicePersonalizationCallback {
+    void onSuccess(IBinder token);
+    void onError(int errorCode);
 }
