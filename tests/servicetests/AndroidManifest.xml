@@ -18,10 +18,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.ondevicepersonalization.servicetests" >
 
-    <application android:label="OnDevicePersonalizationManagerServicesTests">
+    <application android:label="OnDevicePersonalizationManagingServicesTests">
         <uses-library android:name="android.test.runner"/>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.ondevicepersonalization.servicetests"
-                     android:label="Tests of OnDevicePersonalizationManagerService"/>
+                     android:label="Tests of OnDevicePersonalizationManagingService"/>
 </manifest>

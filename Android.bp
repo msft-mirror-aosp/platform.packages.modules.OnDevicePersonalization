@@ -37,10 +37,13 @@ android_app {
     name: "OnDevicePersonalization",
     srcs: [
         ":ondevicepersonalization-sources",
-        ":framework-ondevicepersonalization-aidl",
     ],
     libs: [
         "framework-ondevicepersonalization",
+        "framework-annotations-lib",
+    ],
+    static_libs: [
+        "guava",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
