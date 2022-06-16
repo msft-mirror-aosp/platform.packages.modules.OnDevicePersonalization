@@ -26,7 +26,7 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
     <application android:forceQueryable="true">
-        <service android:name=".OnDevicePersonalizationManagerServiceImpl" android:exported="true" >
+        <service android:name=".OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
