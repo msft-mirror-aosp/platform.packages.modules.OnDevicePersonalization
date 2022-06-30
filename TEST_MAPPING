@@ -1,7 +1,10 @@
 {
   "presubmit": [
     {
-      "name": "OnDevicePersonalizationManagerServicesTests"
+      "name": "FrameworkOnDevicePersonalizationTests"
+    },
+    {
+      "name": "OnDevicePersonalizationManagingServicesTests"
     }
   ]
 }
