@@ -18,41 +18,31 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.provider.BaseColumns;
 
-/** Contract for the buyer_data table. Defines the table. */
-class BuyerDataContract {
-    private BuyerDataContract() {
+/** Contract for the vendor_data tables. Defines the table. */
+class VendorDataContract {
+    private VendorDataContract() {
     }
 
     /**
-     * Table containing data belonging to buyers. Each row is owned by a single buyer and
+     * Table containing data belonging to vendors. Each table is owned by a single vendor and
      * contains data which will be used during ad requests.
      */
-    public static class BuyerDataEntry implements BaseColumns {
-        public static final String TABLE_NAME = "buyer_data";
-
-        /** Name of buyer SDK that owns this row */
-        public static final String OWNER = "owner";
-
-        /** Certificate used to sign buyer SDK */
-        public static final String CERTIFICATE = "certificate";
-
-        /** Lookup key for the row - unique for each buyer */
+    public static class VendorDataEntry implements BaseColumns {
+        /** Lookup key for the row - unique for each vendor */
         public static final String KEY = "key";
 
-        /** Row data - ads or other buyer settings */
+        /** Row data - ads or other vendor settings */
         public static final String DATA = "data";
 
-        /** A buyer-assigned fingerprint for the row contents */
+        /** A vendor-assigned fingerprint for the row contents */
         public static final String FP = "fp";
 
-        public static final String CREATE_TABLE =
-                "CREATE TABLE " + TABLE_NAME + " ("
-                        + OWNER + " TEXT NOT NULL,"
-                        + CERTIFICATE + " TEXT NOT NULL,"
+        public static String getCreateTableIfNotExistsStatement(final String tableName) {
+            return "CREATE TABLE IF NOT EXISTS " + tableName + " ("
                         + KEY + " TEXT NOT NULL,"
                         + DATA + " BLOB NOT NULL,"
                         + FP + " TEXT NOT NULL,"
-                        + "PRIMARY KEY("
-                        + OWNER + "," + CERTIFICATE + "," + KEY + "))";
+                        + "PRIMARY KEY(" + KEY + "))";
+        }
     }
 }
