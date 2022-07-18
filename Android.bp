@@ -44,6 +44,7 @@ android_app {
     ],
     static_libs: [
         "guava",
+        "androidx.work_work-runtime",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
