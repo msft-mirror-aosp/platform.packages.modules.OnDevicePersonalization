@@ -22,6 +22,9 @@ java_defaults {
     lint: {
         strict_updatability_linting: true,
     },
+    plugins: [
+        "staledataclass-annotation-processor",
+    ],
     min_sdk_version: "Tiramisu",
 }
 
