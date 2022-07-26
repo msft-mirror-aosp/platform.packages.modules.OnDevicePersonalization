@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
@@ -23,6 +24,7 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,14 +32,15 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationVendorDataDaoTest {
-    private static final String TAG = "OnDevicePersonalizationVendorDataDaoTest";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationVendorDataDao mDao;
+    private static String sTestOwner = "owner";
+    private static String sTestCertDigest = "certDigest";
 
     @Before
     public void setup() {
-        mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, "owner",
-                "certDigest");
+        mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, sTestOwner,
+                sTestCertDigest);
     }
 
     @Test
@@ -50,5 +53,31 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     public void testInsertNullData() {
         boolean insertResult = mDao.updateOrInsertVendorData("key", null, "fp");
         assertFalse(insertResult);
+    }
+
+    @Test
+    public void testInsertSyncToken() {
+        long timestamp = System.currentTimeMillis();
+        boolean insertResult = mDao.updateOrInsertSyncToken(timestamp);
+        assertTrue(insertResult);
+
+        long timestampFromDB = mDao.getSyncToken();
+        assertEquals(timestamp, timestampFromDB);
+    }
+
+    @Test
+    public void testFailReadSyncToken() {
+        long timestampFromDB = mDao.getSyncToken();
+        assertEquals(-1L, timestampFromDB);
+    }
+
+    @After
+    public void cleanup() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        dbHelper.getWritableDatabase().close();
+        dbHelper.getReadableDatabase().close();
+        dbHelper.close();
+        OnDevicePersonalizationVendorDataDao.clearInstance(sTestOwner, sTestCertDigest);
     }
 }
