@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
@@ -37,12 +38,16 @@ public class OnDevicePersonalizationVendorDataDao {
     private static final Map<String, OnDevicePersonalizationVendorDataDao> sVendorDataDaos =
             new HashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
+    private final String mOwner;
+    private final String mCertDigest;
     private final String mTableName;
 
     private OnDevicePersonalizationVendorDataDao(OnDevicePersonalizationDbHelper dbHelper,
-            String tableName) {
+            String owner, String certDigest) {
         this.mDbHelper = dbHelper;
-        this.mTableName = tableName;
+        this.mOwner = owner;
+        this.mCertDigest = certDigest;
+        this.mTableName = getTableName(owner, certDigest);
     }
 
     /**
@@ -58,14 +63,14 @@ public class OnDevicePersonalizationVendorDataDao {
             String certDigest) {
         synchronized (OnDevicePersonalizationVendorDataDao.class) {
             // TODO: Validate the owner and certDigest
-            String tableName = "vendordata_" + owner + "_" + certDigest;
+            String tableName = getTableName(owner, certDigest);
             OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstance(context);
                 createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationVendorDataDao(
-                        dbHelper, tableName);
+                        dbHelper, owner, certDigest);
                 sVendorDataDaos.put(tableName, instance);
             }
             return instance;
@@ -80,17 +85,29 @@ public class OnDevicePersonalizationVendorDataDao {
     public static OnDevicePersonalizationVendorDataDao getInstanceForTest(Context context,
             String owner, String certDigest) {
         synchronized (OnDevicePersonalizationVendorDataDao.class) {
-            String tableName = "vendordata_" + owner + "_" + certDigest;
+            String tableName = getTableName(owner, certDigest);
             OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
                 createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationVendorDataDao(
-                        dbHelper, tableName);
+                        dbHelper, owner, certDigest);
                 sVendorDataDaos.put(tableName, instance);
             }
             return instance;
+        }
+    }
+
+    /**
+     * Clears an instance of OnDevicePersonalizationVendorDataDao. This should be called when
+     * the underlying table is deleted.
+     */
+    public static void clearInstance(String owner, String certDigest) {
+        // TODO: This also handle deleting the table itself.
+        synchronized (OnDevicePersonalizationVendorDataDao.class) {
+            String tableName = getTableName(owner, certDigest);
+            sVendorDataDaos.remove(tableName);
         }
     }
 
@@ -106,7 +123,7 @@ public class OnDevicePersonalizationVendorDataDao {
     }
 
     /**
-     * Updates the given vendor data row, adds it, if it doesn't already exist.
+     * Updates the given vendor data row, adds it if it doesn't already exist.
      *
      * @return true if the update/insert succeeded, false otherwise
      */
@@ -123,5 +140,62 @@ public class OnDevicePersonalizationVendorDataDao {
             Log.e(TAG, "Failed to update or insert buyer data", e);
         }
         return false;
+    }
+
+    /**
+     * Updates the syncToken, adds it if it doesn't already exist.
+     *
+     * @return true if the update/insert succeeded, false otherwise
+     */
+    public boolean updateOrInsertSyncToken(long syncToken) {
+        try {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER, mOwner);
+            values.put(VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST, mCertDigest);
+            values.put(VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN, syncToken);
+            return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
+                    null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to update or insert syncToken", e);
+        }
+        return false;
+    }
+
+    /**
+     * Gets the syncToken owned by {@link #mOwner} with cert {@link #mCertDigest}
+     *
+     * @return syncToken if found, -1 otherwise
+     */
+    public long getSyncToken() {
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
+                + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
+        String[] selectionArgs = {mOwner, mCertDigest};
+        String[] projection = {VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN};
+        Cursor cursor = db.query(
+                VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
+                projection,
+                selection,
+                selectionArgs,
+                /* groupBy= */ null,
+                /* having= */ null,
+                /* orderBy= */ null
+        );
+        try {
+            if (cursor.moveToFirst()) {
+                return cursor.getLong(cursor.getColumnIndexOrThrow(
+                        VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN));
+            }
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to update or insert syncToken", e);
+        } finally {
+            cursor.close();
+        }
+        return -1;
+    }
+
+    private static String getTableName(String owner, String certDigest) {
+        return "vendordata_" + owner + "_" + certDigest;
     }
 }
