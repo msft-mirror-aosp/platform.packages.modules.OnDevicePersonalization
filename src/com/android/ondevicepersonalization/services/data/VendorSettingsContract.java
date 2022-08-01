@@ -20,13 +20,14 @@ import android.provider.BaseColumns;
 
 /** Contract for the vendor_settings tables. Defines the table. */
 class VendorSettingsContract {
-    private VendorSettingsContract() {
-    }
+    private VendorSettingsContract() {}
 
     /**
      * Table containing the settings for vendors
      */
     public static class VendorSettingsEntry implements BaseColumns {
+        private VendorSettingsEntry() {}
+
         public static final String TABLE_NAME = "vendor_settings";
 
         /** Name of the vendor package that owns the setting */
