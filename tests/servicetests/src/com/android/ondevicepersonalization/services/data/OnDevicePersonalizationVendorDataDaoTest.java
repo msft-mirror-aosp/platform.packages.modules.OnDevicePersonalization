@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -69,6 +70,21 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     public void testFailReadSyncToken() {
         long timestampFromDB = mDao.getSyncToken();
         assertEquals(-1L, timestampFromDB);
+    }
+
+    @Test
+    public void testGetInstance() {
+        OnDevicePersonalizationVendorDataDao instance1Owner1 =
+                OnDevicePersonalizationVendorDataDao.getInstance(mContext, "owner1",
+                        sTestCertDigest);
+        OnDevicePersonalizationVendorDataDao instance2Owner1 =
+                OnDevicePersonalizationVendorDataDao.getInstance(mContext, "owner1",
+                        sTestCertDigest);
+        assertEquals(instance1Owner1, instance2Owner1);
+        OnDevicePersonalizationVendorDataDao instance1Owner2 =
+                OnDevicePersonalizationVendorDataDao.getInstance(mContext, "owner2",
+                        sTestCertDigest);
+        assertNotEquals(instance1Owner1, instance1Owner2);
     }
 
     @After
