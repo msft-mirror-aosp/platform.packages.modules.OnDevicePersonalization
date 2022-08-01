@@ -22,6 +22,9 @@ java_defaults {
     lint: {
         strict_updatability_linting: true,
     },
+    plugins: [
+        "staledataclass-annotation-processor",
+    ],
     min_sdk_version: "Tiramisu",
 }
 
@@ -33,17 +36,45 @@ filegroup {
     path: "src",
 }
 
+filegroup {
+    name: "chronicle-sources",
+    srcs: [
+        "src/**/*.kt",
+    ],
+    path: "src",
+}
+
+java_library {
+    name: "ondevicepersonalization-protos",
+    proto: {
+        type: "lite",
+    },
+    sdk_version: "system_current",
+    min_sdk_version: "Tiramisu",
+    srcs: ["src/**/*.proto"],
+    apex_available: [
+        "com.android.ondevicepersonalization",
+    ]
+}
+
 android_app {
     name: "OnDevicePersonalization",
     srcs: [
         ":ondevicepersonalization-sources",
+        ":chronicle-sources",
     ],
     libs: [
         "framework-ondevicepersonalization",
         "framework-annotations-lib",
+        "kotlin-annotations",
     ],
     static_libs: [
         "guava",
+        "androidx.work_work-runtime",
+        "kotlin-stdlib",
+        "kotlinx_coroutines",
+        "kotlinx-coroutines-android",
+        "ondevicepersonalization-protos",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",

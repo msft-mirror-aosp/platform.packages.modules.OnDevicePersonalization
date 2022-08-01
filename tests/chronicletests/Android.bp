@@ -17,15 +17,15 @@ package {
 }
 
 android_test {
-    name: "OnDevicePersonalizationManagingServicesTests",
+    name: "OdpChronicleTests",
     srcs: [
-        "src/**/*.java",
-        ":framework-ondevicepersonalization-aidl",
-        ":ondevicepersonalization-sources",
+        "src/**/*.kt",
+        ":chronicle-sources",
     ],
     libs: [
         "android.test.base",
         "android.test.runner",
+        "kotlin-annotations",
         "truth-prebuilt",
     ],
     static_libs: [
@@ -34,11 +34,14 @@ android_test {
         "androidx.test.rules",
         "androidx.work_work-runtime",
         "androidx.work_work-testing",
+        "kotlin-stdlib",
+        "kotlin-test",
+        "kotlinx-coroutines-android",
+        "ondevicepersonalization-protos",
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     test_suites: [
         "general-tests",
-        "mts-ondevicepersonalization",
     ],
 }
