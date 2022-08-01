@@ -25,6 +25,7 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -34,6 +35,13 @@ import java.util.List;
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    @Before
+    public void setup() throws Exception {
+        WorkManager workManager = WorkManager.getInstance(mContext);
+        workManager.cancelAllWork().getResult().get();
+        workManager.pruneWork().getResult().get();
+    }
 
     @Test
     public void testOnReceive() throws Exception {
@@ -47,5 +55,18 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
                 OnDevicePersonalizationDownloadProcessingWorker.TAG).get();
         assertEquals(1, workInfos.size());
         assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
+    }
+
+    @Test
+    public void testOnReceiveInvalidIntent() throws Exception {
+        OnDevicePersonalizationStartDownloadServiceReceiver receiver =
+                new OnDevicePersonalizationStartDownloadServiceReceiver();
+
+        Intent intent = new Intent(Intent.ACTION_DIAL_EMERGENCY);
+        receiver.onReceive(mContext, intent);
+        WorkManager workManager = WorkManager.getInstance(mContext);
+        List<WorkInfo> workInfos = workManager.getWorkInfosByTag(
+                OnDevicePersonalizationDownloadProcessingWorker.TAG).get();
+        assertEquals(0, workInfos.size());
     }
 }
