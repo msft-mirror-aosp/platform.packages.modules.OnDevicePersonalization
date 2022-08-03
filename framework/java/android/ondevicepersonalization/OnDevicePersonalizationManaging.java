@@ -88,6 +88,7 @@ public class OnDevicePersonalizationManaging {
 
     /**
      * Gets OnDevicePersonalization version.
+     * This function is a temporary place holder. It will be removed when new APIs are added.
      *
      * @hide
      */
