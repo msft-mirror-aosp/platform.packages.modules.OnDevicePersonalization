@@ -73,5 +73,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
         Log.d(TAG, "DB upgrade from " + oldVersion + " to " + newVersion);
+        throw new UnsupportedOperationException(
+                "Database upgrade for OnDevicePersonalization is unsupported");
     }
 }

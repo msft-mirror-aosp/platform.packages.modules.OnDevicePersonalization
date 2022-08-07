@@ -20,14 +20,15 @@ import android.provider.BaseColumns;
 
 /** Contract for the vendor_data tables. Defines the table. */
 class VendorDataContract {
-    private VendorDataContract() {
-    }
+    private VendorDataContract() {}
 
     /**
      * Table containing data belonging to vendors. Each table is owned by a single vendor and
      * contains data which will be used during ad requests.
      */
     public static class VendorDataEntry implements BaseColumns {
+        private VendorDataEntry() {}
+
         /** Lookup key for the row - unique for each vendor */
         public static final String KEY = "key";
 
