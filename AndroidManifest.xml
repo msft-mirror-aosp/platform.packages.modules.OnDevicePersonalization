@@ -37,5 +37,17 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
+        <service android:name=".download.OnDevicePersonalizationDownloadProcessingWorker"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+
+        <!-- On BOOT_COMPLETED receiver for registering jobs -->
+        <receiver android:name=".download.OnDevicePersonalizationStartDownloadServiceReceiver"
+                  android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
