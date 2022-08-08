@@ -53,6 +53,7 @@ java_sdk_library {
     ],
     permitted_packages: [
         "android.ondevicepersonalization",
+        "com.android.ondevicepersonalization.internal",
     ],
     impl_library_visibility: ["//visibility:public"],
     min_sdk_version: "Tiramisu",
