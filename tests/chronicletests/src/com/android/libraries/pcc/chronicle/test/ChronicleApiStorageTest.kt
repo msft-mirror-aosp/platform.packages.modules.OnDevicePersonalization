@@ -25,6 +25,7 @@ import com.android.libraries.pcc.chronicle.api.storage.Timestamp
 import com.android.libraries.pcc.chronicle.api.storage.toInstant
 import com.android.libraries.pcc.chronicle.api.storage.toProtoTimestamp
 import com.android.libraries.pcc.chronicle.api.storage.update
+import com.android.libraries.pcc.chronicle.test.data.Foobar
 import com.google.common.truth.Truth.assertThat
 import java.time.Instant
 import kotlin.test.assertFailsWith
@@ -84,6 +85,4 @@ class ChronicleApiStorageTest {
         val wrappedEntity = WrappedEntity(entityMetadata, foobar)
         assertThat(wrappedEntity.entity.name).isEqualTo("foobar")
     }
-
-    data class Foobar(val name: String)
 }
