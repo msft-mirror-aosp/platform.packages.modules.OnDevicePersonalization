@@ -16,11 +16,12 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.annotation.NonNull;
 import android.app.Service;
 import android.content.Intent;
-import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
+import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.os.Binder;
+import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -43,10 +44,17 @@ public class OnDevicePersonalizationManagingServiceImpl extends Service {
         return "1.0";
     }
 
-    void init(Bundle params, IInitOnDevicePersonalizationCallback callback) {
+    void requestSurfacePackage(
+            @NonNull String callingPackageName,
+            @NonNull String exchangePackageName,
+            @NonNull IBinder hostToken,
+            int displayId,
+            int width,
+            int height,
+            @NonNull Bundle params,
+            @NonNull IRequestSurfacePackageCallback callback) {
         try {
-            IBinder token = new Binder("OnDevicePersonalization");
-            callback.onSuccess(token);
+            callback.onError(OnDevicePersonalizationManager.STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
             throw e.rethrowAsRuntimeException();
         }
@@ -58,9 +66,27 @@ public class OnDevicePersonalizationManagingServiceImpl extends Service {
         public String getVersion() {
             return OnDevicePersonalizationManagingServiceImpl.this.getVersion();
         }
+
         @Override
-        public void init(Bundle params, IInitOnDevicePersonalizationCallback callback) {
-            OnDevicePersonalizationManagingServiceImpl.this.init(params, callback);
+        public void requestSurfacePackage(
+                @NonNull String callingPackageName,
+                @NonNull String exchangePackageName,
+                @NonNull IBinder hostToken,
+                int displayId,
+                int width,
+                int height,
+                @NonNull Bundle params,
+                @NonNull IRequestSurfacePackageCallback callback) {
+            OnDevicePersonalizationManagingServiceImpl.this
+                    .requestSurfacePackage(
+                            callingPackageName,
+                            exchangePackageName,
+                            hostToken,
+                            displayId,
+                            width,
+                            height,
+                            params,
+                            callback);
         }
     }
 }
