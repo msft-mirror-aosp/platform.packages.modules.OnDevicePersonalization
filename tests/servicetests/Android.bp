@@ -32,6 +32,8 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "androidx.work_work-runtime",
+        "androidx.work_work-testing",
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",

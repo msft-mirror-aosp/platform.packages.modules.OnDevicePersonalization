@@ -14,42 +14,30 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data;
+package com.android.ondevicepersonalization.services.download;
 
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertEquals;
 
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.work.ListenableWorker.Result;
+import androidx.work.testing.TestListenableWorkerBuilder;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationDataManagerTest {
-    private static final String TAG = "OnDevicePersonalizationDbManagerTest";
+public class OnDevicePersonalizationDownloadProcessingWorkerTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    private OnDevicePersonalizationDataManager mManager;
-
-    @Before
-    public void setup() {
-        mManager = OnDevicePersonalizationDataManager.getInstanceForTest(mContext);
-    }
 
     @Test
-    public void testInsert() {
-        boolean insertResult = mManager.updateOrInsertBuyerData("owner", "certificate",
-                "key", new byte[10], "fp");
-        assertTrue(insertResult);
-    }
-
-    @Test
-    public void testInsertNullData() {
-        boolean insertResult = mManager.updateOrInsertBuyerData("owner", "certificate",
-                "key", null, "fp");
-        assertFalse(insertResult);
+    public void testSuccessfulDoWork() throws Exception {
+        OnDevicePersonalizationDownloadProcessingWorker worker = TestListenableWorkerBuilder
+                .from(mContext, OnDevicePersonalizationDownloadProcessingWorker.class)
+                .build();
+        Result result = worker.startWork().get();
+        assertEquals(Result.success(), result);
     }
 }
