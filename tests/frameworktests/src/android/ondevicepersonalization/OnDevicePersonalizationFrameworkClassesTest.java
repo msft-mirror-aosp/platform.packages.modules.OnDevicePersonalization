@@ -1,0 +1,109 @@
+/*
+ * Copyright 2022 The Android Open Source Project
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *      http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package android.ondevicepersonalization;
+
+import static org.junit.Assert.assertEquals;
+
+import android.ondevicepersonalization.rtb.Banner;
+import android.ondevicepersonalization.rtb.Bid;
+import android.ondevicepersonalization.rtb.BidRequest;
+import android.ondevicepersonalization.rtb.BidResponse;
+import android.ondevicepersonalization.rtb.Imp;
+import android.ondevicepersonalization.rtb.SeatBid;
+import android.os.Parcel;
+
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.SmallTest;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+/**
+ * Unit Tests of Framework API Classes.
+ */
+@SmallTest
+@RunWith(AndroidJUnit4.class)
+public class OnDevicePersonalizationFrameworkClassesTest {
+    /**
+     * Tests that the BidResponse object serializes correctly.
+     */
+    @Test
+    public void testBidResponse() {
+        Bid.Builder builder = new Bid.Builder();
+        builder.setKey("key1");
+        builder.setPrice(10.0);
+        builder.setAdm("[adm]");
+        builder.setAdomain("example.com");
+
+        SeatBid.Builder seatBidBuilder = new SeatBid.Builder();
+        seatBidBuilder.addBids(builder.build());
+
+        BidResponse.Builder bidResponseBuilder = new BidResponse.Builder();
+        bidResponseBuilder.addSeatBids(seatBidBuilder.build());
+        bidResponseBuilder.setCur("abc");
+        BidResponse response = bidResponseBuilder.build();
+
+        assertEquals("abc", response.getCur());
+        Bid bid = response.getSeatBids().get(0).getBids().get(0);
+        assertEquals("key1", bid.getKey());
+        assertEquals(10.0, bid.getPrice(), 0.01);
+        assertEquals("[adm]", bid.getAdm());
+        assertEquals("example.com", bid.getAdomain());
+
+        Parcel parcel = Parcel.obtain();
+        response.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        BidResponse response2 = BidResponse.CREATOR.createFromParcel(parcel);
+
+        assertEquals("abc", response2.getCur());
+        Bid bid2 = response.getSeatBids().get(0).getBids().get(0);
+        assertEquals("key1", bid2.getKey());
+        assertEquals(10.0, bid2.getPrice(), 0.01);
+        assertEquals("[adm]", bid2.getAdm());
+        assertEquals("example.com", bid2.getAdomain());
+    }
+
+    /**
+     * Tests that the BidRequest object serializes correctly.
+     */
+    @Test
+    public void testBidRequest() {
+        Banner.Builder builder = new Banner.Builder();
+        builder.setW(100);
+        builder.setH(200);
+
+        Imp.Builder impBuilder = new Imp.Builder();
+        impBuilder.setBanner(builder.build());
+
+        BidRequest.Builder bidRequestBuilder = new BidRequest.Builder();
+        bidRequestBuilder.addImps(impBuilder.build());
+        BidRequest request = bidRequestBuilder.build();
+
+        Banner banner = request.getImps().get(0).getBanner();
+        assertEquals(100, banner.getW());
+        assertEquals(200, banner.getH());
+
+        Parcel parcel = Parcel.obtain();
+        request.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        BidRequest request2 = BidRequest.CREATOR.createFromParcel(parcel);
+
+        Banner banner2 = request2.getImps().get(0).getBanner();
+        assertEquals(100, banner2.getW());
+        assertEquals(200, banner2.getH());
+    }
+}
