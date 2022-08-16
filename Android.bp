@@ -75,6 +75,7 @@ android_app {
         "kotlinx_coroutines",
         "kotlinx-coroutines-android",
         "ondevicepersonalization-protos",
+        "mobile_data_downloader_lib",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
