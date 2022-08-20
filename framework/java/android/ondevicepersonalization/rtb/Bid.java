@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package android.ondevicepersonalization.rtb;
 import android.annotation.NonNull;
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -62,7 +62,7 @@ public final class Bid implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Bid.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/rtb/Bid.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -305,9 +305,9 @@ public final class Bid implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1657657904256L,
+            time = 1659465253422L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Bid.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/rtb/Bid.java",
             inputSignatures = "private @android.annotation.NonNull java.lang.String mKey\nprivate  double mPrice\nprivate @android.annotation.NonNull java.lang.String mAdm\nprivate @android.annotation.NonNull java.lang.String mAdomain\nclass Bid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
