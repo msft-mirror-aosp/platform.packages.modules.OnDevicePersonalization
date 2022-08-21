@@ -33,6 +33,7 @@ import androidx.work.WorkManager;
 import androidx.work.WorkerParameters;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -47,11 +48,13 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
     public static final String TAG = "OnDevicePersonalizationDownloadProcessingWorker";
     private List<ListenableFuture<Void>> mFutures;
     private final PackageManager mPackageManager;
+    private final Context mContext;
 
     public OnDevicePersonalizationDownloadProcessingWorker(
             Context context,
             WorkerParameters params) {
         super(context, params);
+        this.mContext = context;
         this.mPackageManager = context.getPackageManager();
     }
 
@@ -85,7 +88,7 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
             if (isStopped()) {
                 break;
             }
-            if (manifestContainsOdpDownloadSettings(packageInfo)) {
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
                 mFutures.add(Futures.submit(
                         new OnDevicePersonalizationDataProcessingRunnable(packageInfo),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
