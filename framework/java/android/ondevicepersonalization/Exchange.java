@@ -48,7 +48,7 @@ public interface Exchange {
      */
     // TODO(b/19460933): Should bids be scored separately or together?
     double scoreBid(
-            @NonNull PackageInfo bidderInfo,
+            @NonNull PackageId bidderInfo,
             @NonNull Bid bid,
             @NonNull SandboxContext sandboxContext
     );

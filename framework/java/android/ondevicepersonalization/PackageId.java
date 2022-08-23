@@ -29,7 +29,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public class PackageInfo implements Parcelable {
+public class PackageId implements Parcelable {
     /**
      * The package name of the bidder.
      */
@@ -48,7 +48,7 @@ public class PackageInfo implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/PackageInfo.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/PackageId.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -56,7 +56,7 @@ public class PackageInfo implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ PackageInfo(
+    /* package-private */ PackageId(
             @NonNull String packageName,
             @NonNull String certDigest) {
         this.mPackageName = packageName;
@@ -89,13 +89,13 @@ public class PackageInfo implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(PackageInfo other) { ... }
+        // boolean fieldNameEquals(PackageId other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        PackageInfo that = (PackageInfo) o;
+        PackageId that = (PackageId) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mPackageName, that.mPackageName)
@@ -131,7 +131,7 @@ public class PackageInfo implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    protected PackageInfo(@NonNull android.os.Parcel in) {
+    protected PackageId(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -149,21 +149,21 @@ public class PackageInfo implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<PackageInfo> CREATOR
-            = new Parcelable.Creator<PackageInfo>() {
+    public static final @NonNull Parcelable.Creator<PackageId> CREATOR
+            = new Parcelable.Creator<PackageId>() {
         @Override
-        public PackageInfo[] newArray(int size) {
-            return new PackageInfo[size];
+        public PackageId[] newArray(int size) {
+            return new PackageId[size];
         }
 
         @Override
-        public PackageInfo createFromParcel(@NonNull android.os.Parcel in) {
-            return new PackageInfo(in);
+        public PackageId createFromParcel(@NonNull android.os.Parcel in) {
+            return new PackageId(in);
         }
     };
 
     /**
-     * A builder for {@link PackageInfo}
+     * A builder for {@link PackageId}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -200,7 +200,7 @@ public class PackageInfo implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull PackageInfo build() {
+        public @NonNull PackageId build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
@@ -210,7 +210,7 @@ public class PackageInfo implements Parcelable {
             if ((mBuilderFieldsSet & 0x2) == 0) {
                 mCertDigest = "";
             }
-            PackageInfo o = new PackageInfo(
+            PackageId o = new PackageId(
                     mPackageName,
                     mCertDigest);
             return o;
@@ -225,10 +225,10 @@ public class PackageInfo implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1659462839221L,
+            time = 1660680820441L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/PackageInfo.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mPackageName\nprivate @android.annotation.NonNull java.lang.String mCertDigest\nclass PackageInfo extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/PackageId.java",
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mPackageName\nprivate @android.annotation.NonNull java.lang.String mCertDigest\nclass PackageId extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
