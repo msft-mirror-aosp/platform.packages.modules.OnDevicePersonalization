@@ -36,16 +36,16 @@ import java.util.List;
 import java.util.concurrent.Executor;
 
 /**
- * OnDevicePersonalization Managing.
+ * OnDevicePersonalizationManager.
  *
  * @hide
  */
-public class OnDevicePersonalizationManaging {
+public class OnDevicePersonalizationManager {
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
 
     private boolean mBound = false;
-    private static final String TAG = "OdpManaging";
+    private static final String TAG = "OdpManager";
 
     private IOnDevicePersonalizationManagingService mService;
     private final Context mContext;
@@ -63,7 +63,7 @@ public class OnDevicePersonalizationManaging {
         void onError(int errorCode);
     }
 
-    public OnDevicePersonalizationManaging(Context context) {
+    public OnDevicePersonalizationManager(Context context) {
         mContext = context;
     }
 
@@ -88,6 +88,7 @@ public class OnDevicePersonalizationManaging {
 
     /**
      * Gets OnDevicePersonalization version.
+     * This function is a temporary place holder. It will be removed when new APIs are added.
      *
      * @hide
      */
@@ -96,7 +97,7 @@ public class OnDevicePersonalizationManaging {
     }
 
     /**
-     * Initializes the OnDevicePersonalizationManaging.
+     * Initializes the OnDevicePersonalizationManager.
      *
      * @hide
      */
