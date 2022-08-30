@@ -17,12 +17,16 @@
 package com.android.ondevicepersonalization.services;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.Bundle;
 import android.view.SurfaceControlViewHost;
+
+import androidx.test.core.app.ApplicationProvider;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -33,10 +37,11 @@ import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationManagingServiceTest {
-    private OnDevicePersonalizationManagingServiceImpl mService;
+    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private OnDevicePersonalizationManagingServiceDelegate mService;
     @Before
     public void setup() throws Exception {
-        mService = new FakeOnDevicePersonalizationManagingService();
+        mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
     }
     @Test
     public void testVersion() throws Exception {
@@ -46,22 +51,9 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Test
     public void testRequestSurfacePackageReturnsError() throws Exception {
         // TODO(b/228200518): Update this test after implementation.
-        CountDownLatch latch = new CountDownLatch(1);
-
-        var callback =
-                new IRequestSurfacePackageCallback.Stub() {
-                    public boolean error = false;
-                    @Override
-                    public void onSuccess(SurfaceControlViewHost.SurfacePackage s) {}
-                    @Override
-                    public void onError(int errorCode) {
-                        error = true;
-                        latch.countDown();
-                    }
-                };
-
+        var callback = new RequestSurfacePackageCallback();
         mService.requestSurfacePackage(
-                "",
+                mContext.getPackageName(),
                 "x.y",
                 new Binder(),
                 0,
@@ -69,12 +61,128 @@ public class OnDevicePersonalizationManagingServiceTest {
                 0,
                 new Bundle(),
                 callback);
-
-        latch.await();
-        assertTrue(callback.error);
+        callback.await();
+        assertTrue(callback.mError);
     }
 
-    private static class FakeOnDevicePersonalizationManagingService
-            extends OnDevicePersonalizationManagingServiceImpl {
+    @Test
+    public void testRequestSurfacePackageThrowsIfPackageNameIncorrect() throws Exception {
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                SecurityException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        "abc",
+                        "x.y",
+                        new Binder(),
+                        0,
+                        0,
+                        0,
+                        new Bundle(),
+                        callback));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfPackageNameMissing() throws Exception {
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        null,
+                        "x.y",
+                        new Binder(),
+                        0,
+                        0,
+                        0,
+                        new Bundle(),
+                        callback));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfExchangeMissing() throws Exception {
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        mContext.getPackageName(),
+                        null,
+                        new Binder(),
+                        0,
+                        0,
+                        0,
+                        new Bundle(),
+                        callback));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfHostTokenMissing() throws Exception {
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        mContext.getPackageName(),
+                        "x.y",
+                        null,
+                        0,
+                        0,
+                        0,
+                        new Bundle(),
+                        callback));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfParamsMissing() throws Exception {
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        mContext.getPackageName(),
+                        "x.y",
+                        new Binder(),
+                        0,
+                        0,
+                        0,
+                        null,
+                        callback));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfCallbackMissing() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        mContext.getPackageName(),
+                        "x.y",
+                        new Binder(),
+                        0,
+                        0,
+                        0,
+                        new Bundle(),
+                        null));
+    }
+
+    static class RequestSurfacePackageCallback extends IRequestSurfacePackageCallback.Stub {
+        public boolean mError = false;
+        public int mErrorCode = 0;
+        private CountDownLatch mLatch = new CountDownLatch(1);
+
+        @Override
+        public void onSuccess(SurfaceControlViewHost.SurfacePackage s) {}
+
+        @Override
+        public void onError(int errorCode) {
+            mError = true;
+            mErrorCode = errorCode;
+            mLatch.countDown();
+        }
+
+        public void await() throws Exception {
+            mLatch.await();
+        }
     }
 }
