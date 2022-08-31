@@ -25,12 +25,14 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
-import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
 import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 import android.util.Slog;
+import android.view.SurfaceControlViewHost;
 
 import java.util.List;
 import java.util.concurrent.Executor;
@@ -44,24 +46,54 @@ public class OnDevicePersonalizationManager {
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
 
+    /**
+     * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
+     * its value should define the integer width of the {@link SurfacePackage} in pixels.
+     */
+    public static final String EXTRA_WIDTH_IN_PIXELS =
+            "android.ondevicepersonalization.extra.WIDTH_IN_PIXELS";
+    /**
+     * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
+     * its value should define the integer height of the {@link SurfacePackage} in pixels.
+     */
+    public static final String EXTRA_HEIGHT_IN_PIXELS =
+            "android.ondevicepersonalization.extra.HEIGHT_IN_PIXELS";
+    /**
+     * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
+     * its value should define the integer ID of the logical
+     * display to display the {@link SurfacePackage}.
+     */
+    public static final String EXTRA_DISPLAY_ID =
+            "android.ondevicepersonalization.extra.DISPLAY_ID";
+
+    /**
+     * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
+     * its value should present the token returned by {@link
+     * android.view.SurfaceView#getHostToken()} once the {@link android.view.SurfaceView}
+     * has been added to the view hierarchy. Only a non-null value is accepted to enable
+     * ANR reporting.
+     */
+    public static final String EXTRA_HOST_TOKEN =
+            "android.ondevicepersonalization.extra.HOST_TOKEN";
+
+    /**
+     * The name of key in the Bundle which is passed to the {@code onResult} function of the {@link
+     * OutcomeReceiver} which is field of {@link #requestSurfacePackage()},
+     * its value presents the requested {@link SurfacePackage}.
+     */
+    public static final String EXTRA_SURFACE_PACKAGE =
+            "android.ondevicepersonalization.extra.SURFACE_PACKAGE";
+
+    /**
+     * Error code returned by the service for unknown errors.
+     */
+    public static final int STATUS_INTERNAL_ERROR = 100;
+
     private boolean mBound = false;
     private static final String TAG = "OdpManager";
 
     private IOnDevicePersonalizationManagingService mService;
     private final Context mContext;
-
-    /**
-     * Callback that returns the result of the init() API.
-     *
-     * @hide
-     */
-    public interface InitCallback {
-        /** Called when init() succeeds. */
-        void onSuccess(IBinder token);
-
-        /** Called when init() fails */
-        void onError(int errorCode);
-    }
 
     public OnDevicePersonalizationManager(Context context) {
         mContext = context;
@@ -97,60 +129,114 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Initializes the OnDevicePersonalizationManager.
+     * Requests a surface package from an {@link Exchange} running in the OnDevicePersonalization
+     * sandbox.
+     *
+     * @param exchangePackageName name of the {@link Exchange} that will handle the app request.
+     * @param params the parameters from the client application, it must
+     *     contain the following params: (EXTRA_WIDTH_IN_PIXELS, EXTRA_HEIGHT_IN_PIXELS,
+     *     EXTRA_DISPLAY_ID, EXTRA_HOST_TOKEN). If any of these params is missing, an
+     *     IllegalArgumentException will be thrown.
+     * @param executor the {@link Executor} on which to invoke the callback
+     * @param receiver This either returns a {@link Bundle} on success which should contain the key
+     *     EXTRA_SURFACE_PACKAGE with value of {@link SurfacePackage} response, or {@link
+     *     Exception} on failure.
+     * @throws IllegalArgumentException if any of the following params (EXTRA_WIDTH_IN_PIXELS,
+     *     EXTRA_HEIGHT_IN_PIXELS, EXTRA_DISPLAY_ID, EXTRA_HOST_TOKEN) are missing from the Bundle
+     *     or passed with the wrong value or type.
      *
      * @hide
      */
-    public void init(
+    public void requestSurfacePackage(
+            @NonNull String exchangePackageName,
             @NonNull Bundle params,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull InitCallback callback) {
+            @NonNull OutcomeReceiver<Bundle, Exception> receiver
+    ) {
         try {
-            bindService();
-            if (mBound) {
-                IInitOnDevicePersonalizationCallback callbackWrapper =
-                        new IInitOnDevicePersonalizationCallback.Stub() {
-                            @Override
-                            public void onSuccess(IBinder token) {
-                                executor.execute(() -> callback.onSuccess(token));
-                            }
-
-                            @Override
-                            public void onError(int errorCode) {
-                                executor.execute(() -> callback.onError(errorCode));
-                            }
-                        };
-                mService.init(params, callbackWrapper);
+            int width = params.getInt(EXTRA_WIDTH_IN_PIXELS, -1); // -1 means invalid width
+            if (width <= 0) {
+                throw new IllegalArgumentException(
+                        "Field params should have the entry for the key ("
+                                + EXTRA_WIDTH_IN_PIXELS
+                                + ") with positive integer value");
             }
-        } catch (RemoteException e) {
-            throw e.rethrowAsRuntimeException();
+
+            int height = params.getInt(EXTRA_HEIGHT_IN_PIXELS, -1); // -1 means invalid height
+            if (height <= 0) {
+                throw new IllegalArgumentException(
+                        "Field params should have the entry for the key ("
+                                + EXTRA_HEIGHT_IN_PIXELS
+                                + ") with positive integer value");
+            }
+
+            int displayId = params.getInt(EXTRA_DISPLAY_ID, -1); // -1 means invalid displayId
+            if (displayId < 0) {
+                throw new IllegalArgumentException(
+                        "Field params should have the entry for the key ("
+                                + EXTRA_DISPLAY_ID
+                                + ") with integer >= 0");
+            }
+
+            IBinder hostToken = params.getBinder(EXTRA_HOST_TOKEN);
+            if (hostToken == null) {
+                throw new IllegalArgumentException(
+                        "Field params should have the entry for the key ("
+                                + EXTRA_HOST_TOKEN
+                                + ") with not null IBinder value");
+            }
+
+            bindService();
+
+            IRequestSurfacePackageCallback callbackWrapper =
+                    new IRequestSurfacePackageCallback.Stub() {
+                        @Override
+                        public void onSuccess(
+                                @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage) {
+                            executor.execute(() -> {
+                                Bundle result = new Bundle();
+                                result.putParcelable(EXTRA_SURFACE_PACKAGE, surfacePackage);
+                                receiver.onResult(result);
+                            });
+                        }
+
+                        @Override
+                        public void onError(int errorCode) {
+                            executor.execute(() -> receiver.onError(
+                                    new OnDevicePersonalizationException(errorCode)));
+                        }
+                    };
+
+            mService.requestSurfacePackage(
+                    mContext.getPackageName(), exchangePackageName, hostToken, displayId,
+                    width, height, params, callbackWrapper);
+
+        } catch (InterruptedException
+                | NullPointerException
+                | RemoteException e) {
+            receiver.onError(e);
         }
     }
 
     /** Bind to the service, if not already bound. */
-    private void bindService() {
+    private void bindService() throws InterruptedException {
         if (!mBound) {
-            try {
-                Intent intent = new Intent("android.OnDevicePersonalizationService");
-                ComponentName serviceComponent =
-                        resolveService(intent, mContext.getPackageManager());
-                if (serviceComponent == null) {
-                    Slog.e(TAG, "Invalid component for ondevicepersonalization service");
-                    return;
-                }
+            Intent intent = new Intent("android.OnDevicePersonalizationService");
+            ComponentName serviceComponent =
+                    resolveService(intent, mContext.getPackageManager());
+            if (serviceComponent == null) {
+                Slog.e(TAG, "Invalid component for ondevicepersonalization service");
+                return;
+            }
 
-                intent.setComponent(serviceComponent);
-                boolean r = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
-                if (!r) {
-                    return;
-                }
-                int retries = 0;
-                while (!mBound && retries++ < BIND_SERVICE_RETRY_TIMES) {
-                    Thread.sleep(BIND_SERVICE_INTERVAL_MS);
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-                throw new RuntimeException(e);
+            intent.setComponent(serviceComponent);
+            boolean r = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            if (!r) {
+                return;
+            }
+            int retries = 0;
+            while (!mBound && retries++ < BIND_SERVICE_RETRY_TIMES) {
+                Thread.sleep(BIND_SERVICE_INTERVAL_MS);
             }
         }
     }
