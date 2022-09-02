@@ -14,22 +14,12 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package android.ondevicepersonalization.aidl;
 
-import android.annotation.NonNull;
-import android.ondevicepersonalization.rtb.BidRequest;
+import android.view.SurfaceControlViewHost.SurfacePackage;
 
-/**
- * Interface for On-Device Bidders. Bidders run in the OnDevicePersonalization
- * sandbox and return bids in response to Exchanges.
- *
- * @hide
- */
-public interface Bidder {
-    /**
-     * Return a list of bids to an exchange.
-     * @param bidRequest The {@link BidRequest} from the exchange.
-     * @param sandboxContext The {@link SandboxContext} for this request.
-     */
-    void requestBids(@NonNull BidRequest bidRequest, @NonNull SandboxContext sandboxContext);
+/** @hide */
+oneway interface IRequestSurfacePackageCallback {
+    void onSuccess(in SurfacePackage surfacePackage);
+    void onError(int errorCode);
 }

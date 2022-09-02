@@ -16,7 +16,7 @@
 
 package android.ondevicepersonalization;
 
-import static android.ondevicepersonalization.OnDevicePersonalizationManaging.ON_DEVICE_PERSONALIZATION_SERVICE;
+import static android.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
 
 import android.annotation.SystemApi;
 import android.app.SystemServiceRegistry;
@@ -42,7 +42,7 @@ public class OnDevicePersonalizationFrameworkInitializer {
      */
     public static void registerServiceWrappers() {
         SystemServiceRegistry.registerContextAwareService(
-                ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManaging.class,
-                (c) -> new OnDevicePersonalizationManaging(c));
+                ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,
+                (c) -> new OnDevicePersonalizationManager(c));
     }
 }
