@@ -18,8 +18,13 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.ondevicepersonalization.servicetests" >
 
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
+
     <application android:label="OnDevicePersonalizationManagingServicesTests">
         <uses-library android:name="android.test.runner"/>
+        <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
+                  android:resource="@xml/OdpSettings"></property>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.ondevicepersonalization.servicetests"
