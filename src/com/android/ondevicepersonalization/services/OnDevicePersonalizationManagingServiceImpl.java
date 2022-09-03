@@ -18,12 +18,8 @@ package com.android.ondevicepersonalization.services;
 
 import android.app.Service;
 import android.content.Intent;
-import android.ondevicepersonalization.aidl.IInitOnDevicePersonalizationCallback;
 import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.os.Binder;
-import android.os.Bundle;
 import android.os.IBinder;
-import android.os.RemoteException;
 
 /** Implementation of OnDevicePersonalization Service */
 public class OnDevicePersonalizationManagingServiceImpl extends Service {
@@ -31,36 +27,11 @@ public class OnDevicePersonalizationManagingServiceImpl extends Service {
 
     @Override
     public void onCreate() {
-        mBinder = new OnDevicePersonalizationManagingServiceDelegate();
+        mBinder = new OnDevicePersonalizationManagingServiceDelegate(this);
     }
 
     @Override
     public IBinder onBind(Intent intent) {
         return mBinder;
-    }
-
-    String getVersion() {
-        return "1.0";
-    }
-
-    void init(Bundle params, IInitOnDevicePersonalizationCallback callback) {
-        try {
-            IBinder token = new Binder("OnDevicePersonalization");
-            callback.onSuccess(token);
-        } catch (RemoteException e) {
-            throw e.rethrowAsRuntimeException();
-        }
-    }
-
-    final class OnDevicePersonalizationManagingServiceDelegate
-            extends IOnDevicePersonalizationManagingService.Stub {
-        @Override
-        public String getVersion() {
-            return OnDevicePersonalizationManagingServiceImpl.this.getVersion();
-        }
-        @Override
-        public void init(Bundle params, IInitOnDevicePersonalizationCallback callback) {
-            OnDevicePersonalizationManagingServiceImpl.this.init(params, callback);
-        }
     }
 }
