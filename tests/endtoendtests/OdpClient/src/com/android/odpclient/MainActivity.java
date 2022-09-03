@@ -20,7 +20,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.os.Bundle;
-import android.os.IBinder;
+import android.os.OutcomeReceiver;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
@@ -71,20 +71,37 @@ public class MainActivity extends Activity {
                     if (mOdpManager == null) {
                         makeToast("OnDevicePersonalizationManager is null");
                     } else {
-                        mOdpManager.init(
-                                new Bundle(),
+                        Bundle params = new Bundle();
+                        params.putInt(
+                                OnDevicePersonalizationManager.EXTRA_DISPLAY_ID,
+                                getDisplay().getDisplayId());
+                        params.putInt(
+                                OnDevicePersonalizationManager.EXTRA_WIDTH_IN_PIXELS,
+                                mRenderedView.getWidth());
+                        params.putInt(
+                                OnDevicePersonalizationManager.EXTRA_HEIGHT_IN_PIXELS,
+                                mRenderedView.getHeight());
+                        params.putBinder(
+                                OnDevicePersonalizationManager.EXTRA_HOST_TOKEN,
+                                mRenderedView.getHostToken());
+                        mOdpManager.requestSurfacePackage(
+                                "exchange1",
+                                params,
                                 Executors.newSingleThreadExecutor(),
-                                new OnDevicePersonalizationManager.InitCallback() {
+                                new OutcomeReceiver<Bundle, Exception>() {
                                     @Override
-                                    public void onSuccess(IBinder token) {
-                                        makeToast("init() success: " + token.toString());
+                                    public void onResult(Bundle bundle) {
+                                        makeToast(
+                                                "requestSurfacePackage() success: "
+                                                + bundle.toString());
                                     }
 
                                     @Override
-                                    public void onError(int errorCode) {
-                                        makeToast("init() error: " + errorCode);
+                                    public void onError(Exception e) {
+                                        makeToast("requestSurfacePackage() error: " + e.toString());
                                     }
-                                });
+                                }
+                        );
                     }
                 });
     }
