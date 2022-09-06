@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.download;
+package com.android.ondevicepersonalization.services.download.mdd;
 
 import android.content.Context;
 import android.content.SharedPreferences;
@@ -71,18 +71,19 @@ public class MobileDataDownloadFactory {
             if (sSingleton == null) {
                 // TODO(b/241009783): This only adds the core MDD code. We still need other
                 //  components:
-                // 1) Add FileGroupPopulators
-                // 2) Add TaskScheduler
-                // 3) Add Logger
-                // 4) Set Flags
-                // 5) Add Configurator.
+                // 1) Add Logger
+                // 2) Set Flags
+                // 3) Add Configurator.
                 sSingleton =
                         MobileDataDownloadBuilder.newBuilder()
                                 .setContext(context)
                                 .setControlExecutor(getControlExecutor())
+                                .setTaskScheduler(Optional.of(new MddTaskScheduler(context)))
                                 .setNetworkUsageMonitor(getNetworkUsageMonitor(context))
                                 .setFileStorage(getFileStorage(context))
                                 .setFileDownloaderSupplier(() -> getFileDownloader(context))
+                                .addFileGroupPopulator(
+                                        new OnDevicePersonalizationFileGroupPopulator(context))
                                 .build();
             }
 
