@@ -23,6 +23,7 @@ android_test {
         ":framework-ondevicepersonalization-aidl",
         ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-sources",
+        ":framework-ondevicepersonalization-sources",
     ],
     libs: [
         "android.test.base",
