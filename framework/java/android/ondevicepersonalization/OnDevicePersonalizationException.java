@@ -16,4 +16,20 @@
 
 package android.ondevicepersonalization;
 
-parcelable PackageInfo;
+/**
+ * Exception thrown by OnDevicePersonalization APIs.
+ *
+ * @hide
+ */
+public class OnDevicePersonalizationException extends Exception {
+    private final int mErrorCode;
+
+    public OnDevicePersonalizationException(int errorCode) {
+        super("Error code: " + errorCode);
+        mErrorCode = errorCode;
+    }
+
+    public int getErrorCode() {
+        return mErrorCode;
+    }
+}

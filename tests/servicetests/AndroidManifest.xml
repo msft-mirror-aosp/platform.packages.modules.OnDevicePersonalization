@@ -23,6 +23,8 @@
 
     <application android:label="OnDevicePersonalizationManagingServicesTests">
         <uses-library android:name="android.test.runner"/>
+        <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
+                  android:resource="@xml/OdpSettings"></property>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.ondevicepersonalization.servicetests"

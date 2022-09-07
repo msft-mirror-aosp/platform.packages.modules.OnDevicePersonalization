@@ -45,7 +45,7 @@ public class SandboxContext {
      */
     public void sendBidRequests(
             @NonNull BidRequest bidRequest,
-            @NonNull List<PackageInfo> bidders) {
+            @NonNull List<PackageId> bidders) {
         // TODO(b/228200518): Implement this function.
     }
 
