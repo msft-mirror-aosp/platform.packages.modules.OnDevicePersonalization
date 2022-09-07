@@ -67,6 +67,8 @@ android_app {
         "framework-ondevicepersonalization",
         "framework-annotations-lib",
         "kotlin-annotations",
+        "auto_value_annotations",
+        "guava-android-annotation-stubs",
     ],
     static_libs: [
         "guava",
@@ -75,6 +77,9 @@ android_app {
         "kotlinx_coroutines",
         "kotlinx-coroutines-android",
         "ondevicepersonalization-protos",
+        "mobile_data_downloader_lib",
+        "dagger2",
+        "hilt_android",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
@@ -83,5 +88,8 @@ android_app {
     apex_available: ["com.android.ondevicepersonalization"],
     defaults: [
         "ondevicepersonalization-java-defaults",
+    ],
+    plugins: [
+        "auto_value_plugin",
     ],
 }
