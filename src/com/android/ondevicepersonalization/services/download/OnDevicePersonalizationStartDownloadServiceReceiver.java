@@ -21,6 +21,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
 
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+
 /**
  * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
  */
@@ -39,5 +45,21 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
         // TODO(b/239479120): This job should be enqueued after
         // the MDD download instead of on-boot.
         OnDevicePersonalizationDownloadProcessingWorker.enqueue(context);
+
+        // Schedule MDD to download scripts periodically.
+        Futures.addCallback(
+                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
+                new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        Log.d(TAG, "Successfully schedule MDD tasks.");
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        Log.e(TAG, "Successfully schedule MDD tasks.");
+                    }
+                },
+                OnDevicePersonalizationExecutors.getLightweightExecutor());
     }
 }
