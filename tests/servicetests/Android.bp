@@ -21,7 +21,9 @@ android_test {
     srcs: [
         "src/**/*.java",
         ":framework-ondevicepersonalization-aidl",
+        ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-sources",
+        ":framework-ondevicepersonalization-sources",
     ],
     libs: [
         "android.test.base",
