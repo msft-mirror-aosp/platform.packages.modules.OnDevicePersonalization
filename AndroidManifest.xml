@@ -25,12 +25,6 @@
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
-    <!-- Allows the app to find all packages onboarded to ODP -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
-
-    <!-- Used for persisting scheduled jobs -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
-
     <application android:forceQueryable="true">
         <service android:name=".OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
             <intent-filter>

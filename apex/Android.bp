@@ -29,11 +29,7 @@ android_app_certificate {
 
 sdk {
     name: "ondevicepersonalization-module-sdk",
-    apexes: [
-        // Adds exportable dependencies of the APEX to the sdk,
-        // e.g. *classpath_fragments.
-        "com.android.ondevicepersonalization",
-    ],
+    bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
 }
 
 bootclasspath_fragment {

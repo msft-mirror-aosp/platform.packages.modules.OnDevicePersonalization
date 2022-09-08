@@ -29,26 +29,27 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationVendorDataDaoTest {
-    private static final String TAG = "OnDevicePersonalizationVendorDataDaoTest";
+public class OnDevicePersonalizationDataManagerTest {
+    private static final String TAG = "OnDevicePersonalizationDbManagerTest";
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    private OnDevicePersonalizationVendorDataDao mDao;
+    private OnDevicePersonalizationDataManager mManager;
 
     @Before
     public void setup() {
-        mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, "owner",
-                "certDigest");
+        mManager = OnDevicePersonalizationDataManager.getInstanceForTest(mContext);
     }
 
     @Test
     public void testInsert() {
-        boolean insertResult = mDao.updateOrInsertVendorData("key", new byte[10], "fp");
+        boolean insertResult = mManager.updateOrInsertBuyerData("owner", "certificate",
+                "key", new byte[10], "fp");
         assertTrue(insertResult);
     }
 
     @Test
     public void testInsertNullData() {
-        boolean insertResult = mDao.updateOrInsertVendorData("key", null, "fp");
+        boolean insertResult = mManager.updateOrInsertBuyerData("owner", "certificate",
+                "key", null, "fp");
         assertFalse(insertResult);
     }
 }
