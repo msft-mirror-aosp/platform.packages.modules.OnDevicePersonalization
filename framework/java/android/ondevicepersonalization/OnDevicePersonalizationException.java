@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.aidl;
+package android.ondevicepersonalization;
 
-import android.os.Bundle;
-import android.os.IBinder;
+/**
+ * Exception thrown by OnDevicePersonalization APIs.
+ *
+ * @hide
+ */
+public class OnDevicePersonalizationException extends Exception {
+    private final int mErrorCode;
 
-/** @hide */
-oneway interface IInitOnDevicePersonalizationCallback {
-    void onSuccess(IBinder token);
-    void onError(int errorCode);
+    public OnDevicePersonalizationException(int errorCode) {
+        super("Error code: " + errorCode);
+        mErrorCode = errorCode;
+    }
+
+    public int getErrorCode() {
+        return mErrorCode;
+    }
 }
