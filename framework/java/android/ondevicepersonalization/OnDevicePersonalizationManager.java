@@ -84,11 +84,6 @@ public class OnDevicePersonalizationManager {
     public static final String EXTRA_SURFACE_PACKAGE =
             "android.ondevicepersonalization.extra.SURFACE_PACKAGE";
 
-    /**
-     * Error code returned by the service for unknown errors.
-     */
-    public static final int STATUS_INTERNAL_ERROR = 100;
-
     private boolean mBound = false;
     private static final String TAG = "OdpManager";
 
