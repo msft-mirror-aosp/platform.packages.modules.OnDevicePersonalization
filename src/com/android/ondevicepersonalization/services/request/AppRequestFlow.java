@@ -17,7 +17,7 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -42,7 +42,7 @@ public class AppRequestFlow {
     @NonNull private final int mWidth;
     @NonNull private final int mHeight;
     @NonNull private final Bundle mParams;
-    @NonNull private final IRequestSurfacePackageCallback mCallback;
+    private IRequestSurfacePackageCallback mCallback;
     @NonNull private final ListeningExecutorService mExecutorService;
 
     public AppRequestFlow(
@@ -73,8 +73,23 @@ public class AppRequestFlow {
 
     private void processRequest() {
         // TODO(b/228200518): Implement request processing and rendering logic.
+        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+    }
+
+    private void sendErrorResult(int errorCode) {
         try {
-            mCallback.onError(OnDevicePersonalizationManager.STATUS_INTERNAL_ERROR);
+            IRequestSurfacePackageCallback callbackCopy = null;
+            synchronized (this) {
+                if (mCallback != null) {
+                    callbackCopy = mCallback;
+                    mCallback = null;
+                }
+            }
+            if (callbackCopy != null) {
+                callbackCopy.onError(errorCode);
+            } else {
+                Log.w(TAG, "Callback null. Result already sent.");
+            }
         } catch (RemoteException e) {
             Log.w(TAG, "Callback error: " + e.toString());
         }
