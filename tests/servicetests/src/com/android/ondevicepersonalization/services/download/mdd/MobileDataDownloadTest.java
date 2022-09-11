@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.download;
+package com.android.ondevicepersonalization.services.download.mdd;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
