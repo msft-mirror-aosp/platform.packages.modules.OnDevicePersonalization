@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.aidl;
+package android.ondevicepersonalization;
 
-import android.os.Bundle;
-import android.os.IBinder;
-
-/** @hide */
-oneway interface IInitOnDevicePersonalizationCallback {
-    void onSuccess(IBinder token);
-    void onError(int errorCode);
+/**
+ * Data Access Object for the vendor_data table.
+ *
+ * @hide
+ */
+public interface VendorData {
+    // TODO(b/228200518): Add data access methods.
 }
