@@ -16,20 +16,13 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.NonNull;
-import android.ondevicepersonalization.rtb.BidRequest;
-
 /**
- * Interface for On-Device Bidders. Bidders run in the OnDevicePersonalization
- * sandbox and return bids in response to Exchanges.
+ * Constants used in the OnDevicePersonalization Module.
  *
  * @hide
  */
-public interface Bidder {
-    /**
-     * Return a list of bids to an exchange.
-     * @param bidRequest The {@link BidRequest} from the exchange.
-     * @param sandboxContext The {@link SandboxContext} for this request.
-     */
-    void requestBids(@NonNull BidRequest bidRequest, @NonNull SandboxContext sandboxContext);
+public class Constants {
+    public static final int STATUS_INTERNAL_ERROR = 100;
+
+    private Constants() {}
 }
