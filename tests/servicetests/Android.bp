@@ -21,6 +21,7 @@ android_test {
     srcs: [
         "src/**/*.java",
         ":framework-ondevicepersonalization-aidl",
+        ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-sources",
     ],
     libs: [
@@ -32,6 +33,10 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "androidx.work_work-runtime",
+        "androidx.work_work-testing",
+        "mobile_data_downloader_lib",
+        "ondevicepersonalization-plugin-lib",
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",

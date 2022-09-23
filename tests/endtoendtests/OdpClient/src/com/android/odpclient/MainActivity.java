@@ -18,9 +18,9 @@ package com.android.odpclient;
 
 import android.app.Activity;
 import android.content.Context;
-import android.ondevicepersonalization.OnDevicePersonalizationManaging;
+import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.os.Bundle;
-import android.os.IBinder;
+import android.os.OutcomeReceiver;
 import android.util.Log;
 import android.view.SurfaceView;
 import android.view.View;
@@ -31,7 +31,7 @@ import java.util.concurrent.Executors;
 
 public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
-    private OnDevicePersonalizationManaging mOdpManaging = null;
+    private OnDevicePersonalizationManager mOdpManager = null;
 
     private Button mGetVersionButton;
     private Button mBindButton;
@@ -44,8 +44,8 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = getApplicationContext();
-        if (mOdpManaging == null) {
-            mOdpManaging = mContext.getSystemService(OnDevicePersonalizationManaging.class);
+        if (mOdpManager == null) {
+            mOdpManager = mContext.getSystemService(OnDevicePersonalizationManager.class);
         }
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setZOrderOnTop(true);
@@ -58,33 +58,50 @@ public class MainActivity extends Activity {
 
     private void registerGetVersionButton() {
         mGetVersionButton.setOnClickListener(v -> {
-            if (mOdpManaging == null) {
-                makeToast("OnDevicePersonalizationManaging is null");
+            if (mOdpManager == null) {
+                makeToast("OnDevicePersonalizationManager is null");
             } else {
-                makeToast(mOdpManaging.getVersion());
+                makeToast(mOdpManager.getVersion());
             }
         });
     }
     private void registerBindServiceButton() {
         mBindButton.setOnClickListener(
                 v -> {
-                    if (mOdpManaging == null) {
-                        makeToast("OnDevicePersonalizationManaging is null");
+                    if (mOdpManager == null) {
+                        makeToast("OnDevicePersonalizationManager is null");
                     } else {
-                        mOdpManaging.init(
-                                new Bundle(),
+                        Bundle params = new Bundle();
+                        params.putInt(
+                                OnDevicePersonalizationManager.EXTRA_DISPLAY_ID,
+                                getDisplay().getDisplayId());
+                        params.putInt(
+                                OnDevicePersonalizationManager.EXTRA_WIDTH_IN_PIXELS,
+                                mRenderedView.getWidth());
+                        params.putInt(
+                                OnDevicePersonalizationManager.EXTRA_HEIGHT_IN_PIXELS,
+                                mRenderedView.getHeight());
+                        params.putBinder(
+                                OnDevicePersonalizationManager.EXTRA_HOST_TOKEN,
+                                mRenderedView.getHostToken());
+                        mOdpManager.requestSurfacePackage(
+                                "exchange1",
+                                params,
                                 Executors.newSingleThreadExecutor(),
-                                new OnDevicePersonalizationManaging.InitCallback() {
+                                new OutcomeReceiver<Bundle, Exception>() {
                                     @Override
-                                    public void onSuccess(IBinder token) {
-                                        makeToast("init() success: " + token.toString());
+                                    public void onResult(Bundle bundle) {
+                                        makeToast(
+                                                "requestSurfacePackage() success: "
+                                                + bundle.toString());
                                     }
 
                                     @Override
-                                    public void onError(int errorCode) {
-                                        makeToast("init() error: " + errorCode);
+                                    public void onError(Exception e) {
+                                        makeToast("requestSurfacePackage() error: " + e.toString());
                                     }
-                                });
+                                }
+                        );
                     }
                 });
     }
