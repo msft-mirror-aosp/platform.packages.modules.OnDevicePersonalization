@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.libraries.plugin.internal;
 
 import android.os.PersistableBundle;
+import android.os.Bundle;
 
 import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginCallback;
 import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginStateCallback;
@@ -26,7 +27,7 @@ import com.android.ondevicepersonalization.libraries.plugin.internal.PluginInfoI
   * Service for loading & executing {@link Plugin} implementations.
   */
 interface IPluginExecutorService {
-  oneway void load(in PluginInfoInternal info, in IPluginCallback pluginCallback) = 0;
+  oneway void load(in PluginInfoInternal info, in IPluginCallback pluginCallback, in Bundle pluginContextInitData) = 0;
   oneway void execute(in String pluginName, in PersistableBundle input, in IPluginCallback pluginCallback) = 1;
   oneway void unload(in String pluginName, in IPluginCallback pluginCallback) = 2;
   oneway void checkPluginState(in String pluginName, in IPluginStateCallback stateCallback) = 3;

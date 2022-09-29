@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.libraries.plugin;
 
 import android.os.PersistableBundle;
 
+import org.checkerframework.checker.nullness.qual.Nullable;
+
 /** Interface of a Plugin to be executed in an {@link ExecutionEnvironment} */
 public interface Plugin {
     /**
@@ -31,5 +33,6 @@ public interface Plugin {
      *     the contract {@link com.google.android.libraries.pcc.plugin.PluginCallback}
      * @param context data a plugin needs in order to run
      */
-    void onExecute(PersistableBundle input, PluginCallback callback, PluginContext context);
+    void onExecute(
+            PersistableBundle input, PluginCallback callback, @Nullable PluginContext context);
 }
