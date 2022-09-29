@@ -55,6 +55,7 @@ public class PluginExecutorService extends Service {
         super.onCreate();
         Context applicationContext = getApplicationContext();
         if (applicationContext == null) {
+            Log.e(TAG, "PluginExecutorService.onCreate() got null application context");
             return;
         }
         mPluginExecutor = PluginExecutor.create(applicationContext, new PluginLoaderImpl());
@@ -63,6 +64,11 @@ public class PluginExecutorService extends Service {
         // {@link PluginApplication}'s purpose is to supply an optional {@link PluginHost}
         // implementation.
         if (!(applicationContext instanceof PluginApplication)) {
+            Log.e(
+                    TAG,
+                    String.format(
+                            "PluginExecutorService.onCreate() application context not instance of"
+                                    + " PluginApplication"));
             return;
         }
         mPluginApplication = (PluginApplication) applicationContext;
@@ -93,7 +99,7 @@ public class PluginExecutorService extends Service {
                     try {
                         pluginCallback.onFailure(FailureType.ERROR_LOADING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback failed.");
+                        Log.e(TAG, "load() failed to call pluginCallback.onFailure()");
                     }
                 }
             }
@@ -112,7 +118,7 @@ public class PluginExecutorService extends Service {
                     try {
                         pluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback failed.");
+                        Log.e(TAG, "execute() failed to call pluginCallback.onFailure()");
                     }
                 }
             }
@@ -127,7 +133,7 @@ public class PluginExecutorService extends Service {
                     try {
                         pluginCallback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback failed.");
+                        Log.e(TAG, "unload() failed to call pluginCallback.onFailure()");
                     }
                 }
             }
@@ -140,7 +146,7 @@ public class PluginExecutorService extends Service {
                     try {
                         stateCallback.onState(PluginState.STATE_EXCEPTION_THROWN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback failed.");
+                        Log.e(TAG, "checkPluginState() failed to call stateCallback.onState()");
                     }
                 }
             }

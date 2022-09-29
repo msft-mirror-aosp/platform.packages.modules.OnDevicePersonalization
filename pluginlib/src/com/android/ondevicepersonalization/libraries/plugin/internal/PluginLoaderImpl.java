@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.libraries.plugin.internal;
 
+import android.util.Log;
+
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
 import com.android.ondevicepersonalization.libraries.plugin.internal.util.ApkReader;
 
@@ -33,6 +35,7 @@ import java.nio.ByteBuffer;
 
 /** Implementation of PluginLoader */
 public final class PluginLoaderImpl implements PluginLoader {
+    private static final String TAG = "PluginLoaderImpl";
 
     @Override public @Nullable Plugin loadPlugin(
             String className,
@@ -62,17 +65,20 @@ public final class PluginLoaderImpl implements PluginLoader {
             Object instance = clazz.getDeclaredConstructor().newInstance();
 
             if (!(instance instanceof Plugin)) {
+                Log.e(TAG, "Instance not a Plugin");
                 return null;
             }
             return (Plugin) instance;
         } catch (IOException e) {
-            return null;
+            Log.e(TAG, "Error loading dex files from archive");
         } catch (ClassNotFoundException e) {
-            return null;
+            Log.e(TAG, String.format("Class %s not found", className));
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            return null;
+            Log.e(TAG, String.format("Error instantiating %s", className));
         } catch (NoSuchMethodException e) {
-            return null;
+            Log.e(TAG, "Plugin's declared constructor not found");
         }
+
+        return null;
     }
 }

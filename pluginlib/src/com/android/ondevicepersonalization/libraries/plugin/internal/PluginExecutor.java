@@ -20,6 +20,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
@@ -37,6 +38,7 @@ import java.util.Map;
 
 /** Loads and executes plugins in the current process. */
 public class PluginExecutor {
+    private static final String TAG = "PluginExecutor";
     private final Map<String, Plugin> mPlugins = new HashMap<>();
     private final Map<String, PluginContext> mPluginContexts = new HashMap<>();
     private final Context mContext;
@@ -103,8 +105,12 @@ public class PluginExecutor {
     public void execute(PersistableBundle input, String pluginId, PluginCallback callback)
             throws RemoteException {
         if (!mPlugins.containsKey(pluginId)) {
+            Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
             callback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
             return;
+        }
+        if (!mPluginContexts.containsKey(pluginId)) {
+            Log.e(TAG, String.format("No PluginContext for plugin with id %s found", pluginId));
         }
 
         mPlugins.get(pluginId).onExecute(input, callback, mPluginContexts.get(pluginId));
@@ -114,10 +120,14 @@ public class PluginExecutor {
     public void unload(String pluginId, PluginCallback callback) throws RemoteException {
 
         if (!mPlugins.containsKey(pluginId)) {
+            Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
             callback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
             return;
         }
         if (!mPluginContexts.containsKey(pluginId)) {
+            Log.e(
+                    TAG,
+                    String.format("Could not find a pluginContext associated with %s", pluginId));
             callback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
             return;
         }
@@ -130,10 +140,14 @@ public class PluginExecutor {
     public void checkPluginState(String pluginId, IPluginStateCallback stateCallback)
             throws RemoteException {
         if (!mPlugins.containsKey(pluginId)) {
+            Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
             stateCallback.onState(PluginState.STATE_NOT_LOADED);
             return;
         }
         if (!mPluginContexts.containsKey(pluginId)) {
+            Log.e(
+                    TAG,
+                    String.format("Could not find a pluginContext associated with %s", pluginId));
             stateCallback.onState(PluginState.STATE_NOT_LOADED);
             return;
         }
