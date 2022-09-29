@@ -20,8 +20,6 @@ import androidx.annotation.NonNull;
 
 import com.google.common.collect.ImmutableSet;
 
-import java.util.Set;
-
 /**
  * An isolation {@link ClassLoader} layer between plugin container's class loader and plugin's class
  * loader. The layer mediates class loading requests and responses. By default it only allows
@@ -31,6 +29,7 @@ import java.util.Set;
  */
 public final class IsolationClassLoader extends ClassLoader {
     private final ImmutableSet<String> mContainerClassesAllowlist;
+    private final ImmutableSet<String> mContainerPackagesAllowlist;
     private ImmutableSet<String> mRejectedClassesList = ImmutableSet.of();
 
     /**
@@ -46,9 +45,11 @@ public final class IsolationClassLoader extends ClassLoader {
      */
     public IsolationClassLoader(
             @NonNull ClassLoader containerClassLoader,
-            @NonNull ImmutableSet<String> containerClassesAllowlist) {
+            @NonNull ImmutableSet<String> containerClassesAllowlist,
+            @NonNull ImmutableSet<String> containerPackagesAllowlist) {
         super(containerClassLoader);
         this.mContainerClassesAllowlist = containerClassesAllowlist;
+        this.mContainerPackagesAllowlist = containerPackagesAllowlist;
     }
 
     /**
@@ -68,10 +69,20 @@ public final class IsolationClassLoader extends ClassLoader {
      */
     public IsolationClassLoader(
             @NonNull ClassLoader containerClassLoader,
-            @NonNull Set<String> rejectedClassesList,
-            @NonNull ImmutableSet<String> containerClassesAllowlist) {
-        this(containerClassLoader, containerClassesAllowlist);
-        this.mRejectedClassesList = ImmutableSet.copyOf(rejectedClassesList);
+            @NonNull ImmutableSet<String> containerClassesAllowlist,
+            @NonNull ImmutableSet<String> containerPackagesAllowlist,
+            @NonNull ImmutableSet<String> rejectedClassesList) {
+        this(containerClassLoader, containerClassesAllowlist, containerPackagesAllowlist);
+        this.mRejectedClassesList = rejectedClassesList;
+    }
+
+    private static boolean startsWithAnyPrefixFromSet(String name, ImmutableSet<String> prefixes) {
+        for (String prefix : prefixes) {
+            if (name.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Override
@@ -91,7 +102,9 @@ public final class IsolationClassLoader extends ClassLoader {
         }
 
         // Allow allow-listed container classes to be loaded outside plugin's class loader.
-        if (clazz == null && (mContainerClassesAllowlist.contains(name))) {
+        if (clazz == null
+                && (mContainerClassesAllowlist.contains(name)
+                        || startsWithAnyPrefixFromSet(name, mContainerPackagesAllowlist))) {
             clazz = super.loadClass(name, resolve);
         }
 

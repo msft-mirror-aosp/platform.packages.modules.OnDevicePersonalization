@@ -72,7 +72,7 @@ public final class ApkReader {
      * Returns the name of a ZipEntry after verifying that it does not exploit any path traversal
      * attacks.
      */
-    private static String getValidatedName(ZipEntry zipEntry) throws ZipException {
+    static String getValidatedName(ZipEntry zipEntry) throws ZipException {
         // Forked from com.google.android.libraries.security.zip.SafeZipEntry because it is not
         // available externally.
         String name = zipEntry.getName();

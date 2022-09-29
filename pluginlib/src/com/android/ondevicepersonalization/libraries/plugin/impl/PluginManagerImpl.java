@@ -45,7 +45,7 @@ public class PluginManagerImpl implements PluginManager, PluginExecutorServicePr
     private IPluginExecutorService mPluginExecutorService;
     private SettableFuture<Boolean> mPluginExecutorServiceReadiness = SettableFuture.create();
 
-    PluginManagerImpl(Context applicationContext) {
+    public PluginManagerImpl(Context applicationContext) {
         this.mApplicationContext = applicationContext;
     }
 
