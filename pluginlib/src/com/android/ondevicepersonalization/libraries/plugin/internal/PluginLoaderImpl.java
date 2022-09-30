@@ -58,8 +58,15 @@ public final class PluginLoaderImpl implements PluginLoader {
             IsolationClassLoader isolatedContainerClassLoader =
                     new IsolationClassLoader(
                             classLoader, containerClassesAllowlist, containerPackagesAllowlist);
-            InMemoryDexClassLoader pluginClassLoader =
-                    new InMemoryDexClassLoader(dexes, isolatedContainerClassLoader);
+            ClassLoader pluginClassLoader;
+            if (dexes.length > 0) {
+                pluginClassLoader =
+                        new InMemoryDexClassLoader(dexes, isolatedContainerClassLoader);
+            } else {
+                // TODO(b/249345663): Remove this after we add tests for loading APKs.
+                // InMemoryDexClassLoader crashes if there are no dexes.
+                pluginClassLoader = isolatedContainerClassLoader;
+            }
 
             Class<?> clazz = pluginClassLoader.loadClass(className);
             Object instance = clazz.getDeclaredConstructor().newInstance();
