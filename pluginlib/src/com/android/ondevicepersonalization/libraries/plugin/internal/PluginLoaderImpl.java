@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.libraries.plugin.internal;
 
+import android.util.Log;
+
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
 import com.android.ondevicepersonalization.libraries.plugin.internal.util.ApkReader;
 
@@ -33,6 +35,7 @@ import java.nio.ByteBuffer;
 
 /** Implementation of PluginLoader */
 public final class PluginLoaderImpl implements PluginLoader {
+    private static final String TAG = "PluginLoaderImpl";
 
     @Override public @Nullable Plugin loadPlugin(
             String className,
@@ -55,24 +58,34 @@ public final class PluginLoaderImpl implements PluginLoader {
             IsolationClassLoader isolatedContainerClassLoader =
                     new IsolationClassLoader(
                             classLoader, containerClassesAllowlist, containerPackagesAllowlist);
-            InMemoryDexClassLoader pluginClassLoader =
-                    new InMemoryDexClassLoader(dexes, isolatedContainerClassLoader);
+            ClassLoader pluginClassLoader;
+            if (dexes.length > 0) {
+                pluginClassLoader =
+                        new InMemoryDexClassLoader(dexes, isolatedContainerClassLoader);
+            } else {
+                // TODO(b/249345663): Remove this after we add tests for loading APKs.
+                // InMemoryDexClassLoader crashes if there are no dexes.
+                pluginClassLoader = isolatedContainerClassLoader;
+            }
 
             Class<?> clazz = pluginClassLoader.loadClass(className);
             Object instance = clazz.getDeclaredConstructor().newInstance();
 
             if (!(instance instanceof Plugin)) {
+                Log.e(TAG, "Instance not a Plugin");
                 return null;
             }
             return (Plugin) instance;
         } catch (IOException e) {
-            return null;
+            Log.e(TAG, "Error loading dex files from archive");
         } catch (ClassNotFoundException e) {
-            return null;
+            Log.e(TAG, String.format("Class %s not found", className));
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            return null;
+            Log.e(TAG, String.format("Error instantiating %s", className));
         } catch (NoSuchMethodException e) {
-            return null;
+            Log.e(TAG, "Plugin's declared constructor not found");
         }
+
+        return null;
     }
 }

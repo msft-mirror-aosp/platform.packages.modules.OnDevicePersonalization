@@ -25,6 +25,7 @@ import android.os.FileUtils;
 import android.os.Looper;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
+import android.util.Log;
 import android.util.Pair;
 
 import com.android.ondevicepersonalization.libraries.plugin.PluginInfo.ArchiveInfo;
@@ -53,6 +54,7 @@ import java.util.concurrent.TimeoutException;
  * forwarding file descriptors for them to a PluginTask.
  */
 public final class PluginArchiveManager {
+    private static final String TAG = "PluginArchiveManager";
     private static final String CHECKSUM_SUFFIX = ".md5";
     private static final long BIND_TIMEOUT_MS = 2_000;
     private final Context mApplicationContext;
@@ -126,10 +128,15 @@ public final class PluginArchiveManager {
             pluginTask.run(info);
             return true;
         } catch (RemoteException e) {
-            return false;
+            Log.e(
+                    TAG,
+                    String.format(
+                            "Error trying to call %s for the plugin: %s",
+                            serviceName, pluginArchives));
         } catch (IOException e) {
-            return false;
+            Log.e(TAG, String.format("Error trying to load the plugin: %s", pluginArchives));
         }
+        return false;
     }
 
     private static CloseableList<PluginCode> createCloseablePluginCodeListFromFiles(
@@ -166,12 +173,14 @@ public final class PluginArchiveManager {
             // maybeAwaitPluginServiceReady finished.
             if (isMainThread()) {
                 if (!readiness.isDone() || !readiness.get()) {
+                    Log.w(TAG, String.format("%s is not ready yet", serviceName));
                     return false;
                 }
             } else {
                 readiness.get(BIND_TIMEOUT_MS, MILLISECONDS);
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            Log.e(TAG, String.format("Error binding to %s", serviceName));
             return false;
         }
         return true;
@@ -189,6 +198,7 @@ public final class PluginArchiveManager {
             try {
                 assetManager = packageAssetManager(pluginArchive.packageName());
             } catch (NameNotFoundException e) {
+                Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()));
                 return DEFAULT_CHECKSUM;
             }
         } else {
@@ -218,8 +228,9 @@ public final class PluginArchiveManager {
             AssetManager assetManager = packageAssetManager(pluginArchive.packageName());
             return copyPluginToCacheDir(pluginArchive.filename(), assetManager);
         } catch (NameNotFoundException e) {
-            return false;
+            Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()));
         }
+        return false;
     }
 
     private boolean copyPluginFromAssetsToCacheDir(String pluginArchive) {
@@ -254,8 +265,11 @@ public final class PluginArchiveManager {
             FileUtils.copy(checksumSrc, checksumDst);
             return true;
         } catch (IOException e) {
-            return false;
+            Log.e(
+                    TAG,
+                    String.format("Error copying %s/%s to cache dir", pluginArchive, checksumFile));
         }
+        return false;
     }
 
     private boolean canReusePluginInCacheDir(
