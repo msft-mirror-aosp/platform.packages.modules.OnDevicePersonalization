@@ -14,26 +14,7 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.libraries.plugin.internal;
 
-/**
- * Exception thrown by OnDevicePersonalization APIs.
- *
- * @hide
- */
-public class OnDevicePersonalizationException extends Exception {
-    private final int mErrorCode;
-
-    public OnDevicePersonalizationException(int errorCode) {
-        this(errorCode, null);
-    }
-
-    public OnDevicePersonalizationException(int errorCode, String errorMessage) {
-        super(String.format("Error code: %d message: %s", errorCode, errorMessage));
-        mErrorCode = errorCode;
-    }
-
-    public int getErrorCode() {
-        return mErrorCode;
-    }
-}
+// Declare PluginInfoInternal so AIDL can find it and knows it implements Parcelable.
+parcelable PluginInfoInternal;

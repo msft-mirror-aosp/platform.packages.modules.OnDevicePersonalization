@@ -14,26 +14,24 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.libraries.plugin.internal;
+
+import android.os.PersistableBundle;
+
+import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 
 /**
- * Exception thrown by OnDevicePersonalization APIs.
- *
- * @hide
- */
-public class OnDevicePersonalizationException extends Exception {
-    private final int mErrorCode;
+  * Callback when {@code IPluginExecutorService#runTask} has finished
+  * (successfully or unsuccessfully).
+  */
+oneway interface IPluginCallback {
+  /**
+   * Indicates operation was successful and contains an output Bundle if the operation had any output.
+   */
+  void onSuccess(in PersistableBundle output);
 
-    public OnDevicePersonalizationException(int errorCode) {
-        this(errorCode, null);
-    }
-
-    public OnDevicePersonalizationException(int errorCode, String errorMessage) {
-        super(String.format("Error code: %d message: %s", errorCode, errorMessage));
-        mErrorCode = errorCode;
-    }
-
-    public int getErrorCode() {
-        return mErrorCode;
-    }
+  /**
+   * Called if runTask fails for any reason.
+   */
+  void onFailure(in FailureType failureType);
 }

@@ -14,26 +14,15 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.libraries.plugin;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Exception thrown by OnDevicePersonalization APIs.
- *
- * @hide
+ * Interface that provides the {@link PluginContext} to {@link Plugin} implementations. Typically
+ * implemented by the Sandbox Developer.
  */
-public class OnDevicePersonalizationException extends Exception {
-    private final int mErrorCode;
-
-    public OnDevicePersonalizationException(int errorCode) {
-        this(errorCode, null);
-    }
-
-    public OnDevicePersonalizationException(int errorCode, String errorMessage) {
-        super(String.format("Error code: %d message: %s", errorCode, errorMessage));
-        mErrorCode = errorCode;
-    }
-
-    public int getErrorCode() {
-        return mErrorCode;
-    }
+public interface PluginContextProvider {
+    /** Creates a plugin context. */
+    @Nullable PluginContext createPluginContext(String pluginId);
 }
