@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.libraries.plugin.impl;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -26,9 +27,9 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
+import com.android.ondevicepersonalization.libraries.plugin.PluginApplication;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
-import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
-import com.android.ondevicepersonalization.libraries.plugin.PluginContextProvider;
+import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
 import com.android.ondevicepersonalization.libraries.plugin.PluginState;
 import com.android.ondevicepersonalization.libraries.plugin.internal.CallbackConverter;
 import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginCallback;
@@ -36,32 +37,41 @@ import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginExec
 import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginStateCallback;
 import com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutor;
 import com.android.ondevicepersonalization.libraries.plugin.internal.PluginInfoInternal;
+import com.android.ondevicepersonalization.libraries.plugin.internal.PluginLoaderImpl;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /** Service that loads, and executes {@link Plugin} implementations. */
 public class PluginExecutorService extends Service {
     public static final String TAG = "PluginExecutorService";
-
-    private PluginExecutor mExecutorManager;
+    private PluginExecutor mPluginExecutor;
 
     public PluginExecutorService() {}
 
-    @Nullable PluginContextProvider mPluginContextProvider;
-    @Nullable PluginContext mPluginContext;
+    @Nullable PluginApplication mPluginApplication = null;
 
     @Override
     public void onCreate() {
         super.onCreate();
         Context applicationContext = getApplicationContext();
         if (applicationContext == null) {
+            Log.e(TAG, "PluginExecutorService.onCreate() got null application context");
             return;
         }
-        mExecutorManager = PluginExecutor.create(applicationContext);
-        if (!(applicationContext instanceof PluginContextProvider)) {
+        mPluginExecutor = PluginExecutor.create(applicationContext, new PluginLoaderImpl());
+
+        // Expect the Application context to implement the {@link PluginApplication} interface. The
+        // {@link PluginApplication}'s purpose is to supply an optional {@link PluginHost}
+        // implementation.
+        if (!(applicationContext instanceof PluginApplication)) {
+            Log.e(
+                    TAG,
+                    String.format(
+                            "PluginExecutorService.onCreate() application context not instance of"
+                                    + " PluginApplication"));
             return;
         }
-        mPluginContextProvider = (PluginContextProvider) applicationContext;
+        mPluginApplication = (PluginApplication) applicationContext;
     }
 
     @Override
@@ -69,16 +79,27 @@ public class PluginExecutorService extends Service {
 
         return new IPluginExecutorService.Stub() {
             @Override
-            public void load(PluginInfoInternal info, IPluginCallback pluginCallback) {
+            public void load(
+                    PluginInfoInternal info,
+                    IPluginCallback pluginCallback,
+                    @Nullable Bundle pluginContextInitData) {
+
+                // The {@link PluginHost} provides a method to create a {@link PluginContext}.
+                @Nullable PluginHost pluginHost = null;
+                if (mPluginApplication != null) {
+                    pluginHost = mPluginApplication.getPluginHost();
+                }
+
                 PluginCallback publicPluginCallback =
                         CallbackConverter.toPublicCallback(pluginCallback);
                 try {
-                    mExecutorManager.load(info, publicPluginCallback, mPluginContextProvider);
+                    mPluginExecutor.load(
+                            info, publicPluginCallback, pluginHost, pluginContextInitData);
                 } catch (RemoteException e) {
                     try {
                         pluginCallback.onFailure(FailureType.ERROR_LOADING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback error: " + e2.toString());
+                        Log.e(TAG, "load() failed to call pluginCallback.onFailure()");
                     }
                 }
             }
@@ -92,13 +113,12 @@ public class PluginExecutorService extends Service {
                 PluginCallback publicPluginCallback =
                         CallbackConverter.toPublicCallback(pluginCallback);
                 try {
-                    mExecutorManager.execute(
-                            input, pluginName, publicPluginCallback, mPluginContext);
+                    mPluginExecutor.execute(input, pluginName, publicPluginCallback);
                 } catch (RemoteException e) {
                     try {
                         pluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback error: " + e2.toString());
+                        Log.e(TAG, "execute() failed to call pluginCallback.onFailure()");
                     }
                 }
             }
@@ -108,12 +128,12 @@ public class PluginExecutorService extends Service {
                 PluginCallback publicPluginCallback =
                         CallbackConverter.toPublicCallback(pluginCallback);
                 try {
-                    mExecutorManager.unload(pluginName, publicPluginCallback, mPluginContext);
+                    mPluginExecutor.unload(pluginName, publicPluginCallback);
                 } catch (RemoteException e) {
                     try {
                         pluginCallback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback error: " + e2.toString());
+                        Log.e(TAG, "unload() failed to call pluginCallback.onFailure()");
                     }
                 }
             }
@@ -121,12 +141,12 @@ public class PluginExecutorService extends Service {
             @Override
             public void checkPluginState(String pluginName, IPluginStateCallback stateCallback) {
                 try {
-                    mExecutorManager.checkPluginState(pluginName, stateCallback);
+                    mPluginExecutor.checkPluginState(pluginName, stateCallback);
                 } catch (RemoteException e) {
                     try {
                         stateCallback.onState(PluginState.STATE_EXCEPTION_THROWN);
                     } catch (RemoteException e2) {
-                        Log.w(TAG, "Callback error: " + e2.toString());
+                        Log.e(TAG, "checkPluginState() failed to call stateCallback.onState()");
                     }
                 }
             }
