@@ -17,45 +17,71 @@
 package com.android.ondevicepersonalization.libraries.plugin.internal;
 
 import android.content.Context;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
 import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
-import com.android.ondevicepersonalization.libraries.plugin.PluginContextProvider;
+import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
 import com.android.ondevicepersonalization.libraries.plugin.PluginState;
 
 import com.google.common.collect.ImmutableSet;
+
+import org.checkerframework.checker.nullness.qual.Nullable;
 
 import java.util.HashMap;
 import java.util.Map;
 
 /** Loads and executes plugins in the current process. */
 public class PluginExecutor {
-    private static final ImmutableSet<String> CONTAINER_ALLOWLIST = ImmutableSet.of();
+    private static final String TAG = "PluginExecutor";
     private final Map<String, Plugin> mPlugins = new HashMap<>();
     private final Map<String, PluginContext> mPluginContexts = new HashMap<>();
     private final Context mContext;
+    private final PluginLoader mPluginLoader;
 
     /** Creates a {@link PluginExecutor}. */
-    public static PluginExecutor create(Context context) {
-        return new PluginExecutor(context);
+    public static PluginExecutor create(Context context, PluginLoader pluginLoader) {
+        return new PluginExecutor(context, pluginLoader);
     }
 
-    /** Loads a plugin. */
+    /**
+     * Loads a plugin.
+     *
+     * @param info Information describing the Plugin to load, also providing necessary file
+     *     descriptors.
+     * @param callback Called when the Plugin has been successfully loaded or loading has failed.
+     * @param pluginHost Implementation of {@link PluginHost} interface, providing method
+     *     createPluginContext() to create a {@link PluginContext} to pass to the Plugin on
+     *     execution.
+     * @param pluginContextInitData Initialization data created in the main process, which is passed
+     *     to the {@link PluginHost}'s createPluginContext() method.
+     */
     public void load(
             PluginInfoInternal info,
             PluginCallback callback,
-            PluginContextProvider pluginContextProvider)
+            @Nullable PluginHost pluginHost,
+            @Nullable Bundle pluginContextInitData)
             throws RemoteException {
+
+        ImmutableSet<String> allowedClasses = ImmutableSet.of();
+        ImmutableSet<String> allowedPackages = ImmutableSet.of();
+        if (pluginHost != null) {
+            allowedClasses = pluginHost.getClassLoaderAllowedClasses(info.taskName());
+            allowedPackages = pluginHost.getClassLoaderAllowedPackages(info.taskName());
+        }
+
         Plugin plugin =
-                PluginLoader.loadPlugin(
+                mPluginLoader.loadPlugin(
                         info.entryPointClassName(),
                         info.pluginCodeList(),
                         mContext.getClassLoader(),
-                        CONTAINER_ALLOWLIST);
+                        allowedClasses,
+                        allowedPackages);
         if (plugin == null) {
             callback.onFailure(FailureType.ERROR_LOADING_PLUGIN);
             return;
@@ -65,35 +91,43 @@ public class PluginExecutor {
         String pluginId = info.taskName();
 
         mPlugins.put(pluginId, plugin);
-        mPluginContexts.put(pluginId, pluginContextProvider.createPluginContext(pluginId));
+        @Nullable PluginContext pluginContext = null;
+        if (pluginHost != null) {
+            pluginContext = pluginHost.createPluginContext(pluginId, pluginContextInitData);
+        }
+        mPluginContexts.put(pluginId, pluginContext);
 
         // TODO(b/239079143): Add more specific methods to the callback.
         callback.onSuccess(PersistableBundle.EMPTY);
     }
 
     /** Executes a plugin. */
-    public void execute(
-            PersistableBundle input,
-            String pluginId,
-            PluginCallback callback,
-            PluginContext pluginContext)
+    public void execute(PersistableBundle input, String pluginId, PluginCallback callback)
             throws RemoteException {
         if (!mPlugins.containsKey(pluginId)) {
+            Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
             callback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
             return;
+        }
+        if (!mPluginContexts.containsKey(pluginId)) {
+            Log.e(TAG, String.format("No PluginContext for plugin with id %s found", pluginId));
         }
 
         mPlugins.get(pluginId).onExecute(input, callback, mPluginContexts.get(pluginId));
     }
 
     /** Unloads a plugin. */
-    public void unload(String pluginId, PluginCallback callback, PluginContext pluginContext)
-            throws RemoteException {
+    public void unload(String pluginId, PluginCallback callback) throws RemoteException {
+
         if (!mPlugins.containsKey(pluginId)) {
+            Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
             callback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
             return;
         }
         if (!mPluginContexts.containsKey(pluginId)) {
+            Log.e(
+                    TAG,
+                    String.format("Could not find a pluginContext associated with %s", pluginId));
             callback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);
             return;
         }
@@ -106,17 +140,22 @@ public class PluginExecutor {
     public void checkPluginState(String pluginId, IPluginStateCallback stateCallback)
             throws RemoteException {
         if (!mPlugins.containsKey(pluginId)) {
+            Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
             stateCallback.onState(PluginState.STATE_NOT_LOADED);
             return;
         }
         if (!mPluginContexts.containsKey(pluginId)) {
+            Log.e(
+                    TAG,
+                    String.format("Could not find a pluginContext associated with %s", pluginId));
             stateCallback.onState(PluginState.STATE_NOT_LOADED);
             return;
         }
         stateCallback.onState(PluginState.STATE_LOADED);
     }
 
-    private PluginExecutor(Context context) {
+    private PluginExecutor(Context context, PluginLoader pluginLoader) {
         this.mContext = context;
+        this.mPluginLoader = pluginLoader;
     }
 }
