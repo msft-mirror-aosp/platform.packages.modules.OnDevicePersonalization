@@ -77,7 +77,9 @@ android_app {
         "kotlin-annotations",
     ],
     static_libs: [
+        "androidx.concurrent_concurrent-futures",
         "androidx.work_work-runtime",
+        "guava",
         "kotlin-stdlib",
         "kotlinx_coroutines",
         "kotlinx-coroutines-android",
