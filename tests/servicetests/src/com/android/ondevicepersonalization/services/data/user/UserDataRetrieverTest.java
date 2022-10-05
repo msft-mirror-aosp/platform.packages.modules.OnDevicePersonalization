@@ -24,7 +24,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.Calendar;
 import java.util.TimeZone;
 
 @RunWith(JUnit4.class)
@@ -39,8 +38,17 @@ public class UserDataRetrieverTest {
     @Test
     public void testGetTimeZone() {
         UserData userData = mRetriever.getUserData();
-        TimeZone tz = Calendar.getInstance().getTimeZone();
+        TimeZone tz = TimeZone.getDefault();
         assertNotNull(userData.timeZone);
         assertEquals(userData.timeZone, tz);
+    }
+
+    @Test
+    public void testGetTimeZoneAfterModification() {
+        TimeZone tzGmt4 = TimeZone.getTimeZone("GMT+04:00");
+        TimeZone.setDefault(tzGmt4);
+        UserData userData = mRetriever.getUserData();
+        assertNotNull(userData.timeZone);
+        assertEquals(userData.timeZone, tzGmt4);
     }
 }
