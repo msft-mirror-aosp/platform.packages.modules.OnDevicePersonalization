@@ -21,9 +21,12 @@ import static android.content.pm.PackageManager.GET_META_DATA;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -96,6 +99,45 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
         return dataFileGroupBuilder.build();
     }
 
+    /**
+     * Creates the fileGroup name based off the package's name and cert.
+     *
+     * @param packageName Name of the package owning the fileGroup
+     * @param context Context of the calling service/application
+     * @return The created fileGroup name.
+     */
+    public static String createPackageFileGroupName(String packageName, Context context) throws
+            PackageManager.NameNotFoundException {
+        return packageName + "_" + PackageUtils.getCertDigest(context, packageName);
+    }
+
+    /**
+     * Creates the MDD download URL for the given package
+     *
+     * @param packageInfo PackageInfo of the package owning the fileGroup
+     * @param context Context of the calling service/application
+     * @return The created MDD URL for the package.
+     */
+    @VisibleForTesting
+    public static String createDownloadUrl(PackageInfo packageInfo, Context context) throws
+            PackageManager.NameNotFoundException {
+        String packageName = packageInfo.packageName;
+        String baseURL =
+                AppManifestConfigHelper.getDownloadUrlFromOdpSettings(context, packageInfo);
+        if (baseURL == null) {
+            // TODO(b/241941021) Determine correct exception to throw
+            throw new IllegalArgumentException("Failed to retrieve base download URL");
+        }
+        long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
+                PackageUtils.getCertDigest(context, packageName)).getSyncToken();
+        Uri uri = Uri.parse(baseURL);
+        if (syncToken != -1) {
+            uri = uri.buildUpon().appendQueryParameter("syncToken",
+                    String.valueOf(syncToken)).build();
+        }
+        return uri.toString();
+    }
+
     @Override
     public ListenableFuture<Void> refreshFileGroups(MobileDataDownload mobileDataDownload) {
         List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
@@ -103,13 +145,14 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
             if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
                 try {
-                    String groupName = createPackageFileGroupName(packageInfo.packageName);
+                    String groupName = createPackageFileGroupName(packageInfo.packageName,
+                            mContext);
                     String ownerPackage = mContext.getPackageName();
                     String fileId = groupName;
                     int byteSize = 0;
                     String checksum = "";
                     ChecksumType checksumType = ChecksumType.NONE;
-                    String downloadUrl = createDownloadUrl(packageInfo);
+                    String downloadUrl = createDownloadUrl(packageInfo, mContext);
                     DeviceNetworkPolicy deviceNetworkPolicy =
                             DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
                     DataFileGroup dataFileGroup = createDataFileGroup(
@@ -142,14 +185,5 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                 },
                 OnDevicePersonalizationExecutors.getBackgroundExecutor()
         );
-    }
-
-    private String createPackageFileGroupName(String packageName) throws
-            PackageManager.NameNotFoundException {
-        return packageName + "_" + PackageUtils.getCertDigest(mContext, packageName);
-    }
-
-    private String createDownloadUrl(PackageInfo packageInfo) {
-        return AppManifestConfigHelper.getDownloadUrlFromOdpSettings(mContext, packageInfo);
     }
 }
