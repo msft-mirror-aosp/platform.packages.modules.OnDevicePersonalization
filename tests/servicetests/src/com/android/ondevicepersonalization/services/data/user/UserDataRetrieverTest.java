@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -36,8 +37,11 @@ public class UserDataRetrieverTest {
     }
 
     @Test
-    public void testGetTimeZone() {
+    public void testGetUserData() {
+        long timeMillis = System.currentTimeMillis();
         UserData userData = mRetriever.getUserData();
+        assertTrue(userData.timeMillis > 0);
+        assertTrue(userData.timeMillis >= timeMillis);
         TimeZone tz = TimeZone.getDefault();
         assertNotNull(userData.timeZone);
         assertEquals(userData.timeZone, tz);

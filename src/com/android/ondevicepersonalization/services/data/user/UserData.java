@@ -22,6 +22,9 @@ import java.util.TimeZone;
  * A data class that holds user data to be sent to ad vendors.
  */
 public final class UserData {
+    // The current system time in milliseconds.
+    public long timeMillis = 0;
+
     // The device time zone.
     public TimeZone timeZone = null;
 }
