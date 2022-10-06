@@ -20,6 +20,7 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.PluginApplication;
@@ -46,6 +47,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
  * {@link IPluginExecutorService} provided by the passed in {@link PluginExecutorServiceProvider}.
  */
 public class PluginControllerImpl implements PluginController {
+    private static final String TAG = PluginControllerImpl.class.getSimpleName();
     private final PluginInfo mInfo;
     private final Context mContext;
     private final PluginExecutorServiceProvider mPluginExecutorServiceProvider;
@@ -85,6 +87,11 @@ public class PluginControllerImpl implements PluginController {
 
     @Override
     public void load(PluginCallback callback) throws RemoteException {
+        if (!mPluginExecutorServiceProvider.bindService()) {
+            Log.e(TAG, "Failed to bind to service");
+            callback.onFailure(FailureType.ERROR_LOADING_PLUGIN);
+            return;
+        }
 
         PluginInfoInternal.Builder infoBuilder = PluginInfoInternal.builder();
         infoBuilder.setTaskName(mInfo.taskName());
@@ -113,6 +120,7 @@ public class PluginControllerImpl implements PluginController {
         IPluginCallback parcelablePluginCallback = CallbackConverter.toIPluginCallback(callback);
         try {
             pluginExecutorService.unload(mInfo.taskName(), parcelablePluginCallback);
+            mPluginExecutorServiceProvider.unbindService();
         } catch (RemoteException e) {
             // This callback call may throw RemoteException, which we pass on.
             callback.onFailure(FailureType.ERROR_UNLOADING_PLUGIN);

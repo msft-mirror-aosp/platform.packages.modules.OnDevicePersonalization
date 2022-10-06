@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.libraries.plugin.impl;
+package com.android.ondevicepersonalization.libraries.plugin.internal;
 
 import android.app.Service;
 import android.content.Context;
@@ -31,13 +31,6 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginApplication;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
 import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
 import com.android.ondevicepersonalization.libraries.plugin.PluginState;
-import com.android.ondevicepersonalization.libraries.plugin.internal.CallbackConverter;
-import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginCallback;
-import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginExecutorService;
-import com.android.ondevicepersonalization.libraries.plugin.internal.IPluginStateCallback;
-import com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutor;
-import com.android.ondevicepersonalization.libraries.plugin.internal.PluginInfoInternal;
-import com.android.ondevicepersonalization.libraries.plugin.internal.PluginLoaderImpl;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
