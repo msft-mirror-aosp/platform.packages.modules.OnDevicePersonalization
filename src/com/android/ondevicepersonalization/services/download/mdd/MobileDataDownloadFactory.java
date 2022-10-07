@@ -64,6 +64,13 @@ public class MobileDataDownloadFactory {
     @NonNull
     public static synchronized MobileDataDownload getMdd(
             @NonNull Context context) {
+        return getMdd(context, getFileDownloader(context));
+    }
+
+    /** Returns a singleton of MobileDataDownload. */
+    @NonNull
+    public static synchronized MobileDataDownload getMdd(
+            @NonNull Context context, @NonNull FileDownloader downloader) {
         synchronized (MobileDataDownloadFactory.class) {
             if (sSingleton == null) {
                 SynchronousFileStorage fileStorage = getFileStorage(context);
@@ -80,7 +87,7 @@ public class MobileDataDownloadFactory {
                                 .setTaskScheduler(Optional.of(new MddTaskScheduler(context)))
                                 .setNetworkUsageMonitor(getNetworkUsageMonitor(context))
                                 .setFileStorage(fileStorage)
-                                .setFileDownloaderSupplier(() -> getFileDownloader(context))
+                                .setFileDownloaderSupplier(() -> downloader)
                                 .addFileGroupPopulator(
                                         new OnDevicePersonalizationFileGroupPopulator(context))
                                 .build();
