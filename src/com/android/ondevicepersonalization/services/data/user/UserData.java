@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import android.content.res.Configuration;
+
 import java.util.TimeZone;
 
 /**
@@ -27,4 +29,7 @@ public final class UserData {
 
     // The device time zone.
     public TimeZone timeZone = null;
+
+    // The device orientation.
+    public int orientation = Configuration.ORIENTATION_PORTRAIT;
 }
