@@ -60,8 +60,7 @@ public final class PluginLoaderImpl implements PluginLoader {
                             classLoader, containerClassesAllowlist, containerPackagesAllowlist);
             ClassLoader pluginClassLoader;
             if (dexes.length > 0) {
-                pluginClassLoader =
-                        new InMemoryDexClassLoader(dexes, isolatedContainerClassLoader);
+                pluginClassLoader = new InMemoryDexClassLoader(dexes, isolatedContainerClassLoader);
             } else {
                 // TODO(b/249345663): Remove this after we add tests for loading APKs.
                 // InMemoryDexClassLoader crashes if there are no dexes.

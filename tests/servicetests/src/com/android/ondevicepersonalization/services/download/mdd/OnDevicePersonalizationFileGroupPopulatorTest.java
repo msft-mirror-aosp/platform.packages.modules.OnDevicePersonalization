@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.download.mdd;
 import static android.content.pm.PackageManager.GET_META_DATA;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -27,12 +28,17 @@ import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
+import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
+import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
-import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterResponse;
+import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.mobiledatadownload.ClientConfigProto.ClientFile;
+import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 
 import org.junit.After;
 import org.junit.Before;
@@ -47,9 +53,14 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private String mPackageName;
+    private MobileDataDownload mMdd;
+    private SynchronousFileStorage mFileStorage;
 
     @Before
     public void setup() throws Exception {
+        mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
+                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
         mPackageName = mContext.getPackageName();
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -59,12 +70,25 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
 
     @Test
     public void testRefreshFileGroup() throws Exception {
-        mPopulator.refreshFileGroups(MobileDataDownloadFactory.getMdd(mContext)).get();
-        RemoveFileGroupsByFilterRequest request =
-                RemoveFileGroupsByFilterRequest.newBuilder().build();
-        RemoveFileGroupsByFilterResponse response = MobileDataDownloadFactory.getMdd(
-                mContext).removeFileGroupsByFilter(request).get();
-        assertEquals(1, response.removedFileGroupsCount());
+        mPopulator.refreshFileGroups(mMdd).get();
+
+        String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                mPackageName, mContext);
+        // Trigger the download immediately.
+        ClientFileGroup clientFileGroup =
+                mMdd.downloadFileGroup(DownloadFileGroupRequest.newBuilder().setGroupName(
+                        fileGroupName).build()).get();
+
+        // Verify the downloaded DataFileGroup.
+        assertEquals(fileGroupName, clientFileGroup.getGroupName());
+        assertEquals(mContext.getPackageName(), clientFileGroup.getOwnerPackage());
+        assertEquals(0, clientFileGroup.getVersionNumber());
+        assertEquals(1, clientFileGroup.getFileCount());
+        assertFalse(clientFileGroup.hasAccount());
+
+        ClientFile clientFile = clientFileGroup.getFile(0);
+        assertEquals(fileGroupName, clientFile.getFileId());
+        assertTrue(clientFile.hasFileUri());
     }
 
     @Test

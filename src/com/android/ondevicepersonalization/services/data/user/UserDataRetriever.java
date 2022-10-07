@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import java.util.Calendar;
 import java.util.TimeZone;
 
 /**
@@ -47,6 +46,6 @@ public class UserDataRetriever {
 
     /** Retrieves current device's time zone information. */
     public static TimeZone getTimeZone() {
-        return Calendar.getInstance().getTimeZone();
+        return TimeZone.getDefault();
     }
 }

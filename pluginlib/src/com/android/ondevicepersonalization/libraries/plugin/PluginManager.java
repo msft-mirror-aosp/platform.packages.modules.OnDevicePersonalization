@@ -19,19 +19,6 @@ package com.android.ondevicepersonalization.libraries.plugin;
 /** Entry-point interface for creating {@link PluginController}. */
 public interface PluginManager {
 
-    /**
-     * Create PluginController handle.
-     *
-     * <p>Creating the PluginController attempts to bind to a service, which is used to load &
-     * execute the plugin. If the bindService() call fails, that means the service cannot be found
-     * and a ServiceNotFoundException is thrown.
-     */
-    PluginController createPluginController(PluginInfo info) throws ServiceNotFoundException;
-
-    /** Exception indicating that the service was not found. */
-    class ServiceNotFoundException extends Exception {
-        public ServiceNotFoundException(String message) {
-            super(message);
-        }
-    }
+    /** Create PluginController handle. */
+    PluginController createPluginController(PluginInfo info);
 }
