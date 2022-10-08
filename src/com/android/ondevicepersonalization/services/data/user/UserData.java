@@ -14,15 +14,22 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.libraries.plugin;
+package com.android.ondevicepersonalization.services.data.user;
 
-import org.checkerframework.checker.nullness.qual.Nullable;
+import android.content.res.Configuration;
+
+import java.util.TimeZone;
 
 /**
- * Interface that provides the {@link PluginContext} to {@link Plugin} implementations. Typically
- * implemented by the Sandbox Developer.
+ * A data class that holds user data to be sent to ad vendors.
  */
-public interface PluginContextProvider {
-    /** Creates a plugin context. */
-    @Nullable PluginContext createPluginContext(String pluginId);
+public final class UserData {
+    // The current system time in milliseconds.
+    public long timeMillis = 0;
+
+    // The device time zone.
+    public TimeZone timeZone = null;
+
+    // The device orientation.
+    public int orientation = Configuration.ORIENTATION_PORTRAIT;
 }

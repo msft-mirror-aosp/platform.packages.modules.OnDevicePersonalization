@@ -17,7 +17,6 @@
 package com.android.ondevicepersonalization.services.data;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -31,29 +30,40 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationVendorDataDaoTest {
+    private static final String TEST_OWNER = "owner";
+    private static final String TEST_CERT_DIGEST = "certDigest";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationVendorDataDao mDao;
-    private static String sTestOwner = "owner";
-    private static String sTestCertDigest = "certDigest";
 
     @Before
     public void setup() {
-        mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, sTestOwner,
-                sTestCertDigest);
+        mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
+                TEST_CERT_DIGEST);
     }
 
     @Test
     public void testInsert() {
-        boolean insertResult = mDao.updateOrInsertVendorData("key", new byte[10], "fp");
+        VendorData data = new VendorData.Builder().setKey("key").setData(new byte[10]).setFp(
+                "fp").build();
+        boolean insertResult = mDao.updateOrInsertVendorData(data);
         assertTrue(insertResult);
     }
 
     @Test
-    public void testInsertNullData() {
-        boolean insertResult = mDao.updateOrInsertVendorData("key", null, "fp");
-        assertFalse(insertResult);
+    public void testBatchInsert() {
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).setFp(
+                "fp").build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).setFp(
+                "fp2").build());
+        boolean insertResult = mDao.batchUpdateOrInsertVendorDataTransaction(dataList,
+                System.currentTimeMillis());
+        assertTrue(insertResult);
     }
 
     @Test
@@ -76,14 +86,14 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     public void testGetInstance() {
         OnDevicePersonalizationVendorDataDao instance1Owner1 =
                 OnDevicePersonalizationVendorDataDao.getInstance(mContext, "owner1",
-                        sTestCertDigest);
+                        TEST_CERT_DIGEST);
         OnDevicePersonalizationVendorDataDao instance2Owner1 =
                 OnDevicePersonalizationVendorDataDao.getInstance(mContext, "owner1",
-                        sTestCertDigest);
+                        TEST_CERT_DIGEST);
         assertEquals(instance1Owner1, instance2Owner1);
         OnDevicePersonalizationVendorDataDao instance1Owner2 =
                 OnDevicePersonalizationVendorDataDao.getInstance(mContext, "owner2",
-                        sTestCertDigest);
+                        TEST_CERT_DIGEST);
         assertNotEquals(instance1Owner1, instance1Owner2);
     }
 
@@ -94,6 +104,6 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(sTestOwner, sTestCertDigest);
+        OnDevicePersonalizationVendorDataDao.clearInstance(TEST_OWNER, TEST_CERT_DIGEST);
     }
 }
