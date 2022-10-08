@@ -20,6 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.Context;
+
+import androidx.test.core.app.ApplicationProvider;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,11 +33,12 @@ import java.util.TimeZone;
 
 @RunWith(JUnit4.class)
 public class UserDataRetrieverTest {
+    private final Context mContext = ApplicationProvider.getApplicationContext();
     private UserDataRetriever mRetriever;
 
     @Before
     public void setup() {
-        mRetriever = UserDataRetriever.getInstance();
+        mRetriever = UserDataRetriever.getInstance(mContext);
     }
 
     @Test
@@ -45,6 +50,8 @@ public class UserDataRetrieverTest {
         TimeZone tz = TimeZone.getDefault();
         assertNotNull(userData.timeZone);
         assertEquals(userData.timeZone, tz);
+        int orientation = mContext.getResources().getConfiguration().orientation;
+        assertEquals(userData.orientation, orientation);
     }
 
     @Test
