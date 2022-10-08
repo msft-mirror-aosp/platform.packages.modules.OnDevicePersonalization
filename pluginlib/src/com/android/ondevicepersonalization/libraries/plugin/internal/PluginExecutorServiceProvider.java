@@ -20,14 +20,17 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-/**
- * Interface used to provide a reference to a {@link IPluginExecutorService}, e.g. from a {@link
- * PluginManager} implementation to individual {@link PluginController}.
- */
+/** Interface used to provide a reference to the {@link IPluginExecutorService} */
 public interface PluginExecutorServiceProvider {
     /** Returns the {@link IPluginExecutorService}. */
     @Nullable IPluginExecutorService getExecutorService();
 
     /** Returns the readiness of the executor service. */
     SettableFuture<Boolean> getExecutorServiceReadiness();
+
+    /** Bind to the service. */
+    boolean bindService();
+
+    /** Unbind from the service. */
+    void unbindService();
 }
