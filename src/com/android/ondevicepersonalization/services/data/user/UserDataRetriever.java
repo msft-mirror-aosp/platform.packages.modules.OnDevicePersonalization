@@ -16,42 +16,51 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import android.content.Context;
+
 import java.util.TimeZone;
 
 /**
  * A retriever for getting user data signals.
  */
 public class UserDataRetriever {
-
+    private Context mContext;
     private static UserDataRetriever sSingleton = null;
 
-    private UserDataRetriever() {}
+    private UserDataRetriever(Context context) {
+        mContext = context;
+    }
 
     /** Returns an instance of UserDataRetriever. */
-    public static UserDataRetriever getInstance() {
+    public static UserDataRetriever getInstance(Context context) {
         synchronized (UserDataRetriever.class) {
             if (sSingleton == null) {
-                sSingleton = new UserDataRetriever();
+                sSingleton = new UserDataRetriever(context);
             }
             return sSingleton;
         }
     }
 
     /** Retrieves user data signals and stores in a UserData object. */
-    public static UserData getUserData() {
+    public UserData getUserData() {
         UserData userData = new UserData();
         userData.timeMillis = getTimeMillis();
         userData.timeZone = getTimeZone();
+        userData.orientation = getOrientation();
         return userData;
     }
 
     /** Retrieves current system clock on the device. */
-    public static long getTimeMillis() {
+    public long getTimeMillis() {
         return System.currentTimeMillis();
     }
 
     /** Retrieves current device's time zone information. */
-    public static TimeZone getTimeZone() {
+    public TimeZone getTimeZone() {
         return TimeZone.getDefault();
+    }
+
+    public int getOrientation() {
+        return mContext.getResources().getConfiguration().orientation;
     }
 }
