@@ -40,8 +40,14 @@ public class UserDataRetriever {
     /** Retrieves user data signals and stores in a UserData object. */
     public static UserData getUserData() {
         UserData userData = new UserData();
+        userData.timeMillis = getTimeMillis();
         userData.timeZone = getTimeZone();
         return userData;
+    }
+
+    /** Retrieves current system clock on the device. */
+    public static long getTimeMillis() {
+        return System.currentTimeMillis();
     }
 
     /** Retrieves current device's time zone information. */
