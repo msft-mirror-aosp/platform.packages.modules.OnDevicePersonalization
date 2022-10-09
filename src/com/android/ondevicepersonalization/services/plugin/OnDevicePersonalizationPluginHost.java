@@ -14,11 +14,17 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.libraries.plugin;
+package com.android.ondevicepersonalization.services.plugin;
 
-/** Entry-point interface for creating {@link PluginController}. */
-public interface PluginManager {
+import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
 
-    /** Create PluginController handle. */
-    PluginController createPluginController(PluginInfo info);
+import com.google.common.collect.ImmutableSet;
+
+/** Plugin Support code shared between the managing process and the isolated process. */
+public class OnDevicePersonalizationPluginHost implements PluginHost {
+    @Override public ImmutableSet<String> getClassLoaderAllowedPackages(String pluginId) {
+        return ImmutableSet.of(
+                "com.android.ondevicepersonalization.services",
+                "com.android.ondevicepersonalization.libraries");
+    }
 }
