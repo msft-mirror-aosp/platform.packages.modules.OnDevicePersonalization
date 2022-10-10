@@ -14,13 +14,7 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.aidl;
+package com.android.ondevicepersonalization.libraries.plugin.internal;
 
-import android.os.Bundle;
-import android.os.IBinder;
-
-/** @hide */
-oneway interface IInitOnDevicePersonalizationCallback {
-    void onSuccess(IBinder token);
-    void onError(int errorCode);
-}
+// Declare PluginInfoInternal so AIDL can find it and knows it implements Parcelable.
+parcelable PluginInfoInternal;
