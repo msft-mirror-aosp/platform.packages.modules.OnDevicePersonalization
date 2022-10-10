@@ -34,7 +34,8 @@
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <application android:forceQueryable="true">
+    <application android:name=".OnDevicePersonalizationApplication"
+                 android:forceQueryable="true">
         <service android:name=".OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationService" />
@@ -43,6 +44,9 @@
         <service android:name=".download.OnDevicePersonalizationDownloadProcessingWorker"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.libraries.plugin.impl.PluginExecutorService"
+                 android:isolatedProcess="true" android:exported="false" >
         </service>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->

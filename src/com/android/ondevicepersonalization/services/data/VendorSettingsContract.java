@@ -19,31 +19,29 @@ package com.android.ondevicepersonalization.services.data;
 import android.provider.BaseColumns;
 
 /** Contract for the vendor_settings tables. Defines the table. */
-class VendorSettingsContract {
-    private VendorSettingsContract() {}
+public class VendorSettingsContract {
+    private VendorSettingsContract() {
+    }
 
     /**
      * Table containing the settings for vendors
      */
     public static class VendorSettingsEntry implements BaseColumns {
-        private VendorSettingsEntry() {}
-
         public static final String TABLE_NAME = "vendor_settings";
-
         /** Name of the vendor package that owns the setting */
         public static final String OWNER = "owner";
-
         /** Certificate digest of the vendor package that owns the setting */
         public static final String CERT_DIGEST = "certDigest";
-
         /** The syncToken represented as a timestamp */
         public static final String SYNC_TOKEN = "syncToken";
-
         public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS "
                 + TABLE_NAME + " ("
                 + OWNER + " TEXT NOT NULL,"
                 + CERT_DIGEST + " TEXT NOT NULL,"
                 + SYNC_TOKEN + " INTEGER NOT NULL,"
                 + "PRIMARY KEY(" + OWNER + "," + CERT_DIGEST + "))";
+
+        private VendorSettingsEntry() {
+        }
     }
 }

@@ -19,6 +19,8 @@ package com.android.ondevicepersonalization.libraries.plugin.internal;
 import static java.util.concurrent.TimeUnit.MILLISECONDS;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.res.AssetManager;
 import android.os.FileUtils;
@@ -72,6 +74,20 @@ public final class PluginArchiveManager {
     }
 
     /**
+     * Create a File for the specified archive in the cache directory, together with the archive's
+     * checksum.
+     */
+    private File createArchiveFileInCacheDir(ArchiveInfo archive) {
+        String filename;
+        if (archive.filename() != null) {
+            filename = archive.filename();
+        } else {
+            filename = archive.packageName() + ".apk";
+        }
+        return new File(mApplicationContext.getCacheDir(), filename);
+    }
+
+    /**
      * Copy the passed in Plugin archives to the app's cache directory, open file descriptors for
      * them, wait for the service to be ready, and perform a PluginTask.
      */
@@ -88,14 +104,30 @@ public final class PluginArchiveManager {
         // Avoid using Context.getAssets().openFd() as it wraps a file descriptor mapped to
         // the-entire-app-apk instead of the-plugin-archive-in-the-app-apk.
         for (ArchiveInfo pluginArchive : pluginArchives) {
-            if (pluginArchive.packageName() != null) {
+            if (pluginArchive.packageName() != null && pluginArchive.filename() != null) {
+                // If the package is not null, and the file name is not null, the Plugin APK is an
+                // asset of
+                // the installed package.
                 if (!copyPluginFromPackageAssetsToCacheDir(pluginArchive)) {
                     return false;
                 }
-            } else {
+            } else if (pluginArchive.packageName() != null && pluginArchive.filename() == null) {
+                if (!copyPluginFromInstalledPackageToCacheDir(pluginArchive)) {
+                    // If the package is not null, but the file name is null, the Plugin is the APK
+                    // from the
+                    // installed package.
+                    return false;
+                }
+            } else if (pluginArchive.packageName() == null && pluginArchive.filename() != null) {
+                // If the package is null, and the filename is not null, the Plugin is an APK in the
+                // current
+                // application's assets.
                 if (!copyPluginFromAssetsToCacheDir(pluginArchive.filename())) {
                     return false;
                 }
+            } else {
+                Log.e(TAG, "Archive filename and package cannot both be null!");
+                return false;
             }
         }
 
@@ -108,15 +140,11 @@ public final class PluginArchiveManager {
                         Lists.transform(
                                 pluginArchives,
                                 (ArchiveInfo archive) ->
-                                        new Pair<File, String>(
-                                                new File(
-                                                        mApplicationContext.getCacheDir(),
-                                                        archive.filename()),
-                                                getChecksumFromAssets(archive))));
-
+                                        new Pair<>(
+                                                createArchiveFileInCacheDir(archive),
+                                                getArchiveChecksum(archive))));
         try (CloseableList<PluginCode> files =
                 createCloseablePluginCodeListFromFiles(archivesInCacheDir)) {
-
             infoBuilder.setPluginCodeList(ImmutableList.copyOf(files.closeables()));
 
             PluginInfoInternal info = infoBuilder.build();
@@ -124,7 +152,6 @@ public final class PluginArchiveManager {
             if (!maybeAwaitPluginServiceReady(serviceName, serviceReadiness)) {
                 return false;
             }
-
             pluginTask.run(info);
             return true;
         } catch (RemoteException e) {
@@ -177,7 +204,7 @@ public final class PluginArchiveManager {
                     return false;
                 }
             } else {
-                readiness.get(BIND_TIMEOUT_MS, MILLISECONDS);
+                return readiness.get(BIND_TIMEOUT_MS, MILLISECONDS);
             }
         } catch (InterruptedException | ExecutionException | TimeoutException e) {
             Log.e(TAG, String.format("Error binding to %s", serviceName));
@@ -192,9 +219,14 @@ public final class PluginArchiveManager {
      */
     private static final String DEFAULT_CHECKSUM = "";
 
-    private String getChecksumFromAssets(ArchiveInfo pluginArchive) {
+    private String getArchiveChecksum(ArchiveInfo pluginArchive) {
         AssetManager assetManager;
         if (pluginArchive.packageName() != null) {
+            // TODO(b/247119575): resolve a mutant here. Test for cache hits & misses when expected.
+            if (pluginArchive.filename() == null) {
+                // TODO(b/248365642): return some other cacheKey, like lastUpdateTime, here.
+                return DEFAULT_CHECKSUM;
+            }
             try {
                 assetManager = packageAssetManager(pluginArchive.packageName());
             } catch (NameNotFoundException e) {
@@ -222,7 +254,40 @@ public final class PluginArchiveManager {
         return pluginContext.getAssets();
     }
 
-    // TODO(b/247119575): Cover copyPluginFromPackageAssetsToCacheDir() with unit tests.
+    private boolean copyPluginFromInstalledPackageToCacheDir(ArchiveInfo pluginArchive) {
+        try {
+            PackageInfo packageInfo =
+                    mApplicationContext
+                            .getPackageManager()
+                            .getPackageInfo(pluginArchive.packageName(), 0);
+
+            ApplicationInfo applicationInfo = packageInfo.applicationInfo;
+            if (applicationInfo == null) {
+                Log.e(
+                        TAG,
+                        String.format(
+                                "Package %s has no ApplicationInfo", pluginArchive.packageName()));
+                return false;
+            }
+
+            String pluginApkPath = applicationInfo.sourceDir;
+            File pluginInCacheDir = createArchiveFileInCacheDir(pluginArchive);
+
+            try (InputStream pluginSrc = new FileInputStream(pluginApkPath);
+                    OutputStream pluginDst = new FileOutputStream(pluginInCacheDir);) {
+                FileUtils.copy(pluginSrc, pluginDst);
+                return true;
+            } catch (IOException e) {
+                Log.e(TAG, String.format("Error copying %s to cache dir", pluginArchive));
+            }
+            return false;
+
+        } catch (NameNotFoundException e) {
+            Log.e(TAG, String.format("Unknown package name %s", pluginArchive.packageName()));
+        }
+        return false;
+    }
+
     private boolean copyPluginFromPackageAssetsToCacheDir(ArchiveInfo pluginArchive) {
         try {
             AssetManager assetManager = packageAssetManager(pluginArchive.packageName());
