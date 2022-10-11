@@ -29,7 +29,7 @@ public class OnDevicePersonalizationException extends Exception {
     }
 
     public OnDevicePersonalizationException(int errorCode, String errorMessage) {
-        super(String.format("Error code: %d message: %s", errorCode, errorMessage));
+        super("Error code: " + errorCode + " message: " + errorMessage);
         mErrorCode = errorCode;
     }
 
