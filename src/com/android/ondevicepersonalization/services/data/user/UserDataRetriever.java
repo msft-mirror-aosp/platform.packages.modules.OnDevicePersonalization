@@ -17,6 +17,11 @@
 package com.android.ondevicepersonalization.services.data.user;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.os.BatteryManager;
+import android.os.Environment;
+import android.os.StatFs;
 
 import java.util.TimeZone;
 
@@ -24,8 +29,11 @@ import java.util.TimeZone;
  * A retriever for getting user data signals.
  */
 public class UserDataRetriever {
-    private Context mContext;
+    public static final int BYTES_IN_MB = 1048576;
+
     private static UserDataRetriever sSingleton = null;
+
+    private Context mContext;
 
     private UserDataRetriever(Context context) {
         mContext = context;
@@ -47,6 +55,8 @@ public class UserDataRetriever {
         userData.timeMillis = getTimeMillis();
         userData.timeZone = getTimeZone();
         userData.orientation = getOrientation();
+        userData.availableBytesMB = getAvailableBytesMB();
+        userData.batteryPct = getBatteryPct();
         return userData;
     }
 
@@ -60,7 +70,27 @@ public class UserDataRetriever {
         return TimeZone.getDefault();
     }
 
+    /** Retrieves the current device orientation. */
     public int getOrientation() {
         return mContext.getResources().getConfiguration().orientation;
+    }
+
+    /** Retrieves available bytes and converts to MB. */
+    public int getAvailableBytesMB() {
+        StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
+        return (int) (statFs.getAvailableBytes() / BYTES_IN_MB);
+    }
+
+    /** Retrieves the battery percentage of the device. */
+    public int getBatteryPct() {
+        IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
+        Intent batteryStatus = mContext.registerReceiver(null, ifilter);
+
+        int level = batteryStatus.getIntExtra(BatteryManager.EXTRA_LEVEL, -1);
+        int scale = batteryStatus.getIntExtra(BatteryManager.EXTRA_SCALE, -1);
+        if (level >= 0 && scale > 0) {
+            return Math.round(level * 100.0f / (float) scale);
+        }
+        return 0;
     }
 }
