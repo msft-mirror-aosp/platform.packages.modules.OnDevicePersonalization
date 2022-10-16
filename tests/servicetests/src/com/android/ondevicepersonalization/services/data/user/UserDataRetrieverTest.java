@@ -43,15 +43,17 @@ public class UserDataRetrieverTest {
 
     @Test
     public void testGetUserData() {
-        long timeMillis = System.currentTimeMillis();
         UserData userData = mRetriever.getUserData();
+
+        // Real time data
         assertTrue(userData.timeMillis > 0);
-        assertTrue(userData.timeMillis >= timeMillis);
-        TimeZone tz = TimeZone.getDefault();
+        assertTrue(userData.timeMillis <= mRetriever.getTimeMillis());
         assertNotNull(userData.timeZone);
-        assertEquals(userData.timeZone, tz);
-        int orientation = mContext.getResources().getConfiguration().orientation;
-        assertEquals(userData.orientation, orientation);
+        assertEquals(userData.timeZone, mRetriever.getTimeZone());
+        assertEquals(userData.orientation, mRetriever.getOrientation());
+
+        assertEquals(userData.availableBytesMB, mRetriever.getAvailableBytesMB());
+        assertEquals(userData.batteryPct, mRetriever.getBatteryPct());
     }
 
     @Test
