@@ -76,13 +76,13 @@ public final class PluginLoaderImpl implements PluginLoader {
             }
             return (Plugin) instance;
         } catch (IOException e) {
-            Log.e(TAG, "Error loading dex files from archive");
+            Log.e(TAG, "Error loading dex files from archive", e);
         } catch (ClassNotFoundException e) {
-            Log.e(TAG, String.format("Class %s not found", className));
+            Log.e(TAG, String.format("Class %s not found", className), e);
         } catch (InstantiationException | IllegalAccessException | InvocationTargetException e) {
-            Log.e(TAG, String.format("Error instantiating %s", className));
+            Log.e(TAG, String.format("Error instantiating %s", className), e);
         } catch (NoSuchMethodException e) {
-            Log.e(TAG, "Plugin's declared constructor not found");
+            Log.e(TAG, "Plugin's declared constructor not found", e);
         }
 
         return null;
