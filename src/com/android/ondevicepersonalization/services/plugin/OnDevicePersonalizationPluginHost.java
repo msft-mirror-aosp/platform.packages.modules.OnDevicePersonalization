@@ -37,23 +37,28 @@ public class OnDevicePersonalizationPluginHost implements PluginHost {
         mApplicationContext = Objects.requireNonNull(applicationContext);
     }
 
-    @Override public ImmutableSet<String> getClassLoaderAllowedPackages(String pluginId) {
+    @Override
+    public ImmutableSet<String> getClassLoaderAllowedPackages(String pluginId) {
         return ImmutableSet.of(
                 "com.android.ondevicepersonalization.services",
                 "com.android.ondevicepersonalization.libraries");
     }
 
     /** Creates a PluginContext in the isolated process. */
-    @Override @Nullable public PluginContext createPluginContext(
+    @Override
+    @Nullable
+    public PluginContext createPluginContext(
             @NonNull String pluginId, @Nullable Bundle initData) {
-        IManagingServiceConnector connector =
-                (IManagingServiceConnector) Objects.requireNonNull(
-                        initData.getBinder(MANAGING_SERVICE_CONNECTOR_KEY));
+        IManagingServiceConnector connector = IManagingServiceConnector.Stub.asInterface(
+                Objects.requireNonNull(
+                        initData.getBinder(MANAGING_SERVICE_CONNECTOR_KEY)));
         return new OnDevicePersonalizationPluginContext(connector);
     }
 
     /** Serializes data needed to create the PluginContext in the isolated process. */
-    @Override @Nullable public Bundle createPluginContextInitData(@NonNull String pluginId) {
+    @Override
+    @Nullable
+    public Bundle createPluginContextInitData(@NonNull String pluginId) {
         // TODO(b/249345663): Encode appPackageName and vendorPackageName into pluginId, then parse
         // pluginId to extract the appPackageName and vendorPackageName and create a
         // ManagingServiceConnector customized to the app and vendor package.
