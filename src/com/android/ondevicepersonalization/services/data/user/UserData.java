@@ -32,4 +32,10 @@ public final class UserData {
 
     // The device orientation.
     public int orientation = Configuration.ORIENTATION_PORTRAIT;
+
+    // Available bytes in MB.
+    public int availableBytesMB = 0;
+
+    // Battery percentage.
+    public int batteryPct = 0;
 }
