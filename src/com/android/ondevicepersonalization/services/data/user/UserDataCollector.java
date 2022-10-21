@@ -22,34 +22,39 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Environment;
 import android.os.StatFs;
+import android.util.Log;
 
+import com.google.common.base.Strings;
+
+import java.util.Locale;
 import java.util.TimeZone;
 
 /**
- * A retriever for getting user data signals.
+ * A collector for getting user data signals.
  */
-public class UserDataRetriever {
+public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
-    private static UserDataRetriever sSingleton = null;
+    private static UserDataCollector sSingleton = null;
+    private static final String TAG = "UserDataCollector";
 
     private Context mContext;
 
-    private UserDataRetriever(Context context) {
+    private UserDataCollector(Context context) {
         mContext = context;
     }
 
-    /** Returns an instance of UserDataRetriever. */
-    public static UserDataRetriever getInstance(Context context) {
-        synchronized (UserDataRetriever.class) {
+    /** Returns an instance of UserDataCollector. */
+    public static UserDataCollector getInstance(Context context) {
+        synchronized (UserDataCollector.class) {
             if (sSingleton == null) {
-                sSingleton = new UserDataRetriever(context);
+                sSingleton = new UserDataCollector(context);
             }
             return sSingleton;
         }
     }
 
-    /** Retrieves user data signals and stores in a UserData object. */
+    /** Collects user data signals and stores in a UserData object. */
     public UserData getUserData() {
         UserData userData = new UserData();
         userData.timeMillis = getTimeMillis();
@@ -57,31 +62,33 @@ public class UserDataRetriever {
         userData.orientation = getOrientation();
         userData.availableBytesMB = getAvailableBytesMB();
         userData.batteryPct = getBatteryPct();
+        userData.country = getCountry();
+        userData.language = getLanguage();
         return userData;
     }
 
-    /** Retrieves current system clock on the device. */
+    /** Collects current system clock on the device. */
     public long getTimeMillis() {
         return System.currentTimeMillis();
     }
 
-    /** Retrieves current device's time zone information. */
+    /** Collects current device's time zone information. */
     public TimeZone getTimeZone() {
         return TimeZone.getDefault();
     }
 
-    /** Retrieves the current device orientation. */
+    /** Collects the current device orientation. */
     public int getOrientation() {
         return mContext.getResources().getConfiguration().orientation;
     }
 
-    /** Retrieves available bytes and converts to MB. */
+    /** Collects available bytes and converts to MB. */
     public int getAvailableBytesMB() {
         StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
         return (int) (statFs.getAvailableBytes() / BYTES_IN_MB);
     }
 
-    /** Retrieves the battery percentage of the device. */
+    /** Collects the battery percentage of the device. */
     public int getBatteryPct() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = mContext.registerReceiver(null, ifilter);
@@ -92,5 +99,39 @@ public class UserDataRetriever {
             return Math.round(level * 100.0f / (float) scale);
         }
         return 0;
+    }
+
+    /** Collects current device's country information. */
+    public Country getCountry() {
+        String countryCode = Locale.getDefault().getISO3Country();
+        if (Strings.isNullOrEmpty(countryCode)) {
+            return Country.UNKNOWN;
+        } else {
+            Country country = Country.UNKNOWN;
+            try {
+                country = Country.valueOf(countryCode);
+            } catch (IllegalArgumentException iae) {
+                Log.e(TAG, "Country code cannot match to a country.", iae);
+                return country;
+            }
+            return country;
+        }
+    }
+
+    /** Collects current device's language information. */
+    public Language getLanguage() {
+        String langCode = Locale.getDefault().getLanguage();
+        if (Strings.isNullOrEmpty(langCode)) {
+            return Language.UNKNOWN;
+        } else {
+            Language language = Language.UNKNOWN;
+            try {
+                language = Language.valueOf(langCode.toUpperCase(Locale.US));
+            } catch (IllegalArgumentException iae) {
+                Log.e(TAG, "Language code cannot match to a language.", iae);
+                return language;
+            }
+            return language;
+        }
     }
 }
