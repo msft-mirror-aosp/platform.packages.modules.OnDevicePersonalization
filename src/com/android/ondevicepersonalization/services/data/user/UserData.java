@@ -38,4 +38,9 @@ public final class UserData {
 
     // Battery percentage.
     public int batteryPct = 0;
+    // The 3-letter ISO-3166 country code
+    public Country country = Country.UNKNOWN;
+
+    // The 2-letter ISO-639 language code
+    public Language language = Language.UNKNOWN;
 }
