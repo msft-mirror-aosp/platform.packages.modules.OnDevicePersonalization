@@ -26,7 +26,7 @@
         <uses-library android:name="android.test.runner"/>
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
-        <service android:name="com.android.ondevicepersonalization.libraries.plugin.impl.PluginExecutorService"
+        <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:isolatedProcess="true" android:exported="false" >
         </service>
     </application>
