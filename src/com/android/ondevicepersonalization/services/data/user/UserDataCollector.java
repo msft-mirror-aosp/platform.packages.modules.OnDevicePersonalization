@@ -22,6 +22,7 @@ import android.content.IntentFilter;
 import android.os.BatteryManager;
 import android.os.Environment;
 import android.os.StatFs;
+import android.telephony.TelephonyManager;
 import android.util.Log;
 
 import com.google.common.base.Strings;
@@ -66,6 +67,7 @@ public class UserDataCollector {
         userData.language = getLanguage();
         userData.screenHeight = getScreenHeightInDp();
         userData.screenWidth = getScreenWidthInDp();
+        userData.carrier = getCarrier();
         return userData;
     }
 
@@ -145,5 +147,10 @@ public class UserDataCollector {
     /** Collects current device's screen height in dp units. */
     public int getScreenWidthInDp() {
         return mContext.getResources().getConfiguration().screenWidthDp;
+    }
+
+    /** Collects carrier info. */
+    public String getCarrier() {
+        return mContext.getSystemService(TelephonyManager.class).getSimOperatorName();
     }
 }
