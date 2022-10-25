@@ -64,6 +64,8 @@ public class UserDataCollector {
         userData.batteryPct = getBatteryPct();
         userData.country = getCountry();
         userData.language = getLanguage();
+        userData.screenHeight = getScreenHeightInDp();
+        userData.screenWidth = getScreenWidthInDp();
         return userData;
     }
 
@@ -133,5 +135,15 @@ public class UserDataCollector {
             }
             return language;
         }
+    }
+
+    /** Collects current device's screen height in dp units. */
+    public int getScreenHeightInDp() {
+        return mContext.getResources().getConfiguration().screenHeightDp;
+    }
+
+    /** Collects current device's screen height in dp units. */
+    public int getScreenWidthInDp() {
+        return mContext.getResources().getConfiguration().screenWidthDp;
     }
 }
