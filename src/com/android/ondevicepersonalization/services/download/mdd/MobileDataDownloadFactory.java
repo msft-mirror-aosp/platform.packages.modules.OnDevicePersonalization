@@ -50,25 +50,31 @@ import java.util.concurrent.Executor;
 
 /** Mobile Data Download Factory. */
 public class MobileDataDownloadFactory {
-    private static MobileDataDownload sSingleton;
-
     /** Downloader Connection Timeout in Milliseconds. */
     private static final int DOWNLOADER_CONNECTION_TIMEOUT_MS = 10 * 1000; // 10 seconds
-
     /** Downloader Read Timeout in Milliseconds. */
     private static final int DOWNLOADER_READ_TIMEOUT_MS = 10 * 1000; // 10 seconds.
-
     /** Downloader max download threads. */
     private static final int DOWNLOADER_MAX_DOWNLOAD_THREADS = 2;
-
     private static final String MDD_METADATA_SHARED_PREFERENCES = "mdd_metadata_store";
+    private static MobileDataDownload sSingleton;
+    private static SynchronousFileStorage sSynchronousFileStorage;
 
     /** Returns a singleton of MobileDataDownload. */
     @NonNull
     public static synchronized MobileDataDownload getMdd(
             @NonNull Context context) {
+        return getMdd(context, getFileDownloader(context));
+    }
+
+    /** Returns a singleton of MobileDataDownload. */
+    @NonNull
+    public static synchronized MobileDataDownload getMdd(
+            @NonNull Context context, @NonNull FileDownloader downloader) {
         synchronized (MobileDataDownloadFactory.class) {
             if (sSingleton == null) {
+                SynchronousFileStorage fileStorage = getFileStorage(context);
+
                 // TODO(b/241009783): This only adds the core MDD code. We still need other
                 //  components:
                 // 1) Add Logger
@@ -80,8 +86,8 @@ public class MobileDataDownloadFactory {
                                 .setControlExecutor(getControlExecutor())
                                 .setTaskScheduler(Optional.of(new MddTaskScheduler(context)))
                                 .setNetworkUsageMonitor(getNetworkUsageMonitor(context))
-                                .setFileStorage(getFileStorage(context))
-                                .setFileDownloaderSupplier(() -> getFileDownloader(context))
+                                .setFileStorage(fileStorage)
+                                .setFileDownloaderSupplier(() -> downloader)
                                 .addFileGroupPopulator(
                                         new OnDevicePersonalizationFileGroupPopulator(context))
                                 .build();
@@ -96,22 +102,20 @@ public class MobileDataDownloadFactory {
         return new NetworkUsageMonitor(context, System::currentTimeMillis);
     }
 
-    // Connectivity constraints will be checked by JobScheduler/WorkManager instead.
-    private static class NoOpConnectivityHandler implements ConnectivityHandler {
-        @Override
-        public ListenableFuture<Void> checkConnectivity(DownloadConstraints constraints) {
-            return Futures.immediateVoidFuture();
-        }
-    }
-
     @NonNull
-    private static SynchronousFileStorage getFileStorage(@NonNull Context context) {
-        return new SynchronousFileStorage(
-                ImmutableList.of(
-                        /*backends*/ AndroidFileBackend.builder(context).build(),
-                        new JavaFileBackend()),
-                ImmutableList.of(/*transforms*/),
-                ImmutableList.of(/*monitors*/));
+    public static SynchronousFileStorage getFileStorage(@NonNull Context context) {
+        synchronized (MobileDataDownloadFactory.class) {
+            if (sSynchronousFileStorage == null) {
+                sSynchronousFileStorage =
+                        new SynchronousFileStorage(
+                                ImmutableList.of(
+                                        /*backends*/ AndroidFileBackend.builder(context).build(),
+                                        new JavaFileBackend()),
+                                ImmutableList.of(/*transforms*/),
+                                ImmutableList.of(/*monitors*/));
+            }
+            return sSynchronousFileStorage;
+        }
     }
 
     @NonNull
@@ -170,5 +174,13 @@ public class MobileDataDownloadFactory {
                 new SharedPreferencesDownloadMetadata(
                         sharedPrefs, OnDevicePersonalizationExecutors.getBackgroundExecutor());
         return downloadMetadataStore;
+    }
+
+    // Connectivity constraints will be checked by JobScheduler/WorkManager instead.
+    private static class NoOpConnectivityHandler implements ConnectivityHandler {
+        @Override
+        public ListenableFuture<Void> checkConnectivity(DownloadConstraints constraints) {
+            return Futures.immediateVoidFuture();
+        }
     }
 }
