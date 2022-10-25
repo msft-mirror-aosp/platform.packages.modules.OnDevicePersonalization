@@ -55,6 +55,10 @@ public class UserDataCollectorTest {
 
         assertEquals(userData.availableBytesMB, mCollector.getAvailableBytesMB());
         assertEquals(userData.batteryPct, mCollector.getBatteryPct());
+        assertEquals(userData.country, mCollector.getCountry());
+        assertEquals(userData.language, mCollector.getLanguage());
+        assertEquals(userData.screenHeight, mCollector.getScreenHeightInDp());
+        assertEquals(userData.screenWidth, mCollector.getScreenWidthInDp());
     }
 
     @Test
