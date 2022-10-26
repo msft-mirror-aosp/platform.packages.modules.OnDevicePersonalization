@@ -50,4 +50,7 @@ public final class UserData {
 
     // Screen weight of the device in dp units
     public int screenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
+
+    // Mobile carrier.
+    public String carrier = "";
 }
