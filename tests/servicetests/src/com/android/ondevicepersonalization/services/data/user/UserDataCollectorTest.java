@@ -59,6 +59,7 @@ public class UserDataCollectorTest {
         assertEquals(userData.language, mCollector.getLanguage());
         assertEquals(userData.screenHeight, mCollector.getScreenHeightInDp());
         assertEquals(userData.screenWidth, mCollector.getScreenWidthInDp());
+        assertEquals(userData.carrier, mCollector.getCarrier());
     }
 
     @Test
