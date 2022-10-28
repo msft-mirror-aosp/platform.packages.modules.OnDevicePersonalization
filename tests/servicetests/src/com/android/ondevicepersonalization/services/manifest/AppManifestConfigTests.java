@@ -34,6 +34,8 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class AppManifestConfigTests {
+    private static final String BASE_DOWNLOAD_URL =
+            "https://www.gstatic.com/ondevicepersonalization/testing/test_data1.json";
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Test
@@ -55,7 +57,7 @@ public class AppManifestConfigTests {
     public void testGetDownloadUrlFromOdpSettings() throws PackageManager.NameNotFoundException {
         PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
                 mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertEquals("https://test.com/get",
+        assertEquals(BASE_DOWNLOAD_URL,
                 AppManifestConfigHelper.getDownloadUrlFromOdpSettings(mContext, packageInfo));
     }
 
