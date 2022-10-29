@@ -18,10 +18,15 @@ package com.android.ondevicepersonalization.services.data;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 
 import androidx.test.core.app.ApplicationProvider;
+
+import com.android.ondevicepersonalization.services.data.user.UserDataTables;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -32,16 +37,25 @@ import org.junit.runners.JUnit4;
 public class OnDevicePersonalizationDbHelperTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationDbHelper mDbHelper;
+    private SQLiteDatabase mDb;
 
     @Before
     public void setup() {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        mDb = mDbHelper.getWritableDatabase();
+    }
+
+    @Test
+    public void testOnCreate() {
+        mDbHelper.onCreate(mDb);
+        assertTrue(hasEntity(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, "table"));
+        assertTrue(hasEntity(UserDataTables.LocationHistory.TABLE_NAME, "table"));
+        assertTrue(hasEntity(UserDataTables.LocationHistory.INDEX_NAME, "index"));
     }
 
     @Test
     public void testOnUpgrade() {
-        assertThrows(UnsupportedOperationException.class,
-                () -> mDbHelper.onUpgrade(mDbHelper.getWritableDatabase(), 2, 1));
+        assertThrows(UnsupportedOperationException.class, () -> mDbHelper.onUpgrade(mDb, 2, 1));
     }
 
     @Test
@@ -51,5 +65,19 @@ public class OnDevicePersonalizationDbHelperTest {
         OnDevicePersonalizationDbHelper instance2 =
                 OnDevicePersonalizationDbHelper.getInstance(mContext);
         assertEquals(instance1, instance2);
+    }
+
+    private boolean hasEntity(String entityName, String type) {
+        String query = "select DISTINCT name from sqlite_master where name = '"
+                + entityName + "' and type = '" + type + "'";
+        Cursor cursor = mDb.rawQuery(query, null);
+        if (cursor != null) {
+            if (cursor.getCount() > 0) {
+                cursor.close();
+                return true;
+            }
+            cursor.close();
+        }
+        return false;
     }
 }
