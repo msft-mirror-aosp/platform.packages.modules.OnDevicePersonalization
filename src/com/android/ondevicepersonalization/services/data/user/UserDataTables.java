@@ -57,8 +57,65 @@ public final class UserDataTables implements BaseColumns {
 
         public static final String CREATE_INDEXES_STATEMENT = "CREATE INDEX IF NOT EXISTS "
                 + INDEX_NAME + " ON "
-                + TABLE_NAME + "( "
+                + TABLE_NAME + "("
                 + TIME_SEC + ")";
+    }
+
+    /** App usage stats history table. */
+    public static class AppUsageHistory implements BaseColumns {
+        /** The name of app usage stats table. */
+        public static final String TABLE_NAME = USER_TABLE_PREFIX + "app_usage_history";
+
+        /** The package/app name of a usage activity. */
+        public static final String PACKAGE_NAME = "package_name";
+
+        /** Activity starting time of the app in seconds. */
+        public static final String STARTING_TIME_SEC = "starting_time_sec";
+
+        /** Activity ending time of the app in seconds. */
+        public static final String ENDING_TIME_SEC = "ending_time_sec";
+
+        /** Total activity time (on the foreground) of the app in seconds. */
+        public static final String TOTAL_TIME_USED_SEC = "total_time_used_sec";
+
+        /** The index name of app usage stats table based on starting timestamp. */
+        public static final String STARTING_TIME_SEC_INDEX_NAME = INDEX_PREFIX
+                + TABLE_NAME + STARTING_TIME_SEC;
+
+        /** The index name of app usage stats table based on ending timestamp. */
+        public static final String ENDING_TIME_SEC_INDEX_NAME = INDEX_PREFIX
+                + TABLE_NAME + ENDING_TIME_SEC;
+
+        /** The index name of app usage stats table based on total time spent. */
+        public static final String TOTAL_TIME_USED_SEC_INDEX_NAME = INDEX_PREFIX
+                + TABLE_NAME + TOTAL_TIME_USED_SEC;
+
+        public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS "
+                + TABLE_NAME + " ("
+                + _ID + " INTEGER PRIMARY KEY, "
+                + PACKAGE_NAME + " TEXT NOT NULL, "
+                + STARTING_TIME_SEC + " INTEGER NOT NULL, "
+                + ENDING_TIME_SEC + " INTEGER NOT NULL, "
+                + TOTAL_TIME_USED_SEC + " INTEGER NOT NULL)";
+
+        // All timestamp-related fields could be of interests of FA queries.
+        public static final String CREATE_STARTING_TIME_SEC_INDEX_STATEMENT =
+                "CREATE INDEX IF NOT EXISTS "
+                + STARTING_TIME_SEC_INDEX_NAME + " ON "
+                + TABLE_NAME + "("
+                + STARTING_TIME_SEC + ")";
+
+        public static final String CREATE_ENDING_TIME_SEC_INDEX_STATEMENT =
+                "CREATE INDEX IF NOT EXISTS "
+                + ENDING_TIME_SEC_INDEX_NAME + " ON "
+                + TABLE_NAME + "("
+                + ENDING_TIME_SEC + ")";
+
+        public static final String CREATE_TOTAL_TIME_USED_SEC_INDEX_STATEMENT =
+                "CREATE INDEX IF NOT EXISTS "
+                + TOTAL_TIME_USED_SEC_INDEX_NAME + " ON "
+                + TABLE_NAME + "("
+                + TOTAL_TIME_USED_SEC + ")";
     }
 
     // Private constructor to prevent instantiation.
