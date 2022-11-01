@@ -16,9 +16,13 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.util.Log;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -32,6 +36,22 @@ import com.google.common.util.concurrent.Futures;
  */
 public class OnDevicePersonalizationStartDownloadServiceReceiver extends BroadcastReceiver {
     private static final String TAG = "OnDevicePersonalizationStartDownloadServiceReceiver";
+
+    /** Enable the OnDevicePersonalizationStartDownloadServiceReceiver */
+    public static boolean enableReceiver(Context context) {
+        try {
+            context.getPackageManager()
+                    .setComponentEnabledSetting(
+                            new ComponentName(context,
+                                    OnDevicePersonalizationStartDownloadServiceReceiver.class),
+                            COMPONENT_ENABLED_STATE_ENABLED,
+                            PackageManager.DONT_KILL_APP);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "enableService failed for " + context.getPackageName(), e);
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Called when the broadcast is received. OnDevicePersonalization jobs will be started here.
