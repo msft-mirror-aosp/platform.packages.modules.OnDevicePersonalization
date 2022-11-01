@@ -46,6 +46,7 @@ public class UserDataDaoTest {
         boolean insertResult = mDao.insertLocationHistoryData(
                 1234567890, "111.11111", "-222.22222", 1, true);
         assertTrue(insertResult);
+        assertTrue(mDao.insertAppUsageHistoryData("TikTok", 999100, 999200, 100));
     }
 
     @Test
