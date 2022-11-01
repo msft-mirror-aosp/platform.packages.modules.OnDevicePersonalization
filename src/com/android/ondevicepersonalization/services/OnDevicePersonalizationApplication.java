@@ -27,6 +27,6 @@ import com.android.ondevicepersonalization.services.plugin.OnDevicePersonalizati
 public final class OnDevicePersonalizationApplication
         extends Application implements PluginApplication {
     @Override public @Nullable PluginHost getPluginHost() {
-        return new OnDevicePersonalizationPluginHost();
+        return new OnDevicePersonalizationPluginHost(this);
     }
 }
