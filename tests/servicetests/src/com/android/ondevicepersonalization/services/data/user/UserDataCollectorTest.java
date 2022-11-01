@@ -60,6 +60,9 @@ public class UserDataCollectorTest {
         assertEquals(userData.screenHeight, mCollector.getScreenHeightInDp());
         assertEquals(userData.screenWidth, mCollector.getScreenWidthInDp());
         assertEquals(userData.carrier, mCollector.getCarrier());
+        assertEquals(userData.make, mCollector.getDeviceMake());
+        assertEquals(userData.model, mCollector.getDeviceModel());
+        assertEquals(userData.osVersion, mCollector.getOSVersion());
     }
 
     @Test
