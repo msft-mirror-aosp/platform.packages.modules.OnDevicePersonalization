@@ -85,4 +85,29 @@ public class UserDataDao {
             return false;
         }
     }
+
+    /**
+     * Inserts a single app usage history entry.
+     *
+     * @return true if the insert succeeded, false otherwise.
+     */
+    public boolean insertAppUsageHistoryData(String packageName, long startingTimeSec,
+                                             long endingTimeSec, long totalTimeUsedSec) {
+        try {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            if (db == null) {
+                return false;
+            }
+            ContentValues values = new ContentValues();
+            values.put(UserDataTables.AppUsageHistory.PACKAGE_NAME, packageName);
+            values.put(UserDataTables.AppUsageHistory.STARTING_TIME_SEC, startingTimeSec);
+            values.put(UserDataTables.AppUsageHistory.ENDING_TIME_SEC, endingTimeSec);
+            values.put(UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC, totalTimeUsedSec);
+            return db.insertWithOnConflict(UserDataTables.AppUsageHistory.TABLE_NAME, null, values,
+                    SQLiteDatabase.CONFLICT_REPLACE) != -1;
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to insert app usage history data", e);
+            return false;
+        }
+    }
 }
