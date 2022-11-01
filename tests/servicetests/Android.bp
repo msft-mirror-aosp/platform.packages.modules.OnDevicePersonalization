@@ -23,7 +23,6 @@ android_test {
         ":framework-ondevicepersonalization-aidl",
         ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-sources",
-        ":framework-ondevicepersonalization-sources",
     ],
     libs: [
         "android.test.base",
@@ -37,9 +36,11 @@ android_test {
         "androidx.work_work-runtime",
         "androidx.work_work-testing",
         "mobile_data_downloader_lib",
+        "ondevicepersonalization-plugin-lib",
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
+    certificate: "platform",
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
