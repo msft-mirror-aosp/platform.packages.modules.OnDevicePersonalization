@@ -31,7 +31,7 @@ public abstract class PluginInfo {
     @AutoValue
     public abstract static class ArchiveInfo {
         /** The filename of the plugin APK. */
-        public abstract String filename();
+        public abstract @Nullable String filename();
 
         /** The packageName that contains the plugin APK. */
         public abstract @Nullable String packageName();

@@ -19,10 +19,12 @@ package com.android.ondevicepersonalization.libraries.plugin;
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
- * Interface that provides the {@link PluginContext} to {@link Plugin} implementations. Typically
+ * Interface that provides the {@link PluginHost} to {@link PluginExecutorService}. Typically
  * implemented by the Sandbox Developer.
  */
-public interface PluginContextProvider {
-    /** Creates a plugin context. */
-    @Nullable PluginContext createPluginContext(String pluginId);
+public interface PluginApplication {
+    /** Get the PluginHost */
+    default @Nullable PluginHost getPluginHost() {
+        return null;
+    }
 }
