@@ -29,31 +29,25 @@ import java.util.List;
  *
  * @hide
  */
-public class SandboxContext {
+public interface OnDevicePersonalizationContext {
     /**
      * Sends the response to be rendered on the calling app.
      * @param result The result of an exchange request. If null, no content will be rendered.
      */
-    public void sendExchangeResponse(@Nullable ExchangeResult result) {
-        // TODO(b/228200518): Implement this function.
-    }
+    void sendExchangeResponse(@Nullable ExchangeResult result);
 
     /**
      * Creates a {@link BidRequest} to be sent to bidders.
      * @param bidRequest A bid request.
-     * @param bidders A list of bidders.
+     * @param bidderPackageNames A list of bidders.
      */
-    public void sendBidRequests(
+    void sendBidRequests(
             @NonNull BidRequest bidRequest,
-            @NonNull List<PackageId> bidders) {
-        // TODO(b/228200518): Implement this function.
-    }
+            @NonNull List<String> bidderPackageNames);
 
     /**
      * Sends the bid response from the bidder in response to an exchange request.
      * @param bidResponse The Bid Response from a bidder.
      */
-    public void sendBidResponse(@Nullable BidResponse bidResponse) {
-        // TODO(b/228200518): Implement this function.
-    }
+    void sendBidResponse(@Nullable BidResponse bidResponse);
 }
