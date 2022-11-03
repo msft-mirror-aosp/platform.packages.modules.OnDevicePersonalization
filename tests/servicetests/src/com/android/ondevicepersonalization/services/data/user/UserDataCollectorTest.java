@@ -63,6 +63,10 @@ public class UserDataCollectorTest {
         assertEquals(userData.make, mCollector.getDeviceMake());
         assertEquals(userData.model, mCollector.getDeviceModel());
         assertEquals(userData.osVersion, mCollector.getOSVersion());
+
+        assertEquals(userData.connectionType, mCollector.getConnectionType());
+        assertEquals(userData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
+        assertEquals(userData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
     }
 
     @Test
