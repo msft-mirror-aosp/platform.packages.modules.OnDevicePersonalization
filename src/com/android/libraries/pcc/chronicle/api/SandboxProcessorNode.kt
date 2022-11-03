@@ -17,8 +17,8 @@
 package com.android.libraries.pcc.chronicle.api
 
 /**
- * Only for use by SandboxDataAccessService. This class is for ProcessorNodes that run in the Astrea
- * sandbox
+ * Only for use by SandboxDataAccessService. This class is for ProcessorNodes that run in an
+ * isolated sandbox
  */
 class SandboxProcessorNode(private val processorNode: ProcessorNode) : ProcessorNode {
   override val requiredConnectionTypes: Set<Class<out Connection>>

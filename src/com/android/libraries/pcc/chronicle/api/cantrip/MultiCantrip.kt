@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.libraries.pcc.chronicle.api.policy
+package com.android.libraries.pcc.chronicle.api.cantrip
 
-/**
- * Verifies that a set of [Policies][Policy] all conform to requirements of [Chronicle] which may be
- * more restrictive than what is imposed directly by Arcs [Policy].
- */
-interface PolicyConformanceCheck {
-  /**
-   * Applies conformance rules to the set of [policies] and throws a [MalformedPolicy]
-   * [com.android.libraries.pcc.chronicle.api.error.MalformedPolicySet] error if any do not
-   * follow the rules.
-   */
-  fun checkPoliciesConform(policies: Set<Policy>)
+/** A [Cantrip] of [Cantrips]. */
+class MultiCantrip<Data>(private val cantrips: List<Cantrip<Data>>) : Cantrip<Data> {
+  constructor(vararg cantrips: Cantrip<Data>) : this(cantrips.toList())
+
+  /** Returns whether or not this [MultiCantrip] is a no-op. */
+  fun isNoOp(): Boolean = cantrips.isEmpty()
+
+  override fun invoke(datum: Data): Data? {
+    var result = datum
+    cantrips.forEach { cantrip -> result = cantrip(result) ?: return null }
+    return result
+  }
 }
