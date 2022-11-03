@@ -21,8 +21,8 @@ package com.android.libraries.pcc.chronicle.api.storage
  *
  * [WrappedEntities] allow for separation of storage and policy-specific data (the [EntityMetadata])
  * from the information provided to
- * [ProcessorNodes][com.google.android.libraries.pcc.chronicle.api.ProcessorNode] via
- * [Connections][com.google.android.libraries.pcc.chronicle.api.Connection].
+ * [ProcessorNodes][com.android.libraries.pcc.chronicle.api.ProcessorNode] via
+ * [Connections][com.android.libraries.pcc.chronicle.api.Connection].
  *
  * This makes it possible to expose data to a feature developer without also necessarily exposing
  * things like that data's creation timestamp.
