@@ -14,23 +14,21 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.plugin;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.rtb.BidRequest;
 
-/**
- * Interface for On-Device Bidders. Bidders run in the OnDevicePersonalization
- * sandbox and return bids in response to Exchanges.
- *
- * @hide
- */
-public interface Bidder {
-    /**
-     * Return a list of bids to an exchange.
-     * @param bidRequest The {@link BidRequest} from the exchange.
-     * @param odpContext The {@link OnDevicePersonalizationContext} for this request.
-     */
-    void requestBids(
-            @NonNull BidRequest bidRequest, @NonNull OnDevicePersonalizationContext odpContext);
+import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
+
+/** PluginContext that interfaces between the main process and the isolated process. */
+public class OnDevicePersonalizationPluginContext implements PluginContext {
+    private final IManagingServiceConnector mManagingServiceConnector;
+
+    OnDevicePersonalizationPluginContext(@NonNull IManagingServiceConnector connector) {
+        mManagingServiceConnector = connector;
+    }
+
+    public IManagingServiceConnector getManagingServiceConnector() {
+        return mManagingServiceConnector;
+    }
 }
