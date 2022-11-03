@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
@@ -68,6 +69,9 @@ public class UserDataCollector {
         userData.screenHeight = getScreenHeightInDp();
         userData.screenWidth = getScreenWidthInDp();
         userData.carrier = getCarrier();
+        userData.make = getDeviceMake();
+        userData.model = getDeviceModel();
+        userData.osVersion = getOSVersion();
         return userData;
     }
 
@@ -152,5 +156,20 @@ public class UserDataCollector {
     /** Collects carrier info. */
     public String getCarrier() {
         return mContext.getSystemService(TelephonyManager.class).getSimOperatorName();
+    }
+
+    /** Collects device make info */
+    public String getDeviceMake() {
+        return Build.MANUFACTURER;
+    }
+
+    /** Collects device model info */
+    public String getDeviceModel() {
+        return Build.MODEL;
+    }
+
+    /** Collects device OS version info */
+    public String getOSVersion() {
+        return Build.VERSION.RELEASE;
     }
 }
