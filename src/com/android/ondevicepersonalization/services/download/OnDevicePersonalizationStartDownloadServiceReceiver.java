@@ -16,16 +16,42 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
+
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.util.Log;
+
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
 
 /**
  * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
  */
 public class OnDevicePersonalizationStartDownloadServiceReceiver extends BroadcastReceiver {
     private static final String TAG = "OnDevicePersonalizationStartDownloadServiceReceiver";
+
+    /** Enable the OnDevicePersonalizationStartDownloadServiceReceiver */
+    public static boolean enableReceiver(Context context) {
+        try {
+            context.getPackageManager()
+                    .setComponentEnabledSetting(
+                            new ComponentName(context,
+                                    OnDevicePersonalizationStartDownloadServiceReceiver.class),
+                            COMPONENT_ENABLED_STATE_ENABLED,
+                            PackageManager.DONT_KILL_APP);
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "enableService failed for " + context.getPackageName(), e);
+            return false;
+        }
+        return true;
+    }
 
     /**
      * Called when the broadcast is received. OnDevicePersonalization jobs will be started here.
@@ -39,5 +65,21 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
         // TODO(b/239479120): This job should be enqueued after
         // the MDD download instead of on-boot.
         OnDevicePersonalizationDownloadProcessingWorker.enqueue(context);
+
+        // Schedule MDD to download scripts periodically.
+        Futures.addCallback(
+                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
+                new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        Log.d(TAG, "Successfully schedule MDD tasks.");
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        Log.e(TAG, "Successfully schedule MDD tasks.");
+                    }
+                },
+                OnDevicePersonalizationExecutors.getLightweightExecutor());
     }
 }

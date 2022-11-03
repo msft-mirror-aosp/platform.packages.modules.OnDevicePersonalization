@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.libraries.plugin.internal;
 
-parcelable PackageId;
+// Declare PluginInfoInternal so AIDL can find it and knows it implements Parcelable.
+parcelable PluginInfoInternal;

@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.aidl;
+package com.android.ondevicepersonalization.services.plugin;
 
 import android.os.Bundle;
-import android.os.IBinder;
 
-/** @hide */
-oneway interface IInitOnDevicePersonalizationCallback {
-    void onSuccess(IBinder token);
-    void onError(int errorCode);
+import com.android.ondevicepersonalization.services.plugin.IManagingServiceConnectorCallback;
+
+/**
+ * A wrapper interface for plugins in the isolated process to request
+ * data from the managing service process.
+ */
+interface IManagingServiceConnector {
+    // TODO(b/249345663): Replace the generic method below with strongly typed
+    // methods for each type of managing service request.
+    void handleManagingServiceRequest(
+            in int operation,
+            in Bundle params,
+            in IManagingServiceConnectorCallback callback
+    );
 }

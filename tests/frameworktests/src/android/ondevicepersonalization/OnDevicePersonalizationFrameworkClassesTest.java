@@ -25,6 +25,7 @@ import android.ondevicepersonalization.rtb.BidResponse;
 import android.ondevicepersonalization.rtb.Imp;
 import android.ondevicepersonalization.rtb.SeatBid;
 import android.os.Parcel;
+import android.os.PersistableBundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
@@ -49,12 +50,19 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         builder.setAdm("[adm]");
         builder.setAdomain("example.com");
 
+        PersistableBundle ext = new PersistableBundle();
+        ext.putInt("key2", 100);
+
         SeatBid.Builder seatBidBuilder = new SeatBid.Builder();
+        seatBidBuilder.setSeat("seat10");
+        seatBidBuilder.setExt(ext);
         seatBidBuilder.addBids(builder.build());
 
         BidResponse.Builder bidResponseBuilder = new BidResponse.Builder();
         bidResponseBuilder.addSeatBids(seatBidBuilder.build());
         bidResponseBuilder.setCur("abc");
+        bidResponseBuilder.setNbr(10);
+        bidResponseBuilder.setExt(ext);
         BidResponse response = bidResponseBuilder.build();
 
         assertEquals("abc", response.getCur());
@@ -70,7 +78,10 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         BidResponse response2 = BidResponse.CREATOR.createFromParcel(parcel);
 
         assertEquals("abc", response2.getCur());
-        Bid bid2 = response.getSeatBids().get(0).getBids().get(0);
+        assertEquals(100, response2.getExt().getInt("key2"));
+        assertEquals(100, response2.getSeatBids().get(0).getExt().getInt("key2"));
+        assertEquals("seat10", response2.getSeatBids().get(0).getSeat());
+        Bid bid2 = response2.getSeatBids().get(0).getBids().get(0);
         assertEquals("key1", bid2.getKey());
         assertEquals(10.0, bid2.getPrice(), 0.01);
         assertEquals("[adm]", bid2.getAdm());
@@ -102,8 +113,30 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         parcel.setDataPosition(0);
         BidRequest request2 = BidRequest.CREATOR.createFromParcel(parcel);
 
+        assertEquals(request, request2);
         Banner banner2 = request2.getImps().get(0).getBanner();
         assertEquals(100, banner2.getW());
         assertEquals(200, banner2.getH());
+    }
+
+    /**
+     * Tests that the ExchangeResult object serializes correctly.
+     */
+    @Test
+    public void testExchangeResult() {
+        ExchangeResult result =
+                new ExchangeResult.Builder()
+                        .setKey("key1")
+                        .setResponse("content")
+                        .build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        ExchangeResult result2 = ExchangeResult.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals("key1", result2.getKey());
+        assertEquals("content", result2.getResponse());
     }
 }
