@@ -46,9 +46,9 @@ import java.util.List;
  */
 public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableWorker {
     public static final String TAG = "OnDevicePersonalizationDownloadProcessingWorker";
-    private List<ListenableFuture<Void>> mFutures;
     private final PackageManager mPackageManager;
     private final Context mContext;
+    private List<ListenableFuture<Void>> mFutures;
 
     public OnDevicePersonalizationDownloadProcessingWorker(
             Context context,
@@ -90,7 +90,8 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
             }
             if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
                 mFutures.add(Futures.submit(
-                        new OnDevicePersonalizationDataProcessingRunnable(packageInfo),
+                        new OnDevicePersonalizationDataProcessingRunnable(packageInfo.packageName,
+                                mContext),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
             }
         }
