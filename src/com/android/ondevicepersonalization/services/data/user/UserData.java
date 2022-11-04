@@ -53,4 +53,13 @@ public final class UserData {
 
     // Mobile carrier.
     public String carrier = "";
+
+    // Device manufacturer
+    public String make = "";
+
+    // Device model
+    public String model = "";
+
+    // OS version of the device
+    public String osVersion = "";
 }
