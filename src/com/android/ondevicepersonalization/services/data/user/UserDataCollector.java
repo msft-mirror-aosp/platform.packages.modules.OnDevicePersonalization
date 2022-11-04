@@ -19,7 +19,10 @@ package com.android.ondevicepersonalization.services.data.user;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
+import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
@@ -40,9 +43,14 @@ public class UserDataCollector {
     private static final String TAG = "UserDataCollector";
 
     private Context mContext;
+    private NetworkCapabilities mNetworkCapabilities;
 
     private UserDataCollector(Context context) {
         mContext = context;
+        ConnectivityManager connectivityManager = mContext.getSystemService(
+                ConnectivityManager.class);
+        mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
+                connectivityManager.getActiveNetwork());
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -68,6 +76,12 @@ public class UserDataCollector {
         userData.screenHeight = getScreenHeightInDp();
         userData.screenWidth = getScreenWidthInDp();
         userData.carrier = getCarrier();
+        userData.make = getDeviceMake();
+        userData.model = getDeviceModel();
+        userData.osVersion = getOSVersion();
+        userData.connectionType = getConnectionType();
+        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.connectionSpeedKbps = getConnectionSpeedKbps();
         return userData;
     }
 
@@ -152,5 +166,57 @@ public class UserDataCollector {
     /** Collects carrier info. */
     public String getCarrier() {
         return mContext.getSystemService(TelephonyManager.class).getSimOperatorName();
+    }
+
+    /** Collects device make info */
+    public String getDeviceMake() {
+        return Build.MANUFACTURER;
+    }
+
+    /** Collects device model info */
+    public String getDeviceModel() {
+        return Build.MODEL;
+    }
+
+    /** Collects device OS version info */
+    public String getOSVersion() {
+        return Build.VERSION.RELEASE;
+    }
+
+    /** Collects connection type. */
+    public UserData.ConnectionType getConnectionType() {
+        if (mNetworkCapabilities == null) {
+            return UserData.ConnectionType.UNKNOWN;
+        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+            // TODO(b/246132780) Temporarily return 2G. To update after permission is added.
+            return UserData.ConnectionType.CELLULAR_2G;
+        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            return UserData.ConnectionType.WIFI;
+        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            return UserData.ConnectionType.ETHERNET;
+        }
+        return UserData.ConnectionType.UNKNOWN;
+    }
+
+    /** Collects metered status. */
+    public boolean getNetworkMeteredStatus() {
+        if (mNetworkCapabilities == null) {
+            return false;
+        }
+        int[] capabilities = mNetworkCapabilities.getCapabilities();
+        for (int i = 0; i < capabilities.length; ++i) {
+            if (capabilities[i] == NetworkCapabilities.NET_CAPABILITY_NOT_METERED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Collects connection speed in kbps */
+    public int getConnectionSpeedKbps() {
+        if (mNetworkCapabilities == null) {
+            return 0;
+        }
+        return mNetworkCapabilities.getLinkDownstreamBandwidthKbps();
     }
 }

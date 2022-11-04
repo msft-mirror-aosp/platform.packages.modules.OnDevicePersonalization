@@ -23,8 +23,8 @@ package com.android.libraries.pcc.chronicle.api.policy
 interface PolicyConformanceCheck {
   /**
    * Applies conformance rules to the set of [policies] and throws a [MalformedPolicy]
-   * [com.google.android.apps.miphone.aiai.chronicle.data.error.MalformedPolicySet] error if any do
-   * not follow the rules.
+   * [com.android.libraries.pcc.chronicle.api.error.MalformedPolicySet] error if any do not
+   * follow the rules.
    */
   fun checkPoliciesConform(policies: Set<Policy>)
 }

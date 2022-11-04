@@ -14,14 +14,14 @@
  * limitations under the License.
  */
 
-package com.android.libraries.pcc.chronicle.test.data
+// package com.android.libraries.pcc.chronicle.test.data
 
-/** Placeholder DataType for testing Chronicle. */
+// /** Placeholder DataType for testing Chronicle. */
 
-data class Foobar(val name: String)
+// data class Foobar(val name: String)
 
-data class SimpleData(val a: Int, val b: Int)
+// data class SimpleData(val a: Int, val b: Int)
 
-data class NestedPerson(val name: String, val age: Int, val pets: NestedPet)
+// data class NestedPerson(val name: String, val age: Int, val pets: NestedPet)
 
-data class NestedPet(val breed: String)
+// data class NestedPet(val breed: String)
