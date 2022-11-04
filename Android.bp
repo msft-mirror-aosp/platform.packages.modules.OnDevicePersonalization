@@ -32,6 +32,7 @@ filegroup {
     name: "ondevicepersonalization-sources",
     srcs: [
         "src/**/*.java",
+        "src/**/*.aidl"
     ],
     path: "src",
 }
@@ -66,20 +67,19 @@ android_app {
     libs: [
         "framework-ondevicepersonalization",
         "framework-annotations-lib",
+        "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
-        "auto_value_annotations",
-        "guava-android-annotation-stubs",
     ],
     static_libs: [
-        "guava",
+        "androidx.concurrent_concurrent-futures",
         "androidx.work_work-runtime",
+        "guava",
         "kotlin-stdlib",
         "kotlinx_coroutines",
         "kotlinx-coroutines-android",
         "ondevicepersonalization-protos",
         "mobile_data_downloader_lib",
-        "dagger2",
-        "hilt_android",
+        "ondevicepersonalization-plugin-lib",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
@@ -88,8 +88,5 @@ android_app {
     apex_available: ["com.android.ondevicepersonalization"],
     defaults: [
         "ondevicepersonalization-java-defaults",
-    ],
-    plugins: [
-        "auto_value_plugin",
     ],
 }

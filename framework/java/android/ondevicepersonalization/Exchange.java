@@ -35,21 +35,22 @@ public interface Exchange {
     /**
      * Handle a request from an app or SDK.
      * @param params Data provided by the calling app or SDK.
-     * @param sandboxContext The {@link SandboxContext} for this request.
+     * @param odpContext The {@link OnDevicePersonalizationContext} for this request.
      */
-    void handleRequest(@Nullable PersistableBundle params, @NonNull SandboxContext sandboxContext);
+    void onAppRequest(
+            @Nullable PersistableBundle params, @NonNull OnDevicePersonalizationContext odpContext);
 
     /**
-     * Computes a ranking for the provided {@link Bid} that was returned by a {@link Bidder}.
-     * @param bidderInfo The bidder that returned this bid.
+     * Computes a score for the provided {@link Bid} that was returned by a {@link Bidder}.
+     * @param bidderPackageName The bidder that returned this bid.
      * @param bid A bid from a {@link Bidder}
-     * @param sandboxContext The {@link SandboxContext} for this request.
+     * @param odpContext The {@link OnDevicePersonalizationContext} for this request.
      * @return A numerical score for the bid. If 0, the bid is dropped.
      */
     // TODO(b/19460933): Should bids be scored separately or together?
     double scoreBid(
-            @NonNull PackageId bidderInfo,
+            @NonNull String bidderPackageName,
             @NonNull Bid bid,
-            @NonNull SandboxContext sandboxContext
+            @NonNull OnDevicePersonalizationContext odpContext
     );
 }
