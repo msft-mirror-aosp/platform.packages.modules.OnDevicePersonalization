@@ -139,22 +139,4 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals("key1", result2.getKey());
         assertEquals("content", result2.getResponse());
     }
-
-    /**
-     * Tests that the PackageId object serializes correctly.
-     */
-    @Test
-    public void testPackageId() {
-        PackageId packageId =
-                new PackageId.Builder().setPackageName("x.y.z").setCertDigest("abc123").build();
-
-        Parcel parcel = Parcel.obtain();
-        packageId.writeToParcel(parcel, 0);
-        parcel.setDataPosition(0);
-        PackageId packageId2 = PackageId.CREATOR.createFromParcel(parcel);
-
-        assertEquals(packageId, packageId2);
-        assertEquals("x.y.z", packageId2.getPackageName());
-        assertEquals("abc123", packageId2.getCertDigest());
-    }
 }
