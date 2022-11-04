@@ -27,6 +27,7 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -122,18 +123,72 @@ public class OnDevicePersonalizationVendorDataDao {
         }
     }
 
+    private static String getTableName(String owner, String certDigest) {
+        owner = owner.replace(".", "_");
+        return "vendordata_" + owner + "_" + certDigest;
+    }
+
+    /**
+     * Reads all rows in the vendor data table
+     *
+     * @return Cursor of all rows in table
+     */
+    public Cursor readAllVendorData() {
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            return db.query(
+                    mTableName,
+                    /* columns= */ null,
+                    /* selection= */ null,
+                    /* selectionArgs= */ null,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    /* orderBy= */ null
+            );
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to update or insert buyer data", e);
+        }
+        return null;
+    }
+
+    /**
+     * Batch updates and/or inserts a list of vendor data and a corresponding syncToken.
+     *
+     * @return true if the transaction is successful. False otherwise.
+     */
+    public boolean batchUpdateOrInsertVendorDataTransaction(List<VendorData> vendorDataList,
+            long syncToken) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransaction();
+            for (VendorData vendorData : vendorDataList) {
+                if (!updateOrInsertVendorData(vendorData)) {
+                    // The query failed. Return and don't finalize the transaction.
+                    return false;
+                }
+            }
+            if (!updateOrInsertSyncToken(syncToken)) {
+                return false;
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
     /**
      * Updates the given vendor data row, adds it if it doesn't already exist.
      *
      * @return true if the update/insert succeeded, false otherwise
      */
-    public boolean updateOrInsertVendorData(String key, byte[] data, String fp) {
+    public boolean updateOrInsertVendorData(VendorData vendorData) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(VendorDataContract.VendorDataEntry.KEY, key);
-            values.put(VendorDataContract.VendorDataEntry.DATA, data);
-            values.put(VendorDataContract.VendorDataEntry.FP, fp);
+            values.put(VendorDataContract.VendorDataEntry.KEY, vendorData.getKey());
+            values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
+            values.put(VendorDataContract.VendorDataEntry.FP, vendorData.getFp());
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
@@ -193,9 +248,5 @@ public class OnDevicePersonalizationVendorDataDao {
             cursor.close();
         }
         return -1;
-    }
-
-    private static String getTableName(String owner, String certDigest) {
-        return "vendordata_" + owner + "_" + certDigest;
     }
 }
