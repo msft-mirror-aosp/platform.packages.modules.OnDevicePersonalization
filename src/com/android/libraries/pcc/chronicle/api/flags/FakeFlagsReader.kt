@@ -14,6 +14,11 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.libraries.pcc.chronicle.api.flags
 
-parcelable PackageId;
+import kotlinx.coroutines.flow.MutableStateFlow
+
+/** Fake implementation of [FlagsReader] for use in tests. */
+class FakeFlagsReader(initialValue: Flags) : FlagsReader {
+  override val config = MutableStateFlow(initialValue)
+}
