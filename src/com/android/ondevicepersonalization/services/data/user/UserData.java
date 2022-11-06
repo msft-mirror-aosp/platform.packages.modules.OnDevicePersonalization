@@ -52,5 +52,35 @@ public final class UserData {
     public int screenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
 
     // Mobile carrier.
+    // TODO(b/246132780): Change to enum.
     public String carrier = "";
+
+    // Device manufacturer
+    public String make = "";
+
+    // Device model
+    public String model = "";
+
+    // OS version of the device
+    public String osVersion = "";
+
+    // Connection type values.
+    public enum ConnectionType {
+        UNKNOWN,
+        ETHERNET,
+        WIFI,
+        CELLULAR_2G,
+        CELLULAR_3G,
+        CELLULAR_4G,
+        CELLULAR_5G
+    };
+
+    // Connection type.
+    public ConnectionType connectionType = ConnectionType.UNKNOWN;
+
+    // Status if network is metered. False - not metered. True - metered.
+    public boolean networkMeteredStatus = false;
+
+    // Connection speed in kbps.
+    public int connectionSpeedKbps = 0;
 }
