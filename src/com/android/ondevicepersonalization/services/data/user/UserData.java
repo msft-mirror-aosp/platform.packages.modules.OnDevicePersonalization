@@ -32,4 +32,55 @@ public final class UserData {
 
     // The device orientation.
     public int orientation = Configuration.ORIENTATION_PORTRAIT;
+
+    // Available bytes in MB.
+    public int availableBytesMB = 0;
+
+    // Battery percentage.
+    public int batteryPct = 0;
+
+    // The 3-letter ISO-3166 country code
+    public Country country = Country.UNKNOWN;
+
+    // The 2-letter ISO-639 language code
+    public Language language = Language.UNKNOWN;
+
+    // Screen height of the device in dp units
+    public int screenHeight = Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
+
+    // Screen weight of the device in dp units
+    public int screenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
+
+    // Mobile carrier.
+    // TODO(b/246132780): Change to enum.
+    public String carrier = "";
+
+    // Device manufacturer
+    public String make = "";
+
+    // Device model
+    public String model = "";
+
+    // OS version of the device
+    public String osVersion = "";
+
+    // Connection type values.
+    public enum ConnectionType {
+        UNKNOWN,
+        ETHERNET,
+        WIFI,
+        CELLULAR_2G,
+        CELLULAR_3G,
+        CELLULAR_4G,
+        CELLULAR_5G
+    };
+
+    // Connection type.
+    public ConnectionType connectionType = ConnectionType.UNKNOWN;
+
+    // Status if network is metered. False - not metered. True - metered.
+    public boolean networkMeteredStatus = false;
+
+    // Connection speed in kbps.
+    public int connectionSpeedKbps = 0;
 }
