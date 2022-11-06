@@ -14,17 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.libraries.pcc.chronicle.api.policy
+package com.android.libraries.pcc.chronicle.api.flags
 
-/**
- * Verifies that a set of [Policies][Policy] all conform to requirements of [Chronicle] which may be
- * more restrictive than what is imposed directly by Arcs [Policy].
- */
-interface PolicyConformanceCheck {
-  /**
-   * Applies conformance rules to the set of [policies] and throws a [MalformedPolicy]
-   * [com.android.libraries.pcc.chronicle.api.error.MalformedPolicySet] error if any do not
-   * follow the rules.
-   */
-  fun checkPoliciesConform(policies: Set<Policy>)
+import kotlinx.coroutines.flow.MutableStateFlow
+
+/** Fake implementation of [FlagsReader] for use in tests. */
+class FakeFlagsReader(initialValue: Flags) : FlagsReader {
+  override val config = MutableStateFlow(initialValue)
 }
