@@ -26,7 +26,9 @@ import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.WindowManager;
 
 import com.google.common.base.Strings;
 
@@ -73,15 +75,14 @@ public class UserDataCollector {
         userData.batteryPct = getBatteryPct();
         userData.country = getCountry();
         userData.language = getLanguage();
-        userData.screenHeight = getScreenHeightInDp();
-        userData.screenWidth = getScreenWidthInDp();
         userData.carrier = getCarrier();
-        userData.make = getDeviceMake();
-        userData.model = getDeviceModel();
         userData.osVersion = getOSVersion();
         userData.connectionType = getConnectionType();
         userData.networkMeteredStatus = getNetworkMeteredStatus();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
+
+        userData.deviceMetrics = new UserData.DeviceMetrics();
+        getDeviceMetrics(userData.deviceMetrics);
         return userData;
     }
 
@@ -153,29 +154,9 @@ public class UserDataCollector {
         }
     }
 
-    /** Collects current device's screen height in dp units. */
-    public int getScreenHeightInDp() {
-        return mContext.getResources().getConfiguration().screenHeightDp;
-    }
-
-    /** Collects current device's screen height in dp units. */
-    public int getScreenWidthInDp() {
-        return mContext.getResources().getConfiguration().screenWidthDp;
-    }
-
     /** Collects carrier info. */
     public String getCarrier() {
         return mContext.getSystemService(TelephonyManager.class).getSimOperatorName();
-    }
-
-    /** Collects device make info */
-    public String getDeviceMake() {
-        return Build.MANUFACTURER;
-    }
-
-    /** Collects device model info */
-    public String getDeviceModel() {
-        return Build.MODEL;
     }
 
     /** Collects device OS version info */
@@ -244,5 +225,19 @@ public class UserDataCollector {
             return 0;
         }
         return mNetworkCapabilities.getLinkDownstreamBandwidthKbps();
+    }
+
+    /** Collects current device's static metrics. */
+    public void getDeviceMetrics(UserData.DeviceMetrics deviceMetrics) {
+        deviceMetrics.make = Build.MANUFACTURER;
+        deviceMetrics.model = Build.MODEL;
+        deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
+        deviceMetrics.screenWidth = mContext.getResources().getConfiguration().screenWidthDp;
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        WindowManager wm = mContext.getSystemService(WindowManager.class);
+        wm.getDefaultDisplay().getMetrics(displayMetrics);
+        deviceMetrics.xdpi = displayMetrics.xdpi;
+        deviceMetrics.ydpi = displayMetrics.ydpi;
+        deviceMetrics.pxRatio = displayMetrics.density;
     }
 }
