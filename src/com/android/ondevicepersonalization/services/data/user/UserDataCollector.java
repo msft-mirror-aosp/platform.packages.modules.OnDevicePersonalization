@@ -188,8 +188,34 @@ public class UserDataCollector {
         if (mNetworkCapabilities == null) {
             return UserData.ConnectionType.UNKNOWN;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            // TODO(b/246132780) Temporarily return 2G. To update after permission is added.
-            return UserData.ConnectionType.CELLULAR_2G;
+            TelephonyManager telephonyManager = mContext.getSystemService(TelephonyManager.class);
+            switch (telephonyManager.getDataNetworkType()) {
+                case TelephonyManager.NETWORK_TYPE_GPRS:
+                case TelephonyManager.NETWORK_TYPE_EDGE:
+                case TelephonyManager.NETWORK_TYPE_CDMA:
+                case TelephonyManager.NETWORK_TYPE_1xRTT:
+                case TelephonyManager.NETWORK_TYPE_IDEN:
+                case TelephonyManager.NETWORK_TYPE_GSM:
+                    return UserData.ConnectionType.CELLULAR_2G;
+                case TelephonyManager.NETWORK_TYPE_UMTS:
+                case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                case TelephonyManager.NETWORK_TYPE_HSDPA:
+                case TelephonyManager.NETWORK_TYPE_HSUPA:
+                case TelephonyManager.NETWORK_TYPE_HSPA:
+                case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                case TelephonyManager.NETWORK_TYPE_EHRPD:
+                case TelephonyManager.NETWORK_TYPE_HSPAP:
+                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+                    return UserData.ConnectionType.CELLULAR_3G;
+                case TelephonyManager.NETWORK_TYPE_LTE:
+                case TelephonyManager.NETWORK_TYPE_IWLAN:
+                    return UserData.ConnectionType.CELLULAR_4G;
+                case TelephonyManager.NETWORK_TYPE_NR:
+                    return UserData.ConnectionType.CELLULAR_5G;
+                default:
+                    return UserData.ConnectionType.UNKNOWN;
+            }
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
             return UserData.ConnectionType.WIFI;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
