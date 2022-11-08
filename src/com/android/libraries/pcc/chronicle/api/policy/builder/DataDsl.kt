@@ -18,7 +18,7 @@ package com.android.libraries.pcc.chronicle.api.policy.builder
 
 /**
  * Marks classes as participants in
- * com.android.libraries.pcc.chronicle.api.policy.builder builder DSLs. This allows
+ * com.google.android.libraries.pcc.chronicle.api.policy.builder builder DSLs. This allows
  * Kotlin to better infer receivers and prevent some classes of confusing DSL input.
  * https://kotlinlang.org/docs/type-safe-builders.html explains further.
  */

@@ -24,4 +24,5 @@ package com.android.libraries.pcc.chronicle.api
 interface ProcessorNode {
   /** The classes of the connections required by this [ProcessorNode]. */
   val requiredConnectionTypes: Set<Class<out Connection>>
+  // Checks and claims go here later.
 }

@@ -32,6 +32,9 @@ import com.android.libraries.pcc.chronicle.api.policy.builder.deletionTriggers
  * Verifies that [ManagementStrategy] values declared by the [ConnectionProviders]
  * [ConnectionProvider] are valid given policy-requirements for the receiving [Policy] object.
  *
+ * TODO(b/181597252): Update this to use Capabilities once their comparison logic is available in
+ * kotlin.
+ *
  * @return a list of [Checks][PolicyCheck]. If empty, the implication is that policy adherence is
  * satisfied. If non-empty, the values will describe how policy is not being met.
  */

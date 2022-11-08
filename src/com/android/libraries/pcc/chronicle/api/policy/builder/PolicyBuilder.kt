@@ -28,8 +28,6 @@ import com.android.libraries.pcc.chronicle.api.policy.PolicyTarget
 import com.android.libraries.pcc.chronicle.api.policy.StorageMedium
 import com.android.libraries.pcc.chronicle.api.policy.UsageType
 import com.android.libraries.pcc.chronicle.api.policy.annotation.Annotation
-import com.android.libraries.pcc.chronicle.api.policy.contextrules.All
-import com.android.libraries.pcc.chronicle.api.policy.contextrules.PolicyContextRule
 import java.time.Duration
 
 typealias UsageType = UsageType
@@ -48,8 +46,6 @@ typealias StorageMedium = StorageMedium
  *     Policy describing valid usage of Foos and Bars when publishing statistics to cloud-based
  *     analytics.
  *     """.trimIndent()
- *
- *   allowedContexts = AllowAllContextsRule
  *
  *   config("AnalyticsServer") {
  *     "url" to "https://mypolicyanalytics.com/stats"
@@ -109,19 +105,9 @@ fun target(
 
 /** Builder of [Policy] instances. */
 @DataDsl
-class PolicyBuilder
-internal constructor(
-  private val name: String,
-  private val egressType: String,
-) {
+class PolicyBuilder internal constructor(private val name: String, private val egressType: String) {
   /** Human-readable description of the policy. */
   var description: String = ""
-
-  /**
-   * `allowedContext` can be used to define when a policy should be applied. PolicyContextRules can
-   * be expressed and combined with boolean logic, using `and`/`or`/`not` operators.
-   */
-  var allowedContext: PolicyContextRule = All
 
   // internal for tests only
   internal val targets = mutableListOf<PolicyTarget>()
@@ -133,7 +119,6 @@ internal constructor(
   ) : this(policyBuilder.name, policyBuilder.egressType) {
     this.apply {
       description = policyBuilder.description
-      allowedContext = policyBuilder.allowedContext
       // The values of these collections are immutable, so duplication the collections themselves is
       // sufficient.
       targets.addAll(policyBuilder.targets)
@@ -163,8 +148,7 @@ internal constructor(
       egressType = egressType,
       description = description,
       targets = targets,
-      configs = configs,
-      allowedContext = allowedContext
+      configs = configs
     )
   }
 }

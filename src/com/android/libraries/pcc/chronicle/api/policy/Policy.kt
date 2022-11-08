@@ -19,8 +19,6 @@ package com.android.libraries.pcc.chronicle.api.policy
 import com.android.libraries.pcc.chronicle.api.policy.annotation.Annotation
 import com.android.libraries.pcc.chronicle.api.policy.capabilities.Capabilities
 import com.android.libraries.pcc.chronicle.api.policy.capabilities.Capability
-import com.android.libraries.pcc.chronicle.api.policy.contextrules.All
-import com.android.libraries.pcc.chronicle.api.policy.contextrules.PolicyContextRule
 
 /** The name of a field within an entity. */
 typealias FieldName = String
@@ -32,8 +30,7 @@ data class Policy(
   val description: String = "",
   val targets: List<PolicyTarget> = emptyList(),
   val configs: Map<String, PolicyConfig> = emptyMap(),
-  val annotations: List<Annotation> = emptyList(),
-  val allowedContext: PolicyContextRule = All
+  val annotations: List<Annotation> = emptyList()
 ) {
   /** All fields mentioned the policy (includes nested fields). */
   val allFields: List<PolicyField> = collectAllFields()

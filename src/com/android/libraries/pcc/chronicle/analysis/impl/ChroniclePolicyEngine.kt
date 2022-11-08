@@ -45,6 +45,9 @@ import com.android.libraries.pcc.chronicle.api.policy.canEgress
  * * Return [PolicyCheckResult.Fail] otherwise.
  */
 class ChroniclePolicyEngine : PolicyEngine {
+  // TODO(b/181067784): Need to allow processor nodes to specify claims.. or have another type
+  //  of claim registry for processor nodes in addition to the ones we receive from the
+  //  policy. Also, allow processor nodes to define the type of egress they represent.
   override fun checkPolicy(
     policy: Policy,
     request: ConnectionRequest<*>,
@@ -54,8 +57,7 @@ class ChroniclePolicyEngine : PolicyEngine {
     // the results of the data-flow analysis.
     val violations =
       policy.verifyManagementStrategies(context.connectionProviders) +
-        checkAllFieldsAreAllowedForEgress(context, policy, request) +
-        policy.verifyContext(context.connectionContext)
+        checkAllFieldsAreAllowedForEgress(context, policy, request)
 
     return PolicyCheckResult.make(violations)
   }
@@ -98,38 +100,65 @@ class ChroniclePolicyEngine : PolicyEngine {
     policy: Policy,
     request: ConnectionRequest<T>,
   ): List<PolicyCheck> {
-    val dtd =
-      context.findDataType(request.connectionType)
-        ?: return listOf(
-          PolicyCheck("s:${request.connectionType} is $CONNECTON_NOT_FOUND_PREDICATE")
-        )
+    val dtd = context.findDataType(request.connectionType)
+    if (dtd == null) {
+      return listOf(PolicyCheck("s:${request.connectionType} is $CONNECTON_NOT_FOUND_PREDICATE"))
+    }
 
-    val policyTarget =
-      policy.targets.find { it.schemaName == dtd.name }
-        ?: return listOf(PolicyCheck("s:${dtd.name} is $DTD_NOT_FOUND_PREDICATE"))
+    val policyTarget = policy.targets.find { it.schemaName == dtd.name }
+    if (policyTarget == null) {
+      return listOf(PolicyCheck("s:${dtd.name} is $DTD_NOT_FOUND_PREDICATE"))
+    }
 
     val violatingFields = mutableListOf<String>()
     dtd.fields.forEach { (fieldName, type) ->
       policyTarget.fields
         .find { it.fieldPath.last() == fieldName }
-        ?.let { policyField ->
-          violatingFields.addAll(
-            type.findPolicyViolations(
-              "${dtd.name}.$fieldName",
-              policyField,
-              if (request.requester is SandboxProcessorNode) {
-                { !(it.rawUsages.canEgress() || it.rawUsages.contains(UsageType.SANDBOX)) }
-              } else {
-                { !it.rawUsages.canEgress() }
-              },
-              context
+        ?.let {
+          if (request.requester is SandboxProcessorNode) {
+            violatingFields.addAll(
+              type.findPolicyViolations(
+                "${dtd.name}.$fieldName",
+                it,
+                { !(it.rawUsages.canEgress() || it.rawUsages.contains(UsageType.SANDBOX)) },
+                context
+              )
             )
-          )
+          } else {
+            violatingFields.addAll(
+              type.findPolicyViolations(
+                "${dtd.name}.$fieldName",
+                it,
+                { !it.rawUsages.canEgress() },
+                context
+              )
+            )
+          }
         }
         ?: violatingFields.add("${dtd.name}.$fieldName")
     }
 
     return violatingFields.map { PolicyCheck("s:$it is $FIELD_CANNOT_BE_EGRESSED_PREDICATE") }
+  }
+
+  private fun DataTypeDescriptor.findPolicyViolations(
+    prefix: String,
+    policyField: PolicyField,
+    hasPolicyViolation: (PolicyField) -> Boolean,
+    context: ChronicleContext
+  ): List<String> {
+    val violatingFields = mutableListOf<String>()
+    this.fields.forEach { (fieldName, type) ->
+      policyField.subfields
+        .find { it.fieldPath.last() == fieldName }
+        ?.let {
+          violatingFields.addAll(
+            type.findPolicyViolations("$prefix.$fieldName", it, hasPolicyViolation, context)
+          )
+        }
+        ?: violatingFields.add("$prefix.$fieldName")
+    }
+    return violatingFields.toList()
   }
 
   private fun FieldType.findPolicyViolations(
@@ -174,26 +203,6 @@ class ChroniclePolicyEngine : PolicyEngine {
     }
   }
 
-  private fun DataTypeDescriptor.findPolicyViolations(
-    prefix: String,
-    policyField: PolicyField,
-    hasPolicyViolation: (PolicyField) -> Boolean,
-    context: ChronicleContext
-  ): List<String> {
-    val violatingFields = mutableListOf<String>()
-    this.fields.forEach { (fieldName, type) ->
-      policyField.subfields
-        .find { it.fieldPath.last() == fieldName }
-        ?.let {
-          violatingFields.addAll(
-            type.findPolicyViolations("$prefix.$fieldName", it, hasPolicyViolation, context)
-          )
-        }
-        ?: violatingFields.add("$prefix.$fieldName")
-    }
-    return violatingFields.toList()
-  }
-
   companion object {
     /**
      * Predicate with special label used in the [Checks][Check] rendered as errors for a
@@ -202,7 +211,7 @@ class ChroniclePolicyEngine : PolicyEngine {
      *
      * Not intended to be propagated with label propagation, it's for error-messaging only.
      */
-    private const val MUST_HAVE_POLICY_PREDICATE = "\"must have a corresponding policy\""
+    private val MUST_HAVE_POLICY_PREDICATE = "\"must have a corresponding policy\""
 
     /**
      * Predicate with special label used in the [Checks][Check] rendered as errors for a
@@ -211,7 +220,7 @@ class ChroniclePolicyEngine : PolicyEngine {
      *
      * Not intended to be propagated with label propagation, it's for error-messaging only.
      */
-    private const val MANAGEMENT_STRATEGY_NOT_STRICT_ENOUGH_PREDICATE =
+    private val MANAGEMENT_STRATEGY_NOT_STRICT_ENOUGH_PREDICATE =
       "\"management is at least as restrained as the most conservative policy\""
 
     /**
@@ -221,7 +230,7 @@ class ChroniclePolicyEngine : PolicyEngine {
      *
      * Not intended to be propagated with label propagation, it's for error-messaging only.
      */
-    private const val CONNECTON_NOT_FOUND_PREDICATE = "not a registered connection"
+    private val CONNECTON_NOT_FOUND_PREDICATE = "not a registered connection"
 
     /**
      * Predicate with special label used in the [Checks][Check] rendered as errors for a
@@ -230,7 +239,7 @@ class ChroniclePolicyEngine : PolicyEngine {
      *
      * Not intended to be propagated with label propagation, it's for error-messaging only.
      */
-    private const val DTD_NOT_FOUND_PREDICATE = "not found in the given policy"
+    private val DTD_NOT_FOUND_PREDICATE = "not found in the given policy"
 
     /**
      * Predicate with special label used in the [Checks][Check] rendered as errors for a
@@ -239,6 +248,6 @@ class ChroniclePolicyEngine : PolicyEngine {
      *
      * Not intended to be propagated with label propagation, it's for error-messaging only.
      */
-    private const val FIELD_CANNOT_BE_EGRESSED_PREDICATE = "not allowed for egress"
+    private val FIELD_CANNOT_BE_EGRESSED_PREDICATE = "not allowed for egress"
   }
 }

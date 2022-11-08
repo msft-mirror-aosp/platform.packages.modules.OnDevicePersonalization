@@ -21,7 +21,6 @@ import com.android.libraries.pcc.chronicle.api.ConnectionProvider
 import com.android.libraries.pcc.chronicle.api.DataTypeDescriptor
 import com.android.libraries.pcc.chronicle.api.DataTypeDescriptorSet
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
-import com.android.libraries.pcc.chronicle.util.TypedMap
 
 /**
  * Immutable data structure which maintains the universe of [ProcessorNodes][ProcessorNode] and
@@ -45,9 +44,6 @@ interface ChronicleContext {
   /** All [DataTypeDescriptor]s known to Chronicle. */
   val dataTypeDescriptorSet: DataTypeDescriptorSet
 
-  /** Contextual variables used in Policy evaluations */
-  val connectionContext: TypedMap
-
   /**
    * Returns a [ConnectionProvider] capable of providing [Connection]s of the specified
    * [connectionType].
@@ -59,7 +55,4 @@ interface ChronicleContext {
 
   /** Returns a new [ChronicleContext] containing the provided [ProcessorNode]. */
   fun withNode(node: ProcessorNode): ChronicleContext
-
-  /** Returns a new [ChronicleContext] containing the provided [connectionContext]. */
-  fun withConnectionContext(connectionContext: TypedMap): ChronicleContext
 }
