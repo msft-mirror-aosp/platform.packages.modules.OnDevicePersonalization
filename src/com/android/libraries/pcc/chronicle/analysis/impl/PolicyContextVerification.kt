@@ -14,17 +14,20 @@
  * limitations under the License.
  */
 
-package com.android.libraries.pcc.chronicle.api.policy
+package com.android.libraries.pcc.chronicle.analysis.impl
+
+import com.android.libraries.pcc.chronicle.api.policy.Policy
+import com.android.libraries.pcc.chronicle.api.policy.builder.PolicyCheck
+import com.android.libraries.pcc.chronicle.util.TypedMap
 
 /**
- * Verifies that a set of [Policies][Policy] all conform to requirements of [Chronicle] which may be
- * more restrictive than what is imposed directly by Arcs [Policy].
+ * Given a [TypedMap] of context, check the `allowedContext` policy rules to verify whether the
+ * context is allowed.
  */
-interface PolicyConformanceCheck {
-  /**
-   * Applies conformance rules to the set of [policies] and throws a [MalformedPolicy]
-   * [com.android.libraries.pcc.chronicle.api.error.MalformedPolicySet] error if any do not
-   * follow the rules.
-   */
-  fun checkPoliciesConform(policies: Set<Policy>)
+internal fun Policy.verifyContext(connectionContext: TypedMap): List<PolicyCheck> {
+  if (this.allowedContext(connectionContext)) {
+    return emptyList()
+  }
+
+  return listOf(PolicyCheck("Connection context fails to meet required policy conditions"))
 }
