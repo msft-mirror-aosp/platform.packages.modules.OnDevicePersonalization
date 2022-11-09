@@ -57,12 +57,22 @@ public class UserDataCollectorTest {
         assertEquals(userData.batteryPct, mCollector.getBatteryPct());
         assertEquals(userData.country, mCollector.getCountry());
         assertEquals(userData.language, mCollector.getLanguage());
-        assertEquals(userData.screenHeight, mCollector.getScreenHeightInDp());
-        assertEquals(userData.screenWidth, mCollector.getScreenWidthInDp());
         assertEquals(userData.carrier, mCollector.getCarrier());
-        assertEquals(userData.make, mCollector.getDeviceMake());
-        assertEquals(userData.model, mCollector.getDeviceModel());
         assertEquals(userData.osVersion, mCollector.getOSVersion());
+        assertEquals(userData.connectionType, mCollector.getConnectionType());
+        assertEquals(userData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
+        assertEquals(userData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
+
+        UserData ud = new UserData();
+        ud.deviceMetrics = new UserData.DeviceMetrics();
+        mCollector.getDeviceMetrics(ud.deviceMetrics);
+        assertEquals(userData.deviceMetrics.make, ud.deviceMetrics.make);
+        assertEquals(userData.deviceMetrics.model, ud.deviceMetrics.model);
+        assertEquals(userData.deviceMetrics.screenHeight, ud.deviceMetrics.screenHeight);
+        assertEquals(userData.deviceMetrics.screenWidth, ud.deviceMetrics.screenWidth);
+        assertEquals(userData.deviceMetrics.xdpi, ud.deviceMetrics.xdpi, 0.01);
+        assertEquals(userData.deviceMetrics.ydpi, ud.deviceMetrics.ydpi, 0.01);
+        assertEquals(userData.deviceMetrics.pxRatio, ud.deviceMetrics.pxRatio, 0.01);
     }
 
     @Test

@@ -45,21 +45,57 @@ public final class UserData {
     // The 2-letter ISO-639 language code
     public Language language = Language.UNKNOWN;
 
-    // Screen height of the device in dp units
-    public int screenHeight = Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
-
-    // Screen weight of the device in dp units
-    public int screenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
-
     // Mobile carrier.
+    // TODO(b/246132780): Change to enum.
     public String carrier = "";
-
-    // Device manufacturer
-    public String make = "";
-
-    // Device model
-    public String model = "";
 
     // OS version of the device
     public String osVersion = "";
+
+    // Connection type values.
+    public enum ConnectionType {
+        UNKNOWN,
+        ETHERNET,
+        WIFI,
+        CELLULAR_2G,
+        CELLULAR_3G,
+        CELLULAR_4G,
+        CELLULAR_5G
+    };
+
+    // Connection type.
+    public ConnectionType connectionType = ConnectionType.UNKNOWN;
+
+    // Status if network is metered. False - not metered. True - metered.
+    public boolean networkMeteredStatus = false;
+
+    // Connection speed in kbps.
+    public int connectionSpeedKbps = 0;
+
+    /** Constant device metrics values. */
+    public static class DeviceMetrics {
+        // Device manufacturer
+        public String make = "";
+
+        // Device model
+        public String model = "";
+
+        // Screen height of the device in dp units
+        public int screenHeight = Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
+
+        // Screen weight of the device in dp units
+        public int screenWidth = Configuration.SCREEN_WIDTH_DP_UNDEFINED;
+
+        // Device x dpi;
+        public float xdpi = 0;
+
+        // Device y dpi;
+        public float ydpi = 0;
+
+        // Dveice pixel ratio.
+        public float pxRatio = 0;
+    }
+
+    // Device metrics values.
+    public DeviceMetrics deviceMetrics = null;
 }

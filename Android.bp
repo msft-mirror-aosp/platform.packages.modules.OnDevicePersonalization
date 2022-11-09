@@ -67,6 +67,7 @@ android_app {
     libs: [
         "framework-ondevicepersonalization",
         "framework-annotations-lib",
+        "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
     ],
     static_libs: [

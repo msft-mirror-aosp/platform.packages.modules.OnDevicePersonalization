@@ -14,17 +14,14 @@
  * limitations under the License.
  */
 
-package com.android.libraries.pcc.chronicle.api.policy
+package com.android.libraries.pcc.chronicle.api.policy.builder
 
-/**
- * Verifies that a set of [Policies][Policy] all conform to requirements of [Chronicle] which may be
- * more restrictive than what is imposed directly by Arcs [Policy].
- */
-interface PolicyConformanceCheck {
-  /**
-   * Applies conformance rules to the set of [policies] and throws a [MalformedPolicy]
-   * [com.android.libraries.pcc.chronicle.api.error.MalformedPolicySet] error if any do not
-   * follow the rules.
-   */
-  fun checkPoliciesConform(policies: Set<Policy>)
+/** Encodes Federated Compute configuration for a policy flavor. */
+data class FederatedComputePolicyConfig(val minRoundSize: Int, val minSecAggRoundSize: Int) {
+  /** The policy keys used to encode Federated Compute policy config. */
+  companion object {
+    const val POLICY_CONFIG_KEY = "federatedCompute"
+    const val MIN_ROUND_SIZE_KEY = "minRoundSize"
+    const val MIN_SEC_AGG_ROUND_SIZE_KEY = "minSecAggRoundSize"
+  }
 }
