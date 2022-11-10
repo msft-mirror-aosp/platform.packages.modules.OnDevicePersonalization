@@ -19,12 +19,16 @@ package com.android.ondevicepersonalization.services.data.user;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
 import android.os.Build;
 import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
+import android.util.DisplayMetrics;
 import android.util.Log;
+import android.view.WindowManager;
 
 import com.google.common.base.Strings;
 
@@ -41,9 +45,14 @@ public class UserDataCollector {
     private static final String TAG = "UserDataCollector";
 
     private Context mContext;
+    private NetworkCapabilities mNetworkCapabilities;
 
     private UserDataCollector(Context context) {
         mContext = context;
+        ConnectivityManager connectivityManager = mContext.getSystemService(
+                ConnectivityManager.class);
+        mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
+                connectivityManager.getActiveNetwork());
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -66,12 +75,14 @@ public class UserDataCollector {
         userData.batteryPct = getBatteryPct();
         userData.country = getCountry();
         userData.language = getLanguage();
-        userData.screenHeight = getScreenHeightInDp();
-        userData.screenWidth = getScreenWidthInDp();
         userData.carrier = getCarrier();
-        userData.make = getDeviceMake();
-        userData.model = getDeviceModel();
         userData.osVersion = getOSVersion();
+        userData.connectionType = getConnectionType();
+        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.connectionSpeedKbps = getConnectionSpeedKbps();
+
+        userData.deviceMetrics = new UserData.DeviceMetrics();
+        getDeviceMetrics(userData.deviceMetrics);
         return userData;
     }
 
@@ -143,33 +154,90 @@ public class UserDataCollector {
         }
     }
 
-    /** Collects current device's screen height in dp units. */
-    public int getScreenHeightInDp() {
-        return mContext.getResources().getConfiguration().screenHeightDp;
-    }
-
-    /** Collects current device's screen height in dp units. */
-    public int getScreenWidthInDp() {
-        return mContext.getResources().getConfiguration().screenWidthDp;
-    }
-
     /** Collects carrier info. */
     public String getCarrier() {
         return mContext.getSystemService(TelephonyManager.class).getSimOperatorName();
     }
 
-    /** Collects device make info */
-    public String getDeviceMake() {
-        return Build.MANUFACTURER;
-    }
-
-    /** Collects device model info */
-    public String getDeviceModel() {
-        return Build.MODEL;
-    }
-
     /** Collects device OS version info */
     public String getOSVersion() {
         return Build.VERSION.RELEASE;
+    }
+
+    /** Collects connection type. */
+    public UserData.ConnectionType getConnectionType() {
+        if (mNetworkCapabilities == null) {
+            return UserData.ConnectionType.UNKNOWN;
+        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+            TelephonyManager telephonyManager = mContext.getSystemService(TelephonyManager.class);
+            switch (telephonyManager.getDataNetworkType()) {
+                case TelephonyManager.NETWORK_TYPE_GPRS:
+                case TelephonyManager.NETWORK_TYPE_EDGE:
+                case TelephonyManager.NETWORK_TYPE_CDMA:
+                case TelephonyManager.NETWORK_TYPE_1xRTT:
+                case TelephonyManager.NETWORK_TYPE_IDEN:
+                case TelephonyManager.NETWORK_TYPE_GSM:
+                    return UserData.ConnectionType.CELLULAR_2G;
+                case TelephonyManager.NETWORK_TYPE_UMTS:
+                case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                case TelephonyManager.NETWORK_TYPE_HSDPA:
+                case TelephonyManager.NETWORK_TYPE_HSUPA:
+                case TelephonyManager.NETWORK_TYPE_HSPA:
+                case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                case TelephonyManager.NETWORK_TYPE_EHRPD:
+                case TelephonyManager.NETWORK_TYPE_HSPAP:
+                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+                    return UserData.ConnectionType.CELLULAR_3G;
+                case TelephonyManager.NETWORK_TYPE_LTE:
+                case TelephonyManager.NETWORK_TYPE_IWLAN:
+                    return UserData.ConnectionType.CELLULAR_4G;
+                case TelephonyManager.NETWORK_TYPE_NR:
+                    return UserData.ConnectionType.CELLULAR_5G;
+                default:
+                    return UserData.ConnectionType.UNKNOWN;
+            }
+        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+            return UserData.ConnectionType.WIFI;
+        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+            return UserData.ConnectionType.ETHERNET;
+        }
+        return UserData.ConnectionType.UNKNOWN;
+    }
+
+    /** Collects metered status. */
+    public boolean getNetworkMeteredStatus() {
+        if (mNetworkCapabilities == null) {
+            return false;
+        }
+        int[] capabilities = mNetworkCapabilities.getCapabilities();
+        for (int i = 0; i < capabilities.length; ++i) {
+            if (capabilities[i] == NetworkCapabilities.NET_CAPABILITY_NOT_METERED) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /** Collects connection speed in kbps */
+    public int getConnectionSpeedKbps() {
+        if (mNetworkCapabilities == null) {
+            return 0;
+        }
+        return mNetworkCapabilities.getLinkDownstreamBandwidthKbps();
+    }
+
+    /** Collects current device's static metrics. */
+    public void getDeviceMetrics(UserData.DeviceMetrics deviceMetrics) {
+        deviceMetrics.make = Build.MANUFACTURER;
+        deviceMetrics.model = Build.MODEL;
+        deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
+        deviceMetrics.screenWidth = mContext.getResources().getConfiguration().screenWidthDp;
+        DisplayMetrics displayMetrics = new DisplayMetrics();
+        WindowManager wm = mContext.getSystemService(WindowManager.class);
+        wm.getDefaultDisplay().getMetrics(displayMetrics);
+        deviceMetrics.xdpi = displayMetrics.xdpi;
+        deviceMetrics.ydpi = displayMetrics.ydpi;
+        deviceMetrics.pxRatio = displayMetrics.density;
     }
 }
