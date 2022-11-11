@@ -24,5 +24,15 @@ package android.ondevicepersonalization;
 public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
 
+    // Keys for Bundle objects passed between processes.
+    public static final String
+            EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.lookup_keys";
+    public static final String
+            EXTRA_RESULT = "android.ondevicepersonalization.result";
+
+    // Data Access Service operations.
+    public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
+    public static final int DATA_ACCESS_OP_REMOTE_DATA_SCAN = 2;
+
     private Constants() {}
 }
