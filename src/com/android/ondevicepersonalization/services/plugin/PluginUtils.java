@@ -42,6 +42,14 @@ public class PluginUtils {
     private static final String ENTRY_POINT_CLASS =
             "com.android.ondevicepersonalization.services.plugin.OnDevicePersonalizationPlugin";
 
+    public static final String PARAM_CLASS_NAME_KEY = "param.classname";
+    public static final String PARAM_OPERATION_KEY = "param.operation";
+
+    public static final String OUTPUT_RESULT_KEY = "result";
+
+    public static final int OP_DOWNLOAD_FILTER_HANDLER = 1;
+    public static final int OP_MAX = 2;  // 1 more than the last defined operation.
+
     /** Creates a {@link PluginController} with a list of packages to load. */
     @NonNull public static PluginController createPluginController(
             String taskName, @NonNull PluginManager pluginManager, @Nullable String[] apkList)
