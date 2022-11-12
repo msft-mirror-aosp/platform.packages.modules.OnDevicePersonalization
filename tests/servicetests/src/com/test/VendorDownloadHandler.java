@@ -14,21 +14,22 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.test;
 
-import android.annotation.NonNull;
+import android.ondevicepersonalization.DownloadHandler;
+import android.os.Bundle;
+import android.util.Log;
 
-/**
- * Container for per-request state and APIs for code that runs in the isolated process.
- *
- * @hide
- */
-public interface OnDevicePersonalizationContext {
-    /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
-     */
-    @NonNull RemoteData getRemoteData();
+import java.util.ArrayList;
+import java.util.List;
 
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+// TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
+public class VendorDownloadHandler implements DownloadHandler {
+    public final String TAG = "VendorDownloadHandler";
+
+    @Override
+    public List<String> filterData(Bundle params) {
+        Log.d(TAG, "Starting filterData.");
+        return new ArrayList<>();
+    }
 }

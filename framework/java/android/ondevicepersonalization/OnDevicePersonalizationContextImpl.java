@@ -17,18 +17,23 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.aidl.IDataAccessService;
 
 /**
- * Container for per-request state and APIs for code that runs in the isolated process.
+ * Container for per-request state and APIs for code that runs in the isolated
+ * process.
  *
  * @hide
  */
-public interface OnDevicePersonalizationContext {
-    /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
-     */
-    @NonNull RemoteData getRemoteData();
+public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizationContext {
+    @NonNull RemoteData mRemoteData;
 
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+    /** @hide */
+    public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
+        mRemoteData = new RemoteDataImpl(binder);
+    }
+
+    @NonNull public RemoteData getRemoteData() {
+        return mRemoteData;
+    }
 }
