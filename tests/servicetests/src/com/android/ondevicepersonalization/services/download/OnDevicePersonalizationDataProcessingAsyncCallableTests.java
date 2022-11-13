@@ -16,19 +16,27 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
+import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.VendorData;
 import com.android.ondevicepersonalization.services.data.VendorDataContract;
+import com.android.ondevicepersonalization.services.download.mdd.LocalFileDownloader;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -36,6 +44,7 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
+import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,13 +54,17 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationDataProcessingRunnableTests {
+public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
+    private PackageInfo mPackageInfo;
+    private SynchronousFileStorage mFileStorage;
+    private PluginManager mPluginManager;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -67,7 +80,11 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
-        mMdd = MobileDataDownloadFactory.getMdd(mContext);
+        mPackageInfo = mContext.getPackageManager().getPackageInfo(
+                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
+        mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
+                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();
@@ -76,6 +93,9 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
+
+        mPluginManager = new PluginManagerImpl(
+                Objects.requireNonNull(mContext));
     }
 
     @Test
@@ -87,9 +107,10 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
-        OnDevicePersonalizationDataProcessingRunnable runnable =
-                new OnDevicePersonalizationDataProcessingRunnable(mPackageName, mContext);
-        runnable.run();
+        OnDevicePersonalizationDataProcessingAsyncCallable callable =
+                new OnDevicePersonalizationDataProcessingAsyncCallable(
+                        mPackageInfo, mContext, mPluginManager);
+        callable.call().get();
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName));
