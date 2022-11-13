@@ -66,7 +66,7 @@ public class AppManifestConfigTests {
             throws PackageManager.NameNotFoundException {
         PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
                 mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertEquals("com.test.DownloadHandler",
+        assertEquals("com.test.VendorDownloadHandler",
                 AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, packageInfo));
     }
 }
