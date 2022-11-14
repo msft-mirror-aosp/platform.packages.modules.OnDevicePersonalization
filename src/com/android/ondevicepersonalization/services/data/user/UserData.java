@@ -81,10 +81,10 @@ public final class UserData {
     /** Constant device metrics values. */
     public static class DeviceMetrics {
         // Device manufacturer
-        public String make = "";
+        public Make make = Make.UNKNOWN;
 
         // Device model
-        public String model = "";
+        public Model model = Model.UNKNOWN;
 
         // Screen height of the device in dp units
         public int screenHeight = Configuration.SCREEN_HEIGHT_DP_UNDEFINED;
