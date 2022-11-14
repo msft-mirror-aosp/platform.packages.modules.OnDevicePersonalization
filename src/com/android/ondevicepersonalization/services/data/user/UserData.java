@@ -46,8 +46,7 @@ public final class UserData {
     public Language language = Language.UNKNOWN;
 
     // Mobile carrier.
-    // TODO(b/246132780): Change to enum.
-    public String carrier = "";
+    public Carrier carrier = Carrier.UNKNOWN;
 
     // OS version of the device
     public String osVersion = "";
