@@ -16,19 +16,23 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.NonNull;
+import android.annotation.Nullable;
+import android.os.Bundle;
+
+import java.util.List;
 
 /**
- * Container for per-request state and APIs for code that runs in the isolated process.
+ * Interface for On-Device download handling. Download handling runs in the OnDevicePersonalization
+ * sandbox and returns row keys of downloaded data to be kept on-device.
  *
  * @hide
  */
-public interface OnDevicePersonalizationContext {
+public interface DownloadHandler {
     /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
+     * Filters data downloaded onto the device
+     * @param params Data provided by the calling app or SDK.
+     * TODO(b/239479120): Add additional parameters needed to provide access to
+     *                    existing data and finalize return type.
      */
-    @NonNull RemoteData getRemoteData();
-
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+    List<String> filterData(@Nullable Bundle params);
 }

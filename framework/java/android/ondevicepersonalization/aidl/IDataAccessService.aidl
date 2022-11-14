@@ -14,21 +14,16 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package android.ondevicepersonalization.aidl;
 
-import android.annotation.NonNull;
+import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.os.Bundle;
 
-/**
- * Container for per-request state and APIs for code that runs in the isolated process.
- *
- * @hide
- */
-public interface OnDevicePersonalizationContext {
-    /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
-     */
-    @NonNull RemoteData getRemoteData();
-
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+/** @hide */
+interface IDataAccessService {
+    void onRequest(
+            in int operationCode,
+            in Bundle params,
+            in IDataAccessServiceCallback callback
+    );
 }
