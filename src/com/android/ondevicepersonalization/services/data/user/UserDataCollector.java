@@ -80,10 +80,12 @@ public class UserDataCollector {
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
-        userData.osVersion = getOSVersion();
         userData.connectionType = getConnectionType();
         userData.networkMeteredStatus = getNetworkMeteredStatus();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
+
+        userData.osVersions = new UserData.OSVersion();
+        getOSVersions(userData.osVersions);
 
         userData.deviceMetrics = new UserData.DeviceMetrics();
         getDeviceMetrics(userData.deviceMetrics);
@@ -223,9 +225,36 @@ public class UserDataCollector {
         }
     }
 
-    /** Collects device OS version info */
-    public String getOSVersion() {
-        return Build.VERSION.RELEASE;
+    /** Collects device OS version info.
+     * ODA only identifies three valid raw forms of OS releases
+     * and convert it to the three-version format.
+     * 13 -> 13.0.0
+     * 8.1 -> 8.1.0
+     * 4.1.2 as it is.
+     */
+    public void getOSVersions(UserData.OSVersion osVersions) {
+        String osRelease = Build.VERSION.RELEASE;
+        try {
+            osVersions.major = Integer.parseInt(osRelease);
+        } catch (NumberFormatException nfe1) {
+            try {
+                String[] versions = osRelease.split(".");
+                if (versions.length == 2) {
+                    osVersions.major = Integer.parseInt(versions[0]);
+                    osVersions.minor = Integer.parseInt(versions[1]);
+                } else if (versions.length == 3) {
+                    osVersions.major = Integer.parseInt(versions[0]);
+                    osVersions.minor = Integer.parseInt(versions[1]);
+                    osVersions.micro = Integer.parseInt(versions[2]);
+                } else {
+                    // An irregular release like "UpsideDownCake"
+                    Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe1);
+                }
+            } catch (NumberFormatException nfe2) {
+                // An irrgular release like "QKQ1.200830.002"
+                Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe2);
+            }
+        }
     }
 
     /** Collects connection type. */

@@ -58,12 +58,17 @@ public class UserDataCollectorTest {
         assertEquals(userData.country, mCollector.getCountry());
         assertEquals(userData.language, mCollector.getLanguage());
         assertEquals(userData.carrier, mCollector.getCarrier());
-        assertEquals(userData.osVersion, mCollector.getOSVersion());
         assertEquals(userData.connectionType, mCollector.getConnectionType());
         assertEquals(userData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertEquals(userData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         UserData ud = new UserData();
+        ud.osVersions = new UserData.OSVersion();
+        mCollector.getOSVersions(ud.osVersions);
+        assertEquals(userData.osVersions.major, ud.osVersions.major);
+        assertEquals(userData.osVersions.minor, ud.osVersions.minor);
+        assertEquals(userData.osVersions.micro, ud.osVersions.micro);
+
         ud.deviceMetrics = new UserData.DeviceMetrics();
         mCollector.getDeviceMetrics(ud.deviceMetrics);
         assertEquals(userData.deviceMetrics.make, ud.deviceMetrics.make);
