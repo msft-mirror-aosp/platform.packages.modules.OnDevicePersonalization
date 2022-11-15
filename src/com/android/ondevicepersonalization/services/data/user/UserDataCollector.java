@@ -45,10 +45,14 @@ public class UserDataCollector {
     private static final String TAG = "UserDataCollector";
 
     private Context mContext;
+    private Locale mLocale;
+    private TelephonyManager mTelephonyManager;
     private NetworkCapabilities mNetworkCapabilities;
 
     private UserDataCollector(Context context) {
         mContext = context;
+        mLocale = Locale.getDefault();
+        mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
         ConnectivityManager connectivityManager = mContext.getSystemService(
                 ConnectivityManager.class);
         mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
@@ -122,7 +126,7 @@ public class UserDataCollector {
 
     /** Collects current device's country information. */
     public Country getCountry() {
-        String countryCode = Locale.getDefault().getISO3Country();
+        String countryCode = mLocale.getISO3Country();
         if (Strings.isNullOrEmpty(countryCode)) {
             return Country.UNKNOWN;
         } else {
@@ -139,7 +143,7 @@ public class UserDataCollector {
 
     /** Collects current device's language information. */
     public Language getLanguage() {
-        String langCode = Locale.getDefault().getLanguage();
+        String langCode = mLocale.getLanguage();
         if (Strings.isNullOrEmpty(langCode)) {
             return Language.UNKNOWN;
         } else {
@@ -155,8 +159,68 @@ public class UserDataCollector {
     }
 
     /** Collects carrier info. */
-    public String getCarrier() {
-        return mContext.getSystemService(TelephonyManager.class).getSimOperatorName();
+    public Carrier getCarrier() {
+        switch (mTelephonyManager.getSimOperatorName().toUpperCase(mLocale)) {
+            case "RELIANCE JIO":
+                return Carrier.RELIANCE_JIO;
+            case "VODAFONE":
+                return Carrier.VODAFONE;
+            case "T-MOBILE - US":
+            case "T-MOBILE":
+                return Carrier.T_MOBILE;
+            case "VERIZON WIRELESS":
+                return Carrier.VERIZON_WIRELESS;
+            case "AIRTEL":
+                return Carrier.AIRTEL;
+            case "ORANGE":
+                return Carrier.ORANGE;
+            case "NTT DOCOMO":
+                return Carrier.NTT_DOCOMO;
+            case "MOVISTAR":
+                return Carrier.MOVISTAR;
+            case "AT&T":
+                return Carrier.AT_T;
+            case "TELCEL":
+                return Carrier.TELCEL;
+            case "VIVO":
+                return Carrier.VIVO;
+            case "VI":
+                return Carrier.VI;
+            case "TIM":
+                return Carrier.TIM;
+            case "O2":
+                return Carrier.O2;
+            case "TELEKOM":
+                return Carrier.TELEKOM;
+            case "CLARO BR":
+                return Carrier.CLARO_BR;
+            case "SK TELECOM":
+                return Carrier.SK_TELECOM;
+            case "МТС":
+                return Carrier.MTC;
+            case "AU":
+                return Carrier.AU;
+            case "TELE2":
+                return Carrier.TELE2;
+            case "SFR":
+                return Carrier.SFR;
+            case "ETECSA":
+                return Carrier.ETECSA;
+            case "IR-MCI (HAMRAHE AVVAL)":
+                return Carrier.IR_MCI;
+            case "KT":
+                return Carrier.KT;
+            case "TELKOMSEL":
+                return Carrier.TELKOMSEL;
+            case "IRANCELL":
+                return Carrier.IRANCELL;
+            case "MEGAFON":
+                return Carrier.MEGAFON;
+            case "TELEFONICA":
+                return Carrier.TELEFONICA;
+            default:
+                return Carrier.UNKNOWN;
+        }
     }
 
     /** Collects device OS version info */
@@ -169,25 +233,24 @@ public class UserDataCollector {
         if (mNetworkCapabilities == null) {
             return UserData.ConnectionType.UNKNOWN;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            TelephonyManager telephonyManager = mContext.getSystemService(TelephonyManager.class);
-            switch (telephonyManager.getDataNetworkType()) {
-                case TelephonyManager.NETWORK_TYPE_GPRS:
-                case TelephonyManager.NETWORK_TYPE_EDGE:
-                case TelephonyManager.NETWORK_TYPE_CDMA:
+            switch (mTelephonyManager.getDataNetworkType()) {
                 case TelephonyManager.NETWORK_TYPE_1xRTT:
-                case TelephonyManager.NETWORK_TYPE_IDEN:
+                case TelephonyManager.NETWORK_TYPE_CDMA:
+                case TelephonyManager.NETWORK_TYPE_EDGE:
+                case TelephonyManager.NETWORK_TYPE_GPRS:
                 case TelephonyManager.NETWORK_TYPE_GSM:
+                case TelephonyManager.NETWORK_TYPE_IDEN:
                     return UserData.ConnectionType.CELLULAR_2G;
-                case TelephonyManager.NETWORK_TYPE_UMTS:
+                case TelephonyManager.NETWORK_TYPE_EHRPD:
                 case TelephonyManager.NETWORK_TYPE_EVDO_0:
                 case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                case TelephonyManager.NETWORK_TYPE_HSDPA:
-                case TelephonyManager.NETWORK_TYPE_HSUPA:
-                case TelephonyManager.NETWORK_TYPE_HSPA:
                 case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                case TelephonyManager.NETWORK_TYPE_EHRPD:
+                case TelephonyManager.NETWORK_TYPE_HSDPA:
+                case TelephonyManager.NETWORK_TYPE_HSPA:
                 case TelephonyManager.NETWORK_TYPE_HSPAP:
+                case TelephonyManager.NETWORK_TYPE_HSUPA:
                 case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+                case TelephonyManager.NETWORK_TYPE_UMTS:
                     return UserData.ConnectionType.CELLULAR_3G;
                 case TelephonyManager.NETWORK_TYPE_LTE:
                 case TelephonyManager.NETWORK_TYPE_IWLAN:
