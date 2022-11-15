@@ -14,10 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.data;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.aidl.IDataAccessService;
+import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -26,28 +29,27 @@ import android.util.Log;
  * A class that exports methods that plugin code in the isolated process
  * can use to request data from the managing service.
  */
-public class ManagingServiceConnector extends IManagingServiceConnector.Stub {
-    private static final String TAG = "ManagingServiceConnector";
-
-    public static final int ERROR_NOT_IMPLEMENTED = 100;
+public class DataAccessServiceImpl extends IDataAccessService.Stub {
+    private static final String TAG = "DataAccessServiceImpl";
     private final Context mApplicationContext;
 
-    ManagingServiceConnector(@NonNull Context applicationContext) {
+    public DataAccessServiceImpl(
+            @NonNull String appPackageName,
+            @NonNull String vendorPackageName,
+            @NonNull Context applicationContext) {
         mApplicationContext = applicationContext;
-        // TODO(b/249345663): Create DAOs for VendorData and UserData tables
-        // to handle data access requests from vendor code.
+        // TODO(b/249345663): Create DAOs for VendorData tables owned by vendorPackageName and
+        // create a policy-engine guarded UserData accessor.
     }
 
     /** Handle a request from the isolated process. */
-    // TODO(b/249345663): Replace the generic method below with strongly typed
-    // methods for each type of managing service request.
-    @Override public void handleManagingServiceRequest(
+    @Override public void onRequest(
             int operation,
             @NonNull Bundle params,
-            @NonNull IManagingServiceConnectorCallback callback
+            @NonNull IDataAccessServiceCallback callback
     ) {
         try {
-            callback.onError(ERROR_NOT_IMPLEMENTED);
+            callback.onError(Constants.STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
             Log.e(TAG, "Callback error", e);
         }
