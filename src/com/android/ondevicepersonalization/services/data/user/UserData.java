@@ -49,8 +49,15 @@ public final class UserData {
     // TODO(b/246132780): Change to enum.
     public String carrier = "";
 
-    // OS version of the device
-    public String osVersion = "";
+    /** Values for OS versions. */
+    public static class OSVersion {
+        public int major = 0;
+        public int minor = 0;
+        public int micro = 0;
+    }
+
+    // OS versions of the device.
+    public OSVersion osVersions;
 
     // Connection type values.
     public enum ConnectionType {
