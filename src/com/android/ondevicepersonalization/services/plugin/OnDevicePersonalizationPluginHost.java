@@ -64,7 +64,9 @@ public class OnDevicePersonalizationPluginHost implements PluginHost {
         // TODO(b/249345663): Encode appPackageName and vendorPackageName into pluginId, then parse
         // pluginId to extract the appPackageName and vendorPackageName and create a
         // DataAccessServiceImpl customized to the app and vendor package.
-        DataAccessServiceImpl service = new DataAccessServiceImpl("", "", mApplicationContext);
+        String vendorPackageName = PluginUtils.getVendorPackageNameFromPluginId(pluginId);
+        DataAccessServiceImpl service = new DataAccessServiceImpl("", vendorPackageName,
+                mApplicationContext);
         Bundle initData = new Bundle();
         initData.putBinder(DATA_ACCESS_SERVICE_BINDER_KEY, service);
         return initData;

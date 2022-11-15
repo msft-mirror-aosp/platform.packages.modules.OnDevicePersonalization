@@ -17,19 +17,45 @@
 package com.test;
 
 import android.ondevicepersonalization.DownloadHandler;
+import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.os.Bundle;
+import android.os.OutcomeReceiver;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import com.google.common.util.concurrent.MoreExecutors;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class VendorDownloadHandler implements DownloadHandler {
     public final String TAG = "VendorDownloadHandler";
 
     @Override
-    public List<String> filterData(Bundle params) {
+    public void filterData(Bundle bundle, OnDevicePersonalizationContext odpContext,
+            OutcomeReceiver<List<String>, Exception> odpOutcomeReceiver) {
         Log.d(TAG, "Starting filterData.");
-        return new ArrayList<>();
+        List<String> lookupKeys = new ArrayList<>();
+        lookupKeys.add("keyExtra");
+        odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
+                new OutcomeReceiver<Map<String, byte[]>, Exception>() {
+                    @Override
+                    public void onResult(@NonNull Map<String, byte[]> result) {
+                        Log.d(TAG, "OutcomeReceiver onResult: " + result.toString());
+                        // TODO(b/239479120): Create this from downloaded data.
+                        List<String> res = new ArrayList<>();
+                        res.add("key1");
+                        res.add("key2");
+                        odpOutcomeReceiver.onResult(res);
+                    }
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "OutcomeReceiver onError.", e);
+                        odpOutcomeReceiver.onError(e);
+                    }
+                });
     }
 }
