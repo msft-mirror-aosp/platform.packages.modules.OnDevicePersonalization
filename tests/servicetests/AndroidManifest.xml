@@ -27,8 +27,9 @@
         <uses-library android:name="android.test.runner"/>
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
+        <!-- TODO(b/258808270): Set isolated process to true -->
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
-                 android:isolatedProcess="true" android:exported="false" >
+                 android:exported="false" >
         </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
