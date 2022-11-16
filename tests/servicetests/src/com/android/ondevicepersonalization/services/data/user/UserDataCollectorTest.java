@@ -58,12 +58,17 @@ public class UserDataCollectorTest {
         assertEquals(userData.country, mCollector.getCountry());
         assertEquals(userData.language, mCollector.getLanguage());
         assertEquals(userData.carrier, mCollector.getCarrier());
-        assertEquals(userData.osVersion, mCollector.getOSVersion());
         assertEquals(userData.connectionType, mCollector.getConnectionType());
         assertEquals(userData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertEquals(userData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         UserData ud = new UserData();
+        ud.osVersions = new UserData.OSVersion();
+        mCollector.getOSVersions(ud.osVersions);
+        assertEquals(userData.osVersions.major, ud.osVersions.major);
+        assertEquals(userData.osVersions.minor, ud.osVersions.minor);
+        assertEquals(userData.osVersions.micro, ud.osVersions.micro);
+
         ud.deviceMetrics = new UserData.DeviceMetrics();
         mCollector.getDeviceMetrics(ud.deviceMetrics);
         assertEquals(userData.deviceMetrics.make, ud.deviceMetrics.make);
@@ -86,7 +91,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testGetCountry() {
-        Locale.setDefault(new Locale("en", "US"));
+        mCollector.setLocale(new Locale("en", "US"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.country);
         assertEquals(userData.country, Country.USA);
@@ -94,7 +99,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testUnknownCountry() {
-        Locale.setDefault(new Locale("en"));
+        mCollector.setLocale(new Locale("en"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.country);
         assertEquals(userData.country, Country.UNKNOWN);
@@ -102,7 +107,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testGetLanguage() {
-        Locale.setDefault(new Locale("zh", "CN"));
+        mCollector.setLocale(new Locale("zh", "CN"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.language);
         assertEquals(userData.language, Language.ZH);
@@ -110,7 +115,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testUnknownLanguage() {
-        Locale.setDefault(new Locale("nonexist_lang", "CA"));
+        mCollector.setLocale(new Locale("nonexist_lang", "CA"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.language);
         assertEquals(userData.language, Language.UNKNOWN);
