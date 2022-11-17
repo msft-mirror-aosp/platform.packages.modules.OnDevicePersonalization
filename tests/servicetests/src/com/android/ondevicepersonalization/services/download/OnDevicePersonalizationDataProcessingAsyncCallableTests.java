@@ -55,6 +55,7 @@ import org.junit.runners.JUnit4;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
@@ -75,6 +76,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             .setKey("key2")
             .setData("dGVzdGRhdGEy".getBytes())
             .setFp("fp2")
+            .build();
+
+    private final VendorData mContentExtra = new VendorData.Builder()
+            .setKey("keyExtra")
+            .setData("extra".getBytes())
+            .setFp("fpExtra")
             .build();
 
     @Before
@@ -100,6 +107,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
     @Test
     public void testRun() throws Exception {
+        OnDevicePersonalizationVendorDataDao dao =
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                        PackageUtils.getCertDigest(mContext, mPackageName));
         mPopulator.refreshFileGroups(mMdd).get();
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
@@ -107,13 +117,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
+        dao.updateOrInsertVendorData(mContentExtra);
+
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(
                         mPackageInfo, mContext, mPluginManager);
-        callable.call().get();
-        OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                        PackageUtils.getCertDigest(mContext, mPackageName));
+        callable.call().get(2000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -132,12 +141,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                     .build());
         }
         cursor.close();
-        assertEquals(2, vendorDataList.size());
+        assertEquals(3, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContent1.getKey())) {
                 compareDataContent(mContent1, data);
             } else if (data.getKey().equals(mContent2.getKey())) {
                 compareDataContent(mContent2, data);
+            } else if (data.getKey().equals(mContentExtra.getKey())) {
+                compareDataContent(mContentExtra, data);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }

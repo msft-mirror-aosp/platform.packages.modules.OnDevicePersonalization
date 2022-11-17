@@ -18,12 +18,18 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
+
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
+
+import java.util.HashMap;
 
 /**
  * A class that exports methods that plugin code in the isolated process
@@ -32,26 +38,58 @@ import android.util.Log;
 public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private static final String TAG = "DataAccessServiceImpl";
     private final Context mApplicationContext;
+    private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
 
     public DataAccessServiceImpl(
             @NonNull String appPackageName,
             @NonNull String vendorPackageName,
             @NonNull Context applicationContext) {
         mApplicationContext = applicationContext;
-        // TODO(b/249345663): Create DAOs for VendorData tables owned by vendorPackageName and
-        // create a policy-engine guarded UserData accessor.
+        // TODO(b/249345663): Create a policy-engine guarded UserData accessor.
+        try {
+            mVendorDataDao = OnDevicePersonalizationVendorDataDao.getInstance(mApplicationContext,
+                    vendorPackageName,
+                    PackageUtils.getCertDigest(mApplicationContext, vendorPackageName));
+        } catch (PackageManager.NameNotFoundException nnfe) {
+            throw new IllegalArgumentException("Package: " + vendorPackageName + " does not exist.",
+                    nnfe);
+        }
     }
 
     /** Handle a request from the isolated process. */
-    @Override public void onRequest(
+    @Override
+    public void onRequest(
             int operation,
             @NonNull Bundle params,
             @NonNull IDataAccessServiceCallback callback
     ) {
         try {
-            callback.onError(Constants.STATUS_INTERNAL_ERROR);
+            switch (operation) {
+                case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor().execute(
+                            () -> remoteDataLookup(
+                                    params.getStringArray(Constants.EXTRA_LOOKUP_KEYS), callback));
+                    break;
+                case Constants.DATA_ACCESS_OP_REMOTE_DATA_SCAN:
+                default:
+                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+            }
         } catch (RemoteException e) {
             Log.e(TAG, "Callback error", e);
+        }
+    }
+
+    private void remoteDataLookup(String[] keys, @NonNull IDataAccessServiceCallback callback) {
+        HashMap<String, byte[]> vendorData = new HashMap<>();
+        try {
+            for (String key : keys) {
+                vendorData.put(key, mVendorDataDao.readSingleVendorDataRow(key));
+            }
+            Bundle result = new Bundle();
+            result.putSerializable(Constants.EXTRA_RESULT, vendorData);
+            callback.onSuccess(result);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Callback error in remoteDataLookup", e);
         }
     }
 }
