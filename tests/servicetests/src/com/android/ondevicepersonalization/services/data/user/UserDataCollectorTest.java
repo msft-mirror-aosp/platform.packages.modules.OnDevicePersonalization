@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -78,6 +79,20 @@ public class UserDataCollectorTest {
         assertEquals(userData.deviceMetrics.xdpi, ud.deviceMetrics.xdpi, 0.01);
         assertEquals(userData.deviceMetrics.ydpi, ud.deviceMetrics.ydpi, 0.01);
         assertEquals(userData.deviceMetrics.pxRatio, ud.deviceMetrics.pxRatio, 0.01);
+
+        ud.appsUsageStats = new ArrayList();
+        mCollector.getAppUsageStats(ud.appsUsageStats);
+        assertEquals(userData.appsUsageStats.size(), ud.appsUsageStats.size());
+        for (int i = 0; i < userData.appsUsageStats.size(); ++i) {
+            assertEquals(userData.appsUsageStats.get(i).packageName,
+                         ud.appsUsageStats.get(i).packageName);
+            assertEquals(userData.appsUsageStats.get(i).startTimeMillis,
+                         ud.appsUsageStats.get(i).startTimeMillis);
+            assertEquals(userData.appsUsageStats.get(i).endTimeMillis,
+                         ud.appsUsageStats.get(i).endTimeMillis);
+            assertEquals(userData.appsUsageStats.get(i).totalTimeSec,
+                         ud.appsUsageStats.get(i).totalTimeSec);
+        }
     }
 
     @Test

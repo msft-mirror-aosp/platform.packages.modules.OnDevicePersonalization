@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import android.app.usage.UsageStats;
+import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -34,6 +36,9 @@ import com.android.internal.annotations.VisibleForTesting;
 
 import com.google.common.base.Strings;
 
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -91,6 +96,10 @@ public class UserDataCollector {
 
         userData.deviceMetrics = new UserData.DeviceMetrics();
         getDeviceMetrics(userData.deviceMetrics);
+
+        userData.appsUsageStats = new ArrayList();
+        getAppUsageStats(userData.appsUsageStats);
+
         return userData;
     }
 
@@ -484,6 +493,26 @@ public class UserDataCollector {
                 return Model.OTT_XVIEW_PLUS_AV1;
             default:
                 return Model.UNKNOWN;
+        }
+    }
+
+    /** Get app usage stats for the last 24 hours. */
+    // Todo(b/246132780): change the query time range to prevent overlaps.
+    public void getAppUsageStats(List<UserData.AppUsageStats> appsUsageStats) {
+        UsageStatsManager usageStatsManager = mContext.getSystemService(UsageStatsManager.class);
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1);
+        final long startTimeMillis = cal.getTimeInMillis();
+        final long endTimeMillis = System.currentTimeMillis();
+        final List<UsageStats> statsList = usageStatsManager.queryUsageStats(
+                UsageStatsManager.INTERVAL_BEST, startTimeMillis, endTimeMillis);
+        for (UsageStats stats : statsList) {
+            UserData.AppUsageStats appUsageStats = new UserData.AppUsageStats();
+            appUsageStats.packageName = stats.getPackageName();
+            appUsageStats.startTimeMillis = startTimeMillis;
+            appUsageStats.endTimeMillis = endTimeMillis;
+            appUsageStats.totalTimeSec = stats.getTotalTimeVisible();
+            appsUsageStats.add(appUsageStats);
         }
     }
 
