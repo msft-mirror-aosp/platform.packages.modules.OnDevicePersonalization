@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import android.content.res.Configuration;
 
+import java.util.List;
 import java.util.TimeZone;
 
 /**
@@ -104,4 +105,22 @@ public final class UserData {
 
     // Device metrics values.
     public DeviceMetrics deviceMetrics = null;
+
+    /** Constant device metrics values. */
+    public static class AppUsageStats {
+        // Application package name.
+        public String packageName = null;
+
+        // Starting time in milliseconds.
+        public long startTimeMillis = 0;
+
+        // Ending time in milliseconds.
+        public long endTimeMillis = 0;
+
+        // Total time that the app is visible in seconds.
+        public long totalTimeSec = 0;
+    }
+
+    // Application usage stats.
+    public List<AppUsageStats> appsUsageStats = null;
 }
