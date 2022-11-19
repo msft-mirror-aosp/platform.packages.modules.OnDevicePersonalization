@@ -124,5 +124,28 @@ public class PluginUtils {
         return archiveInfoBuilder.build();
     }
 
+    /**
+     * Create a plugin id encoding the vendors information.
+     *
+     * @param vendorPackageName Name of the vendor package
+     * @param taskName          Name of the task to be run
+     * @return PluginId to be used by the plugin
+     */
+    public static String createPluginId(String vendorPackageName, String taskName) {
+        // TODO(b/249345663) Perform any validation needed on the input.
+        return vendorPackageName + "-" + taskName;
+    }
+
+    /**
+     * Gets the Vendor package name from the given pluginId
+     *
+     * @param pluginId pluginId containing vendorPackageName
+     * @return VendorPackageName
+     */
+    public static String getVendorPackageNameFromPluginId(String pluginId) {
+        // TODO(b/249345663) Perform any validation needed on the input.
+        return pluginId.split("-")[0];
+    }
+
     private PluginUtils() {}
 }
