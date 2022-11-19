@@ -19,6 +19,9 @@ package com.android.ondevicepersonalization.services.plugin;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.ondevicepersonalization.DownloadHandler;
+import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.os.Bundle;
+import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -31,6 +34,8 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 
 import com.google.common.util.concurrent.Futures;
 
+import java.util.List;
+
 /** Plugin that runs in an isolated process. */
 public class OnDevicePersonalizationPlugin implements Plugin {
     private static final String TAG = "OnDevicePersonalizationPlugin";
@@ -38,7 +43,8 @@ public class OnDevicePersonalizationPlugin implements Plugin {
     private PluginCallback mPluginCallback;
     private PluginContext mPluginContext;
 
-    @Override public void onExecute(
+    @Override
+    public void onExecute(
             @NonNull PersistableBundle input,
             @NonNull PluginCallback callback,
             @Nullable PluginContext context) {
@@ -72,22 +78,37 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
             }
         } catch (Exception e) {
-            Log.e(TAG, "Plugin failed. " + e.toString());
+            Log.e(TAG, "Plugin failed. " + e);
             sendErrorResult(FailureType.ERROR_UNKNOWN);
         }
     }
 
     private void runDownloadHandlerFilter(DownloadHandler downloadHandler) {
         Log.d(TAG, "runDownloadHandlerFilter() started.");
-        // TODO(b/239479120, b/258808270): Build the parameters to downloadHandler.filterData,
-        //  call downloadHandler.filterData, and build output from vendor code to managing process
-        PersistableBundle result = new PersistableBundle();
-        result.putStringArray(PluginUtils.OUTPUT_RESULT_KEY, new String[0]);
-        try {
-            mPluginCallback.onSuccess(result);
-        } catch (Exception e) {
-            Log.e(TAG, "Error calling pluginCallback", e);
-        }
+        // TODO(b/239479120): Build the parameters to downloadHandler.filterData.
+        OnDevicePersonalizationContext odpContext =
+                ((OnDevicePersonalizationPluginContext) mPluginContext)
+                        .getOnDevicePersonalizationContext();
+        downloadHandler.filterData(new Bundle(), odpContext,
+                new OutcomeReceiver<List<String>, Exception>() {
+                    @Override
+                    public void onResult(@NonNull List<String> result) {
+                        PersistableBundle finalOutput = new PersistableBundle();
+                        finalOutput.putStringArray(PluginUtils.OUTPUT_RESULT_KEY,
+                                result.toArray(new String[0]));
+                        try {
+                            mPluginCallback.onSuccess(finalOutput);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error calling pluginCallback", e);
+                        }
+                    }
+
+                    @Override
+                    public void onError(Exception e) {
+                        Log.e(TAG, "OutcomeReceiver onError.", e);
+                        sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+                    }
+                });
     }
 
     private void sendErrorResult(FailureType failure) {

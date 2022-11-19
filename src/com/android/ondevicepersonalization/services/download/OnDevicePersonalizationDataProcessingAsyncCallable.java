@@ -50,7 +50,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
@@ -58,7 +60,6 @@ import java.util.concurrent.ExecutionException;
  * AsyncCallable to handle the processing of the downloaded vendor data
  */
 public class OnDevicePersonalizationDataProcessingAsyncCallable implements AsyncCallable {
-    // TODO(b/239479120) Update TASK_NAME to include info on calling vendor
     public static final String TASK_NAME = "DownloadJob";
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
@@ -121,7 +122,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             PackageManager.NameNotFoundException, InterruptedException, ExecutionException {
         try {
             mPluginController = Objects.requireNonNull(
-                    PluginUtils.createPluginController(TASK_NAME, mPluginManager,
+                    PluginUtils.createPluginController(
+                            PluginUtils.createPluginId(mPackageName,
+                                    TASK_NAME), mPluginManager,
                             new String[]{mPackageName}));
         } catch (Exception e) {
             Log.e(TAG, "Could not create plugin controller.", e);
@@ -129,7 +132,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
 
         long syncToken = -1;
-        List<VendorData> vendorDataList = null;
+        Map<String, VendorData> vendorDataMap = null;
 
         SynchronousFileStorage fileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         try (InputStream in = fileStorage.open(uri, ReadStreamOpener.create())) {
@@ -140,7 +143,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                     if (name.equals("syncToken")) {
                         syncToken = reader.nextLong();
                     } else if (name.equals("contents")) {
-                        vendorDataList = readContentsArray(reader);
+                        vendorDataMap = readContentsArray(reader);
                     } else {
                         reader.skipValue();
                     }
@@ -153,7 +156,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Log.d(TAG, mPackageName + " downloaded JSON file has invalid syncToken provided");
             return Futures.immediateFuture(null);
         }
-        if (vendorDataList == null || vendorDataList.size() == 0) {
+        if (vendorDataMap == null || vendorDataMap.size() == 0) {
             Log.d(TAG, mPackageName + " downloaded JSON file has no content provided");
             return Futures.immediateFuture(null);
         }
@@ -168,21 +171,27 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             return Futures.immediateFuture(null);
         }
 
-        List<VendorData> finalVendorDataList = vendorDataList;
+        Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
         return FluentFuture.from(PluginUtils.loadPlugin(mPluginController))
                 .transformAsync(unused -> executePlugin(),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor())
                 .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
-                                finalVendorDataList),
+                                finalVendorDataMap),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 
     private Void filterAndStoreData(PersistableBundle pluginResult, long syncToken,
-            List<VendorData> vendorDataList) {
-        Log.d(TAG, "Plugin code completed successfully");
-        // TODO(b/239479120) Process pluginResult for filtering and storing
-        mDao.batchUpdateOrInsertVendorDataTransaction(vendorDataList,
+            Map<String, VendorData> vendorDataMap) {
+        Log.d(TAG, "Plugin filter code completed successfully");
+        List<VendorData> filteredList = new ArrayList<>();
+        String[] retainedKeys = pluginResult.getStringArray(PluginUtils.OUTPUT_RESULT_KEY);
+        for (String key : retainedKeys) {
+            if (vendorDataMap.containsKey(key)) {
+                filteredList.add(vendorDataMap.get(key));
+            }
+        }
+        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
                 syncToken);
         return null;
     }
@@ -194,22 +203,22 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         pluginParams.putInt(PluginUtils.PARAM_OPERATION_KEY,
                 PluginUtils.OP_DOWNLOAD_FILTER_HANDLER);
 
-        // TODO(b/239479120): Populate pluginParams
+        // TODO(b/239479120): Populate pluginParams with file descriptor
         return PluginUtils.executePlugin(mPluginController, pluginParams);
     }
 
-    private List<VendorData> readContentsArray(JsonReader reader) throws IOException {
-        List<VendorData> vendorDataList = new ArrayList<>();
+    private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
+        Map<String, VendorData> vendorDataMap = new HashMap<>();
         reader.beginArray();
         while (reader.hasNext()) {
             VendorData data = readContent(reader);
             if (data != null) {
-                vendorDataList.add(data);
+                vendorDataMap.put(data.getKey(), data);
             }
         }
         reader.endArray();
 
-        return vendorDataList;
+        return vendorDataMap;
     }
 
     private VendorData readContent(JsonReader reader) throws IOException {

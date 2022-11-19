@@ -8,6 +8,10 @@
     { "key": "key2",
       "fp": "fp2",
       "data": "dGVzdGRhdGEy"
+    },
+    { "key": "key3",
+      "fp": "fp3",
+      "data": "dGVzdGRhdGEy"
     }
   ]
 }
