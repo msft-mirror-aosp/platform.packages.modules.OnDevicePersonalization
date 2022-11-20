@@ -80,6 +80,14 @@ public class UserDataCollectorTest {
         assertEquals(userData.deviceMetrics.ydpi, ud.deviceMetrics.ydpi, 0.01);
         assertEquals(userData.deviceMetrics.pxRatio, ud.deviceMetrics.pxRatio, 0.01);
 
+        ud.appsInfo = new ArrayList();
+        mCollector.getInstalledApps(ud.appsInfo);
+        assertEquals(userData.appsInfo.size(), ud.appsInfo.size());
+        for (int i = 0; i < userData.appsInfo.size(); ++i) {
+            assertEquals(userData.appsInfo.get(i).packageName, ud.appsInfo.get(i).packageName);
+            assertEquals(userData.appsInfo.get(i).installed, ud.appsInfo.get(i).installed);
+        }
+
         ud.appsUsageStats = new ArrayList();
         mCollector.getAppUsageStats(ud.appsUsageStats);
         assertEquals(userData.appsUsageStats.size(), ud.appsUsageStats.size());
