@@ -16,8 +16,9 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.Nullable;
+import android.annotation.NonNull;
 import android.os.Bundle;
+import android.os.OutcomeReceiver;
 
 import java.util.List;
 
@@ -31,8 +32,12 @@ public interface DownloadHandler {
     /**
      * Filters data downloaded onto the device
      * @param params Data provided by the calling app or SDK.
+     * @param odpContext The {@link OnDevicePersonalizationContext} for this request.
+     * @param odpOutcomeReceiver Callback for caller to use to return list of keys to keep
      * TODO(b/239479120): Add additional parameters needed to provide access to
      *                    existing data and finalize return type.
      */
-    List<String> filterData(@Nullable Bundle params);
+    void filterData(@NonNull Bundle params,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull OutcomeReceiver<List<String>, Exception> odpOutcomeReceiver);
 }
