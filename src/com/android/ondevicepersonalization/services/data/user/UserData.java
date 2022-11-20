@@ -106,6 +106,15 @@ public final class UserData {
     // Device metrics values.
     public DeviceMetrics deviceMetrics = null;
 
+    /** Application information on device. */
+    public static class AppInfo {
+        public String packageName = null;
+        public boolean installed = false;
+    }
+
+    // installed packages.
+    public List<AppInfo> appsInfo = null;
+
     /** Constant device metrics values. */
     public static class AppUsageStats {
         // Application package name.

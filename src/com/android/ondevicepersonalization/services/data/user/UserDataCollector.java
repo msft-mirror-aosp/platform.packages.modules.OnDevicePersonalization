@@ -16,11 +16,15 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
+
 import android.app.usage.UsageStats;
 import android.app.usage.UsageStatsManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
@@ -96,6 +100,9 @@ public class UserDataCollector {
 
         userData.deviceMetrics = new UserData.DeviceMetrics();
         getDeviceMetrics(userData.deviceMetrics);
+
+        userData.appsInfo = new ArrayList();
+        getInstalledApps(userData.appsInfo);
 
         userData.appsUsageStats = new ArrayList();
         getAppUsageStats(userData.appsUsageStats);
@@ -493,6 +500,22 @@ public class UserDataCollector {
                 return Model.OTT_XVIEW_PLUS_AV1;
             default:
                 return Model.UNKNOWN;
+        }
+    }
+
+    /** Get app install and uninstall record. */
+    public void getInstalledApps(List<UserData.AppInfo> appsInfo) {
+        PackageManager packageManager = mContext.getPackageManager();
+        for (ApplicationInfo appInfo :
+                packageManager.getInstalledApplications(MATCH_UNINSTALLED_PACKAGES)) {
+            UserData.AppInfo app = new UserData.AppInfo();
+            app.packageName = appInfo.packageName;
+            if ((appInfo.flags & ApplicationInfo.FLAG_INSTALLED) != 0) {
+                app.installed = true;
+            } else {
+                app.installed = false;
+            }
+            appsInfo.add(app);
         }
     }
 
