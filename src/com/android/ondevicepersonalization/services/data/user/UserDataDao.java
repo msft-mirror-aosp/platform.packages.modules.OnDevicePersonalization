@@ -87,29 +87,6 @@ public class UserDataDao {
     }
 
     /**
-     * Inserts a single app installed/uninstalled activity.
-     *
-     * @return true if the insert succeeded, false otherwise.
-     */
-    public boolean insertAppInstalledData(String packageName, long timeSec, boolean installed) {
-        try {
-            SQLiteDatabase db = mDbHelper.getWritableDatabase();
-            if (db == null) {
-                return false;
-            }
-            ContentValues values = new ContentValues();
-            values.put(UserDataTables.AppInstalledHistory.TIME_SEC, timeSec);
-            values.put(UserDataTables.AppInstalledHistory.PACKAGE_NAME, packageName);
-            values.put(UserDataTables.AppInstalledHistory.INSTALLED, installed);
-            return db.insertWithOnConflict(UserDataTables.AppInstalledHistory.TABLE_NAME, null,
-                    values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
-        } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert app installed history data", e);
-            return false;
-        }
-    }
-
-    /**
      * Inserts a single app usage history entry.
      *
      * @return true if the insert succeeded, false otherwise.
