@@ -44,7 +44,7 @@ public class UserDataCollectorTest {
     }
 
     @Test
-    public void testGetUserData() {
+    public void testGetUserData() throws InterruptedException {
         UserData userData = mCollector.getUserData();
 
         // Real time data
@@ -94,13 +94,21 @@ public class UserDataCollectorTest {
         for (int i = 0; i < userData.appsUsageStats.size(); ++i) {
             assertEquals(userData.appsUsageStats.get(i).packageName,
                          ud.appsUsageStats.get(i).packageName);
-            assertEquals(userData.appsUsageStats.get(i).startTimeMillis,
-                         ud.appsUsageStats.get(i).startTimeMillis);
-            assertEquals(userData.appsUsageStats.get(i).endTimeMillis,
-                         ud.appsUsageStats.get(i).endTimeMillis);
-            assertEquals(userData.appsUsageStats.get(i).totalTimeSec,
-                         ud.appsUsageStats.get(i).totalTimeSec);
+            assertTrue(userData.appsUsageStats.get(i).startTimeMillis
+                       <= ud.appsUsageStats.get(i).startTimeMillis);
+            assertTrue(userData.appsUsageStats.get(i).endTimeMillis
+                       <= ud.appsUsageStats.get(i).endTimeMillis);
+            assertTrue(userData.appsUsageStats.get(i).totalTimeSec
+                       <= ud.appsUsageStats.get(i).totalTimeSec);
         }
+
+        ud.locationInfo = new UserData.LocationInfo();
+        mCollector.getCurrentLocation(ud.locationInfo);
+        assertTrue(userData.locationInfo.timeMillis <= ud.locationInfo.timeMillis);
+        assertEquals(userData.locationInfo.latitude, ud.locationInfo.latitude, 0.01);
+        assertEquals(userData.locationInfo.longitude, ud.locationInfo.longitude, 0.01);
+        assertEquals(userData.locationInfo.provider, ud.locationInfo.provider);
+        assertEquals(userData.locationInfo.isPreciseLocation, ud.locationInfo.isPreciseLocation);
     }
 
     @Test
