@@ -29,6 +29,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
 import java.util.Locale;
 import java.util.TimeZone;
 
@@ -43,7 +44,7 @@ public class UserDataCollectorTest {
     }
 
     @Test
-    public void testGetUserData() {
+    public void testGetUserData() throws InterruptedException {
         UserData userData = mCollector.getUserData();
 
         // Real time data
@@ -58,12 +59,17 @@ public class UserDataCollectorTest {
         assertEquals(userData.country, mCollector.getCountry());
         assertEquals(userData.language, mCollector.getLanguage());
         assertEquals(userData.carrier, mCollector.getCarrier());
-        assertEquals(userData.osVersion, mCollector.getOSVersion());
         assertEquals(userData.connectionType, mCollector.getConnectionType());
         assertEquals(userData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertEquals(userData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         UserData ud = new UserData();
+        ud.osVersions = new UserData.OSVersion();
+        mCollector.getOSVersions(ud.osVersions);
+        assertEquals(userData.osVersions.major, ud.osVersions.major);
+        assertEquals(userData.osVersions.minor, ud.osVersions.minor);
+        assertEquals(userData.osVersions.micro, ud.osVersions.micro);
+
         ud.deviceMetrics = new UserData.DeviceMetrics();
         mCollector.getDeviceMetrics(ud.deviceMetrics);
         assertEquals(userData.deviceMetrics.make, ud.deviceMetrics.make);
@@ -73,6 +79,36 @@ public class UserDataCollectorTest {
         assertEquals(userData.deviceMetrics.xdpi, ud.deviceMetrics.xdpi, 0.01);
         assertEquals(userData.deviceMetrics.ydpi, ud.deviceMetrics.ydpi, 0.01);
         assertEquals(userData.deviceMetrics.pxRatio, ud.deviceMetrics.pxRatio, 0.01);
+
+        ud.appsInfo = new ArrayList();
+        mCollector.getInstalledApps(ud.appsInfo);
+        assertEquals(userData.appsInfo.size(), ud.appsInfo.size());
+        for (int i = 0; i < userData.appsInfo.size(); ++i) {
+            assertEquals(userData.appsInfo.get(i).packageName, ud.appsInfo.get(i).packageName);
+            assertEquals(userData.appsInfo.get(i).installed, ud.appsInfo.get(i).installed);
+        }
+
+        ud.appsUsageStats = new ArrayList();
+        mCollector.getAppUsageStats(ud.appsUsageStats);
+        assertEquals(userData.appsUsageStats.size(), ud.appsUsageStats.size());
+        for (int i = 0; i < userData.appsUsageStats.size(); ++i) {
+            assertEquals(userData.appsUsageStats.get(i).packageName,
+                         ud.appsUsageStats.get(i).packageName);
+            assertTrue(userData.appsUsageStats.get(i).startTimeMillis
+                       <= ud.appsUsageStats.get(i).startTimeMillis);
+            assertTrue(userData.appsUsageStats.get(i).endTimeMillis
+                       <= ud.appsUsageStats.get(i).endTimeMillis);
+            assertTrue(userData.appsUsageStats.get(i).totalTimeSec
+                       <= ud.appsUsageStats.get(i).totalTimeSec);
+        }
+
+        ud.locationInfo = new UserData.LocationInfo();
+        mCollector.getCurrentLocation(ud.locationInfo);
+        assertTrue(userData.locationInfo.timeMillis <= ud.locationInfo.timeMillis);
+        assertEquals(userData.locationInfo.latitude, ud.locationInfo.latitude, 0.01);
+        assertEquals(userData.locationInfo.longitude, ud.locationInfo.longitude, 0.01);
+        assertEquals(userData.locationInfo.provider, ud.locationInfo.provider);
+        assertEquals(userData.locationInfo.isPreciseLocation, ud.locationInfo.isPreciseLocation);
     }
 
     @Test
@@ -86,7 +122,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testGetCountry() {
-        Locale.setDefault(new Locale("en", "US"));
+        mCollector.setLocale(new Locale("en", "US"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.country);
         assertEquals(userData.country, Country.USA);
@@ -94,7 +130,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testUnknownCountry() {
-        Locale.setDefault(new Locale("en"));
+        mCollector.setLocale(new Locale("en"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.country);
         assertEquals(userData.country, Country.UNKNOWN);
@@ -102,7 +138,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testGetLanguage() {
-        Locale.setDefault(new Locale("zh", "CN"));
+        mCollector.setLocale(new Locale("zh", "CN"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.language);
         assertEquals(userData.language, Language.ZH);
@@ -110,7 +146,7 @@ public class UserDataCollectorTest {
 
     @Test
     public void testUnknownLanguage() {
-        Locale.setDefault(new Locale("nonexist_lang", "CA"));
+        mCollector.setLocale(new Locale("nonexist_lang", "CA"));
         UserData userData = mCollector.getUserData();
         assertNotNull(userData.language);
         assertEquals(userData.language, Language.UNKNOWN);
