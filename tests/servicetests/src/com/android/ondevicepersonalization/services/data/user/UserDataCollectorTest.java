@@ -17,10 +17,12 @@
 package com.android.ondevicepersonalization.services.data.user;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -54,18 +56,24 @@ public class UserDataCollectorTest {
         assertEquals(userData.timeZone, mCollector.getTimeZone());
         assertEquals(userData.orientation, mCollector.getOrientation());
 
+        assertTrue(userData.availableBytesMB > 0);
         assertEquals(userData.availableBytesMB, mCollector.getAvailableBytesMB());
+        assertTrue(userData.batteryPct > 0);
         assertEquals(userData.batteryPct, mCollector.getBatteryPct());
+        assertTrue(userData.batteryPct > 0);
         assertEquals(userData.country, mCollector.getCountry());
         assertEquals(userData.language, mCollector.getLanguage());
         assertEquals(userData.carrier, mCollector.getCarrier());
+        assertTrue(userData.connectionType != UserData.ConnectionType.UNKNOWN);
         assertEquals(userData.connectionType, mCollector.getConnectionType());
         assertEquals(userData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
+        assertTrue(userData.connectionSpeedKbps > 0);
         assertEquals(userData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         UserData ud = new UserData();
         ud.osVersions = new UserData.OSVersion();
         mCollector.getOSVersions(ud.osVersions);
+        assertTrue(userData.osVersions.major > 0);
         assertEquals(userData.osVersions.major, ud.osVersions.major);
         assertEquals(userData.osVersions.minor, ud.osVersions.minor);
         assertEquals(userData.osVersions.micro, ud.osVersions.micro);
@@ -74,16 +82,23 @@ public class UserDataCollectorTest {
         mCollector.getDeviceMetrics(ud.deviceMetrics);
         assertEquals(userData.deviceMetrics.make, ud.deviceMetrics.make);
         assertEquals(userData.deviceMetrics.model, ud.deviceMetrics.model);
+        assertTrue(userData.deviceMetrics.screenHeight > 0);
         assertEquals(userData.deviceMetrics.screenHeight, ud.deviceMetrics.screenHeight);
+        assertTrue(userData.deviceMetrics.screenWidth > 0);
         assertEquals(userData.deviceMetrics.screenWidth, ud.deviceMetrics.screenWidth);
+        assertTrue(userData.deviceMetrics.xdpi > 0);
         assertEquals(userData.deviceMetrics.xdpi, ud.deviceMetrics.xdpi, 0.01);
+        assertTrue(userData.deviceMetrics.ydpi > 0);
         assertEquals(userData.deviceMetrics.ydpi, ud.deviceMetrics.ydpi, 0.01);
+        assertTrue(userData.deviceMetrics.pxRatio > 0);
         assertEquals(userData.deviceMetrics.pxRatio, ud.deviceMetrics.pxRatio, 0.01);
 
         ud.appsInfo = new ArrayList();
         mCollector.getInstalledApps(ud.appsInfo);
+        assertTrue(userData.appsInfo.size() > 0);
         assertEquals(userData.appsInfo.size(), ud.appsInfo.size());
         for (int i = 0; i < userData.appsInfo.size(); ++i) {
+            assertFalse(TextUtils.isEmpty(userData.appsInfo.get(i).packageName));
             assertEquals(userData.appsInfo.get(i).packageName, ud.appsInfo.get(i).packageName);
             assertEquals(userData.appsInfo.get(i).installed, ud.appsInfo.get(i).installed);
         }
@@ -92,14 +107,15 @@ public class UserDataCollectorTest {
         mCollector.getAppUsageStats(ud.appsUsageStats);
         assertEquals(userData.appsUsageStats.size(), ud.appsUsageStats.size());
         for (int i = 0; i < userData.appsUsageStats.size(); ++i) {
-            assertEquals(userData.appsUsageStats.get(i).packageName,
-                         ud.appsUsageStats.get(i).packageName);
-            assertTrue(userData.appsUsageStats.get(i).startTimeMillis
-                       <= ud.appsUsageStats.get(i).startTimeMillis);
-            assertTrue(userData.appsUsageStats.get(i).endTimeMillis
-                       <= ud.appsUsageStats.get(i).endTimeMillis);
-            assertTrue(userData.appsUsageStats.get(i).totalTimeSec
-                       <= ud.appsUsageStats.get(i).totalTimeSec);
+            UserData.AppUsageStats aus = userData.appsUsageStats.get(i);
+            UserData.AppUsageStats ausRef = ud.appsUsageStats.get(i);
+            assertFalse(TextUtils.isEmpty(aus.packageName));
+            assertEquals(aus.packageName, ausRef.packageName);
+            assertTrue(aus.startTimeMillis > 0);
+            assertTrue(aus.startTimeMillis <= ausRef.startTimeMillis);
+            assertTrue(aus.endTimeMillis > 0);
+            assertTrue(aus.endTimeMillis <= ausRef.endTimeMillis);
+            assertTrue(aus.totalTimeSec <= ausRef.totalTimeSec);
         }
 
         ud.locationInfo = new UserData.LocationInfo();
