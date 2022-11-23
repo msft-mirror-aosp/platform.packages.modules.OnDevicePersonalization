@@ -14,6 +14,16 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package android.ondevicepersonalization.aidl;
 
-parcelable PackageId;
+import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.os.Bundle;
+
+/** @hide */
+interface IDataAccessService {
+    void onRequest(
+            in int operationCode,
+            in Bundle params,
+            in IDataAccessServiceCallback callback
+    );
+}

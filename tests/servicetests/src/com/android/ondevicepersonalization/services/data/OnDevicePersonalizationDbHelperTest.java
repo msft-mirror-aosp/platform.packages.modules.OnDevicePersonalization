@@ -51,6 +51,12 @@ public class OnDevicePersonalizationDbHelperTest {
         assertTrue(hasEntity(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, "table"));
         assertTrue(hasEntity(UserDataTables.LocationHistory.TABLE_NAME, "table"));
         assertTrue(hasEntity(UserDataTables.LocationHistory.INDEX_NAME, "index"));
+        assertTrue(hasEntity(UserDataTables.AppUsageHistory.TABLE_NAME, "table"));
+        assertTrue(hasEntity(
+                UserDataTables.AppUsageHistory.STARTING_TIME_SEC_INDEX_NAME, "index"));
+        assertTrue(hasEntity(UserDataTables.AppUsageHistory.ENDING_TIME_SEC_INDEX_NAME, "index"));
+        assertTrue(hasEntity(
+                UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC_INDEX_NAME, "index"));
     }
 
     @Test

@@ -72,6 +72,10 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         // User data tables and indexes.
         db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
         db.execSQL(UserDataTables.LocationHistory.CREATE_INDEXES_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TABLE_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_STARTING_TIME_SEC_INDEX_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_ENDING_TIME_SEC_INDEX_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TOTAL_TIME_USED_SEC_INDEX_STATEMENT);
     }
 
     @Override

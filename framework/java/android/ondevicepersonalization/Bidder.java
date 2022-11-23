@@ -29,7 +29,8 @@ public interface Bidder {
     /**
      * Return a list of bids to an exchange.
      * @param bidRequest The {@link BidRequest} from the exchange.
-     * @param sandboxContext The {@link SandboxContext} for this request.
+     * @param odpContext The {@link OnDevicePersonalizationContext} for this request.
      */
-    void requestBids(@NonNull BidRequest bidRequest, @NonNull SandboxContext sandboxContext);
+    void requestBids(
+            @NonNull BidRequest bidRequest, @NonNull OnDevicePersonalizationContext odpContext);
 }

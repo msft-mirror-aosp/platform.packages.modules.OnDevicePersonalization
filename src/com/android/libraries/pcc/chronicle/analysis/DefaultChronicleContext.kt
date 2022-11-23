@@ -23,6 +23,7 @@ import com.android.libraries.pcc.chronicle.api.DataTypeDescriptorSet
 import com.android.libraries.pcc.chronicle.api.ManagementStrategy
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
 import com.android.libraries.pcc.chronicle.api.error.ConnectionTypeAmbiguity
+import com.android.libraries.pcc.chronicle.util.TypedMap
 
 /**
  * Default implementation of [ChronicleContext] configured and intended to represent the data-flow
@@ -33,6 +34,7 @@ class DefaultChronicleContext(
   override val processorNodes: Set<ProcessorNode>,
   override val policySet: PolicySet,
   override val dataTypeDescriptorSet: DataTypeDescriptorSet,
+  override val connectionContext: TypedMap = TypedMap()
 ) : ChronicleContext {
   private val connectionProviderByType: Map<Class<out Connection>, ConnectionProvider>
   private val dtdByType: Map<Class<out Connection>, DataTypeDescriptor>
@@ -82,7 +84,21 @@ class DefaultChronicleContext(
       connectionProviders = connectionProviders,
       processorNodes = processorNodes + node,
       policySet = policySet,
-      dataTypeDescriptorSet = dataTypeDescriptorSet
+      dataTypeDescriptorSet = dataTypeDescriptorSet,
+      connectionContext = connectionContext
+    )
+  }
+
+  /**
+   * Returns a copy of the current [ChronicleContext] containing the provided [connectionContext].
+   */
+  override fun withConnectionContext(connectionContext: TypedMap): ChronicleContext {
+    return DefaultChronicleContext(
+      connectionProviders = connectionProviders,
+      processorNodes = processorNodes,
+      policySet = policySet,
+      dataTypeDescriptorSet = dataTypeDescriptorSet,
+      connectionContext = connectionContext
     )
   }
 
@@ -95,6 +111,7 @@ class DefaultChronicleContext(
     if (connectionProviders != other.connectionProviders) return false
     if (processorNodes != other.processorNodes) return false
     if (policySet != other.policySet) return false
+    if (connectionContext != other.connectionContext) return false
 
     return true
   }
@@ -103,6 +120,7 @@ class DefaultChronicleContext(
     var result = connectionProviders.hashCode()
     result = 31 * result + processorNodes.hashCode()
     result = 31 * result + policySet.hashCode()
+    result = 31 * result + connectionContext.hashCode()
     return result
   }
 }
