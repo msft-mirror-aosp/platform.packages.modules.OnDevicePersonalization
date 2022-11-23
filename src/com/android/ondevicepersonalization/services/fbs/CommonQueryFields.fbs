@@ -1,0 +1,8 @@
+// TODO(b/255616643): Populate the schema
+
+namespace com.android.ondevicepersonalization.services.fbs;
+
+table CommonQueryFields {
+  cur:[string];
+  wlang:[string];
+}
