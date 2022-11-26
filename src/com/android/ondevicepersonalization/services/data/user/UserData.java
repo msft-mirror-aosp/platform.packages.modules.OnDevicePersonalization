@@ -108,14 +108,17 @@ public final class UserData {
 
     /** Application information on device. */
     public static class AppInfo {
+        // Application package name.
         public String packageName = null;
+
+        // Whether the application is installed or uninstalled.
         public boolean installed = false;
     }
 
     // installed packages.
     public List<AppInfo> appsInfo = null;
 
-    /** Constant device metrics values. */
+    /** Application usage stats. */
     public static class AppUsageStats {
         // Application package name.
         public String packageName = null;
@@ -132,4 +135,32 @@ public final class UserData {
 
     // Application usage stats.
     public List<AppUsageStats> appsUsageStats = null;
+
+    // Location provider values.
+    public enum LocationProvider {
+        UNKNOWN,
+        GPS,
+        NETWORK,
+    };
+
+    /** Location information. */
+    public static class LocationInfo {
+        // Time in milliseconds.
+        public long timeMillis = 0;
+
+        // Latitude.
+        public double latitude = 0;
+
+        // Longitude.
+        public double longitude = 0;
+
+        // Location provider.
+        public LocationProvider provider = LocationProvider.UNKNOWN;
+
+        // Whether the location source is precise.
+        public boolean isPreciseLocation = false;
+    }
+
+    // Location info.
+    public LocationInfo locationInfo = null;
 }

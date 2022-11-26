@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
@@ -35,6 +36,8 @@ import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.WindowManager;
+
+import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
 
@@ -55,13 +58,14 @@ public class UserDataCollector {
     private static UserDataCollector sSingleton = null;
     private static final String TAG = "UserDataCollector";
 
-    private Context mContext;
-    private Locale mLocale;
-    private TelephonyManager mTelephonyManager;
-    private NetworkCapabilities mNetworkCapabilities;
+    @NonNull private final Context mContext;
+    @NonNull private Locale mLocale;
+    @NonNull private final TelephonyManager mTelephonyManager;
+    @NonNull private final NetworkCapabilities mNetworkCapabilities;
 
     private UserDataCollector(Context context) {
         mContext = context;
+
         mLocale = Locale.getDefault();
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
         ConnectivityManager connectivityManager = mContext.getSystemService(
@@ -106,6 +110,9 @@ public class UserDataCollector {
 
         userData.appsUsageStats = new ArrayList();
         getAppUsageStats(userData.appsUsageStats);
+
+        userData.locationInfo = new UserData.LocationInfo();
+        getCurrentLocation(userData.locationInfo);
 
         return userData;
     }
@@ -537,6 +544,40 @@ public class UserDataCollector {
             appUsageStats.totalTimeSec = stats.getTotalTimeVisible();
             appsUsageStats.add(appUsageStats);
         }
+    }
+
+    /** Get current location information. */
+    public void getCurrentLocation(UserData.LocationInfo locationInfo) {
+        LocationManager locationManager = mContext.getSystemService(LocationManager.class);
+        String currentProvider = LocationManager.GPS_PROVIDER;
+        if (locationManager.getProvider(currentProvider) == null) {
+            currentProvider = LocationManager.FUSED_PROVIDER;
+        }
+        // List<String> providers = locationManager.getAllProviders();
+        locationManager.getCurrentLocation(
+                currentProvider,
+                null,
+                mContext.getMainExecutor(),
+                location -> {
+                    if (location != null) {
+                        locationInfo.timeMillis = getTimeMillis();
+                        locationInfo.latitude = location.getLatitude();
+                        locationInfo.longitude = location.getLongitude();
+                        String provider = location.getProvider();
+                        if (LocationManager.GPS_PROVIDER.equals(provider)) {
+                            locationInfo.provider = UserData.LocationProvider.GPS;
+                            locationInfo.isPreciseLocation = true;
+                        } else {
+                            locationInfo.isPreciseLocation = false;
+                            if (LocationManager.NETWORK_PROVIDER.equals(provider)) {
+                                locationInfo.provider = UserData.LocationProvider.NETWORK;
+                            } else {
+                                locationInfo.provider = UserData.LocationProvider.UNKNOWN;
+                            }
+                        }
+                    }
+                }
+        );
     }
 
     /**
