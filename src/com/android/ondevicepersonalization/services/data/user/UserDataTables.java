@@ -61,36 +61,6 @@ public final class UserDataTables implements BaseColumns {
                 + TIME_SEC + ")";
     }
 
-    /** App installed/uninstalled history table. */
-    public static class AppInstalledHistory implements BaseColumns {
-        /** The name of app installed/uninstalled history table. */
-        public static final String TABLE_NAME = "app_installed_history";
-
-        /** The index name of app installed/uninstalled history table. */
-        public static final String INDEX_NAME = INDEX_PREFIX + TABLE_NAME;
-
-        /** The timestamp when the app is installed or uninstalled in seconds. */
-        public static final String TIME_SEC = "time_sec";
-
-        /** The name of the app installed or uninstalled. */
-        public static final String PACKAGE_NAME = "package_name";
-
-        /** Is the app installed (1) or uninstalled (0) */
-        public static final String INSTALLED = "installed";
-
-        public static final String CREATE_TABLE_STATEMENT = "CREATE TABLE IF NOT EXISTS "
-                + TABLE_NAME + " ("
-                + _ID + " INTEGER PRIMARY KEY, "
-                + TIME_SEC + " INTEGER NOT NULL, "
-                + PACKAGE_NAME + " TEXT NOT NULL, "
-                + INSTALLED + " INTEGER NOT NULL)";
-
-        public static final String CREATE_INDEXES_STATEMENT = "CREATE INDEX IF NOT EXISTS "
-                + INDEX_NAME + " ON "
-                + TABLE_NAME + "("
-                + TIME_SEC + ")";
-    }
-
     /** App usage stats history table. */
     public static class AppUsageHistory implements BaseColumns {
         /** The name of app usage stats table. */
