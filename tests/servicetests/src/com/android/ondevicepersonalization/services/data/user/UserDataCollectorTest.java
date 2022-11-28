@@ -119,6 +119,14 @@ public class UserDataCollectorTest {
         }
 
         ud.locationInfo = new UserData.LocationInfo();
+        mCollector.getLastknownLocation(ud.locationInfo);
+        assertTrue(userData.locationInfo.timeMillis <= ud.locationInfo.timeMillis);
+        assertEquals(userData.locationInfo.latitude, ud.locationInfo.latitude, 0.01);
+        assertEquals(userData.locationInfo.longitude, ud.locationInfo.longitude, 0.01);
+        assertEquals(userData.locationInfo.provider, ud.locationInfo.provider);
+        assertEquals(userData.locationInfo.isPreciseLocation, ud.locationInfo.isPreciseLocation);
+
+        ud.locationInfo = new UserData.LocationInfo();
         mCollector.getCurrentLocation(ud.locationInfo);
         assertTrue(userData.locationInfo.timeMillis <= ud.locationInfo.timeMillis);
         assertEquals(userData.locationInfo.latitude, ud.locationInfo.latitude, 0.01);
