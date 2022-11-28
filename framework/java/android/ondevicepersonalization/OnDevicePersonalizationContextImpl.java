@@ -14,15 +14,26 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package android.ondevicepersonalization;
 
-import android.os.Bundle;
+import android.annotation.NonNull;
+import android.ondevicepersonalization.aidl.IDataAccessService;
 
 /**
- * A callback used to return data from the managing service process to the
- * isolated process.
+ * Container for per-request state and APIs for code that runs in the isolated
+ * process.
+ *
+ * @hide
  */
-oneway interface IManagingServiceConnectorCallback {
-    void onSuccess(in Bundle result);
-    void onError(in int errorCode);
+public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizationContext {
+    @NonNull RemoteData mRemoteData;
+
+    /** @hide */
+    public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
+        mRemoteData = new RemoteDataImpl(binder);
+    }
+
+    @NonNull public RemoteData getRemoteData() {
+        return mRemoteData;
+    }
 }

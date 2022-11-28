@@ -42,6 +42,14 @@ public class PluginUtils {
     private static final String ENTRY_POINT_CLASS =
             "com.android.ondevicepersonalization.services.plugin.OnDevicePersonalizationPlugin";
 
+    public static final String PARAM_CLASS_NAME_KEY = "param.classname";
+    public static final String PARAM_OPERATION_KEY = "param.operation";
+
+    public static final String OUTPUT_RESULT_KEY = "result";
+
+    public static final int OP_DOWNLOAD_FILTER_HANDLER = 1;
+    public static final int OP_MAX = 2;  // 1 more than the last defined operation.
+
     /** Creates a {@link PluginController} with a list of packages to load. */
     @NonNull public static PluginController createPluginController(
             String taskName, @NonNull PluginManager pluginManager, @Nullable String[] apkList)
@@ -114,6 +122,29 @@ public class PluginUtils {
             }
         }
         return archiveInfoBuilder.build();
+    }
+
+    /**
+     * Create a plugin id encoding the vendors information.
+     *
+     * @param vendorPackageName Name of the vendor package
+     * @param taskName          Name of the task to be run
+     * @return PluginId to be used by the plugin
+     */
+    public static String createPluginId(String vendorPackageName, String taskName) {
+        // TODO(b/249345663) Perform any validation needed on the input.
+        return vendorPackageName + "-" + taskName;
+    }
+
+    /**
+     * Gets the Vendor package name from the given pluginId
+     *
+     * @param pluginId pluginId containing vendorPackageName
+     * @return VendorPackageName
+     */
+    public static String getVendorPackageNameFromPluginId(String pluginId) {
+        // TODO(b/249345663) Perform any validation needed on the input.
+        return pluginId.split("-")[0];
     }
 
     private PluginUtils() {}
