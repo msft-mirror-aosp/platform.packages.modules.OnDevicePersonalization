@@ -14,22 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package android.ondevicepersonalization.aidl;
 
+import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 
-import com.android.ondevicepersonalization.services.plugin.IManagingServiceConnectorCallback;
-
-/**
- * A wrapper interface for plugins in the isolated process to request
- * data from the managing service process.
- */
-interface IManagingServiceConnector {
-    // TODO(b/249345663): Replace the generic method below with strongly typed
-    // methods for each type of managing service request.
-    void handleManagingServiceRequest(
-            in int operation,
+/** @hide */
+interface IDataAccessService {
+    void onRequest(
+            in int operationCode,
             in Bundle params,
-            in IManagingServiceConnectorCallback callback
+            in IDataAccessServiceCallback callback
     );
 }

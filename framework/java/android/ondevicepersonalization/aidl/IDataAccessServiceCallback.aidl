@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package android.ondevicepersonalization.aidl;
 
-/**
- * Data Access Object for the vendor_data table.
- *
- * @hide
- */
-public interface VendorData {
-    // TODO(b/228200518): Add data access methods.
+import android.os.Bundle;
+
+/** @hide */
+oneway interface IDataAccessServiceCallback {
+    void onSuccess(in Bundle result);
+    void onError(in int errorCode);
 }
