@@ -19,7 +19,6 @@ package com.android.ondevicepersonalization.services.data.user;
 import android.content.res.Configuration;
 
 import java.util.List;
-import java.util.TimeZone;
 
 /**
  * A data class that holds user data to be sent to ad vendors.
@@ -28,8 +27,8 @@ public final class UserData {
     // The current system time in milliseconds.
     public long timeMillis = 0;
 
-    // The device time zone.
-    public TimeZone timeZone = null;
+    // The device time zone +/- minutes offset from UTC.
+    public int utcOffset = 0;
 
     // The device orientation.
     public int orientation = Configuration.ORIENTATION_PORTRAIT;

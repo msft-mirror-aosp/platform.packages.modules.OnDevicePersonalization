@@ -91,7 +91,7 @@ public class UserDataCollector {
     public UserData getUserData() {
         UserData userData = new UserData();
         userData.timeMillis = getTimeMillis();
-        userData.timeZone = getTimeZone();
+        userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
         userData.availableBytesMB = getAvailableBytesMB();
         userData.batteryPct = getBatteryPct();
@@ -126,9 +126,9 @@ public class UserDataCollector {
         return System.currentTimeMillis();
     }
 
-    /** Collects current device's time zone information. */
-    public TimeZone getTimeZone() {
-        return TimeZone.getDefault();
+    /** Collects current device's time zone in +/- of minutes from UTC. */
+    public int getUtcOffset() {
+        return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000;
     }
 
     /** Collects the current device orientation. */
