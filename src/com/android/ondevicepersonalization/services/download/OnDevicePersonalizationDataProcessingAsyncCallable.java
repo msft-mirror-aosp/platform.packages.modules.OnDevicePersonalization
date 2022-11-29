@@ -17,21 +17,32 @@
 package com.android.ondevicepersonalization.services.download;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
 
+import com.android.ondevicepersonalization.libraries.plugin.PluginController;
+import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.plugin.PluginUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
+import com.google.common.util.concurrent.AsyncCallable;
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFile;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 
@@ -39,27 +50,43 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**
- * Runnable to handle the processing of the downloaded vendor data
+ * AsyncCallable to handle the processing of the downloaded vendor data
  */
-public class OnDevicePersonalizationDataProcessingRunnable implements Runnable {
-    private static final String TAG = "OnDevicePersonalizationDataProcessingRunnable";
+public class OnDevicePersonalizationDataProcessingAsyncCallable implements AsyncCallable {
+    public static final String TASK_NAME = "DownloadJob";
+    private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
     private final Context mContext;
+    private final PluginManager mPluginManager;
+    private final PackageInfo mPackageInfo;
+    private PluginController mPluginController;
+    private OnDevicePersonalizationVendorDataDao mDao;
 
-    public OnDevicePersonalizationDataProcessingRunnable(String packageName, Context context) {
-        mPackageName = packageName;
+    public OnDevicePersonalizationDataProcessingAsyncCallable(PackageInfo packageInfo,
+            Context context, PluginManager pluginManager) {
+        mPackageInfo = packageInfo;
+        mPackageName = packageInfo.packageName;
         mContext = context;
+        mPluginManager = pluginManager;
+    }
+
+    private static boolean validateSyncToken(long syncToken) {
+        // TODO(b/249813538) Add any additional requirements
+        return syncToken % 3600 == 0;
     }
 
     /**
      * Processes the downloaded files for the given package and stores the data into sqlite
      * vendor tables
      */
-    public void run() {
+    public ListenableFuture<Void> call() {
         Log.d(TAG, "Package Name: " + mPackageName);
         MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
         try {
@@ -70,19 +97,17 @@ public class OnDevicePersonalizationDataProcessingRunnable implements Runnable {
                     GetFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
             if (clientFileGroup == null) {
                 Log.d(TAG, mPackageName + " has no completed downloads.");
-                return;
+                return Futures.immediateFuture(null);
             }
             // It is currently expected that we will only download a single file per package.
             if (clientFileGroup.getFileCount() != 1) {
-                Log.d(TAG, mPackageName + " has " + String.valueOf(clientFileGroup.getFileCount())
+                Log.d(TAG, mPackageName + " has " + clientFileGroup.getFileCount()
                         + " files in the fileGroup");
-                return;
+                return Futures.immediateFuture(null);
             }
             ClientFile clientFile = clientFileGroup.getFile(0);
             Uri androidUri = Uri.parse(clientFile.getFileUri());
-            SynchronousFileStorage fileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
-            Log.d(TAG, String.valueOf(fileStorage.fileSize(androidUri)));
-            processDownloadedJsonFile(androidUri);
+            return processDownloadedJsonFile(androidUri);
         } catch (PackageManager.NameNotFoundException e) {
             Log.d(TAG, "NameNotFoundException for package: " + mPackageName);
         } catch (ExecutionException | IOException e) {
@@ -90,13 +115,24 @@ public class OnDevicePersonalizationDataProcessingRunnable implements Runnable {
         } catch (InterruptedException e) {
             Log.d(TAG, mPackageName + " was interrupted.");
         }
-
+        return Futures.immediateFuture(null);
     }
 
-    private void processDownloadedJsonFile(Uri uri) throws IOException,
-            PackageManager.NameNotFoundException {
+    private ListenableFuture<Void> processDownloadedJsonFile(Uri uri) throws IOException,
+            PackageManager.NameNotFoundException, InterruptedException, ExecutionException {
+        try {
+            mPluginController = Objects.requireNonNull(
+                    PluginUtils.createPluginController(
+                            PluginUtils.createPluginId(mPackageName,
+                                    TASK_NAME), mPluginManager,
+                            new String[]{mPackageName}));
+        } catch (Exception e) {
+            Log.e(TAG, "Could not create plugin controller.", e);
+            return Futures.immediateFuture(null);
+        }
+
         long syncToken = -1;
-        List<VendorData> vendorDataList = null;
+        Map<String, VendorData> vendorDataMap = null;
 
         SynchronousFileStorage fileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         try (InputStream in = fileStorage.open(uri, ReadStreamOpener.create())) {
@@ -107,7 +143,7 @@ public class OnDevicePersonalizationDataProcessingRunnable implements Runnable {
                     if (name.equals("syncToken")) {
                         syncToken = reader.nextLong();
                     } else if (name.equals("contents")) {
-                        vendorDataList = readContentsArray(reader);
+                        vendorDataMap = readContentsArray(reader);
                     } else {
                         reader.skipValue();
                     }
@@ -118,44 +154,71 @@ public class OnDevicePersonalizationDataProcessingRunnable implements Runnable {
 
         if (syncToken == -1 || !validateSyncToken(syncToken)) {
             Log.d(TAG, mPackageName + " downloaded JSON file has invalid syncToken provided");
-            return;
+            return Futures.immediateFuture(null);
         }
-        if (vendorDataList == null || vendorDataList.size() == 0) {
+        if (vendorDataMap == null || vendorDataMap.size() == 0) {
             Log.d(TAG, mPackageName + " downloaded JSON file has no content provided");
-            return;
+            return Futures.immediateFuture(null);
         }
 
-        OnDevicePersonalizationVendorDataDao dao = OnDevicePersonalizationVendorDataDao.getInstance(
+        mDao = OnDevicePersonalizationVendorDataDao.getInstance(
                 mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
-        long existingSyncToken = dao.getSyncToken();
+        long existingSyncToken = mDao.getSyncToken();
 
         // Check if the downloaded file has newer data than what is currently stored
         if (existingSyncToken != -1 && existingSyncToken <= syncToken) {
-            return;
+            return Futures.immediateFuture(null);
         }
-        // TODO(b/239479120) Call code to filter
-        // Store syncToken and data via transaction
-        dao.batchUpdateOrInsertVendorDataTransaction(vendorDataList, syncToken);
+
+        Map<String, VendorData> finalVendorDataMap = vendorDataMap;
+        long finalSyncToken = syncToken;
+        return FluentFuture.from(PluginUtils.loadPlugin(mPluginController))
+                .transformAsync(unused -> executePlugin(),
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
+                                finalVendorDataMap),
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 
-    private static boolean validateSyncToken(long syncToken) {
-        // TODO(b/249813538) Add any additional requirements
-        return syncToken % 3600 == 0;
+    private Void filterAndStoreData(PersistableBundle pluginResult, long syncToken,
+            Map<String, VendorData> vendorDataMap) {
+        Log.d(TAG, "Plugin filter code completed successfully");
+        List<VendorData> filteredList = new ArrayList<>();
+        String[] retainedKeys = pluginResult.getStringArray(PluginUtils.OUTPUT_RESULT_KEY);
+        for (String key : retainedKeys) {
+            if (vendorDataMap.containsKey(key)) {
+                filteredList.add(vendorDataMap.get(key));
+            }
+        }
+        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
+                syncToken);
+        return null;
     }
 
-    private List<VendorData> readContentsArray(JsonReader reader) throws IOException {
-        List<VendorData> vendorDataList = new ArrayList<>();
+    private ListenableFuture<PersistableBundle> executePlugin() {
+        PersistableBundle pluginParams = new PersistableBundle();
+        pluginParams.putString(PluginUtils.PARAM_CLASS_NAME_KEY,
+                AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, mPackageInfo));
+        pluginParams.putInt(PluginUtils.PARAM_OPERATION_KEY,
+                PluginUtils.OP_DOWNLOAD_FILTER_HANDLER);
+
+        // TODO(b/239479120): Populate pluginParams with file descriptor
+        return PluginUtils.executePlugin(mPluginController, pluginParams);
+    }
+
+    private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
+        Map<String, VendorData> vendorDataMap = new HashMap<>();
         reader.beginArray();
         while (reader.hasNext()) {
             VendorData data = readContent(reader);
             if (data != null) {
-                vendorDataList.add(data);
+                vendorDataMap.put(data.getKey(), data);
             }
         }
         reader.endArray();
 
-        return vendorDataList;
+        return vendorDataMap;
     }
 
     private VendorData readContent(JsonReader reader) throws IOException {

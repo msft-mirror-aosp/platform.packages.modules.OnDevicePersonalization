@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.util.Log;
@@ -87,29 +88,6 @@ public class UserDataDao {
     }
 
     /**
-     * Inserts a single app installed/uninstalled activity.
-     *
-     * @return true if the insert succeeded, false otherwise.
-     */
-    public boolean insertAppInstalledData(String packageName, long timeSec, boolean installed) {
-        try {
-            SQLiteDatabase db = mDbHelper.getWritableDatabase();
-            if (db == null) {
-                return false;
-            }
-            ContentValues values = new ContentValues();
-            values.put(UserDataTables.AppInstalledHistory.TIME_SEC, timeSec);
-            values.put(UserDataTables.AppInstalledHistory.PACKAGE_NAME, packageName);
-            values.put(UserDataTables.AppInstalledHistory.INSTALLED, installed);
-            return db.insertWithOnConflict(UserDataTables.AppInstalledHistory.TABLE_NAME, null,
-                    values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
-        } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert app installed history data", e);
-            return false;
-        }
-    }
-
-    /**
      * Inserts a single app usage history entry.
      *
      * @return true if the insert succeeded, false otherwise.
@@ -132,5 +110,28 @@ public class UserDataDao {
             Log.e(TAG, "Failed to insert app usage history data", e);
             return false;
         }
+    }
+
+    /**
+     * Read all rows in the table given a table name.
+     *
+     * @return Cursor of all rows in the table.
+     */
+    public Cursor readAllUserData(String tableName) {
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            return db.query(
+                    tableName,
+                    /* columns= */ null,
+                    /* selection= */ null,
+                    /* selectionArgs= */ null,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    /* orderBy= */ null
+            );
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to read " + tableName + " rows", e);
+        }
+        return null;
     }
 }
