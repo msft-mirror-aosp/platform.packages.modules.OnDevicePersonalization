@@ -52,8 +52,8 @@ public class UserDataCollectorTest {
         // Real time data
         assertTrue(userData.timeMillis > 0);
         assertTrue(userData.timeMillis <= mCollector.getTimeMillis());
-        assertNotNull(userData.timeZone);
-        assertEquals(userData.timeZone, mCollector.getTimeZone());
+        assertNotNull(userData.utcOffset);
+        assertEquals(userData.utcOffset, mCollector.getUtcOffset());
         assertEquals(userData.orientation, mCollector.getOrientation());
 
         assertTrue(userData.availableBytesMB > 0);
@@ -119,6 +119,14 @@ public class UserDataCollectorTest {
         }
 
         ud.locationInfo = new UserData.LocationInfo();
+        mCollector.getLastknownLocation(ud.locationInfo);
+        assertTrue(userData.locationInfo.timeMillis <= ud.locationInfo.timeMillis);
+        assertEquals(userData.locationInfo.latitude, ud.locationInfo.latitude, 0.01);
+        assertEquals(userData.locationInfo.longitude, ud.locationInfo.longitude, 0.01);
+        assertEquals(userData.locationInfo.provider, ud.locationInfo.provider);
+        assertEquals(userData.locationInfo.isPreciseLocation, ud.locationInfo.isPreciseLocation);
+
+        ud.locationInfo = new UserData.LocationInfo();
         mCollector.getCurrentLocation(ud.locationInfo);
         assertTrue(userData.locationInfo.timeMillis <= ud.locationInfo.timeMillis);
         assertEquals(userData.locationInfo.latitude, ud.locationInfo.latitude, 0.01);
@@ -128,12 +136,11 @@ public class UserDataCollectorTest {
     }
 
     @Test
-    public void testGetTimeZoneAfterModification() {
+    public void testGetUtcOffsetAfterModification() {
         TimeZone tzGmt4 = TimeZone.getTimeZone("GMT+04:00");
         TimeZone.setDefault(tzGmt4);
         UserData userData = mCollector.getUserData();
-        assertNotNull(userData.timeZone);
-        assertEquals(userData.timeZone, tzGmt4);
+        assertEquals(userData.utcOffset, 240);
     }
 
     @Test

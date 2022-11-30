@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
@@ -62,6 +63,7 @@ public class UserDataCollector {
     @NonNull private Locale mLocale;
     @NonNull private final TelephonyManager mTelephonyManager;
     @NonNull private final NetworkCapabilities mNetworkCapabilities;
+    @NonNull private final LocationManager mLocationManager;
 
     private UserDataCollector(Context context) {
         mContext = context;
@@ -72,6 +74,7 @@ public class UserDataCollector {
                 ConnectivityManager.class);
         mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
                 connectivityManager.getActiveNetwork());
+        mLocationManager = mContext.getSystemService(LocationManager.class);
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -88,7 +91,7 @@ public class UserDataCollector {
     public UserData getUserData() {
         UserData userData = new UserData();
         userData.timeMillis = getTimeMillis();
-        userData.timeZone = getTimeZone();
+        userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
         userData.availableBytesMB = getAvailableBytesMB();
         userData.batteryPct = getBatteryPct();
@@ -112,6 +115,7 @@ public class UserDataCollector {
         getAppUsageStats(userData.appsUsageStats);
 
         userData.locationInfo = new UserData.LocationInfo();
+        getLastknownLocation(userData.locationInfo);
         getCurrentLocation(userData.locationInfo);
 
         return userData;
@@ -122,9 +126,9 @@ public class UserDataCollector {
         return System.currentTimeMillis();
     }
 
-    /** Collects current device's time zone information. */
-    public TimeZone getTimeZone() {
-        return TimeZone.getDefault();
+    /** Collects current device's time zone in +/- of minutes from UTC. */
+    public int getUtcOffset() {
+        return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000;
     }
 
     /** Collects the current device orientation. */
@@ -546,38 +550,49 @@ public class UserDataCollector {
         }
     }
 
-    /** Get current location information. */
+    /** Get last known location information. The result is immediate. */
+    public void getLastknownLocation(UserData.LocationInfo locationInfo) {
+        Location location = mLocationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER);
+        if (location != null) {
+            setLocationInfo(location, locationInfo);
+        }
+    }
+
+    /** Get current location information. The result takes some time to generate. */
     public void getCurrentLocation(UserData.LocationInfo locationInfo) {
-        LocationManager locationManager = mContext.getSystemService(LocationManager.class);
         String currentProvider = LocationManager.GPS_PROVIDER;
-        if (locationManager.getProvider(currentProvider) == null) {
+        if (mLocationManager.getProvider(currentProvider) == null) {
             currentProvider = LocationManager.FUSED_PROVIDER;
         }
-        // List<String> providers = locationManager.getAllProviders();
-        locationManager.getCurrentLocation(
+        mLocationManager.getCurrentLocation(
                 currentProvider,
                 null,
                 mContext.getMainExecutor(),
                 location -> {
                     if (location != null) {
-                        locationInfo.timeMillis = getTimeMillis();
-                        locationInfo.latitude = location.getLatitude();
-                        locationInfo.longitude = location.getLongitude();
-                        String provider = location.getProvider();
-                        if (LocationManager.GPS_PROVIDER.equals(provider)) {
-                            locationInfo.provider = UserData.LocationProvider.GPS;
-                            locationInfo.isPreciseLocation = true;
-                        } else {
-                            locationInfo.isPreciseLocation = false;
-                            if (LocationManager.NETWORK_PROVIDER.equals(provider)) {
-                                locationInfo.provider = UserData.LocationProvider.NETWORK;
-                            } else {
-                                locationInfo.provider = UserData.LocationProvider.UNKNOWN;
-                            }
-                        }
+                        setLocationInfo(location, locationInfo);
                     }
                 }
         );
+    }
+
+    /** Set location info and store the location data to storage. */
+    private void setLocationInfo(Location location, UserData.LocationInfo locationInfo) {
+        locationInfo.timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
+        locationInfo.latitude = location.getLatitude();
+        locationInfo.longitude = location.getLongitude();
+        String provider = location.getProvider();
+        if (LocationManager.GPS_PROVIDER.equals(provider)) {
+            locationInfo.provider = UserData.LocationProvider.GPS;
+            locationInfo.isPreciseLocation = true;
+        } else {
+            locationInfo.isPreciseLocation = false;
+            if (LocationManager.NETWORK_PROVIDER.equals(provider)) {
+                locationInfo.provider = UserData.LocationProvider.NETWORK;
+            } else {
+                locationInfo.provider = UserData.LocationProvider.UNKNOWN;
+            }
+        }
     }
 
     /**
