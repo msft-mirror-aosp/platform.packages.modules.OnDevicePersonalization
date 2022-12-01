@@ -19,10 +19,12 @@ package com.android.ondevicepersonalization.services.plugin;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.os.Bundle;
 
 import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
 import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
+import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 
 import com.google.common.collect.ImmutableSet;
 
@@ -30,36 +32,43 @@ import java.util.Objects;
 
 /** Plugin Support code shared between the managing process and the isolated process. */
 public class OnDevicePersonalizationPluginHost implements PluginHost {
-    private static final String MANAGING_SERVICE_CONNECTOR_KEY = "managingserviceconnector";
+    private static final String DATA_ACCESS_SERVICE_BINDER_KEY = "dataaccessservice";
     private final Context mApplicationContext;
 
     public OnDevicePersonalizationPluginHost(@NonNull Context applicationContext) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
     }
 
-    @Override public ImmutableSet<String> getClassLoaderAllowedPackages(String pluginId) {
+    @Override
+    public ImmutableSet<String> getClassLoaderAllowedPackages(String pluginId) {
         return ImmutableSet.of(
                 "com.android.ondevicepersonalization.services",
                 "com.android.ondevicepersonalization.libraries");
     }
 
     /** Creates a PluginContext in the isolated process. */
-    @Override @Nullable public PluginContext createPluginContext(
+    @Override
+    @Nullable
+    public PluginContext createPluginContext(
             @NonNull String pluginId, @Nullable Bundle initData) {
-        IManagingServiceConnector connector =
-                (IManagingServiceConnector) Objects.requireNonNull(
-                        initData.getBinder(MANAGING_SERVICE_CONNECTOR_KEY));
-        return new OnDevicePersonalizationPluginContext(connector);
+        IDataAccessService binder =
+                IDataAccessService.Stub.asInterface(Objects.requireNonNull(
+                        initData.getBinder(DATA_ACCESS_SERVICE_BINDER_KEY)));
+        return new OnDevicePersonalizationPluginContext(binder);
     }
 
     /** Serializes data needed to create the PluginContext in the isolated process. */
-    @Override @Nullable public Bundle createPluginContextInitData(@NonNull String pluginId) {
+    @Override
+    @Nullable
+    public Bundle createPluginContextInitData(@NonNull String pluginId) {
         // TODO(b/249345663): Encode appPackageName and vendorPackageName into pluginId, then parse
         // pluginId to extract the appPackageName and vendorPackageName and create a
-        // ManagingServiceConnector customized to the app and vendor package.
-        ManagingServiceConnector connector = new ManagingServiceConnector(mApplicationContext);
+        // DataAccessServiceImpl customized to the app and vendor package.
+        String vendorPackageName = PluginUtils.getVendorPackageNameFromPluginId(pluginId);
+        DataAccessServiceImpl service = new DataAccessServiceImpl("", vendorPackageName,
+                mApplicationContext);
         Bundle initData = new Bundle();
-        initData.putBinder(MANAGING_SERVICE_CONNECTOR_KEY, connector);
+        initData.putBinder(DATA_ACCESS_SERVICE_BINDER_KEY, service);
         return initData;
     }
 }

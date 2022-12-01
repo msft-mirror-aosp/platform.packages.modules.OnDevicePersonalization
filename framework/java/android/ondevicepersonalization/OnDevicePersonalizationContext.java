@@ -17,37 +17,18 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
-import android.ondevicepersonalization.rtb.BidRequest;
-import android.ondevicepersonalization.rtb.BidResponse;
-
-import java.util.List;
 
 /**
- * Container for per-request state and APIs for {@link Exchange} and {@link Bidder} code to
- * interact with the OnDevicePersonalization sandbox or with each other.
+ * Container for per-request state and APIs for code that runs in the isolated process.
  *
  * @hide
  */
 public interface OnDevicePersonalizationContext {
     /**
-     * Sends the response to be rendered on the calling app.
-     * @param result The result of an exchange request. If null, no content will be rendered.
+     * Returns a DAO for the REMOTE_DATA table.
+     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
      */
-    void sendExchangeResponse(@Nullable ExchangeResult result);
+    @NonNull RemoteData getRemoteData();
 
-    /**
-     * Creates a {@link BidRequest} to be sent to bidders.
-     * @param bidRequest A bid request.
-     * @param bidderPackageNames A list of bidders.
-     */
-    void sendBidRequests(
-            @NonNull BidRequest bidRequest,
-            @NonNull List<String> bidderPackageNames);
-
-    /**
-     * Sends the bid response from the bidder in response to an exchange request.
-     * @param bidResponse The Bid Response from a bidder.
-     */
-    void sendBidResponse(@Nullable BidResponse bidResponse);
+    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
 }
