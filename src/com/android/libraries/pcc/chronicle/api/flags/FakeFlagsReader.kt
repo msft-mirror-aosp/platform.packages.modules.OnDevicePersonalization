@@ -14,15 +14,11 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.libraries.pcc.chronicle.api.flags
 
-import android.os.Bundle;
+import kotlinx.coroutines.flow.MutableStateFlow
 
-/**
- * A callback used to return data from the managing service process to the
- * isolated process.
- */
-oneway interface IManagingServiceConnectorCallback {
-    void onSuccess(in Bundle result);
-    void onError(in int errorCode);
+/** Fake implementation of [FlagsReader] for use in tests. */
+class FakeFlagsReader(initialValue: Flags) : FlagsReader {
+  override val config = MutableStateFlow(initialValue)
 }
