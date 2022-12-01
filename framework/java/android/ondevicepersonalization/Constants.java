@@ -17,16 +17,29 @@
 package android.ondevicepersonalization;
 
 /**
- * Constants used in the OnDevicePersonalization Module.
+ * Constants used internally in the OnDevicePersonalization Module.
  *
  * @hide
  */
 public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
 
+    // Operations implemented by personalization services.
+    public static final int OP_APP_REQUEST = 1;
+    public static final int OP_DOWNLOAD_FINISHED = 2;
+
     // Keys for Bundle objects passed between processes.
     public static final String
+            EXTRA_APP_NAME = "android.ondevicepersonalization.app_name";
+    public static final String
+            EXTRA_APP_PARAMS = "android.ondevicepersonalization.app_params";
+    public static final String
+            EXTRA_DATA_ACCESS_SERVICE_BINDER =
+                    "android.ondevicepersonalization.data_access_service_binder";
+    public static final String
             EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.lookup_keys";
+    public static final String
+            EXTRA_PARCEL_FD = "android.ondevicepersonalization.parcel_fd";
     public static final String
             EXTRA_RESULT = "android.ondevicepersonalization.result";
 
