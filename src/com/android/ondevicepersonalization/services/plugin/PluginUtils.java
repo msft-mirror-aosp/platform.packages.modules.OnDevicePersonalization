@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.Log;
 
@@ -86,7 +87,7 @@ public class PluginUtils {
 
     /** Executes the plugin entry point. */
     @NonNull public static ListenableFuture<PersistableBundle> executePlugin(
-            @NonNull PluginController pluginController, @NonNull PersistableBundle pluginParams) {
+            @NonNull PluginController pluginController, @NonNull Bundle pluginParams) {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
                 try {
