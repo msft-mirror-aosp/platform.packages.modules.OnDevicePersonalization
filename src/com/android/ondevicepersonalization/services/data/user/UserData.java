@@ -84,7 +84,7 @@ public final class UserData {
     public List<AppInfo> appsInfo = new ArrayList<>();
 
     // A histogram of app usage: total times used per app in the last 30 days.
-    public HashMap<String, Long> appsUsageHistory = new HashMap<>();
+    public HashMap<String, Long> appUsageHistory = new HashMap<>();
 
     // A histogram of location history: number of visits
     // per location (zip code level) in the last 30 days.
