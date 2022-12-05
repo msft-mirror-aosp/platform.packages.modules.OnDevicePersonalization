@@ -14,21 +14,29 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.data.user;
 
-import android.annotation.NonNull;
+/** Location information. */
+public class LocationInfo {
+    // Time in milliseconds.
+    public long timeMillis = 0;
 
-/**
- * Container for per-request state and APIs for code that runs in the isolated process.
- *
- * @hide
- */
-public interface OnDevicePersonalizationContext {
-    /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
-     */
-    @NonNull RemoteData getRemoteData();
+    // Latitude.
+    public double latitude = 0;
 
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+    // Longitude.
+    public double longitude = 0;
+
+    // Location provider values.
+    public enum LocationProvider {
+        UNKNOWN,
+        GPS,
+        NETWORK,
+    };
+
+    // Location provider.
+    public LocationProvider provider = LocationProvider.UNKNOWN;
+
+    // Whether the location source is precise.
+    public boolean isPreciseLocation = false;
 }

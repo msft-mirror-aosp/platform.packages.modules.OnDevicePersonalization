@@ -146,7 +146,40 @@ public class OnDevicePersonalizationVendorDataDao {
                     /* orderBy= */ null
             );
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert buyer data", e);
+            Log.e(TAG, "Failed to read vendor data rows", e);
+        }
+        return null;
+    }
+
+    /**
+     * Reads single row in the vendor data table
+     *
+     * @return Vendor data for the single row requested
+     */
+    public byte[] readSingleVendorDataRow(String key) {
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {VendorDataContract.VendorDataEntry.DATA};
+            String selection = VendorDataContract.VendorDataEntry.KEY + " = ?";
+            String[] selectionArgs = { key };
+            try (Cursor cursor = db.query(
+                    mTableName,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    /* orderBy= */ null
+            )) {
+                if (cursor.getCount() < 1) {
+                    Log.d(TAG, "Failed to find requested key: " + key);
+                    return null;
+                }
+                cursor.moveToNext();
+                return cursor.getBlob(0);
+            }
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to read vendor data row", e);
         }
         return null;
     }

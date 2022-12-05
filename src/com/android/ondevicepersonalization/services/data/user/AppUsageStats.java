@@ -14,15 +14,19 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.data.user;
 
-import android.os.Bundle;
+/** Application usage stats. */
+public class AppUsageStats {
+    // Application package name.
+    public String packageName = null;
 
-/**
- * A callback used to return data from the managing service process to the
- * isolated process.
- */
-oneway interface IManagingServiceConnectorCallback {
-    void onSuccess(in Bundle result);
-    void onError(in int errorCode);
+    // Starting time in milliseconds.
+    public long startTimeMillis = 0;
+
+    // Ending time in milliseconds.
+    public long endTimeMillis = 0;
+
+    // Total time that the app is visible in seconds.
+    public long totalTimeSec = 0;
 }
