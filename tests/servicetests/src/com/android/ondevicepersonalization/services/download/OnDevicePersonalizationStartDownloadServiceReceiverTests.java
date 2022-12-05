@@ -26,6 +26,7 @@ import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
 import com.google.android.libraries.mobiledatadownload.TaskScheduler;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -48,7 +49,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
     @Test
     public void testOnReceive() throws Exception {
         OnDevicePersonalizationStartDownloadServiceReceiver receiver =
-                new OnDevicePersonalizationStartDownloadServiceReceiver();
+                new OnDevicePersonalizationStartDownloadServiceReceiver(
+                        MoreExecutors.directExecutor());
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
         receiver.onReceive(mContext, intent);
