@@ -102,7 +102,7 @@ public class PluginExecutor {
     }
 
     /** Executes a plugin. */
-    public void execute(Bundle input, String pluginId, PluginCallback callback)
+    public void execute(PersistableBundle input, String pluginId, PluginCallback callback)
             throws RemoteException {
         if (!mPlugins.containsKey(pluginId)) {
             Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));

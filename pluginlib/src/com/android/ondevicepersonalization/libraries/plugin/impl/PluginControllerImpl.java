@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.libraries.plugin.impl;
 
 import android.content.Context;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -127,7 +128,7 @@ public class PluginControllerImpl implements PluginController {
     }
 
     @Override
-    public void execute(Bundle input, PluginCallback callback) throws RemoteException {
+    public void execute(PersistableBundle input, PluginCallback callback) throws RemoteException {
         IPluginExecutorService pluginExecutorService =
                 mPluginExecutorServiceProvider.getExecutorService();
         if (pluginExecutorService == null) {

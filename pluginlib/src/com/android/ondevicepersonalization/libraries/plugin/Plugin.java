@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.libraries.plugin;
 
-import android.os.Bundle;
 import android.os.PersistableBundle;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
@@ -27,7 +26,7 @@ public interface Plugin {
      * Process a request in an {@link ExecutionEnvironment} (for example a sandbox process) and
      * reply via callback.
      *
-     * @param input A {@link Bundle} containing data from external apps as the input to
+     * @param input A {@link PersistableBundle} containing data from external apps as the input to
      *     the plugin code
      * @param callback to reply with resulting data in {@link PersistableBundle} or an error in
      *     {@link com.google.android.libraries.pcc.plugin.PluginCallback.FailureType} back, see also
@@ -35,5 +34,5 @@ public interface Plugin {
      * @param context data a plugin needs in order to run
      */
     void onExecute(
-            Bundle input, PluginCallback callback, @Nullable PluginContext context);
+            PersistableBundle input, PluginCallback callback, @Nullable PluginContext context);
 }

@@ -39,13 +39,13 @@ import java.util.List;
 /** Plugin that runs in an isolated process. */
 public class OnDevicePersonalizationPlugin implements Plugin {
     private static final String TAG = "OnDevicePersonalizationPlugin";
-    private Bundle mInput;
+    private PersistableBundle mInput;
     private PluginCallback mPluginCallback;
     private PluginContext mPluginContext;
 
     @Override
     public void onExecute(
-            @NonNull Bundle input,
+            @NonNull PersistableBundle input,
             @NonNull PluginCallback callback,
             @Nullable PluginContext context) {
         Log.i(TAG, "Executing plugin.");

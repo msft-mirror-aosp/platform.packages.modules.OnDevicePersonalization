@@ -20,7 +20,6 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
@@ -198,7 +197,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     }
 
     private ListenableFuture<PersistableBundle> executePlugin() {
-        Bundle pluginParams = new Bundle();
+        PersistableBundle pluginParams = new PersistableBundle();
         pluginParams.putString(PluginUtils.PARAM_CLASS_NAME_KEY,
                 AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, mPackageInfo));
         pluginParams.putInt(PluginUtils.PARAM_OPERATION_KEY,
