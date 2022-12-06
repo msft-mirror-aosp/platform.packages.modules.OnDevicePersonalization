@@ -46,6 +46,7 @@ public class PluginUtils {
     public static final String PARAM_CLASS_NAME_KEY = "param.classname";
     public static final String PARAM_OPERATION_KEY = "param.operation";
 
+    public static final String INPUT_PARCEL_FD = "parcel_fd";
     public static final String OUTPUT_RESULT_KEY = "result";
 
     public static final int OP_DOWNLOAD_FILTER_HANDLER = 1;
