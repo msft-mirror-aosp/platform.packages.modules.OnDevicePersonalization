@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -38,10 +38,10 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Objects;
 
 /** Utilities to support loading and executing plugins. */
-public class PluginUtils {
-    private static final String TAG = "PluginUtils";
+public class ProcessUtils {
+    private static final String TAG = "ProcessUtils";
     private static final String ENTRY_POINT_CLASS =
-            "com.android.ondevicepersonalization.services.plugin.OnDevicePersonalizationPlugin";
+            "com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin";
 
     public static final String PARAM_CLASS_NAME_KEY = "param.classname";
     public static final String PARAM_OPERATION_KEY = "param.operation";
@@ -149,5 +149,5 @@ public class PluginUtils {
         return pluginId.split("-")[0];
     }
 
-    private PluginUtils() {}
+    private ProcessUtils() {}
 }

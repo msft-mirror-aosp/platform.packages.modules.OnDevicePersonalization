@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -56,15 +56,15 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         mPluginContext = context;
 
         try {
-            String className = input.getString(PluginUtils.PARAM_CLASS_NAME_KEY);
+            String className = input.getString(ProcessUtils.PARAM_CLASS_NAME_KEY);
             if (className == null || className.isEmpty()) {
                 Log.e(TAG, "className missing.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            int operation = input.getInt(PluginUtils.PARAM_OPERATION_KEY);
-            if (operation == 0 || operation >= PluginUtils.OP_MAX) {
+            int operation = input.getInt(ProcessUtils.PARAM_OPERATION_KEY);
+            if (operation == 0 || operation >= ProcessUtils.OP_MAX) {
                 Log.e(TAG, "operation missing or invalid.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
@@ -73,11 +73,11 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             Class<?> clazz = Class.forName(className);
             Object o = clazz.getDeclaredConstructor().newInstance();
 
-            if (operation == PluginUtils.OP_DOWNLOAD_FILTER_HANDLER) {
+            if (operation == ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER) {
                 DownloadHandler downloadHandler = (DownloadHandler) o;
                 var unused = Futures.submit(
                         () -> runDownloadHandlerFilter(downloadHandler,
-                                input.getParcelable(PluginUtils.INPUT_PARCEL_FD,
+                                input.getParcelable(ProcessUtils.INPUT_PARCEL_FD,
                                         ParcelFileDescriptor.class)),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
             }
@@ -101,7 +101,7 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                     @Override
                     public void onResult(@NonNull List<String> result) {
                         PersistableBundle finalOutput = new PersistableBundle();
-                        finalOutput.putStringArray(PluginUtils.OUTPUT_RESULT_KEY,
+                        finalOutput.putStringArray(ProcessUtils.OUTPUT_RESULT_KEY,
                                 result.toArray(new String[0]));
                         try {
                             mPluginCallback.onSuccess(finalOutput);
