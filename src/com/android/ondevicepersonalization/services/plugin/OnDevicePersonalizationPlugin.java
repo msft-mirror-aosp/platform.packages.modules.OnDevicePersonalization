@@ -18,10 +18,12 @@ package com.android.ondevicepersonalization.services.plugin;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.DownloadHandler;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -74,7 +76,9 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             if (operation == PluginUtils.OP_DOWNLOAD_FILTER_HANDLER) {
                 DownloadHandler downloadHandler = (DownloadHandler) o;
                 var unused = Futures.submit(
-                        () -> runDownloadHandlerFilter(downloadHandler),
+                        () -> runDownloadHandlerFilter(downloadHandler,
+                                input.getParcelable(PluginUtils.INPUT_PARCEL_FD,
+                                        ParcelFileDescriptor.class)),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
             }
         } catch (Exception e) {
@@ -83,13 +87,16 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         }
     }
 
-    private void runDownloadHandlerFilter(DownloadHandler downloadHandler) {
+    private void runDownloadHandlerFilter(DownloadHandler downloadHandler,
+            ParcelFileDescriptor fd) {
         Log.d(TAG, "runDownloadHandlerFilter() started.");
-        // TODO(b/239479120): Build the parameters to downloadHandler.filterData.
         OnDevicePersonalizationContext odpContext =
                 ((OnDevicePersonalizationPluginContext) mPluginContext)
                         .getOnDevicePersonalizationContext();
-        downloadHandler.filterData(new Bundle(), odpContext,
+        // Add file descriptor to DownloadHandler input bundle
+        Bundle input = new Bundle();
+        input.putParcelable(Constants.EXTRA_PARCEL_FD, fd);
+        downloadHandler.filterData(input, odpContext,
                 new OutcomeReceiver<List<String>, Exception>() {
                     @Override
                     public void onResult(@NonNull List<String> result) {
