@@ -21,7 +21,7 @@ import android.app.Application;
 
 import com.android.ondevicepersonalization.libraries.plugin.PluginApplication;
 import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
-import com.android.ondevicepersonalization.services.plugin.OnDevicePersonalizationPluginHost;
+import com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPluginHost;
 
 /** The Application class for OnDevicePersonalization. */
 public final class OnDevicePersonalizationApplication

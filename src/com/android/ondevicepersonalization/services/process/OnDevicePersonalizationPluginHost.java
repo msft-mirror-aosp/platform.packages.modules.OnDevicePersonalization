@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -64,7 +64,7 @@ public class OnDevicePersonalizationPluginHost implements PluginHost {
         // TODO(b/249345663): Encode appPackageName and vendorPackageName into pluginId, then parse
         // pluginId to extract the appPackageName and vendorPackageName and create a
         // DataAccessServiceImpl customized to the app and vendor package.
-        String vendorPackageName = PluginUtils.getVendorPackageNameFromPluginId(pluginId);
+        String vendorPackageName = ProcessUtils.getVendorPackageNameFromPluginId(pluginId);
         DataAccessServiceImpl service = new DataAccessServiceImpl("", vendorPackageName,
                 mApplicationContext);
         Bundle initData = new Bundle();
