@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.Context;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.os.Bundle;
@@ -31,6 +32,7 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
 import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 import com.android.ondevicepersonalization.libraries.plugin.PluginInfo;
 import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
+import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -52,17 +54,42 @@ public class ProcessUtils {
     public static final int OP_DOWNLOAD_FILTER_HANDLER = 1;
     public static final int OP_MAX = 2;  // 1 more than the last defined operation.
 
-    /** Creates a {@link PluginController} with a list of packages to load. */
-    @NonNull public static PluginController createPluginController(
-            String taskName, @NonNull PluginManager pluginManager, @Nullable String[] apkList)
+    private static PluginManager sPluginManager;
+
+    /** Loads a service in an isolated process */
+    @NonNull public static ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
+            @NonNull String taskName, @NonNull String packageName,
+            @NonNull Context context)
+            throws Exception {
+        return loadPlugin(createPluginController(
+                createPluginId(packageName, taskName), getPluginManager(context), packageName));
+    }
+
+    /** Executes a service loaded in an isolated process */
+    @NonNull public static ListenableFuture<PersistableBundle> runIsolatedService(
+            @NonNull IsolatedServiceInfo isolatedProcessInfo,
+            @NonNull Bundle params) {
+        return executePlugin(isolatedProcessInfo.getPluginController(), params);
+    }
+
+    @NonNull static PluginManager getPluginManager(@NonNull Context context) {
+        synchronized (ProcessUtils.class) {
+            if (sPluginManager == null) {
+                sPluginManager = new PluginManagerImpl(context);
+            }
+            return sPluginManager;
+        }
+    }
+
+    @NonNull static PluginController createPluginController(
+            String taskName, @NonNull PluginManager pluginManager, @Nullable String apkName)
             throws Exception {
         PluginInfo info = PluginInfo.createJvmInfo(
-                taskName, getArchiveList(apkList), ENTRY_POINT_CLASS);
+                taskName, getArchiveList(apkName), ENTRY_POINT_CLASS);
         return Objects.requireNonNull(pluginManager.createPluginController(info));
     }
 
-    /** Loads the packages defined in the {@link PluginController}. */
-    @NonNull public static ListenableFuture<Void> loadPlugin(
+    @NonNull static ListenableFuture<IsolatedServiceInfo> loadPlugin(
             @NonNull PluginController pluginController) {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
@@ -70,7 +97,7 @@ public class ProcessUtils {
                     Log.d(TAG, "loadPlugin");
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(PersistableBundle bundle) {
-                            completer.set(null);
+                            completer.set(new IsolatedServiceInfo(pluginController));
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OnDevicePersonalizationException(
@@ -86,8 +113,7 @@ public class ProcessUtils {
         );
     }
 
-    /** Executes the plugin entry point. */
-    @NonNull public static ListenableFuture<PersistableBundle> executePlugin(
+    @NonNull static ListenableFuture<PersistableBundle> executePlugin(
             @NonNull PluginController pluginController, @NonNull Bundle pluginParams) {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
@@ -112,39 +138,22 @@ public class ProcessUtils {
     }
 
     @NonNull static ImmutableList<PluginInfo.ArchiveInfo> getArchiveList(
-            @Nullable String[] apkList) {
-        if (apkList == null) {
+            @Nullable String apkName) {
+        if (apkName == null) {
             return ImmutableList.of();
         }
         ImmutableList.Builder<PluginInfo.ArchiveInfo> archiveInfoBuilder = ImmutableList.builder();
-        for (int i = 0; i < apkList.length; ++i) {
-            if (apkList[i] != null && !apkList[i].isEmpty()) {
-                archiveInfoBuilder.add(
-                        PluginInfo.ArchiveInfo.builder().setPackageName(apkList[i]).build());
-            }
-        }
+        archiveInfoBuilder.add(
+                PluginInfo.ArchiveInfo.builder().setPackageName(apkName).build());
         return archiveInfoBuilder.build();
     }
 
-    /**
-     * Create a plugin id encoding the vendors information.
-     *
-     * @param vendorPackageName Name of the vendor package
-     * @param taskName          Name of the task to be run
-     * @return PluginId to be used by the plugin
-     */
-    public static String createPluginId(String vendorPackageName, String taskName) {
+    static String createPluginId(String vendorPackageName, String taskName) {
         // TODO(b/249345663) Perform any validation needed on the input.
         return vendorPackageName + "-" + taskName;
     }
 
-    /**
-     * Gets the Vendor package name from the given pluginId
-     *
-     * @param pluginId pluginId containing vendorPackageName
-     * @return VendorPackageName
-     */
-    public static String getVendorPackageNameFromPluginId(String pluginId) {
+    static String getVendorPackageNameFromPluginId(String pluginId) {
         // TODO(b/249345663) Perform any validation needed on the input.
         return pluginId.split("-")[0];
     }
