@@ -21,6 +21,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
@@ -33,12 +34,13 @@ import com.android.ondevicepersonalization.services.data.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
-import com.android.ondevicepersonalization.services.plugin.PluginUtils;
+import com.android.ondevicepersonalization.services.process.ProcessUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.android.libraries.mobiledatadownload.file.openers.ParcelFileDescriptorOpener;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -123,8 +125,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             PackageManager.NameNotFoundException, InterruptedException, ExecutionException {
         try {
             mPluginController = Objects.requireNonNull(
-                    PluginUtils.createPluginController(
-                            PluginUtils.createPluginId(mPackageName,
+                    ProcessUtils.createPluginController(
+                        ProcessUtils.createPluginId(mPackageName,
                                     TASK_NAME), mPluginManager,
                             new String[]{mPackageName}));
         } catch (Exception e) {
@@ -174,8 +176,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
 
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
-        return FluentFuture.from(PluginUtils.loadPlugin(mPluginController))
-                .transformAsync(unused -> executePlugin(),
+        return FluentFuture.from(ProcessUtils.loadPlugin(mPluginController))
+                .transformAsync(unused -> executePlugin(fileStorage.open(uri,
+                                ParcelFileDescriptorOpener.create())),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor())
                 .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                 finalVendorDataMap),
@@ -186,7 +189,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        String[] retainedKeys = pluginResult.getStringArray(PluginUtils.OUTPUT_RESULT_KEY);
+        String[] retainedKeys = pluginResult.getStringArray(ProcessUtils.OUTPUT_RESULT_KEY);
         for (String key : retainedKeys) {
             if (vendorDataMap.containsKey(key)) {
                 filteredList.add(vendorDataMap.get(key));
@@ -197,15 +200,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         return null;
     }
 
-    private ListenableFuture<PersistableBundle> executePlugin() {
+    private ListenableFuture<PersistableBundle> executePlugin(ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
-        pluginParams.putString(PluginUtils.PARAM_CLASS_NAME_KEY,
+        pluginParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
                 AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, mPackageInfo));
-        pluginParams.putInt(PluginUtils.PARAM_OPERATION_KEY,
-                PluginUtils.OP_DOWNLOAD_FILTER_HANDLER);
-
-        // TODO(b/239479120): Populate pluginParams with file descriptor
-        return PluginUtils.executePlugin(mPluginController, pluginParams);
+        pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
+                ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
+        pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
+        return ProcessUtils.executePlugin(mPluginController, pluginParams);
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
