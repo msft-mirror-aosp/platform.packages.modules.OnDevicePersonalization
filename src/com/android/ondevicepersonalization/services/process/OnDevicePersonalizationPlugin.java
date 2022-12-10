@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.DownloadHandler;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -54,15 +56,15 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         mPluginContext = context;
 
         try {
-            String className = input.getString(PluginUtils.PARAM_CLASS_NAME_KEY);
+            String className = input.getString(ProcessUtils.PARAM_CLASS_NAME_KEY);
             if (className == null || className.isEmpty()) {
                 Log.e(TAG, "className missing.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            int operation = input.getInt(PluginUtils.PARAM_OPERATION_KEY);
-            if (operation == 0 || operation >= PluginUtils.OP_MAX) {
+            int operation = input.getInt(ProcessUtils.PARAM_OPERATION_KEY);
+            if (operation == 0 || operation >= ProcessUtils.OP_MAX) {
                 Log.e(TAG, "operation missing or invalid.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
@@ -71,10 +73,12 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             Class<?> clazz = Class.forName(className);
             Object o = clazz.getDeclaredConstructor().newInstance();
 
-            if (operation == PluginUtils.OP_DOWNLOAD_FILTER_HANDLER) {
+            if (operation == ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER) {
                 DownloadHandler downloadHandler = (DownloadHandler) o;
                 var unused = Futures.submit(
-                        () -> runDownloadHandlerFilter(downloadHandler),
+                        () -> runDownloadHandlerFilter(downloadHandler,
+                                input.getParcelable(ProcessUtils.INPUT_PARCEL_FD,
+                                        ParcelFileDescriptor.class)),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
             }
         } catch (Exception e) {
@@ -83,18 +87,21 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         }
     }
 
-    private void runDownloadHandlerFilter(DownloadHandler downloadHandler) {
+    private void runDownloadHandlerFilter(DownloadHandler downloadHandler,
+            ParcelFileDescriptor fd) {
         Log.d(TAG, "runDownloadHandlerFilter() started.");
-        // TODO(b/239479120): Build the parameters to downloadHandler.filterData.
         OnDevicePersonalizationContext odpContext =
                 ((OnDevicePersonalizationPluginContext) mPluginContext)
                         .getOnDevicePersonalizationContext();
-        downloadHandler.filterData(new Bundle(), odpContext,
+        // Add file descriptor to DownloadHandler input bundle
+        Bundle input = new Bundle();
+        input.putParcelable(Constants.EXTRA_PARCEL_FD, fd);
+        downloadHandler.filterData(input, odpContext,
                 new OutcomeReceiver<List<String>, Exception>() {
                     @Override
                     public void onResult(@NonNull List<String> result) {
                         PersistableBundle finalOutput = new PersistableBundle();
-                        finalOutput.putStringArray(PluginUtils.OUTPUT_RESULT_KEY,
+                        finalOutput.putStringArray(ProcessUtils.OUTPUT_RESULT_KEY,
                                 result.toArray(new String[0]));
                         try {
                             mPluginCallback.onSuccess(finalOutput);
