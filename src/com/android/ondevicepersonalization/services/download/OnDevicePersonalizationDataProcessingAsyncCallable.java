@@ -21,24 +21,25 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
 
-import com.android.ondevicepersonalization.libraries.plugin.PluginController;
-import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
-import com.android.ondevicepersonalization.services.plugin.PluginUtils;
+import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
+import com.android.ondevicepersonalization.services.process.ProcessUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.android.libraries.mobiledatadownload.file.openers.ParcelFileDescriptorOpener;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -54,7 +55,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.concurrent.ExecutionException;
 
 /**
@@ -65,17 +65,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
     private final Context mContext;
-    private final PluginManager mPluginManager;
     private final PackageInfo mPackageInfo;
-    private PluginController mPluginController;
     private OnDevicePersonalizationVendorDataDao mDao;
 
     public OnDevicePersonalizationDataProcessingAsyncCallable(PackageInfo packageInfo,
-            Context context, PluginManager pluginManager) {
+            Context context) {
         mPackageInfo = packageInfo;
         mPackageName = packageInfo.packageName;
         mContext = context;
-        mPluginManager = pluginManager;
     }
 
     private static boolean validateSyncToken(long syncToken) {
@@ -121,17 +118,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
 
     private ListenableFuture<Void> processDownloadedJsonFile(Uri uri) throws IOException,
             PackageManager.NameNotFoundException, InterruptedException, ExecutionException {
-        try {
-            mPluginController = Objects.requireNonNull(
-                    PluginUtils.createPluginController(
-                            PluginUtils.createPluginId(mPackageName,
-                                    TASK_NAME), mPluginManager,
-                            new String[]{mPackageName}));
-        } catch (Exception e) {
-            Log.e(TAG, "Could not create plugin controller.", e);
-            return Futures.immediateFuture(null);
-        }
-
         long syncToken = -1;
         Map<String, VendorData> vendorDataMap = null;
 
@@ -174,19 +160,31 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
 
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
-        return FluentFuture.from(PluginUtils.loadPlugin(mPluginController))
-                .transformAsync(unused -> executePlugin(),
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor())
-                .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
-                                finalVendorDataMap),
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        try {
+            return FluentFuture.from(ProcessUtils.loadIsolatedService(
+                    TASK_NAME, mPackageName, mContext))
+                    .transformAsync(
+                            result ->
+                                    executeDownloadHandler(
+                                            result,
+                                            fileStorage.open(
+                                                    uri,
+                                                    ParcelFileDescriptorOpener.create())),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                    .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
+                                    finalVendorDataMap),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        } catch (Exception e) {
+            Log.e(TAG, "Could not run isolated service.", e);
+            return Futures.immediateFuture(null);
+        }
     }
 
     private Void filterAndStoreData(PersistableBundle pluginResult, long syncToken,
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        String[] retainedKeys = pluginResult.getStringArray(PluginUtils.OUTPUT_RESULT_KEY);
+        String[] retainedKeys = pluginResult.getStringArray(ProcessUtils.OUTPUT_RESULT_KEY);
         for (String key : retainedKeys) {
             if (vendorDataMap.containsKey(key)) {
                 filteredList.add(vendorDataMap.get(key));
@@ -197,15 +195,15 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         return null;
     }
 
-    private ListenableFuture<PersistableBundle> executePlugin() {
+    private ListenableFuture<PersistableBundle> executeDownloadHandler(
+            IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
-        pluginParams.putString(PluginUtils.PARAM_CLASS_NAME_KEY,
+        pluginParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
                 AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, mPackageInfo));
-        pluginParams.putInt(PluginUtils.PARAM_OPERATION_KEY,
-                PluginUtils.OP_DOWNLOAD_FILTER_HANDLER);
-
-        // TODO(b/239479120): Populate pluginParams with file descriptor
-        return PluginUtils.executePlugin(mPluginController, pluginParams);
+        pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
+                ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
+        pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
+        return ProcessUtils.runIsolatedService(isolatedServiceInfo, pluginParams);
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
