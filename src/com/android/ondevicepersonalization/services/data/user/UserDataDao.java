@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import android.app.usage.UsageStats;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -26,12 +27,16 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
+import java.util.Calendar;
+import java.util.List;
+
 /** DAO for accessing to vendor data tables. */
 public class UserDataDao {
     private static final String TAG = "UserDataDao";
 
     private static UserDataDao sUserDataDao;
     private final OnDevicePersonalizationDbHelper mDbHelper;
+    public static final int TTL_IN_MEMORY_DAYS = 30;
 
     private UserDataDao(OnDevicePersonalizationDbHelper dbHelper) {
         this.mDbHelper = dbHelper;
@@ -92,13 +97,10 @@ public class UserDataDao {
      *
      * @return true if the insert succeeded, false otherwise.
      */
-    public boolean insertAppUsageHistoryData(String packageName, long startingTimeSec,
+    public boolean insertAppUsageStatsData(String packageName, long startingTimeSec,
                                              long endingTimeSec, long totalTimeUsedSec) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
-            if (db == null) {
-                return false;
-            }
             ContentValues values = new ContentValues();
             values.put(UserDataTables.AppUsageHistory.PACKAGE_NAME, packageName);
             values.put(UserDataTables.AppUsageHistory.STARTING_TIME_SEC, startingTimeSec);
@@ -112,25 +114,61 @@ public class UserDataDao {
         }
     }
 
-    /**
-     * Read all rows in the table given a table name.
-     *
-     * @return Cursor of all rows in the table.
+     /**
+     * Batch inserts a list of [UsageStats].
+     * @return true if all insertions succeed as a transaction, false otherwise.
      */
-    public Cursor readAllUserData(String tableName) {
+    public boolean batchInsertAppUsageStatsData(List<UsageStats> statsList,
+            long startTimeMillis, long endTimeMillis) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+        try {
+            db.beginTransaction();
+            for (UsageStats stats : statsList) {
+                if (!insertAppUsageStatsData(stats.getPackageName(),
+                        startTimeMillis, endTimeMillis, stats.getTotalTimeVisible())) {
+                    return false;
+                }
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
+    /**
+     * Read all app usage rows collected in the last x days.
+     * @return
+     */
+    public Cursor readAppUsageInLastXDays(int dayCount) {
+        if (dayCount > TTL_IN_MEMORY_DAYS) {
+            Log.e(TAG, "Illegal attempt to read rows more than " + dayCount + " days");
+            return null;
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * dayCount);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] columns = new String[]{UserDataTables.AppUsageHistory.PACKAGE_NAME,
+                    UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC};
+            String selection = UserDataTables.AppUsageHistory.ENDING_TIME_SEC + " >= ?";
+            String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
             return db.query(
-                    tableName,
-                    /* columns= */ null,
-                    /* selection= */ null,
-                    /* selectionArgs= */ null,
-                    /* groupBy= */ null,
-                    /* having= */ null,
-                    /* orderBy= */ null
+                    UserDataTables.AppUsageHistory.TABLE_NAME,
+                    columns,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    null
             );
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read " + tableName + " rows", e);
+            Log.e(TAG, "Failed to read " + UserDataTables.AppUsageHistory.TABLE_NAME
+                    + " in the last " + dayCount + " days" , e);
         }
         return null;
     }

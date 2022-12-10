@@ -14,19 +14,21 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data.user;
+package com.android.ondevicepersonalization.services.process;
 
-/** Application usage stats. */
-public class AppUsageStats {
-    // Application package name.
-    public String packageName = null;
+import android.annotation.NonNull;
 
-    // Starting time in milliseconds.
-    public long startTimeMillis = 0;
+import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 
-    // Ending time in milliseconds.
-    public long endTimeMillis = 0;
+/** Wraps an instance of a loaded isolated service */
+public class IsolatedServiceInfo {
+    @NonNull private final PluginController mPluginController;
 
-    // Total time that the app is visible in seconds.
-    public long totalTimeSec = 0;
+    IsolatedServiceInfo(@NonNull PluginController pluginController) {
+        mPluginController = pluginController;
+    }
+
+    PluginController getPluginController() {
+        return mPluginController;
+    }
 }
