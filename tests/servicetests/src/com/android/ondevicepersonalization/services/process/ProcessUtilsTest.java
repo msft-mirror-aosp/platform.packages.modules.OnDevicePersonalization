@@ -36,11 +36,8 @@ public class ProcessUtilsTest {
 
     @Test
     public void testGetArchiveList() throws Exception {
-        String[] apks = {"apk1", "apk2", "", null, "apk3"};
-        ImmutableList<PluginInfo.ArchiveInfo> result = ProcessUtils.getArchiveList(apks);
-        assertEquals(3, result.size());
-        assertEquals("apk1", result.get(0).packageName());
-        assertEquals("apk2", result.get(1).packageName());
-        assertEquals("apk3", result.get(2).packageName());
+        ImmutableList<PluginInfo.ArchiveInfo> result = ProcessUtils.getArchiveList("fakeApk");
+        assertEquals(1, result.size());
+        assertEquals("fakeApk", result.get(0).packageName());
     }
 }
