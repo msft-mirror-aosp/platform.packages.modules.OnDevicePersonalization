@@ -29,8 +29,6 @@ import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
-import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
@@ -54,7 +52,7 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
@@ -64,7 +62,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private String mPackageName;
     private PackageInfo mPackageInfo;
     private SynchronousFileStorage mFileStorage;
-    private PluginManager mPluginManager;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -75,6 +72,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             .setKey("key2")
             .setData("dGVzdGRhdGEy".getBytes())
             .setFp("fp2")
+            .build();
+
+    private final VendorData mContentExtra = new VendorData.Builder()
+            .setKey("keyExtra")
+            .setData("extra".getBytes())
+            .setFp("fpExtra")
             .build();
 
     @Before
@@ -93,13 +96,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
-
-        mPluginManager = new PluginManagerImpl(
-                Objects.requireNonNull(mContext));
     }
 
     @Test
     public void testRun() throws Exception {
+        OnDevicePersonalizationVendorDataDao dao =
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                        PackageUtils.getCertDigest(mContext, mPackageName));
         mPopulator.refreshFileGroups(mMdd).get();
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
@@ -107,13 +110,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
+        dao.updateOrInsertVendorData(mContentExtra);
+
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(
-                        mPackageInfo, mContext, mPluginManager);
-        callable.call().get();
-        OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                        PackageUtils.getCertDigest(mContext, mPackageName));
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
+        callable.call().get(2000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -132,12 +133,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                     .build());
         }
         cursor.close();
-        assertEquals(2, vendorDataList.size());
+        assertEquals(3, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContent1.getKey())) {
                 compareDataContent(mContent1, data);
             } else if (data.getKey().equals(mContent2.getKey())) {
                 compareDataContent(mContent2, data);
+            } else if (data.getKey().equals(mContentExtra.getKey())) {
+                compareDataContent(mContentExtra, data);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }

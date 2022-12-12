@@ -14,15 +14,29 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.data.user;
 
-import android.os.Bundle;
+/** Location information. */
+public class LocationInfo {
+    // Time in milliseconds.
+    public long timeMillis = 0;
 
-/**
- * A callback used to return data from the managing service process to the
- * isolated process.
- */
-oneway interface IManagingServiceConnectorCallback {
-    void onSuccess(in Bundle result);
-    void onError(in int errorCode);
+    // Latitude.
+    public double latitude = 0;
+
+    // Longitude.
+    public double longitude = 0;
+
+    // Location provider values.
+    public enum LocationProvider {
+        UNKNOWN,
+        GPS,
+        NETWORK,
+    };
+
+    // Location provider.
+    public LocationProvider provider = LocationProvider.UNKNOWN;
+
+    // Whether the location source is precise.
+    public boolean isPreciseLocation = false;
 }

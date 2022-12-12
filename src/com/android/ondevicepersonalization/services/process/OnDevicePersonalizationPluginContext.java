@@ -14,21 +14,24 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.OnDevicePersonalizationContextImpl;
+import android.ondevicepersonalization.aidl.IDataAccessService;
 
 import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
 
 /** PluginContext that interfaces between the main process and the isolated process. */
 public class OnDevicePersonalizationPluginContext implements PluginContext {
-    private final IManagingServiceConnector mManagingServiceConnector;
+    private final OnDevicePersonalizationContext mOdpContext;
 
-    OnDevicePersonalizationPluginContext(@NonNull IManagingServiceConnector connector) {
-        mManagingServiceConnector = connector;
+    OnDevicePersonalizationPluginContext(@NonNull IDataAccessService binder) {
+        mOdpContext = new OnDevicePersonalizationContextImpl(binder);
     }
 
-    public IManagingServiceConnector getManagingServiceConnector() {
-        return mManagingServiceConnector;
+    public OnDevicePersonalizationContext getOnDevicePersonalizationContext() {
+        return mOdpContext;
     }
 }

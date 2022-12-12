@@ -25,17 +25,30 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
+import java.util.concurrent.Executor;
+
 /**
  * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
  */
 public class OnDevicePersonalizationStartDownloadServiceReceiver extends BroadcastReceiver {
     private static final String TAG = "OnDevicePersonalizationStartDownloadServiceReceiver";
+    private final Executor mExecutor;
+
+    public OnDevicePersonalizationStartDownloadServiceReceiver() {
+        this.mExecutor = OnDevicePersonalizationExecutors.getLightweightExecutor();
+    }
+
+    @VisibleForTesting
+    public OnDevicePersonalizationStartDownloadServiceReceiver(Executor executor) {
+        this.mExecutor = executor;
+    }
 
     /** Enable the OnDevicePersonalizationStartDownloadServiceReceiver */
     public static boolean enableReceiver(Context context) {
@@ -80,6 +93,6 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
                         Log.e(TAG, "Successfully schedule MDD tasks.");
                     }
                 },
-                OnDevicePersonalizationExecutors.getLightweightExecutor());
+                mExecutor);
     }
 }
