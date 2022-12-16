@@ -25,7 +25,11 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.work.WorkInfo;
 import androidx.work.WorkManager;
 
+import com.android.ondevicepersonalization.services.download.mdd.LocalFileDownloader;
+import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+
 import com.google.android.libraries.mobiledatadownload.TaskScheduler;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.Before;
@@ -48,9 +52,15 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
     @Test
     public void testOnReceive() throws Exception {
+        // Use direct executor to keep all work sequential for the tests
+        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
+        MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(
+                MobileDataDownloadFactory.getFileStorage(mContext), executorService, mContext),
+                executorService);
+
         OnDevicePersonalizationStartDownloadServiceReceiver receiver =
                 new OnDevicePersonalizationStartDownloadServiceReceiver(
-                        MoreExecutors.directExecutor());
+                        executorService);
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
         receiver.onReceive(mContext, intent);
