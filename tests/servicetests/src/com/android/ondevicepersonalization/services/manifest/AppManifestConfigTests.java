@@ -54,19 +54,13 @@ public class AppManifestConfigTests {
     }
 
     @Test
-    public void testGetDownloadUrlFromOdpSettings() throws PackageManager.NameNotFoundException {
+    public void testGetConfigParamsFromOdpSettings() throws PackageManager.NameNotFoundException {
         PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
                 mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertEquals(BASE_DOWNLOAD_URL,
-                AppManifestConfigHelper.getDownloadUrlFromOdpSettings(mContext, packageInfo));
-    }
-
-    @Test
-    public void testGetDownloadHandlerFromOdpSettings()
-            throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertEquals("com.test.VendorDownloadHandler",
-                AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, packageInfo));
+        AppManifestConfig config =
+                AppManifestConfigHelper.getAppManifestConfig(mContext, packageInfo);
+        assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
+        assertEquals("com.test.VendorDownloadHandler", config.getDownloadHandler());
+        assertEquals("com.test.TestPersonalizationService", config.getServiceName());
     }
 }
