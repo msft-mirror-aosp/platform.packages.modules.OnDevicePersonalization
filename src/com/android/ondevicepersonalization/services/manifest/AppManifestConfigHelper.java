@@ -52,12 +52,12 @@ public final class AppManifestConfigHelper {
         return true;
     }
 
-    private static AppManifestConfig getAppManifestConfig(Context context,
+    static AppManifestConfig getAppManifestConfig(Context context,
             PackageInfo packageInfo) {
         if (!manifestContainsOdpSettings(context, packageInfo)) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException(
-                    "Provided package is not onboarded to OnDevicePersonalization");
+                    "OdpSettings not found for package: " + packageInfo.toString());
         }
         String appPackageName = packageInfo.packageName;
         PackageManager pm = context.getPackageManager();
@@ -71,7 +71,7 @@ public final class AppManifestConfigHelper {
         } catch (IOException | XmlPullParserException | PackageManager.NameNotFoundException e) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException(
-                    "Failed to parse provided package's manifest config");
+                    "Failed to parse manifest for package: " + packageInfo.toString());
         }
     }
 
@@ -94,5 +94,16 @@ public final class AppManifestConfigHelper {
     public static String getDownloadHandlerFromOdpSettings(Context context,
             PackageInfo packageInfo) {
         return getAppManifestConfig(context, packageInfo).getDownloadHandler();
+    }
+
+    /**
+     * Gets the service name from package's ODP settings config
+     *
+     * @param context     the context of the API call.
+     * @param packageInfo the packageInfo of the package whose manifest config will be read
+     */
+    public static String getServiceNameFromOdpSettings(Context context,
+            PackageInfo packageInfo) {
+        return getAppManifestConfig(context, packageInfo).getServiceName();
     }
 }

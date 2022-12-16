@@ -57,8 +57,6 @@ public class OnDevicePersonalizationDbHelperTest {
         assertTrue(hasEntity(UserDataTables.AppUsageHistory.ENDING_TIME_SEC_INDEX_NAME, "index"));
         assertTrue(hasEntity(
                 UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC_INDEX_NAME, "index"));
-        assertTrue(hasEntity(UserDataTables.AppInstalledHistory.TABLE_NAME, "table"));
-        assertTrue(hasEntity(UserDataTables.AppInstalledHistory.INDEX_NAME, "index"));
     }
 
     @Test

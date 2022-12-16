@@ -14,19 +14,22 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services;
+package com.android.ondevicepersonalization.services.process;
 
-import android.annotation.Nullable;
-import android.app.Application;
+import android.content.Context;
 
-import com.android.ondevicepersonalization.libraries.plugin.PluginApplication;
 import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
-import com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPluginHost;
 
-/** The Application class for OnDevicePersonalization. */
-public final class OnDevicePersonalizationApplication
-        extends Application implements PluginApplication {
-    @Override public @Nullable PluginHost getPluginHost() {
-        return new OnDevicePersonalizationPluginHost(this);
+import com.google.common.collect.ImmutableSet;
+
+/** Plugin Support code shared between the managing process and the isolated process. */
+public class OnDevicePersonalizationPluginHost implements PluginHost {
+    public OnDevicePersonalizationPluginHost(Context applicationContext) {}
+
+    @Override
+    public ImmutableSet<String> getClassLoaderAllowedPackages(String pluginId) {
+        return ImmutableSet.of(
+                "com.android.ondevicepersonalization.services",
+                "com.android.ondevicepersonalization.libraries");
     }
 }

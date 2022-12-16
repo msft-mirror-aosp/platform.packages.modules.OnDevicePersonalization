@@ -89,8 +89,8 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
                 break;
             }
             if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
-                mFutures.add(Futures.submit(
-                        new OnDevicePersonalizationDataProcessingRunnable(packageInfo.packageName,
+                mFutures.add(Futures.submitAsync(
+                        new OnDevicePersonalizationDataProcessingAsyncCallable(packageInfo,
                                 mContext),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
             }

@@ -14,21 +14,11 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.data.user;
 
-import android.annotation.NonNull;
-
-/**
- * Container for per-request state and APIs for code that runs in the isolated process.
- *
- * @hide
- */
-public interface OnDevicePersonalizationContext {
-    /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
-     */
-    @NonNull RemoteData getRemoteData();
-
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+/** Values for OS versions. */
+public class OSVersion {
+    public int major = 0;
+    public int minor = 0;
+    public int micro = 0;
 }

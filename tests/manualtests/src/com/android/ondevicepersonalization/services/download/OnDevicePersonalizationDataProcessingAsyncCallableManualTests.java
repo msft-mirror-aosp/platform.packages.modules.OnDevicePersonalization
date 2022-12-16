@@ -16,11 +16,15 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -47,11 +51,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationDataProcessingRunnableTests {
+public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
+    private PackageInfo mPackageInfo;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -67,6 +72,8 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
+        mPackageInfo = mContext.getPackageManager().getPackageInfo(
+                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mMdd = MobileDataDownloadFactory.getMdd(mContext);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -87,9 +94,9 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
-        OnDevicePersonalizationDataProcessingRunnable runnable =
-                new OnDevicePersonalizationDataProcessingRunnable(mPackageName, mContext);
-        runnable.run();
+        OnDevicePersonalizationDataProcessingAsyncCallable callable =
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
+        callable.call().get();
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName));

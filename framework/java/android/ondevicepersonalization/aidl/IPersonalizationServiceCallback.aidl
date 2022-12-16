@@ -14,15 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.plugin;
+package android.ondevicepersonalization.aidl;
 
 import android.os.Bundle;
 
-/**
- * A callback used to return data from the managing service process to the
- * isolated process.
- */
-oneway interface IManagingServiceConnectorCallback {
+/** @hide */
+oneway interface IPersonalizationServiceCallback {
     void onSuccess(in Bundle result);
-    void onError(in int errorCode);
+    void onError(int errorCode);
 }

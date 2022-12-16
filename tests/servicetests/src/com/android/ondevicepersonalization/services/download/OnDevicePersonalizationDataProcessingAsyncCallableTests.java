@@ -16,11 +16,15 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -48,13 +52,15 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationDataProcessingRunnableTests {
+public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
+    private PackageInfo mPackageInfo;
     private SynchronousFileStorage mFileStorage;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
@@ -68,9 +74,17 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
             .setFp("fp2")
             .build();
 
+    private final VendorData mContentExtra = new VendorData.Builder()
+            .setKey("keyExtra")
+            .setData("extra".getBytes())
+            .setFp("fpExtra")
+            .build();
+
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
+        mPackageInfo = mContext.getPackageManager().getPackageInfo(
+                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
                 OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
@@ -86,6 +100,9 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
 
     @Test
     public void testRun() throws Exception {
+        OnDevicePersonalizationVendorDataDao dao =
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                        PackageUtils.getCertDigest(mContext, mPackageName));
         mPopulator.refreshFileGroups(mMdd).get();
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
@@ -93,12 +110,11 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
-        OnDevicePersonalizationDataProcessingRunnable runnable =
-                new OnDevicePersonalizationDataProcessingRunnable(mPackageName, mContext);
-        runnable.run();
-        OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                        PackageUtils.getCertDigest(mContext, mPackageName));
+        dao.updateOrInsertVendorData(mContentExtra);
+
+        OnDevicePersonalizationDataProcessingAsyncCallable callable =
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
+        callable.call().get(2000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -117,12 +133,14 @@ public class OnDevicePersonalizationDataProcessingRunnableTests {
                     .build());
         }
         cursor.close();
-        assertEquals(2, vendorDataList.size());
+        assertEquals(3, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContent1.getKey())) {
                 compareDataContent(mContent1, data);
             } else if (data.getKey().equals(mContent2.getKey())) {
                 compareDataContent(mContent2, data);
+            } else if (data.getKey().equals(mContentExtra.getKey())) {
+                compareDataContent(mContentExtra, data);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }
