@@ -18,14 +18,12 @@ package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.DownloadHandler;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.OnDevicePersonalizationContextImpl;
+import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -52,11 +50,11 @@ public class OnDevicePersonalizationPlugin implements Plugin {
     public void onExecute(
             @NonNull Bundle input,
             @NonNull PluginCallback callback,
-            @Nullable PluginContext context) {
+            @Nullable PluginContext pluginContext) {
         Log.i(TAG, "Executing plugin.");
         mInput = input;
         mPluginCallback = callback;
-        mPluginContext = context;
+        mPluginContext = pluginContext;
 
         try {
             String className = input.getString(ProcessUtils.PARAM_CLASS_NAME_KEY);
@@ -88,12 +86,13 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             }
 
             Class<?> clazz = Class.forName(className);
-            Object o = clazz.getDeclaredConstructor().newInstance();
+            PersonalizationService personalizationService =
+                    (PersonalizationService) clazz.getDeclaredConstructor().newInstance();
+            // TODO(b/249345663): Set the 'Context' for the service.
 
             if (operation == ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER) {
-                DownloadHandler downloadHandler = (DownloadHandler) o;
                 var unused = Futures.submit(
-                        () -> runDownloadHandlerFilter(downloadHandler,
+                        () -> runDownloadHandlerFilter(personalizationService,
                                 dataAccessService,
                                 input.getParcelable(ProcessUtils.INPUT_PARCEL_FD,
                                         ParcelFileDescriptor.class)),
@@ -105,19 +104,16 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         }
     }
 
-    private void runDownloadHandlerFilter(DownloadHandler downloadHandler,
+    private void runDownloadHandlerFilter(PersonalizationService service,
             IDataAccessService dataAccessService,
             ParcelFileDescriptor fd) {
         Log.d(TAG, "runDownloadHandlerFilter() started.");
         OnDevicePersonalizationContext odpContext =
                 new OnDevicePersonalizationContextImpl(dataAccessService);
-        // Add file descriptor to DownloadHandler input bundle
-        Bundle input = new Bundle();
-        input.putParcelable(Constants.EXTRA_PARCEL_FD, fd);
-        downloadHandler.filterData(input, odpContext,
-                new OutcomeReceiver<List<String>, Exception>() {
+        service.onDownload(fd, odpContext,
+                new PersonalizationService.DownloadCallback() {
                     @Override
-                    public void onResult(@NonNull List<String> result) {
+                    public void onSuccess(@NonNull List<String> result) {
                         PersistableBundle finalOutput = new PersistableBundle();
                         finalOutput.putStringArray(ProcessUtils.OUTPUT_RESULT_KEY,
                                 result.toArray(new String[0]));
@@ -129,8 +125,7 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                     }
 
                     @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
+                    public void onError() {
                         sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                     }
                 });
