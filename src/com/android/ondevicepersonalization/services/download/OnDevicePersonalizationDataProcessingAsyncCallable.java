@@ -27,6 +27,7 @@ import android.util.JsonReader;
 import android.util.Log;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
@@ -202,6 +203,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, mPackageInfo));
         pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
                 ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
+        DataAccessServiceImpl binder = new DataAccessServiceImpl(null, mPackageName, mContext);
+        pluginParams.putBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER, binder);
         pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
         return ProcessUtils.runIsolatedService(isolatedServiceInfo, pluginParams);
     }
