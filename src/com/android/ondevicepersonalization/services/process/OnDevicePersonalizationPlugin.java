@@ -21,7 +21,10 @@ import android.annotation.Nullable;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.DownloadHandler;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.OnDevicePersonalizationContextImpl;
+import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
@@ -70,6 +73,20 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                 return;
             }
 
+            IBinder binder = input.getBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER);
+            if (binder == null) {
+                Log.e(TAG, "Binder missing.");
+                sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+                return;
+            }
+            IDataAccessService dataAccessService =
+                    IDataAccessService.Stub.asInterface(binder);
+            if (dataAccessService == null) {
+                Log.e(TAG, "Invalid dataAccessService");
+                sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+                return;
+            }
+
             Class<?> clazz = Class.forName(className);
             Object o = clazz.getDeclaredConstructor().newInstance();
 
@@ -77,6 +94,7 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                 DownloadHandler downloadHandler = (DownloadHandler) o;
                 var unused = Futures.submit(
                         () -> runDownloadHandlerFilter(downloadHandler,
+                                dataAccessService,
                                 input.getParcelable(ProcessUtils.INPUT_PARCEL_FD,
                                         ParcelFileDescriptor.class)),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -88,11 +106,11 @@ public class OnDevicePersonalizationPlugin implements Plugin {
     }
 
     private void runDownloadHandlerFilter(DownloadHandler downloadHandler,
+            IDataAccessService dataAccessService,
             ParcelFileDescriptor fd) {
         Log.d(TAG, "runDownloadHandlerFilter() started.");
         OnDevicePersonalizationContext odpContext =
-                ((OnDevicePersonalizationPluginContext) mPluginContext)
-                        .getOnDevicePersonalizationContext();
+                new OnDevicePersonalizationContextImpl(dataAccessService);
         // Add file descriptor to DownloadHandler input bundle
         Bundle input = new Bundle();
         input.putParcelable(Constants.EXTRA_PARCEL_FD, fd);

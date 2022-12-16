@@ -47,6 +47,7 @@ public class ProcessUtils {
 
     public static final String PARAM_CLASS_NAME_KEY = "param.classname";
     public static final String PARAM_OPERATION_KEY = "param.operation";
+    public static final String PARAM_DATA_ACCESS_BINDER = "param.binder";
 
     public static final String INPUT_PARCEL_FD = "parcel_fd";
     public static final String OUTPUT_RESULT_KEY = "result";

@@ -61,12 +61,8 @@ public class UserDataCollectorTest {
         assertTrue(mUserData.timeMillis <= mCollector.getTimeMillis());
         assertNotNull(mUserData.utcOffset);
         assertEquals(mUserData.utcOffset, mCollector.getUtcOffset());
-        assertEquals(mUserData.orientation, mCollector.getOrientation());
 
         assertTrue(mUserData.availableBytesMB > 0);
-        assertEquals(mUserData.availableBytesMB, mCollector.getAvailableBytesMB());
-        assertTrue(mUserData.batteryPct > 0);
-        assertEquals(mUserData.batteryPct, mCollector.getBatteryPct());
         assertTrue(mUserData.batteryPct > 0);
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
@@ -75,7 +71,6 @@ public class UserDataCollectorTest {
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
         assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertTrue(mUserData.connectionSpeedKbps > 0);
-        assertEquals(mUserData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);
