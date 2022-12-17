@@ -16,10 +16,8 @@
 
 package com.test;
 
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.DownloadHandler;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.os.Bundle;
+import android.ondevicepersonalization.PersonalizationService;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
@@ -36,12 +34,12 @@ import java.util.List;
 import java.util.Map;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class VendorDownloadHandler implements DownloadHandler {
-    public final String TAG = "VendorDownloadHandler";
+public class TestPersonalizationService extends PersonalizationService {
+    public final String TAG = "TestPersonalizationService";
 
     @Override
-    public void filterData(Bundle bundle, OnDevicePersonalizationContext odpContext,
-            OutcomeReceiver<List<String>, Exception> odpOutcomeReceiver) {
+    public void onDownload(ParcelFileDescriptor fd, OnDevicePersonalizationContext odpContext,
+            PersonalizationService.DownloadCallback callback) {
         Log.d(TAG, "Starting filterData.");
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
@@ -50,17 +48,14 @@ public class VendorDownloadHandler implements DownloadHandler {
                     @Override
                     public void onResult(@NonNull Map<String, byte[]> result) {
                         Log.d(TAG, "OutcomeReceiver onResult: " + result);
-                        ParcelFileDescriptor fd = bundle.getParcelable(Constants.EXTRA_PARCEL_FD,
-                                ParcelFileDescriptor.class);
-
                         // Get the keys to keep from the downloaded data
-                        odpOutcomeReceiver.onResult(getFilteredKeys(fd));
+                        callback.onSuccess(getFilteredKeys(fd));
                     }
 
                     @Override
                     public void onError(Exception e) {
                         Log.e(TAG, "OutcomeReceiver onError.", e);
-                        odpOutcomeReceiver.onError(e);
+                        callback.onError();
                     }
                 });
     }

@@ -31,7 +31,7 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
-import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -49,17 +49,31 @@ public abstract class PersonalizationService extends Service {
      *
      * @hide
      */
-    public static class AppRequestCallback {
+    public interface AppRequestCallback {
+        // TODO(b/228200518): Replace Parcelable with strongly typed params.
+        /** Return the result of a successful request. */
+        void onSuccess(Parcelable result);
+
+        /** Error */
+        void onError();
+    }
+
+    /**
+     * Callback to return results of incoming requests.
+     *
+     * @hide
+     */
+    public static class AppRequestCallbackImpl implements AppRequestCallback {
         IPersonalizationServiceCallback mWrappedCallback;
 
         /** @hide */
-        AppRequestCallback(IPersonalizationServiceCallback wrappedCallback) {
+        AppRequestCallbackImpl(IPersonalizationServiceCallback wrappedCallback) {
             mWrappedCallback = Objects.requireNonNull(wrappedCallback);
         }
 
         // TODO(b/228200518): Replace Parcelable with strongly typed params.
         /** Return the result of a successful request. */
-        public void onSuccess(Parcelable result) {
+        @Override public void onSuccess(Parcelable result) {
             Bundle bundle = new Bundle();
             bundle.putParcelable(Constants.EXTRA_RESULT, result);
             try {
@@ -70,7 +84,7 @@ public abstract class PersonalizationService extends Service {
         }
 
         /** Error */
-        public void onError() {
+        @Override public void onError() {
             try {
                 mWrappedCallback.onError(Constants.STATUS_INTERNAL_ERROR);
             } catch (RemoteException e) {
@@ -84,18 +98,32 @@ public abstract class PersonalizationService extends Service {
      *
      * @hide
      */
-    public static class DownloadCallback {
+    public interface DownloadCallback {
+        /** Retains the provided keys */
+        void onSuccess(List<String> keysToRetain);
+
+        /** Error in download processing. The platform will retry the download. */
+        void onError();
+    }
+
+    /**
+     * Callback to signal completion of download post-processing.
+     *
+     * @hide
+     */
+    public static class DownloadCallbackImpl implements DownloadCallback {
         IPersonalizationServiceCallback mWrappedCallback;
 
         /** @hide */
-        DownloadCallback(IPersonalizationServiceCallback wrappedCallback) {
+        DownloadCallbackImpl(IPersonalizationServiceCallback wrappedCallback) {
             mWrappedCallback = Objects.requireNonNull(wrappedCallback);
         }
 
         /** Retains the provided keys */
-        public void onSuccess(ArrayList<String> keysToRetain) {
+        @Override public void onSuccess(List<String> keysToRetain) {
             Bundle bundle = new Bundle();
-            bundle.putStringArrayList(Constants.EXTRA_RESULT, keysToRetain);
+            bundle.putStringArray(Constants.EXTRA_RESULT,
+                    keysToRetain.toArray(new String[0]));
             try {
                 mWrappedCallback.onSuccess(bundle);
             } catch (RemoteException e) {
@@ -104,7 +132,7 @@ public abstract class PersonalizationService extends Service {
         }
 
         /** Error in download processing. The platform will retry the download. */
-        public void onError() {
+        @Override public void onError() {
             try {
                 mWrappedCallback.onError(Constants.STATUS_INTERNAL_ERROR);
             } catch (RemoteException e) {
@@ -179,7 +207,8 @@ public abstract class PersonalizationService extends Service {
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 PersonalizationService.this.onAppRequest(
-                        appPackageName, appParams, odpContext, new AppRequestCallback(callback));
+                        appPackageName, appParams, odpContext,
+                        new AppRequestCallbackImpl(callback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
                 ParcelFileDescriptor fd = Objects.requireNonNull(
@@ -189,7 +218,7 @@ public abstract class PersonalizationService extends Service {
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 PersonalizationService.this.onDownload(
-                        fd, odpContext, new DownloadCallback(callback));
+                        fd, odpContext, new DownloadCallbackImpl(callback));
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }
