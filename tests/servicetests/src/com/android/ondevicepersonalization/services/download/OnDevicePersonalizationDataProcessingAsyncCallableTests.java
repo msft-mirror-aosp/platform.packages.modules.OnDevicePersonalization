@@ -87,7 +87,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                 mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
+                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext),
+                OnDevicePersonalizationExecutors.getLightweightExecutor());
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();
