@@ -39,17 +39,22 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private static final String TAG = "DataAccessServiceImpl";
     private final Context mApplicationContext;
     private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
+    private final boolean mIncludeUserData;
 
     public DataAccessServiceImpl(
             @NonNull String appPackageName,
             @NonNull String vendorPackageName,
-            @NonNull Context applicationContext) {
+            @NonNull Context applicationContext,
+            boolean includeUserData) {
         mApplicationContext = applicationContext;
-        // TODO(b/249345663): Create a policy-engine guarded UserData accessor.
         try {
             mVendorDataDao = OnDevicePersonalizationVendorDataDao.getInstance(mApplicationContext,
                     vendorPackageName,
                     PackageUtils.getCertDigest(mApplicationContext, vendorPackageName));
+            mIncludeUserData = includeUserData;
+            // TODO(b/249345663): Create a policy-engine guarded UserData accessor.
+            // if mIncludeUserData is true, also create a R/W DAO for the LOCAL_DATA table.
+
         } catch (PackageManager.NameNotFoundException nnfe) {
             throw new IllegalArgumentException("Package: " + vendorPackageName + " does not exist.",
                     nnfe);

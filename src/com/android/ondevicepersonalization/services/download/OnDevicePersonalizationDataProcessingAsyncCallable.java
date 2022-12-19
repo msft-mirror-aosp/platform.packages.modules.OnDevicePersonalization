@@ -202,7 +202,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName));
         pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
                 ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(null, mPackageName, mContext);
+        DataAccessServiceImpl binder = new DataAccessServiceImpl(
+                null, mPackageName, mContext, true);
         pluginParams.putBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER, binder);
         pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
         return ProcessUtils.runIsolatedService(isolatedServiceInfo, pluginParams);
