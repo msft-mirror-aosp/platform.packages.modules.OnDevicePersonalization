@@ -112,4 +112,7 @@ android_app {
     defaults: [
         "ondevicepersonalization-java-defaults",
     ],
+    optimize: {
+        shrink_resources: true,
+    },
 }
