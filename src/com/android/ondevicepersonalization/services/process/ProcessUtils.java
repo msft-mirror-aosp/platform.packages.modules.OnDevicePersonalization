@@ -22,7 +22,6 @@ import android.content.Context;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.util.Log;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -67,7 +66,7 @@ public class ProcessUtils {
     }
 
     /** Executes a service loaded in an isolated process */
-    @NonNull public static ListenableFuture<PersistableBundle> runIsolatedService(
+    @NonNull public static ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo,
             @NonNull Bundle params) {
         return executePlugin(isolatedProcessInfo.getPluginController(), params);
@@ -97,7 +96,7 @@ public class ProcessUtils {
                 try {
                     Log.d(TAG, "loadPlugin");
                     pluginController.load(new PluginCallback() {
-                        @Override public void onSuccess(PersistableBundle bundle) {
+                        @Override public void onSuccess(Bundle bundle) {
                             completer.set(new IsolatedServiceInfo(pluginController));
                         }
                         @Override public void onFailure(FailureType failure) {
@@ -114,14 +113,14 @@ public class ProcessUtils {
         );
     }
 
-    @NonNull static ListenableFuture<PersistableBundle> executePlugin(
+    @NonNull static ListenableFuture<Bundle> executePlugin(
             @NonNull PluginController pluginController, @NonNull Bundle pluginParams) {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
                 try {
                     Log.d(TAG, "executePlugin");
                     pluginController.execute(pluginParams, new PluginCallback() {
-                        @Override public void onSuccess(PersistableBundle bundle) {
+                        @Override public void onSuccess(Bundle bundle) {
                             completer.set(bundle);
                         }
                         @Override public void onFailure(FailureType failure) {
