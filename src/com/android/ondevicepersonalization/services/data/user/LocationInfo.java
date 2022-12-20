@@ -39,4 +39,24 @@ public class LocationInfo {
 
     // Whether the location source is precise.
     public boolean isPreciseLocation = false;
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == this) {
+            return true;
+        }
+        if (!(o instanceof LocationInfo)) {
+            return false;
+        }
+        LocationInfo other = (LocationInfo) o;
+        return this.latitude == other.latitude && this.longitude == other.longitude;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 17;
+        hash = hash * 31 + Double.valueOf(latitude).hashCode();
+        hash = hash * 31 + Double.valueOf(longitude).hashCode();
+        return hash;
+    }
 }
