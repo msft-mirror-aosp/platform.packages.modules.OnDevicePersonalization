@@ -22,6 +22,8 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.services.data.events.EventsContract;
+import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
 
 /**
@@ -68,6 +70,10 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(VendorSettingsContract.VendorSettingsEntry.CREATE_TABLE_STATEMENT);
+
+        // Queries and events tables.
+        db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
 
         // User data tables and indexes.
         db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
