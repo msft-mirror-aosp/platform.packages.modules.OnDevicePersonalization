@@ -14,24 +14,6 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.libraries.plugin.internal;
+package android.ondevicepersonalization;
 
-import android.os.Bundle;
-
-import com.android.ondevicepersonalization.libraries.plugin.FailureType;
-
-/**
-  * Callback when {@code IPluginExecutorService#runTask} has finished
-  * (successfully or unsuccessfully).
-  */
-oneway interface IPluginCallback {
-  /**
-   * Indicates operation was successful and contains an output Bundle if the operation had any output.
-   */
-  void onSuccess(in Bundle output);
-
-  /**
-   * Called if runTask fails for any reason.
-   */
-  void onFailure(in FailureType failureType);
-}
+parcelable ScoredBid;
