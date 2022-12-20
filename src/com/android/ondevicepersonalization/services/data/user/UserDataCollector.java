@@ -104,7 +104,7 @@ public class UserDataCollector {
 
     /**
      * Collects in-memory user data signals and stores in a UserData object.
-     * TODO: read database to reset metadata and histograms in case of system crash.
+     * TODO (b/261642339): read database to reset metadata and histograms in case of system crash.
     */
     public void initializeUserData(@NonNull UserData userData) {
         userData.timeMillis = getTimeMillis();
@@ -668,11 +668,11 @@ public class UserDataCollector {
         );
     }
 
-    /** Set location info and store the location data to storage. */
+    /** Set the current location. */
     private void setLocationInfo(Location location, LocationInfo locationInfo) {
         locationInfo.timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
-        locationInfo.latitude = location.getLatitude();
-        locationInfo.longitude = location.getLongitude();
+        locationInfo.latitude = Math.round(location.getLatitude() *  10000.0) / 10000.0;
+        locationInfo.longitude = Math.round(location.getLongitude() *  10000.0) / 10000.0;
         String provider = location.getProvider();
         if (LocationManager.GPS_PROVIDER.equals(provider)) {
             locationInfo.provider = LocationInfo.LocationProvider.GPS;
