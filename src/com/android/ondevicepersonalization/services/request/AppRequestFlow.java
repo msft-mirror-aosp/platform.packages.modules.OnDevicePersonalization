@@ -165,7 +165,7 @@ public class AppRequestFlow {
                         .transform(
                             result -> {
                                 return result.getParcelable(
-                                    ProcessUtils.OUTPUT_RESULT_KEY, AppRequestResult.class);
+                                    Constants.EXTRA_RESULT, AppRequestResult.class);
                             },
                             mExecutorService
                         );
@@ -207,17 +207,14 @@ public class AppRequestFlow {
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
         Log.d(TAG, "executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        serviceParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
-                mServiceClassName);
-        serviceParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
-                ProcessUtils.OP_APP_REQUEST_HANDLER);
-        serviceParams.putString(ProcessUtils.INPUT_APP_PACKAGE_NAME, mCallingPackageName);
+        serviceParams.putString(Constants.EXTRA_APP_NAME, mCallingPackageName);
         // TODO(b/228200518): Extract app_params from request
-        serviceParams.putParcelable(ProcessUtils.INPUT_APP_PARAMS, PersistableBundle.EMPTY);
+        serviceParams.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, true);
-        serviceParams.putBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER, binder);
-        return ProcessUtils.runIsolatedService(isolatedServiceInfo, serviceParams);
+        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        return ProcessUtils.runIsolatedService(
+            isolatedServiceInfo,  mServiceClassName, Constants.OP_APP_REQUEST, serviceParams);
     }
 
     private ListenableFuture<QueryId> logQuery(AppRequestResult appRequestResult) {
@@ -275,7 +272,7 @@ public class AppRequestFlow {
                     mExecutorService)
                 .transform(result -> {
                     return result.getParcelable(
-                            ProcessUtils.OUTPUT_RESULT_KEY, RenderContentResult.class);
+                            Constants.EXTRA_RESULT, RenderContentResult.class);
                 }, mExecutorService)
                 .transform(result -> mOutputHelper.generateHtml(result), mExecutorService)
                 .transformAsync(
@@ -287,17 +284,15 @@ public class AppRequestFlow {
             IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, List<String> bidIds) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
-        serviceParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
-                mServiceClassName);
-        serviceParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
-                ProcessUtils.OP_RENDER_CONTENT_REQUEST_HANDLER);
-        serviceParams.putParcelable(ProcessUtils.INPUT_SLOT_INFO, slotInfo);
-        serviceParams.putStringArray(ProcessUtils.INPUT_BID_IDS, bidIds.toArray(new String[0]));
+        serviceParams.putParcelable(Constants.EXTRA_SLOT_INFO, slotInfo);
+        serviceParams.putStringArray(Constants.EXTRA_BID_IDS, bidIds.toArray(new String[0]));
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, false);
-        serviceParams.putBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER, binder);
+        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         // TODO(b/228200518): Create event handling URLs.
-        return ProcessUtils.runIsolatedService(isolatedServiceInfo, serviceParams);
+        return ProcessUtils.runIsolatedService(
+                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER_CONTENT,
+                serviceParams);
     }
 
     private void sendDisplayResult(List<SurfacePackage> surfacePackages) {

@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.ondevicepersonalization.Constants;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
@@ -184,7 +185,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        String[] retainedKeys = pluginResult.getStringArray(ProcessUtils.OUTPUT_RESULT_KEY);
+        String[] retainedKeys = pluginResult.getStringArray(Constants.EXTRA_RESULT);
         for (String key : retainedKeys) {
             if (vendorDataMap.containsKey(key)) {
                 filteredList.add(vendorDataMap.get(key));
@@ -198,15 +199,15 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private ListenableFuture<Bundle> executeDownloadHandler(
             IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
-        pluginParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
-                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName));
-        pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
-                ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 null, mPackageName, mContext, true);
-        pluginParams.putBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER, binder);
-        pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
-        return ProcessUtils.runIsolatedService(isolatedServiceInfo, pluginParams);
+        pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        pluginParams.putParcelable(Constants.EXTRA_PARCEL_FD, fd);
+        return ProcessUtils.runIsolatedService(
+                isolatedServiceInfo,
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
+                Constants.OP_DOWNLOAD_FINISHED,
+                pluginParams);
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
