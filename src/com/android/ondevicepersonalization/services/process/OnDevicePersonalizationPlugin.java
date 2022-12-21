@@ -18,13 +18,17 @@ package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.OnDevicePersonalizationContextImpl;
 import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.SlotInfo;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -36,6 +40,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 
 import com.google.common.util.concurrent.Futures;
 
+import java.util.Arrays;
 import java.util.List;
 
 /** Plugin that runs in an isolated process. */
@@ -96,11 +101,78 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                                 input.getParcelable(ProcessUtils.INPUT_PARCEL_FD,
                                         ParcelFileDescriptor.class)),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            } else if (operation == ProcessUtils.OP_APP_REQUEST_HANDLER) {
+                var unused = Futures.submit(
+                        () -> runAppRequestHandler(personalizationService,
+                                dataAccessService, input),
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            } else if (operation == ProcessUtils.OP_RENDER_CONTENT_REQUEST_HANDLER) {
+                var unused = Futures.submit(
+                        () -> runRenderContentRequestHandler(personalizationService,
+                                dataAccessService, input),
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
             }
         } catch (Exception e) {
             Log.e(TAG, "Plugin failed. " + e);
             sendErrorResult(FailureType.ERROR_UNKNOWN);
         }
+    }
+
+    private void runAppRequestHandler(PersonalizationService service,
+            IDataAccessService dataAccessService, Bundle input) {
+        Log.d(TAG, "runAppRequestHandler() started");
+        OnDevicePersonalizationContext odpContext =
+                new OnDevicePersonalizationContextImpl(dataAccessService);
+        String appPackageName = input.getString(ProcessUtils.INPUT_APP_PACKAGE_NAME);
+        PersistableBundle appParams = input.getParcelable(
+                ProcessUtils.INPUT_APP_PARAMS, PersistableBundle.class);
+        service.onAppRequest(appPackageName, appParams, odpContext,
+                new PersonalizationService.AppRequestCallback() {
+                    @Override
+                    public void onSuccess(AppRequestResult result) {
+                        Bundle finalOutput = new Bundle();
+                        finalOutput.putParcelable(ProcessUtils.OUTPUT_RESULT_KEY, result);
+                        try {
+                            mPluginCallback.onSuccess(finalOutput);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error calling pluginCallback", e);
+                        }
+                    }
+
+                    @Override
+                    public void onError() {
+                        sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+                    }
+                });
+    }
+
+    private void runRenderContentRequestHandler(PersonalizationService service,
+            IDataAccessService dataAccessService, Bundle input) {
+        Log.d(TAG, "runRenderContentRequestHandler() started");
+        OnDevicePersonalizationContext odpContext =
+                new OnDevicePersonalizationContextImpl(dataAccessService);
+        String appPackageName = input.getString(ProcessUtils.INPUT_APP_PACKAGE_NAME);
+        SlotInfo slotInfo = input.getParcelable(
+                ProcessUtils.INPUT_SLOT_INFO, SlotInfo.class);
+        List<String> bidIds = Arrays.asList(input.getStringArray(ProcessUtils.INPUT_BID_IDS));
+        service.renderContent(slotInfo, bidIds, odpContext,
+                new PersonalizationService.RenderContentCallback() {
+                    @Override
+                    public void onSuccess(RenderContentResult result) {
+                        Bundle finalOutput = new Bundle();
+                        finalOutput.putParcelable(ProcessUtils.OUTPUT_RESULT_KEY, result);
+                        try {
+                            mPluginCallback.onSuccess(finalOutput);
+                        } catch (Exception e) {
+                            Log.e(TAG, "Error calling pluginCallback", e);
+                        }
+                    }
+
+                    @Override
+                    public void onError() {
+                        sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+                    }
+                });
     }
 
     private void runDownloadHandlerFilter(PersonalizationService service,

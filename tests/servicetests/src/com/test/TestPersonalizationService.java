@@ -16,14 +16,20 @@
 
 package com.test;
 
+import android.annotation.NonNull;
+import android.annotation.Nullable;
+import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SlotInfo;
+import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
+import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
-
-import androidx.annotation.NonNull;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -58,6 +64,38 @@ public class TestPersonalizationService extends PersonalizationService {
                         callback.onError();
                     }
                 });
+    }
+
+    @Override public void onAppRequest(
+            @NonNull String appPackageName,
+            @Nullable PersistableBundle appParams,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull PersonalizationService.AppRequestCallback callback
+    ) {
+        Log.d(TAG, "onAppRequest() started.");
+        AppRequestResult result = new AppRequestResult.Builder()
+                .addSlotResults(new SlotResult.Builder()
+                        .setSlotId("slot_id")
+                        .addWinningBids(
+                            new ScoredBid.Builder()
+                            .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
+                        .build())
+                .build();
+        callback.onSuccess(result);
+    }
+
+    @Override public void renderContent(
+            @NonNull SlotInfo slotInfo,
+            @NonNull List<String> bidIds,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull PersonalizationService.RenderContentCallback callback
+    ) {
+        Log.d(TAG, "renderContent() started.");
+        RenderContentResult result =
+                new RenderContentResult.Builder()
+                .setContent("RenderResult: " + String.join(",", bidIds))
+                .build();
+        callback.onSuccess(result);
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
