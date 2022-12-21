@@ -199,7 +199,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
         pluginParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
-                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageInfo));
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName));
         pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
                 ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(null, mPackageName, mContext);
