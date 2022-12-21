@@ -25,7 +25,6 @@ import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -114,7 +113,7 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                 new PersonalizationService.DownloadCallback() {
                     @Override
                     public void onSuccess(@NonNull List<String> result) {
-                        PersistableBundle finalOutput = new PersistableBundle();
+                        Bundle finalOutput = new Bundle();
                         finalOutput.putStringArray(ProcessUtils.OUTPUT_RESULT_KEY,
                                 result.toArray(new String[0]));
                         try {

@@ -139,4 +139,44 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals("key1", result2.getKey());
         assertEquals("content", result2.getResponse());
     }
+
+    /**
+     * Tests that the AppRequestResult object serializes correctly.
+     */
+    @Test
+    public void testAppRequestResult() {
+        AppRequestResult result =
+                new AppRequestResult.Builder()
+                    .addSlotResults(
+                        new SlotResult.Builder().setSlotId("abc")
+                            .addWinningBids(
+                                new ScoredBid.Builder()
+                                    .setBidId("bid1")
+                                    .setPrice(5.0)
+                                    .setScore(1.0)
+                                    .build())
+                            .addRejectedBids(
+                                new ScoredBid.Builder()
+                                    .setBidId("bid2")
+                                    .setPrice(1.0)
+                                    .setScore(0.1)
+                                    .build())
+                            .build())
+                    .build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        AppRequestResult result2 = AppRequestResult.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        SlotResult slotResult = result2.getSlotResults().get(0);
+        assertEquals("abc", slotResult.getSlotId());
+        assertEquals("bid1", slotResult.getWinningBids().get(0).getBidId());
+        assertEquals(5.0, slotResult.getWinningBids().get(0).getPrice(), 0.0);
+        assertEquals(1.0, slotResult.getWinningBids().get(0).getScore(), 0.0);
+        assertEquals("bid2", slotResult.getRejectedBids().get(0).getBidId());
+        assertEquals(1.0, slotResult.getRejectedBids().get(0).getPrice(), 0.0);
+        assertEquals(0.1, slotResult.getRejectedBids().get(0).getScore(), 0.0);
+    }
 }

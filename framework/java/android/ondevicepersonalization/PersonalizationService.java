@@ -26,7 +26,6 @@ import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.ParcelFileDescriptor;
-import android.os.Parcelable;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -52,7 +51,7 @@ public abstract class PersonalizationService extends Service {
     public interface AppRequestCallback {
         // TODO(b/228200518): Replace Parcelable with strongly typed params.
         /** Return the result of a successful request. */
-        void onSuccess(Parcelable result);
+        void onSuccess(AppRequestResult result);
 
         /** Error */
         void onError();
@@ -73,7 +72,7 @@ public abstract class PersonalizationService extends Service {
 
         // TODO(b/228200518): Replace Parcelable with strongly typed params.
         /** Return the result of a successful request. */
-        @Override public void onSuccess(Parcelable result) {
+        @Override public void onSuccess(AppRequestResult result) {
             Bundle bundle = new Bundle();
             bundle.putParcelable(Constants.EXTRA_RESULT, result);
             try {
