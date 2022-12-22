@@ -77,7 +77,7 @@ public class UserDataCollector {
     // Counter to keep track of total times of successful app usage collection.
     @NonNull private int mAppUsageCollectionCount;
 
-    private UserDataCollector(Context context) {
+    private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
 
         mLocale = Locale.getDefault();
@@ -87,7 +87,7 @@ public class UserDataCollector {
         mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
                 connectivityManager.getActiveNetwork());
         mLocationManager = mContext.getSystemService(LocationManager.class);
-        mUserDataDao = UserDataDao.getInstance(mContext);
+        mUserDataDao = userDataDao;
         mLastTimeMillisAppUsageCollected = 0L;
         mAppUsageCollectionCount = 0;
     }
@@ -96,7 +96,22 @@ public class UserDataCollector {
     public static UserDataCollector getInstance(Context context) {
         synchronized (UserDataCollector.class) {
             if (sSingleton == null) {
-                sSingleton = new UserDataCollector(context);
+                sSingleton = new UserDataCollector(context, UserDataDao.getInstance(context));
+            }
+            return sSingleton;
+        }
+    }
+
+    /**
+     * Returns an instance of the UserDataCollector given a context. This is used
+     * for testing only.
+    */
+    @VisibleForTesting
+    public static UserDataCollector getInstanceForTest(Context context) {
+        synchronized (UserDataCollector.class) {
+            if (sSingleton == null) {
+                sSingleton = new UserDataCollector(context,
+                        UserDataDao.getInstanceForTest(context));
             }
             return sSingleton;
         }
