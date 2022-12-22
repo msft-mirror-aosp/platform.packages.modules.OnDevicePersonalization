@@ -83,17 +83,6 @@ public final class AppManifestConfigHelper {
     }
 
     /**
-     * Gets the download handler from package's ODP settings config
-     *
-     * @param context     the context of the API call.
-     * @param packageName the packageName of the package whose manifest config will be read
-     */
-    public static String getDownloadHandlerFromOdpSettings(Context context,
-            String packageName) {
-        return getAppManifestConfig(context, packageName).getDownloadHandler();
-    }
-
-    /**
      * Gets the service name from package's ODP settings config
      *
      * @param context     the context of the API call.
