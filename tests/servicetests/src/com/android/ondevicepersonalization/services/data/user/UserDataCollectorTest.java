@@ -45,7 +45,7 @@ public class UserDataCollectorTest {
 
     @Before
     public void setup() {
-        mCollector = UserDataCollector.getInstance(mContext);
+        mCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserData = UserData.getInstance();
         mCollector.clearUserData(mUserData);
         mCollector.setLastTimeMillisAppUsageCollected(0);
