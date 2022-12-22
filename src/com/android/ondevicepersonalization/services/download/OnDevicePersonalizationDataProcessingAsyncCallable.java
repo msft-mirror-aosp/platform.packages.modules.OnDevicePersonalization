@@ -21,6 +21,7 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.DownloadResult;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
@@ -185,10 +186,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        String[] retainedKeys = pluginResult.getStringArray(Constants.EXTRA_RESULT);
-        for (String key : retainedKeys) {
-            if (vendorDataMap.containsKey(key)) {
-                filteredList.add(vendorDataMap.get(key));
+        DownloadResult downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadResult.class);
+        List<String> retainedKeys = downloadResult.getKeysToRetain();
+        if (retainedKeys != null) {
+            for (String key : retainedKeys) {
+                if (vendorDataMap.containsKey(key)) {
+                    filteredList.add(vendorDataMap.get(key));
+                }
             }
         }
         mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,

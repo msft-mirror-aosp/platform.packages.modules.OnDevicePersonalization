@@ -64,7 +64,7 @@ public abstract class PersonalizationService extends Service {
      */
     public interface DownloadCallback {
         /** Retains the provided keys */
-        void onSuccess(List<String> keysToRetain);
+        void onSuccess(DownloadResult downloadResult);
 
         /** Error in download processing. The platform will retry the download. */
         void onError();
@@ -195,10 +195,9 @@ public abstract class PersonalizationService extends Service {
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 var wrappedCallback = new DownloadCallback() {
-                    @Override public void onSuccess(List<String> keysToRetain) {
+                    @Override public void onSuccess(DownloadResult result) {
                         Bundle bundle = new Bundle();
-                        bundle.putStringArray(Constants.EXTRA_RESULT,
-                                keysToRetain.toArray(new String[0]));
+                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
                         try {
                             callback.onSuccess(bundle);
                         } catch (RemoteException e) {
