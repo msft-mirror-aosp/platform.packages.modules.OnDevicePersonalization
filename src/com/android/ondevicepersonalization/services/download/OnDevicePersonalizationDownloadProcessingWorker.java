@@ -88,7 +88,8 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
             if (isStopped()) {
                 break;
             }
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(
+                    mContext, packageInfo.packageName)) {
                 mFutures.add(Futures.submitAsync(
                         new OnDevicePersonalizationDataProcessingAsyncCallable(packageInfo,
                                 mContext),
