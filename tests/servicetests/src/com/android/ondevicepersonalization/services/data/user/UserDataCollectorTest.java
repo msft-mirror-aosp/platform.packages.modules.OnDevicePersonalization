@@ -51,6 +51,7 @@ public class UserDataCollectorTest {
         mCollector.clearUserData(mUserData);
         mCollector.setLastTimeMillisAppUsageCollected(0);
         mCollector.setAllowedAppUsageEntries(new ArrayDeque<>());
+        mCollector.setAllowedLocationEntries(new ArrayDeque<>());
     }
 
     @Test
