@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.manifest;
 
 import android.content.Context;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
@@ -36,14 +37,15 @@ public final class AppManifestConfigHelper {
      * Determines if the given package's manifest contains ODP settings
      *
      * @param context     the context of the API call.
-     * @param packageName the packageName of the package whose manifest config will be read
+     * @param packageInfo the packageInfo of the package whose manifest config will be read
      * @return true if the ODP setting exists, false otherwise
      */
     public static Boolean manifestContainsOdpSettings(Context context,
-            String packageName) {
+            PackageInfo packageInfo) {
+        String appPackageName = packageInfo.packageName;
         PackageManager pm = context.getPackageManager();
         try {
-            pm.getProperty(ON_DEVICE_PERSONALIZATION_CONFIG_PROPERTY, packageName);
+            pm.getProperty(ON_DEVICE_PERSONALIZATION_CONFIG_PROPERTY, appPackageName);
         } catch (PackageManager.NameNotFoundException e) {
             return false;
         }
@@ -51,24 +53,25 @@ public final class AppManifestConfigHelper {
     }
 
     static AppManifestConfig getAppManifestConfig(Context context,
-            String packageName) {
-        if (!manifestContainsOdpSettings(context, packageName)) {
+            PackageInfo packageInfo) {
+        if (!manifestContainsOdpSettings(context, packageInfo)) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException(
-                    "OdpSettings not found for package: " + packageName.toString());
+                    "OdpSettings not found for package: " + packageInfo.toString());
         }
+        String appPackageName = packageInfo.packageName;
         PackageManager pm = context.getPackageManager();
         try {
             int resId = pm.getProperty(ON_DEVICE_PERSONALIZATION_CONFIG_PROPERTY,
-                    packageName).getResourceId();
-            Resources resources = pm.getResourcesForApplication(packageName);
+                    appPackageName).getResourceId();
+            Resources resources = pm.getResourcesForApplication(appPackageName);
             XmlResourceParser xmlParser = resources.getXml(resId);
             // TODO(b/239479120) Update to avoid re-parsing the XML too frequently if required
             return AppManifestConfigParser.getConfig(xmlParser);
         } catch (IOException | XmlPullParserException | PackageManager.NameNotFoundException e) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException(
-                    "Failed to parse manifest for package: " + packageName.toString());
+                    "Failed to parse manifest for package: " + packageInfo.toString());
         }
     }
 
@@ -76,31 +79,31 @@ public final class AppManifestConfigHelper {
      * Gets the download URL from package's ODP settings config
      *
      * @param context     the context of the API call.
-     * @param packageName the packageName of the package whose manifest config will be read
+     * @param packageInfo the packageInfo of the package whose manifest config will be read
      */
-    public static String getDownloadUrlFromOdpSettings(Context context, String packageName) {
-        return getAppManifestConfig(context, packageName).getDownloadUrl();
+    public static String getDownloadUrlFromOdpSettings(Context context, PackageInfo packageInfo) {
+        return getAppManifestConfig(context, packageInfo).getDownloadUrl();
     }
 
     /**
      * Gets the download handler from package's ODP settings config
      *
      * @param context     the context of the API call.
-     * @param packageName the packageName of the package whose manifest config will be read
+     * @param packageInfo the packageInfo of the package whose manifest config will be read
      */
     public static String getDownloadHandlerFromOdpSettings(Context context,
-            String packageName) {
-        return getAppManifestConfig(context, packageName).getDownloadHandler();
+            PackageInfo packageInfo) {
+        return getAppManifestConfig(context, packageInfo).getDownloadHandler();
     }
 
     /**
      * Gets the service name from package's ODP settings config
      *
      * @param context     the context of the API call.
-     * @param packageName the packageName of the package whose manifest config will be read
+     * @param packageInfo the packageInfo of the package whose manifest config will be read
      */
     public static String getServiceNameFromOdpSettings(Context context,
-            String packageName) {
-        return getAppManifestConfig(context, packageName).getServiceName();
+            PackageInfo packageInfo) {
+        return getAppManifestConfig(context, packageInfo).getServiceName();
     }
 }

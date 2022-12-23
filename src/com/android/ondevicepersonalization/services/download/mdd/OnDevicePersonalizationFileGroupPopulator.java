@@ -122,8 +122,8 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     public static String createDownloadUrl(PackageInfo packageInfo, Context context) throws
             PackageManager.NameNotFoundException {
         String packageName = packageInfo.packageName;
-        String baseURL =  AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
-                context, packageInfo.packageName);
+        String baseURL =
+                AppManifestConfigHelper.getDownloadUrlFromOdpSettings(context, packageInfo);
         if (baseURL == null) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException("Failed to retrieve base download URL");
@@ -143,8 +143,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
         List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
         for (PackageInfo packageInfo : mContext.getPackageManager().getInstalledPackages(
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    mContext, packageInfo.packageName)) {
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
                 try {
                     String groupName = createPackageFileGroupName(packageInfo.packageName,
                             mContext);

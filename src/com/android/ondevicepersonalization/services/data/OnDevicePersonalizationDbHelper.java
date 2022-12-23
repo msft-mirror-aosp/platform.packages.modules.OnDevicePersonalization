@@ -91,10 +91,4 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         throw new UnsupportedOperationException(
                 "Database upgrade for OnDevicePersonalization is unsupported");
     }
-
-    @Override
-    public void onConfigure(SQLiteDatabase db) {
-        db.setForeignKeyConstraintsEnabled(true);
-        db.enableWriteAheadLogging();
-    }
 }

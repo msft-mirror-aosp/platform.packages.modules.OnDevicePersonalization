@@ -179,37 +179,4 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(1.0, slotResult.getRejectedBids().get(0).getPrice(), 0.0);
         assertEquals(0.1, slotResult.getRejectedBids().get(0).getScore(), 0.0);
     }
-
-    /**
-     * Tests that the SlotInfo object serializes correctly.
-     */
-    @Test
-    public void testSlotInfo() {
-        SlotInfo slotInfo = new SlotInfo.Builder().setWidth(100).setHeight(50).build();
-
-        Parcel parcel = Parcel.obtain();
-        slotInfo.writeToParcel(parcel, 0);
-        parcel.setDataPosition(0);
-        SlotInfo slotInfo2 = SlotInfo.CREATOR.createFromParcel(parcel);
-
-        assertEquals(slotInfo, slotInfo2);
-        assertEquals(100, slotInfo2.getWidth());
-        assertEquals(50, slotInfo2.getHeight());
-    }
-
-    /**
-     * Tests that the RenderContentResult object serializes correctly.
-     */
-    @Test
-    public void testRenderContentResult() {
-        RenderContentResult result = new RenderContentResult.Builder().setContent("abc").build();
-
-        Parcel parcel = Parcel.obtain();
-        result.writeToParcel(parcel, 0);
-        parcel.setDataPosition(0);
-        RenderContentResult result2 = RenderContentResult.CREATOR.createFromParcel(parcel);
-
-        assertEquals(result, result2);
-        assertEquals("abc", result2.getContent());
-    }
 }
