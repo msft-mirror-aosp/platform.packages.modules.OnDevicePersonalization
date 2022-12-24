@@ -21,11 +21,9 @@ package com.android.ondevicepersonalization.services.manifest;
  */
 public class AppManifestConfig {
     private final String mDownloadUrl;
-    private final String mDownloadHandler;
     private final String mServiceName;
 
-    public AppManifestConfig(String downloadUrl, String downloadHandler, String serviceName) {
-        mDownloadHandler = downloadHandler;
+    public AppManifestConfig(String downloadUrl, String serviceName) {
         mDownloadUrl = downloadUrl;
         mServiceName = serviceName;
     }
@@ -35,13 +33,6 @@ public class AppManifestConfig {
      */
     public String getDownloadUrl() {
         return mDownloadUrl;
-    }
-
-    /**
-     * @return The download handler configured in manifest
-     */
-    public String getDownloadHandler() {
-        return mDownloadHandler;
     }
 
     /**
