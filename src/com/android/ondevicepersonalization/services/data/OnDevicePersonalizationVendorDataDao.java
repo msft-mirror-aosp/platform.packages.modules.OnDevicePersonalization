@@ -193,7 +193,7 @@ public class OnDevicePersonalizationVendorDataDao {
             long syncToken) {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         try {
-            db.beginTransaction();
+            db.beginTransactionNonExclusive();
             for (VendorData vendorData : vendorDataList) {
                 if (!updateOrInsertVendorData(vendorData)) {
                     // The query failed. Return and don't finalize the transaction.

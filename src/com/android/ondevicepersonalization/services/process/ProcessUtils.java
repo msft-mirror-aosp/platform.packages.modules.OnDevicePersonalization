@@ -34,6 +34,7 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 
 import com.google.common.collect.ImmutableList;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import java.util.Objects;
@@ -46,30 +47,33 @@ public class ProcessUtils {
 
     public static final String PARAM_CLASS_NAME_KEY = "param.classname";
     public static final String PARAM_OPERATION_KEY = "param.operation";
-    public static final String PARAM_DATA_ACCESS_BINDER = "param.binder";
-
-    public static final String INPUT_PARCEL_FD = "parcel_fd";
-    public static final String OUTPUT_RESULT_KEY = "result";
-
-    public static final int OP_DOWNLOAD_FILTER_HANDLER = 1;
-    public static final int OP_MAX = 2;  // 1 more than the last defined operation.
+    public static final String PARAM_SERVICE_INPUT = "param.service_input";
 
     private static PluginManager sPluginManager;
 
     /** Loads a service in an isolated process */
     @NonNull public static ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
             @NonNull String taskName, @NonNull String packageName,
-            @NonNull Context context)
-            throws Exception {
+            @NonNull Context context) {
+        try {
         return loadPlugin(createPluginController(
                 createPluginId(packageName, taskName), getPluginManager(context), packageName));
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     /** Executes a service loaded in an isolated process */
     @NonNull public static ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo,
-            @NonNull Bundle params) {
-        return executePlugin(isolatedProcessInfo.getPluginController(), params);
+            @NonNull String className,
+            int operationCode,
+            @NonNull Bundle serviceParams) {
+        Bundle pluginParams = new Bundle();
+        pluginParams.putString(PARAM_CLASS_NAME_KEY, className);
+        pluginParams.putInt(PARAM_OPERATION_KEY, operationCode);
+        pluginParams.putParcelable(PARAM_SERVICE_INPUT, serviceParams);
+        return executePlugin(isolatedProcessInfo.getPluginController(), pluginParams);
     }
 
     @NonNull static PluginManager getPluginManager(@NonNull Context context) {

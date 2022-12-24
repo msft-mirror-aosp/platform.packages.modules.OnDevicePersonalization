@@ -17,7 +17,8 @@
 package android.ondevicepersonalization;
 
 /**
- * Constants used internally in the OnDevicePersonalization Module.
+ * Constants used internally in the OnDevicePersonalization Module and not
+ * used in public APIs.
  *
  * @hide
  */
@@ -27,12 +28,15 @@ public class Constants {
     // Operations implemented by personalization services.
     public static final int OP_APP_REQUEST = 1;
     public static final int OP_DOWNLOAD_FINISHED = 2;
+    public static final int OP_RENDER_CONTENT = 3;
 
     // Keys for Bundle objects passed between processes.
     public static final String
             EXTRA_APP_NAME = "android.ondevicepersonalization.app_name";
     public static final String
             EXTRA_APP_PARAMS = "android.ondevicepersonalization.app_params";
+    public static final String
+            EXTRA_BID_IDS = "android.ondevicepersonalization.bid_ids";
     public static final String
             EXTRA_DATA_ACCESS_SERVICE_BINDER =
                     "android.ondevicepersonalization.data_access_service_binder";
@@ -42,6 +46,8 @@ public class Constants {
             EXTRA_PARCEL_FD = "android.ondevicepersonalization.parcel_fd";
     public static final String
             EXTRA_RESULT = "android.ondevicepersonalization.result";
+    public static final String
+            EXTRA_SLOT_INFO = "android.ondevicepersonalization.slot_info";
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
