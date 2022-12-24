@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.libraries.plugin.internal;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -98,7 +97,7 @@ public class PluginExecutor {
         mPluginContexts.put(pluginId, pluginContext);
 
         // TODO(b/239079143): Add more specific methods to the callback.
-        callback.onSuccess(PersistableBundle.EMPTY);
+        callback.onSuccess(new Bundle());
     }
 
     /** Executes a plugin. */
@@ -133,7 +132,7 @@ public class PluginExecutor {
         }
         mPlugins.remove(pluginId);
         mPluginContexts.remove(pluginId);
-        callback.onSuccess(PersistableBundle.EMPTY);
+        callback.onSuccess(new Bundle());
     }
 
     /** Checks the plugin state and returns it via stateCallback. */

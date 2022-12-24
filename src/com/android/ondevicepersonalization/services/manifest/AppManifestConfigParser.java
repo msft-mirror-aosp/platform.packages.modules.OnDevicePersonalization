@@ -31,7 +31,6 @@ public class AppManifestConfigParser {
     private static final String TAG_DOWNLOAD_SETTINGS = "download-settings";
     private static final String TAG_SERVICE = "service";
     private static final String ATTR_DOWNLOAD_URL = "url";
-    private static final String ATTR_DOWNLOAD_HANDLER = "handler";
     private static final String ATTR_NAME = "name";
 
     private AppManifestConfigParser() {
@@ -45,7 +44,6 @@ public class AppManifestConfigParser {
     public static AppManifestConfig getConfig(XmlResourceParser parser) throws IOException,
             XmlPullParserException {
         String downloadUrl = null;
-        String downloadHandler = null;
         String serviceName = null;
 
         // The first next goes to START_DOCUMENT, so we need another next to go to START_TAG.
@@ -63,7 +61,6 @@ public class AppManifestConfigParser {
             switch (parser.getName()) {
                 case TAG_DOWNLOAD_SETTINGS:
                     downloadUrl = parser.getAttributeValue(null, ATTR_DOWNLOAD_URL);
-                    downloadHandler = parser.getAttributeValue(null, ATTR_DOWNLOAD_HANDLER);
                     break;
                 case TAG_SERVICE:
                     serviceName = parser.getAttributeValue(null, ATTR_NAME);
@@ -74,6 +71,6 @@ public class AppManifestConfigParser {
             parser.next();
         }
 
-        return new AppManifestConfig(downloadUrl, downloadHandler, serviceName);
+        return new AppManifestConfig(downloadUrl, serviceName);
     }
 }

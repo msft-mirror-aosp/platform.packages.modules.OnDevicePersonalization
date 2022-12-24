@@ -16,14 +16,11 @@
 
 package com.android.ondevicepersonalization.services.manifest;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -40,27 +37,21 @@ public class AppManifestConfigTests {
 
     @Test
     public void testManifestContainsOdpSettings() throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertTrue(AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo));
+        assertTrue(AppManifestConfigHelper.manifestContainsOdpSettings(
+                mContext, mContext.getPackageName()));
     }
 
     @Test
     public void testManifestContainsOdpSettingsFalse() throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        packageInfo.packageName = "nonExistentName";
-        assertFalse(AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo));
+        assertFalse(AppManifestConfigHelper.manifestContainsOdpSettings(
+                mContext, "nonExistentName"));
     }
 
     @Test
     public void testGetConfigParamsFromOdpSettings() throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
         AppManifestConfig config =
-                AppManifestConfigHelper.getAppManifestConfig(mContext, packageInfo);
+                AppManifestConfigHelper.getAppManifestConfig(mContext, mContext.getPackageName());
         assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
-        assertEquals("com.test.VendorDownloadHandler", config.getDownloadHandler());
         assertEquals("com.test.TestPersonalizationService", config.getServiceName());
     }
 }

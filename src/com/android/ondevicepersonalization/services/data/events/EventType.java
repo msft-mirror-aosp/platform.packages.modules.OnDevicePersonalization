@@ -14,24 +14,24 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.libraries.plugin.internal;
+package com.android.ondevicepersonalization.services.data.events;
 
-import android.os.Bundle;
+/** Enum to represent types of events */
+public enum EventType {
+    B2D(1),
+    B2R(2),
+    CLICK(3),
+    VIEWABILITY(4),
+    CONVERSIONS(5),
+    OTHER(6);
 
-import com.android.ondevicepersonalization.libraries.plugin.FailureType;
+    private final int mValue;
+    EventType(int value) {
+        this.mValue = value;
+    }
 
-/**
-  * Callback when {@code IPluginExecutorService#runTask} has finished
-  * (successfully or unsuccessfully).
-  */
-oneway interface IPluginCallback {
-  /**
-   * Indicates operation was successful and contains an output Bundle if the operation had any output.
-   */
-  void onSuccess(in Bundle output);
-
-  /**
-   * Called if runTask fails for any reason.
-   */
-  void onFailure(in FailureType failureType);
+    /** Returns the integer representation of the EventType enum */
+    public int getValue() {
+        return mValue;
+    }
 }
