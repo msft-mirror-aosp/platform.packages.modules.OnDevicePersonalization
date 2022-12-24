@@ -77,7 +77,7 @@ public class UserDataCollector {
     // Counter to keep track of total times of successful app usage collection.
     @NonNull private int mAppUsageCollectionCount;
 
-    private UserDataCollector(Context context) {
+    private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
 
         mLocale = Locale.getDefault();
@@ -87,7 +87,7 @@ public class UserDataCollector {
         mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
                 connectivityManager.getActiveNetwork());
         mLocationManager = mContext.getSystemService(LocationManager.class);
-        mUserDataDao = UserDataDao.getInstance(mContext);
+        mUserDataDao = userDataDao;
         mLastTimeMillisAppUsageCollected = 0L;
         mAppUsageCollectionCount = 0;
     }
@@ -96,7 +96,22 @@ public class UserDataCollector {
     public static UserDataCollector getInstance(Context context) {
         synchronized (UserDataCollector.class) {
             if (sSingleton == null) {
-                sSingleton = new UserDataCollector(context);
+                sSingleton = new UserDataCollector(context, UserDataDao.getInstance(context));
+            }
+            return sSingleton;
+        }
+    }
+
+    /**
+     * Returns an instance of the UserDataCollector given a context. This is used
+     * for testing only.
+    */
+    @VisibleForTesting
+    public static UserDataCollector getInstanceForTest(Context context) {
+        synchronized (UserDataCollector.class) {
+            if (sSingleton == null) {
+                sSingleton = new UserDataCollector(context,
+                        UserDataDao.getInstanceForTest(context));
             }
             return sSingleton;
         }
@@ -104,7 +119,7 @@ public class UserDataCollector {
 
     /**
      * Collects in-memory user data signals and stores in a UserData object.
-     * TODO: read database to reset metadata and histograms in case of system crash.
+     * TODO (b/261642339): read database to reset metadata and histograms in case of system crash.
     */
     public void initializeUserData(@NonNull UserData userData) {
         userData.timeMillis = getTimeMillis();
@@ -668,11 +683,11 @@ public class UserDataCollector {
         );
     }
 
-    /** Set location info and store the location data to storage. */
+    /** Set the current location. */
     private void setLocationInfo(Location location, LocationInfo locationInfo) {
         locationInfo.timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
-        locationInfo.latitude = location.getLatitude();
-        locationInfo.longitude = location.getLongitude();
+        locationInfo.latitude = Math.round(location.getLatitude() *  10000.0) / 10000.0;
+        locationInfo.longitude = Math.round(location.getLongitude() *  10000.0) / 10000.0;
         String provider = location.getProvider();
         if (LocationManager.GPS_PROVIDER.equals(provider)) {
             locationInfo.provider = LocationInfo.LocationProvider.GPS;

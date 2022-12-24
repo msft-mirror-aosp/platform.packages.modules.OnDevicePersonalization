@@ -63,7 +63,13 @@ public class UserDataDao {
      */
     @VisibleForTesting
     public static UserDataDao getInstanceForTest(Context context) {
-        return getInstance(context);
+        synchronized (UserDataDao.class) {
+            if (sUserDataDao == null) {
+                sUserDataDao = new UserDataDao(
+                    OnDevicePersonalizationDbHelper.getInstanceForTest(context));
+            }
+            return sUserDataDao;
+        }
     }
 
     /**
