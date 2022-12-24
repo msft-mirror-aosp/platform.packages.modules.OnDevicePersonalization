@@ -19,6 +19,7 @@ package com.test;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.ondevicepersonalization.AppRequestResult;
+import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RenderContentResult;
@@ -55,7 +56,11 @@ public class TestPersonalizationService extends PersonalizationService {
                     public void onResult(@NonNull Map<String, byte[]> result) {
                         Log.d(TAG, "OutcomeReceiver onResult: " + result);
                         // Get the keys to keep from the downloaded data
-                        callback.onSuccess(getFilteredKeys(fd));
+                        DownloadResult downloadResult =
+                                new DownloadResult.Builder()
+                                .setKeysToRetain(getFilteredKeys(fd))
+                                .build();
+                        callback.onSuccess(downloadResult);
                     }
 
                     @Override

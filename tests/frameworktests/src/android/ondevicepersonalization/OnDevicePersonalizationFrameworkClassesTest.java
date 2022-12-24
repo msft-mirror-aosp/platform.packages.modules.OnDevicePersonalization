@@ -212,4 +212,22 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(result, result2);
         assertEquals("abc", result2.getContent());
     }
+
+    /**
+     * Tests that the DownloadResult object serializes correctly.
+     */
+    @Test
+    public void teetDownloadResult() {
+        DownloadResult result = new DownloadResult.Builder()
+                .addKeysToRetain("abc").addKeysToRetain("def").build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        DownloadResult result2 = DownloadResult.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals("abc", result2.getKeysToRetain().get(0));
+        assertEquals("def", result2.getKeysToRetain().get(1));
+    }
 }
