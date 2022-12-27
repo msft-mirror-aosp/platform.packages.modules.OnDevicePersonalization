@@ -104,4 +104,7 @@ android_app {
     defaults: [
         "ondevicepersonalization-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["src/proguard.flags"],
+    },
 }
