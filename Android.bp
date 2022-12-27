@@ -114,5 +114,6 @@ android_app {
     ],
     optimize: {
         shrink_resources: true,
+        proguard_flags_files: ["src/proguard.flags"],
     },
 }
