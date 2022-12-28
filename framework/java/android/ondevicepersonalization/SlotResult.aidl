@@ -16,21 +16,4 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.NonNull;
-import android.ondevicepersonalization.rtb.BidRequest;
-
-/**
- * Interface for On-Device Bidders. Bidders run in the OnDevicePersonalization
- * sandbox and return bids in response to Exchanges.
- *
- * @hide
- */
-public interface Bidder {
-    /**
-     * Return a list of bids to an exchange.
-     * @param bidRequest The {@link BidRequest} from the exchange.
-     * @param odpContext The {@link OnDevicePersonalizationContext} for this request.
-     */
-    void requestBids(
-            @NonNull BidRequest bidRequest, @NonNull OnDevicePersonalizationContext odpContext);
-}
+parcelable SlotResult;

@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.libraries.plugin.internal;
 
-import android.os.PersistableBundle;
+import android.os.Bundle;
 import android.os.RemoteException;
 
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
@@ -34,7 +34,7 @@ public final class CallbackConverter {
     public static IPluginCallback toIPluginCallback(PluginCallback callback) {
         return new IPluginCallback.Stub() {
             @Override
-            public void onSuccess(PersistableBundle input) throws RemoteException {
+            public void onSuccess(Bundle input) throws RemoteException {
                 callback.onSuccess(input);
             }
 
@@ -49,7 +49,7 @@ public final class CallbackConverter {
     public static PluginCallback toPublicCallback(IPluginCallback callback) {
         return new PluginCallback() {
             @Override
-            public void onSuccess(PersistableBundle input) throws RemoteException {
+            public void onSuccess(Bundle input) throws RemoteException {
                 callback.onSuccess(input);
             }
 
