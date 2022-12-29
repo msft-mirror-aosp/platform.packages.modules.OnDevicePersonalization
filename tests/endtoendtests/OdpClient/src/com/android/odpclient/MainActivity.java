@@ -20,8 +20,11 @@ import android.app.Activity;
 import android.content.Context;
 import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
 import android.os.OutcomeReceiver;
 import android.util.Log;
+import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
@@ -48,7 +51,6 @@ public class MainActivity extends Activity {
             mOdpManager = mContext.getSystemService(OnDevicePersonalizationManager.class);
         }
         mRenderedView = findViewById(R.id.rendered_view);
-        mRenderedView.setZOrderOnTop(true);
         mRenderedView.setVisibility(View.INVISIBLE);
         mGetVersionButton = findViewById(R.id.get_version_button);
         mBindButton = findViewById(R.id.bind_service_button);
@@ -85,7 +87,7 @@ public class MainActivity extends Activity {
                                 OnDevicePersonalizationManager.EXTRA_HOST_TOKEN,
                                 mRenderedView.getHostToken());
                         mOdpManager.requestSurfacePackage(
-                                "exchange1",
+                                "com.android.odpsamplenetwork",
                                 params,
                                 Executors.newSingleThreadExecutor(),
                                 new OutcomeReceiver<Bundle, Exception>() {
@@ -94,6 +96,18 @@ public class MainActivity extends Activity {
                                         makeToast(
                                                 "requestSurfacePackage() success: "
                                                 + bundle.toString());
+                                        SurfacePackage surfacePackage = bundle.getParcelable(
+                                                OnDevicePersonalizationManager
+                                                        .EXTRA_SURFACE_PACKAGE,
+                                                SurfacePackage.class);
+                                        new Handler(Looper.getMainLooper()).post(() -> {
+                                            if (surfacePackage != null) {
+                                                mRenderedView.setChildSurfacePackage(
+                                                        surfacePackage);
+                                            }
+                                            mRenderedView.setZOrderOnTop(true);
+                                            mRenderedView.setVisibility(View.VISIBLE);
+                                        });
                                     }
 
                                     @Override
