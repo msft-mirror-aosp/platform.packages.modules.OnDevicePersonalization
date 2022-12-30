@@ -35,4 +35,11 @@ public interface Plugin {
      */
     void onExecute(
             Bundle input, PluginCallback callback, @Nullable PluginContext context);
+
+    /**
+     * Set the class loader that that plugin would use to load child classes.
+     *
+     * @param classLoader A {@link ClassLoader} to be used to load child classes.
+     */
+    default void setClassLoader(ClassLoader classLoader) {}
 }
