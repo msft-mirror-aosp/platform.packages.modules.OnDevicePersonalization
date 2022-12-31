@@ -160,8 +160,8 @@ public abstract class PersonalizationService extends Service {
                 PersistableBundle appParams =
                         (PersistableBundle) params.getParcelable(Constants.EXTRA_APP_PARAMS);
                 IDataAccessService binder =
-                        (IDataAccessService) Objects.requireNonNull(
-                                params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER));
+                        IDataAccessService.Stub.asInterface(Objects.requireNonNull(
+                            params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 var wrappedCallback = new AppRequestCallback() {
@@ -190,8 +190,9 @@ public abstract class PersonalizationService extends Service {
 
                 ParcelFileDescriptor fd = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_PARCEL_FD));
-                IDataAccessService binder = (IDataAccessService) Objects.requireNonNull(
-                        params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER));
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(Objects.requireNonNull(
+                            params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 var wrappedCallback = new DownloadCallback() {
@@ -222,8 +223,9 @@ public abstract class PersonalizationService extends Service {
                         params.getParcelable(Constants.EXTRA_SLOT_INFO));
                 List<String> bidIds = Arrays.asList(Objects.requireNonNull(
                         params.getStringArray(Constants.EXTRA_BID_IDS)));
-                IDataAccessService binder = (IDataAccessService) Objects.requireNonNull(
-                        params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER));
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(Objects.requireNonNull(
+                            params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 var wrappedCallback = new RenderContentCallback() {
