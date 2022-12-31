@@ -36,13 +36,19 @@ public class OnDevicePersonalizationPlugin implements Plugin {
     private Bundle mInput;
     private PluginCallback mPluginCallback;
     private PluginContext mPluginContext;
+    private ClassLoader mClassLoader;
+
+    @Override
+    public void setClassLoader(ClassLoader classLoader) {
+        mClassLoader = classLoader;
+    }
 
     @Override
     public void onExecute(
             @NonNull Bundle input,
             @NonNull PluginCallback callback,
             @Nullable PluginContext pluginContext) {
-        Log.i(TAG, "Executing plugin.");
+        Log.d(TAG, "Executing plugin: " + input.toString());
         mInput = input;
         mPluginCallback = callback;
         mPluginContext = pluginContext;
@@ -70,7 +76,7 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                 return;
             }
 
-            Class<?> clazz = Class.forName(className);
+            Class<?> clazz = Class.forName(className, true, mClassLoader);
             PersonalizationService personalizationService =
                     (PersonalizationService) clazz.getDeclaredConstructor().newInstance();
             // TODO(b/249345663): Set the 'Context' for the service.

@@ -56,8 +56,10 @@ public class ProcessUtils {
             @NonNull String taskName, @NonNull String packageName,
             @NonNull Context context) {
         try {
-        return loadPlugin(createPluginController(
-                createPluginId(packageName, taskName), getPluginManager(context), packageName));
+            Log.d(TAG, "loadIsolatedService: " + packageName);
+            return loadPlugin(createPluginController(
+                    createPluginId(packageName, taskName),
+                    getPluginManager(context), packageName));
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -69,6 +71,7 @@ public class ProcessUtils {
             @NonNull String className,
             int operationCode,
             @NonNull Bundle serviceParams) {
+        Log.d(TAG, "runIsolatedService: " + className + " op: " + operationCode);
         Bundle pluginParams = new Bundle();
         pluginParams.putString(PARAM_CLASS_NAME_KEY, className);
         pluginParams.putInt(PARAM_OPERATION_KEY, operationCode);
