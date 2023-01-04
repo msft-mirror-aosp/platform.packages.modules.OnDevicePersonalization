@@ -73,7 +73,11 @@ public class AppRequestFlowTest {
         assertTrue(mGeneratedHtml.contains("bid1"));
     }
 
-    class TestDisplayHelper implements DisplayHelper {
+    class TestDisplayHelper extends DisplayHelper {
+        TestDisplayHelper() {
+            super(mContext);
+        }
+
         @Override public String generateHtml(RenderContentResult renderContentResult) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
