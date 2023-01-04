@@ -29,8 +29,8 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.data.VendorData;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;

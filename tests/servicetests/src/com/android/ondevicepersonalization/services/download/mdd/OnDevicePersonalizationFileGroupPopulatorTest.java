@@ -30,7 +30,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
