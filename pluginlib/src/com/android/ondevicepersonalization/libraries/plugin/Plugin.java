@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.libraries.plugin;
 
-import android.os.PersistableBundle;
+import android.os.Bundle;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
@@ -26,13 +26,20 @@ public interface Plugin {
      * Process a request in an {@link ExecutionEnvironment} (for example a sandbox process) and
      * reply via callback.
      *
-     * @param input A {@link PersistableBundle} containing data from external apps as the input to
+     * @param input A {@link Bundle} containing data from external apps as the input to
      *     the plugin code
-     * @param callback to reply with resulting data in {@link PersistableBundle} or an error in
-     *     {@link com.google.android.libraries.pcc.plugin.PluginCallback.FailureType} back, see also
-     *     the contract {@link com.google.android.libraries.pcc.plugin.PluginCallback}
+     * @param callback to reply with resulting data in {@link Bundle} or an error in
+     *     {@link PluginCallback.FailureType} back, see also
+     *     the contract {@link PluginCallback}
      * @param context data a plugin needs in order to run
      */
     void onExecute(
-            PersistableBundle input, PluginCallback callback, @Nullable PluginContext context);
+            Bundle input, PluginCallback callback, @Nullable PluginContext context);
+
+    /**
+     * Set the class loader that that plugin would use to load child classes.
+     *
+     * @param classLoader A {@link ClassLoader} to be used to load child classes.
+     */
+    default void setClassLoader(ClassLoader classLoader) {}
 }

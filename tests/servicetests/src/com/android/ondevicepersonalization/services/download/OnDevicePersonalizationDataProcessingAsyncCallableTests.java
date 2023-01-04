@@ -29,8 +29,6 @@ import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
-import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
@@ -54,7 +52,6 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
@@ -65,7 +62,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private String mPackageName;
     private PackageInfo mPackageInfo;
     private SynchronousFileStorage mFileStorage;
-    private PluginManager mPluginManager;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -91,7 +87,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                 mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
+                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext),
+                OnDevicePersonalizationExecutors.getLightweightExecutor());
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();
@@ -100,9 +97,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
-
-        mPluginManager = new PluginManagerImpl(
-                Objects.requireNonNull(mContext));
     }
 
     @Test
@@ -120,8 +114,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         dao.updateOrInsertVendorData(mContentExtra);
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(
-                        mPackageInfo, mContext, mPluginManager);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
         callable.call().get(2000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
