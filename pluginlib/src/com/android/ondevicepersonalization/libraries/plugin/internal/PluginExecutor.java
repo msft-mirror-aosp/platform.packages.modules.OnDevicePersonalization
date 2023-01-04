@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.libraries.plugin.internal;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -98,11 +97,11 @@ public class PluginExecutor {
         mPluginContexts.put(pluginId, pluginContext);
 
         // TODO(b/239079143): Add more specific methods to the callback.
-        callback.onSuccess(PersistableBundle.EMPTY);
+        callback.onSuccess(new Bundle());
     }
 
     /** Executes a plugin. */
-    public void execute(PersistableBundle input, String pluginId, PluginCallback callback)
+    public void execute(Bundle input, String pluginId, PluginCallback callback)
             throws RemoteException {
         if (!mPlugins.containsKey(pluginId)) {
             Log.e(TAG, String.format("Could not find a plugin associated with %s", pluginId));
@@ -133,7 +132,7 @@ public class PluginExecutor {
         }
         mPlugins.remove(pluginId);
         mPluginContexts.remove(pluginId);
-        callback.onSuccess(PersistableBundle.EMPTY);
+        callback.onSuccess(new Bundle());
     }
 
     /** Checks the plugin state and returns it via stateCallback. */

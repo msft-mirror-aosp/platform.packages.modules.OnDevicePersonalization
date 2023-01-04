@@ -60,7 +60,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     public void setup() throws Exception {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
+                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext),
+                OnDevicePersonalizationExecutors.getLightweightExecutor());
         mPackageName = mContext.getPackageName();
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
