@@ -21,7 +21,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -99,7 +98,7 @@ public class PluginExecutorService extends Service {
 
             @Override
             public void execute(
-                    String pluginName, PersistableBundle input, IPluginCallback pluginCallback) {
+                    String pluginName, Bundle input, IPluginCallback pluginCallback) {
                 // TODO(b/231347987): we need extra logic somewhere that can validated the contents
                 // of the
                 // output Bundle.
