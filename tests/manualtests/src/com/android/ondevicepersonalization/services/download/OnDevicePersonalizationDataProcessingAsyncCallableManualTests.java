@@ -29,8 +29,6 @@ import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
-import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.VendorData;
@@ -51,7 +49,6 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
@@ -60,7 +57,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private MobileDataDownload mMdd;
     private String mPackageName;
     private PackageInfo mPackageInfo;
-    private PluginManager mPluginManager;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -87,9 +83,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
-
-        mPluginManager = new PluginManagerImpl(
-                Objects.requireNonNull(mContext));
     }
 
     @Test
@@ -102,8 +95,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(
-                        mPackageInfo, mContext, mPluginManager);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
         callable.call().get();
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
