@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.libraries.plugin;
 
-import android.os.PersistableBundle;
+import android.os.Bundle;
 import android.os.RemoteException;
 
 /** Callback interface for plugin methods. */
@@ -25,7 +25,7 @@ public interface PluginCallback {
      * Indicates operation was successful and contains an output bundle if the operation had any
      * output. Throw a RemoteException if the callback fails to run.
      */
-    void onSuccess(PersistableBundle output) throws RemoteException;
+    void onSuccess(Bundle output) throws RemoteException;
 
     /**
      * Indicates operation was unsuccessful and contains a failureType indicating what the error is.

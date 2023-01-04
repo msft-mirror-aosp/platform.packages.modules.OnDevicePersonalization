@@ -71,7 +71,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 height,
                 params,
                 callback,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                OnDevicePersonalizationExecutors.getBackgroundExecutor(),
+                mContext);
         flow.run();
     }
 
