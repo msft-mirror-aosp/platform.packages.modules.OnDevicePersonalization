@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.libraries.plugin;
 
-import android.os.PersistableBundle;
+import android.os.Bundle;
 import android.os.RemoteException;
 
 /** A handle for a client to use that allows them to load, unload, and execute the plugin. */
@@ -37,7 +37,7 @@ public interface PluginController {
      * Runs the plugin with input bundle. Calls the {@link PluginCallback} to indicate success or
      * failure for running the plugin. Throws RemoteException if the callback fails to run.
      */
-    void execute(PersistableBundle input, PluginCallback callback) throws RemoteException;
+    void execute(Bundle input, PluginCallback callback) throws RemoteException;
 
     /**
      * Checks and asynchronously returns the current state of the plugin, expressed as a {@link
