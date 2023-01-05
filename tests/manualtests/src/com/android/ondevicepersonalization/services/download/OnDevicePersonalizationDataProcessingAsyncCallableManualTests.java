@@ -16,15 +16,11 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -56,7 +52,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
-    private PackageInfo mPackageInfo;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -72,8 +67,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
-        mPackageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mMdd = MobileDataDownloadFactory.getMdd(mContext);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -95,7 +88,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
         callable.call().get();
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
