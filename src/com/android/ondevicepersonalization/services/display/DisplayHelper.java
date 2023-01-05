@@ -26,6 +26,7 @@ import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceControlViewHost.SurfacePackage;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
@@ -85,7 +86,12 @@ public class DisplayHelper {
             Log.d(TAG, "createWebView() started");
             WebView webView = new WebView(mContext);
             webView.setWebViewClient(new OdpWebViewClient());
+            WebSettings webViewSettings = webView.getSettings();
+            // Do not allow using file:// or content:// URLs.
+            webViewSettings.setAllowFileAccess(false);
+            webViewSettings.setAllowContentAccess(false);
             webView.loadData(html, "text/html; charset=utf-8", "UTF-8");
+
             Display display = mContext.getSystemService(DisplayManager.class).getDisplay(displayId);
             SurfaceControlViewHost host = new SurfaceControlViewHost(mContext, display, hostToken);
             host.setView(webView, width, height);
