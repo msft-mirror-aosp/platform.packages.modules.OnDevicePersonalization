@@ -24,6 +24,7 @@ import androidx.work.ListenableWorker;
 import androidx.work.WorkerParameters;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingWorker;
 
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures;
 import com.google.common.util.concurrent.Futures;
@@ -63,7 +64,16 @@ public class PeriodicWorker extends ListenableWorker {
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
         return PropagatedFutures.transform(
-                handleTaskFuture, unusedVoid -> ListenableWorker.Result.success(),
+                handleTaskFuture, (unusedVoid) -> {
+                    OnDevicePersonalizationDownloadProcessingWorker.enqueue(mContext);
+                    return ListenableWorker.Result.success();
+                },
                 OnDevicePersonalizationExecutors.getBackgroundExecutor());
+    }
+
+    @Override
+    public void onStopped() {
+        // Attempt to process any data downloaded before the worker was stopped.
+        OnDevicePersonalizationDownloadProcessingWorker.enqueue(mContext);
     }
 }
