@@ -98,7 +98,7 @@ public class TestPersonalizationService extends PersonalizationService {
         Log.d(TAG, "renderContent() started.");
         RenderContentResult result =
                 new RenderContentResult.Builder()
-                .setContent("RenderResult: " + String.join(",", bidIds))
+                .setContent("<p>RenderResult: " + String.join(",", bidIds) + "<p>")
                 .build();
         callback.onSuccess(result);
     }
