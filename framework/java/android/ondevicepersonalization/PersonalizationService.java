@@ -184,8 +184,8 @@ public abstract class PersonalizationService extends Service {
 
                 String appPackageName = Objects.requireNonNull(
                         params.getString(Constants.EXTRA_APP_NAME));
-                PersistableBundle appParams =
-                        (PersistableBundle) params.getParcelable(Constants.EXTRA_APP_PARAMS);
+                PersistableBundle appParams = params.getParcelable(
+                        Constants.EXTRA_APP_PARAMS, PersistableBundle.class);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
@@ -216,7 +216,8 @@ public abstract class PersonalizationService extends Service {
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
                 ParcelFileDescriptor fd = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_PARCEL_FD));
+                        params.getParcelable(
+                            Constants.EXTRA_PARCEL_FD, ParcelFileDescriptor.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
@@ -247,7 +248,7 @@ public abstract class PersonalizationService extends Service {
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 
                 SlotInfo slotInfo = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_SLOT_INFO));
+                        params.getParcelable(Constants.EXTRA_SLOT_INFO, SlotInfo.class));
                 List<String> bidIds = Arrays.asList(Objects.requireNonNull(
                         params.getStringArray(Constants.EXTRA_BID_IDS)));
                 IDataAccessService binder =
@@ -280,7 +281,8 @@ public abstract class PersonalizationService extends Service {
             } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
 
                 EventMetricsInput eventMetricsInput = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_EVENT_METRICS_INPUT));
+                        params.getParcelable(
+                            Constants.EXTRA_EVENT_METRICS_INPUT, EventMetricsInput.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
