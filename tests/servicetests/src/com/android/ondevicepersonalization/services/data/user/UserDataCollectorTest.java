@@ -33,6 +33,7 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -49,7 +50,7 @@ public class UserDataCollectorTest {
         mUserData = UserData.getInstance();
         mCollector.clearUserData(mUserData);
         mCollector.setLastTimeMillisAppUsageCollected(0);
-        mCollector.setAppUsageCollectionCount(0);
+        mCollector.setAllowedAppUsageEntries(new LinkedList<>());
     }
 
     @Test
