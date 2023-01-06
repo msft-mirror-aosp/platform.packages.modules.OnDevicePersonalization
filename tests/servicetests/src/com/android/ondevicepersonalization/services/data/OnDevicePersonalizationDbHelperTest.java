@@ -27,6 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
+import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 import org.junit.Before;
 import org.junit.Test;
