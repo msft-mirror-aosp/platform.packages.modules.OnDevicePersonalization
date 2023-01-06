@@ -81,6 +81,17 @@ public abstract class PersonalizationService extends Service {
         void onError();
     }
 
+    /**
+     * Callback to signal the completion of event metrics computation.
+     */
+    public interface EventMetricsCallback {
+        /** Provides the computed event metrics */
+        void onSuccess(EventMetricsResult result);
+
+        /** Error in computing event metrics. */
+        void onError();
+    }
+
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
     }
@@ -138,6 +149,22 @@ public abstract class PersonalizationService extends Service {
             @NonNull List<String> bidIds,
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull RenderContentCallback callback
+    ) {
+        callback.onError();
+    }
+
+    /**
+     * Compute a list of metrics to be logged in the events table with this event.
+     *
+     * @param input The query-time data required to compute the event metrics.
+     * @param odpContext The per-request state for this request.
+     * @param callback Callback to be invoked on completion.
+     */
+    // TODO(b/259950177): Also provide the Query event from the Query table.
+    public void computeEventMetrics(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull EventMetricsCallback callback
     ) {
         callback.onError();
     }
@@ -249,6 +276,37 @@ public abstract class PersonalizationService extends Service {
                 };
                 PersonalizationService.this.renderContent(
                         slotInfo, bidIds, odpContext, wrappedCallback);
+
+            } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
+
+                EventMetricsInput eventMetricsInput = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_EVENT_METRICS_INPUT));
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(Objects.requireNonNull(
+                            params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                OnDevicePersonalizationContext odpContext =
+                        new OnDevicePersonalizationContextImpl(binder);
+                var wrappedCallback = new EventMetricsCallback() {
+                    @Override public void onSuccess(EventMetricsResult result) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
+                        try {
+                            callback.onSuccess(bundle);
+                        } catch (RemoteException e) {
+                            Log.w(TAG, "Callback failed.", e);
+                        }
+                    }
+
+                    @Override public void onError() {
+                        try {
+                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                        } catch (RemoteException e) {
+                            Log.w(TAG, "Callback failed.", e);
+                        }
+                    }
+                };
+                PersonalizationService.this.computeEventMetrics(
+                        eventMetricsInput, odpContext, wrappedCallback);
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
