@@ -75,22 +75,22 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
             Log.d(TAG, "Received unexpected intent " + intent.getAction());
             return;
         }
-        // TODO(b/239479120): This job should be enqueued after
-        // the MDD download instead of on-boot.
-        OnDevicePersonalizationDownloadProcessingWorker.enqueue(context);
 
+        final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
         Futures.addCallback(
                 MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Log.d(TAG, "Successfully schedule MDD tasks.");
+                        Log.d(TAG, "Successfully scheduled MDD tasks.");
+                        pendingResult.finish();
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Successfully schedule MDD tasks.");
+                        Log.e(TAG, "Failed to scheduled MDD tasks.");
+                        pendingResult.finish();
                     }
                 },
                 mExecutor);

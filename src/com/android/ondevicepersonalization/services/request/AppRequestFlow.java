@@ -35,6 +35,7 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
@@ -79,26 +80,13 @@ public class AppRequestFlow {
         }
     }
 
-    static class OutputHelper {
-        String generateHtml(RenderContentResult renderContentResult) {
-            // TODO(b/228200518): Implement.
-            return "";
-        }
-
-        ListenableFuture<SurfacePackage> displayHtml(
-                String html, SurfaceInfo surfaceInfo) {
-            // TODO(b/228200518): Create a webview and display the content.
-            return Futures.immediateFuture(null);
-        }
-    }
-
     @NonNull private final String mCallingPackageName;
     @NonNull private final String mServicePackageName;
     @NonNull private final Bundle mParams;
     @NonNull private final IRequestSurfacePackageCallback mCallback;
     @NonNull private final ListeningExecutorService mExecutorService;
     @NonNull private final Context mContext;
-    @NonNull private final OutputHelper mOutputHelper;
+    @NonNull private final DisplayHelper mDisplayHelper;
     @NonNull private final List<SurfaceInfo> mSurfaceInfos;
     @NonNull private String mServiceClassName;
 
@@ -114,7 +102,7 @@ public class AppRequestFlow {
             @NonNull ListeningExecutorService executorService,
             @NonNull Context context) {
         this(callingPackageName, servicePackageName, hostToken, displayId, width, height, params,
-                callback, executorService, context, new OutputHelper());
+                callback, executorService, context, new DisplayHelper(context));
     }
 
     @VisibleForTesting
@@ -129,7 +117,7 @@ public class AppRequestFlow {
             @NonNull IRequestSurfacePackageCallback callback,
             @NonNull ListeningExecutorService executorService,
             @NonNull Context context,
-            @NonNull OutputHelper outputHelper) {
+            @NonNull DisplayHelper displayHelper) {
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
         mServicePackageName = Objects.requireNonNull(servicePackageName);
         SurfaceInfo surfaceInfo = new SurfaceInfo(
@@ -141,7 +129,7 @@ public class AppRequestFlow {
         mCallback = Objects.requireNonNull(callback);
         mExecutorService = Objects.requireNonNull(executorService);
         mContext = Objects.requireNonNull(context);
-        mOutputHelper = Objects.requireNonNull(outputHelper);
+        mDisplayHelper = Objects.requireNonNull(displayHelper);
 
     }
 
@@ -274,9 +262,14 @@ public class AppRequestFlow {
                     return result.getParcelable(
                             Constants.EXTRA_RESULT, RenderContentResult.class);
                 }, mExecutorService)
-                .transform(result -> mOutputHelper.generateHtml(result), mExecutorService)
+                .transform(result -> mDisplayHelper.generateHtml(result), mExecutorService)
                 .transformAsync(
-                        result -> mOutputHelper.displayHtml(result, surfaceInfo),
+                        result -> mDisplayHelper.displayHtml(
+                                result,
+                                surfaceInfo.mHostToken,
+                                surfaceInfo.mDisplayId,
+                                surfaceInfo.mWidth,
+                                surfaceInfo.mHeight),
                         mExecutorService);
     }
 
@@ -297,9 +290,14 @@ public class AppRequestFlow {
 
     private void sendDisplayResult(List<SurfacePackage> surfacePackages) {
         try {
-            // TODO(b/228200518): Support multiple slots.
-            SurfacePackage surfacePackage = surfacePackages.get(0);
-            mCallback.onSuccess(surfacePackage);
+            if (surfacePackages != null && surfacePackages.size() > 0) {
+                // TODO(b/228200518): Support multiple slots.
+                SurfacePackage surfacePackage = surfacePackages.get(0);
+                mCallback.onSuccess(surfacePackage);
+            } else {
+                Log.w(TAG, "surfacePackages is null or empty");
+                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            }
         } catch (RemoteException e) {
             Log.w(TAG, "Callback error", e);
         }

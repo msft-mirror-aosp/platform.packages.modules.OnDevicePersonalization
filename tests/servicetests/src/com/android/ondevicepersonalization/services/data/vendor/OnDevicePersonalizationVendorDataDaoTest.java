@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data;
+package com.android.ondevicepersonalization.services.data.vendor;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -23,6 +23,8 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
+
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import org.junit.After;
 import org.junit.Before;
@@ -48,8 +50,7 @@ public class OnDevicePersonalizationVendorDataDaoTest {
 
     @Test
     public void testInsert() {
-        VendorData data = new VendorData.Builder().setKey("key").setData(new byte[10]).setFp(
-                "fp").build();
+        VendorData data = new VendorData.Builder().setKey("key").setData(new byte[10]).build();
         boolean insertResult = mDao.updateOrInsertVendorData(data);
         assertTrue(insertResult);
     }
@@ -57,10 +58,8 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     @Test
     public void testBatchInsert() {
         List<VendorData> dataList = new ArrayList<>();
-        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).setFp(
-                "fp").build());
-        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).setFp(
-                "fp2").build());
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
         boolean insertResult = mDao.batchUpdateOrInsertVendorDataTransaction(dataList,
                 System.currentTimeMillis());
         assertTrue(insertResult);
