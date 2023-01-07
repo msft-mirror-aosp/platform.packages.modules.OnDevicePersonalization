@@ -120,23 +120,166 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the ExchangeResult object serializes correctly.
+     * Tests that the AppRequestResult object serializes correctly.
      */
     @Test
-    public void testExchangeResult() {
-        ExchangeResult result =
-                new ExchangeResult.Builder()
-                        .setKey("key1")
-                        .setResponse("content")
-                        .build();
+    public void testAppRequestResult() {
+        AppRequestResult result =
+                new AppRequestResult.Builder()
+                    .addSlotResults(
+                        new SlotResult.Builder().setSlotId("abc")
+                            .addWinningBids(
+                                new ScoredBid.Builder()
+                                    .setBidId("bid1")
+                                    .setPrice(5.0)
+                                    .setScore(1.0)
+                                    .setMetrics(new Metrics.Builder()
+                                        .setIntMetrics(11).build())
+                                    .addEventMetricsInputs(
+                                        new EventMetricsInput.Builder()
+                                            .setEventType(6).build())
+                                    .build())
+                            .addRejectedBids(
+                                new ScoredBid.Builder()
+                                    .setBidId("bid2")
+                                    .setPrice(1.0)
+                                    .setScore(0.1)
+                                    .build())
+                            .build())
+                    .build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        ExchangeResult result2 = ExchangeResult.CREATOR.createFromParcel(parcel);
+        AppRequestResult result2 = AppRequestResult.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
-        assertEquals("key1", result2.getKey());
-        assertEquals("content", result2.getResponse());
+        SlotResult slotResult = result2.getSlotResults().get(0);
+        assertEquals("abc", slotResult.getSlotId());
+        assertEquals("bid1", slotResult.getWinningBids().get(0).getBidId());
+        assertEquals(5.0, slotResult.getWinningBids().get(0).getPrice(), 0.0);
+        assertEquals(1.0, slotResult.getWinningBids().get(0).getScore(), 0.0);
+        assertEquals(11, slotResult.getWinningBids().get(0).getMetrics().getIntMetrics()[0]);
+        assertEquals(
+                6,
+                slotResult.getWinningBids().get(0).getEventMetricsInputs().get(0).getEventType());
+        assertEquals("bid2", slotResult.getRejectedBids().get(0).getBidId());
+        assertEquals(1.0, slotResult.getRejectedBids().get(0).getPrice(), 0.0);
+        assertEquals(0.1, slotResult.getRejectedBids().get(0).getScore(), 0.0);
+    }
+
+    /**
+     * Tests that the SlotInfo object serializes correctly.
+     */
+    @Test
+    public void testSlotInfo() {
+        SlotInfo slotInfo = new SlotInfo.Builder().setWidth(100).setHeight(50).build();
+
+        Parcel parcel = Parcel.obtain();
+        slotInfo.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        SlotInfo slotInfo2 = SlotInfo.CREATOR.createFromParcel(parcel);
+
+        assertEquals(slotInfo, slotInfo2);
+        assertEquals(100, slotInfo2.getWidth());
+        assertEquals(50, slotInfo2.getHeight());
+    }
+
+    /**
+     * Tests that the RenderContentResult object serializes correctly.
+     */
+    @Test
+    public void testRenderContentResult() {
+        RenderContentResult result = new RenderContentResult.Builder().setContent("abc").build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        RenderContentResult result2 = RenderContentResult.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals("abc", result2.getContent());
+    }
+
+    /**
+     * Tests that the DownloadResult object serializes correctly.
+     */
+    @Test
+    public void teetDownloadResult() {
+        DownloadResult result = new DownloadResult.Builder()
+                .addKeysToRetain("abc").addKeysToRetain("def").build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        DownloadResult result2 = DownloadResult.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals("abc", result2.getKeysToRetain().get(0));
+        assertEquals("def", result2.getKeysToRetain().get(1));
+    }
+
+    /**
+     * Tests that the Metrics object serializes correctly.
+     */
+    @Test
+    public void testMetrics() {
+        long[] intMetrics = {10, 20};
+        double[] floatMetrics = {5.0};
+        Metrics result = new Metrics.Builder()
+                .setIntMetrics(intMetrics).setFloatMetrics(floatMetrics).build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        Metrics result2 = Metrics.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals(10, result2.getIntMetrics()[0]);
+        assertEquals(20, result2.getIntMetrics()[1]);
+        assertEquals(5.0, result2.getFloatMetrics()[0], 0.01);
+    }
+
+    /**
+     * Tests that the EventMetricsInput object serializes correctly.
+     */
+    @Test
+    public void testEventMetricsInput() {
+        long[] intInput = {10, 20};
+        double[] floatInput = {5.0};
+        EventMetricsInput result = new EventMetricsInput.Builder()
+                .setEventType(6)
+                .setIntInputs(intInput)
+                .setFloatInputs(floatInput).build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        EventMetricsInput result2 = EventMetricsInput.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals(6, result2.getEventType());
+        assertEquals(10, result2.getIntInputs()[0]);
+        assertEquals(20, result2.getIntInputs()[1]);
+        assertEquals(5.0, result2.getFloatInputs()[0], 0.0);
+    }
+
+    /**
+     * Tests that the Metrics object serializes correctly.
+     */
+    @Test
+    public void testEventMetricsResult() {
+        long[] intMetrics = {10, 20};
+        double[] floatMetrics = {5.0};
+        EventMetricsResult result = new EventMetricsResult.Builder()
+                .setMetrics(new Metrics.Builder().setIntMetrics(11).build()).build();
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        EventMetricsResult result2 = EventMetricsResult.CREATOR.createFromParcel(parcel);
+
+        assertEquals(result, result2);
+        assertEquals(11, result2.getMetrics().getIntMetrics()[0]);
     }
 }

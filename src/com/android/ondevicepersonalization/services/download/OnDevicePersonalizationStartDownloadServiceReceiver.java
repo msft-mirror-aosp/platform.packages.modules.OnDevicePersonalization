@@ -25,17 +25,30 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
+import java.util.concurrent.Executor;
+
 /**
  * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
  */
 public class OnDevicePersonalizationStartDownloadServiceReceiver extends BroadcastReceiver {
     private static final String TAG = "OnDevicePersonalizationStartDownloadServiceReceiver";
+    private final Executor mExecutor;
+
+    public OnDevicePersonalizationStartDownloadServiceReceiver() {
+        this.mExecutor = OnDevicePersonalizationExecutors.getLightweightExecutor();
+    }
+
+    @VisibleForTesting
+    public OnDevicePersonalizationStartDownloadServiceReceiver(Executor executor) {
+        this.mExecutor = executor;
+    }
 
     /** Enable the OnDevicePersonalizationStartDownloadServiceReceiver */
     public static boolean enableReceiver(Context context) {
@@ -62,24 +75,24 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
             Log.d(TAG, "Received unexpected intent " + intent.getAction());
             return;
         }
-        // TODO(b/239479120): This job should be enqueued after
-        // the MDD download instead of on-boot.
-        OnDevicePersonalizationDownloadProcessingWorker.enqueue(context);
 
+        final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
         Futures.addCallback(
                 MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Log.d(TAG, "Successfully schedule MDD tasks.");
+                        Log.d(TAG, "Successfully scheduled MDD tasks.");
+                        pendingResult.finish();
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Successfully schedule MDD tasks.");
+                        Log.e(TAG, "Failed to scheduled MDD tasks.");
+                        pendingResult.finish();
                     }
                 },
-                OnDevicePersonalizationExecutors.getLightweightExecutor());
+                mExecutor);
     }
 }

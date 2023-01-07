@@ -17,12 +17,45 @@
 package android.ondevicepersonalization;
 
 /**
- * Constants used in the OnDevicePersonalization Module.
+ * Constants used internally in the OnDevicePersonalization Module and not
+ * used in public APIs.
  *
  * @hide
  */
 public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
+
+    // Operations implemented by personalization services.
+    public static final int OP_APP_REQUEST = 1;
+    public static final int OP_DOWNLOAD_FINISHED = 2;
+    public static final int OP_RENDER_CONTENT = 3;
+    public static final int OP_COMPUTE_EVENT_METRICS = 4;
+
+    // Keys for Bundle objects passed between processes.
+    public static final String
+            EXTRA_APP_NAME = "android.ondevicepersonalization.app_name";
+    public static final String
+            EXTRA_APP_PARAMS = "android.ondevicepersonalization.app_params";
+    public static final String
+            EXTRA_BID_IDS = "android.ondevicepersonalization.bid_ids";
+    public static final String
+            EXTRA_DATA_ACCESS_SERVICE_BINDER =
+                "android.ondevicepersonalization.data_access_service_binder";
+    public static final String
+            EXTRA_EVENT_METRICS_INPUT =
+                "android.ondevicepersonalization.event_metrics_input";
+    public static final String
+            EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.lookup_keys";
+    public static final String
+            EXTRA_PARCEL_FD = "android.ondevicepersonalization.parcel_fd";
+    public static final String
+            EXTRA_RESULT = "android.ondevicepersonalization.result";
+    public static final String
+            EXTRA_SLOT_INFO = "android.ondevicepersonalization.slot_info";
+
+    // Data Access Service operations.
+    public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
+    public static final int DATA_ACCESS_OP_REMOTE_DATA_SCAN = 2;
 
     private Constants() {}
 }

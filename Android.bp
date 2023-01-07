@@ -58,11 +58,25 @@ java_library {
     ]
 }
 
+java_genrule {
+    name: "ondevicepersonalization-fbs",
+    tools: [
+        "flatc",
+        "soong_zip",
+    ],
+    host_supported: true,
+    srcs: ["src/**/*.fbs"],
+    out: ["ondevicepersonalization-fbs.srcjar"],
+    cmd: "$(location flatc) -o $(genDir) --java $(in) " +
+        "&& $(location soong_zip) -o $(out) -C $(genDir) -D $(genDir)",
+}
+
 android_app {
     name: "OnDevicePersonalization",
     srcs: [
         ":ondevicepersonalization-sources",
         ":chronicle-sources",
+        ":ondevicepersonalization-fbs",
     ],
     libs: [
         "framework-ondevicepersonalization",
@@ -80,6 +94,7 @@ android_app {
         "ondevicepersonalization-protos",
         "mobile_data_downloader_lib",
         "ondevicepersonalization-plugin-lib",
+        "flatbuffers-java",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
@@ -89,4 +104,7 @@ android_app {
     defaults: [
         "ondevicepersonalization-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["src/proguard.flags"],
+    },
 }
