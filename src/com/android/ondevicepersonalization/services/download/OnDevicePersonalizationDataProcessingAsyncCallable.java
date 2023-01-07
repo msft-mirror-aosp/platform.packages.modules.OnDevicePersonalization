@@ -17,7 +17,6 @@
 package com.android.ondevicepersonalization.services.download;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
@@ -29,8 +28,8 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.data.VendorData;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -67,13 +66,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
     private final Context mContext;
-    private final PackageInfo mPackageInfo;
     private OnDevicePersonalizationVendorDataDao mDao;
 
-    public OnDevicePersonalizationDataProcessingAsyncCallable(PackageInfo packageInfo,
+    public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
             Context context) {
-        mPackageInfo = packageInfo;
-        mPackageName = packageInfo.packageName;
+        mPackageName = packageName;
         mContext = context;
     }
 

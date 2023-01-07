@@ -16,23 +16,19 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.data.VendorData;
-import com.android.ondevicepersonalization.services.data.VendorDataContract;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.data.vendor.VendorDataContract;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -56,7 +52,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
-    private PackageInfo mPackageInfo;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
@@ -72,8 +67,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
-        mPackageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mMdd = MobileDataDownloadFactory.getMdd(mContext);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -95,7 +88,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageInfo, mContext);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
         callable.call().get();
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
