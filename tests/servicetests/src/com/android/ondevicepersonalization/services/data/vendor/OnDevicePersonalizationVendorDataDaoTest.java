@@ -50,8 +50,7 @@ public class OnDevicePersonalizationVendorDataDaoTest {
 
     @Test
     public void testInsert() {
-        VendorData data = new VendorData.Builder().setKey("key").setData(new byte[10]).setFp(
-                "fp").build();
+        VendorData data = new VendorData.Builder().setKey("key").setData(new byte[10]).build();
         boolean insertResult = mDao.updateOrInsertVendorData(data);
         assertTrue(insertResult);
     }
@@ -59,10 +58,8 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     @Test
     public void testBatchInsert() {
         List<VendorData> dataList = new ArrayList<>();
-        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).setFp(
-                "fp").build());
-        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).setFp(
-                "fp2").build());
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
         boolean insertResult = mDao.batchUpdateOrInsertVendorDataTransaction(dataList,
                 System.currentTimeMillis());
         assertTrue(insertResult);
