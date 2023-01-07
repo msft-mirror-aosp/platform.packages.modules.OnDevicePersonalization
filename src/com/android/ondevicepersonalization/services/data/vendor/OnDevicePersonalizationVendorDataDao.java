@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data;
+package com.android.ondevicepersonalization.services.data.vendor;
 
 import android.content.ContentValues;
 import android.content.Context;
@@ -25,6 +25,7 @@ import android.database.sqlite.SQLiteException;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.util.HashMap;
 import java.util.List;
@@ -221,7 +222,6 @@ public class OnDevicePersonalizationVendorDataDao {
             ContentValues values = new ContentValues();
             values.put(VendorDataContract.VendorDataEntry.KEY, vendorData.getKey());
             values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
-            values.put(VendorDataContract.VendorDataEntry.FP, vendorData.getFp());
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {

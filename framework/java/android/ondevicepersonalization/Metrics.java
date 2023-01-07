@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,17 +22,17 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The output to be rendered in a slot within a calling app.
+ * A list of metrics to be logged in the Query or Events table.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class RenderContentResult implements Parcelable {
-    /** The content to be rendered. */
-    @Nullable private String mContent = "";
+public final class Metrics implements Parcelable {
+    /** Integer or fixed point metrics. */
+    @Nullable private long[] mIntMetrics = null;
 
-    // TODO(b/263180569): Add rendering template parameters.
-
+    /** Floating point metrics. */
+    @Nullable private double[] mFloatMetrics = null;
 
 
 
@@ -42,7 +42,7 @@ public final class RenderContentResult implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentResult.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Metrics.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -50,35 +50,46 @@ public final class RenderContentResult implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ RenderContentResult(
-            @Nullable String content) {
-        this.mContent = content;
+    /* package-private */ Metrics(
+            @Nullable long[] intMetrics,
+            @Nullable double[] floatMetrics) {
+        this.mIntMetrics = intMetrics;
+        this.mFloatMetrics = floatMetrics;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The content to be rendered.
+     * Integer or fixed point metrics.
      */
     @DataClass.Generated.Member
-    public @Nullable String getContent() {
-        return mContent;
+    public @Nullable long[] getIntMetrics() {
+        return mIntMetrics;
+    }
+
+    /**
+     * Floating point metrics.
+     */
+    @DataClass.Generated.Member
+    public @Nullable double[] getFloatMetrics() {
+        return mFloatMetrics;
     }
 
     @Override
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(RenderContentResult other) { ... }
+        // boolean fieldNameEquals(Metrics other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        RenderContentResult that = (RenderContentResult) o;
+        Metrics that = (Metrics) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mContent, that.mContent);
+                && java.util.Arrays.equals(mIntMetrics, that.mIntMetrics)
+                && java.util.Arrays.equals(mFloatMetrics, that.mFloatMetrics);
     }
 
     @Override
@@ -88,7 +99,8 @@ public final class RenderContentResult implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mContent);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mIntMetrics);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mFloatMetrics);
         return _hash;
     }
 
@@ -99,9 +111,11 @@ public final class RenderContentResult implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mContent != null) flg |= 0x1;
+        if (mIntMetrics != null) flg |= 0x1;
+        if (mFloatMetrics != null) flg |= 0x2;
         dest.writeByte(flg);
-        if (mContent != null) dest.writeString(mContent);
+        if (mIntMetrics != null) dest.writeLongArray(mIntMetrics);
+        if (mFloatMetrics != null) dest.writeDoubleArray(mFloatMetrics);
     }
 
     @Override
@@ -111,40 +125,43 @@ public final class RenderContentResult implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ RenderContentResult(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ Metrics(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        String content = (flg & 0x1) == 0 ? null : in.readString();
+        long[] intMetrics = (flg & 0x1) == 0 ? null : in.createLongArray();
+        double[] floatMetrics = (flg & 0x2) == 0 ? null : in.createDoubleArray();
 
-        this.mContent = content;
+        this.mIntMetrics = intMetrics;
+        this.mFloatMetrics = floatMetrics;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<RenderContentResult> CREATOR
-            = new Parcelable.Creator<RenderContentResult>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<Metrics> CREATOR
+            = new Parcelable.Creator<Metrics>() {
         @Override
-        public RenderContentResult[] newArray(int size) {
-            return new RenderContentResult[size];
+        public Metrics[] newArray(int size) {
+            return new Metrics[size];
         }
 
         @Override
-        public RenderContentResult createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new RenderContentResult(in);
+        public Metrics createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new Metrics(in);
         }
     };
 
     /**
-     * A builder for {@link RenderContentResult}
+     * A builder for {@link Metrics}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable String mContent;
+        private @Nullable long[] mIntMetrics;
+        private @Nullable double[] mFloatMetrics;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -152,31 +169,46 @@ public final class RenderContentResult implements Parcelable {
         }
 
         /**
-         * The content to be rendered.
+         * Integer or fixed point metrics.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setContent(@android.annotation.NonNull String value) {
+        public @android.annotation.NonNull Builder setIntMetrics(@android.annotation.NonNull long... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mContent = value;
+            mIntMetrics = value;
+            return this;
+        }
+
+        /**
+         * Floating point metrics.
+         */
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setFloatMetrics(@android.annotation.NonNull double... value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x2;
+            mFloatMetrics = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull RenderContentResult build() {
+        public @android.annotation.NonNull Metrics build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x2; // Mark builder used
+            mBuilderFieldsSet |= 0x4; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mContent = "";
+                mIntMetrics = null;
             }
-            RenderContentResult o = new RenderContentResult(
-                    mContent);
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mFloatMetrics = null;
+            }
+            Metrics o = new Metrics(
+                    mIntMetrics,
+                    mFloatMetrics);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x2) != 0) {
+            if ((mBuilderFieldsSet & 0x4) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -184,10 +216,10 @@ public final class RenderContentResult implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1671568236503L,
+            time = 1672952911713L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentResult.java",
-            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nclass RenderContentResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Metrics.java",
+            inputSignatures = "private @android.annotation.Nullable long[] mIntMetrics\nprivate @android.annotation.Nullable double[] mFloatMetrics\nclass Metrics extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

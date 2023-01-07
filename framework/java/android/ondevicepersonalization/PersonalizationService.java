@@ -81,6 +81,17 @@ public abstract class PersonalizationService extends Service {
         void onError();
     }
 
+    /**
+     * Callback to signal the completion of event metrics computation.
+     */
+    public interface EventMetricsCallback {
+        /** Provides the computed event metrics */
+        void onSuccess(EventMetricsResult result);
+
+        /** Error in computing event metrics. */
+        void onError();
+    }
+
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
     }
@@ -142,6 +153,22 @@ public abstract class PersonalizationService extends Service {
         callback.onError();
     }
 
+    /**
+     * Compute a list of metrics to be logged in the events table with this event.
+     *
+     * @param input The query-time data required to compute the event metrics.
+     * @param odpContext The per-request state for this request.
+     * @param callback Callback to be invoked on completion.
+     */
+    // TODO(b/259950177): Also provide the Query event from the Query table.
+    public void computeEventMetrics(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull EventMetricsCallback callback
+    ) {
+        callback.onError();
+    }
+
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
     class ServiceBinder extends IPersonalizationService.Stub {
@@ -157,8 +184,8 @@ public abstract class PersonalizationService extends Service {
 
                 String appPackageName = Objects.requireNonNull(
                         params.getString(Constants.EXTRA_APP_NAME));
-                PersistableBundle appParams =
-                        (PersistableBundle) params.getParcelable(Constants.EXTRA_APP_PARAMS);
+                PersistableBundle appParams = params.getParcelable(
+                        Constants.EXTRA_APP_PARAMS, PersistableBundle.class);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
@@ -189,7 +216,8 @@ public abstract class PersonalizationService extends Service {
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
                 ParcelFileDescriptor fd = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_PARCEL_FD));
+                        params.getParcelable(
+                            Constants.EXTRA_PARCEL_FD, ParcelFileDescriptor.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
@@ -220,7 +248,7 @@ public abstract class PersonalizationService extends Service {
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 
                 SlotInfo slotInfo = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_SLOT_INFO));
+                        params.getParcelable(Constants.EXTRA_SLOT_INFO, SlotInfo.class));
                 List<String> bidIds = Arrays.asList(Objects.requireNonNull(
                         params.getStringArray(Constants.EXTRA_BID_IDS)));
                 IDataAccessService binder =
@@ -249,6 +277,38 @@ public abstract class PersonalizationService extends Service {
                 };
                 PersonalizationService.this.renderContent(
                         slotInfo, bidIds, odpContext, wrappedCallback);
+
+            } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
+
+                EventMetricsInput eventMetricsInput = Objects.requireNonNull(
+                        params.getParcelable(
+                            Constants.EXTRA_EVENT_METRICS_INPUT, EventMetricsInput.class));
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(Objects.requireNonNull(
+                            params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                OnDevicePersonalizationContext odpContext =
+                        new OnDevicePersonalizationContextImpl(binder);
+                var wrappedCallback = new EventMetricsCallback() {
+                    @Override public void onSuccess(EventMetricsResult result) {
+                        Bundle bundle = new Bundle();
+                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
+                        try {
+                            callback.onSuccess(bundle);
+                        } catch (RemoteException e) {
+                            Log.w(TAG, "Callback failed.", e);
+                        }
+                    }
+
+                    @Override public void onError() {
+                        try {
+                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                        } catch (RemoteException e) {
+                            Log.w(TAG, "Callback failed.", e);
+                        }
+                    }
+                };
+                PersonalizationService.this.computeEventMetrics(
+                        eventMetricsInput, odpContext, wrappedCallback);
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
