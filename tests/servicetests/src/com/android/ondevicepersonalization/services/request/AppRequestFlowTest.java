@@ -23,9 +23,12 @@ import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
+
+import com.android.ondevicepersonalization.services.display.DisplayHelper;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -60,7 +63,7 @@ public class AppRequestFlowTest {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc", mContext.getPackageName(), new Binder(), -1, 100, 50,
                 new Bundle(), new TestCallback(), MoreExecutors.newDirectExecutorService(),
-                mContext, new TestOutputHelper());
+                mContext, new TestDisplayHelper());
         appRequestFlow.run();
         mLatch.await();
         assertTrue(mGenerateHtmlCalled);
@@ -70,17 +73,19 @@ public class AppRequestFlowTest {
         assertTrue(mGeneratedHtml.contains("bid1"));
     }
 
-    class TestOutputHelper extends AppRequestFlow.OutputHelper {
-        @Override String generateHtml(RenderContentResult renderContentResult) {
-            mRenderedContent = renderContentResult.getContent();
-            String[] data = renderContentResult.getContent().split(" ");
-            String snippet = data.length >= 2 ? data[1] : "failed";
-            mGenerateHtmlCalled = true;
-            return "<html>" + snippet + "</html>";
+    class TestDisplayHelper extends DisplayHelper {
+        TestDisplayHelper() {
+            super(mContext);
         }
 
-        @Override ListenableFuture<SurfacePackage> displayHtml(
-                String html, AppRequestFlow.SurfaceInfo surfaceInfo) {
+        @Override public String generateHtml(RenderContentResult renderContentResult) {
+            mRenderedContent = renderContentResult.getContent();
+            mGenerateHtmlCalled = true;
+            return mRenderedContent;
+        }
+
+        @Override public ListenableFuture<SurfacePackage> displayHtml(
+                String html, IBinder hostToken, int displayId, int width, int height) {
             mGeneratedHtml = html;
             mDisplayHtmlCalled = true;
             return Futures.immediateFuture(null);
