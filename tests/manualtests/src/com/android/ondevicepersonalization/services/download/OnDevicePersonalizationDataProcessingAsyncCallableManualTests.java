@@ -55,13 +55,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
-            .setFp("fp1")
             .build();
 
     private final VendorData mContent2 = new VendorData.Builder()
             .setKey("key2")
             .setData("dGVzdGRhdGEy".getBytes())
-            .setFp("fp2")
             .build();
 
     @Before
@@ -101,13 +99,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
 
             byte[] data = cursor.getBlob(
                     cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.DATA));
-
-            String fp = cursor.getString(
-                    cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.FP));
             vendorDataList.add(new VendorData.Builder()
                     .setKey(key)
                     .setData(data)
-                    .setFp(fp)
                     .build());
         }
         cursor.close();
@@ -126,7 +120,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableManualTests {
     private void compareDataContent(VendorData expectedData, VendorData actualData) {
         assertEquals(expectedData.getKey(), actualData.getKey());
         assertArrayEquals(expectedData.getData(), actualData.getData());
-        assertEquals(expectedData.getFp(), actualData.getFp());
     }
 
     @After
