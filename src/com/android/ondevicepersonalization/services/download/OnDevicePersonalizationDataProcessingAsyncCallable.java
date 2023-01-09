@@ -229,7 +229,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private VendorData readContent(JsonReader reader) throws IOException {
         String key = null;
         byte[] data = null;
-        String fp = null;
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
@@ -237,16 +236,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 key = reader.nextString();
             } else if (name.equals("data")) {
                 data = reader.nextString().getBytes();
-            } else if (name.equals("fp")) {
-                fp = reader.nextString();
             } else {
                 reader.skipValue();
             }
         }
         reader.endObject();
-        if (key == null || data == null || fp == null) {
+        if (key == null || data == null) {
             return null;
         }
-        return new VendorData.Builder().setKey(key).setData(data).setFp(fp).build();
+        return new VendorData.Builder().setKey(key).setData(data).build();
     }
 }

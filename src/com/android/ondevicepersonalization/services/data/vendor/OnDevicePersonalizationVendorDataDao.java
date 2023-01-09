@@ -222,7 +222,6 @@ public class OnDevicePersonalizationVendorDataDao {
             ContentValues values = new ContentValues();
             values.put(VendorDataContract.VendorDataEntry.KEY, vendorData.getKey());
             values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
-            values.put(VendorDataContract.VendorDataEntry.FP, vendorData.getFp());
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {

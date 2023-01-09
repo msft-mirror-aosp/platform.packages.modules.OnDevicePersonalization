@@ -32,8 +32,6 @@ public class VendorDataContract {
         public static final String KEY = "key";
         /** Row data - ads or other vendor settings */
         public static final String DATA = "data";
-        /** A vendor-assigned fingerprint for the row contents */
-        public static final String FP = "fp";
 
         private VendorDataEntry() {
         }
@@ -45,7 +43,6 @@ public class VendorDataContract {
             return "CREATE TABLE IF NOT EXISTS " + tableName + " ("
                     + KEY + " TEXT NOT NULL,"
                     + DATA + " BLOB NOT NULL,"
-                    + FP + " TEXT NOT NULL,"
                     + "PRIMARY KEY(" + KEY + "))";
         }
     }

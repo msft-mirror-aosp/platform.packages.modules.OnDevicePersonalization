@@ -21,18 +21,17 @@ import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.ondevicepersonalization.RenderContentResult;
 import android.os.IBinder;
-import android.os.OutcomeReceiver;
 import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceControlViewHost.SurfacePackage;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
-
-import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.SettableFuture;
 
 /** Helper class to display personalized content. */
 public class DisplayHelper {
@@ -54,47 +53,40 @@ public class DisplayHelper {
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
             @NonNull String html, @NonNull IBinder hostToken,
             int displayId, int width, int height) {
-        return CallbackToFutureAdapter.getFuture(
-            completer -> {
-                try {
-                    Log.d(TAG, "displayHtml");
-                    OnDevicePersonalizationExecutors.getHandler().post(() -> {
-                        createWebView(html, hostToken, displayId, width, height,
-                                new OutcomeReceiver<SurfacePackage, Exception>() {
-                                    @Override public void onResult(SurfacePackage surfacePackage) {
-                                        completer.set(surfacePackage);
-                                    }
-                                    @Override public void onError(Exception e) {
-                                        completer.setException(e);
-                                    }
-                                });
-                    });
-                } catch (Exception e) {
-                    completer.setException(e);
-                }
-                return "displayHtml";
-            }
-        );
-
+        SettableFuture<SurfacePackage> result = SettableFuture.create();
+        try {
+            Log.d(TAG, "displayHtml");
+            OnDevicePersonalizationExecutors.getHandler().post(() -> {
+                createWebView(html, hostToken, displayId, width, height, result);
+            });
+        } catch (Exception e) {
+            result.setException(e);
+        }
+        return result;
     }
 
     private void createWebView(
             @NonNull String html, @NonNull IBinder hostToken, int displayId, int width, int height,
-            @NonNull OutcomeReceiver<SurfacePackage, Exception> receiver) {
+            @NonNull SettableFuture<SurfacePackage> resultFuture) {
         try {
             Log.d(TAG, "createWebView() started");
             WebView webView = new WebView(mContext);
             webView.setWebViewClient(new OdpWebViewClient());
+            WebSettings webViewSettings = webView.getSettings();
+            // Do not allow using file:// or content:// URLs.
+            webViewSettings.setAllowFileAccess(false);
+            webViewSettings.setAllowContentAccess(false);
             webView.loadData(html, "text/html; charset=utf-8", "UTF-8");
+
             Display display = mContext.getSystemService(DisplayManager.class).getDisplay(displayId);
             SurfaceControlViewHost host = new SurfaceControlViewHost(mContext, display, hostToken);
             host.setView(webView, width, height);
             SurfacePackage surfacePackage = host.getSurfacePackage();
             Log.d(TAG, "createWebView success: " + surfacePackage);
-            receiver.onResult(surfacePackage);
+            resultFuture.set(surfacePackage);
         } catch (Exception e) {
             Log.d(TAG, "createWebView failed", e);
-            receiver.onError(e);
+            resultFuture.setException(e);
         }
     }
 }
