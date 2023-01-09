@@ -16,6 +16,7 @@
 
 package android.ondevicepersonalization;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -82,6 +83,25 @@ public class PersonalizationServiceTest {
                 Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
         mLatch.await();
         assertTrue(mOnAppRequestCalled);
+        AppRequestResult appRequestResult =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, AppRequestResult.class);
+        assertEquals("123",
+                appRequestResult.getSlotResults().get(0).getWinningBids().get(0).getBidId());
+    }
+
+    @Test
+    public void testOnAppRequestPropagatesError() throws Exception {
+        Bundle params = new Bundle();
+        params.putString(Constants.EXTRA_APP_NAME, "com.testapp");
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putInt("error", 1);  // Trigger an error in the service.
+        params.putParcelable(Constants.EXTRA_APP_PARAMS, appParams);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(
+                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+        mLatch.await();
+        assertTrue(mOnAppRequestCalled);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -158,6 +178,9 @@ public class PersonalizationServiceTest {
                 Constants.OP_DOWNLOAD_FINISHED, params, new TestPersonalizationServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
+        DownloadResult downloadResult =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, DownloadResult.class);
+        assertEquals("12", downloadResult.getKeysToRetain().get(0));
         pfds[0].close();
         pfds[1].close();
     }
@@ -227,6 +250,23 @@ public class PersonalizationServiceTest {
                 Constants.OP_RENDER_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
         assertTrue(mRenderContentCalled);
+        RenderContentResult result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, RenderContentResult.class);
+        assertEquals("htmlstring", result.getContent());
+    }
+
+    @Test
+    public void testRenderContentPropagatesError() throws Exception {
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_SLOT_INFO, new SlotInfo.Builder().build());
+        String[] bidIds = {"z"};  // Trigger error in service.
+        params.putStringArray(Constants.EXTRA_BID_IDS, bidIds);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(
+                Constants.OP_RENDER_CONTENT, params, new TestPersonalizationServiceCallback());
+        mLatch.await();
+        assertTrue(mRenderContentCalled);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -310,6 +350,25 @@ public class PersonalizationServiceTest {
                 new TestPersonalizationServiceCallback());
         mLatch.await();
         assertTrue(mComputeEventMetricsCalled);
+        EventMetricsResult result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventMetricsResult.class);
+        assertEquals(2468, result.getMetrics().getIntMetrics()[0]);
+    }
+
+    @Test
+    public void testComputeEventMetricsPropagatesError() throws Exception {
+        Bundle params = new Bundle();
+        params.putParcelable(
+                Constants.EXTRA_EVENT_METRICS_INPUT,
+                // Input value 9999 will trigger an error in the service.
+                new EventMetricsInput.Builder().setIntInputs(9999).build());
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(
+                Constants.OP_COMPUTE_EVENT_METRICS, params,
+                new TestPersonalizationServiceCallback());
+        mLatch.await();
+        assertTrue(mComputeEventMetricsCalled);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -370,7 +429,22 @@ public class PersonalizationServiceTest {
                 OnDevicePersonalizationContext odpContext, AppRequestCallback callback
         ) {
             mOnAppRequestCalled = true;
-            callback.onSuccess(new AppRequestResult.Builder().build());
+            if (appParams != null && appParams.getInt("error") > 0) {
+                callback.onError();
+            } else {
+                callback.onSuccess(
+                        new AppRequestResult.Builder()
+                        .addSlotResults(
+                            new SlotResult.Builder()
+                                .addWinningBids(
+                                    new ScoredBid.Builder()
+                                    .setBidId("123")
+                                    .build()
+                                )
+                                .build()
+                        )
+                        .build());
+            }
         }
 
         @Override public void onDownload(
@@ -379,7 +453,7 @@ public class PersonalizationServiceTest {
                 DownloadCallback callback
         ) {
             mOnDownloadCalled = true;
-            callback.onSuccess(new DownloadResult.Builder().build());
+            callback.onSuccess(new DownloadResult.Builder().addKeysToRetain("12").build());
         }
 
         @Override public void renderContent(
@@ -389,7 +463,12 @@ public class PersonalizationServiceTest {
                 RenderContentCallback callback
         ) {
             mRenderContentCalled = true;
-            callback.onSuccess(new RenderContentResult.Builder().build());
+            if (bidIds.size() >= 1 && bidIds.get(0).equals("z")) {
+                callback.onError();
+            } else {
+                callback.onSuccess(
+                        new RenderContentResult.Builder().setContent("htmlstring").build());
+            }
         }
 
         @Override public void computeEventMetrics(
@@ -398,11 +477,20 @@ public class PersonalizationServiceTest {
                 EventMetricsCallback callback
         ) {
             mComputeEventMetricsCalled = true;
-            callback.onSuccess(new EventMetricsResult.Builder().build());
+            if (input.getIntInputs() != null && input.getIntInputs().length >= 1
+                    && input.getIntInputs()[0] == 9999) {
+                callback.onError();
+            } else {
+                callback.onSuccess(
+                        new EventMetricsResult.Builder()
+                        .setMetrics(
+                            new Metrics.Builder().setIntMetrics(2468).build())
+                        .build());
+            }
         }
     }
 
-    class TestDataAccessService extends IDataAccessService.Stub {
+    static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(
                 int operation,
