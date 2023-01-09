@@ -36,7 +36,6 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
-import com.android.ondevicepersonalization.services.display.DisplayHelperImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
@@ -103,7 +102,7 @@ public class AppRequestFlow {
             @NonNull ListeningExecutorService executorService,
             @NonNull Context context) {
         this(callingPackageName, servicePackageName, hostToken, displayId, width, height, params,
-                callback, executorService, context, new DisplayHelperImpl());
+                callback, executorService, context, new DisplayHelper(context));
     }
 
     @VisibleForTesting

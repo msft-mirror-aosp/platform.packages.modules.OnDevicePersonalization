@@ -27,7 +27,7 @@ import java.util.List;
  */
 public final class UserData {
 
-    private static UserData sSingleton = null;
+    private static UserData sUserData = null;
     private static final String TAG = "UserData";
 
     // The current system time in milliseconds.
@@ -100,10 +100,10 @@ public final class UserData {
     /** Returns an instance of UserData. */
     public static UserData getInstance() {
         synchronized (UserData.class) {
-            if (sSingleton == null) {
-                sSingleton = new UserData();
+            if (sUserData == null) {
+                sUserData = new UserData();
             }
-            return sSingleton;
+            return sUserData;
         }
     }
 }

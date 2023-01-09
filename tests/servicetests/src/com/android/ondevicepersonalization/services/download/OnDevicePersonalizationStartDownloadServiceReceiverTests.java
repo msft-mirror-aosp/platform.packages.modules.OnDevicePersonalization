@@ -65,13 +65,9 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
         receiver.onReceive(mContext, intent);
         WorkManager workManager = WorkManager.getInstance(mContext);
-        List<WorkInfo> workInfos = workManager.getWorkInfosByTag(
-                OnDevicePersonalizationDownloadProcessingWorker.TAG).get();
-        assertEquals(1, workInfos.size());
-        assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
 
         // MDD tasks
-        workInfos = workManager.getWorkInfosByTag(
+        List<WorkInfo> workInfos = workManager.getWorkInfosByTag(
                 TaskScheduler.WIFI_CHARGING_PERIODIC_TASK).get();
         assertEquals(1, workInfos.size());
         assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
@@ -101,7 +97,19 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
         receiver.onReceive(mContext, intent);
         WorkManager workManager = WorkManager.getInstance(mContext);
         List<WorkInfo> workInfos = workManager.getWorkInfosByTag(
-                OnDevicePersonalizationDownloadProcessingWorker.TAG).get();
+                TaskScheduler.WIFI_CHARGING_PERIODIC_TASK).get();
+        assertEquals(0, workInfos.size());
+
+        workInfos = workManager.getWorkInfosByTag(
+                TaskScheduler.CELLULAR_CHARGING_PERIODIC_TASK).get();
+        assertEquals(0, workInfos.size());
+
+        workInfos = workManager.getWorkInfosByTag(
+                TaskScheduler.CHARGING_PERIODIC_TASK).get();
+        assertEquals(0, workInfos.size());
+
+        workInfos = workManager.getWorkInfosByTag(
+                TaskScheduler.MAINTENANCE_PERIODIC_TASK).get();
         assertEquals(0, workInfos.size());
     }
 }
