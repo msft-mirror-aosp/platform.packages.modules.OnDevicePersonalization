@@ -126,10 +126,20 @@ public class EventUrlHelper {
     public static EventUrlPayload getEventFromOdpEventUrl(@NonNull String url) throws Exception {
         Uri uri = Uri.parse(url);
         String encryptedEvent = uri.getQueryParameter(URL_EVENT_KEY);
-        if (encryptedEvent == null || !uri.getAuthority().equals(URI_AUTHORITY)
-                || !uri.getScheme().equals(URI_SCHEME)) {
+        if (encryptedEvent == null || !isOdpUrl(url)) {
             throw new IllegalArgumentException("Invalid url: " + url);
         }
         return decryptEvent(encryptedEvent);
+    }
+
+    /**
+     * Returns whether a given URL is an ODP url
+     *
+     * @return true if URL is an ODP url, false otherwise
+     */
+    public static boolean isOdpUrl(@NonNull String url) {
+        Uri uri = Uri.parse(url);
+        return uri.getAuthority().equals(URI_AUTHORITY)
+                && uri.getScheme().equals(URI_SCHEME);
     }
 }
