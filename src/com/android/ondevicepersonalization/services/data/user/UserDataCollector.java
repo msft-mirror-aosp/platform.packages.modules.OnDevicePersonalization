@@ -45,10 +45,11 @@ import com.android.internal.annotations.VisibleForTesting;
 
 import com.google.common.base.Strings;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Deque;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -76,7 +77,7 @@ public class UserDataCollector {
     // Metadata to keep track of the latest ending timestamp of app usage collection.
     @NonNull private long mLastTimeMillisAppUsageCollected;
     // Metadata to track the expired app usage entries, which are to be evicted.
-    @NonNull private LinkedList<AppUsageEntry> mAllowedAppUsageEntries;
+    @NonNull private Deque<AppUsageEntry> mAllowedAppUsageEntries;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
@@ -90,7 +91,7 @@ public class UserDataCollector {
         mLocationManager = mContext.getSystemService(LocationManager.class);
         mUserDataDao = userDataDao;
         mLastTimeMillisAppUsageCollected = 0L;
-        mAllowedAppUsageEntries = new LinkedList<>();
+        mAllowedAppUsageEntries = new ArrayDeque<>();
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -646,8 +647,13 @@ public class UserDataCollector {
                 && mAllowedAppUsageEntries.peekFirst().endTimeMillis < thresholdTimeMillis) {
             AppUsageEntry evictedEntry = mAllowedAppUsageEntries.removeFirst();
             if (appUsageHistory.containsKey(evictedEntry.packageName)) {
-                appUsageHistory.put(evictedEntry.packageName, appUsageHistory.get(
-                        evictedEntry.packageName) - evictedEntry.totalTimeUsedMillis);
+                final long updatedTotalTime = appUsageHistory.get(
+                        evictedEntry.packageName) - evictedEntry.totalTimeUsedMillis;
+                if (updatedTotalTime == 0) {
+                    appUsageHistory.remove(evictedEntry.packageName);
+                } else {
+                    appUsageHistory.put(evictedEntry.packageName, updatedTotalTime);
+                }
             }
         }
     }
@@ -738,7 +744,7 @@ public class UserDataCollector {
     /**
      * Reset allowed app usage entries in case of system crash.
      */
-    public void setAllowedAppUsageEntries(LinkedList<AppUsageEntry> allowedAppUsageEntries) {
+    public void setAllowedAppUsageEntries(Deque<AppUsageEntry> allowedAppUsageEntries) {
         mAllowedAppUsageEntries = allowedAppUsageEntries;
     }
 }
