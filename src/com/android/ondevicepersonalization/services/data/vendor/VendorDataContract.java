@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data;
+package com.android.ondevicepersonalization.services.data.vendor;
 
 import android.provider.BaseColumns;
 
@@ -32,17 +32,17 @@ public class VendorDataContract {
         public static final String KEY = "key";
         /** Row data - ads or other vendor settings */
         public static final String DATA = "data";
-        /** A vendor-assigned fingerprint for the row contents */
-        public static final String FP = "fp";
 
         private VendorDataEntry() {
         }
 
+        /**
+         * Returns the create table statement for the given table name.
+         */
         public static String getCreateTableIfNotExistsStatement(final String tableName) {
             return "CREATE TABLE IF NOT EXISTS " + tableName + " ("
                     + KEY + " TEXT NOT NULL,"
                     + DATA + " BLOB NOT NULL,"
-                    + FP + " TEXT NOT NULL,"
                     + "PRIMARY KEY(" + KEY + "))";
         }
     }

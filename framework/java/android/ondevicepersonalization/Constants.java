@@ -29,6 +29,7 @@ public class Constants {
     public static final int OP_APP_REQUEST = 1;
     public static final int OP_DOWNLOAD_FINISHED = 2;
     public static final int OP_RENDER_CONTENT = 3;
+    public static final int OP_COMPUTE_EVENT_METRICS = 4;
 
     // Keys for Bundle objects passed between processes.
     public static final String
@@ -39,7 +40,10 @@ public class Constants {
             EXTRA_BID_IDS = "android.ondevicepersonalization.bid_ids";
     public static final String
             EXTRA_DATA_ACCESS_SERVICE_BINDER =
-                    "android.ondevicepersonalization.data_access_service_binder";
+                "android.ondevicepersonalization.data_access_service_binder";
+    public static final String
+            EXTRA_EVENT_METRICS_INPUT =
+                "android.ondevicepersonalization.event_metrics_input";
     public static final String
             EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.lookup_keys";
     public static final String
