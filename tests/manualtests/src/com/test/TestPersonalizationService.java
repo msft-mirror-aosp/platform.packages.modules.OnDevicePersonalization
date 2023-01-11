@@ -17,6 +17,7 @@
 package com.test;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
@@ -38,8 +39,8 @@ public class TestPersonalizationService extends PersonalizationService {
     public final String TAG = "TestPersonalizationService";
 
     @Override
-    public void onDownload(ParcelFileDescriptor fd, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.DownloadCallback callback) {
+    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
+            PersonalizationService.Callback<DownloadResult> callback) {
         Log.d(TAG, "Starting filterData.");
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
@@ -51,9 +52,9 @@ public class TestPersonalizationService extends PersonalizationService {
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
                                 new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(fd))
+                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
                                 .build();
-                        callback.onSuccess(downloadResult);
+                        callback.onResult(downloadResult);
                     }
 
                     @Override
