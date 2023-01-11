@@ -124,6 +124,8 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      */
     @Test
     public void testAppRequestResult() {
+        PersistableBundle eventParams = new PersistableBundle();
+        eventParams.putInt("x", 6);
         AppRequestResult result =
                 new AppRequestResult.Builder()
                     .addSlotResults(
@@ -135,9 +137,8 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                                     .setScore(1.0)
                                     .setMetrics(new Metrics.Builder()
                                         .setIntMetrics(11).build())
-                                    .addEventMetricsInputs(
-                                        new EventMetricsInput.Builder()
-                                            .setEventType(6).build())
+                                    .setEventsWithMetrics(8)
+                                    .setEventMetricsParameters(eventParams)
                                     .build())
                             .addRejectedBids(
                                 new ScoredBid.Builder()
@@ -153,16 +154,16 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         parcel.setDataPosition(0);
         AppRequestResult result2 = AppRequestResult.CREATOR.createFromParcel(parcel);
 
-        assertEquals(result, result2);
         SlotResult slotResult = result2.getSlotResults().get(0);
         assertEquals("abc", slotResult.getSlotId());
         assertEquals("bid1", slotResult.getWinningBids().get(0).getBidId());
         assertEquals(5.0, slotResult.getWinningBids().get(0).getPrice(), 0.0);
         assertEquals(1.0, slotResult.getWinningBids().get(0).getScore(), 0.0);
         assertEquals(11, slotResult.getWinningBids().get(0).getMetrics().getIntMetrics()[0]);
+        assertEquals(8, slotResult.getWinningBids().get(0).getEventsWithMetrics()[0]);
         assertEquals(
                 6,
-                slotResult.getWinningBids().get(0).getEventMetricsInputs().get(0).getEventType());
+                slotResult.getWinningBids().get(0).getEventMetricsParameters().getInt("x"));
         assertEquals("bid2", slotResult.getRejectedBids().get(0).getBidId());
         assertEquals(1.0, slotResult.getRejectedBids().get(0).getPrice(), 0.0);
         assertEquals(0.1, slotResult.getRejectedBids().get(0).getScore(), 0.0);
@@ -237,7 +238,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(result, result2);
         assertEquals(10, result2.getIntMetrics()[0]);
         assertEquals(20, result2.getIntMetrics()[1]);
-        assertEquals(5.0, result2.getFloatMetrics()[0], 0.01);
+        assertEquals(5.0, result2.getFloatMetrics()[0], 0.0);
     }
 
     /**
@@ -245,23 +246,20 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      */
     @Test
     public void testEventMetricsInput() {
-        long[] intInput = {10, 20};
-        double[] floatInput = {5.0};
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("x", 3);
         EventMetricsInput result = new EventMetricsInput.Builder()
                 .setEventType(6)
-                .setIntInputs(intInput)
-                .setFloatInputs(floatInput).build();
+                .setEventParams(params)
+                .build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
         EventMetricsInput result2 = EventMetricsInput.CREATOR.createFromParcel(parcel);
 
-        assertEquals(result, result2);
         assertEquals(6, result2.getEventType());
-        assertEquals(10, result2.getIntInputs()[0]);
-        assertEquals(20, result2.getIntInputs()[1]);
-        assertEquals(5.0, result2.getFloatInputs()[0], 0.0);
+        assertEquals(3, result2.getEventParams().getInt("x"));
     }
 
     /**

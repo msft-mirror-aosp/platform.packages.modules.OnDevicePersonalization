@@ -18,8 +18,10 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.ondevicepersonalization.AppRequestInput;
 import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
 import android.ondevicepersonalization.SlotInfo;
@@ -195,9 +197,14 @@ public class AppRequestFlow {
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
         Log.d(TAG, "executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        serviceParams.putString(Constants.EXTRA_APP_NAME, mCallingPackageName);
+        AppRequestInput input =
+                new AppRequestInput.Builder()
+                    .setAppPackageName(mCallingPackageName)
+                    // TODO(b/228200518): Extract app_params from request
+                    .setAppParams(PersistableBundle.EMPTY)
+                    .build();
         // TODO(b/228200518): Extract app_params from request
-        serviceParams.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
+        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
@@ -277,8 +284,9 @@ public class AppRequestFlow {
             IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, List<String> bidIds) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
-        serviceParams.putParcelable(Constants.EXTRA_SLOT_INFO, slotInfo);
-        serviceParams.putStringArray(Constants.EXTRA_BID_IDS, bidIds.toArray(new String[0]));
+        RenderContentInput input =
+                new RenderContentInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
+        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
