@@ -385,11 +385,12 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testComputeEventMetricsPropagatesError() throws Exception {
+        PersistableBundle eventParams = new PersistableBundle();
+        eventParams.putInt("x", 9999);  // Input value 9999 will trigger an error in the service.
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                // Input value 9999 will trigger an error in the service.
-                new EventMetricsInput.Builder().setIntInputs(9999).build());
+                new EventMetricsInput.Builder().setEventParams(eventParams).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_COMPUTE_EVENT_METRICS, params,
@@ -505,8 +506,7 @@ public class PersonalizationServiceTest {
                 Callback<EventMetricsResult> callback
         ) {
             mComputeEventMetricsCalled = true;
-            if (input.getIntInputs() != null && input.getIntInputs().length >= 1
-                    && input.getIntInputs()[0] == 9999) {
+            if (input.getEventParams() != null && input.getEventParams().getInt("x") == 9999) {
                 callback.onError();
             } else {
                 callback.onResult(
