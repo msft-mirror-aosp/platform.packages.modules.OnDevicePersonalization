@@ -27,7 +27,14 @@ import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
 import android.ondevicepersonalization.SlotResult;
+import android.os.ParcelFileDescriptor;
+import android.util.JsonReader;
 import android.util.Log;
+
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
+import java.util.List;
 
 public class SamplePersonalizationService extends PersonalizationService {
     public final String TAG = "SamplePersonalizationService";
@@ -38,6 +45,11 @@ public class SamplePersonalizationService extends PersonalizationService {
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull PersonalizationService.Callback<DownloadResult> callback) {
         Log.d(TAG, "onDownload() started.");
+        DownloadResult downloadResult =
+                new DownloadResult.Builder()
+                        .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
+                        .build();
+        callback.onResult(downloadResult);
     }
 
     @Override public void onAppRequest(
@@ -73,5 +85,41 @@ public class SamplePersonalizationService extends PersonalizationService {
                         .setContent(content).build();
         Log.d(TAG, "renderContent() finished.");
         callback.onResult(result);
+    }
+
+    private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
+        List<String> filteredKeys = new ArrayList<String>();
+        // Add all keys from the file into the list
+        try (InputStream in =
+                     new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
+            try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
+                reader.beginObject();
+                while (reader.hasNext()) {
+                    String name = reader.nextName();
+                    if (name.equals("contents")) {
+                        reader.beginArray();
+                        while (reader.hasNext()) {
+                            reader.beginObject();
+                            while (reader.hasNext()) {
+                                String elementName = reader.nextName();
+                                if (elementName.equals("key")) {
+                                    filteredKeys.add(reader.nextString());
+                                } else {
+                                    reader.skipValue();
+                                }
+                            }
+                            reader.endObject();
+                        }
+                        reader.endArray();
+                    } else {
+                        reader.skipValue();
+                    }
+                }
+                reader.endObject();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to parse downloaded data from fd");
+        }
+        return filteredKeys;
     }
 }
