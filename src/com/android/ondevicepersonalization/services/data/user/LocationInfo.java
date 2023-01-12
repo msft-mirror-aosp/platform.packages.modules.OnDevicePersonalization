@@ -40,6 +40,17 @@ public class LocationInfo {
     // Whether the location source is precise.
     public boolean isPreciseLocation = false;
 
+    public LocationInfo() { }
+
+    // Constructor for a deep copy
+    public LocationInfo(LocationInfo other) {
+        timeMillis = other.timeMillis;
+        latitude = other.latitude;
+        longitude = other.longitude;
+        provider = other.provider;
+        isPreciseLocation = other.isPreciseLocation;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (o == this) {
