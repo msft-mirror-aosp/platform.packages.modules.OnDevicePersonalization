@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.libraries.plugin.internal;
 
-import android.os.PersistableBundle;
+import android.os.Bundle;
 
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 
@@ -28,7 +28,7 @@ oneway interface IPluginCallback {
   /**
    * Indicates operation was successful and contains an output Bundle if the operation had any output.
    */
-  void onSuccess(in PersistableBundle output);
+  void onSuccess(in Bundle output);
 
   /**
    * Called if runTask fails for any reason.

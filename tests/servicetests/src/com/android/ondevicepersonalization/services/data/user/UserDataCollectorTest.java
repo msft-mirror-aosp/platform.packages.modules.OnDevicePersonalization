@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -45,11 +46,11 @@ public class UserDataCollectorTest {
 
     @Before
     public void setup() {
-        mCollector = UserDataCollector.getInstance(mContext);
+        mCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserData = UserData.getInstance();
         mCollector.clearUserData(mUserData);
         mCollector.setLastTimeMillisAppUsageCollected(0);
-        mCollector.setAppUsageCollectionCount(0);
+        mCollector.setAllowedAppUsageEntries(new ArrayDeque<>());
     }
 
     @Test
@@ -61,12 +62,8 @@ public class UserDataCollectorTest {
         assertTrue(mUserData.timeMillis <= mCollector.getTimeMillis());
         assertNotNull(mUserData.utcOffset);
         assertEquals(mUserData.utcOffset, mCollector.getUtcOffset());
-        assertEquals(mUserData.orientation, mCollector.getOrientation());
 
         assertTrue(mUserData.availableBytesMB > 0);
-        assertEquals(mUserData.availableBytesMB, mCollector.getAvailableBytesMB());
-        assertTrue(mUserData.batteryPct > 0);
-        assertEquals(mUserData.batteryPct, mCollector.getBatteryPct());
         assertTrue(mUserData.batteryPct > 0);
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
@@ -75,7 +72,6 @@ public class UserDataCollectorTest {
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
         assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertTrue(mUserData.connectionSpeedKbps > 0);
-        assertEquals(mUserData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);

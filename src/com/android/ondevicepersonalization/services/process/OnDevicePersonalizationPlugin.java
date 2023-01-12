@@ -18,13 +18,10 @@ package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.DownloadHandler;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.aidl.IPersonalizationService;
+import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
 import android.os.Bundle;
-import android.os.OutcomeReceiver;
-import android.os.ParcelFileDescriptor;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -32,11 +29,6 @@ import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
 import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-
-import com.google.common.util.concurrent.Futures;
-
-import java.util.List;
 
 /** Plugin that runs in an isolated process. */
 public class OnDevicePersonalizationPlugin implements Plugin {
@@ -44,16 +36,22 @@ public class OnDevicePersonalizationPlugin implements Plugin {
     private Bundle mInput;
     private PluginCallback mPluginCallback;
     private PluginContext mPluginContext;
+    private ClassLoader mClassLoader;
+
+    @Override
+    public void setClassLoader(ClassLoader classLoader) {
+        mClassLoader = classLoader;
+    }
 
     @Override
     public void onExecute(
             @NonNull Bundle input,
             @NonNull PluginCallback callback,
-            @Nullable PluginContext context) {
-        Log.i(TAG, "Executing plugin.");
+            @Nullable PluginContext pluginContext) {
+        Log.d(TAG, "Executing plugin: " + input.toString());
         mInput = input;
         mPluginCallback = callback;
-        mPluginContext = context;
+        mPluginContext = pluginContext;
 
         try {
             String className = input.getString(ProcessUtils.PARAM_CLASS_NAME_KEY);
@@ -64,65 +62,58 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             }
 
             int operation = input.getInt(ProcessUtils.PARAM_OPERATION_KEY);
-            if (operation == 0 || operation >= ProcessUtils.OP_MAX) {
+            if (operation == 0) {
                 Log.e(TAG, "operation missing or invalid.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            Class<?> clazz = Class.forName(className);
-            Object o = clazz.getDeclaredConstructor().newInstance();
-
-            if (operation == ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER) {
-                DownloadHandler downloadHandler = (DownloadHandler) o;
-                var unused = Futures.submit(
-                        () -> runDownloadHandlerFilter(downloadHandler,
-                                input.getParcelable(ProcessUtils.INPUT_PARCEL_FD,
-                                        ParcelFileDescriptor.class)),
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            Bundle serviceParams = input.getParcelable(ProcessUtils.PARAM_SERVICE_INPUT,
+                    Bundle.class);
+            if (serviceParams == null) {
+                Log.e(TAG, "Missing service input.");
+                sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+                return;
             }
-        } catch (Exception e) {
-            Log.e(TAG, "Plugin failed. " + e);
-            sendErrorResult(FailureType.ERROR_UNKNOWN);
-        }
-    }
 
-    private void runDownloadHandlerFilter(DownloadHandler downloadHandler,
-            ParcelFileDescriptor fd) {
-        Log.d(TAG, "runDownloadHandlerFilter() started.");
-        OnDevicePersonalizationContext odpContext =
-                ((OnDevicePersonalizationPluginContext) mPluginContext)
-                        .getOnDevicePersonalizationContext();
-        // Add file descriptor to DownloadHandler input bundle
-        Bundle input = new Bundle();
-        input.putParcelable(Constants.EXTRA_PARCEL_FD, fd);
-        downloadHandler.filterData(input, odpContext,
-                new OutcomeReceiver<List<String>, Exception>() {
-                    @Override
-                    public void onResult(@NonNull List<String> result) {
-                        PersistableBundle finalOutput = new PersistableBundle();
-                        finalOutput.putStringArray(ProcessUtils.OUTPUT_RESULT_KEY,
-                                result.toArray(new String[0]));
-                        try {
-                            mPluginCallback.onSuccess(finalOutput);
-                        } catch (Exception e) {
-                            Log.e(TAG, "Error calling pluginCallback", e);
+            Class<?> clazz = Class.forName(className, true, mClassLoader);
+            PersonalizationService personalizationService =
+                    (PersonalizationService) clazz.getDeclaredConstructor().newInstance();
+            // TODO(b/249345663): Set the 'Context' for the service.
+            personalizationService.onCreate();
+            IPersonalizationService binder =
+                    (IPersonalizationService) personalizationService.onBind(null);
+
+            binder.onRequest(operation, serviceParams,
+                    new IPersonalizationServiceCallback.Stub() {
+                        @Override public void onSuccess(Bundle result) {
+                            try {
+                                mPluginCallback.onSuccess(result);
+                            } catch (RemoteException e) {
+                                Log.e(TAG, "Callback error.", e);
+                            }
+                        }
+                        @Override public void onError(int errorCode) {
+                            try {
+                                mPluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
+                            } catch (RemoteException e) {
+                                Log.e(TAG, "Callback error.", e);
+                            }
                         }
                     }
+            );
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
-                        sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
-                    }
-                });
+        } catch (Exception e) {
+            Log.e(TAG, "Plugin failed. ", e);
+            sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
+        }
     }
 
     private void sendErrorResult(FailureType failure) {
         try {
             mPluginCallback.onFailure(failure);
         } catch (RemoteException e) {
-            Log.e(TAG, "Callback error.");
+            Log.e(TAG, "Callback error.", e);
         }
     }
 }

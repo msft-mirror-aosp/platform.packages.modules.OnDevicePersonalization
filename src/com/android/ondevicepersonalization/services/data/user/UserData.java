@@ -27,7 +27,7 @@ import java.util.List;
  */
 public final class UserData {
 
-    private static UserData sSingleton = null;
+    private static UserData sUserData = null;
     private static final String TAG = "UserData";
 
     // The current system time in milliseconds.
@@ -86,19 +86,24 @@ public final class UserData {
     // A histogram of app usage: total times used per app in the last 30 days.
     public HashMap<String, Long> appUsageHistory = new HashMap<>();
 
-    // A histogram of location history: number of visits
-    // per location (zip code level) in the last 30 days.
-    public HashMap<Integer, Integer> locationHistory = new HashMap<>();
+    // User's most recently available location information.
+    public LocationInfo currentLocation = new LocationInfo();
+
+    /**
+     * A histogram of location history: total time spent per location in the last 30 days.
+     * Default precision level of locations is set to E4.
+     */
+    public HashMap<LocationInfo, Long> locationHistory = new HashMap<>();
 
     private UserData() { }
 
     /** Returns an instance of UserData. */
     public static UserData getInstance() {
         synchronized (UserData.class) {
-            if (sSingleton == null) {
-                sSingleton = new UserData();
+            if (sUserData == null) {
+                sUserData = new UserData();
             }
-            return sSingleton;
+            return sUserData;
         }
     }
 }

@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import android.app.usage.UsageStats;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -63,7 +62,13 @@ public class UserDataDao {
      */
     @VisibleForTesting
     public static UserDataDao getInstanceForTest(Context context) {
-        return getInstance(context);
+        synchronized (UserDataDao.class) {
+            if (sUserDataDao == null) {
+                sUserDataDao = new UserDataDao(
+                    OnDevicePersonalizationDbHelper.getInstanceForTest(context));
+            }
+            return sUserDataDao;
+        }
     }
 
     /**
@@ -118,17 +123,16 @@ public class UserDataDao {
      * Batch inserts a list of [UsageStats].
      * @return true if all insertions succeed as a transaction, false otherwise.
      */
-    public boolean batchInsertAppUsageStatsData(List<UsageStats> statsList,
-            long startTimeMillis, long endTimeMillis) {
+    public boolean batchInsertAppUsageStatsData(List<AppUsageEntry> appUsageEntries) {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         if (db == null) {
             return false;
         }
         try {
             db.beginTransaction();
-            for (UsageStats stats : statsList) {
-                if (!insertAppUsageStatsData(stats.getPackageName(),
-                        startTimeMillis, endTimeMillis, stats.getTotalTimeVisible())) {
+            for (AppUsageEntry entry : appUsageEntries) {
+                if (!insertAppUsageStatsData(entry.packageName, entry.startTimeMillis,
+                        entry.endTimeMillis, entry.totalTimeUsedMillis)) {
                     return false;
                 }
             }

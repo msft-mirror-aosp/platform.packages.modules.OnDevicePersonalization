@@ -88,9 +88,11 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
             if (isStopped()) {
                 break;
             }
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo)) {
+            String packageName = packageInfo.packageName;
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(
+                    mContext, packageName)) {
                 mFutures.add(Futures.submitAsync(
-                        new OnDevicePersonalizationDataProcessingAsyncCallable(packageInfo,
+                        new OnDevicePersonalizationDataProcessingAsyncCallable(packageName,
                                 mContext),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
             }
@@ -104,12 +106,5 @@ public class OnDevicePersonalizationDownloadProcessingWorker extends ListenableW
         for (ListenableFuture<Void> f : mFutures) {
             f.cancel(true);
         }
-    }
-
-    private boolean manifestContainsOdpDownloadSettings(PackageInfo packageInfo) {
-        // TODO(b/239479120): Implement this method
-        Log.d(TAG, "Checking manifestContainsOdpDownloadSettings for "
-                + packageInfo.packageName);
-        return false;
     }
 }

@@ -26,7 +26,6 @@ import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
-import android.database.Cursor;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -46,7 +45,10 @@ import com.android.internal.annotations.VisibleForTesting;
 
 import com.google.common.base.Strings;
 
+import java.util.ArrayDeque;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
@@ -63,7 +65,7 @@ import java.util.TimeZone;
 public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
-    private static UserDataCollector sSingleton = null;
+    private static UserDataCollector sUserDataCollector = null;
     private static final String TAG = "UserDataCollector";
 
     @NonNull private final Context mContext;
@@ -74,10 +76,10 @@ public class UserDataCollector {
     @NonNull private final UserDataDao mUserDataDao;
     // Metadata to keep track of the latest ending timestamp of app usage collection.
     @NonNull private long mLastTimeMillisAppUsageCollected;
-    // Counter to keep track of total times of successful app usage collection.
-    @NonNull private int mAppUsageCollectionCount;
+    // Metadata to track the expired app usage entries, which are to be evicted.
+    @NonNull private Deque<AppUsageEntry> mAllowedAppUsageEntries;
 
-    private UserDataCollector(Context context) {
+    private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
 
         mLocale = Locale.getDefault();
@@ -87,24 +89,40 @@ public class UserDataCollector {
         mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
                 connectivityManager.getActiveNetwork());
         mLocationManager = mContext.getSystemService(LocationManager.class);
-        mUserDataDao = UserDataDao.getInstance(mContext);
+        mUserDataDao = userDataDao;
         mLastTimeMillisAppUsageCollected = 0L;
-        mAppUsageCollectionCount = 0;
+        mAllowedAppUsageEntries = new ArrayDeque<>();
     }
 
     /** Returns an instance of UserDataCollector. */
     public static UserDataCollector getInstance(Context context) {
         synchronized (UserDataCollector.class) {
-            if (sSingleton == null) {
-                sSingleton = new UserDataCollector(context);
+            if (sUserDataCollector == null) {
+                sUserDataCollector = new UserDataCollector(
+                    context, UserDataDao.getInstance(context));
             }
-            return sSingleton;
+            return sUserDataCollector;
+        }
+    }
+
+    /**
+     * Returns an instance of the UserDataCollector given a context. This is used
+     * for testing only.
+    */
+    @VisibleForTesting
+    public static UserDataCollector getInstanceForTest(Context context) {
+        synchronized (UserDataCollector.class) {
+            if (sUserDataCollector == null) {
+                sUserDataCollector = new UserDataCollector(context,
+                        UserDataDao.getInstanceForTest(context));
+            }
+            return sUserDataCollector;
         }
     }
 
     /**
      * Collects in-memory user data signals and stores in a UserData object.
-     * TODO: read database to reset metadata and histograms in case of system crash.
+     * TODO (b/261642339): read database to reset metadata and histograms in case of system crash.
     */
     public void initializeUserData(@NonNull UserData userData) {
         userData.timeMillis = getTimeMillis();
@@ -585,61 +603,59 @@ public class UserDataCollector {
             return false;
         }
 
+        // Collect yesterday's app usage stats.
         cal.add(Calendar.DATE, -1);
         final long startTimeMillis = cal.getTimeInMillis();
-        // Update database.
         UsageStatsManager usageStatsManager = mContext.getSystemService(UsageStatsManager.class);
         final List<UsageStats> statsList = usageStatsManager.queryUsageStats(
                 UsageStatsManager.INTERVAL_BEST, startTimeMillis, endTimeMillis);
-        if (!mUserDataDao.batchInsertAppUsageStatsData(statsList, startTimeMillis, endTimeMillis)) {
+
+        List<AppUsageEntry> appUsageEntries = new ArrayList<>();
+        for (UsageStats stats: statsList) {
+            appUsageEntries.add(new AppUsageEntry(stats.getPackageName(),
+                    startTimeMillis, endTimeMillis, stats.getTotalTimeVisible()));
+        }
+
+        // Update database.
+        if (!mUserDataDao.batchInsertAppUsageStatsData(appUsageEntries)) {
             return false;
         }
         // Update in-memory histogram.
-        if (!updateHistogram(appUsageHistory, statsList)) {
-            return false;
-        }
+        updateAppUsageHistogram(appUsageHistory, appUsageEntries);
         // Update metadata if all steps succeed as a transaction.
         mLastTimeMillisAppUsageCollected = endTimeMillis;
-        ++mAppUsageCollectionCount;
         return true;
     }
 
     /**
-     * Update the app usage histogram.
-     * @return true if update is successful, false otherwise.
+     * Update histogram and handle TTL deletion for app usage (30 days).
      */
-    public boolean updateHistogram(HashMap<String, Long> appUsageHistory,
-            List<UsageStats> statsList) {
-        // TTL control is not required.
-        if (mAppUsageCollectionCount <= UserDataDao.TTL_IN_MEMORY_DAYS) {
-            for (UsageStats usageStats : statsList) {
-                String packageName = usageStats.getPackageName();
-                long totalTimeUsedSec = usageStats.getTotalTimeVisible();
-                appUsageHistory.put(packageName, appUsageHistory.getOrDefault(
-                        packageName, 0L) + totalTimeUsedSec);
-            }
-            return true;
+    private void updateAppUsageHistogram(HashMap<String, Long> appUsageHistory,
+            List<AppUsageEntry> entries) {
+        for (AppUsageEntry entry: entries) {
+            mAllowedAppUsageEntries.add(entry);
+            appUsageHistory.put(entry.packageName, appUsageHistory.getOrDefault(
+                    entry.packageName, 0L) + entry.totalTimeUsedMillis);
         }
+        // Backtrack 30 days
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * UserDataDao.TTL_IN_MEMORY_DAYS);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
 
-        // Re-populate the histogram if database has more than 30 day data.
-        appUsageHistory.clear();
-        Cursor cursor = mUserDataDao.readAppUsageInLastXDays(UserDataDao.TTL_IN_MEMORY_DAYS);
-        if (cursor == null) {
-            return false;
-        }
-        if (cursor.moveToFirst()) {
-            while (!cursor.isAfterLast()) {
-                String packageName = cursor.getString(cursor.getColumnIndex(
-                        UserDataTables.AppUsageHistory.PACKAGE_NAME));
-                long totalTimeUsedSec = cursor.getLong(cursor.getColumnIndex(
-                        UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC));
-                appUsageHistory.put(packageName, appUsageHistory.getOrDefault(
-                        packageName, 0L) + totalTimeUsedSec);
-                cursor.moveToNext();
+        // TTL deletion algorithm
+        while (!mAllowedAppUsageEntries.isEmpty()
+                && mAllowedAppUsageEntries.peekFirst().endTimeMillis < thresholdTimeMillis) {
+            AppUsageEntry evictedEntry = mAllowedAppUsageEntries.removeFirst();
+            if (appUsageHistory.containsKey(evictedEntry.packageName)) {
+                final long updatedTotalTime = appUsageHistory.get(
+                        evictedEntry.packageName) - evictedEntry.totalTimeUsedMillis;
+                if (updatedTotalTime == 0) {
+                    appUsageHistory.remove(evictedEntry.packageName);
+                } else {
+                    appUsageHistory.put(evictedEntry.packageName, updatedTotalTime);
+                }
             }
         }
-        cursor.close();
-        return true;
     }
 
     /** Get last known location information. The result is immediate. */
@@ -668,11 +684,11 @@ public class UserDataCollector {
         );
     }
 
-    /** Set location info and store the location data to storage. */
+    /** Set the current location. */
     private void setLocationInfo(Location location, LocationInfo locationInfo) {
         locationInfo.timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
-        locationInfo.latitude = location.getLatitude();
-        locationInfo.longitude = location.getLongitude();
+        locationInfo.latitude = Math.round(location.getLatitude() *  10000.0) / 10000.0;
+        locationInfo.longitude = Math.round(location.getLongitude() *  10000.0) / 10000.0;
         String provider = location.getProvider();
         if (LocationManager.GPS_PROVIDER.equals(provider)) {
             locationInfo.provider = LocationInfo.LocationProvider.GPS;
@@ -726,9 +742,9 @@ public class UserDataCollector {
     }
 
     /**
-     * Reset collection counter in case of system crash.
+     * Reset allowed app usage entries in case of system crash.
      */
-    public void setAppUsageCollectionCount(int appUsageCollectionCount) {
-        mAppUsageCollectionCount = appUsageCollectionCount;
+    public void setAllowedAppUsageEntries(Deque<AppUsageEntry> allowedAppUsageEntries) {
+        mAllowedAppUsageEntries = allowedAppUsageEntries;
     }
 }

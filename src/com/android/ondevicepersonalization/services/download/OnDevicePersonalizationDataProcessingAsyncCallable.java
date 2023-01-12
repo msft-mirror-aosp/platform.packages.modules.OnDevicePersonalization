@@ -17,18 +17,20 @@
 package com.android.ondevicepersonalization.services.download;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.DownloadInput;
+import android.ondevicepersonalization.DownloadResult;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.data.VendorData;
+import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -65,13 +67,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
     private final Context mContext;
-    private final PackageInfo mPackageInfo;
     private OnDevicePersonalizationVendorDataDao mDao;
 
-    public OnDevicePersonalizationDataProcessingAsyncCallable(PackageInfo packageInfo,
+    public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
             Context context) {
-        mPackageInfo = packageInfo;
-        mPackageName = packageInfo.packageName;
+        mPackageName = packageName;
         mContext = context;
     }
 
@@ -180,14 +180,18 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
     }
 
-    private Void filterAndStoreData(PersistableBundle pluginResult, long syncToken,
+    private Void filterAndStoreData(Bundle pluginResult, long syncToken,
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        String[] retainedKeys = pluginResult.getStringArray(ProcessUtils.OUTPUT_RESULT_KEY);
-        for (String key : retainedKeys) {
-            if (vendorDataMap.containsKey(key)) {
-                filteredList.add(vendorDataMap.get(key));
+        DownloadResult downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadResult.class);
+        List<String> retainedKeys = downloadResult.getKeysToRetain();
+        if (retainedKeys != null) {
+            for (String key : retainedKeys) {
+                if (vendorDataMap.containsKey(key)) {
+                    filteredList.add(vendorDataMap.get(key));
+                }
             }
         }
         mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
@@ -195,15 +199,19 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         return null;
     }
 
-    private ListenableFuture<PersistableBundle> executeDownloadHandler(
+    private ListenableFuture<Bundle> executeDownloadHandler(
             IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
-        pluginParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
-                AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, mPackageInfo));
-        pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
-                ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
-        pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
-        return ProcessUtils.runIsolatedService(isolatedServiceInfo, pluginParams);
+        DataAccessServiceImpl binder = new DataAccessServiceImpl(
+                null, mPackageName, mContext, true);
+        pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(fd).build();
+        pluginParams.putParcelable(Constants.EXTRA_INPUT, input);
+        return ProcessUtils.runIsolatedService(
+                isolatedServiceInfo,
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
+                Constants.OP_DOWNLOAD_FINISHED,
+                pluginParams);
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
@@ -223,7 +231,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private VendorData readContent(JsonReader reader) throws IOException {
         String key = null;
         byte[] data = null;
-        String fp = null;
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
@@ -231,16 +238,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 key = reader.nextString();
             } else if (name.equals("data")) {
                 data = reader.nextString().getBytes();
-            } else if (name.equals("fp")) {
-                fp = reader.nextString();
             } else {
                 reader.skipValue();
             }
         }
         reader.endObject();
-        if (key == null || data == null || fp == null) {
+        if (key == null || data == null) {
             return null;
         }
-        return new VendorData.Builder().setKey(key).setData(data).setFp(fp).build();
+        return new VendorData.Builder().setKey(key).setData(data).build();
     }
 }
