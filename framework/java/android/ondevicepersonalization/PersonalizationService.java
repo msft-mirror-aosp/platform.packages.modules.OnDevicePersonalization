@@ -17,7 +17,6 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.app.Service;
 import android.content.Intent;
 import android.ondevicepersonalization.aidl.IDataAccessService;
@@ -25,13 +24,9 @@ import android.ondevicepersonalization.aidl.IPersonalizationService;
 import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.ParcelFileDescriptor;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
-import java.util.Arrays;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -47,48 +42,14 @@ public abstract class PersonalizationService extends Service {
     /**
      * Callback to return results of incoming requests.
      *
+     * @param <T> A {@link Parcelable} type to be returned.
      * @hide
      */
-    public interface AppRequestCallback {
+    public interface Callback<T> {
         /** Return the result of a successful request. */
-        void onSuccess(AppRequestResult result);
+        void onResult(T result);
 
-        /** Error */
-        void onError();
-    }
-
-    /**
-     * Callback to signal completion of download post-processing.
-     *
-     * @hide
-     */
-    public interface DownloadCallback {
-        /** Retains the provided keys */
-        void onSuccess(DownloadResult downloadResult);
-
-        /** Error in download processing. The platform will retry the download. */
-        void onError();
-    }
-
-    /**
-     * Callback to signal the completion of a render request.
-     */
-    public interface RenderContentCallback {
-        /** Provides the result of a successful render request. */
-        void onSuccess(RenderContentResult result);
-
-        /** Error in rendering. */
-        void onError();
-    }
-
-    /**
-     * Callback to signal the completion of event metrics computation.
-     */
-    public interface EventMetricsCallback {
-        /** Provides the computed event metrics */
-        void onSuccess(EventMetricsResult result);
-
-        /** Error in computing event metrics. */
+        /** Signal an error. */
         void onError();
     }
 
@@ -104,16 +65,14 @@ public abstract class PersonalizationService extends Service {
      * Handle a request from an app. A {@link PersonalizationService} that
      * processes requests from apps must override this method.
      *
-     * @param appPackageName Package name of the calling app.
-     * @param appParams Parameters provided by the calling app.
+     * @param input App Request Parameters.
      * @param odpContext The per-request state for this request.
      * @param callback Callback to be invoked on completion.
      */
     public void onAppRequest(
-            @NonNull String appPackageName,
-            @Nullable PersistableBundle appParams,
+            @NonNull AppRequestInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull AppRequestCallback callback
+            @NonNull Callback<AppRequestResult> callback
     ) {
         callback.onError();
     }
@@ -123,14 +82,14 @@ public abstract class PersonalizationService extends Service {
      * parameters defined in the package manifest of the {@link PersonalizationService}
      * and calls this function after the download is complete.
      *
-     * @param fd A file descriptor to read the downloaded content.
+     * @param input Download handler parameters.
      * @param odpContext The per-request state for this request.
      * @param callback Callback to be invoked on completion.
      */
     public void onDownload(
-            @NonNull ParcelFileDescriptor fd,
+            @NonNull DownloadInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull DownloadCallback callback
+            @NonNull Callback<DownloadResult> callback
     ) {
         callback.onError();
     }
@@ -139,16 +98,15 @@ public abstract class PersonalizationService extends Service {
      * Generate HTML for the winning bids that returned as a result of {@link onAppRequest}.
      * The platform will render this HTML in a WebView inside a fenced frame.
      *
-     * @param slotInfo Properties of the slot to be rendered in.
+     * @param input Parameters for the renderContent request.
      * @param bidIds A List of Bid Ids to be rendered
      * @param odpContext The per-request state for this request.
      * @param callback Callback to be invoked on completion.
      */
     public void renderContent(
-            @NonNull SlotInfo slotInfo,
-            @NonNull List<String> bidIds,
+            @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull RenderContentCallback callback
+            @NonNull Callback<RenderContentResult> callback
     ) {
         callback.onError();
     }
@@ -164,7 +122,7 @@ public abstract class PersonalizationService extends Service {
     public void computeEventMetrics(
             @NonNull EventMetricsInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull EventMetricsCallback callback
+            @NonNull Callback<EventMetricsResult> callback
     ) {
         callback.onError();
     }
@@ -182,17 +140,17 @@ public abstract class PersonalizationService extends Service {
 
             if (operationCode == Constants.OP_APP_REQUEST) {
 
-                String appPackageName = Objects.requireNonNull(
-                        params.getString(Constants.EXTRA_APP_NAME));
-                PersistableBundle appParams = params.getParcelable(
-                        Constants.EXTRA_APP_PARAMS, PersistableBundle.class);
+                AppRequestInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, AppRequestInput.class));
+                Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new AppRequestCallback() {
-                    @Override public void onSuccess(AppRequestResult result) {
+                var wrappedCallback = new Callback<AppRequestResult>() {
+                    @Override public void onResult(AppRequestResult result) {
                         Bundle bundle = new Bundle();
                         bundle.putParcelable(Constants.EXTRA_RESULT, result);
                         try {
@@ -211,20 +169,21 @@ public abstract class PersonalizationService extends Service {
                     }
                 };
                 PersonalizationService.this.onAppRequest(
-                        appPackageName, appParams, odpContext, wrappedCallback);
+                        input, odpContext, wrappedCallback);
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
-                ParcelFileDescriptor fd = Objects.requireNonNull(
-                        params.getParcelable(
-                            Constants.EXTRA_PARCEL_FD, ParcelFileDescriptor.class));
+                DownloadInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, DownloadInput.class));
+                Objects.requireNonNull(input.getParcelFileDescriptor());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new DownloadCallback() {
-                    @Override public void onSuccess(DownloadResult result) {
+                var wrappedCallback = new Callback<DownloadResult>() {
+                    @Override public void onResult(DownloadResult result) {
                         Bundle bundle = new Bundle();
                         bundle.putParcelable(Constants.EXTRA_RESULT, result);
                         try {
@@ -243,21 +202,22 @@ public abstract class PersonalizationService extends Service {
                     }
                 };
                 PersonalizationService.this.onDownload(
-                        fd, odpContext, wrappedCallback);
+                        input, odpContext, wrappedCallback);
 
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 
-                SlotInfo slotInfo = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_SLOT_INFO, SlotInfo.class));
-                List<String> bidIds = Arrays.asList(Objects.requireNonNull(
-                        params.getStringArray(Constants.EXTRA_BID_IDS)));
+                RenderContentInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, RenderContentInput.class));
+                Objects.requireNonNull(input.getSlotInfo());
+                Objects.requireNonNull(input.getBidIds());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new RenderContentCallback() {
-                    @Override public void onSuccess(RenderContentResult result) {
+                var wrappedCallback = new Callback<RenderContentResult>() {
+                    @Override public void onResult(RenderContentResult result) {
                         Bundle bundle = new Bundle();
                         bundle.putParcelable(Constants.EXTRA_RESULT, result);
                         try {
@@ -276,20 +236,19 @@ public abstract class PersonalizationService extends Service {
                     }
                 };
                 PersonalizationService.this.renderContent(
-                        slotInfo, bidIds, odpContext, wrappedCallback);
+                        input, odpContext, wrappedCallback);
 
             } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
 
-                EventMetricsInput eventMetricsInput = Objects.requireNonNull(
-                        params.getParcelable(
-                            Constants.EXTRA_EVENT_METRICS_INPUT, EventMetricsInput.class));
+                EventMetricsInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, EventMetricsInput.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new EventMetricsCallback() {
-                    @Override public void onSuccess(EventMetricsResult result) {
+                var wrappedCallback = new Callback<EventMetricsResult>() {
+                    @Override public void onResult(EventMetricsResult result) {
                         Bundle bundle = new Bundle();
                         bundle.putParcelable(Constants.EXTRA_RESULT, result);
                         try {
@@ -308,7 +267,7 @@ public abstract class PersonalizationService extends Service {
                     }
                 };
                 PersonalizationService.this.computeEventMetrics(
-                        eventMetricsInput, odpContext, wrappedCallback);
+                        input, odpContext, wrappedCallback);
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
