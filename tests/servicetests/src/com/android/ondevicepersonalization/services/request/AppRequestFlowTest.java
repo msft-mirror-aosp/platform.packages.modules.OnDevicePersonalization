@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -28,12 +29,16 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -45,6 +50,7 @@ import java.util.concurrent.CountDownLatch;
 public class AppRequestFlowTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
+    private OnDevicePersonalizationDbHelper mDbHelper;
 
     private String mRenderedContent;
     private boolean mGenerateHtmlCalled;
@@ -55,7 +61,15 @@ public class AppRequestFlowTest {
 
     @Before
     public void setup() {
+        mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        EventsDao.getInstanceForTest(mContext);
+    }
 
+    @After
+    public void cleanup() {
+        mDbHelper.getWritableDatabase().close();
+        mDbHelper.getReadableDatabase().close();
+        mDbHelper.close();
     }
 
     @Test
@@ -71,6 +85,9 @@ public class AppRequestFlowTest {
         assertTrue(mCallbackSuccess);
         assertTrue(mRenderedContent.contains("bid1"));
         assertTrue(mGeneratedHtml.contains("bid1"));
+        assertEquals(1,
+                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
+                        null, null, null, null, null).getCount());
     }
 
     class TestDisplayHelper extends DisplayHelper {
