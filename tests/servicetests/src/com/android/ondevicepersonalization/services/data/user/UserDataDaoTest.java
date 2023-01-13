@@ -41,12 +41,14 @@ import java.util.Calendar;
 public class UserDataDaoTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private UserDataDao mDao;
-    private static final int TEST_APP_USAGE_LEGAL_DAYS = 28;
-    private static final int TEST_APP_USAGE_ILLEGAL_DAYS = 32;
-    private static final int TEST_APP_USAGE_TOTAL_TIMES = 60;
+    private static final int TEST_LEGAL_DAYS = 28;
+    private static final int TEST_ILLEGAL_DAYS = 32;
+    private static final int TEST_TOTAL_TIMES = 60;
     private static final long MILLISECONDS_PER_DAY = 86400000;
     private static final String TEST_PACKAGE_NAME = "foobar";
     private static final long TEST_TOTAL_TIME_PER_DAY = 100;
+    private static final String TEST_LATITUDE = "100.1111";
+    private static final String TEST_LONGITUDE = "200.1111";
 
     @Before
     public void setup() {
@@ -83,15 +85,15 @@ public class UserDataDaoTest {
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.HOUR_OF_DAY, 0);
         long endTimeMillis = cal.getTimeInMillis();
-        for (int i = 0; i < TEST_APP_USAGE_TOTAL_TIMES; ++i) {
+        for (int i = 0; i < TEST_TOTAL_TIMES; ++i) {
             final long startTimeMillis = endTimeMillis - MILLISECONDS_PER_DAY;
             mDao.insertAppUsageStatsData(TEST_PACKAGE_NAME,
                     startTimeMillis, endTimeMillis, TEST_TOTAL_TIME_PER_DAY);
             endTimeMillis = startTimeMillis;
         }
-        Cursor cursor = mDao.readAppUsageInLastXDays(TEST_APP_USAGE_LEGAL_DAYS);
+        Cursor cursor = mDao.readAppUsageInLastXDays(TEST_LEGAL_DAYS);
         assertNotNull(cursor);
-        assertEquals(TEST_APP_USAGE_LEGAL_DAYS, cursor.getCount());
+        assertEquals(TEST_LEGAL_DAYS, cursor.getCount());
         if (cursor.moveToFirst()) {
             while (!cursor.isAfterLast()) {
                 assertEquals(TEST_PACKAGE_NAME, cursor.getString(cursor.getColumnIndex(
@@ -102,7 +104,56 @@ public class UserDataDaoTest {
             }
         }
 
-        cursor = mDao.readAppUsageInLastXDays(TEST_APP_USAGE_ILLEGAL_DAYS);
+        cursor = mDao.readAppUsageInLastXDays(TEST_ILLEGAL_DAYS);
+        assertNull(cursor);
+    }
+
+    @Test
+    public void testReadLocationInfo() {
+        Calendar cal = Calendar.getInstance();
+        long locationCollectionTimeMillis = cal.getTimeInMillis();
+        final long currentLocationTimeMillis = locationCollectionTimeMillis;
+        long refTimeMillis = currentLocationTimeMillis
+                - (TEST_LEGAL_DAYS - 1) * MILLISECONDS_PER_DAY;
+
+        for (int i = 0; i < TEST_TOTAL_TIMES; ++i) {
+            mDao.insertLocationHistoryData(
+                    locationCollectionTimeMillis, TEST_LATITUDE, TEST_LONGITUDE, 1, true);
+            locationCollectionTimeMillis -= MILLISECONDS_PER_DAY;
+        }
+        Cursor cursor = mDao.readLocationInLastXDays(TEST_LEGAL_DAYS);
+        assertNotNull(cursor);
+        assertEquals(TEST_LEGAL_DAYS, cursor.getCount());
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+                assertEquals(refTimeMillis, cursor.getLong(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.TIME_SEC)));
+                assertEquals(TEST_LATITUDE, cursor.getString(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.LATITUDE)));
+                assertEquals(TEST_LONGITUDE, cursor.getString(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.LONGITUDE)));
+                cursor.moveToNext();
+                refTimeMillis += MILLISECONDS_PER_DAY;
+            }
+        }
+
+        cursor = mDao.readCurrentLocation();
+        assertNotNull(cursor);
+        assertEquals(1, cursor.getCount());
+        if (cursor.moveToFirst()) {
+            assertEquals(currentLocationTimeMillis, cursor.getLong(cursor.getColumnIndex(
+                    UserDataTables.LocationHistory.TIME_SEC)));
+            assertEquals(TEST_LATITUDE, cursor.getString(cursor.getColumnIndex(
+                    UserDataTables.LocationHistory.LATITUDE)));
+            assertEquals(TEST_LONGITUDE, cursor.getString(cursor.getColumnIndex(
+                    UserDataTables.LocationHistory.LONGITUDE)));
+            assertEquals(1, cursor.getInt(cursor.getColumnIndex(
+                    UserDataTables.LocationHistory.SOURCE)));
+            assertTrue(cursor.getInt(cursor.getColumnIndex(
+                    UserDataTables.LocationHistory.IS_PRECISE)) > 0);
+        }
+
+        cursor = mDao.readLocationInLastXDays(TEST_ILLEGAL_DAYS);
         assertNull(cursor);
     }
 
