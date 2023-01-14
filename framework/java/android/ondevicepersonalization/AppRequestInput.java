@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,26 +16,26 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The inputs required for computing event-level metrics to be logged.
+ * The output to be rendered in a slot within a calling app.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class EventMetricsInput implements Parcelable {
-    /** The type of the event. */
-    private int mEventType = 0;
+public final class AppRequestInput implements Parcelable {
+    /** The package name of the calling app. */
+    @NonNull String mAppPackageName;
 
-    /** Parameters needed for computing event metrics. */
-    @Nullable private PersistableBundle mEventParams = null;
-
-    // TODO(b/259950177): Add Query and Event row contents.
+    /** Parameters provided by the app to the {@link PersonalizationService}. */
+    @Nullable PersistableBundle mAppParams;
 
 
 
@@ -45,7 +45,7 @@ public final class EventMetricsInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventMetricsInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppRequestInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -53,46 +53,48 @@ public final class EventMetricsInput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ EventMetricsInput(
-            int eventType,
-            @Nullable PersistableBundle eventParams) {
-        this.mEventType = eventType;
-        this.mEventParams = eventParams;
+    /* package-private */ AppRequestInput(
+            @NonNull String appPackageName,
+            @Nullable PersistableBundle appParams) {
+        this.mAppPackageName = appPackageName;
+        AnnotationValidations.validate(
+                NonNull.class, null, mAppPackageName);
+        this.mAppParams = appParams;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The type of the event.
+     * The package name of the calling app.
      */
     @DataClass.Generated.Member
-    public int getEventType() {
-        return mEventType;
+    public @NonNull String getAppPackageName() {
+        return mAppPackageName;
     }
 
     /**
-     * Parameters needed for computing event metrics.
+     * Parameters provided by the app to the {@link PersonalizationService}.
      */
     @DataClass.Generated.Member
-    public @Nullable PersistableBundle getEventParams() {
-        return mEventParams;
+    public @Nullable PersistableBundle getAppParams() {
+        return mAppParams;
     }
 
     @Override
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(EventMetricsInput other) { ... }
+        // boolean fieldNameEquals(AppRequestInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        EventMetricsInput that = (EventMetricsInput) o;
+        AppRequestInput that = (AppRequestInput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mEventType == that.mEventType
-                && java.util.Objects.equals(mEventParams, that.mEventParams);
+                && java.util.Objects.equals(mAppPackageName, that.mAppPackageName)
+                && java.util.Objects.equals(mAppParams, that.mAppParams);
     }
 
     @Override
@@ -102,22 +104,22 @@ public final class EventMetricsInput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + mEventType;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mEventParams);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mAppPackageName);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mAppParams);
         return _hash;
     }
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mEventParams != null) flg |= 0x2;
+        if (mAppParams != null) flg |= 0x2;
         dest.writeByte(flg);
-        dest.writeInt(mEventType);
-        if (mEventParams != null) dest.writeTypedObject(mEventParams, flags);
+        dest.writeString(mAppPackageName);
+        if (mAppParams != null) dest.writeTypedObject(mAppParams, flags);
     }
 
     @Override
@@ -127,85 +129,84 @@ public final class EventMetricsInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ EventMetricsInput(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ AppRequestInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        int eventType = in.readInt();
-        PersistableBundle eventParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        String appPackageName = in.readString();
+        PersistableBundle appParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
-        this.mEventType = eventType;
-        this.mEventParams = eventParams;
+        this.mAppPackageName = appPackageName;
+        AnnotationValidations.validate(
+                NonNull.class, null, mAppPackageName);
+        this.mAppParams = appParams;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<EventMetricsInput> CREATOR
-            = new Parcelable.Creator<EventMetricsInput>() {
+    public static final @NonNull Parcelable.Creator<AppRequestInput> CREATOR
+            = new Parcelable.Creator<AppRequestInput>() {
         @Override
-        public EventMetricsInput[] newArray(int size) {
-            return new EventMetricsInput[size];
+        public AppRequestInput[] newArray(int size) {
+            return new AppRequestInput[size];
         }
 
         @Override
-        public EventMetricsInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new EventMetricsInput(in);
+        public AppRequestInput createFromParcel(@NonNull android.os.Parcel in) {
+            return new AppRequestInput(in);
         }
     };
 
     /**
-     * A builder for {@link EventMetricsInput}
+     * A builder for {@link AppRequestInput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private int mEventType;
-        private @Nullable PersistableBundle mEventParams;
+        private @NonNull String mAppPackageName;
+        private @Nullable PersistableBundle mAppParams;
 
         private long mBuilderFieldsSet = 0L;
 
+        /**
+         * Creates a new Builder.
+         */
         public Builder() {
         }
 
         /**
-         * The type of the event.
+         * The package name of the calling app.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventType(int value) {
+        public @NonNull Builder setAppPackageName(@NonNull String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mEventType = value;
+            mAppPackageName = value;
             return this;
         }
 
         /**
-         * Parameters needed for computing event metrics.
+         * Parameters provided by the app to the {@link PersonalizationService}.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventParams(@android.annotation.NonNull PersistableBundle value) {
+        public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mEventParams = value;
+            mAppParams = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull EventMetricsInput build() {
+        public @NonNull AppRequestInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
-            if ((mBuilderFieldsSet & 0x1) == 0) {
-                mEventType = 0;
-            }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mEventParams = null;
-            }
-            EventMetricsInput o = new EventMetricsInput(
-                    mEventType,
-                    mEventParams);
+            AppRequestInput o = new AppRequestInput(
+                    mAppPackageName,
+                    mAppParams);
             return o;
         }
 
@@ -218,10 +219,10 @@ public final class EventMetricsInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1673388114737L,
+            time = 1673311094960L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventMetricsInput.java",
-            inputSignatures = "private  int mEventType\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventParams\nclass EventMetricsInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppRequestInput.java",
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass AppRequestInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

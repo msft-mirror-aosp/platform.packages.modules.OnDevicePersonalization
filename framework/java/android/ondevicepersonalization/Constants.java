@@ -33,25 +33,14 @@ public class Constants {
 
     // Keys for Bundle objects passed between processes.
     public static final String
-            EXTRA_APP_NAME = "android.ondevicepersonalization.app_name";
-    public static final String
-            EXTRA_APP_PARAMS = "android.ondevicepersonalization.app_params";
-    public static final String
-            EXTRA_BID_IDS = "android.ondevicepersonalization.bid_ids";
-    public static final String
             EXTRA_DATA_ACCESS_SERVICE_BINDER =
-                "android.ondevicepersonalization.data_access_service_binder";
+                "android.ondevicepersonalization.extra.data_access_service_binder";
     public static final String
-            EXTRA_EVENT_METRICS_INPUT =
-                "android.ondevicepersonalization.event_metrics_input";
+            EXTRA_INPUT = "android.ondevicepersonalization.extra.input";
     public static final String
-            EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.lookup_keys";
+            EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.extra.lookup_keys";
     public static final String
-            EXTRA_PARCEL_FD = "android.ondevicepersonalization.parcel_fd";
-    public static final String
-            EXTRA_RESULT = "android.ondevicepersonalization.result";
-    public static final String
-            EXTRA_SLOT_INFO = "android.ondevicepersonalization.slot_info";
+            EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;

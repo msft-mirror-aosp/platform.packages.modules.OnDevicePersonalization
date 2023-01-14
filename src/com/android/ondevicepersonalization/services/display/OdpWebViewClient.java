@@ -17,18 +17,68 @@
 package com.android.ondevicepersonalization.services.display;
 
 import android.annotation.NonNull;
+import android.content.Context;
+import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.events.Event;
+import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
+import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+
+import java.util.concurrent.Executor;
+
 class OdpWebViewClient extends WebViewClient {
-    @Override public boolean shouldOverrideUrlLoading(
+    private static final String TAG = "OdpWebViewClient";
+    private final Executor mExecutor;
+
+    OdpWebViewClient() {
+        this(OnDevicePersonalizationExecutors.getBackgroundExecutor());
+    }
+
+    @VisibleForTesting
+    OdpWebViewClient(Executor executor) {
+        this.mExecutor = executor;
+    }
+
+    @Override
+    public boolean shouldOverrideUrlLoading(
             @NonNull WebView webView, @NonNull WebResourceRequest request) {
         if (webView == null || request == null) {
-            return false;
+            Log.e(TAG, "Received null webView or Request");
+            return true;
         }
-        // TODO(b/242753206): Decode odp:// URIs and call Events table API to
-        // write an event.
-        return false;
+        //Decode odp://localhost/ URIs and call Events table API to write an event.
+        String url = request.getUrl().toString();
+        if (EventUrlHelper.isOdpUrl(url)) {
+            mExecutor.execute(() -> writeEvent(
+                    webView.getContext(), url));
+            String landingPage = request.getUrl().getQueryParameter(
+                    EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY);
+            if (landingPage != null) {
+                webView.loadUrl(landingPage);
+            }
+        } else {
+            // TODO(b/263180569): Handle any non-odp URLs
+            Log.d(TAG, "Non-odp URL encountered: " + url);
+        }
+        // Cancel the current load
+        return true;
+    }
+
+    private void writeEvent(Context context, String url) {
+        try {
+            EventUrlPayload eventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
+            Event event = eventUrlPayload.getEvent();
+            if (!EventsDao.getInstance(context).insertEvent(event)) {
+                Log.e(TAG, "Failed to insert event: " + event);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to decrypt EventUrlPayload", e);
+        }
     }
 }

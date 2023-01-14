@@ -17,35 +17,45 @@
 package com.android.odpsamplenetwork;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
+import android.ondevicepersonalization.AppRequestInput;
 import android.ondevicepersonalization.AppRequestResult;
+import android.ondevicepersonalization.DownloadInput;
+import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SlotInfo;
 import android.ondevicepersonalization.SlotResult;
 import android.os.ParcelFileDescriptor;
-import android.os.PersistableBundle;
+import android.util.JsonReader;
 import android.util.Log;
 
-
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SamplePersonalizationService extends PersonalizationService {
     public final String TAG = "SamplePersonalizationService";
 
     @Override
-    public void onDownload(ParcelFileDescriptor fd, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.DownloadCallback callback) {
+    public void onDownload(
+            @NonNull DownloadInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull PersonalizationService.Callback<DownloadResult> callback) {
         Log.d(TAG, "onDownload() started.");
+        DownloadResult downloadResult =
+                new DownloadResult.Builder()
+                        .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
+                        .build();
+        callback.onResult(downloadResult);
     }
 
     @Override public void onAppRequest(
-            @NonNull String appPackageName,
-            @Nullable PersistableBundle appParams,
+            @NonNull AppRequestInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.AppRequestCallback callback
+            @NonNull PersonalizationService.Callback<AppRequestResult> callback
     ) {
         Log.d(TAG, "onAppRequest() started.");
         SlotResult.Builder slotResultBuilder = new SlotResult.Builder();
@@ -60,21 +70,56 @@ public class SamplePersonalizationService extends PersonalizationService {
                         .addSlotResults(slotResultBuilder.build())
                         .build();
         Log.d(TAG, "onAppRequest() finished.");
-        callback.onSuccess(result);
+        callback.onResult(result);
     }
 
     @Override public void renderContent(
-            @NonNull SlotInfo slotInfo,
-            @NonNull List<String> bidIds,
+            @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.RenderContentCallback callback
+            @NonNull PersonalizationService.Callback<RenderContentResult> callback
     ) {
         Log.d(TAG, "renderContent() started.");
-        String content = "<h2>Winners</h2>" + String.join(",", bidIds) + "<p>";
+        String content = "<h2>Winners</h2>" + String.join(",", input.getBidIds()) + "<p>";
         RenderContentResult result =
                 new RenderContentResult.Builder()
                         .setContent(content).build();
         Log.d(TAG, "renderContent() finished.");
-        callback.onSuccess(result);
+        callback.onResult(result);
+    }
+
+    private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
+        List<String> filteredKeys = new ArrayList<String>();
+        // Add all keys from the file into the list
+        try (InputStream in =
+                     new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
+            try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
+                reader.beginObject();
+                while (reader.hasNext()) {
+                    String name = reader.nextName();
+                    if (name.equals("contents")) {
+                        reader.beginArray();
+                        while (reader.hasNext()) {
+                            reader.beginObject();
+                            while (reader.hasNext()) {
+                                String elementName = reader.nextName();
+                                if (elementName.equals("key")) {
+                                    filteredKeys.add(reader.nextString());
+                                } else {
+                                    reader.skipValue();
+                                }
+                            }
+                            reader.endObject();
+                        }
+                        reader.endArray();
+                    } else {
+                        reader.skipValue();
+                    }
+                }
+                reader.endObject();
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to parse downloaded data from fd");
+        }
+        return filteredKeys;
     }
 }
