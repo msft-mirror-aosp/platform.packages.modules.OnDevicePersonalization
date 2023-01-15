@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -204,7 +205,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 null, mPackageName, mContext, true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        pluginParams.putParcelable(Constants.EXTRA_PARCEL_FD, fd);
+        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(fd).build();
+        pluginParams.putParcelable(Constants.EXTRA_INPUT, input);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
