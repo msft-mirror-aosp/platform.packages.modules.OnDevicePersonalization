@@ -35,7 +35,9 @@ import android.util.Slog;
 import android.view.SurfaceControlViewHost;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 /**
  * OnDevicePersonalizationManager.
@@ -94,12 +96,21 @@ public class OnDevicePersonalizationManager {
         mContext = context;
     }
 
+    private final CountDownLatch mConnectionLatch = new CountDownLatch(1);
+
     private final ServiceConnection mConnection =
             new ServiceConnection() {
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
                     mService = IOnDevicePersonalizationManagingService.Stub.asInterface(service);
                     mBound = true;
+                    mConnectionLatch.countDown();
+                }
+
+                @Override
+                public void onNullBinding(ComponentName name) {
+                    mBound = false;
+                    mConnectionLatch.countDown();
                 }
 
                 @Override
@@ -109,8 +120,7 @@ public class OnDevicePersonalizationManager {
                 }
             };
 
-    private static final int BIND_SERVICE_INTERVAL_MS = 1000;
-    private static final int BIND_SERVICE_RETRY_TIMES = 3;
+    private static final int BIND_SERVICE_TIMEOUT_SEC = 5;
     private static final String VERSION = "1.0";
 
     /**
@@ -181,7 +191,7 @@ public class OnDevicePersonalizationManager {
                                 + ") with not null IBinder value");
             }
 
-            bindService();
+            bindService(executor);
 
             IRequestSurfacePackageCallback callbackWrapper =
                     new IRequestSurfacePackageCallback.Stub() {
@@ -214,7 +224,7 @@ public class OnDevicePersonalizationManager {
     }
 
     /** Bind to the service, if not already bound. */
-    private void bindService() throws InterruptedException {
+    private void bindService(@NonNull Executor executor) throws InterruptedException {
         if (!mBound) {
             Intent intent = new Intent("android.OnDevicePersonalizationService");
             ComponentName serviceComponent =
@@ -225,14 +235,12 @@ public class OnDevicePersonalizationManager {
             }
 
             intent.setComponent(serviceComponent);
-            boolean r = mContext.bindService(intent, mConnection, Context.BIND_AUTO_CREATE);
+            boolean r = mContext.bindService(
+                    intent, Context.BIND_AUTO_CREATE, executor, mConnection);
             if (!r) {
                 return;
             }
-            int retries = 0;
-            while (!mBound && retries++ < BIND_SERVICE_RETRY_TIMES) {
-                Thread.sleep(BIND_SERVICE_INTERVAL_MS);
-            }
+            mConnectionLatch.await(BIND_SERVICE_TIMEOUT_SEC, TimeUnit.SECONDS);
         }
     }
 
