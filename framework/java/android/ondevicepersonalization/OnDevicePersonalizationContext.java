@@ -16,7 +16,11 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
+import android.os.OutcomeReceiver;
+
+import java.util.concurrent.Executor;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated process.
@@ -29,6 +33,14 @@ public interface OnDevicePersonalizationContext {
      * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
      */
     @NonNull RemoteData getRemoteData();
+
+    /** Return an Event URL for a single bid. */
+    void getEventUrl(
+            int eventType,
+            @NonNull String bidId,
+            @NonNull EventUrlOptions options,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<String, Exception> receiver);
 
     // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
 }
