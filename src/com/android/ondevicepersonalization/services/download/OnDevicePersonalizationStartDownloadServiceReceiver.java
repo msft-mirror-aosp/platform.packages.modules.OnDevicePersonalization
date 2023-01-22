@@ -89,7 +89,7 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to scheduled MDD tasks.");
+                        Log.e(TAG, "Failed to schedule MDD tasks.", t);
                         pendingResult.finish();
                     }
                 },
