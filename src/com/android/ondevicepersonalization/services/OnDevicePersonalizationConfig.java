@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services;
 
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
 /**
  * Hard-coded configs for OnDevicePersonalization
@@ -45,4 +46,8 @@ public class OnDevicePersonalizationConfig {
     /** Job ID for Download Processing Task
      * ({@link OnDevicePersonalizationDownloadProcessingJobService}) */
     public static final int DOWNLOAD_PROCESSING_TASK_JOB_ID = 1004;
+
+    /** Job ID for Maintenance Task
+     * ({@link OnDevicePersonalizationMaintenanceJobService}) */
+    public static final int MAINTENANCE_TASK_JOB_ID = 1005;
 }

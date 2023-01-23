@@ -28,6 +28,7 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -75,6 +76,9 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
             Log.d(TAG, "Received unexpected intent " + intent.getAction());
             return;
         }
+
+        // Schedule maintenance task
+        OnDevicePersonalizationMaintenanceJobService.schedule(context);
 
         final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.

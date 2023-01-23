@@ -48,6 +48,7 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
         jobScheduler.cancel(
                 OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
     }
 
     @Test
@@ -67,6 +68,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
         receiver.onReceive(mContext, intent);
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) != null);
         // MDD tasks
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) != null);
@@ -87,6 +90,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
         receiver.onReceive(mContext, intent);
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) == null);
         // MDD tasks
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) == null);
