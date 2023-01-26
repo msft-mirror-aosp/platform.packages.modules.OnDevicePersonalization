@@ -23,7 +23,7 @@ package android.app.ondevicepersonalization;
 public class OnDevicePersonalizationSystemServiceManager {
     /** Identifier for the ODP binder service in system_server. */
     public static final String ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE =
-            "android.app.ondevicepersonalization.ondevicepersonalizationsystemservice";
+            "ondevicepersonalization_system_service";
 
     private OnDevicePersonalizationSystemServiceManager() {}
 }
