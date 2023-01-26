@@ -33,6 +33,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends PersonalizationService {
@@ -40,7 +41,7 @@ public class TestPersonalizationService extends PersonalizationService {
 
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.Callback<DownloadResult> callback) {
+            Consumer<DownloadResult> consumer) {
         Log.d(TAG, "Starting filterData.");
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
@@ -54,13 +55,13 @@ public class TestPersonalizationService extends PersonalizationService {
                                 new DownloadResult.Builder()
                                 .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
                                 .build();
-                        callback.onResult(downloadResult);
+                        consumer.accept(downloadResult);
                     }
 
                     @Override
                     public void onError(Exception e) {
                         Log.e(TAG, "OutcomeReceiver onError.", e);
-                        callback.onError();
+                        consumer.accept(null);
                     }
                 });
     }
