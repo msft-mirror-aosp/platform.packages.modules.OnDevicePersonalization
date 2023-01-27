@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
@@ -29,13 +30,13 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
         genEqualsHashCode = true
 )
 public class Query {
-    /** Time of the query in microseconds. */
-    @NonNull
-    private final long mTimeUsec;
+    /** The id of the query. */
+    @Nullable
+    private final long mQueryId;
 
-    /** The id of the thread serving the query. */
+    /** Time of the query in milliseconds. */
     @NonNull
-    private final long mThreadId;
+    private final long mTimeMillis;
 
     /** Blob representing the query. */
     @NonNull
@@ -58,15 +59,13 @@ public class Query {
 
     @DataClass.Generated.Member
     /* package-private */ Query(
-            @NonNull long timeUsec,
-            @NonNull long threadId,
+            @Nullable long queryId,
+            @NonNull long timeMillis,
             @NonNull byte[] query) {
-        this.mTimeUsec = timeUsec;
+        this.mQueryId = queryId;
+        this.mTimeMillis = timeMillis;
         AnnotationValidations.validate(
-                NonNull.class, null, mTimeUsec);
-        this.mThreadId = threadId;
-        AnnotationValidations.validate(
-                NonNull.class, null, mThreadId);
+                NonNull.class, null, mTimeMillis);
         this.mQuery = query;
         AnnotationValidations.validate(
                 NonNull.class, null, mQuery);
@@ -75,19 +74,19 @@ public class Query {
     }
 
     /**
-     * Time of the query in microseconds.
+     * The id of the query.
      */
     @DataClass.Generated.Member
-    public @NonNull long getTimeUsec() {
-        return mTimeUsec;
+    public @Nullable long getQueryId() {
+        return mQueryId;
     }
 
     /**
-     * The id of the thread serving the query.
+     * Time of the query in milliseconds.
      */
     @DataClass.Generated.Member
-    public @NonNull long getThreadId() {
-        return mThreadId;
+    public @NonNull long getTimeMillis() {
+        return mTimeMillis;
     }
 
     /**
@@ -100,7 +99,7 @@ public class Query {
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@android.annotation.Nullable Object o) {
+    public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(Query other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -111,8 +110,8 @@ public class Query {
         Query that = (Query) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mTimeUsec == that.mTimeUsec
-                && mThreadId == that.mThreadId
+                && mQueryId == that.mQueryId
+                && mTimeMillis == that.mTimeMillis
                 && java.util.Arrays.equals(mQuery, that.mQuery);
     }
 
@@ -123,8 +122,8 @@ public class Query {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + Long.hashCode(mTimeUsec);
-        _hash = 31 * _hash + Long.hashCode(mThreadId);
+        _hash = 31 * _hash + Long.hashCode(mQueryId);
+        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
         _hash = 31 * _hash + java.util.Arrays.hashCode(mQuery);
         return _hash;
     }
@@ -136,8 +135,8 @@ public class Query {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @NonNull long mTimeUsec;
-        private @NonNull long mThreadId;
+        private @Nullable long mQueryId;
+        private @NonNull long mTimeMillis;
         private @NonNull byte[] mQuery;
 
         private long mBuilderFieldsSet = 0L;
@@ -148,47 +147,45 @@ public class Query {
         /**
          * Creates a new Builder.
          *
-         * @param timeUsec
-         *   Time of the query in microseconds.
-         * @param threadId
-         *   The id of the thread serving the query.
+         * @param queryId
+         *   The id of the query.
+         * @param timeMillis
+         *   Time of the query in milliseconds.
          * @param query
          *   Blob representing the query.
          */
         public Builder(
-                @NonNull long timeUsec,
-                @NonNull long threadId,
+                @Nullable long queryId,
+                @NonNull long timeMillis,
                 @NonNull byte[] query) {
-            mTimeUsec = timeUsec;
+            mQueryId = queryId;
+            mTimeMillis = timeMillis;
             AnnotationValidations.validate(
-                    NonNull.class, null, mTimeUsec);
-            mThreadId = threadId;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mThreadId);
+                    NonNull.class, null, mTimeMillis);
             mQuery = query;
             AnnotationValidations.validate(
                     NonNull.class, null, mQuery);
         }
 
         /**
-         * Time of the query in microseconds.
+         * The id of the query.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTimeUsec(@NonNull long value) {
+        public @NonNull Builder setQueryId(@NonNull long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mTimeUsec = value;
+            mQueryId = value;
             return this;
         }
 
         /**
-         * The id of the thread serving the query.
+         * Time of the query in milliseconds.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setThreadId(@NonNull long value) {
+        public @NonNull Builder setTimeMillis(@NonNull long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mThreadId = value;
+            mTimeMillis = value;
             return this;
         }
 
@@ -209,8 +206,8 @@ public class Query {
             mBuilderFieldsSet |= 0x8; // Mark builder used
 
             Query o = new Query(
-                    mTimeUsec,
-                    mThreadId,
+                    mQueryId,
+                    mTimeMillis,
                     mQuery);
             return o;
         }
@@ -224,10 +221,10 @@ public class Query {
     }
 
     @DataClass.Generated(
-            time = 1671641270655L,
+            time = 1674839300496L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Query.java",
-            inputSignatures = "private final @android.annotation.NonNull long mTimeUsec\nprivate final @android.annotation.NonNull long mThreadId\nprivate final @android.annotation.NonNull byte[] mQuery\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final @android.annotation.Nullable long mQueryId\nprivate final @android.annotation.NonNull long mTimeMillis\nprivate final @android.annotation.NonNull byte[] mQuery\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
