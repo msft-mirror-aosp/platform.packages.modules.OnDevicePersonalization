@@ -30,7 +30,6 @@ import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
-import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
@@ -146,7 +145,7 @@ public class AppRequestFlow {
                             mExecutorService
                     );
 
-            ListenableFuture<QueryId> queryIdFuture = FluentFuture.from(resultFuture)
+            ListenableFuture<Long> queryIdFuture = FluentFuture.from(resultFuture)
                     .transformAsync(input -> logQuery(input), mExecutorService);
 
             ListenableFuture<List<SurfacePackage>> surfacePackagesFuture =
@@ -202,25 +201,25 @@ public class AppRequestFlow {
                 isolatedServiceInfo, mServiceClassName, Constants.OP_APP_REQUEST, serviceParams);
     }
 
-    private ListenableFuture<QueryId> logQuery(AppRequestResult appRequestResult) {
+    private ListenableFuture<Long> logQuery(AppRequestResult appRequestResult) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
         // TODO(b/228200518): Populate queryData
         byte[] queryData = new byte[1];
-        // TODO(b/228200518): Replace currentTimeMillis() with a higher precision timestamp.
-        QueryId queryId = new QueryId(System.currentTimeMillis() * 1000, Process.myTid());
         Query query = new Query.Builder()
                 .setQuery(queryData)
-                .setThreadId(queryId.mThreadId)
-                .setTimeUsec(queryId.mTimeUsec)
+                .setTimeMillis(System.currentTimeMillis())
                 .build();
-        EventsDao.getInstance(mContext).insertQuery(query);
+        long queryId = EventsDao.getInstance(mContext).insertQuery(query);
+        if (queryId == -1) {
+            return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
+        }
         return Futures.immediateFuture(queryId);
     }
 
     private ListenableFuture<List<SurfacePackage>> renderContent(
             AppRequestResult appRequestResult,
-            QueryId queryId) {
+            long queryId) {
         Log.d(TAG, "renderContent() started.");
         List<SlotResult> slotResults = appRequestResult.getSlotResults();
         if (slotResults == null) {
@@ -313,16 +312,6 @@ public class AppRequestFlow {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
             Log.w(TAG, "Callback error", e);
-        }
-    }
-
-    static class QueryId {
-        public final long mTimeUsec;
-        public final long mThreadId;
-
-        QueryId(long timeUsec, long threadId) {
-            mTimeUsec = timeUsec;
-            mThreadId = threadId;
         }
     }
 
