@@ -35,6 +35,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Consumer;
 
 public class SamplePersonalizationService extends PersonalizationService {
     public final String TAG = "SamplePersonalizationService";
@@ -43,19 +44,19 @@ public class SamplePersonalizationService extends PersonalizationService {
     public void onDownload(
             @NonNull DownloadInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<DownloadResult> callback) {
+            @NonNull Consumer<DownloadResult> consumer) {
         Log.d(TAG, "onDownload() started.");
         DownloadResult downloadResult =
                 new DownloadResult.Builder()
                         .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
                         .build();
-        callback.onResult(downloadResult);
+        consumer.accept(downloadResult);
     }
 
     @Override public void onAppRequest(
             @NonNull AppRequestInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<AppRequestResult> callback
+            @NonNull Consumer<AppRequestResult> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
         SlotResult.Builder slotResultBuilder = new SlotResult.Builder();
@@ -70,13 +71,13 @@ public class SamplePersonalizationService extends PersonalizationService {
                         .addSlotResults(slotResultBuilder.build())
                         .build();
         Log.d(TAG, "onAppRequest() finished.");
-        callback.onResult(result);
+        consumer.accept(result);
     }
 
     @Override public void renderContent(
             @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<RenderContentResult> callback
+            @NonNull Consumer<RenderContentResult> consumer
     ) {
         Log.d(TAG, "renderContent() started.");
         String content = "<h2>Winners</h2>" + String.join(",", input.getBidIds()) + "<p>";
@@ -84,7 +85,7 @@ public class SamplePersonalizationService extends PersonalizationService {
                 new RenderContentResult.Builder()
                         .setContent(content).build();
         Log.d(TAG, "renderContent() finished.");
-        callback.onResult(result);
+        consumer.accept(result);
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {

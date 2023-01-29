@@ -34,8 +34,6 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
-        "androidx.work_work-runtime",
-        "androidx.work_work-testing",
         "mobile_data_downloader_lib",
         "ondevicepersonalization-plugin-lib",
         "flatbuffers-java",

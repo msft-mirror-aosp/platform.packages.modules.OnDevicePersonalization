@@ -63,14 +63,13 @@ public class OdpWebViewClientTests {
             .setServicePackageName("servicePackageName")
             .setSlotId("slotId")
             .setSlotPosition(1)
-            .setThreadId(1L)
-            .setTimeUsec(1L)
+            .setQueryId(1L)
+            .setTimeMillis(1L)
             .build();
     private final EventUrlPayload mTestEventPayload = new EventUrlPayload.Builder()
             .setEvent(mTestEvent).build();
     private final Query mTestQuery = new Query.Builder()
-            .setTimeUsec(1L)
-            .setThreadId(1L)
+            .setTimeMillis(1L)
             .setQuery("query".getBytes(StandardCharsets.UTF_8))
             .build();
     private EventsDao mDao;

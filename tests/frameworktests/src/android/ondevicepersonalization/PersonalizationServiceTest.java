@@ -36,6 +36,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 
 /**
  * Unit Tests of PersonalizationService class.
@@ -456,13 +457,13 @@ public class PersonalizationServiceTest {
         @Override public void onAppRequest(
                 AppRequestInput input,
                 OnDevicePersonalizationContext odpContext,
-                Callback<AppRequestResult> callback
+                Consumer<AppRequestResult> consumer
         ) {
             mOnAppRequestCalled = true;
             if (input.getAppParams() != null && input.getAppParams().getInt("error") > 0) {
-                callback.onError();
+                consumer.accept(null);
             } else {
-                callback.onResult(
+                consumer.accept(
                         new AppRequestResult.Builder()
                         .addSlotResults(
                             new SlotResult.Builder()
@@ -480,22 +481,22 @@ public class PersonalizationServiceTest {
         @Override public void onDownload(
                 DownloadInput input,
                 OnDevicePersonalizationContext odpContext,
-                Callback<DownloadResult> callback
+                Consumer<DownloadResult> consumer
         ) {
             mOnDownloadCalled = true;
-            callback.onResult(new DownloadResult.Builder().addKeysToRetain("12").build());
+            consumer.accept(new DownloadResult.Builder().addKeysToRetain("12").build());
         }
 
         @Override public void renderContent(
                 RenderContentInput input,
                 OnDevicePersonalizationContext odpContext,
-                Callback<RenderContentResult> callback
+                Consumer<RenderContentResult> consumer
         ) {
             mRenderContentCalled = true;
             if (input.getBidIds().size() >= 1 && input.getBidIds().get(0).equals("z")) {
-                callback.onError();
+                consumer.accept(null);
             } else {
-                callback.onResult(
+                consumer.accept(
                         new RenderContentResult.Builder().setContent("htmlstring").build());
             }
         }
@@ -503,13 +504,13 @@ public class PersonalizationServiceTest {
         @Override public void computeEventMetrics(
                 EventMetricsInput input,
                 OnDevicePersonalizationContext odpContext,
-                Callback<EventMetricsResult> callback
+                Consumer<EventMetricsResult> consumer
         ) {
             mComputeEventMetricsCalled = true;
             if (input.getEventParams() != null && input.getEventParams().getInt("x") == 9999) {
-                callback.onError();
+                consumer.accept(null);
             } else {
-                callback.onResult(
+                consumer.accept(
                         new EventMetricsResult.Builder()
                         .setMetrics(
                             new Metrics.Builder().setIntMetrics(2468).build())
