@@ -32,8 +32,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationVendorDataDaoTest {
@@ -49,34 +51,45 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     }
 
     @Test
-    public void testInsert() {
-        VendorData data = new VendorData.Builder().setKey("key").setData(new byte[10]).build();
-        boolean insertResult = mDao.updateOrInsertVendorData(data);
-        assertTrue(insertResult);
-    }
-
-    @Test
     public void testBatchInsert() {
-        List<VendorData> dataList = new ArrayList<>();
-        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
-        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        boolean insertResult = mDao.batchUpdateOrInsertVendorDataTransaction(dataList,
-                System.currentTimeMillis());
-        assertTrue(insertResult);
-    }
-
-    @Test
-    public void testInsertSyncToken() {
         long timestamp = System.currentTimeMillis();
-        boolean insertResult = mDao.updateOrInsertSyncToken(timestamp);
-        assertTrue(insertResult);
-
+        addTestData(timestamp);
         long timestampFromDB = mDao.getSyncToken();
         assertEquals(timestamp, timestampFromDB);
     }
 
     @Test
     public void testFailReadSyncToken() {
+        long timestampFromDB = mDao.getSyncToken();
+        assertEquals(-1L, timestampFromDB);
+    }
+
+    @Test
+    public void testGetVendors() {
+        addTestData(System.currentTimeMillis());
+        List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
+                mContext);
+        assertEquals(1, vendors.size());
+        assertEquals(TEST_OWNER, vendors.get(0).getKey());
+        assertEquals(TEST_CERT_DIGEST, vendors.get(0).getValue());
+        assertEquals(new AbstractMap.SimpleEntry<>(TEST_OWNER, TEST_CERT_DIGEST), vendors.get(0));
+    }
+
+    @Test
+    public void testGetNoVendors() {
+        List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
+                mContext);
+        assertEquals(0, vendors.size());
+    }
+
+    @Test
+    public void testDeleteVendor() {
+        addTestData(System.currentTimeMillis());
+        OnDevicePersonalizationVendorDataDao.deleteVendorData(mContext, TEST_OWNER,
+                TEST_CERT_DIGEST);
+        List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
+                mContext);
+        assertEquals(0, vendors.size());
         long timestampFromDB = mDao.getSyncToken();
         assertEquals(-1L, timestampFromDB);
     }
@@ -103,6 +116,13 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(TEST_OWNER, TEST_CERT_DIGEST);
+    }
+
+    private void addTestData(long timestamp) {
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        assertTrue(mDao.batchUpdateOrInsertVendorDataTransaction(dataList,
+                timestamp));
     }
 }

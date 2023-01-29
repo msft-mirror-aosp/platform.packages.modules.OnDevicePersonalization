@@ -18,22 +18,23 @@ package com.android.ondevicepersonalization.services.data.vendor;
 
 import android.provider.BaseColumns;
 
-/** Contract for the vendor_data tables. Defines the table. */
-public class VendorDataContract {
-    private VendorDataContract() {
+/** Contract for the localData tables. Defines the table. */
+public class LocalDataContract {
+    private LocalDataContract() {
     }
 
     /**
-     * Table containing immutable data belonging to vendors. Each table is owned by a single vendor
+     * Table containing mutable data belonging to vendors. Each table is owned by a single vendor
      * and contains data which will be used during ad requests.
      */
-    public static class VendorDataEntry implements BaseColumns {
+    public static class LocalDataEntry implements BaseColumns {
         /** Lookup key for the row */
         public static final String KEY = "key";
-        /** Row data - ads or other vendor settings */
+
+        /** Row data */
         public static final String DATA = "data";
 
-        private VendorDataEntry() {
+        private LocalDataEntry() {
         }
 
         /**

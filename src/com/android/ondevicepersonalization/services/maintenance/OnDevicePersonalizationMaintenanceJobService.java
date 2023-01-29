@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.maintenance;
 
 import static android.app.job.JobScheduler.RESULT_FAILURE;
+import static android.content.pm.PackageManager.GET_META_DATA;
 
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
@@ -24,20 +25,32 @@ import android.app.job.JobScheduler;
 import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.AbstractMap;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * JobService to handle the OnDevicePersonalization maintenance
  */
 public class OnDevicePersonalizationMaintenanceJobService extends JobService {
     public static final String TAG = "OnDevicePersonalizationMaintenanceJobService";
+    private static final long PERIOD_SECONDS = 86400;
     private ListenableFuture<Void> mFuture;
 
     /**
@@ -60,6 +73,9 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         builder.setRequiresBatteryNotLow(true);
         builder.setRequiresStorageNotLow(true);
         builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE);
+        builder.setPeriodic(1000 * PERIOD_SECONDS); // JobScheduler uses Milliseconds.
+        // persist this job across boots
+        builder.setPersisted(true);
 
         return jobScheduler.schedule(builder.build());
     }
@@ -67,11 +83,16 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         Log.d(TAG, "onStartJob()");
+        Context context = this;
         mFuture = Futures.submit(new Runnable() {
             @Override
             public void run() {
                 Log.d(TAG, "Running maintenance job");
-                // TODO(b/266345774): Implement maintenance work
+                try {
+                    cleanupVendorData(context);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to cleanup vendorData", e);
+                }
             }
         }, OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
@@ -104,5 +125,30 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         mFuture.cancel(true);
         // Reschedule the job since it ended before finishing
         return true;
+    }
+
+    @VisibleForTesting
+    static void cleanupVendorData(Context context) throws Exception {
+        Set<Map.Entry<String, String>> vendors = new HashSet<>(
+                OnDevicePersonalizationVendorDataDao.getVendors(context));
+
+        // Remove all valid packages from the set
+        for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
+                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
+            String packageName = packageInfo.packageName;
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(
+                    context, packageName)) {
+                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName,
+                        PackageUtils.getCertDigest(context, packageName)));
+            }
+        }
+
+        Log.d(TAG, "Deleting: " + vendors.toString());
+        // Delete the remaining tables for packages not found onboarded
+        for (Map.Entry<String, String> entry : vendors) {
+            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, entry.getKey(),
+                    entry.getValue());
+        }
+
     }
 }
