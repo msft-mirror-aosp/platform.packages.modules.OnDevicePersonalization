@@ -17,8 +17,6 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.AppRequestInput;
-import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
@@ -26,6 +24,8 @@ import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
@@ -72,13 +72,13 @@ public class TestPersonalizationService extends PersonalizationService {
                 });
     }
 
-    @Override public void onAppRequest(
-            @NonNull AppRequestInput input,
+    @Override public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<AppRequestResult> consumer
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
-        AppRequestResult result = new AppRequestResult.Builder()
+        SelectContentResult result = new SelectContentResult.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
                         .addWinningBids(
