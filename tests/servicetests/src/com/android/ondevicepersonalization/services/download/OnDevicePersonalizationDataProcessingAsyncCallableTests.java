@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.download;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
@@ -103,7 +104,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
-        dao.updateOrInsertVendorData(mContentExtra);
+        List<VendorData> existingData = new ArrayList<>();
+        existingData.add(mContentExtra);
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData,
+                System.currentTimeMillis()));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
@@ -143,13 +147,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName));
     }
 }

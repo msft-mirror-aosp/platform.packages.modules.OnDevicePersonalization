@@ -27,6 +27,8 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
+import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -36,6 +38,7 @@ import java.util.Map;
  */
 public class OnDevicePersonalizationVendorDataDao {
     private static final String TAG = "OnDevicePersonalizationVendorDataDao";
+    private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata_";
 
     private static final Map<String, OnDevicePersonalizationVendorDataDao> sVendorDataDaos =
             new HashMap<>();
@@ -70,7 +73,6 @@ public class OnDevicePersonalizationVendorDataDao {
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstance(context);
-                createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationVendorDataDao(
                         dbHelper, owner, certDigest);
                 sVendorDataDaos.put(tableName, instance);
@@ -92,7 +94,6 @@ public class OnDevicePersonalizationVendorDataDao {
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
-                createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationVendorDataDao(
                         dbHelper, owner, certDigest);
                 sVendorDataDaos.put(tableName, instance);
@@ -101,32 +102,88 @@ public class OnDevicePersonalizationVendorDataDao {
         }
     }
 
-    /**
-     * Clears an instance of OnDevicePersonalizationVendorDataDao. This should be called when
-     * the underlying table is deleted.
-     */
-    public static void clearInstance(String owner, String certDigest) {
-        // TODO: This also handle deleting the table itself.
-        synchronized (OnDevicePersonalizationVendorDataDao.class) {
-            String tableName = getTableName(owner, certDigest);
-            sVendorDataDaos.remove(tableName);
-        }
+    private static String getTableName(String owner, String certDigest) {
+        owner = owner.replace(".", "_");
+        return VENDOR_DATA_TABLE_NAME_PREFIX + owner + "_" + certDigest;
     }
 
-    private static void createTableIfNotExists(String tableName,
-            OnDevicePersonalizationDbHelper dbHelper) {
+    /**
+     * Gets the name and cert of all vendors with VendorData & VendorSettings
+     */
+    public static List<Map.Entry<String, String>> getVendors(Context context) {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstance(context);
+        SQLiteDatabase db = dbHelper.getReadableDatabase();
+        String[] projection = {VendorSettingsContract.VendorSettingsEntry.OWNER,
+                VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST};
+        Cursor cursor = db.query(
+                /* distinct= */ true,
+                VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
+                projection,
+                /* selection= */ null,
+                /* selectionArgs= */ null,
+                /* groupBy= */ null,
+                /* having= */ null,
+                /* orderBy= */ null,
+                /* limit= */ null
+        );
+
+        List<Map.Entry<String, String>> result = new ArrayList<>();
         try {
-            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            while (cursor.moveToNext()) {
+                String owner = cursor.getString(cursor.getColumnIndexOrThrow(
+                        VendorSettingsContract.VendorSettingsEntry.OWNER));
+                String cert = cursor.getString(cursor.getColumnIndexOrThrow(
+                        VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST));
+                result.add(new AbstractMap.SimpleImmutableEntry<>(owner, cert));
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to get Vendors", e);
+        } finally {
+            cursor.close();
+        }
+        return result;
+    }
+
+    /**
+     * Performs a transaction to delete the vendorData table and vendorSettings for a given package.
+     */
+    public static boolean deleteVendorData(Context context, String owner, String certDigest) {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstance(context);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        String vendorDataTableName = getTableName(owner, certDigest);
+        try {
+            db.beginTransactionNonExclusive();
+            // Delete rows from VendorSettings
+            String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
+                    + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
+            String[] selectionArgs = {owner, certDigest};
+            db.delete(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, selection,
+                    selectionArgs);
+
+            // Delete the vendorData table
+            db.execSQL("DROP TABLE " + vendorDataTableName);
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to delete vendorData for: " + owner, e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
+    private boolean createTableIfNotExists(String tableName) {
+        try {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
             db.execSQL(VendorDataContract.VendorDataEntry.getCreateTableIfNotExistsStatement(
                     tableName));
         } catch (SQLException e) {
             Log.e(TAG, "Failed to create table: " + tableName, e);
+            return false;
         }
-    }
-
-    private static String getTableName(String owner, String certDigest) {
-        owner = owner.replace(".", "_");
-        return "vendordata_" + owner + "_" + certDigest;
+        return true;
     }
 
     /**
@@ -162,7 +219,7 @@ public class OnDevicePersonalizationVendorDataDao {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String[] projection = {VendorDataContract.VendorDataEntry.DATA};
             String selection = VendorDataContract.VendorDataEntry.KEY + " = ?";
-            String[] selectionArgs = { key };
+            String[] selectionArgs = {key};
             try (Cursor cursor = db.query(
                     mTableName,
                     projection,
@@ -195,6 +252,9 @@ public class OnDevicePersonalizationVendorDataDao {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         try {
             db.beginTransactionNonExclusive();
+            if (!createTableIfNotExists(mTableName)) {
+                return false;
+            }
             for (VendorData vendorData : vendorDataList) {
                 if (!updateOrInsertVendorData(vendorData)) {
                     // The query failed. Return and don't finalize the transaction.
@@ -216,7 +276,7 @@ public class OnDevicePersonalizationVendorDataDao {
      *
      * @return true if the update/insert succeeded, false otherwise
      */
-    public boolean updateOrInsertVendorData(VendorData vendorData) {
+    private boolean updateOrInsertVendorData(VendorData vendorData) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
@@ -235,7 +295,7 @@ public class OnDevicePersonalizationVendorDataDao {
      *
      * @return true if the update/insert succeeded, false otherwise
      */
-    public boolean updateOrInsertSyncToken(long syncToken) {
+    private boolean updateOrInsertSyncToken(long syncToken) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();

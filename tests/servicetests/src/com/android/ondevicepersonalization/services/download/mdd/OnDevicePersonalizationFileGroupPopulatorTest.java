@@ -47,6 +47,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
+
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFileGroupPopulatorTest {
     private static final String BASE_URL =
@@ -107,8 +109,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     public void testCreateDownloadUrl() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName)).updateOrInsertSyncToken(
-                timestamp));
+                PackageUtils.getCertDigest(mContext, mPackageName))
+                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), timestamp));
 
         PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
                 mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
@@ -119,13 +121,11 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName));
     }
 }
