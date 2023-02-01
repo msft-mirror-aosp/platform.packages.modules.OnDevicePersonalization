@@ -32,33 +32,50 @@ import com.google.android.libraries.mobiledatadownload.file.openers.WriteStreamO
 import com.google.common.io.ByteStreams;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
 
-import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.nio.file.Paths;
 import java.util.concurrent.Executor;
 
 /**
- * A {@link FileDownloader} that "downloads" by copying the file from the local folder.
+ * A {@link FileDownloader} that "downloads" by copying the file from the Resources.
+ * Files for local download should be placed in the package's Resources.
  *
- * <p>Note that LocalFileDownloader ignores DownloadConditions.
+ * <p>Note that OnDevicePersonalizationLocalFileDownloader ignores DownloadConditions.
  */
-public final class LocalFileDownloader implements FileDownloader {
+public final class OnDevicePersonalizationLocalFileDownloader implements FileDownloader {
 
-    private static final String TAG = "LocalFileDownloader";
+    private static final String TAG = "OnDevicePersonalizationLocalFileDownloader";
 
-    private final Executor mBackgroundExecutor;
+    /**
+     * The uri to download should be formatted as an android.resource uri:
+     * android.resource://<package_name>/<resource_type>/<resource_name>
+     */
+    private static final String DEBUG_SCHEME = "android.resource";
+
+    private final Executor mExecutor;
     private final SynchronousFileStorage mFileStorage;
     private final Context mContext;
 
-    public LocalFileDownloader(
-            SynchronousFileStorage fileStorage, ListeningExecutorService executor,
+    public OnDevicePersonalizationLocalFileDownloader(
+            SynchronousFileStorage fileStorage, Executor executor,
             Context context) {
         this.mFileStorage = fileStorage;
-        this.mBackgroundExecutor = executor;
+        this.mExecutor = executor;
         this.mContext = context;
+    }
+
+    /**
+     * Determines if given uri is local odp uri
+     *
+     * @return true if uri is a local odp uri, false otherwise
+     */
+    public static boolean isLocalOdpUri(Uri uri) {
+        String scheme = uri.getScheme();
+        if (scheme != null && scheme.equals(DEBUG_SCHEME)) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -67,33 +84,25 @@ public final class LocalFileDownloader implements FileDownloader {
     @Override
     public ListenableFuture<Void> startDownloading(DownloadRequest downloadRequest) {
         return Futures.submitAsync(() -> startDownloadingInternal(downloadRequest),
-                mBackgroundExecutor);
+                mExecutor);
     }
 
     private ListenableFuture<Void> startDownloadingInternal(DownloadRequest downloadRequest) {
         Uri fileUri = downloadRequest.fileUri();
         String urlToDownload = downloadRequest.urlToDownload();
-        Log.d(TAG, "startDownloading; fileUri: " + fileUri + "; urlToDownload: " + urlToDownload);
-
         Uri uriToDownload = Uri.parse(urlToDownload);
-        if (uriToDownload == null) {
-            Log.e(TAG, ": Invalid urlToDownload " + urlToDownload);
-            return immediateFailedFuture(new IllegalArgumentException("Invalid urlToDownload"));
-        }
-        String fileName = Paths.get(uriToDownload.getPath()).getFileName().toString();
+        Log.d(TAG, "Starting local download for url: " + urlToDownload);
+
         try {
             Opener<OutputStream> writeStreamOpener = WriteStreamOpener.create();
             long writtenBytes;
             try (OutputStream out = mFileStorage.open(fileUri, writeStreamOpener)) {
-                InputStream in = mContext.getResources().openRawResource(
-                        mContext.getResources().getIdentifier(
-                                fileName.substring(0, fileName.indexOf('.')), "raw",
-                                mContext.getPackageName()));
+                InputStream in = mContext.getContentResolver().openInputStream(uriToDownload);
                 writtenBytes = ByteStreams.copy(in, out);
             }
             Log.d(TAG,
                     "File URI " + fileUri + " download complete, writtenBytes: %d" + writtenBytes);
-        } catch (IOException e) {
+        } catch (Exception e) {
             Log.e(TAG, "%s: startDownloading got exception", e);
             return immediateFailedFuture(
                     DownloadException.builder()
