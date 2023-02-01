@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.services;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -49,23 +48,6 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
-    public void testRequestSurfacePackageReturnsError() throws Exception {
-        // TODO(b/228200518): Update this test after implementation.
-        var callback = new RequestSurfacePackageCallback();
-        mService.requestSurfacePackage(
-                mContext.getPackageName(),
-                "x.y",
-                new Binder(),
-                0,
-                0,
-                0,
-                new Bundle(),
-                callback);
-        callback.await();
-        assertTrue(callback.mError);
-    }
-
-    @Test
     public void testRequestSurfacePackageThrowsIfPackageNameIncorrect() throws Exception {
         var callback = new RequestSurfacePackageCallback();
         assertThrows(
@@ -73,7 +55,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.requestSurfacePackage(
                         "abc",
-                        "x.y",
+                        mContext.getPackageName(),
                         new Binder(),
                         0,
                         0,
@@ -90,7 +72,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.requestSurfacePackage(
                         null,
-                        "x.y",
+                        mContext.getPackageName(),
                         new Binder(),
                         0,
                         0,
@@ -124,7 +106,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.requestSurfacePackage(
                         mContext.getPackageName(),
-                        "x.y",
+                        mContext.getPackageName(),
                         null,
                         0,
                         0,
@@ -141,7 +123,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.requestSurfacePackage(
                         mContext.getPackageName(),
-                        "x.y",
+                        mContext.getPackageName(),
                         new Binder(),
                         0,
                         0,
@@ -157,7 +139,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.requestSurfacePackage(
                         mContext.getPackageName(),
-                        "x.y",
+                        mContext.getPackageName(),
                         new Binder(),
                         0,
                         0,

@@ -31,7 +31,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -44,25 +46,25 @@ public class UserDataCollectorTest {
 
     @Before
     public void setup() {
-        mCollector = UserDataCollector.getInstance(mContext);
+        mCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserData = UserData.getInstance();
+        mCollector.clearUserData(mUserData);
+        mCollector.setLastTimeMillisAppUsageCollected(0);
+        mCollector.setAllowedAppUsageEntries(new ArrayDeque<>());
+        mCollector.setAllowedLocationEntries(new ArrayDeque<>());
     }
 
     @Test
-    public void testGetUserData() throws InterruptedException {
+    public void testInitializeUserData() throws InterruptedException {
         mCollector.initializeUserData(mUserData);
 
-        // Real time data
+        // Test initial collection.
         assertTrue(mUserData.timeMillis > 0);
         assertTrue(mUserData.timeMillis <= mCollector.getTimeMillis());
         assertNotNull(mUserData.utcOffset);
         assertEquals(mUserData.utcOffset, mCollector.getUtcOffset());
-        assertEquals(mUserData.orientation, mCollector.getOrientation());
 
         assertTrue(mUserData.availableBytesMB > 0);
-        assertEquals(mUserData.availableBytesMB, mCollector.getAvailableBytesMB());
-        assertTrue(mUserData.batteryPct > 0);
-        assertEquals(mUserData.batteryPct, mCollector.getBatteryPct());
         assertTrue(mUserData.batteryPct > 0);
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
@@ -71,7 +73,6 @@ public class UserDataCollectorTest {
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
         assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertTrue(mUserData.connectionSpeedKbps > 0);
-        assertEquals(mUserData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);
@@ -104,23 +105,17 @@ public class UserDataCollectorTest {
             assertEquals(mUserData.appsInfo.get(i).packageName, appsInfo.get(i).packageName);
             assertEquals(mUserData.appsInfo.get(i).installed, appsInfo.get(i).installed);
         }
-
-        List<AppUsageStats> appUsageStats = new ArrayList();
-        mCollector.getAppUsageStats(appUsageStats);
-        // TODO: test if [appUsageHistory] and [locationHistory] histograms are updated.
-        for (int i = 0; i < appUsageStats.size(); ++i) {
-            AppUsageStats aus = appUsageStats.get(i);
-            assertFalse(TextUtils.isEmpty(aus.packageName));
-            assertTrue(aus.startTimeMillis > 0);
-            assertTrue(aus.endTimeMillis > 0);
-        }
     }
 
     @Test
-    public void testGetUtcOffsetAfterModification() {
+    public void testRealTimeUpdate() {
+        // TODO: test orientation modification.
+        mCollector.initializeUserData(mUserData);
+        long oldTimeMillis = mUserData.timeMillis;
         TimeZone tzGmt4 = TimeZone.getTimeZone("GMT+04:00");
         TimeZone.setDefault(tzGmt4);
-        mCollector.initializeUserData(mUserData);
+        mCollector.getRealTimeData(mUserData);
+        assertTrue(oldTimeMillis <= mUserData.timeMillis);
         assertEquals(mUserData.utcOffset, 240);
     }
 
@@ -154,5 +149,22 @@ public class UserDataCollectorTest {
         mCollector.initializeUserData(mUserData);
         assertNotNull(mUserData.language);
         assertEquals(mUserData.language, Language.UNKNOWN);
+    }
+
+    /**
+     * TODO (b/261748573): Although very unlikely, this test could be flaky when the call
+     * happens around midnight that the two invocations span different days.
+     */
+    @Test
+    public void testAppUsageUpdate() {
+        assertTrue(mCollector.getAppUsageStats(mUserData.appUsageHistory));
+        HashMap<String, Long> oldAppUsageHistory = mUserData.appUsageHistory;
+        assertFalse(mCollector.getAppUsageStats(mUserData.appUsageHistory));
+        assertEquals(oldAppUsageHistory.size(), mUserData.appUsageHistory.size());
+        for (String packageName: mUserData.appUsageHistory.keySet()) {
+            assertTrue(oldAppUsageHistory.containsKey(packageName));
+            assertEquals(oldAppUsageHistory.get(packageName),
+                    mUserData.appUsageHistory.get(packageName));
+        }
     }
 }

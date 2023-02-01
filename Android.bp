@@ -86,7 +86,6 @@ android_app {
     ],
     static_libs: [
         "androidx.concurrent_concurrent-futures",
-        "androidx.work_work-runtime",
         "guava",
         "kotlin-stdlib",
         "kotlinx_coroutines",
@@ -104,4 +103,7 @@ android_app {
     defaults: [
         "ondevicepersonalization-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["src/proguard.flags"],
+    },
 }

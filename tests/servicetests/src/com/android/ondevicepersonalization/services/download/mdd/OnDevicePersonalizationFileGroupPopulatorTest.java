@@ -28,15 +28,16 @@ import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFile;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 
@@ -45,6 +46,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+
+import java.util.ArrayList;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFileGroupPopulatorTest {
@@ -59,8 +62,10 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     @Before
     public void setup() throws Exception {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
+        // Use direct executor to keep all work sequential for the tests
+        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
+                executorService, mContext), executorService);
         mPackageName = mContext.getPackageName();
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -104,8 +109,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     public void testCreateDownloadUrl() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName)).updateOrInsertSyncToken(
-                timestamp));
+                PackageUtils.getCertDigest(mContext, mPackageName))
+                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), timestamp));
 
         PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
                 mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
@@ -116,13 +121,11 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName));
     }
 }
