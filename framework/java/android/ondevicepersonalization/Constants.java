@@ -26,7 +26,7 @@ public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
 
     // Operations implemented by personalization services.
-    public static final int OP_APP_REQUEST = 1;
+    public static final int OP_SELECT_CONTENT = 1;
     public static final int OP_DOWNLOAD_FINISHED = 2;
     public static final int OP_RENDER_CONTENT = 3;
     public static final int OP_COMPUTE_EVENT_METRICS = 4;

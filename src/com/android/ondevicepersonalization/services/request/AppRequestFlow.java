@@ -18,12 +18,12 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
 import android.content.Context;
-import android.ondevicepersonalization.AppRequestInput;
-import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotInfo;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -130,7 +130,7 @@ public class AppRequestFlow {
             mServiceClassName = Objects.requireNonNull(
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                             mContext, mServicePackageName));
-            ListenableFuture<AppRequestResult> resultFuture = FluentFuture.from(
+            ListenableFuture<SelectContentResult> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
                                     TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
@@ -140,7 +140,7 @@ public class AppRequestFlow {
                     .transform(
                             result -> {
                                 return result.getParcelable(
-                                        Constants.EXTRA_RESULT, AppRequestResult.class);
+                                        Constants.EXTRA_RESULT, SelectContentResult.class);
                             },
                             mExecutorService
                     );
@@ -186,9 +186,18 @@ public class AppRequestFlow {
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
         Log.d(TAG, "executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        AppRequestInput input =
-                new AppRequestInput.Builder()
+        ArrayList<SlotInfo> slotInfos = new ArrayList<>();
+        for (SurfaceInfo surfaceInfo : mSurfaceInfos) {
+            slotInfos.add(
+                    new SlotInfo.Builder()
+                            .setWidth(surfaceInfo.mWidth)
+                            .setHeight(surfaceInfo.mHeight)
+                            .build());
+        }
+        SelectContentInput input =
+                new SelectContentInput.Builder()
                         .setAppPackageName(mCallingPackageName)
+                        .setSlotInfos(slotInfos)
                         // TODO(b/228200518): Extract app_params from request
                         .setAppParams(PersistableBundle.EMPTY)
                         .build();
@@ -198,10 +207,10 @@ public class AppRequestFlow {
                 mCallingPackageName, mServicePackageName, mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_APP_REQUEST, serviceParams);
+                isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
     }
 
-    private ListenableFuture<Long> logQuery(AppRequestResult appRequestResult) {
+    private ListenableFuture<Long> logQuery(SelectContentResult result) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
         // TODO(b/228200518): Populate queryData
@@ -218,12 +227,12 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<List<SurfacePackage>> renderContent(
-            AppRequestResult appRequestResult,
+            SelectContentResult selectContentResult,
             long queryId) {
         Log.d(TAG, "renderContent() started.");
-        List<SlotResult> slotResults = appRequestResult.getSlotResults();
+        List<SlotResult> slotResults = selectContentResult.getSlotResults();
         if (slotResults == null) {
-            Log.w(TAG, "Missing input: appRequestResult.slotResults is null.");
+            Log.w(TAG, "Missing input: SelectContentResult.slotResults is null.");
             return Futures.immediateFuture(null);
         }
 
