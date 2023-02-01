@@ -16,8 +16,13 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.ondevicepersonalization.aidl.IDataAccessService;
+import android.os.OutcomeReceiver;
+
+import java.util.Objects;
+import java.util.concurrent.Executor;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated
@@ -26,14 +31,25 @@ import android.ondevicepersonalization.aidl.IDataAccessService;
  * @hide
  */
 public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizationContext {
-    @NonNull RemoteData mRemoteData;
+    @NonNull private IDataAccessService mDataAccessService;
+    @NonNull private RemoteData mRemoteData;
 
     /** @hide */
     public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
+        mDataAccessService = Objects.requireNonNull(binder);
         mRemoteData = new RemoteDataImpl(binder);
     }
 
-    @NonNull public RemoteData getRemoteData() {
+    @Override @NonNull public RemoteData getRemoteData() {
         return mRemoteData;
+    }
+
+    @Override public void getEventUrl(
+            int eventType,
+            @NonNull String bidId,
+            @NonNull EventUrlOptions options,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<String, Exception> receiver) {
+        // TODO(b/228200518): Query the ODP service using the binder and return the result.
     }
 }

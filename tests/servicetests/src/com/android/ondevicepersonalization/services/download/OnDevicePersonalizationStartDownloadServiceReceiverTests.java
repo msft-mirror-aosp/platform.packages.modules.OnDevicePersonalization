@@ -16,23 +16,25 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
+import android.app.job.JobScheduler;
 import android.content.Context;
 import android.content.Intent;
 
 import androidx.test.core.app.ApplicationProvider;
-import androidx.work.WorkInfo;
-import androidx.work.WorkManager;
 
-import com.google.android.libraries.mobiledatadownload.TaskScheduler;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
+import com.android.ondevicepersonalization.services.download.mdd.LocalFileDownloader;
+import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
-import java.util.List;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
@@ -40,44 +42,43 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
     @Before
     public void setup() throws Exception {
-        WorkManager workManager = WorkManager.getInstance(mContext);
-        workManager.cancelAllWork().getResult().get();
-        workManager.pruneWork().getResult().get();
+        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID);
+        jobScheduler.cancel(
+                OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
     }
 
     @Test
     public void testOnReceive() throws Exception {
+        // Use direct executor to keep all work sequential for the tests
+        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
+        MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(
+                        MobileDataDownloadFactory.getFileStorage(mContext), executorService,
+                        mContext),
+                executorService);
+
         OnDevicePersonalizationStartDownloadServiceReceiver receiver =
-                new OnDevicePersonalizationStartDownloadServiceReceiver();
+                new OnDevicePersonalizationStartDownloadServiceReceiver(
+                        executorService);
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
         receiver.onReceive(mContext, intent);
-        WorkManager workManager = WorkManager.getInstance(mContext);
-        List<WorkInfo> workInfos = workManager.getWorkInfosByTag(
-                OnDevicePersonalizationDownloadProcessingWorker.TAG).get();
-        assertEquals(1, workInfos.size());
-        assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
+        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) != null);
         // MDD tasks
-        workInfos = workManager.getWorkInfosByTag(
-                TaskScheduler.WIFI_CHARGING_PERIODIC_TASK).get();
-        assertEquals(1, workInfos.size());
-        assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
-
-        workInfos = workManager.getWorkInfosByTag(
-                TaskScheduler.CELLULAR_CHARGING_PERIODIC_TASK).get();
-        assertEquals(1, workInfos.size());
-        assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
-
-        workInfos = workManager.getWorkInfosByTag(
-                TaskScheduler.CHARGING_PERIODIC_TASK).get();
-        assertEquals(1, workInfos.size());
-        assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
-
-        workInfos = workManager.getWorkInfosByTag(
-                TaskScheduler.MAINTENANCE_PERIODIC_TASK).get();
-        assertEquals(1, workInfos.size());
-        assertEquals(WorkInfo.State.ENQUEUED, workInfos.get(0).getState());
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) != null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID) != null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID) != null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) != null);
     }
 
     @Test
@@ -87,9 +88,18 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
         Intent intent = new Intent(Intent.ACTION_DIAL_EMERGENCY);
         receiver.onReceive(mContext, intent);
-        WorkManager workManager = WorkManager.getInstance(mContext);
-        List<WorkInfo> workInfos = workManager.getWorkInfosByTag(
-                OnDevicePersonalizationDownloadProcessingWorker.TAG).get();
-        assertEquals(0, workInfos.size());
+        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
+
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) == null);
+        // MDD tasks
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) == null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID) == null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID) == null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) == null);
     }
 }

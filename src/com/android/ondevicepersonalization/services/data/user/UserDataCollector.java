@@ -25,6 +25,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -41,22 +42,31 @@ import android.view.WindowManager;
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.services.data.user.LocationInfo.LocationProvider;
 
 import com.google.common.base.Strings;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
 
 /**
  * A collector for getting user data signals.
+ * This class only exposes two public operations: init and update.
+ * Init operation will be run only once, after ODA starts, to populate
+ * the UserData singleton for the first time.
+ * Update operation will be run in real-time per any data change
+ * and update a few signals in UserData to the latest version.
  */
 public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
-    private static UserDataCollector sSingleton = null;
+    private static UserDataCollector sUserDataCollector = null;
     private static final String TAG = "UserDataCollector";
 
     @NonNull private final Context mContext;
@@ -64,8 +74,15 @@ public class UserDataCollector {
     @NonNull private final TelephonyManager mTelephonyManager;
     @NonNull private final NetworkCapabilities mNetworkCapabilities;
     @NonNull private final LocationManager mLocationManager;
+    @NonNull private final UserDataDao mUserDataDao;
+    // Metadata to keep track of the latest ending timestamp of app usage collection.
+    @NonNull private long mLastTimeMillisAppUsageCollected;
+    // Metadata to track the expired app usage entries, which are to be evicted.
+    @NonNull private Deque<AppUsageEntry> mAllowedAppUsageEntries;
+    // Metadata to track the expired location entries, which are to be evicted.
+    @NonNull private Deque<LocationInfo> mAllowedLocationEntries;
 
-    private UserDataCollector(Context context) {
+    private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
 
         mLocale = Locale.getDefault();
@@ -75,21 +92,43 @@ public class UserDataCollector {
         mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
                 connectivityManager.getActiveNetwork());
         mLocationManager = mContext.getSystemService(LocationManager.class);
+        mUserDataDao = userDataDao;
+        mLastTimeMillisAppUsageCollected = 0L;
+        mAllowedAppUsageEntries = new ArrayDeque<>();
+        mAllowedLocationEntries = new ArrayDeque<>();
     }
 
     /** Returns an instance of UserDataCollector. */
     public static UserDataCollector getInstance(Context context) {
         synchronized (UserDataCollector.class) {
-            if (sSingleton == null) {
-                sSingleton = new UserDataCollector(context);
+            if (sUserDataCollector == null) {
+                sUserDataCollector = new UserDataCollector(
+                    context, UserDataDao.getInstance(context));
             }
-            return sSingleton;
+            return sUserDataCollector;
         }
     }
 
-    /** Collects user data signals and stores in a UserData object. */
-    public UserData getUserData() {
-        UserData userData = new UserData();
+    /**
+     * Returns an instance of the UserDataCollector given a context. This is used
+     * for testing only.
+    */
+    @VisibleForTesting
+    public static UserDataCollector getInstanceForTest(Context context) {
+        synchronized (UserDataCollector.class) {
+            if (sUserDataCollector == null) {
+                sUserDataCollector = new UserDataCollector(context,
+                        UserDataDao.getInstanceForTest(context));
+            }
+            return sUserDataCollector;
+        }
+    }
+
+    /**
+     * Collects in-memory user data signals and stores in a UserData object.
+     * TODO (b/261642339): read database to reset metadata and histograms in case of system crash.
+    */
+    public void initializeUserData(@NonNull UserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
@@ -102,47 +141,53 @@ public class UserDataCollector {
         userData.networkMeteredStatus = getNetworkMeteredStatus();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
 
-        userData.osVersions = new UserData.OSVersion();
         getOSVersions(userData.osVersions);
 
-        userData.deviceMetrics = new UserData.DeviceMetrics();
         getDeviceMetrics(userData.deviceMetrics);
 
-        userData.appsInfo = new ArrayList();
         getInstalledApps(userData.appsInfo);
 
-        userData.appsUsageStats = new ArrayList();
-        getAppUsageStats(userData.appsUsageStats);
+        getAppUsageStats(userData.appUsageHistory);
+        // TODO (b/261748573): add non-trivial tests for location collection and histogram updates.
+        getLastknownLocation(userData.locationHistory, userData.currentLocation);
 
-        userData.locationInfo = new UserData.LocationInfo();
-        getLastknownLocation(userData.locationInfo);
-        getCurrentLocation(userData.locationInfo);
+        getCurrentLocation(userData.locationHistory, userData.currentLocation);
+    }
 
-        return userData;
+    /** Update real-time user data to the latest per request. */
+    public void getRealTimeData(@NonNull UserData userData) {
+        userData.timeMillis = getTimeMillis();
+        userData.utcOffset = getUtcOffset();
+        userData.orientation = getOrientation();
     }
 
     /** Collects current system clock on the device. */
+    @VisibleForTesting
     public long getTimeMillis() {
         return System.currentTimeMillis();
     }
 
     /** Collects current device's time zone in +/- of minutes from UTC. */
+    @VisibleForTesting
     public int getUtcOffset() {
         return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000;
     }
 
     /** Collects the current device orientation. */
+    @VisibleForTesting
     public int getOrientation() {
         return mContext.getResources().getConfiguration().orientation;
     }
 
     /** Collects available bytes and converts to MB. */
+    @VisibleForTesting
     public int getAvailableBytesMB() {
         StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
         return (int) (statFs.getAvailableBytes() / BYTES_IN_MB);
     }
 
     /** Collects the battery percentage of the device. */
+    @VisibleForTesting
     public int getBatteryPct() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = mContext.registerReceiver(null, ifilter);
@@ -156,6 +201,7 @@ public class UserDataCollector {
     }
 
     /** Collects current device's country information. */
+    @VisibleForTesting
     public Country getCountry() {
         String countryCode = mLocale.getISO3Country();
         if (Strings.isNullOrEmpty(countryCode)) {
@@ -173,6 +219,7 @@ public class UserDataCollector {
     }
 
     /** Collects current device's language information. */
+    @VisibleForTesting
     public Language getLanguage() {
         String langCode = mLocale.getLanguage();
         if (Strings.isNullOrEmpty(langCode)) {
@@ -190,6 +237,7 @@ public class UserDataCollector {
     }
 
     /** Collects carrier info. */
+    @VisibleForTesting
     public Carrier getCarrier() {
         // TODO: handle i18n later if the carrier's name is in non-English script.
         switch (mTelephonyManager.getSimOperatorName().toUpperCase(Locale.US)) {
@@ -228,7 +276,7 @@ public class UserDataCollector {
                 return Carrier.CLARO_BR;
             case "SK TELECOM":
                 return Carrier.SK_TELECOM;
-            case "МТС":
+            case "MTC":
                 return Carrier.MTC;
             case "AU":
                 return Carrier.AU;
@@ -262,7 +310,8 @@ public class UserDataCollector {
      * 8.1 -> 8.1.0
      * 4.1.2 as it is.
      */
-    public void getOSVersions(UserData.OSVersion osVersions) {
+    @VisibleForTesting
+    public void getOSVersions(@NonNull OSVersion osVersions) {
         String osRelease = Build.VERSION.RELEASE;
         try {
             osVersions.major = Integer.parseInt(osRelease);
@@ -288,6 +337,7 @@ public class UserDataCollector {
     }
 
     /** Collects connection type. */
+    @VisibleForTesting
     public UserData.ConnectionType getConnectionType() {
         if (mNetworkCapabilities == null) {
             return UserData.ConnectionType.UNKNOWN;
@@ -328,6 +378,7 @@ public class UserDataCollector {
     }
 
     /** Collects metered status. */
+    @VisibleForTesting
     public boolean getNetworkMeteredStatus() {
         if (mNetworkCapabilities == null) {
             return false;
@@ -342,6 +393,7 @@ public class UserDataCollector {
     }
 
     /** Collects connection speed in kbps */
+    @VisibleForTesting
     public int getConnectionSpeedKbps() {
         if (mNetworkCapabilities == null) {
             return 0;
@@ -350,7 +402,11 @@ public class UserDataCollector {
     }
 
     /** Collects current device's static metrics. */
-    public void getDeviceMetrics(UserData.DeviceMetrics deviceMetrics) {
+    @VisibleForTesting
+    public void getDeviceMetrics(DeviceMetrics deviceMetrics) {
+        if (deviceMetrics == null) {
+            return;
+        }
         deviceMetrics.make = getDeviceMake();
         deviceMetrics.model = getDeviceModel();
         deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
@@ -366,7 +422,8 @@ public class UserDataCollector {
     /**
      * Collects device make info.
      */
-    private Make getDeviceMake() {
+    @VisibleForTesting
+    public Make getDeviceMake() {
         String manufacturer = Build.MANUFACTURER.toUpperCase(Locale.US);
         Make make = Make.UNKNOWN;
         try {
@@ -383,7 +440,8 @@ public class UserDataCollector {
     }
 
     /** Collects device model info */
-    private Model getDeviceModel() {
+    @VisibleForTesting
+    public Model getDeviceModel() {
         // Uppercase and replace whitespace/hyphen with underscore character
         String deviceModel = Build.MODEL.toUpperCase(Locale.US).replace(' ', '_').replace('-', '_');
         Model model = Model.UNKNOWN;
@@ -515,11 +573,13 @@ public class UserDataCollector {
     }
 
     /** Get app install and uninstall record. */
-    public void getInstalledApps(List<UserData.AppInfo> appsInfo) {
+    @VisibleForTesting
+    public void getInstalledApps(@NonNull List<AppInfo> appsInfo) {
+        appsInfo.clear();
         PackageManager packageManager = mContext.getPackageManager();
         for (ApplicationInfo appInfo :
                 packageManager.getInstalledApplications(MATCH_UNINSTALLED_PACKAGES)) {
-            UserData.AppInfo app = new UserData.AppInfo();
+            AppInfo app = new AppInfo();
             app.packageName = appInfo.packageName;
             if ((appInfo.flags & ApplicationInfo.FLAG_INSTALLED) != 0) {
                 app.installed = true;
@@ -530,36 +590,100 @@ public class UserDataCollector {
         }
     }
 
-    /** Get app usage stats for the last 24 hours. */
-    // Todo(b/246132780): change the query time range to prevent overlaps.
-    public void getAppUsageStats(List<UserData.AppUsageStats> appsUsageStats) {
-        UsageStatsManager usageStatsManager = mContext.getSystemService(UsageStatsManager.class);
+    /**
+     * Get 24-hour app usage stats from [yesterday's midnight] to [tonight's midnight],
+     * write them to database, and update the [appUsageHistory] histogram.
+     * Skip the current collection cycle if yesterday's stats has been collected.
+     * @return true if app usage stats is collected, stored in database, and histogram is updated,
+     * false if any of data collection, data storage, or histogram update fails.
+    */
+    @VisibleForTesting
+    public boolean getAppUsageStats(HashMap<String, Long> appUsageHistory) {
         Calendar cal = Calendar.getInstance();
+        // Obtain the 24-hour query range between [yesterday midnight] and [today midnight].
+        cal.set(Calendar.MILLISECOND, 0);
+        cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MINUTE, 0);
+        cal.set(Calendar.HOUR_OF_DAY, 0);
+        final long endTimeMillis = cal.getTimeInMillis();
+
+        // Skip the current collection cycle.
+        if (endTimeMillis == mLastTimeMillisAppUsageCollected) {
+            return false;
+        }
+
+        // Collect yesterday's app usage stats.
         cal.add(Calendar.DATE, -1);
         final long startTimeMillis = cal.getTimeInMillis();
-        final long endTimeMillis = System.currentTimeMillis();
+        UsageStatsManager usageStatsManager = mContext.getSystemService(UsageStatsManager.class);
         final List<UsageStats> statsList = usageStatsManager.queryUsageStats(
                 UsageStatsManager.INTERVAL_BEST, startTimeMillis, endTimeMillis);
-        for (UsageStats stats : statsList) {
-            UserData.AppUsageStats appUsageStats = new UserData.AppUsageStats();
-            appUsageStats.packageName = stats.getPackageName();
-            appUsageStats.startTimeMillis = startTimeMillis;
-            appUsageStats.endTimeMillis = endTimeMillis;
-            appUsageStats.totalTimeSec = stats.getTotalTimeVisible();
-            appsUsageStats.add(appUsageStats);
+
+        List<AppUsageEntry> appUsageEntries = new ArrayList<>();
+        for (UsageStats stats: statsList) {
+            appUsageEntries.add(new AppUsageEntry(stats.getPackageName(),
+                    startTimeMillis, endTimeMillis, stats.getTotalTimeVisible()));
+        }
+
+        // Update database.
+        if (!mUserDataDao.batchInsertAppUsageStatsData(appUsageEntries)) {
+            return false;
+        }
+        // Update in-memory histogram.
+        updateAppUsageHistogram(appUsageHistory, appUsageEntries);
+        // Update metadata if all steps succeed as a transaction.
+        mLastTimeMillisAppUsageCollected = endTimeMillis;
+        return true;
+    }
+
+    /**
+     * Update histogram and handle TTL deletion for app usage (30 days).
+     */
+    private void updateAppUsageHistogram(HashMap<String, Long> appUsageHistory,
+            List<AppUsageEntry> entries) {
+        for (AppUsageEntry entry: entries) {
+            mAllowedAppUsageEntries.add(entry);
+            appUsageHistory.put(entry.packageName, appUsageHistory.getOrDefault(
+                    entry.packageName, 0L) + entry.totalTimeUsedMillis);
+        }
+        // Backtrack 30 days
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * UserDataDao.TTL_IN_MEMORY_DAYS);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
+
+        // TTL deletion algorithm
+        while (!mAllowedAppUsageEntries.isEmpty()
+                && mAllowedAppUsageEntries.peekFirst().endTimeMillis < thresholdTimeMillis) {
+            AppUsageEntry evictedEntry = mAllowedAppUsageEntries.removeFirst();
+            if (appUsageHistory.containsKey(evictedEntry.packageName)) {
+                final long updatedTotalTime = appUsageHistory.get(
+                        evictedEntry.packageName) - evictedEntry.totalTimeUsedMillis;
+                if (updatedTotalTime == 0) {
+                    appUsageHistory.remove(evictedEntry.packageName);
+                } else {
+                    appUsageHistory.put(evictedEntry.packageName, updatedTotalTime);
+                }
+            }
         }
     }
 
     /** Get last known location information. The result is immediate. */
-    public void getLastknownLocation(UserData.LocationInfo locationInfo) {
+    @VisibleForTesting
+    public void getLastknownLocation(@NonNull HashMap<LocationInfo, Long> locationHistory,
+            @NonNull LocationInfo locationInfo) {
         Location location = mLocationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER);
         if (location != null) {
-            setLocationInfo(location, locationInfo);
+            if (!setLocationInfo(location, locationInfo)) {
+                return;
+            }
+            updateLocationHistogram(locationHistory, locationInfo);
         }
     }
 
     /** Get current location information. The result takes some time to generate. */
-    public void getCurrentLocation(UserData.LocationInfo locationInfo) {
+    @VisibleForTesting
+    public void getCurrentLocation(@NonNull HashMap<LocationInfo, Long> locationHistory,
+            @NonNull LocationInfo locationInfo) {
         String currentProvider = LocationManager.GPS_PROVIDER;
         if (mLocationManager.getProvider(currentProvider) == null) {
             currentProvider = LocationManager.FUSED_PROVIDER;
@@ -570,27 +694,85 @@ public class UserDataCollector {
                 mContext.getMainExecutor(),
                 location -> {
                     if (location != null) {
-                        setLocationInfo(location, locationInfo);
+                        if (!setLocationInfo(location, locationInfo)) {
+                            return;
+                        }
+                        updateLocationHistogram(locationHistory, locationInfo);
                     }
                 }
         );
     }
 
-    /** Set location info and store the location data to storage. */
-    private void setLocationInfo(Location location, UserData.LocationInfo locationInfo) {
-        locationInfo.timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
-        locationInfo.latitude = location.getLatitude();
-        locationInfo.longitude = location.getLongitude();
+    /**
+     * Persist collected location info and populate the in-memory current location.
+     * The method should succeed or fail as a transaction to avoid discrepancies between
+     * database and memory.
+     * @return true if location info collection is successful, false otherwise.
+     */
+    private boolean setLocationInfo(Location location, LocationInfo locationInfo) {
+        long timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
+        double truncatedLatitude = Math.round(location.getLatitude() *  10000.0) / 10000.0;
+        double truncatedLongitude = Math.round(location.getLongitude() *  10000.0) / 10000.0;
+        LocationInfo.LocationProvider locationProvider = LocationProvider.UNKNOWN;
+        boolean isPrecise = false;
+
         String provider = location.getProvider();
         if (LocationManager.GPS_PROVIDER.equals(provider)) {
-            locationInfo.provider = UserData.LocationProvider.GPS;
-            locationInfo.isPreciseLocation = true;
+            locationProvider = LocationInfo.LocationProvider.GPS;
+            isPrecise = true;
         } else {
-            locationInfo.isPreciseLocation = false;
             if (LocationManager.NETWORK_PROVIDER.equals(provider)) {
-                locationInfo.provider = UserData.LocationProvider.NETWORK;
-            } else {
-                locationInfo.provider = UserData.LocationProvider.UNKNOWN;
+                locationProvider = LocationInfo.LocationProvider.NETWORK;
+            }
+        }
+
+        if (!mUserDataDao.insertLocationHistoryData(timeMillis, Double.toString(truncatedLatitude),
+                Double.toString(truncatedLongitude), locationProvider.ordinal(), isPrecise)) {
+            return false;
+        }
+        // update user's current location
+        locationInfo.timeMillis = timeMillis;
+        locationInfo.latitude = truncatedLatitude;
+        locationInfo.longitude = truncatedLongitude;
+        locationInfo.provider = locationProvider;
+        locationInfo.isPreciseLocation = isPrecise;
+        return true;
+    }
+
+    /**
+     * Update histogram and handle TTL deletion for location history (30 days).
+     */
+    private void updateLocationHistogram(HashMap<LocationInfo, Long> locationHistory,
+            LocationInfo newLocation) {
+        LocationInfo curLocation = mAllowedLocationEntries.peekLast();
+        // must be a deep copy
+        mAllowedLocationEntries.add(new LocationInfo(newLocation));
+        if (curLocation != null) {
+            long durationMillis = newLocation.timeMillis - curLocation.timeMillis;
+            locationHistory.put(curLocation,
+                    locationHistory.getOrDefault(curLocation, 0L) + durationMillis);
+        }
+
+        // Backtrack 30 days
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * UserDataDao.TTL_IN_MEMORY_DAYS);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
+
+        // TTL deletion algorithm for locations
+        while (!mAllowedLocationEntries.isEmpty()
+                && mAllowedLocationEntries.peekFirst().timeMillis < thresholdTimeMillis) {
+            LocationInfo evictedLocation = mAllowedLocationEntries.removeFirst();
+            if (!mAllowedLocationEntries.isEmpty()) {
+                long evictedDuration =  mAllowedLocationEntries.peekFirst().timeMillis
+                        - evictedLocation.timeMillis;
+                if (locationHistory.containsKey(evictedLocation)) {
+                    long updatedDuration = locationHistory.get(evictedLocation) - evictedDuration;
+                    if (updatedDuration == 0) {
+                        locationHistory.remove(evictedLocation);
+                    } else {
+                        locationHistory.put(evictedLocation, updatedDuration);
+                    }
+                }
             }
         }
     }
@@ -601,5 +783,49 @@ public class UserDataCollector {
     @VisibleForTesting
     public void setLocale(Locale locale) {
         mLocale = locale;
+    }
+
+    /**
+     * Util to reset all fields in [UserData] to default for testing purpose
+     */
+    @VisibleForTesting
+    public void clearUserData(@NonNull UserData userData) {
+        userData.timeMillis = 0;
+        userData.utcOffset = 0;
+        userData.orientation = Configuration.ORIENTATION_PORTRAIT;
+        userData.availableBytesMB = 0;
+        userData.batteryPct = 0;
+        userData.country = Country.UNKNOWN;
+        userData.language = Language.UNKNOWN;
+        userData.carrier = Carrier.UNKNOWN;
+        userData.osVersions = new OSVersion();
+        userData.connectionType = UserData.ConnectionType.UNKNOWN;
+        userData.networkMeteredStatus = false;
+        userData.connectionSpeedKbps = 0;
+        userData.deviceMetrics = new DeviceMetrics();
+        userData.appsInfo.clear();
+        userData.appUsageHistory.clear();
+        userData.locationHistory.clear();
+    }
+
+    /**
+     * Reset last time collection timestamp in case of system crash.
+     */
+    public void setLastTimeMillisAppUsageCollected(long lastTimeMillisAppUsageCollected) {
+        mLastTimeMillisAppUsageCollected = lastTimeMillisAppUsageCollected;
+    }
+
+    /**
+     * Reset allowed app usage entries in case of system crash.
+     */
+    public void setAllowedAppUsageEntries(Deque<AppUsageEntry> allowedAppUsageEntries) {
+        mAllowedAppUsageEntries = allowedAppUsageEntries;
+    }
+
+    /**
+     * Reset allowed location entries in case of system crash.
+     */
+    public void setAllowedLocationEntries(Deque<LocationInfo> allowedLocationEntries) {
+        mAllowedLocationEntries = allowedLocationEntries;
     }
 }
