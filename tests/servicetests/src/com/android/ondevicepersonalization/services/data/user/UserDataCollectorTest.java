@@ -31,6 +31,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -49,7 +50,8 @@ public class UserDataCollectorTest {
         mUserData = UserData.getInstance();
         mCollector.clearUserData(mUserData);
         mCollector.setLastTimeMillisAppUsageCollected(0);
-        mCollector.setAppUsageCollectionCount(0);
+        mCollector.setAllowedAppUsageEntries(new ArrayDeque<>());
+        mCollector.setAllowedLocationEntries(new ArrayDeque<>());
     }
 
     @Test

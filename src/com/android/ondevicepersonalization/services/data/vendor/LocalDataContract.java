@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,35 +14,36 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data;
+package com.android.ondevicepersonalization.services.data.vendor;
 
 import android.provider.BaseColumns;
 
-/** Contract for the vendor_data tables. Defines the table. */
-public class VendorDataContract {
-    private VendorDataContract() {
+/** Contract for the localData tables. Defines the table. */
+public class LocalDataContract {
+    private LocalDataContract() {
     }
 
     /**
-     * Table containing data belonging to vendors. Each table is owned by a single vendor and
-     * contains data which will be used during ad requests.
+     * Table containing mutable data belonging to vendors. Each table is owned by a single vendor
+     * and contains data which will be used during ad requests.
      */
-    public static class VendorDataEntry implements BaseColumns {
-        /** Lookup key for the row - unique for each vendor */
+    public static class LocalDataEntry implements BaseColumns {
+        /** Lookup key for the row */
         public static final String KEY = "key";
-        /** Row data - ads or other vendor settings */
-        public static final String DATA = "data";
-        /** A vendor-assigned fingerprint for the row contents */
-        public static final String FP = "fp";
 
-        private VendorDataEntry() {
+        /** Row data */
+        public static final String DATA = "data";
+
+        private LocalDataEntry() {
         }
 
+        /**
+         * Returns the create table statement for the given table name.
+         */
         public static String getCreateTableIfNotExistsStatement(final String tableName) {
             return "CREATE TABLE IF NOT EXISTS " + tableName + " ("
                     + KEY + " TEXT NOT NULL,"
                     + DATA + " BLOB NOT NULL,"
-                    + FP + " TEXT NOT NULL,"
                     + "PRIMARY KEY(" + KEY + "))";
         }
     }
