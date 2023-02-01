@@ -19,11 +19,10 @@ package android.ondevicepersonalization;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
+import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
-
-import java.util.List;
 
 /**
  * A candidate to be rendered in response to a request from a calling app.
@@ -54,11 +53,16 @@ public final class ScoredBid implements Parcelable {
     @Nullable private Metrics mMetrics = null;
 
     /**
-     * The parameters needed to compute event-level metrics, for each event type
-     * which requires event level metrics. EventMetricsInput.mEventType must be
-     * unique and valid for each entry in this list.
+     * A list of event types for which the service should be called back when the event
+     * occurs, so that the service can compute event metrics to be logged.
      */
-    @Nullable private List<EventMetricsInput> mEventMetricsInputs = null;
+    @Nullable private int[] mEventsWithMetrics = null;
+
+    /**
+     * The parameters needed to compute event-level metrics, for each event type
+     * which requires event level metrics.
+     */
+    @Nullable private PersistableBundle mEventMetricsParameters = null;
 
 
 
@@ -81,14 +85,16 @@ public final class ScoredBid implements Parcelable {
             double price,
             double score,
             @Nullable Metrics metrics,
-            @Nullable List<EventMetricsInput> eventMetricsInputs) {
+            @Nullable int[] eventsWithMetrics,
+            @Nullable PersistableBundle eventMetricsParameters) {
         this.mBidId = bidId;
         AnnotationValidations.validate(
                 NonNull.class, null, mBidId);
         this.mPrice = price;
         this.mScore = score;
         this.mMetrics = metrics;
-        this.mEventMetricsInputs = eventMetricsInputs;
+        this.mEventsWithMetrics = eventsWithMetrics;
+        this.mEventMetricsParameters = eventMetricsParameters;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -127,13 +133,21 @@ public final class ScoredBid implements Parcelable {
     }
 
     /**
-     * The parameters needed to compute event-level metrics, for each event type
-     * which requires event level metrics. EventMetricsInput.mEventType must be
-     * unique and valid for each entry in this list.
+     * A list of event types for which the service should be called back when the event
+     * occurs, so that the service can compute event metrics to be logged.
      */
     @DataClass.Generated.Member
-    public @Nullable List<EventMetricsInput> getEventMetricsInputs() {
-        return mEventMetricsInputs;
+    public @Nullable int[] getEventsWithMetrics() {
+        return mEventsWithMetrics;
+    }
+
+    /**
+     * The parameters needed to compute event-level metrics, for each event type
+     * which requires event level metrics.
+     */
+    @DataClass.Generated.Member
+    public @Nullable PersistableBundle getEventMetricsParameters() {
+        return mEventMetricsParameters;
     }
 
     @Override
@@ -153,7 +167,8 @@ public final class ScoredBid implements Parcelable {
                 && mPrice == that.mPrice
                 && mScore == that.mScore
                 && java.util.Objects.equals(mMetrics, that.mMetrics)
-                && java.util.Objects.equals(mEventMetricsInputs, that.mEventMetricsInputs);
+                && java.util.Arrays.equals(mEventsWithMetrics, that.mEventsWithMetrics)
+                && java.util.Objects.equals(mEventMetricsParameters, that.mEventMetricsParameters);
     }
 
     @Override
@@ -167,7 +182,8 @@ public final class ScoredBid implements Parcelable {
         _hash = 31 * _hash + Double.hashCode(mPrice);
         _hash = 31 * _hash + Double.hashCode(mScore);
         _hash = 31 * _hash + java.util.Objects.hashCode(mMetrics);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mEventMetricsInputs);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mEventsWithMetrics);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mEventMetricsParameters);
         return _hash;
     }
 
@@ -179,13 +195,15 @@ public final class ScoredBid implements Parcelable {
 
         byte flg = 0;
         if (mMetrics != null) flg |= 0x8;
-        if (mEventMetricsInputs != null) flg |= 0x10;
+        if (mEventsWithMetrics != null) flg |= 0x10;
+        if (mEventMetricsParameters != null) flg |= 0x20;
         dest.writeByte(flg);
         dest.writeString(mBidId);
         dest.writeDouble(mPrice);
         dest.writeDouble(mScore);
         if (mMetrics != null) dest.writeTypedObject(mMetrics, flags);
-        if (mEventMetricsInputs != null) dest.writeParcelableList(mEventMetricsInputs, flags);
+        if (mEventsWithMetrics != null) dest.writeIntArray(mEventsWithMetrics);
+        if (mEventMetricsParameters != null) dest.writeTypedObject(mEventMetricsParameters, flags);
     }
 
     @Override
@@ -204,11 +222,8 @@ public final class ScoredBid implements Parcelable {
         double price = in.readDouble();
         double score = in.readDouble();
         Metrics metrics = (flg & 0x8) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
-        List<EventMetricsInput> eventMetricsInputs = null;
-        if ((flg & 0x10) != 0) {
-            eventMetricsInputs = new java.util.ArrayList<>();
-            in.readParcelableList(eventMetricsInputs, EventMetricsInput.class.getClassLoader());
-        }
+        int[] eventsWithMetrics = (flg & 0x10) == 0 ? null : in.createIntArray();
+        PersistableBundle eventMetricsParameters = (flg & 0x20) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
         this.mBidId = bidId;
         AnnotationValidations.validate(
@@ -216,7 +231,8 @@ public final class ScoredBid implements Parcelable {
         this.mPrice = price;
         this.mScore = score;
         this.mMetrics = metrics;
-        this.mEventMetricsInputs = eventMetricsInputs;
+        this.mEventsWithMetrics = eventsWithMetrics;
+        this.mEventMetricsParameters = eventMetricsParameters;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -246,7 +262,8 @@ public final class ScoredBid implements Parcelable {
         private double mPrice;
         private double mScore;
         private @Nullable Metrics mMetrics;
-        private @Nullable List<EventMetricsInput> mEventMetricsInputs;
+        private @Nullable int[] mEventsWithMetrics;
+        private @Nullable PersistableBundle mEventMetricsParameters;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -299,33 +316,33 @@ public final class ScoredBid implements Parcelable {
         }
 
         /**
-         * The parameters needed to compute event-level metrics, for each event type
-         * which requires event level metrics. EventMetricsInput.mEventType must be
-         * unique and valid for each entry in this list.
+         * A list of event types for which the service should be called back when the event
+         * occurs, so that the service can compute event metrics to be logged.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setEventMetricsInputs(@NonNull List<EventMetricsInput> value) {
+        public @NonNull Builder setEventsWithMetrics(@NonNull int... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10;
-            mEventMetricsInputs = value;
+            mEventsWithMetrics = value;
             return this;
         }
 
-        /** @see #setEventMetricsInputs */
+        /**
+         * The parameters needed to compute event-level metrics, for each event type
+         * which requires event level metrics.
+         */
         @DataClass.Generated.Member
-        public @NonNull Builder addEventMetricsInputs(@NonNull EventMetricsInput value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mEventMetricsInputs == null) setEventMetricsInputs(new java.util.ArrayList<>());
-            mEventMetricsInputs.add(value);
+        public @NonNull Builder setEventMetricsParameters(@NonNull PersistableBundle value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x20;
+            mEventMetricsParameters = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull ScoredBid build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x20; // Mark builder used
+            mBuilderFieldsSet |= 0x40; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mBidId = "";
@@ -340,19 +357,23 @@ public final class ScoredBid implements Parcelable {
                 mMetrics = null;
             }
             if ((mBuilderFieldsSet & 0x10) == 0) {
-                mEventMetricsInputs = null;
+                mEventsWithMetrics = null;
+            }
+            if ((mBuilderFieldsSet & 0x20) == 0) {
+                mEventMetricsParameters = null;
             }
             ScoredBid o = new ScoredBid(
                     mBidId,
                     mPrice,
                     mScore,
                     mMetrics,
-                    mEventMetricsInputs);
+                    mEventsWithMetrics,
+                    mEventMetricsParameters);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x20) != 0) {
+            if ((mBuilderFieldsSet & 0x40) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -360,10 +381,10 @@ public final class ScoredBid implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1672952598311L,
+            time = 1673388734872L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ScoredBid.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  double mPrice\nprivate  double mScore\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.EventMetricsInput> mEventMetricsInputs\nclass ScoredBid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  double mPrice\nprivate  double mScore\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nprivate @android.annotation.Nullable int[] mEventsWithMetrics\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventMetricsParameters\nclass ScoredBid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -17,6 +17,7 @@
 package com.test;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
@@ -32,14 +33,15 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends PersonalizationService {
     public final String TAG = "TestPersonalizationService";
 
     @Override
-    public void onDownload(ParcelFileDescriptor fd, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.DownloadCallback callback) {
+    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
+            Consumer<DownloadResult> consumer) {
         Log.d(TAG, "Starting filterData.");
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
@@ -51,15 +53,15 @@ public class TestPersonalizationService extends PersonalizationService {
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
                                 new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(fd))
+                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
                                 .build();
-                        callback.onSuccess(downloadResult);
+                        consumer.accept(downloadResult);
                     }
 
                     @Override
                     public void onError(Exception e) {
                         Log.e(TAG, "OutcomeReceiver onError.", e);
-                        callback.onError();
+                        consumer.accept(null);
                     }
                 });
     }

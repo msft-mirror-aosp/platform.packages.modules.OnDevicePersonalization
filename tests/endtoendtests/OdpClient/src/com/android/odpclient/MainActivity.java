@@ -86,6 +86,7 @@ public class MainActivity extends Activity {
                         params.putBinder(
                                 OnDevicePersonalizationManager.EXTRA_HOST_TOKEN,
                                 mRenderedView.getHostToken());
+                        Log.i(TAG, "Starting requestSurfacePackage()");
                         mOdpManager.requestSurfacePackage(
                                 "com.android.odpsamplenetwork",
                                 params,

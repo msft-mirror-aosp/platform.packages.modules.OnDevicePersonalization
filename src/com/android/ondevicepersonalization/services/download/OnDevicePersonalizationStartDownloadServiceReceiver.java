@@ -28,6 +28,7 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -76,6 +77,9 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
             return;
         }
 
+        // Schedule maintenance task
+        OnDevicePersonalizationMaintenanceJobService.schedule(context);
+
         final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
         Futures.addCallback(
@@ -89,7 +93,7 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to scheduled MDD tasks.");
+                        Log.e(TAG, "Failed to schedule MDD tasks.", t);
                         pendingResult.finish();
                     }
                 },

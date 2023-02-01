@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
@@ -31,13 +32,13 @@ import java.io.Serializable;
         genEqualsHashCode = true
 )
 public class Event implements Serializable {
-    /** Time of the query in microseconds. */
+    /** The id of the query. */
     @NonNull
-    private final long mTimeUsec;
+    private final long mQueryId;
 
-    /** The id of the thread serving the query. */
+    /** Time of the event in milliseconds. */
     @NonNull
-    private final long mThreadId;
+    private final long mTimeMillis;
 
     /** Id of the slot owner for this event */
     @NonNull
@@ -79,21 +80,21 @@ public class Event implements Serializable {
 
 
     @DataClass.Generated.Member
-        /* package-private */ Event(
-            @NonNull long timeUsec,
-            @NonNull long threadId,
+    /* package-private */ Event(
+            @NonNull long queryId,
+            @NonNull long timeMillis,
             @NonNull String slotId,
             @NonNull String bidId,
             @NonNull String servicePackageName,
             @NonNull int slotPosition,
             @NonNull int type,
             @NonNull byte[] event) {
-        this.mTimeUsec = timeUsec;
+        this.mQueryId = queryId;
         AnnotationValidations.validate(
-                NonNull.class, null, mTimeUsec);
-        this.mThreadId = threadId;
+                NonNull.class, null, mQueryId);
+        this.mTimeMillis = timeMillis;
         AnnotationValidations.validate(
-                NonNull.class, null, mThreadId);
+                NonNull.class, null, mTimeMillis);
         this.mSlotId = slotId;
         AnnotationValidations.validate(
                 NonNull.class, null, mSlotId);
@@ -117,19 +118,19 @@ public class Event implements Serializable {
     }
 
     /**
-     * Time of the query in microseconds.
+     * The id of the query.
      */
     @DataClass.Generated.Member
-    public @NonNull long getTimeUsec() {
-        return mTimeUsec;
+    public @NonNull long getQueryId() {
+        return mQueryId;
     }
 
     /**
-     * The id of the thread serving the query.
+     * Time of the query in milliseconds.
      */
     @DataClass.Generated.Member
-    public @NonNull long getThreadId() {
-        return mThreadId;
+    public @NonNull long getTimeMillis() {
+        return mTimeMillis;
     }
 
     /**
@@ -182,7 +183,7 @@ public class Event implements Serializable {
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@android.annotation.Nullable Object o) {
+    public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(Event other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -193,8 +194,8 @@ public class Event implements Serializable {
         Event that = (Event) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mTimeUsec == that.mTimeUsec
-                && mThreadId == that.mThreadId
+                && mQueryId == that.mQueryId
+                && mTimeMillis == that.mTimeMillis
                 && java.util.Objects.equals(mSlotId, that.mSlotId)
                 && java.util.Objects.equals(mBidId, that.mBidId)
                 && java.util.Objects.equals(mServicePackageName, that.mServicePackageName)
@@ -210,8 +211,8 @@ public class Event implements Serializable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + Long.hashCode(mTimeUsec);
-        _hash = 31 * _hash + Long.hashCode(mThreadId);
+        _hash = 31 * _hash + Long.hashCode(mQueryId);
+        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
         _hash = 31 * _hash + java.util.Objects.hashCode(mSlotId);
         _hash = 31 * _hash + java.util.Objects.hashCode(mBidId);
         _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
@@ -228,8 +229,8 @@ public class Event implements Serializable {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @NonNull long mTimeUsec;
-        private @NonNull long mThreadId;
+        private @NonNull long mQueryId;
+        private @NonNull long mTimeMillis;
         private @NonNull String mSlotId;
         private @NonNull String mBidId;
         private @NonNull String mServicePackageName;
@@ -245,10 +246,10 @@ public class Event implements Serializable {
         /**
          * Creates a new Builder.
          *
-         * @param timeUsec
-         *   Time of the query in microseconds.
-         * @param threadId
-         *   The id of the thread serving the query.
+         * @param queryId
+         *   The id of the query.
+         * @param timeMillis
+         *   Time of the query in milliseconds.
          * @param slotId
          *   Id of the slot owner for this event
          * @param bidId
@@ -263,20 +264,20 @@ public class Event implements Serializable {
          *   Blob representing the event.
          */
         public Builder(
-                @NonNull long timeUsec,
-                @NonNull long threadId,
+                @NonNull long queryId,
+                @NonNull long timeMillis,
                 @NonNull String slotId,
                 @NonNull String bidId,
                 @NonNull String servicePackageName,
                 @NonNull int slotPosition,
                 @NonNull int type,
                 @NonNull byte[] event) {
-            mTimeUsec = timeUsec;
+            mQueryId = queryId;
             AnnotationValidations.validate(
-                    NonNull.class, null, mTimeUsec);
-            mThreadId = threadId;
+                    NonNull.class, null, mQueryId);
+            mTimeMillis = timeMillis;
             AnnotationValidations.validate(
-                    NonNull.class, null, mThreadId);
+                    NonNull.class, null, mTimeMillis);
             mSlotId = slotId;
             AnnotationValidations.validate(
                     NonNull.class, null, mSlotId);
@@ -298,24 +299,24 @@ public class Event implements Serializable {
         }
 
         /**
-         * Time of the query in microseconds.
+         * The id of the query.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTimeUsec(@NonNull long value) {
+        public @NonNull Builder setQueryId(@NonNull long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mTimeUsec = value;
+            mQueryId = value;
             return this;
         }
 
         /**
-         * The id of the thread serving the query.
+         * Time of the query in milliseconds.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setThreadId(@NonNull long value) {
+        public @NonNull Builder setTimeMillis(@NonNull long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mThreadId = value;
+            mTimeMillis = value;
             return this;
         }
 
@@ -391,8 +392,8 @@ public class Event implements Serializable {
             mBuilderFieldsSet |= 0x100; // Mark builder used
 
             Event o = new Event(
-                    mTimeUsec,
-                    mThreadId,
+                    mQueryId,
+                    mTimeMillis,
                     mSlotId,
                     mBidId,
                     mServicePackageName,
@@ -411,10 +412,10 @@ public class Event implements Serializable {
     }
 
     @DataClass.Generated(
-            time = 1671556227569L,
+            time = 1674839291488L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Event.java",
-            inputSignatures = "private final @android.annotation.NonNull long mTimeUsec\nprivate final @android.annotation.NonNull long mThreadId\nprivate final @android.annotation.NonNull java.lang.String mSlotId\nprivate final @android.annotation.NonNull java.lang.String mBidId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull int mSlotPosition\nprivate final @android.annotation.NonNull int mType\nprivate final @android.annotation.NonNull byte[] mEvent\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final @android.annotation.NonNull long mQueryId\nprivate final @android.annotation.NonNull long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mSlotId\nprivate final @android.annotation.NonNull java.lang.String mBidId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull int mSlotPosition\nprivate final @android.annotation.NonNull int mType\nprivate final @android.annotation.NonNull byte[] mEvent\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

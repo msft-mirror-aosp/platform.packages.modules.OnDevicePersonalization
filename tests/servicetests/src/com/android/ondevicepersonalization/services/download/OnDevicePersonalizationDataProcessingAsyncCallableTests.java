@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.download;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
@@ -29,9 +30,9 @@ import com.android.ondevicepersonalization.services.data.OnDevicePersonalization
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.data.vendor.VendorDataContract;
-import com.android.ondevicepersonalization.services.download.mdd.LocalFileDownloader;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
+import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationLocalFileDownloader;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
@@ -79,7 +80,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
+        mMdd = MobileDataDownloadFactory.getMdd(mContext,
+                new OnDevicePersonalizationLocalFileDownloader(mFileStorage,
                         executorService, mContext), executorService);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -103,7 +105,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
-        dao.updateOrInsertVendorData(mContentExtra);
+        List<VendorData> existingData = new ArrayList<>();
+        existingData.add(mContentExtra);
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData,
+                System.currentTimeMillis()));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
@@ -143,13 +148,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName));
     }
 }
