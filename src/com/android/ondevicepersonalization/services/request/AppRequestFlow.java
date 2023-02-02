@@ -18,25 +18,27 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
 import android.content.Context;
-import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotInfo;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
-import android.os.Process;
 import android.os.RemoteException;
 import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
-import com.android.ondevicepersonalization.services.display.DisplayHelperImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
@@ -58,39 +60,24 @@ import java.util.Objects;
 public class AppRequestFlow {
     private static final String TAG = "AppRequestFlow";
     private static final String TASK_NAME = "AppRequest";
-
-    static class QueryId {
-        public final long mTimeUsec;
-        public final long mThreadId;
-        QueryId(long timeUsec, long threadId) {
-            mTimeUsec = timeUsec;
-            mThreadId = threadId;
-        }
-    }
-
-    static class SurfaceInfo {
-        @NonNull public final IBinder mHostToken;
-        public final int mDisplayId;
-        public final int mWidth;
-        public final int mHeight;
-        SurfaceInfo(IBinder hostToken, int displayId, int width, int height) {
-            mHostToken = hostToken;
-            mDisplayId = displayId;
-            mWidth = width;
-            mHeight = height;
-        }
-    }
-
-    @NonNull private final String mCallingPackageName;
-    @NonNull private final String mServicePackageName;
-    @NonNull private final Bundle mParams;
-    @NonNull private final IRequestSurfacePackageCallback mCallback;
-    @NonNull private final ListeningExecutorService mExecutorService;
-    @NonNull private final Context mContext;
-    @NonNull private final DisplayHelper mDisplayHelper;
-    @NonNull private final List<SurfaceInfo> mSurfaceInfos;
-    @NonNull private String mServiceClassName;
-
+    @NonNull
+    private final String mCallingPackageName;
+    @NonNull
+    private final String mServicePackageName;
+    @NonNull
+    private final Bundle mParams;
+    @NonNull
+    private final IRequestSurfacePackageCallback mCallback;
+    @NonNull
+    private final ListeningExecutorService mExecutorService;
+    @NonNull
+    private final Context mContext;
+    @NonNull
+    private final DisplayHelper mDisplayHelper;
+    @NonNull
+    private final List<SurfaceInfo> mSurfaceInfos;
+    @NonNull
+    private String mServiceClassName;
     public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull String servicePackageName,
@@ -103,9 +90,8 @@ public class AppRequestFlow {
             @NonNull ListeningExecutorService executorService,
             @NonNull Context context) {
         this(callingPackageName, servicePackageName, hostToken, displayId, width, height, params,
-                callback, executorService, context, new DisplayHelperImpl());
+                callback, executorService, context, new DisplayHelper(context));
     }
-
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
@@ -144,44 +130,48 @@ public class AppRequestFlow {
             mServiceClassName = Objects.requireNonNull(
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                             mContext, mServicePackageName));
-            ListenableFuture<AppRequestResult> resultFuture = FluentFuture.from(
-                    ProcessUtils.loadIsolatedService(
-                        TASK_NAME, mServicePackageName, mContext))
-                        .transformAsync(
+            ListenableFuture<SelectContentResult> resultFuture = FluentFuture.from(
+                            ProcessUtils.loadIsolatedService(
+                                    TASK_NAME, mServicePackageName, mContext))
+                    .transformAsync(
                             result -> executeAppRequest(result),
                             mExecutorService
-                        )
-                        .transform(
+                    )
+                    .transform(
                             result -> {
                                 return result.getParcelable(
-                                    Constants.EXTRA_RESULT, AppRequestResult.class);
+                                        Constants.EXTRA_RESULT, SelectContentResult.class);
                             },
                             mExecutorService
-                        );
+                    );
 
-            ListenableFuture<QueryId> queryIdFuture = FluentFuture.from(resultFuture)
+            ListenableFuture<Long> queryIdFuture = FluentFuture.from(resultFuture)
                     .transformAsync(input -> logQuery(input), mExecutorService);
 
             ListenableFuture<List<SurfacePackage>> surfacePackagesFuture =
                     Futures.whenAllSucceed(resultFuture, queryIdFuture)
-                        .callAsync(new AsyncCallable<List<SurfacePackage>>() {
-                            @Override public ListenableFuture<List<SurfacePackage>> call() {
-                                try {
-                                    return renderContent(Futures.getDone(resultFuture),
-                                            Futures.getDone(queryIdFuture));
-                                } catch (Exception e) {
-                                    return Futures.immediateFailedFuture(e);
+                            .callAsync(new AsyncCallable<List<SurfacePackage>>() {
+                                @Override
+                                public ListenableFuture<List<SurfacePackage>> call() {
+                                    try {
+                                        return renderContent(Futures.getDone(resultFuture),
+                                                Futures.getDone(queryIdFuture));
+                                    } catch (Exception e) {
+                                        return Futures.immediateFailedFuture(e);
+                                    }
                                 }
-                            }
-                        }, mExecutorService);
+                            }, mExecutorService);
 
             Futures.addCallback(
                     surfacePackagesFuture,
                     new FutureCallback<List<SurfacePackage>>() {
-                        @Override public void onSuccess(List<SurfacePackage> surfacePackages) {
+                        @Override
+                        public void onSuccess(List<SurfacePackage> surfacePackages) {
                             sendDisplayResult(surfacePackages);
                         }
-                        @Override public void onFailure(Throwable t) {
+
+                        @Override
+                        public void onFailure(Throwable t) {
                             Log.w(TAG, "Request failed.", t);
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
@@ -196,32 +186,53 @@ public class AppRequestFlow {
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
         Log.d(TAG, "executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        serviceParams.putString(Constants.EXTRA_APP_NAME, mCallingPackageName);
+        ArrayList<SlotInfo> slotInfos = new ArrayList<>();
+        for (SurfaceInfo surfaceInfo : mSurfaceInfos) {
+            slotInfos.add(
+                    new SlotInfo.Builder()
+                            .setWidth(surfaceInfo.mWidth)
+                            .setHeight(surfaceInfo.mHeight)
+                            .build());
+        }
+        SelectContentInput input =
+                new SelectContentInput.Builder()
+                        .setAppPackageName(mCallingPackageName)
+                        .setSlotInfos(slotInfos)
+                        // TODO(b/228200518): Extract app_params from request
+                        .setAppParams(PersistableBundle.EMPTY)
+                        .build();
         // TODO(b/228200518): Extract app_params from request
-        serviceParams.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
+        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
-            isolatedServiceInfo,  mServiceClassName, Constants.OP_APP_REQUEST, serviceParams);
+                isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
     }
 
-    private ListenableFuture<QueryId> logQuery(AppRequestResult appRequestResult) {
+    private ListenableFuture<Long> logQuery(SelectContentResult result) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
-        // TODO(b/228200518): Write a query event to the log.
-        // TODO(b/228200518): Replace currentTimeMillis() with a higher precision timestamp.
-        return Futures.immediateFuture(
-                new QueryId(System.currentTimeMillis() * 1000, Process.myTid()));
+        // TODO(b/228200518): Populate queryData
+        byte[] queryData = new byte[1];
+        Query query = new Query.Builder()
+                .setQuery(queryData)
+                .setTimeMillis(System.currentTimeMillis())
+                .build();
+        long queryId = EventsDao.getInstance(mContext).insertQuery(query);
+        if (queryId == -1) {
+            return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
+        }
+        return Futures.immediateFuture(queryId);
     }
 
     private ListenableFuture<List<SurfacePackage>> renderContent(
-            AppRequestResult appRequestResult,
-            QueryId queryId) {
+            SelectContentResult selectContentResult,
+            long queryId) {
         Log.d(TAG, "renderContent() started.");
-        List<SlotResult> slotResults = appRequestResult.getSlotResults();
+        List<SlotResult> slotResults = selectContentResult.getSlotResults();
         if (slotResults == null) {
-            Log.w(TAG, "Missing input: appRequestResult.slotResults is null.");
+            Log.w(TAG, "Missing input: SelectContentResult.slotResults is null.");
             return Futures.immediateFuture(null);
         }
 
@@ -245,8 +256,8 @@ public class AppRequestFlow {
         }
         SlotInfo slotInfo =
                 new SlotInfo.Builder()
-                    .setHeight(surfaceInfo.mHeight)
-                    .setWidth(surfaceInfo.mWidth).build();
+                        .setHeight(surfaceInfo.mHeight)
+                        .setWidth(surfaceInfo.mWidth).build();
         List<String> bidIds = new ArrayList<String>();
         for (ScoredBid bid : slotResult.getWinningBids()) {
             bidIds.add(bid.getBidId());
@@ -254,11 +265,11 @@ public class AppRequestFlow {
 
         // TODO(b/228200518) Support multiple bidders.
         return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                    TASK_NAME, mServicePackageName, mContext))
+                        TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
-                    loadResult -> executeRenderContentRequest(
-                        loadResult, slotInfo, bidIds),
-                    mExecutorService)
+                        loadResult -> executeRenderContentRequest(
+                                loadResult, slotInfo, bidIds),
+                        mExecutorService)
                 .transform(result -> {
                     return result.getParcelable(
                             Constants.EXTRA_RESULT, RenderContentResult.class);
@@ -278,8 +289,9 @@ public class AppRequestFlow {
             IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, List<String> bidIds) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
-        serviceParams.putParcelable(Constants.EXTRA_SLOT_INFO, slotInfo);
-        serviceParams.putStringArray(Constants.EXTRA_BID_IDS, bidIds.toArray(new String[0]));
+        RenderContentInput input =
+                new RenderContentInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
+        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
@@ -309,6 +321,21 @@ public class AppRequestFlow {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
             Log.w(TAG, "Callback error", e);
+        }
+    }
+
+    static class SurfaceInfo {
+        @NonNull
+        public final IBinder mHostToken;
+        public final int mDisplayId;
+        public final int mWidth;
+        public final int mHeight;
+
+        SurfaceInfo(IBinder hostToken, int displayId, int width, int height) {
+            mHostToken = hostToken;
+            mDisplayId = displayId;
+            mWidth = width;
+            mHeight = height;
         }
     }
 }

@@ -32,7 +32,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class AppManifestConfigTests {
     private static final String BASE_DOWNLOAD_URL =
-            "https://www.gstatic.com/ondevicepersonalization/testing/test_data1.json";
+            "android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1";
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Test

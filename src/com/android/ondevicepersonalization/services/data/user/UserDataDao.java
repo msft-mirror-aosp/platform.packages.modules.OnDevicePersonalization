@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import android.app.usage.UsageStats;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -124,17 +123,16 @@ public class UserDataDao {
      * Batch inserts a list of [UsageStats].
      * @return true if all insertions succeed as a transaction, false otherwise.
      */
-    public boolean batchInsertAppUsageStatsData(List<UsageStats> statsList,
-            long startTimeMillis, long endTimeMillis) {
+    public boolean batchInsertAppUsageStatsData(List<AppUsageEntry> appUsageEntries) {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         if (db == null) {
             return false;
         }
         try {
             db.beginTransaction();
-            for (UsageStats stats : statsList) {
-                if (!insertAppUsageStatsData(stats.getPackageName(),
-                        startTimeMillis, endTimeMillis, stats.getTotalTimeVisible())) {
+            for (AppUsageEntry entry : appUsageEntries) {
+                if (!insertAppUsageStatsData(entry.packageName, entry.startTimeMillis,
+                        entry.endTimeMillis, entry.totalTimeUsedMillis)) {
                     return false;
                 }
             }
@@ -151,7 +149,8 @@ public class UserDataDao {
      */
     public Cursor readAppUsageInLastXDays(int dayCount) {
         if (dayCount > TTL_IN_MEMORY_DAYS) {
-            Log.e(TAG, "Illegal attempt to read rows more than " + dayCount + " days");
+            Log.e(TAG, "Illegal attempt to read " + dayCount + " rows, which is more than "
+                    + TTL_IN_MEMORY_DAYS + " days");
             return null;
         }
         Calendar cal = Calendar.getInstance();
@@ -175,6 +174,80 @@ public class UserDataDao {
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to read " + UserDataTables.AppUsageHistory.TABLE_NAME
                     + " in the last " + dayCount + " days" , e);
+        }
+        return null;
+    }
+
+    /**
+     * Return all location rows collected in the last X days.
+     * @return
+     */
+    public Cursor readLocationInLastXDays(int dayCount) {
+        if (dayCount > TTL_IN_MEMORY_DAYS) {
+            Log.e(TAG, "Illegal attempt to read " + dayCount + " rows, which is more than "
+                    + TTL_IN_MEMORY_DAYS + " days");
+            return null;
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * dayCount);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] columns = new String[]{UserDataTables.LocationHistory.TIME_SEC,
+                    UserDataTables.LocationHistory.LATITUDE,
+                    UserDataTables.LocationHistory.LONGITUDE};
+            String selection = UserDataTables.LocationHistory.TIME_SEC + " >= ?";
+            String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
+            String orderBy = UserDataTables.LocationHistory.TIME_SEC;
+            return db.query(
+                    UserDataTables.LocationHistory.TABLE_NAME,
+                    columns,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    orderBy
+            );
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to read " + UserDataTables.LocationHistory.TABLE_NAME
+                    + " in the last " + dayCount + " days" , e);
+        }
+        return null;
+    }
+
+    /**
+     * Return user's most recent location.
+     * @return
+     */
+    public Cursor readCurrentLocation() {
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * TTL_IN_MEMORY_DAYS);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
+
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] columns = new String[]{UserDataTables.LocationHistory.TIME_SEC,
+                    UserDataTables.LocationHistory.LATITUDE,
+                    UserDataTables.LocationHistory.LONGITUDE,
+                    UserDataTables.LocationHistory.SOURCE,
+                    UserDataTables.LocationHistory.IS_PRECISE};
+            String selection = UserDataTables.LocationHistory.TIME_SEC + " >= ?";
+            String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
+            String orderBy = UserDataTables.LocationHistory.TIME_SEC + " DESC";
+            String limit = "1";
+            return db.query(
+                    UserDataTables.LocationHistory.TABLE_NAME,
+                    columns,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    orderBy,
+                    limit
+            );
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to read current location from "
+                    + UserDataTables.LocationHistory.TABLE_NAME, e);
         }
         return null;
     }

@@ -25,14 +25,30 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
+    <!-- Used for persisting scheduled jobs -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication"
-            android:label="OnDevicePersonalizationManagingServicesTests">
+            android:label="OnDevicePersonalizationManagingServicesTests"
+            android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
         <!-- TODO(b/258808270): Set isolated process to true -->
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:exported="false" >
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.download.mdd.MddJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
