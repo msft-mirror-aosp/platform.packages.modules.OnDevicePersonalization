@@ -16,12 +16,14 @@
 
 package com.android.ondevicepersonalization.services.util;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
 import static android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES;
 import static android.content.pm.PackageManager.MATCH_STATIC_SHARED_AND_SDK_LIBRARIES;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -62,7 +64,7 @@ public class PackageUtils {
     /**
      * Retrieves the certDigest of the given packageName
      *
-     * @param context Context of the calling service
+     * @param context     Context of the calling service
      * @param packageName Package name owning the certDigest
      * @return certDigest of the given packageName
      */
@@ -77,5 +79,19 @@ public class PackageUtils {
                 signingInfo != null ? signingInfo.getSigningCertificateHistory() : null;
         byte[] digest = PackageUtils.computeSha256DigestBytes(signatures[0].toByteArray());
         return new String(HexEncoding.encode(digest));
+    }
+
+    /**
+     * Determines if a package is debuggable
+     *
+     * @return true if the package is debuggable, false otherwise
+     */
+    public static boolean isPackageDebuggable(@NonNull Context context, @NonNull String packageName)
+            throws PackageManager.NameNotFoundException {
+        ApplicationInfo sdkApplicationInfo = context.getPackageManager().getApplicationInfo(
+                packageName,
+                PackageManager.ApplicationInfoFlags.of(
+                        GET_META_DATA));
+        return (sdkApplicationInfo.flags &= ApplicationInfo.FLAG_DEBUGGABLE) != 0;
     }
 }
