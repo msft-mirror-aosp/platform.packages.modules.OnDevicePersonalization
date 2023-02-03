@@ -48,7 +48,7 @@ public class PersonalizationServiceTest {
             new TestPersonalizationService();
     private IPersonalizationService mBinder;
     private final CountDownLatch mLatch = new CountDownLatch(1);
-    private boolean mOnAppRequestCalled;
+    private boolean mSelectContentCalled;
     private boolean mOnDownloadCalled;
     private boolean mRenderContentCalled;
     private boolean mComputeEventMetricsCalled;
@@ -74,90 +74,94 @@ public class PersonalizationServiceTest {
     }
 
     @Test
-    public void testOnAppRequest() throws Exception {
+    public void testSelectContent() throws Exception {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString("x", "y");
-        AppRequestInput input =
-                new AppRequestInput.Builder()
+        SelectContentInput input =
+                new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .setAppParams(appParams)
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
-        assertTrue(mOnAppRequestCalled);
-        AppRequestResult appRequestResult =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, AppRequestResult.class);
+        assertTrue(mSelectContentCalled);
+        SelectContentResult SelectContentResult =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, SelectContentResult.class);
         assertEquals("123",
-                appRequestResult.getSlotResults().get(0).getWinningBids().get(0).getBidId());
+                SelectContentResult.getSlotResults().get(0).getWinningBids().get(0).getBidId());
     }
 
     @Test
-    public void testOnAppRequestPropagatesError() throws Exception {
+    public void testSelectContentPropagatesError() throws Exception {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putInt("error", 1);  // Trigger an error in the service.
-        AppRequestInput input =
-                new AppRequestInput.Builder()
+        SelectContentInput input =
+                new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .setAppParams(appParams)
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
-        assertTrue(mOnAppRequestCalled);
+        assertTrue(mSelectContentCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
-    public void testOnAppRequestWithoutAppParams() throws Exception {
-        AppRequestInput input =
-                new AppRequestInput.Builder()
+    public void testSelectContentWithoutAppParams() throws Exception {
+        SelectContentInput input =
+                new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
-        assertTrue(mOnAppRequestCalled);
+        assertTrue(mSelectContentCalled);
     }
 
     @Test
-    public void testOnAppRequestThrowsIfParamsMissing() throws Exception {
+    public void testSelectContentThrowsIfParamsMissing() throws Exception {
         assertThrows(
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, null,
+                            Constants.OP_SELECT_CONTENT, null,
                             new TestPersonalizationServiceCallback());
                 });
     }
 
     @Test
-    public void testOnAppRequestThrowsIfInputMissing() throws Exception {
+    public void testSelectContentThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, params,
+                            Constants.OP_SELECT_CONTENT, params,
                             new TestPersonalizationServiceCallback());
                 });
     }
 
     @Test
-    public void testOnAppRequestThrowsIfDataAccessServiceMissing() throws Exception {
-        AppRequestInput input =
-                new AppRequestInput.Builder()
+    public void testSelectContentThrowsIfDataAccessServiceMissing() throws Exception {
+        SelectContentInput input =
+                new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -165,16 +169,17 @@ public class PersonalizationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, params,
+                            Constants.OP_SELECT_CONTENT, params,
                             new TestPersonalizationServiceCallback());
                 });
     }
 
     @Test
-    public void testOnAppRequestThrowsIfCallbackMissing() throws Exception {
-        AppRequestInput input =
-                new AppRequestInput.Builder()
+    public void testSelectContentThrowsIfCallbackMissing() throws Exception {
+        SelectContentInput input =
+                new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -183,7 +188,7 @@ public class PersonalizationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, params, null);
+                            Constants.OP_SELECT_CONTENT, params, null);
                 });
     }
 
@@ -454,17 +459,17 @@ public class PersonalizationServiceTest {
     }
 
     class TestPersonalizationService extends PersonalizationService {
-        @Override public void onAppRequest(
-                AppRequestInput input,
+        @Override public void selectContent(
+                SelectContentInput input,
                 OnDevicePersonalizationContext odpContext,
-                Consumer<AppRequestResult> consumer
+                Consumer<SelectContentResult> consumer
         ) {
-            mOnAppRequestCalled = true;
+            mSelectContentCalled = true;
             if (input.getAppParams() != null && input.getAppParams().getInt("error") > 0) {
                 consumer.accept(null);
             } else {
                 consumer.accept(
-                        new AppRequestResult.Builder()
+                        new SelectContentResult.Builder()
                         .addSlotResults(
                             new SlotResult.Builder()
                                 .addWinningBids(

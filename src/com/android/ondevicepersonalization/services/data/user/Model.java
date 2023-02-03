@@ -20,7 +20,7 @@ package com.android.ondevicepersonalization.services.data.user;
  * A enum class for top 200 popular device model.
  */
 
-enum Model {
+public enum Model {
     UNKNOWN,
     SM_A515F, // SM-A515F
     SM_A127F, // SM-A127F
