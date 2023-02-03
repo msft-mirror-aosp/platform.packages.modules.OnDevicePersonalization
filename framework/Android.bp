@@ -40,6 +40,11 @@ filegroup {
     path: "java",
 }
 
+filegroup {
+    name: "framework-ondevicepersonalization-jarjar",
+    srcs: ["jarjar_rules.txt"]
+}
+
 java_sdk_library {
     name: "framework-ondevicepersonalization",
     srcs: [
@@ -56,6 +61,8 @@ java_sdk_library {
         "android.ondevicepersonalization",
         "com.android.ondevicepersonalization.internal",
     ],
+    jarjar_rules: ":framework-ondevicepersonalization-jarjar",
+    static_libs: ["modules-utils-build"],
     impl_library_visibility: ["//visibility:public"],
     min_sdk_version: "Tiramisu",
     apex_available: ["com.android.ondevicepersonalization"],

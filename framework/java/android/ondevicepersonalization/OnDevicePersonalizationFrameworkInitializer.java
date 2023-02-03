@@ -16,11 +16,15 @@
 
 package android.ondevicepersonalization;
 
+import static android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
 import static android.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
 
 import android.annotation.SystemApi;
 import android.app.SystemServiceRegistry;
+import android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
 import android.content.Context;
+
+import com.android.modules.utils.build.SdkLevel;
 
 /**
  * Class holding initialization code for the OnDevicePersonalization module.
@@ -44,5 +48,11 @@ public class OnDevicePersonalizationFrameworkInitializer {
         SystemServiceRegistry.registerContextAwareService(
                 ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,
                 (c) -> new OnDevicePersonalizationManager(c));
+        if (SdkLevel.isAtLeastU()) {
+            SystemServiceRegistry.registerStaticService(
+                    ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE,
+                    OnDevicePersonalizationSystemServiceManager.class,
+                    (s) -> new OnDevicePersonalizationSystemServiceManager(s));
+        }
     }
 }
