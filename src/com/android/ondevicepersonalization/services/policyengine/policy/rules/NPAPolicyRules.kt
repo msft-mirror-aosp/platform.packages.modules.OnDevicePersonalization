@@ -14,6 +14,15 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.policyengine.policy.rules
 
-parcelable AppRequestResult;
+import com.android.libraries.pcc.chronicle.util.Key
+
+/** Defines NPA-related keys */
+object DevicePersonalizedAdsEnabled : Key<Boolean>
+
+object UserPersonalizedAdsEnabled : Key<Boolean>
+
+object AppPersonalizedAdsEnabled : Key<Boolean>
+
+object RequestPersonalizedAdsEnabled : Key<Boolean>
