@@ -103,7 +103,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
      * Creates the fileGroup name based off the package's name and cert.
      *
      * @param packageName Name of the package owning the fileGroup
-     * @param context Context of the calling service/application
+     * @param context     Context of the calling service/application
      * @return The created fileGroup name.
      */
     public static String createPackageFileGroupName(String packageName, Context context) throws
@@ -114,27 +114,45 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     /**
      * Creates the MDD download URL for the given package
      *
-     * @param packageInfo PackageInfo of the package owning the fileGroup
-     * @param context Context of the calling service/application
+     * @param packageName PackageName of the package owning the fileGroup
+     * @param context     Context of the calling service/application
      * @return The created MDD URL for the package.
      */
     @VisibleForTesting
-    public static String createDownloadUrl(PackageInfo packageInfo, Context context) throws
+    public static String createDownloadUrl(String packageName, Context context) throws
             PackageManager.NameNotFoundException {
-        String packageName = packageInfo.packageName;
-        String baseURL =  AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
-                context, packageInfo.packageName);
+        String baseURL = AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
+                context, packageName);
         if (baseURL == null) {
-            // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException("Failed to retrieve base download URL");
         }
+        Uri uri = Uri.parse(baseURL);
+        // Handle odp debug URLs
+        if (OnDevicePersonalizationLocalFileDownloader.isLocalOdpUri(uri)
+                && PackageUtils.isPackageDebuggable(context, packageName)) {
+            return uri.toString();
+        }
+
+        // Enforce URI scheme
+        if (!baseURL.startsWith("https")) {
+            throw new IllegalArgumentException("File url is not secure: " + baseURL);
+        }
+
+        return addDownloadUrlQueryParameters(uri, packageName, context);
+    }
+
+    /**
+     * Adds query parameters to the download URL.
+     */
+    public static String addDownloadUrlQueryParameters(Uri uri, String packageName, Context context)
+            throws PackageManager.NameNotFoundException {
         long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
                 PackageUtils.getCertDigest(context, packageName)).getSyncToken();
-        Uri uri = Uri.parse(baseURL);
         if (syncToken != -1) {
             uri = uri.buildUpon().appendQueryParameter("syncToken",
                     String.valueOf(syncToken)).build();
         }
+        // TODO(b/267177135) Add user data query parameters here
         return uri.toString();
     }
 
@@ -153,7 +171,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                     int byteSize = 0;
                     String checksum = "";
                     ChecksumType checksumType = ChecksumType.NONE;
-                    String downloadUrl = createDownloadUrl(packageInfo, mContext);
+                    String downloadUrl = createDownloadUrl(packageInfo.packageName, mContext);
                     DeviceNetworkPolicy deviceNetworkPolicy =
                             DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
                     DataFileGroup dataFileGroup = createDataFileGroup(
@@ -168,8 +186,8 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                     mFutures.add(mobileDataDownload.addFileGroup(
                             AddFileGroupRequest.newBuilder().setDataFileGroup(
                                     dataFileGroup).build()));
-                } catch (PackageManager.NameNotFoundException e) {
-                    Log.d(TAG, "Failed to create file group for " + packageInfo.packageName);
+                } catch (Exception e) {
+                    Log.e(TAG, "Failed to create file group for " + packageInfo.packageName, e);
                 }
             }
         }

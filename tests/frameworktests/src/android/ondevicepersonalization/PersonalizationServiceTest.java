@@ -35,8 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.function.Consumer;
 
 /**
  * Unit Tests of PersonalizationService class.
@@ -48,7 +48,7 @@ public class PersonalizationServiceTest {
             new TestPersonalizationService();
     private IPersonalizationService mBinder;
     private final CountDownLatch mLatch = new CountDownLatch(1);
-    private boolean mOnAppRequestCalled;
+    private boolean mSelectContentCalled;
     private boolean mOnDownloadCalled;
     private boolean mRenderContentCalled;
     private boolean mComputeEventMetricsCalled;
@@ -74,105 +74,130 @@ public class PersonalizationServiceTest {
     }
 
     @Test
-    public void testOnAppRequest() throws Exception {
+    public void testSelectContent() throws Exception {
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString("x", "y");
+        SelectContentInput input =
+                new SelectContentInput.Builder()
+                .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
+                .setAppParams(appParams)
+                .build();
         Bundle params = new Bundle();
-        params.putString(Constants.EXTRA_APP_NAME, "com.testapp");
-        params.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
-        assertTrue(mOnAppRequestCalled);
-        AppRequestResult appRequestResult =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, AppRequestResult.class);
+        assertTrue(mSelectContentCalled);
+        SelectContentResult SelectContentResult =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, SelectContentResult.class);
         assertEquals("123",
-                appRequestResult.getSlotResults().get(0).getWinningBids().get(0).getBidId());
+                SelectContentResult.getSlotResults().get(0).getWinningBids().get(0).getBidId());
     }
 
     @Test
-    public void testOnAppRequestPropagatesError() throws Exception {
-        Bundle params = new Bundle();
-        params.putString(Constants.EXTRA_APP_NAME, "com.testapp");
+    public void testSelectContentPropagatesError() throws Exception {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putInt("error", 1);  // Trigger an error in the service.
-        params.putParcelable(Constants.EXTRA_APP_PARAMS, appParams);
+        SelectContentInput input =
+                new SelectContentInput.Builder()
+                .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
+                .setAppParams(appParams)
+                .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
-        assertTrue(mOnAppRequestCalled);
+        assertTrue(mSelectContentCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
-    public void testOnAppRequestWithoutAppParams() throws Exception {
+    public void testSelectContentWithoutAppParams() throws Exception {
+        SelectContentInput input =
+                new SelectContentInput.Builder()
+                .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
+                .build();
         Bundle params = new Bundle();
-        params.putString(Constants.EXTRA_APP_NAME, "com.testapp");
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_APP_REQUEST, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
         mLatch.await();
-        assertTrue(mOnAppRequestCalled);
+        assertTrue(mSelectContentCalled);
     }
 
     @Test
-    public void testOnAppRequestThrowsIfParamsMissing() throws Exception {
+    public void testSelectContentThrowsIfParamsMissing() throws Exception {
         assertThrows(
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, null,
+                            Constants.OP_SELECT_CONTENT, null,
                             new TestPersonalizationServiceCallback());
                 });
     }
 
     @Test
-    public void testOnAppRequestThrowsIfAppNameMissing() throws Exception {
+    public void testSelectContentThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, params,
+                            Constants.OP_SELECT_CONTENT, params,
                             new TestPersonalizationServiceCallback());
                 });
     }
 
     @Test
-    public void testOnAppRequestThrowsIfDataAccessServiceMissing() throws Exception {
+    public void testSelectContentThrowsIfDataAccessServiceMissing() throws Exception {
+        SelectContentInput input =
+                new SelectContentInput.Builder()
+                .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
+                .build();
         Bundle params = new Bundle();
-        params.putString(Constants.EXTRA_APP_NAME, "com.testapp");
-        params.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, params,
+                            Constants.OP_SELECT_CONTENT, params,
                             new TestPersonalizationServiceCallback());
                 });
     }
 
     @Test
-    public void testOnAppRequestThrowsIfCallbackMissing() throws Exception {
+    public void testSelectContentThrowsIfCallbackMissing() throws Exception {
+        SelectContentInput input =
+                new SelectContentInput.Builder()
+                .setAppPackageName("com.testapp")
+                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
+                .build();
         Bundle params = new Bundle();
-        params.putString(Constants.EXTRA_APP_NAME, "com.testapp");
-        params.putParcelable(Constants.EXTRA_APP_PARAMS, PersistableBundle.EMPTY);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_APP_REQUEST, params, null);
+                            Constants.OP_SELECT_CONTENT, params, null);
                 });
     }
 
     @Test
     public void testOnDownload() throws Exception {
-        Bundle params = new Bundle();
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        params.putParcelable(Constants.EXTRA_PARCEL_FD, pfds[0]);
+        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_DOWNLOAD_FINISHED, params, new TestPersonalizationServiceCallback());
@@ -197,7 +222,7 @@ public class PersonalizationServiceTest {
     }
 
     @Test
-    public void testOnDownloadThrowsIfFdMissing() throws Exception {
+    public void testOnDownloadThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
@@ -211,9 +236,10 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
-        Bundle params = new Bundle();
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        params.putParcelable(Constants.EXTRA_PARCEL_FD, pfds[0]);
+        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -227,9 +253,10 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownloadThrowsIfCallbackMissing() throws Exception {
-        Bundle params = new Bundle();
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        params.putParcelable(Constants.EXTRA_PARCEL_FD, pfds[0]);
+        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
@@ -241,10 +268,16 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testRenderContent() throws Exception {
+        RenderContentInput input =
+                new RenderContentInput.Builder()
+                .setSlotInfo(
+                    new SlotInfo.Builder().build()
+                )
+                .addBidIds("a")
+                .addBidIds("b")
+                .build();
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_SLOT_INFO, new SlotInfo.Builder().build());
-        String[] bidIds = {"a", "b"};
-        params.putStringArray(Constants.EXTRA_BID_IDS, bidIds);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_RENDER_CONTENT, params, new TestPersonalizationServiceCallback());
@@ -257,10 +290,15 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testRenderContentPropagatesError() throws Exception {
+        RenderContentInput input =
+                new RenderContentInput.Builder()
+                .setSlotInfo(
+                    new SlotInfo.Builder().build()
+                )
+                .addBidIds("z")  // Trigger error in service.
+                .build();
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_SLOT_INFO, new SlotInfo.Builder().build());
-        String[] bidIds = {"z"};  // Trigger error in service.
-        params.putStringArray(Constants.EXTRA_BID_IDS, bidIds);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_RENDER_CONTENT, params, new TestPersonalizationServiceCallback());
@@ -281,24 +319,8 @@ public class PersonalizationServiceTest {
     }
 
     @Test
-    public void testRenderContentThrowsIfSlotInfoMissing() throws Exception {
+    public void testRenderContentThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
-        String[] bidIds = {"a", "b"};
-        params.putStringArray(Constants.EXTRA_BID_IDS, bidIds);
-        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(
-                            Constants.OP_RENDER_CONTENT, params,
-                            new TestPersonalizationServiceCallback());
-                });
-    }
-
-    @Test
-    public void testRenderContentThrowsIfBidIdsMissing() throws Exception {
-        Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_SLOT_INFO, new SlotInfo.Builder().build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
@@ -311,10 +333,16 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testRenderContentThrowsIfDataAccessServiceMissing() throws Exception {
+        RenderContentInput input =
+                new RenderContentInput.Builder()
+                .setSlotInfo(
+                    new SlotInfo.Builder().build()
+                )
+                .addBidIds("a")
+                .addBidIds("b")
+                .build();
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_SLOT_INFO, new SlotInfo.Builder().build());
-        String[] bidIds = {"a", "b"};
-        params.putStringArray(Constants.EXTRA_BID_IDS, bidIds);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -326,10 +354,16 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testRenderContentThrowsIfCallbackMissing() throws Exception {
+        RenderContentInput input =
+                new RenderContentInput.Builder()
+                .setSlotInfo(
+                    new SlotInfo.Builder().build()
+                )
+                .addBidIds("a")
+                .addBidIds("b")
+                .build();
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_SLOT_INFO, new SlotInfo.Builder().build());
-        String[] bidIds = {"a", "b"};
-        params.putStringArray(Constants.EXTRA_BID_IDS, bidIds);
+        params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
@@ -343,7 +377,7 @@ public class PersonalizationServiceTest {
     public void testComputeEventMetrics() throws Exception {
         Bundle params = new Bundle();
         params.putParcelable(
-                Constants.EXTRA_EVENT_METRICS_INPUT, new EventMetricsInput.Builder().build());
+                Constants.EXTRA_INPUT, new EventMetricsInput.Builder().build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_COMPUTE_EVENT_METRICS, params,
@@ -357,11 +391,12 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testComputeEventMetricsPropagatesError() throws Exception {
+        PersistableBundle eventParams = new PersistableBundle();
+        eventParams.putInt("x", 9999);  // Input value 9999 will trigger an error in the service.
         Bundle params = new Bundle();
         params.putParcelable(
-                Constants.EXTRA_EVENT_METRICS_INPUT,
-                // Input value 9999 will trigger an error in the service.
-                new EventMetricsInput.Builder().setIntInputs(9999).build());
+                Constants.EXTRA_INPUT,
+                new EventMetricsInput.Builder().setEventParams(eventParams).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_COMPUTE_EVENT_METRICS, params,
@@ -399,7 +434,7 @@ public class PersonalizationServiceTest {
     public void testComputeEventMetricsThrowsIfDataAccessServiceMissing() throws Exception {
         Bundle params = new Bundle();
         params.putParcelable(
-                Constants.EXTRA_EVENT_METRICS_INPUT, new EventMetricsInput.Builder().build());
+                Constants.EXTRA_INPUT, new EventMetricsInput.Builder().build());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -413,7 +448,7 @@ public class PersonalizationServiceTest {
     public void testComputeEventMetricsThrowsIfCallbackMissing() throws Exception {
         Bundle params = new Bundle();
         params.putParcelable(
-                Constants.EXTRA_EVENT_METRICS_INPUT, new EventMetricsInput.Builder().build());
+                Constants.EXTRA_INPUT, new EventMetricsInput.Builder().build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
@@ -424,16 +459,17 @@ public class PersonalizationServiceTest {
     }
 
     class TestPersonalizationService extends PersonalizationService {
-        @Override public void onAppRequest(
-                String appPackageName, PersistableBundle appParams,
-                OnDevicePersonalizationContext odpContext, AppRequestCallback callback
+        @Override public void selectContent(
+                SelectContentInput input,
+                OnDevicePersonalizationContext odpContext,
+                Consumer<SelectContentResult> consumer
         ) {
-            mOnAppRequestCalled = true;
-            if (appParams != null && appParams.getInt("error") > 0) {
-                callback.onError();
+            mSelectContentCalled = true;
+            if (input.getAppParams() != null && input.getAppParams().getInt("error") > 0) {
+                consumer.accept(null);
             } else {
-                callback.onSuccess(
-                        new AppRequestResult.Builder()
+                consumer.accept(
+                        new SelectContentResult.Builder()
                         .addSlotResults(
                             new SlotResult.Builder()
                                 .addWinningBids(
@@ -448,25 +484,24 @@ public class PersonalizationServiceTest {
         }
 
         @Override public void onDownload(
-                ParcelFileDescriptor fd,
+                DownloadInput input,
                 OnDevicePersonalizationContext odpContext,
-                DownloadCallback callback
+                Consumer<DownloadResult> consumer
         ) {
             mOnDownloadCalled = true;
-            callback.onSuccess(new DownloadResult.Builder().addKeysToRetain("12").build());
+            consumer.accept(new DownloadResult.Builder().addKeysToRetain("12").build());
         }
 
         @Override public void renderContent(
-                SlotInfo slotInfo,
-                List<String> bidIds,
+                RenderContentInput input,
                 OnDevicePersonalizationContext odpContext,
-                RenderContentCallback callback
+                Consumer<RenderContentResult> consumer
         ) {
             mRenderContentCalled = true;
-            if (bidIds.size() >= 1 && bidIds.get(0).equals("z")) {
-                callback.onError();
+            if (input.getBidIds().size() >= 1 && input.getBidIds().get(0).equals("z")) {
+                consumer.accept(null);
             } else {
-                callback.onSuccess(
+                consumer.accept(
                         new RenderContentResult.Builder().setContent("htmlstring").build());
             }
         }
@@ -474,14 +509,13 @@ public class PersonalizationServiceTest {
         @Override public void computeEventMetrics(
                 EventMetricsInput input,
                 OnDevicePersonalizationContext odpContext,
-                EventMetricsCallback callback
+                Consumer<EventMetricsResult> consumer
         ) {
             mComputeEventMetricsCalled = true;
-            if (input.getIntInputs() != null && input.getIntInputs().length >= 1
-                    && input.getIntInputs()[0] == 9999) {
-                callback.onError();
+            if (input.getEventParams() != null && input.getEventParams().getInt("x") == 9999) {
+                consumer.accept(null);
             } else {
-                callback.onSuccess(
+                consumer.accept(
                         new EventMetricsResult.Builder()
                         .setMetrics(
                             new Metrics.Builder().setIntMetrics(2468).build())

@@ -17,18 +17,18 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
-import android.ondevicepersonalization.AppRequestResult;
+import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SlotInfo;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
-import android.os.PersistableBundle;
 import android.util.JsonReader;
 import android.util.Log;
 
@@ -39,14 +39,15 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends PersonalizationService {
     public final String TAG = "TestPersonalizationService";
 
     @Override
-    public void onDownload(ParcelFileDescriptor fd, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.DownloadCallback callback) {
+    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
+            Consumer<DownloadResult> consumer) {
         Log.d(TAG, "Starting filterData.");
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
@@ -58,27 +59,26 @@ public class TestPersonalizationService extends PersonalizationService {
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
                                 new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(fd))
+                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
                                 .build();
-                        callback.onSuccess(downloadResult);
+                        consumer.accept(downloadResult);
                     }
 
                     @Override
                     public void onError(Exception e) {
                         Log.e(TAG, "OutcomeReceiver onError.", e);
-                        callback.onError();
+                        consumer.accept(null);
                     }
                 });
     }
 
-    @Override public void onAppRequest(
-            @NonNull String appPackageName,
-            @Nullable PersistableBundle appParams,
+    @Override public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.AppRequestCallback callback
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
-        AppRequestResult result = new AppRequestResult.Builder()
+        SelectContentResult result = new SelectContentResult.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
                         .addWinningBids(
@@ -86,21 +86,20 @@ public class TestPersonalizationService extends PersonalizationService {
                             .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
                         .build())
                 .build();
-        callback.onSuccess(result);
+        consumer.accept(result);
     }
 
     @Override public void renderContent(
-            @NonNull SlotInfo slotInfo,
-            @NonNull List<String> bidIds,
+            @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.RenderContentCallback callback
+            @NonNull Consumer<RenderContentResult> consumer
     ) {
         Log.d(TAG, "renderContent() started.");
         RenderContentResult result =
                 new RenderContentResult.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", bidIds) + "<p>")
+                .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
                 .build();
-        callback.onSuccess(result);
+        consumer.accept(result);
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
