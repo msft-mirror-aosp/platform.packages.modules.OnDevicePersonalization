@@ -17,8 +17,6 @@
 package com.android.odpsamplenetwork;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.AppRequestInput;
-import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
@@ -26,6 +24,8 @@ import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
@@ -53,10 +53,10 @@ public class SamplePersonalizationService extends PersonalizationService {
         consumer.accept(downloadResult);
     }
 
-    @Override public void onAppRequest(
-            @NonNull AppRequestInput input,
+    @Override public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<AppRequestResult> consumer
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
         SlotResult.Builder slotResultBuilder = new SlotResult.Builder();
@@ -66,8 +66,8 @@ public class SamplePersonalizationService extends PersonalizationService {
         slotResultBuilder.addRejectedBids(
                 new ScoredBid.Builder()
                         .setBidId("losingbid1").setPrice(1.0).setScore(1.0).build());
-        AppRequestResult result =
-                new AppRequestResult.Builder()
+        SelectContentResult result =
+                new SelectContentResult.Builder()
                         .addSlotResults(slotResultBuilder.build())
                         .build();
         Log.d(TAG, "onAppRequest() finished.");
