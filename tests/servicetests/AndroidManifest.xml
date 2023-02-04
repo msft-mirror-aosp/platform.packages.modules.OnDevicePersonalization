@@ -29,7 +29,8 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication"
-            android:label="OnDevicePersonalizationManagingServicesTests">
+            android:label="OnDevicePersonalizationManagingServicesTests"
+            android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
