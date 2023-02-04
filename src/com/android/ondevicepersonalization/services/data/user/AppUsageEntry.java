@@ -32,6 +32,13 @@ public class AppUsageEntry {
     // Total time spent
     public long totalTimeUsedMillis = 0L;
 
+    public AppUsageEntry(@NonNull AppUsageEntry other) {
+        this.packageName = other.packageName;
+        this.startTimeMillis = other.startTimeMillis;
+        this.endTimeMillis = other.endTimeMillis;
+        this.totalTimeUsedMillis = other.totalTimeUsedMillis;
+    }
+
     public AppUsageEntry(@NonNull String packageName,
             @NonNull long startTimeMillis,
             @NonNull long endTimeMillis,
