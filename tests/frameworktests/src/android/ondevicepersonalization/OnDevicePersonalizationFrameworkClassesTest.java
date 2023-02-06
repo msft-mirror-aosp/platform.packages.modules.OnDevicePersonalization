@@ -120,14 +120,14 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the AppRequestResult object serializes correctly.
+     * Tests that the SelectContentResult object serializes correctly.
      */
     @Test
-    public void testAppRequestResult() {
+    public void testSelectContentResult() {
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt("x", 6);
-        AppRequestResult result =
-                new AppRequestResult.Builder()
+        SelectContentResult result =
+                new SelectContentResult.Builder()
                     .addSlotResults(
                         new SlotResult.Builder().setSlotId("abc")
                             .addWinningBids(
@@ -152,7 +152,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        AppRequestResult result2 = AppRequestResult.CREATOR.createFromParcel(parcel);
+        SelectContentResult result2 = SelectContentResult.CREATOR.createFromParcel(parcel);
 
         SlotResult slotResult = result2.getSlotResults().get(0);
         assertEquals("abc", slotResult.getSlotId());

@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.data.user;
 /**
  * A enum class for all languages in ISO 639-1 format.
  */
-enum Language {
+public enum Language {
     UNKNOWN,
     AA, // Afar
     AB, // Abkhazian
