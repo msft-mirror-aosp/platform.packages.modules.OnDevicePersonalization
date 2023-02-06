@@ -47,6 +47,14 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     private OnDevicePersonalizationVendorDataDao mTestDao;
     private OnDevicePersonalizationVendorDataDao mDao;
 
+    private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList,
+                timestamp));
+    }
+
     @Before
     public void setup() throws Exception {
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
@@ -75,13 +83,5 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-    }
-
-    private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
-        List<VendorData> dataList = new ArrayList<>();
-        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
-        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList,
-                timestamp));
     }
 }

@@ -50,6 +50,16 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+
+        <!-- On BOOT_COMPLETED receiver for registering jobs -->
+        <!-- TODO(b/250001593) Enable any required broadcast receivers during runtime/onCreate. -->
+        <receiver android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationStartDownloadServiceReceiver"
+                  android:enabled="false"
+                  android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.ondevicepersonalization.servicetests"

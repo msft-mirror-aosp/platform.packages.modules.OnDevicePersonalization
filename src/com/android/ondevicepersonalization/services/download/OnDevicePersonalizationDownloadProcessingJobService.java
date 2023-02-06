@@ -95,8 +95,10 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
 
     @Override
     public boolean onStopJob(JobParameters params) {
-        for (ListenableFuture<Void> f : mFutures) {
-            f.cancel(true);
+        if (mFutures != null) {
+            for (ListenableFuture<Void> f : mFutures) {
+                f.cancel(true);
+            }
         }
         // Reschedule the job since it ended before finishing
         return true;
