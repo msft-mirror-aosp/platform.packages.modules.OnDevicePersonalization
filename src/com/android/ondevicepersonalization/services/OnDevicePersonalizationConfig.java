@@ -23,6 +23,9 @@ import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonal
  * Hard-coded configs for OnDevicePersonalization
  */
 public class OnDevicePersonalizationConfig {
+    private OnDevicePersonalizationConfig() {
+    }
+
     /** Job ID for Mdd Maintenance Task
      * ({@link com.android.ondevicepersonalization.services.download.mdd.MddJobService}) */
     public static final int MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID = 1000;
