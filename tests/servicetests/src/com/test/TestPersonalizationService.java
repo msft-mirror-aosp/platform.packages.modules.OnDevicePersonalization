@@ -17,8 +17,6 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.AppRequestInput;
-import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
@@ -26,6 +24,8 @@ import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
@@ -39,6 +39,7 @@ import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends PersonalizationService {
@@ -46,7 +47,7 @@ public class TestPersonalizationService extends PersonalizationService {
 
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.Callback<DownloadResult> callback) {
+            Consumer<DownloadResult> consumer) {
         Log.d(TAG, "Starting filterData.");
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
@@ -60,24 +61,24 @@ public class TestPersonalizationService extends PersonalizationService {
                                 new DownloadResult.Builder()
                                 .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
                                 .build();
-                        callback.onResult(downloadResult);
+                        consumer.accept(downloadResult);
                     }
 
                     @Override
                     public void onError(Exception e) {
                         Log.e(TAG, "OutcomeReceiver onError.", e);
-                        callback.onError();
+                        consumer.accept(null);
                     }
                 });
     }
 
-    @Override public void onAppRequest(
-            @NonNull AppRequestInput input,
+    @Override public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<AppRequestResult> callback
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
-        AppRequestResult result = new AppRequestResult.Builder()
+        SelectContentResult result = new SelectContentResult.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
                         .addWinningBids(
@@ -85,20 +86,20 @@ public class TestPersonalizationService extends PersonalizationService {
                             .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
                         .build())
                 .build();
-        callback.onResult(result);
+        consumer.accept(result);
     }
 
     @Override public void renderContent(
             @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<RenderContentResult> callback
+            @NonNull Consumer<RenderContentResult> consumer
     ) {
         Log.d(TAG, "renderContent() started.");
         RenderContentResult result =
                 new RenderContentResult.Builder()
                 .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
                 .build();
-        callback.onResult(result);
+        consumer.accept(result);
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {

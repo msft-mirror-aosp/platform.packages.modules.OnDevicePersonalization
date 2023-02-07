@@ -24,10 +24,12 @@ import android.ondevicepersonalization.aidl.IPersonalizationService;
 import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.Parcelable;
 import android.os.RemoteException;
 import android.util.Log;
 
 import java.util.Objects;
+import java.util.function.Consumer;
 
 /**
  * Base class for services that produce personalized content based on User data. These platform
@@ -38,20 +40,6 @@ import java.util.Objects;
 public abstract class PersonalizationService extends Service {
     private static final String TAG = "PersonalizationService";
     private IBinder mBinder;
-
-    /**
-     * Callback to return results of incoming requests.
-     *
-     * @param <T> A {@link Parcelable} type to be returned.
-     * @hide
-     */
-    public interface Callback<T> {
-        /** Return the result of a successful request. */
-        void onResult(T result);
-
-        /** Signal an error. */
-        void onError();
-    }
 
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
@@ -67,14 +55,14 @@ public abstract class PersonalizationService extends Service {
      *
      * @param input App Request Parameters.
      * @param odpContext The per-request state for this request.
-     * @param callback Callback to be invoked on completion.
+     * @param consumer Callback to be invoked on completion.
      */
-    public void onAppRequest(
-            @NonNull AppRequestInput input,
+    public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Callback<AppRequestResult> callback
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
-        callback.onError();
+        consumer.accept(null);
     }
 
     /**
@@ -84,31 +72,31 @@ public abstract class PersonalizationService extends Service {
      *
      * @param input Download handler parameters.
      * @param odpContext The per-request state for this request.
-     * @param callback Callback to be invoked on completion.
+     * @param consumer Callback to be invoked on completion.
      */
     public void onDownload(
             @NonNull DownloadInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Callback<DownloadResult> callback
+            @NonNull Consumer<DownloadResult> consumer
     ) {
-        callback.onError();
+        consumer.accept(null);
     }
 
     /**
-     * Generate HTML for the winning bids that returned as a result of {@link onAppRequest}.
+     * Generate HTML for the winning bids that returned as a result of {@link selectContent}.
      * The platform will render this HTML in a WebView inside a fenced frame.
      *
      * @param input Parameters for the renderContent request.
      * @param bidIds A List of Bid Ids to be rendered
      * @param odpContext The per-request state for this request.
-     * @param callback Callback to be invoked on completion.
+     * @param consumer Callback to be invoked on completion.
      */
     public void renderContent(
             @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Callback<RenderContentResult> callback
+            @NonNull Consumer<RenderContentResult> consumer
     ) {
-        callback.onError();
+        consumer.accept(null);
     }
 
     /**
@@ -116,15 +104,15 @@ public abstract class PersonalizationService extends Service {
      *
      * @param input The query-time data required to compute the event metrics.
      * @param odpContext The per-request state for this request.
-     * @param callback Callback to be invoked on completion.
+     * @param consumer Callback to be invoked on completion.
      */
     // TODO(b/259950177): Also provide the Query event from the Query table.
     public void computeEventMetrics(
             @NonNull EventMetricsInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Callback<EventMetricsResult> callback
+            @NonNull Consumer<EventMetricsResult> consumer
     ) {
-        callback.onError();
+        consumer.accept(null);
     }
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
@@ -138,10 +126,10 @@ public abstract class PersonalizationService extends Service {
             Objects.requireNonNull(callback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
 
-            if (operationCode == Constants.OP_APP_REQUEST) {
+            if (operationCode == Constants.OP_SELECT_CONTENT) {
 
-                AppRequestInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, AppRequestInput.class));
+                SelectContentInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, SelectContentInput.class));
                 Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
@@ -149,27 +137,8 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new Callback<AppRequestResult>() {
-                    @Override public void onResult(AppRequestResult result) {
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
-                        try {
-                            callback.onSuccess(bundle);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-
-                    @Override public void onError() {
-                        try {
-                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-                };
-                PersonalizationService.this.onAppRequest(
-                        input, odpContext, wrappedCallback);
+                PersonalizationService.this.selectContent(
+                        input, odpContext, new WrappedCallback<SelectContentResult>(callback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
@@ -182,27 +151,8 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new Callback<DownloadResult>() {
-                    @Override public void onResult(DownloadResult result) {
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
-                        try {
-                            callback.onSuccess(bundle);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-
-                    @Override public void onError() {
-                        try {
-                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-                };
                 PersonalizationService.this.onDownload(
-                        input, odpContext, wrappedCallback);
+                        input, odpContext, new WrappedCallback<DownloadResult>(callback));
 
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 
@@ -216,27 +166,8 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new Callback<RenderContentResult>() {
-                    @Override public void onResult(RenderContentResult result) {
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
-                        try {
-                            callback.onSuccess(bundle);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-
-                    @Override public void onError() {
-                        try {
-                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-                };
                 PersonalizationService.this.renderContent(
-                        input, odpContext, wrappedCallback);
+                        input, odpContext, new WrappedCallback<RenderContentResult>(callback));
 
             } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
 
@@ -247,30 +178,36 @@ public abstract class PersonalizationService extends Service {
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                var wrappedCallback = new Callback<EventMetricsResult>() {
-                    @Override public void onResult(EventMetricsResult result) {
-                        Bundle bundle = new Bundle();
-                        bundle.putParcelable(Constants.EXTRA_RESULT, result);
-                        try {
-                            callback.onSuccess(bundle);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-
-                    @Override public void onError() {
-                        try {
-                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                        } catch (RemoteException e) {
-                            Log.w(TAG, "Callback failed.", e);
-                        }
-                    }
-                };
                 PersonalizationService.this.computeEventMetrics(
-                        input, odpContext, wrappedCallback);
+                        input, odpContext, new WrappedCallback<EventMetricsResult>(callback));
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
+            }
+        }
+    }
+
+    private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
+        @NonNull private final IPersonalizationServiceCallback mCallback;
+        WrappedCallback(IPersonalizationServiceCallback callback) {
+            mCallback = Objects.requireNonNull(callback);
+        }
+
+        @Override public void accept(T result) {
+            if (result == null) {
+                try {
+                    mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "Callback failed.", e);
+                }
+            } else {
+                Bundle bundle = new Bundle();
+                bundle.putParcelable(Constants.EXTRA_RESULT, result);
+                try {
+                    mCallback.onSuccess(bundle);
+                } catch (RemoteException e) {
+                    Log.w(TAG, "Callback failed.", e);
+                }
             }
         }
     }

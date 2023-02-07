@@ -149,7 +149,8 @@ public class UserDataDao {
      */
     public Cursor readAppUsageInLastXDays(int dayCount) {
         if (dayCount > TTL_IN_MEMORY_DAYS) {
-            Log.e(TAG, "Illegal attempt to read rows more than " + dayCount + " days");
+            Log.e(TAG, "Illegal attempt to read " + dayCount + " rows, which is more than "
+                    + TTL_IN_MEMORY_DAYS + " days");
             return null;
         }
         Calendar cal = Calendar.getInstance();
@@ -158,9 +159,12 @@ public class UserDataDao {
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String[] columns = new String[]{UserDataTables.AppUsageHistory.PACKAGE_NAME,
+                    UserDataTables.AppUsageHistory.STARTING_TIME_SEC,
+                    UserDataTables.AppUsageHistory.ENDING_TIME_SEC,
                     UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC};
             String selection = UserDataTables.AppUsageHistory.ENDING_TIME_SEC + " >= ?";
             String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
+            String orderBy = UserDataTables.AppUsageHistory.ENDING_TIME_SEC;
             return db.query(
                     UserDataTables.AppUsageHistory.TABLE_NAME,
                     columns,
@@ -168,12 +172,65 @@ public class UserDataDao {
                     selectionArgs,
                     null,
                     null,
-                    null
+                    orderBy
             );
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to read " + UserDataTables.AppUsageHistory.TABLE_NAME
                     + " in the last " + dayCount + " days" , e);
         }
         return null;
+    }
+
+    /**
+     * Return all location rows collected in the last X days.
+     * @return
+     */
+    public Cursor readLocationInLastXDays(int dayCount) {
+        if (dayCount > TTL_IN_MEMORY_DAYS) {
+            Log.e(TAG, "Illegal attempt to read " + dayCount + " rows, which is more than "
+                    + TTL_IN_MEMORY_DAYS + " days");
+            return null;
+        }
+        Calendar cal = Calendar.getInstance();
+        cal.add(Calendar.DATE, -1 * dayCount);
+        final long thresholdTimeMillis = cal.getTimeInMillis();
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] columns = new String[]{UserDataTables.LocationHistory.TIME_SEC,
+                    UserDataTables.LocationHistory.LATITUDE,
+                    UserDataTables.LocationHistory.LONGITUDE,
+                    UserDataTables.LocationHistory.SOURCE,
+                    UserDataTables.LocationHistory.IS_PRECISE};
+            String selection = UserDataTables.LocationHistory.TIME_SEC + " >= ?";
+            String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
+            String orderBy = UserDataTables.LocationHistory.TIME_SEC;
+            return db.query(
+                    UserDataTables.LocationHistory.TABLE_NAME,
+                    columns,
+                    selection,
+                    selectionArgs,
+                    null,
+                    null,
+                    orderBy
+            );
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to read " + UserDataTables.LocationHistory.TABLE_NAME
+                    + " in the last " + dayCount + " days" , e);
+        }
+        return null;
+    }
+
+    /**
+     * Clear all records in user data tables.
+     * @return true if succeed, false otherwise.
+     */
+    public boolean clearUserData() {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+        db.delete(UserDataTables.AppUsageHistory.TABLE_NAME, null, null);
+        db.delete(UserDataTables.LocationHistory.TABLE_NAME, null, null);
+        return true;
     }
 }

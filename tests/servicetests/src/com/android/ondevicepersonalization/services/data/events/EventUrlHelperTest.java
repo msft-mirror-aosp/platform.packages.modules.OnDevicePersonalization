@@ -38,8 +38,8 @@ public class EventUrlHelperTest {
             .setServicePackageName("packageName")
             .setSlotId("slotId")
             .setSlotPosition(1)
-            .setThreadId(1L)
-            .setTimeUsec(1L)
+            .setQueryId(1L)
+            .setTimeMillis(1L)
             .build();
 
     private static final EventUrlPayload TEST_EVENT_URL_PAYLOAD = new EventUrlPayload.Builder()
