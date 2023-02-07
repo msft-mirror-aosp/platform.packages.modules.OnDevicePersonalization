@@ -159,9 +159,12 @@ public class UserDataDao {
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String[] columns = new String[]{UserDataTables.AppUsageHistory.PACKAGE_NAME,
+                    UserDataTables.AppUsageHistory.STARTING_TIME_SEC,
+                    UserDataTables.AppUsageHistory.ENDING_TIME_SEC,
                     UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC};
             String selection = UserDataTables.AppUsageHistory.ENDING_TIME_SEC + " >= ?";
             String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
+            String orderBy = UserDataTables.AppUsageHistory.ENDING_TIME_SEC;
             return db.query(
                     UserDataTables.AppUsageHistory.TABLE_NAME,
                     columns,
@@ -169,7 +172,7 @@ public class UserDataDao {
                     selectionArgs,
                     null,
                     null,
-                    null
+                    orderBy
             );
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to read " + UserDataTables.AppUsageHistory.TABLE_NAME
@@ -195,7 +198,9 @@ public class UserDataDao {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String[] columns = new String[]{UserDataTables.LocationHistory.TIME_SEC,
                     UserDataTables.LocationHistory.LATITUDE,
-                    UserDataTables.LocationHistory.LONGITUDE};
+                    UserDataTables.LocationHistory.LONGITUDE,
+                    UserDataTables.LocationHistory.SOURCE,
+                    UserDataTables.LocationHistory.IS_PRECISE};
             String selection = UserDataTables.LocationHistory.TIME_SEC + " >= ?";
             String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
             String orderBy = UserDataTables.LocationHistory.TIME_SEC;
@@ -216,39 +221,16 @@ public class UserDataDao {
     }
 
     /**
-     * Return user's most recent location.
-     * @return
+     * Clear all records in user data tables.
+     * @return true if succeed, false otherwise.
      */
-    public Cursor readCurrentLocation() {
-        Calendar cal = Calendar.getInstance();
-        cal.add(Calendar.DATE, -1 * TTL_IN_MEMORY_DAYS);
-        final long thresholdTimeMillis = cal.getTimeInMillis();
-
-        try {
-            SQLiteDatabase db = mDbHelper.getReadableDatabase();
-            String[] columns = new String[]{UserDataTables.LocationHistory.TIME_SEC,
-                    UserDataTables.LocationHistory.LATITUDE,
-                    UserDataTables.LocationHistory.LONGITUDE,
-                    UserDataTables.LocationHistory.SOURCE,
-                    UserDataTables.LocationHistory.IS_PRECISE};
-            String selection = UserDataTables.LocationHistory.TIME_SEC + " >= ?";
-            String[] selectionArgs = new String[]{String.valueOf(thresholdTimeMillis)};
-            String orderBy = UserDataTables.LocationHistory.TIME_SEC + " DESC";
-            String limit = "1";
-            return db.query(
-                    UserDataTables.LocationHistory.TABLE_NAME,
-                    columns,
-                    selection,
-                    selectionArgs,
-                    null,
-                    null,
-                    orderBy,
-                    limit
-            );
-        } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read current location from "
-                    + UserDataTables.LocationHistory.TABLE_NAME, e);
+    public boolean clearUserData() {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        if (db == null) {
+            return false;
         }
-        return null;
+        db.delete(UserDataTables.AppUsageHistory.TABLE_NAME, null, null);
+        db.delete(UserDataTables.LocationHistory.TABLE_NAME, null, null);
+        return true;
     }
 }

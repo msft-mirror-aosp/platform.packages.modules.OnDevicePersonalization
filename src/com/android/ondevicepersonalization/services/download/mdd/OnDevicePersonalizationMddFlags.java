@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,19 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.download.mdd;
 
-parcelable AppRequestResult;
+import com.google.android.libraries.mobiledatadownload.Flags;
+
+/**
+ * Defines OnDevicePersonalization MobileDataDownload flags
+ */
+public class OnDevicePersonalizationMddFlags implements Flags {
+    /**
+     * {@link OnDevicePersonalizationFileDownloader} will enforce uri scheme instead.
+     */
+    @Override
+    public boolean downloaderEnforceHttps() {
+        return false;
+    }
+}

@@ -16,15 +16,12 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
+import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -52,7 +49,7 @@ import java.util.ArrayList;
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFileGroupPopulatorTest {
     private static final String BASE_URL =
-            "https://www.gstatic.com/ondevicepersonalization/testing/test_data1.json";
+            "android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private String mPackageName;
@@ -64,8 +61,7 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                executorService, mContext), executorService);
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
         mPackageName = mContext.getPackageName();
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -98,24 +94,21 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
 
     @Test
     public void testCreateDownloadUrlNoSyncToken() throws Exception {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
-                packageInfo, mContext);
+                mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(BASE_URL));
     }
 
     @Test
-    public void testCreateDownloadUrl() throws Exception {
+    public void testAddDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName))
+                        PackageUtils.getCertDigest(mContext, mPackageName))
                 .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), timestamp));
 
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
-                packageInfo, mContext);
+        String downloadUrl =
+                OnDevicePersonalizationFileGroupPopulator.addDownloadUrlQueryParameters(
+                        Uri.parse(BASE_URL), mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(BASE_URL));
         assertTrue(downloadUrl.contains(String.valueOf(timestamp)));
     }
