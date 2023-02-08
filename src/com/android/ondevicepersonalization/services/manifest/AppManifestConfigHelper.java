@@ -21,16 +21,15 @@ import android.content.pm.PackageManager;
 import android.content.res.Resources;
 import android.content.res.XmlResourceParser;
 
-import org.xmlpull.v1.XmlPullParserException;
-
-import java.io.IOException;
-
 /**
  * Helper class for parsing and checking app manifest configs
  */
 public final class AppManifestConfigHelper {
     private static final String ON_DEVICE_PERSONALIZATION_CONFIG_PROPERTY =
             "android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG";
+
+    private AppManifestConfigHelper() {
+    }
 
     /**
      * Determines if the given package's manifest contains ODP settings
@@ -65,10 +64,10 @@ public final class AppManifestConfigHelper {
             XmlResourceParser xmlParser = resources.getXml(resId);
             // TODO(b/239479120) Update to avoid re-parsing the XML too frequently if required
             return AppManifestConfigParser.getConfig(xmlParser);
-        } catch (IOException | XmlPullParserException | PackageManager.NameNotFoundException e) {
+        } catch (Exception e) {
             // TODO(b/241941021) Determine correct exception to throw
             throw new IllegalArgumentException(
-                    "Failed to parse manifest for package: " + packageName.toString());
+                    "Failed to parse manifest for package: " + packageName, e);
         }
     }
 
