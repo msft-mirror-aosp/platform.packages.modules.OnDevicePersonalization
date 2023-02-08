@@ -20,7 +20,7 @@ package com.android.ondevicepersonalization.services.data.user;
  * A enum class for top 200 popular device manufacturers.
  */
 
-enum Make {
+public enum Make {
     UNKNOWN,
     SAMSUNG, // samsung/Samsung
     XIAOMI, // Xiaomi
