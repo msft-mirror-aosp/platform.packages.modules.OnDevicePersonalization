@@ -60,6 +60,7 @@ java_sdk_library {
         "android.app.ondevicepersonalization",
         "android.ondevicepersonalization",
         "com.android.ondevicepersonalization.internal",
+        "android.federatedcompute",
     ],
     jarjar_rules: ":framework-ondevicepersonalization-jarjar",
     static_libs: ["modules-utils-build"],
