@@ -40,6 +40,9 @@ import java.security.NoSuchAlgorithmException;
  * @hide
  */
 public class PackageUtils {
+    private PackageUtils() {
+    }
+
     /**
      * Computes the SHA256 digest of some data.
      *
