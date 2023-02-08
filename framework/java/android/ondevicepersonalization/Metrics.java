@@ -29,10 +29,10 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class Metrics implements Parcelable {
     /** Integer or fixed point metrics. */
-    @Nullable private long[] mIntMetrics = null;
+    @Nullable private long[] mIntValues = null;
 
     /** Floating point metrics. */
-    @Nullable private double[] mFloatMetrics = null;
+    @Nullable private double[] mFloatValues = null;
 
 
 
@@ -51,10 +51,10 @@ public final class Metrics implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ Metrics(
-            @Nullable long[] intMetrics,
-            @Nullable double[] floatMetrics) {
-        this.mIntMetrics = intMetrics;
-        this.mFloatMetrics = floatMetrics;
+            @Nullable long[] intValues,
+            @Nullable double[] floatValues) {
+        this.mIntValues = intValues;
+        this.mFloatValues = floatValues;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -63,16 +63,16 @@ public final class Metrics implements Parcelable {
      * Integer or fixed point metrics.
      */
     @DataClass.Generated.Member
-    public @Nullable long[] getIntMetrics() {
-        return mIntMetrics;
+    public @Nullable long[] getIntValues() {
+        return mIntValues;
     }
 
     /**
      * Floating point metrics.
      */
     @DataClass.Generated.Member
-    public @Nullable double[] getFloatMetrics() {
-        return mFloatMetrics;
+    public @Nullable double[] getFloatValues() {
+        return mFloatValues;
     }
 
     @Override
@@ -88,8 +88,8 @@ public final class Metrics implements Parcelable {
         Metrics that = (Metrics) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Arrays.equals(mIntMetrics, that.mIntMetrics)
-                && java.util.Arrays.equals(mFloatMetrics, that.mFloatMetrics);
+                && java.util.Arrays.equals(mIntValues, that.mIntValues)
+                && java.util.Arrays.equals(mFloatValues, that.mFloatValues);
     }
 
     @Override
@@ -99,8 +99,8 @@ public final class Metrics implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mIntMetrics);
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mFloatMetrics);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mIntValues);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mFloatValues);
         return _hash;
     }
 
@@ -111,11 +111,11 @@ public final class Metrics implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mIntMetrics != null) flg |= 0x1;
-        if (mFloatMetrics != null) flg |= 0x2;
+        if (mIntValues != null) flg |= 0x1;
+        if (mFloatValues != null) flg |= 0x2;
         dest.writeByte(flg);
-        if (mIntMetrics != null) dest.writeLongArray(mIntMetrics);
-        if (mFloatMetrics != null) dest.writeDoubleArray(mFloatMetrics);
+        if (mIntValues != null) dest.writeLongArray(mIntValues);
+        if (mFloatValues != null) dest.writeDoubleArray(mFloatValues);
     }
 
     @Override
@@ -130,11 +130,11 @@ public final class Metrics implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        long[] intMetrics = (flg & 0x1) == 0 ? null : in.createLongArray();
-        double[] floatMetrics = (flg & 0x2) == 0 ? null : in.createDoubleArray();
+        long[] intValues = (flg & 0x1) == 0 ? null : in.createLongArray();
+        double[] floatValues = (flg & 0x2) == 0 ? null : in.createDoubleArray();
 
-        this.mIntMetrics = intMetrics;
-        this.mFloatMetrics = floatMetrics;
+        this.mIntValues = intValues;
+        this.mFloatValues = floatValues;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -160,8 +160,8 @@ public final class Metrics implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable long[] mIntMetrics;
-        private @Nullable double[] mFloatMetrics;
+        private @Nullable long[] mIntValues;
+        private @Nullable double[] mFloatValues;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -172,10 +172,10 @@ public final class Metrics implements Parcelable {
          * Integer or fixed point metrics.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setIntMetrics(@android.annotation.NonNull long... value) {
+        public @android.annotation.NonNull Builder setIntValues(@android.annotation.NonNull long... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mIntMetrics = value;
+            mIntValues = value;
             return this;
         }
 
@@ -183,10 +183,10 @@ public final class Metrics implements Parcelable {
          * Floating point metrics.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setFloatMetrics(@android.annotation.NonNull double... value) {
+        public @android.annotation.NonNull Builder setFloatValues(@android.annotation.NonNull double... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mFloatMetrics = value;
+            mFloatValues = value;
             return this;
         }
 
@@ -196,14 +196,14 @@ public final class Metrics implements Parcelable {
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mIntMetrics = null;
+                mIntValues = null;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mFloatMetrics = null;
+                mFloatValues = null;
             }
             Metrics o = new Metrics(
-                    mIntMetrics,
-                    mFloatMetrics);
+                    mIntValues,
+                    mFloatValues);
             return o;
         }
 
@@ -216,10 +216,10 @@ public final class Metrics implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1672952911713L,
+            time = 1675798085724L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Metrics.java",
-            inputSignatures = "private @android.annotation.Nullable long[] mIntMetrics\nprivate @android.annotation.Nullable double[] mFloatMetrics\nclass Metrics extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable long[] mIntValues\nprivate @android.annotation.Nullable double[] mFloatValues\nclass Metrics extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
