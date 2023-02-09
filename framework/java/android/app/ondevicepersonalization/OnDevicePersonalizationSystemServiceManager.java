@@ -16,8 +16,11 @@
 
 package android.app.ondevicepersonalization;
 
+import android.annotation.NonNull;
+import android.os.IBinder;
+
 /**
- * API for ODP service to interact with ODP System Service.
+ * API for ODP module to interact with ODP System Server Service.
  * @hide
  */
 public class OnDevicePersonalizationSystemServiceManager {
@@ -25,5 +28,15 @@ public class OnDevicePersonalizationSystemServiceManager {
     public static final String ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE =
             "ondevicepersonalization_system_service";
 
-    private OnDevicePersonalizationSystemServiceManager() {}
+    @NonNull private final IOnDevicePersonalizationSystemService mService;
+
+    /** @hide */
+    public OnDevicePersonalizationSystemServiceManager(@NonNull IBinder service) {
+        mService = IOnDevicePersonalizationSystemService.Stub.asInterface(service);
+    }
+
+    /** @hide */
+    @NonNull public IOnDevicePersonalizationSystemService getService() {
+        return mService;
+    }
 }
