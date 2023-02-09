@@ -1,4 +1,4 @@
-// Copyright (C) 2022 The Android Open Source Project
+// Copyright (C) 2023 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -17,16 +17,11 @@ package {
 }
 
 android_test {
-    name: "OnDevicePersonalizationManualTests",
+    name: "OnDevicePersonalizationSystemServiceTests",
     srcs: [
         "src/**/*.java",
-        ":framework-ondevicepersonalization-aidl",
-        ":framework-ondevicepersonalization-sources",
-        ":ondevicepersonalization-sources",
-        ":framework-ondevicepersonalization-sources",
-        ":ondevicepersonalization-fbs",
-        ":chronicle-sources",
     ],
+    defaults: ["framework-ondevicepersonalization-test-defaults"],
     libs: [
         "android.test.base",
         "android.test.runner",
@@ -37,17 +32,10 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
-        "kotlin-stdlib",
-        "kotlin-test",
-        "kotlinx-coroutines-android",
-        "mobile_data_downloader_lib",
         "modules-utils-build",
-        "ondevicepersonalization-protos",
-        "ondevicepersonalization-plugin-lib",
-        "flatbuffers-java",
     ],
-    target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
+    certificate: "platform",
     test_suites: [
         "general-tests",
     ],
