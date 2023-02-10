@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data.vendor;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -33,26 +34,49 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
+
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationLocalDataDaoTest {
     private static final String TEST_OWNER = "owner";
     private static final String TEST_CERT_DIGEST = "certDigest";
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    private OnDevicePersonalizationLocalDataDao mDao;
+    private OnDevicePersonalizationLocalDataDao mLocalDao;
+
+    private OnDevicePersonalizationVendorDataDao mVendorDao;
 
     @Before
     public void setup() {
-        mDao = OnDevicePersonalizationLocalDataDao.getInstanceForTest(mContext, TEST_OWNER,
+        mLocalDao = OnDevicePersonalizationLocalDataDao.getInstanceForTest(mContext, TEST_OWNER,
+                TEST_CERT_DIGEST);
+        mVendorDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);
     }
 
     @Test
     public void testInsertAndRead() {
+        mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(),
+                System.currentTimeMillis());
+
         byte[] data = new byte[10];
         LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
-        boolean insertResult = mDao.updateOrInsertLocalData(localData);
+        boolean insertResult = mLocalDao.updateOrInsertLocalData(localData);
         assertTrue(insertResult);
-        assertArrayEquals(data, mDao.readSingleLocalDataRow("key"));
+        assertArrayEquals(data, mLocalDao.readSingleLocalDataRow("key"));
+        assertEquals(null, mLocalDao.readSingleLocalDataRow("nonExistentKey"));
+    }
+
+    @Test
+    public void testInsertUncreatedTable() {
+        byte[] data = new byte[10];
+        LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
+        boolean insertResult = mLocalDao.updateOrInsertLocalData(localData);
+        assertFalse(insertResult);
+    }
+
+    @Test
+    public void testReadUncreatedTable() {
+        assertEquals(null, mLocalDao.readSingleLocalDataRow("key"));
     }
 
     @Test
