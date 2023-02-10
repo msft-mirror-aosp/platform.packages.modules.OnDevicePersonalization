@@ -386,7 +386,7 @@ public class PersonalizationServiceTest {
         assertTrue(mComputeEventMetricsCalled);
         EventMetricsResult result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventMetricsResult.class);
-        assertEquals(2468, result.getMetrics().getIntMetrics()[0]);
+        assertEquals(2468, result.getMetrics().getIntValues()[0]);
     }
 
     @Test
@@ -518,7 +518,7 @@ public class PersonalizationServiceTest {
                 consumer.accept(
                         new EventMetricsResult.Builder()
                         .setMetrics(
-                            new Metrics.Builder().setIntMetrics(2468).build())
+                            new Metrics.Builder().setIntValues(2468).build())
                         .build());
             }
         }

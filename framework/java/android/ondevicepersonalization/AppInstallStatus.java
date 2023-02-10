@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,24 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.Nullable;
+import android.annotation.NonNull;
 import android.os.Parcelable;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * A list of metrics to be logged in the Query or Events table.
+ * App installed status for app installed history.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class Metrics implements Parcelable {
-    /** Integer or fixed point metrics. */
-    @Nullable private long[] mIntValues = null;
+public final class AppInstallStatus implements Parcelable {
+    /** Package name. */
+    @NonNull String mPackageName;
 
-    /** Floating point metrics. */
-    @Nullable private double[] mFloatValues = null;
+    /** Installed status: installed - true; uninstalled - false. */
+    @NonNull boolean mInstalled;
 
 
 
@@ -42,7 +43,7 @@ public final class Metrics implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Metrics.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -50,46 +51,50 @@ public final class Metrics implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ Metrics(
-            @Nullable long[] intValues,
-            @Nullable double[] floatValues) {
-        this.mIntValues = intValues;
-        this.mFloatValues = floatValues;
+    /* package-private */ AppInstallStatus(
+            @NonNull String packageName,
+            @NonNull boolean installed) {
+        this.mPackageName = packageName;
+        AnnotationValidations.validate(
+                NonNull.class, null, mPackageName);
+        this.mInstalled = installed;
+        AnnotationValidations.validate(
+                NonNull.class, null, mInstalled);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * Integer or fixed point metrics.
+     * Package name.
      */
     @DataClass.Generated.Member
-    public @Nullable long[] getIntValues() {
-        return mIntValues;
+    public @NonNull String getPackageName() {
+        return mPackageName;
     }
 
     /**
-     * Floating point metrics.
+     * Installed status: installed - true; uninstalled - false.
      */
     @DataClass.Generated.Member
-    public @Nullable double[] getFloatValues() {
-        return mFloatValues;
+    public @NonNull boolean isInstalled() {
+        return mInstalled;
     }
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@Nullable Object o) {
+    public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(Metrics other) { ... }
+        // boolean fieldNameEquals(AppInstallStatus other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        Metrics that = (Metrics) o;
+        AppInstallStatus that = (AppInstallStatus) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Arrays.equals(mIntValues, that.mIntValues)
-                && java.util.Arrays.equals(mFloatValues, that.mFloatValues);
+                && java.util.Objects.equals(mPackageName, that.mPackageName)
+                && mInstalled == that.mInstalled;
     }
 
     @Override
@@ -99,23 +104,21 @@ public final class Metrics implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mIntValues);
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mFloatValues);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mPackageName);
+        _hash = 31 * _hash + Boolean.hashCode(mInstalled);
         return _hash;
     }
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mIntValues != null) flg |= 0x1;
-        if (mFloatValues != null) flg |= 0x2;
+        if (mInstalled) flg |= 0x2;
         dest.writeByte(flg);
-        if (mIntValues != null) dest.writeLongArray(mIntValues);
-        if (mFloatValues != null) dest.writeDoubleArray(mFloatValues);
+        dest.writeString(mPackageName);
     }
 
     @Override
@@ -125,85 +128,86 @@ public final class Metrics implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ Metrics(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ AppInstallStatus(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        long[] intValues = (flg & 0x1) == 0 ? null : in.createLongArray();
-        double[] floatValues = (flg & 0x2) == 0 ? null : in.createDoubleArray();
+        boolean installed = (flg & 0x2) != 0;
+        String packageName = in.readString();
 
-        this.mIntValues = intValues;
-        this.mFloatValues = floatValues;
+        this.mPackageName = packageName;
+        AnnotationValidations.validate(
+                NonNull.class, null, mPackageName);
+        this.mInstalled = installed;
+        AnnotationValidations.validate(
+                NonNull.class, null, mInstalled);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<Metrics> CREATOR
-            = new Parcelable.Creator<Metrics>() {
+    public static final @NonNull Parcelable.Creator<AppInstallStatus> CREATOR
+            = new Parcelable.Creator<AppInstallStatus>() {
         @Override
-        public Metrics[] newArray(int size) {
-            return new Metrics[size];
+        public AppInstallStatus[] newArray(int size) {
+            return new AppInstallStatus[size];
         }
 
         @Override
-        public Metrics createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new Metrics(in);
+        public AppInstallStatus createFromParcel(@NonNull android.os.Parcel in) {
+            return new AppInstallStatus(in);
         }
     };
 
     /**
-     * A builder for {@link Metrics}
+     * A builder for {@link AppInstallStatus}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable long[] mIntValues;
-        private @Nullable double[] mFloatValues;
+        private @NonNull String mPackageName;
+        private @NonNull boolean mInstalled;
 
         private long mBuilderFieldsSet = 0L;
 
+        /**
+         * Creates a new Builder.
+         */
         public Builder() {
         }
 
         /**
-         * Integer or fixed point metrics.
+         * Package name.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setIntValues(@android.annotation.NonNull long... value) {
+        public @NonNull Builder setPackageName(@NonNull String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mIntValues = value;
+            mPackageName = value;
             return this;
         }
 
         /**
-         * Floating point metrics.
+         * Installed status: installed - true; uninstalled - false.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setFloatValues(@android.annotation.NonNull double... value) {
+        public @NonNull Builder setInstalled(@NonNull boolean value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mFloatValues = value;
+            mInstalled = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull Metrics build() {
+        public @NonNull AppInstallStatus build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
-            if ((mBuilderFieldsSet & 0x1) == 0) {
-                mIntValues = null;
-            }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mFloatValues = null;
-            }
-            Metrics o = new Metrics(
-                    mIntValues,
-                    mFloatValues);
+            AppInstallStatus o = new AppInstallStatus(
+                    mPackageName,
+                    mInstalled);
             return o;
         }
 
@@ -216,10 +220,10 @@ public final class Metrics implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675798085724L,
+            time = 1675722157527L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Metrics.java",
-            inputSignatures = "private @android.annotation.Nullable long[] mIntValues\nprivate @android.annotation.Nullable double[] mFloatValues\nclass Metrics extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java",
+            inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull boolean mInstalled\nclass AppInstallStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
