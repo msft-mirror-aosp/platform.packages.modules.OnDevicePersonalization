@@ -70,8 +70,6 @@ public class OnDevicePersonalizationLocalDataDao {
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstance(context);
-                // TODO(266345774): Update this for easier cleanup
-                createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationLocalDataDao(
                         dbHelper, owner, certDigest);
                 sLocalDataDaos.put(tableName, instance);
@@ -102,7 +100,13 @@ public class OnDevicePersonalizationLocalDataDao {
         }
     }
 
-    private static void createTableIfNotExists(String tableName,
+
+    /**
+     * Attempts to create the LocalData table
+     *
+     * @return true if it already exists or was created, false otherwise.
+     */
+    public static boolean createTableIfNotExists(String tableName,
             OnDevicePersonalizationDbHelper dbHelper) {
         try {
             SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -110,10 +114,15 @@ public class OnDevicePersonalizationLocalDataDao {
                     tableName));
         } catch (SQLException e) {
             Log.e(TAG, "Failed to create table: " + tableName, e);
+            return false;
         }
+        return true;
     }
 
-    private static String getTableName(String owner, String certDigest) {
+    /**
+     * Creates the LocalData table name for the given owner
+     */
+    public static String getTableName(String owner, String certDigest) {
         owner = owner.replace(".", "_");
         return LOCAL_DATA_TABLE_NAME_PREFIX + owner + "_" + certDigest;
     }
@@ -168,5 +177,15 @@ public class OnDevicePersonalizationLocalDataDao {
             Log.e(TAG, "Failed to update or insert local data", e);
         }
         return false;
+    }
+
+    /**
+     * Deletes LocalData table for given owner
+     */
+    public static void deleteTable(Context context, String owner, String certDigest) {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstance(context);
+        SQLiteDatabase db = dbHelper.getWritableDatabase();
+        db.execSQL("DROP TABLE " + getTableName(owner, certDigest));
     }
 }
