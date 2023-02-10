@@ -29,6 +29,8 @@ import java.util.List;
  *
  * @hide
  */
+// This class should be updated with the Kotlin mirror
+// {@link com.android.ondevicepersonalization.services.policyengine.data.UserData}.
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class UserData implements Parcelable {
     /** The current timestamp in second. */
@@ -58,14 +60,14 @@ public final class UserData implements Parcelable {
     /** OS versions. */
     @NonNull OSVersion mOsVersions;
 
-    /** Network connection types. See full list {@link UserData.ConnectionType}. */
+    /** Network connection types. See full list {@link RawUserData.ConnectionType}. */
     @NonNull int mConnectionType;
 
     /** Connection speed in kbps. */
     @NonNull int mConnectionSpeedKbps;
 
     /** Status if network is metered. False - not metered. True - metered. */
-    @NonNull int mNetworkMeteredStatus;
+    @NonNull boolean mNetworkMetered;
 
     /** Device metrics value. */
     @NonNull DeviceMetrics mDeviceMetrics;
@@ -110,7 +112,7 @@ public final class UserData implements Parcelable {
             @NonNull OSVersion osVersions,
             @NonNull int connectionType,
             @NonNull int connectionSpeedKbps,
-            @NonNull int networkMeteredStatus,
+            @NonNull boolean networkMetered,
             @NonNull DeviceMetrics deviceMetrics,
             @NonNull List<AppInstallStatus> appInstalledHistory,
             @NonNull List<AppUsageStatus> appUsageHistory,
@@ -149,9 +151,9 @@ public final class UserData implements Parcelable {
         this.mConnectionSpeedKbps = connectionSpeedKbps;
         AnnotationValidations.validate(
                 NonNull.class, null, mConnectionSpeedKbps);
-        this.mNetworkMeteredStatus = networkMeteredStatus;
+        this.mNetworkMetered = networkMetered;
         AnnotationValidations.validate(
-                NonNull.class, null, mNetworkMeteredStatus);
+                NonNull.class, null, mNetworkMetered);
         this.mDeviceMetrics = deviceMetrics;
         AnnotationValidations.validate(
                 NonNull.class, null, mDeviceMetrics);
@@ -244,7 +246,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Network connection types. See full list {@link UserData.ConnectionType}.
+     * Network connection types. See full list {@link RawUserData.ConnectionType}.
      */
     @DataClass.Generated.Member
     public @NonNull int getConnectionType() {
@@ -263,8 +265,8 @@ public final class UserData implements Parcelable {
      * Status if network is metered. False - not metered. True - metered.
      */
     @DataClass.Generated.Member
-    public @NonNull int getNetworkMeteredStatus() {
-        return mNetworkMeteredStatus;
+    public @NonNull boolean isNetworkMetered() {
+        return mNetworkMetered;
     }
 
     /**
@@ -331,7 +333,7 @@ public final class UserData implements Parcelable {
                 && java.util.Objects.equals(mOsVersions, that.mOsVersions)
                 && mConnectionType == that.mConnectionType
                 && mConnectionSpeedKbps == that.mConnectionSpeedKbps
-                && mNetworkMeteredStatus == that.mNetworkMeteredStatus
+                && mNetworkMetered == that.mNetworkMetered
                 && java.util.Objects.equals(mDeviceMetrics, that.mDeviceMetrics)
                 && java.util.Objects.equals(mAppInstalledHistory, that.mAppInstalledHistory)
                 && java.util.Objects.equals(mAppUsageHistory, that.mAppUsageHistory)
@@ -357,7 +359,7 @@ public final class UserData implements Parcelable {
         _hash = 31 * _hash + java.util.Objects.hashCode(mOsVersions);
         _hash = 31 * _hash + mConnectionType;
         _hash = 31 * _hash + mConnectionSpeedKbps;
-        _hash = 31 * _hash + mNetworkMeteredStatus;
+        _hash = 31 * _hash + Boolean.hashCode(mNetworkMetered);
         _hash = 31 * _hash + java.util.Objects.hashCode(mDeviceMetrics);
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppInstalledHistory);
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppUsageHistory);
@@ -372,6 +374,9 @@ public final class UserData implements Parcelable {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
+        long flg = 0;
+        if (mNetworkMetered) flg |= 0x800;
+        dest.writeLong(flg);
         dest.writeLong(mTimeSec);
         dest.writeInt(mTimezone);
         dest.writeInt(mOrientation);
@@ -383,7 +388,6 @@ public final class UserData implements Parcelable {
         dest.writeTypedObject(mOsVersions, flags);
         dest.writeInt(mConnectionType);
         dest.writeInt(mConnectionSpeedKbps);
-        dest.writeInt(mNetworkMeteredStatus);
         dest.writeTypedObject(mDeviceMetrics, flags);
         dest.writeParcelableList(mAppInstalledHistory, flags);
         dest.writeParcelableList(mAppUsageHistory, flags);
@@ -402,6 +406,8 @@ public final class UserData implements Parcelable {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
+        long flg = in.readLong();
+        boolean networkMetered = (flg & 0x800) != 0;
         long timeSec = in.readLong();
         int timezone = in.readInt();
         int orientation = in.readInt();
@@ -413,7 +419,6 @@ public final class UserData implements Parcelable {
         OSVersion osVersions = (OSVersion) in.readTypedObject(OSVersion.CREATOR);
         int connectionType = in.readInt();
         int connectionSpeedKbps = in.readInt();
-        int networkMeteredStatus = in.readInt();
         DeviceMetrics deviceMetrics = (DeviceMetrics) in.readTypedObject(DeviceMetrics.CREATOR);
         List<AppInstallStatus> appInstalledHistory = new java.util.ArrayList<>();
         in.readParcelableList(appInstalledHistory, AppInstallStatus.class.getClassLoader());
@@ -456,9 +461,9 @@ public final class UserData implements Parcelable {
         this.mConnectionSpeedKbps = connectionSpeedKbps;
         AnnotationValidations.validate(
                 NonNull.class, null, mConnectionSpeedKbps);
-        this.mNetworkMeteredStatus = networkMeteredStatus;
+        this.mNetworkMetered = networkMetered;
         AnnotationValidations.validate(
-                NonNull.class, null, mNetworkMeteredStatus);
+                NonNull.class, null, mNetworkMetered);
         this.mDeviceMetrics = deviceMetrics;
         AnnotationValidations.validate(
                 NonNull.class, null, mDeviceMetrics);
@@ -510,7 +515,7 @@ public final class UserData implements Parcelable {
         private @NonNull OSVersion mOsVersions;
         private @NonNull int mConnectionType;
         private @NonNull int mConnectionSpeedKbps;
-        private @NonNull int mNetworkMeteredStatus;
+        private @NonNull boolean mNetworkMetered;
         private @NonNull DeviceMetrics mDeviceMetrics;
         private @NonNull List<AppInstallStatus> mAppInstalledHistory;
         private @NonNull List<AppUsageStatus> mAppUsageHistory;
@@ -521,7 +526,113 @@ public final class UserData implements Parcelable {
 
         /**
          * Creates a new Builder.
+         *
+         * @param timeSec
+         *   The current timestamp in second.
+         * @param timezone
+         *   The device timezone +/- minutes offset from UTC.
+         * @param orientation
+         *   The device orientation.
+         * @param availableBytesMB
+         *   The available space on device in MB.
+         * @param batteryPct
+         *   Battery percentage.
+         * @param country
+         *   Country. See the full list {@link Country}.
+         * @param language
+         *   Language. See the full list {@link Language}.
+         * @param carrier
+         *   Carrier. See the full list {@link Carrier}.
+         * @param osVersions
+         *   OS versions.
+         * @param connectionType
+         *   Network connection types. See full list {@link RawUserData.ConnectionType}.
+         * @param connectionSpeedKbps
+         *   Connection speed in kbps.
+         * @param networkMetered
+         *   Status if network is metered. False - not metered. True - metered.
+         * @param deviceMetrics
+         *   Device metrics value.
+         * @param appInstalledHistory
+         *   The history of installed/uninstalled packages.
+         * @param appUsageHistory
+         *   The app usage history in the last 30 days, sorted by total time spent.
+         * @param currentLocation
+         *   The most recently known location.
+         * @param locationHistory
+         *   The location history in last 30 days, sorted by the stay duration.
          */
+        public Builder(
+                @NonNull long timeSec,
+                @NonNull int timezone,
+                @NonNull int orientation,
+                @NonNull int availableBytesMB,
+                @NonNull int batteryPct,
+                @NonNull int country,
+                @NonNull int language,
+                @NonNull int carrier,
+                @NonNull OSVersion osVersions,
+                @NonNull int connectionType,
+                @NonNull int connectionSpeedKbps,
+                @NonNull boolean networkMetered,
+                @NonNull DeviceMetrics deviceMetrics,
+                @NonNull List<AppInstallStatus> appInstalledHistory,
+                @NonNull List<AppUsageStatus> appUsageHistory,
+                @NonNull Location currentLocation,
+                @NonNull List<LocationStatus> locationHistory) {
+            mTimeSec = timeSec;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mTimeSec);
+            mTimezone = timezone;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mTimezone);
+            mOrientation = orientation;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mOrientation);
+            mAvailableBytesMB = availableBytesMB;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mAvailableBytesMB);
+            mBatteryPct = batteryPct;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mBatteryPct);
+            mCountry = country;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mCountry);
+            mLanguage = language;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mLanguage);
+            mCarrier = carrier;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mCarrier);
+            mOsVersions = osVersions;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mOsVersions);
+            mConnectionType = connectionType;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mConnectionType);
+            mConnectionSpeedKbps = connectionSpeedKbps;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mConnectionSpeedKbps);
+            mNetworkMetered = networkMetered;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mNetworkMetered);
+            mDeviceMetrics = deviceMetrics;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mDeviceMetrics);
+            mAppInstalledHistory = appInstalledHistory;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mAppInstalledHistory);
+            mAppUsageHistory = appUsageHistory;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mAppUsageHistory);
+            mCurrentLocation = currentLocation;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mCurrentLocation);
+            mLocationHistory = locationHistory;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mLocationHistory);
+        }
+
         public Builder() {
         }
 
@@ -625,7 +736,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Network connection types. See full list {@link UserData.ConnectionType}.
+         * Network connection types. See full list {@link RawUserData.ConnectionType}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setConnectionType(@NonNull int value) {
@@ -650,10 +761,10 @@ public final class UserData implements Parcelable {
          * Status if network is metered. False - not metered. True - metered.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setNetworkMeteredStatus(@NonNull int value) {
+        public @NonNull Builder setNetworkMetered(@NonNull boolean value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x800;
-            mNetworkMeteredStatus = value;
+            mNetworkMetered = value;
             return this;
         }
 
@@ -762,7 +873,7 @@ public final class UserData implements Parcelable {
                     mOsVersions,
                     mConnectionType,
                     mConnectionSpeedKbps,
-                    mNetworkMeteredStatus,
+                    mNetworkMetered,
                     mDeviceMetrics,
                     mAppInstalledHistory,
                     mAppUsageHistory,
@@ -780,10 +891,10 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675722267485L,
+            time = 1676499729336L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/UserData.java",
-            inputSignatures = " @android.annotation.NonNull long mTimeSec\n @android.annotation.NonNull int mTimezone\n @android.annotation.NonNull int mOrientation\n @android.annotation.NonNull int mAvailableBytesMB\n @android.annotation.NonNull int mBatteryPct\n @android.annotation.NonNull int mCountry\n @android.annotation.NonNull int mLanguage\n @android.annotation.NonNull int mCarrier\n @android.annotation.NonNull android.ondevicepersonalization.OSVersion mOsVersions\n @android.annotation.NonNull int mConnectionType\n @android.annotation.NonNull int mConnectionSpeedKbps\n @android.annotation.NonNull int mNetworkMeteredStatus\n @android.annotation.NonNull android.ondevicepersonalization.DeviceMetrics mDeviceMetrics\n @android.annotation.NonNull java.util.List<android.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull long mTimeSec\n @android.annotation.NonNull int mTimezone\n @android.annotation.NonNull int mOrientation\n @android.annotation.NonNull int mAvailableBytesMB\n @android.annotation.NonNull int mBatteryPct\n @android.annotation.NonNull int mCountry\n @android.annotation.NonNull int mLanguage\n @android.annotation.NonNull int mCarrier\n @android.annotation.NonNull android.ondevicepersonalization.OSVersion mOsVersions\n @android.annotation.NonNull int mConnectionType\n @android.annotation.NonNull int mConnectionSpeedKbps\n @android.annotation.NonNull boolean mNetworkMetered\n @android.annotation.NonNull android.ondevicepersonalization.DeviceMetrics mDeviceMetrics\n @android.annotation.NonNull java.util.List<android.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
