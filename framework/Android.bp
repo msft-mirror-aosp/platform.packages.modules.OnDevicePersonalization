@@ -51,6 +51,9 @@ java_sdk_library {
         ":framework-ondevicepersonalization-aidl",
         ":framework-ondevicepersonalization-sources",
     ],
+    libs: [
+        "modules-utils-preconditions",
+    ],
     sdk_version: "module_current",
     defaults: [
         "framework-module-defaults",
