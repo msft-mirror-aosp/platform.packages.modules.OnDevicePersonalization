@@ -34,8 +34,6 @@ import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-import java.util.concurrent.Executor;
-
 /** Mobile Data Download Factory. */
 public class MobileDataDownloadFactory {
     private static MobileDataDownload sSingleton;
@@ -45,14 +43,20 @@ public class MobileDataDownloadFactory {
     @NonNull
     public static synchronized MobileDataDownload getMdd(
             @NonNull Context context) {
-        return getMdd(context, getFileDownloader(context), getControlExecutor());
+        synchronized (MobileDataDownloadFactory.class) {
+            if (sSingleton != null) {
+                return sSingleton;
+            }
+        }
+        return getMdd(context, getControlExecutor(), getDownloadExecutor());
     }
 
     /** Returns a singleton of MobileDataDownload. */
     @NonNull
     public static synchronized MobileDataDownload getMdd(
-            @NonNull Context context, @NonNull FileDownloader downloader,
-            @NonNull ListeningExecutorService executor) {
+            @NonNull Context context,
+            @NonNull ListeningExecutorService controlExecutor,
+            @NonNull ListeningExecutorService downloadExecutor) {
         synchronized (MobileDataDownloadFactory.class) {
             if (sSingleton == null) {
                 SynchronousFileStorage fileStorage = getFileStorage(context);
@@ -65,11 +69,12 @@ public class MobileDataDownloadFactory {
                 sSingleton =
                         MobileDataDownloadBuilder.newBuilder()
                                 .setContext(context)
-                                .setControlExecutor(executor)
+                                .setControlExecutor(controlExecutor)
                                 .setTaskScheduler(Optional.of(new MddTaskScheduler(context)))
                                 .setNetworkUsageMonitor(getNetworkUsageMonitor(context))
                                 .setFileStorage(fileStorage)
-                                .setFileDownloaderSupplier(() -> downloader)
+                                .setFileDownloaderSupplier(
+                                        () -> getFileDownloader(context, downloadExecutor))
                                 .addFileGroupPopulator(
                                         new OnDevicePersonalizationFileGroupPopulator(context))
                                 .setFlagsOptional(Optional.of(getFlags()))
@@ -108,13 +113,14 @@ public class MobileDataDownloadFactory {
 
     @NonNull
     private static FileDownloader getFileDownloader(
-            @NonNull Context context) {
+            @NonNull Context context,
+            @NonNull ListeningExecutorService downloadExecutor) {
         return new OnDevicePersonalizationFileDownloader(getFileStorage(context),
-                getDownloadExecutor(), context);
+                downloadExecutor, context);
     }
 
     @NonNull
-    private static Executor getDownloadExecutor() {
+    private static ListeningExecutorService getDownloadExecutor() {
         return OnDevicePersonalizationExecutors.getBackgroundExecutor();
     }
 
