@@ -20,10 +20,22 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
+import java.util.Objects;
+
 /** Implementation of FederatedCompute Service */
 public class FederatedComputeManagingServiceImpl extends Service {
+    private FederatedComputeManagingServiceDelegate mFcpServiceDelegate;
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        if (mFcpServiceDelegate == null) {
+            mFcpServiceDelegate = new FederatedComputeManagingServiceDelegate();
+        }
+    }
+
     @Override
     public IBinder onBind(Intent intent) {
-        return null;
+        return Objects.requireNonNull(mFcpServiceDelegate);
     }
 }

@@ -32,4 +32,7 @@ filegroup {
         "src/**/*.java",
     ],
     path: "src",
+    visibility: [
+      "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
 }
