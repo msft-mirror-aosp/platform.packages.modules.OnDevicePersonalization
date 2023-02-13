@@ -203,7 +203,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                null, mPackageName, mContext, true);
+                null, mPackageName, mContext, true, null);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(fd).build();
         pluginParams.putParcelable(Constants.EXTRA_INPUT, input);
