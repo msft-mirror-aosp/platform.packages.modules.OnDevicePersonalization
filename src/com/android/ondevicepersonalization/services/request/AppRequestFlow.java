@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.request;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
@@ -194,14 +195,14 @@ public class AppRequestFlow {
                             .setHeight(surfaceInfo.mHeight)
                             .build());
         }
+        PersistableBundle appParams = mParams.getParcelable(
+                OnDevicePersonalizationManager.EXTRA_APP_PARAMS, PersistableBundle.class);
         SelectContentInput input =
                 new SelectContentInput.Builder()
                         .setAppPackageName(mCallingPackageName)
                         .setSlotInfos(slotInfos)
-                        // TODO(b/228200518): Extract app_params from request
-                        .setAppParams(PersistableBundle.EMPTY)
+                        .setAppParams(appParams)
                         .build();
-        // TODO(b/228200518): Extract app_params from request
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, true);
