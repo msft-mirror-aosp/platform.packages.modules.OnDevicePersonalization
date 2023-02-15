@@ -178,9 +178,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     .setQueryId(mEventUrlData.mQueryId)
                     .setServicePackageName(mServicePackageName)
                     .setTimeMillis(mInjector.getTimeMillis())
-                    .setEvent(new byte[0])  // TODO(b/268718770): Add event data.
+                    .setEventData(new byte[0])  // TODO(b/268718770): Add event data.
                     .setSlotId(mEventUrlData.mSlotId)
                     .setSlotPosition(0)  // TODO(b/268718770): Add slot position.
+                    .setSlotIndex(0) // TODO(b/268718770): Add slot index.
                     .setBidId(bidId).build();
             String eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(
                     new EventUrlPayload.Builder().setEvent(event).build());
