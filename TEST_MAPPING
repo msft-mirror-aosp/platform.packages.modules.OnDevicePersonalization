@@ -11,6 +11,10 @@
     {
       // Install com.google.android.ondevicepersonalization.apex and run OdpChronicleTests.
       "name": "OdpChronicleTests[com.google.android.ondevicepersonalization.apex]"
+    },
+    {
+      // Install com.google.android.ondevicepersonalization.apex and run FederatedComputeServicesTests.
+      "name": "FederatedComputeServicesTests[com.google.android.ondevicepersonalization.apex]"
     }
   ],
   "presubmit": [
@@ -22,6 +26,9 @@
     },
     {
       "name": "OdpChronicleTests"
+    },
+    {
+      "name": "FederatedComputeServicesTests"
     }
   ]
 }

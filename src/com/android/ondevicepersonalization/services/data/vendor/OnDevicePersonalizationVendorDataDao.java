@@ -164,6 +164,8 @@ public class OnDevicePersonalizationVendorDataDao {
 
             // Delete the vendorData table
             db.execSQL("DROP TABLE " + vendorDataTableName);
+            OnDevicePersonalizationLocalDataDao.deleteTable(context, owner, certDigest);
+
             db.setTransactionSuccessful();
         } catch (Exception e) {
             Log.e(TAG, "Failed to delete vendorData for: " + owner, e);
@@ -253,6 +255,11 @@ public class OnDevicePersonalizationVendorDataDao {
         try {
             db.beginTransactionNonExclusive();
             if (!createTableIfNotExists(mTableName)) {
+                return false;
+            }
+            if (!OnDevicePersonalizationLocalDataDao.createTableIfNotExists(
+                    OnDevicePersonalizationLocalDataDao.getTableName(mOwner, mCertDigest),
+                    mDbHelper)) {
                 return false;
             }
             for (VendorData vendorData : vendorDataList) {

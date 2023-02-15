@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.manifest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -53,5 +54,11 @@ public class AppManifestConfigTests {
                 AppManifestConfigHelper.getAppManifestConfig(mContext, mContext.getPackageName());
         assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
         assertEquals("com.test.TestPersonalizationService", config.getServiceName());
+    }
+
+    @Test
+    public void testAppManifestConfigBadPackage() {
+        assertThrows(IllegalArgumentException.class,
+                () -> AppManifestConfigHelper.getAppManifestConfig(mContext, "badPackageName"));
     }
 }
