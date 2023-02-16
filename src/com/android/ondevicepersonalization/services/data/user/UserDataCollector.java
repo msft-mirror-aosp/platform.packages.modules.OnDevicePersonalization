@@ -129,7 +129,7 @@ public class UserDataCollector {
     /**
      * Collects in-memory user data signals and stores in a UserData object.
     */
-    public void initializeUserData(@NonNull UserData userData) {
+    public void initializeUserData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
@@ -160,7 +160,7 @@ public class UserDataCollector {
     }
 
     /** Update real-time user data to the latest per request. */
-    public void getRealTimeData(@NonNull UserData userData) {
+    public void getRealTimeData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
@@ -343,9 +343,9 @@ public class UserDataCollector {
 
     /** Collects connection type. */
     @VisibleForTesting
-    public UserData.ConnectionType getConnectionType() {
+    public RawUserData.ConnectionType getConnectionType() {
         if (mNetworkCapabilities == null) {
-            return UserData.ConnectionType.UNKNOWN;
+            return RawUserData.ConnectionType.UNKNOWN;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
             switch (mTelephonyManager.getDataNetworkType()) {
                 case TelephonyManager.NETWORK_TYPE_1xRTT:
@@ -354,7 +354,7 @@ public class UserDataCollector {
                 case TelephonyManager.NETWORK_TYPE_GPRS:
                 case TelephonyManager.NETWORK_TYPE_GSM:
                 case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return UserData.ConnectionType.CELLULAR_2G;
+                    return RawUserData.ConnectionType.CELLULAR_2G;
                 case TelephonyManager.NETWORK_TYPE_EHRPD:
                 case TelephonyManager.NETWORK_TYPE_EVDO_0:
                 case TelephonyManager.NETWORK_TYPE_EVDO_A:
@@ -365,21 +365,21 @@ public class UserDataCollector {
                 case TelephonyManager.NETWORK_TYPE_HSUPA:
                 case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
                 case TelephonyManager.NETWORK_TYPE_UMTS:
-                    return UserData.ConnectionType.CELLULAR_3G;
+                    return RawUserData.ConnectionType.CELLULAR_3G;
                 case TelephonyManager.NETWORK_TYPE_LTE:
                 case TelephonyManager.NETWORK_TYPE_IWLAN:
-                    return UserData.ConnectionType.CELLULAR_4G;
+                    return RawUserData.ConnectionType.CELLULAR_4G;
                 case TelephonyManager.NETWORK_TYPE_NR:
-                    return UserData.ConnectionType.CELLULAR_5G;
+                    return RawUserData.ConnectionType.CELLULAR_5G;
                 default:
-                    return UserData.ConnectionType.UNKNOWN;
+                    return RawUserData.ConnectionType.UNKNOWN;
             }
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            return UserData.ConnectionType.WIFI;
+            return RawUserData.ConnectionType.WIFI;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-            return UserData.ConnectionType.ETHERNET;
+            return RawUserData.ConnectionType.ETHERNET;
         }
-        return UserData.ConnectionType.UNKNOWN;
+        return RawUserData.ConnectionType.UNKNOWN;
     }
 
     /** Collects metered status. */
@@ -799,7 +799,7 @@ public class UserDataCollector {
      * Util to reset all fields in [UserData] to default for testing purpose
      */
     @VisibleForTesting
-    public void clearUserData(@NonNull UserData userData) {
+    public void clearUserData(@NonNull RawUserData userData) {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
@@ -809,7 +809,7 @@ public class UserDataCollector {
         userData.language = Language.UNKNOWN;
         userData.carrier = Carrier.UNKNOWN;
         userData.osVersions = new OSVersion();
-        userData.connectionType = UserData.ConnectionType.UNKNOWN;
+        userData.connectionType = RawUserData.ConnectionType.UNKNOWN;
         userData.networkMeteredStatus = false;
         userData.connectionSpeedKbps = 0;
         userData.deviceMetrics = new DeviceMetrics();
