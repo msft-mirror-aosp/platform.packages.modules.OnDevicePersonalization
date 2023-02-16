@@ -217,7 +217,8 @@ public class AppRequestFlow {
         // TODO(b/228200518): Populate queryData
         byte[] queryData = new byte[1];
         Query query = new Query.Builder()
-                .setQuery(queryData)
+                .setServicePackageName(mServicePackageName)
+                .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
         long queryId = EventsDao.getInstance(mContext).insertQuery(query);

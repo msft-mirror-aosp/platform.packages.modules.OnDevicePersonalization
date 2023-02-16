@@ -40,18 +40,20 @@ public class EventsDaoTest {
     private EventsDao mDao;
     private Event mTestEvent = new Event.Builder()
             .setType(EventType.B2D.getValue())
-            .setEvent("event".getBytes(StandardCharsets.UTF_8))
+            .setEventData("event".getBytes(StandardCharsets.UTF_8))
             .setBidId("bidId")
             .setServicePackageName("servicePackageName")
             .setSlotId("slotId")
             .setSlotPosition(1)
             .setQueryId(1L)
             .setTimeMillis(1L)
+            .setSlotIndex(0)
             .build();
 
     private Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setQuery("query".getBytes(StandardCharsets.UTF_8))
+            .setServicePackageName("servicePackageName")
+            .setQueryData("query".getBytes(StandardCharsets.UTF_8))
             .build();
 
     @Before
