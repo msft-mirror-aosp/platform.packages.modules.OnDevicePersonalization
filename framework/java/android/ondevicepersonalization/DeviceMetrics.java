@@ -286,7 +286,53 @@ public final class DeviceMetrics implements Parcelable {
 
         /**
          * Creates a new Builder.
+         *
+         * @param make
+         *   Device manufacturer. See full list {@link Make}.
+         * @param model
+         *   Device model. See full list {@link Model}.
+         * @param screenHeights
+         *   Screen height of the device in dp units.
+         * @param screenWidth
+         *   Screen width of the device in dp units.
+         * @param xdpi
+         *   Device x dpi.
+         * @param ydpi
+         *   Device y dpi.
+         * @param pxRatio
+         *   Device pixel ratio.
          */
+        public Builder(
+                @NonNull int make,
+                @NonNull int model,
+                @NonNull int screenHeights,
+                @NonNull int screenWidth,
+                @NonNull float xdpi,
+                @NonNull float ydpi,
+                @NonNull float pxRatio) {
+            mMake = make;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mMake);
+            mModel = model;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mModel);
+            mScreenHeights = screenHeights;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mScreenHeights);
+            mScreenWidth = screenWidth;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mScreenWidth);
+            mXdpi = xdpi;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mXdpi);
+            mYdpi = ydpi;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mYdpi);
+            mPxRatio = pxRatio;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mPxRatio);
+        }
+
         public Builder() {
         }
 
@@ -392,7 +438,7 @@ public final class DeviceMetrics implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675726637829L,
+            time = 1676499956776L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DeviceMetrics.java",
             inputSignatures = " @android.annotation.NonNull int mMake\n @android.annotation.NonNull int mModel\n @android.annotation.NonNull int mScreenHeights\n @android.annotation.NonNull int mScreenWidth\n @android.annotation.NonNull float mXdpi\n @android.annotation.NonNull float mYdpi\n @android.annotation.NonNull float mPxRatio\nclass DeviceMetrics extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

@@ -16,9 +16,11 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data
 
+import android.ondevicepersonalization.UserData
+
 import com.android.libraries.pcc.chronicle.api.ReadConnection
 
 /** Reader interface for reading the corresponding vendor table. */
 interface UserDataReader : ReadConnection {
-    fun readUserData(): FinalUserData?
+    fun readUserData(): UserData?
 }
