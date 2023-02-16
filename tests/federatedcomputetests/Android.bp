@@ -23,10 +23,13 @@ android_test {
         ":framework-ondevicepersonalization-aidl",
         ":framework-ondevicepersonalization-sources",
         ":federatedcompute-sources",
+        ":federatedcompute-fbs",
+
     ],
     libs: [
         "android.test.base",
         "android.test.runner",
+        "auto_value_annotations",
         "truth-prebuilt",
     ],
     static_libs: [
@@ -34,7 +37,9 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "modules-utils-build",
+        "flatbuffers-java",
     ],
+    plugins: ["auto_value_plugin"],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     certificate: "platform",
