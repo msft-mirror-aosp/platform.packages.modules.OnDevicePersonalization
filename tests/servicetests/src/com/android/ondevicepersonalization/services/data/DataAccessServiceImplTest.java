@@ -18,10 +18,13 @@ package com.android.ondevicepersonalization.services.data;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -67,11 +70,18 @@ public class DataAccessServiceImplTest {
         params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
         params.putString(Constants.EXTRA_BID_ID, "bid5");
         ArrayList<String> bidIds = new ArrayList<String>();
-        bidIds.add("bid1");
-        bidIds.add("bid3");
-        bidIds.add("bid5");
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotId("slot1")
+                    .addWinningBids(
+                        new ScoredBid.Builder()
+                            .setBidId("bid5")
+                            .setEventsWithMetrics(4)
+                            .setEventMetricsParameters(null)
+                            .build())
+                    .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
-                new DataAccessServiceImpl.EventUrlQueryData(1357, "slot1", bidIds);
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
         var serviceImpl = new DataAccessServiceImpl(
                 "com.example.testapp", mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
@@ -93,6 +103,7 @@ public class DataAccessServiceImplTest {
         assertEquals(mApplicationContext.getPackageName(),
                 payload.getEvent().getServicePackageName());
         assertEquals("bid5", payload.getEvent().getBidId());
+        assertTrue(payload.isEventMetricsRequired());
     }
 
     @Test
@@ -102,11 +113,18 @@ public class DataAccessServiceImplTest {
         params.putString(Constants.EXTRA_BID_ID, "bid5");
         params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
         ArrayList<String> bidIds = new ArrayList<String>();
-        bidIds.add("bid1");
-        bidIds.add("bid3");
-        bidIds.add("bid5");
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotId("slot1")
+                    .addWinningBids(
+                        new ScoredBid.Builder()
+                            .setBidId("bid5")
+                            .setEventsWithMetrics(4)
+                            .setEventMetricsParameters(null)
+                            .build())
+                    .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
-                new DataAccessServiceImpl.EventUrlQueryData(1357, "slot1", bidIds);
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
         var serviceImpl = new DataAccessServiceImpl(
                 "com.example.testapp", mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
