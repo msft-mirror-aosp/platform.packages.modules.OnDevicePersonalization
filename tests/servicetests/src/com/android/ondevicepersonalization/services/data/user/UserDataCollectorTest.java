@@ -44,12 +44,12 @@ import java.util.TimeZone;
 public class UserDataCollectorTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private UserDataCollector mCollector;
-    private UserData mUserData;
+    private RawUserData mUserData;
 
     @Before
     public void setup() {
         mCollector = UserDataCollector.getInstanceForTest(mContext);
-        mUserData = UserData.getInstance();
+        mUserData = RawUserData.getInstance();
     }
 
     @Test
@@ -68,7 +68,7 @@ public class UserDataCollectorTest {
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
         assertEquals(mUserData.carrier, mCollector.getCarrier());
-        assertTrue(mUserData.connectionType != UserData.ConnectionType.UNKNOWN);
+        assertTrue(mUserData.connectionType != RawUserData.ConnectionType.UNKNOWN);
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
         assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertTrue(mUserData.connectionSpeedKbps > 0);

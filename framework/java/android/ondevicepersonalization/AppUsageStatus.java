@@ -171,7 +171,23 @@ public final class AppUsageStatus implements Parcelable {
 
         /**
          * Creates a new Builder.
+         *
+         * @param packageName
+         *   Package name.
+         * @param totalTimeUsedInMillis
+         *   Total time spent on the app in the past 30 days in milliseconds.
          */
+        public Builder(
+                @NonNull String packageName,
+                @NonNull long totalTimeUsedInMillis) {
+            mPackageName = packageName;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mPackageName);
+            mTotalTimeUsedInMillis = totalTimeUsedInMillis;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mTotalTimeUsedInMillis);
+        }
+
         public Builder() {
         }
 
@@ -217,7 +233,7 @@ public final class AppUsageStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675722168086L,
+            time = 1676499898093L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppUsageStatus.java",
             inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull long mTotalTimeUsedInMillis\nclass AppUsageStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
