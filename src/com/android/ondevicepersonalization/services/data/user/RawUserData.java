@@ -25,9 +25,9 @@ import java.util.List;
 /**
  * A singleton class that holds all most recent in-memory user signals.
  */
-public final class UserData {
+public final class RawUserData {
 
-    private static UserData sUserData = null;
+    private static RawUserData sUserData = null;
     private static final String TAG = "UserData";
 
     // The current system time in milliseconds.
@@ -95,13 +95,13 @@ public final class UserData {
      */
     public HashMap<LocationInfo, Long> locationHistory = new HashMap<>();
 
-    private UserData() { }
+    private RawUserData() { }
 
     /** Returns an instance of UserData. */
-    public static UserData getInstance() {
-        synchronized (UserData.class) {
+    public static RawUserData getInstance() {
+        synchronized (RawUserData.class) {
             if (sUserData == null) {
-                sUserData = new UserData();
+                sUserData = new RawUserData();
             }
             return sUserData;
         }

@@ -194,7 +194,29 @@ public final class OSVersion implements Parcelable {
 
         /**
          * Creates a new Builder.
+         *
+         * @param major
+         *   Major OS version.
+         * @param minor
+         *   Minor OS version.
+         * @param micro
+         *   Micro OS version.
          */
+        public Builder(
+                @NonNull int major,
+                @NonNull int minor,
+                @NonNull int micro) {
+            mMajor = major;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mMajor);
+            mMinor = minor;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mMinor);
+            mMicro = micro;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mMicro);
+        }
+
         public Builder() {
         }
 
@@ -252,7 +274,7 @@ public final class OSVersion implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675722247522L,
+            time = 1676500093560L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OSVersion.java",
             inputSignatures = " @android.annotation.NonNull int mMajor\n @android.annotation.NonNull int mMinor\n @android.annotation.NonNull int mMicro\nclass OSVersion extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

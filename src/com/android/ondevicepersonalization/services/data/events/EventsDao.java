@@ -78,6 +78,7 @@ public class EventsDao {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(EventsContract.EventsEntry.QUERY_ID, event.getQueryId());
+            values.put(EventsContract.EventsEntry.SLOT_INDEX, event.getSlotIndex());
             values.put(EventsContract.EventsEntry.TIME_MILLIS, event.getTimeMillis());
             values.put(EventsContract.EventsEntry.SLOT_ID, event.getSlotId());
             values.put(EventsContract.EventsEntry.BID_ID, event.getBidId());
@@ -85,7 +86,7 @@ public class EventsDao {
                     event.getServicePackageName());
             values.put(EventsContract.EventsEntry.SLOT_POSITION, event.getSlotPosition());
             values.put(EventsContract.EventsEntry.TYPE, event.getType());
-            values.put(EventsContract.EventsEntry.EVENT, event.getEvent());
+            values.put(EventsContract.EventsEntry.EVENT_DATA, event.getEventData());
             return db.insert(EventsContract.EventsEntry.TABLE_NAME, null,
                     values) != -1;
         } catch (SQLiteException e) {
@@ -104,7 +105,9 @@ public class EventsDao {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(QueriesContract.QueriesEntry.TIME_MILLIS, query.getTimeMillis());
-            values.put(QueriesContract.QueriesEntry.QUERY, query.getQuery());
+            values.put(QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME,
+                    query.getServicePackageName());
+            values.put(QueriesContract.QueriesEntry.QUERY_DATA, query.getQueryData());
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
