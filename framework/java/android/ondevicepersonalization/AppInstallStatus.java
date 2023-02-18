@@ -174,7 +174,23 @@ public final class AppInstallStatus implements Parcelable {
 
         /**
          * Creates a new Builder.
+         *
+         * @param packageName
+         *   Package name.
+         * @param installed
+         *   Installed status: installed - true; uninstalled - false.
          */
+        public Builder(
+                @NonNull String packageName,
+                @NonNull boolean installed) {
+            mPackageName = packageName;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mPackageName);
+            mInstalled = installed;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mInstalled);
+        }
+
         public Builder() {
         }
 
@@ -220,7 +236,7 @@ public final class AppInstallStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675722157527L,
+            time = 1676499861915L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java",
             inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull boolean mInstalled\nclass AppInstallStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
