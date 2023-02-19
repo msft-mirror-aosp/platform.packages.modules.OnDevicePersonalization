@@ -16,10 +16,16 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
+import android.ondevicepersonalization.UserData
+import android.ondevicepersonalization.OSVersion
+import android.ondevicepersonalization.DeviceMetrics
+import android.ondevicepersonalization.Location
+import android.ondevicepersonalization.AppInstallStatus
+import android.ondevicepersonalization.AppUsageStatus
+import android.ondevicepersonalization.LocationStatus
+
 import com.android.ondevicepersonalization.services.data.user.UserDataDao
-import com.android.ondevicepersonalization.services.data.user.UserData
-import com.android.ondevicepersonalization.services.data.user.AppInfo
-import com.android.ondevicepersonalization.services.data.user.LocationInfo
+import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector
 import com.android.libraries.pcc.chronicle.api.Connection
 import com.android.libraries.pcc.chronicle.api.ConnectionProvider
@@ -29,14 +35,7 @@ import com.android.libraries.pcc.chronicle.api.ManagedDataType
 import com.android.libraries.pcc.chronicle.api.ManagementStrategy
 import com.android.libraries.pcc.chronicle.api.StorageMedia
 
-import com.android.ondevicepersonalization.services.policyengine.data.FINAL_USER_DATA_GENERATED_DTD
-import com.android.ondevicepersonalization.services.policyengine.data.FinalUserData
-import com.android.ondevicepersonalization.services.policyengine.data.OSVersion
-import com.android.ondevicepersonalization.services.policyengine.data.AppUsage
-import com.android.ondevicepersonalization.services.policyengine.data.AppStatus
-import com.android.ondevicepersonalization.services.policyengine.data.DeviceMetrics
-import com.android.ondevicepersonalization.services.policyengine.data.Location
-import com.android.ondevicepersonalization.services.policyengine.data.LocationResult
+import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_GENERATED_DTD
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
 
 import java.time.Duration
@@ -48,7 +47,7 @@ import kotlinx.coroutines.withContext
 class UserDataConnectionProvider() : ConnectionProvider {
     override val dataType: DataType =
         ManagedDataType(
-            FINAL_USER_DATA_GENERATED_DTD,
+            USER_DATA_GENERATED_DTD,
             ManagementStrategy.Stored(false, StorageMedia.MEMORY, Duration.ofDays(30)),
             setOf(UserDataReader::class.java)
         )
@@ -58,78 +57,84 @@ class UserDataConnectionProvider() : ConnectionProvider {
     }
 
     class UserDataReaderImpl : UserDataReader {
-        override fun readUserData(): FinalUserData? {
-            val rawUserData: UserData? = UserData.getInstance();
+        override fun readUserData(): UserData? {
+            val rawUserData: RawUserData? = RawUserData.getInstance();
             if (rawUserData == null) {
                 return null;
             }
 
             // TODO(b/267013762): more privacy-preserving processing may be needed
-            return FinalUserData(
-                timeSec = rawUserData.timeMillis / 1000,
-                timezone = rawUserData.utcOffset,
-                orientation = rawUserData.orientation,
-                availableBytesMB = rawUserData.availableBytesMB,
-                batteryPct = rawUserData.batteryPct,
-                country = rawUserData.country.ordinal,
-                language = rawUserData.language.ordinal,
-                carrier = rawUserData.carrier.ordinal,
-                osVersions = OSVersion(
-                    major = rawUserData.osVersions.major,
-                    minor = rawUserData.osVersions.minor,
-                    micro = rawUserData.osVersions.micro
-                ),
-                connectionType = rawUserData.connectionType.ordinal,
-                networkMeteredStatus = rawUserData.networkMeteredStatus,
-                connectionSpeedKbps = rawUserData.connectionSpeedKbps,
-                deviceMetrics = DeviceMetrics(
-                    make = rawUserData.deviceMetrics.make.ordinal,
-                    model = rawUserData.deviceMetrics.model.ordinal,
-                    screenHeightDp = rawUserData.deviceMetrics.screenHeight,
-                    screenWidthDp = rawUserData.deviceMetrics.screenWidth,
-                    xdpi = rawUserData.deviceMetrics.xdpi,
-                    ydpi = rawUserData.deviceMetrics.ydpi,
-                    pxRatio = rawUserData.deviceMetrics.pxRatio,
-                ),
-                appInstalledHistory = getAppInstalledHistory(rawUserData.appsInfo),
-                currentLocation = Location(
-                    rawUserData.currentLocation.timeMillis / 1000,
-                    rawUserData.currentLocation.latitude,
-                    rawUserData.currentLocation.longitude,
-                    rawUserData.currentLocation.provider.ordinal,
-                    rawUserData.currentLocation.isPreciseLocation
-                ),
-                appUsageHistory = getAppUsageHistory(rawUserData.appUsageHistory),
-                locationHistory = getLocationHistory(rawUserData.locationHistory)
-            )
+            return UserData.Builder()
+                    .setTimeSec(rawUserData.timeMillis / 1000)
+                    .setTimezone(rawUserData.utcOffset)
+                    .setOrientation(rawUserData.orientation)
+                    .setAvailableBytesMB(rawUserData.availableBytesMB)
+                    .setBatteryPct(rawUserData.batteryPct)
+                    .setCountry(rawUserData.country.ordinal)
+                    .setLanguage(rawUserData.language.ordinal)
+                    .setCarrier(rawUserData.carrier.ordinal)
+                    .setOsVersions(OSVersion.Builder()
+                            .setMajor(rawUserData.osVersions.major)
+                            .setMinor(rawUserData.osVersions.minor)
+                            .setMicro(rawUserData.osVersions.micro)
+                            .build())
+                    .setConnectionType(rawUserData.connectionType.ordinal)
+                    .setConnectionSpeedKbps(rawUserData.connectionSpeedKbps)
+                    .setNetworkMetered(rawUserData.networkMeteredStatus)
+                    .setDeviceMetrics(DeviceMetrics.Builder()
+                            .setMake(rawUserData.deviceMetrics.make.ordinal)
+                            .setModel(rawUserData.deviceMetrics.model.ordinal)
+                            .setScreenHeights(rawUserData.deviceMetrics.screenHeight)
+                            .setScreenWidth(rawUserData.deviceMetrics.screenWidth)
+                            .setXdpi(rawUserData.deviceMetrics.xdpi)
+                            .setYdpi(rawUserData.deviceMetrics.ydpi)
+                            .setPxRatio(rawUserData.deviceMetrics.pxRatio)
+                            .build())
+                    .setCurrentLocation(Location.Builder()
+                            .setTimeSec(rawUserData.currentLocation.timeMillis / 1000)
+                            .setLatitude(rawUserData.currentLocation.latitude)
+                            .setLongitude(rawUserData.currentLocation.longitude)
+                            .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
+                            .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
+                            .build())
+                    .setAppInstalledHistory(getAppInstalledHistory(rawUserData))
+                    .setAppUsageHistory(getAppUsageHistory(rawUserData))
+                    .setLocationHistory(getLocationHistory(rawUserData))
+                    .build()
         }
 
-        private fun getAppInstalledHistory(list: List<AppInfo>): List<AppStatus> {
-            var res = ArrayList<AppStatus>()
-            for (appInfo in list) {
-                res.add(AppStatus(appInfo.packageName, appInfo.installed))
+        private fun getAppInstalledHistory(rawUserData: RawUserData): List<AppInstallStatus> {
+            var res = ArrayList<AppInstallStatus>()
+            for (appInfo in rawUserData.appsInfo) {
+                res.add(AppInstallStatus.Builder()
+                        .setPackageName(appInfo.packageName)
+                        .setInstalled(appInfo.installed)
+                        .build())
             }
             return res
         }
 
-        private fun getAppUsageHistory(map: Map<String, Long>): List<AppUsage> {
-            var res = ArrayList<AppUsage>()
-            map.forEach {
-                (key, value) -> res.add(AppUsage(key, value))
+        private fun getAppUsageHistory(rawUserData: RawUserData): List<AppUsageStatus> {
+            var res = ArrayList<AppUsageStatus>()
+            rawUserData.appUsageHistory.forEach {
+                (key, value) -> res.add(AppUsageStatus.Builder()
+                        .setPackageName(key)
+                        .setTotalTimeUsedInMillis(value)
+                        .build())
             }
-            return res.sortedWith(compareBy({ it.totalTimeUsedMillis }))
+            return res.sortedWith(compareBy({ it.getTotalTimeUsedInMillis() }))
         }
 
-        private fun getLocationHistory(map: Map<LocationInfo, Long>): List<LocationResult> {
-            var res = ArrayList<LocationResult>()
-            map.forEach {
-                (key, value) -> res.add(LocationResult(
-                    key.latitude,
-                    key.longitude,
-                    value
-                ))
+        private fun getLocationHistory(rawUserData: RawUserData): List<LocationStatus> {
+            var res = ArrayList<LocationStatus>()
+            rawUserData.locationHistory.forEach {
+                (key, value) -> res.add(LocationStatus.Builder()
+                        .setLatitude(key.latitude)
+                        .setLongitude(key.longitude)
+                        .setDurationMillis(value)
+                        .build())
             }
-            return res.sortedWith(compareBy({ it.durationMillis }))
+            return res.sortedWith(compareBy({ it.getDurationMillis() }))
         }
     }
 }

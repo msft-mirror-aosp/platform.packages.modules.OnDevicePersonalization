@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.request;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
@@ -194,17 +195,17 @@ public class AppRequestFlow {
                             .setHeight(surfaceInfo.mHeight)
                             .build());
         }
+        PersistableBundle appParams = mParams.getParcelable(
+                OnDevicePersonalizationManager.EXTRA_APP_PARAMS, PersistableBundle.class);
         SelectContentInput input =
                 new SelectContentInput.Builder()
                         .setAppPackageName(mCallingPackageName)
                         .setSlotInfos(slotInfos)
-                        // TODO(b/228200518): Extract app_params from request
-                        .setAppParams(PersistableBundle.EMPTY)
+                        .setAppParams(appParams)
                         .build();
-        // TODO(b/228200518): Extract app_params from request
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mCallingPackageName, mServicePackageName, mContext, true);
+                mCallingPackageName, mServicePackageName, mContext, true, null);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
@@ -216,7 +217,8 @@ public class AppRequestFlow {
         // TODO(b/228200518): Populate queryData
         byte[] queryData = new byte[1];
         Query query = new Query.Builder()
-                .setQuery(queryData)
+                .setServicePackageName(mServicePackageName)
+                .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
         long queryId = EventsDao.getInstance(mContext).insertQuery(query);
@@ -241,14 +243,14 @@ public class AppRequestFlow {
         for (int i = 0; i < Math.min(mSurfaceInfos.size(), slotResults.size()); ++i) {
             SurfaceInfo surfaceInfo = mSurfaceInfos.get(i);
             SlotResult slotResult = slotResults.get(i);
-            surfacePackageFutures.add(renderContentForSlot(surfaceInfo, slotResult));
+            surfacePackageFutures.add(renderContentForSlot(surfaceInfo, slotResult, queryId));
         }
 
         return Futures.allAsList(surfacePackageFutures);
     }
 
     private ListenableFuture<SurfacePackage> renderContentForSlot(
-            SurfaceInfo surfaceInfo, SlotResult slotResult
+            SurfaceInfo surfaceInfo, SlotResult slotResult, long queryId
     ) {
         Log.d(TAG, "renderContentForSlot() started.");
         if (surfaceInfo == null || slotResult == null) {
@@ -268,7 +270,7 @@ public class AppRequestFlow {
                         TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
                         loadResult -> executeRenderContentRequest(
-                                loadResult, slotInfo, bidIds),
+                                loadResult, slotInfo, slotResult, queryId, bidIds),
                         mExecutorService)
                 .transform(result -> {
                     return result.getParcelable(
@@ -286,14 +288,17 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
-            IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, List<String> bidIds) {
+            IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, SlotResult slotResult,
+            long queryId, List<String> bidIds) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
         RenderContentInput input =
                 new RenderContentInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mCallingPackageName, mServicePackageName, mContext, false);
+                mCallingPackageName, mServicePackageName, mContext, false,
+                new DataAccessServiceImpl.EventUrlQueryData(
+                    queryId, slotResult.getSlotId(), bidIds));
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         // TODO(b/228200518): Create event handling URLs.
         return ProcessUtils.runIsolatedService(

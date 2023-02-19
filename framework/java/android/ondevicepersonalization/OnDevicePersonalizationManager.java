@@ -79,6 +79,14 @@ public class OnDevicePersonalizationManager {
             "android.ondevicepersonalization.extra.HOST_TOKEN";
 
     /**
+     * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
+     * its value should define a {@link PersistableBundle} that is passed to the
+     * {@link PersonalizationService}.
+     */
+    public static final String EXTRA_APP_PARAMS =
+            "android.ondevicepersonalization.extra.APP_PARAMS";
+
+    /**
      * The name of key in the Bundle which is passed to the {@code onResult} function of the {@link
      * OutcomeReceiver} which is field of {@link #requestSurfacePackage()},
      * its value presents the requested {@link SurfacePackage}.
@@ -134,10 +142,11 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Requests a surface package from an {@link Exchange} running in the OnDevicePersonalization
-     * sandbox.
+     * Requests a surface package from an {@link PersonalizationService} running in the
+     * OnDevicePersonalization sandbox.
      *
-     * @param exchangePackageName name of the {@link Exchange} that will handle the app request.
+     * @param servicePackageName name of the {@link PersonalizationService} that will handle the
+     *     request.
      * @param params the parameters from the client application, it must
      *     contain the following params: (EXTRA_WIDTH_IN_PIXELS, EXTRA_HEIGHT_IN_PIXELS,
      *     EXTRA_DISPLAY_ID, EXTRA_HOST_TOKEN). If any of these params is missing, an
@@ -153,7 +162,7 @@ public class OnDevicePersonalizationManager {
      * @hide
      */
     public void requestSurfacePackage(
-            @NonNull String exchangePackageName,
+            @NonNull String servicePackageName,
             @NonNull Bundle params,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Bundle, Exception> receiver
@@ -213,7 +222,7 @@ public class OnDevicePersonalizationManager {
                     };
 
             mService.requestSurfacePackage(
-                    mContext.getPackageName(), exchangePackageName, hostToken, displayId,
+                    mContext.getPackageName(), servicePackageName, hostToken, displayId,
                     width, height, params, callbackWrapper);
 
         } catch (InterruptedException
