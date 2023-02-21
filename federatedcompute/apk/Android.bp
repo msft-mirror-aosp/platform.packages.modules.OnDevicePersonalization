@@ -26,10 +26,17 @@ android_app {
     name: "FederatedCompute",
     srcs: [
         ":federatedcompute-sources",
+        ":federatedcompute-fbs",
     ],
     libs: [
+        "auto_value_annotations",
+        "flatbuffers-java",
         "framework-ondevicepersonalization",
         "framework-annotations-lib",
+    ],
+    plugins: ["auto_value_plugin"],
+    static_libs: [
+        "guava",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",

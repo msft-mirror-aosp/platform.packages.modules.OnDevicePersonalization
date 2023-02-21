@@ -26,6 +26,22 @@ java_defaults {
     min_sdk_version: "Tiramisu ",
 }
 
+java_genrule {
+    name: "federatedcompute-fbs",
+    tools: [
+        "flatc",
+        "soong_zip",
+    ],
+    host_supported: true,
+    srcs: ["src/**/*.fbs"],
+    out: ["federatedcompute-fbs.srcjar"],
+    cmd: "$(location flatc) -o $(genDir) --java $(in) " +
+        "&& $(location soong_zip) -o $(out) -C $(genDir) -D $(genDir)",
+    visibility: [
+      "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
+}
+
 filegroup {
     name: "federatedcompute-sources",
     srcs: [
