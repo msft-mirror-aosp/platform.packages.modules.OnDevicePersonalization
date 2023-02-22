@@ -16,8 +16,17 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data
 
-/* Policy-cleared user data representation. */
-data class FinalUserData (
+/**
+ * This abstract data class is intended to mirror {@link android.ondevicepersonalization.UserData},
+ * which represents the policy-cleared user data instance.
+ *
+ * Chronicle requires a Kotlin data class to represent the data entity, but
+ * Kotlin code is not allowed in public APIs, so this mirror class is created
+ * as a workaround. See b/268739079 to track future solutions.
+ *
+ * If one class is updated, the other one should also be updated to match.
+ */
+data class UserData (
     val timeSec: Long,
     val timezone: Int,
     val orientation: Int,
@@ -29,12 +38,12 @@ data class FinalUserData (
     val osVersions: OSVersion,
     val connectionType: Int,
     val connectionSpeedKbps: Int,
-    val networkMeteredStatus: Boolean,
+    val networkMetered: Boolean,
     val deviceMetrics: DeviceMetrics,
-    val appInstalledHistory: List<AppStatus>,
-    val appUsageHistory: List<AppUsage>,
+    val appInstalledHistory: List<AppInstallStatus>,
+    val appUsageHistory: List<AppUsageStatus>,
     val currentLocation: Location,
-    val locationHistory: List<LocationResult>,
+    val locationHistory: List<LocationStatus>,
 )
 
 data class OSVersion (
@@ -53,12 +62,12 @@ data class DeviceMetrics (
     val pxRatio: Float
 )
 
-data class AppStatus (
+data class AppInstallStatus (
     val packageName: String,
     val installed: Boolean
 )
 
-data class AppUsage (
+data class AppUsageStatus (
     val packageName: String,
     val totalTimeUsedMillis: Long
 )
@@ -68,10 +77,10 @@ data class Location (
     val latitude: Double,
     val longitude: Double,
     val locationProvider: Int,
-    val isPreciseLocation: Boolean
+    val preciseLocation: Boolean
 )
 
-data class LocationResult (
+data class LocationStatus (
     val latitude: Double,
     val longitude: Double,
     val durationMillis: Long

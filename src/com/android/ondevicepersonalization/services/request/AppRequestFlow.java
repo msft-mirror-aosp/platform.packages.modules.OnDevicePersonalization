@@ -43,6 +43,7 @@ import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -214,10 +215,10 @@ public class AppRequestFlow {
     private ListenableFuture<Long> logQuery(SelectContentResult result) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
-        // TODO(b/228200518): Populate queryData
-        byte[] queryData = new byte[1];
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(result);
         Query query = new Query.Builder()
-                .setQuery(queryData)
+                .setServicePackageName(mServicePackageName)
+                .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
         long queryId = EventsDao.getInstance(mContext).insertQuery(query);
