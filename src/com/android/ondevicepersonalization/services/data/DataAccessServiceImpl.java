@@ -33,6 +33,7 @@ import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -178,7 +179,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     .setQueryId(mEventUrlData.mQueryId)
                     .setServicePackageName(mServicePackageName)
                     .setTimeMillis(mInjector.getTimeMillis())
-                    .setEventData(new byte[0])  // TODO(b/268718770): Add event data.
+                    // TODO(b/268718770): Populate event data with meaningful data.
+                    .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(null))
                     .setSlotId(mEventUrlData.mSlotId)
                     .setSlotPosition(0)  // TODO(b/268718770): Add slot position.
                     .setSlotIndex(0) // TODO(b/268718770): Add slot index.
