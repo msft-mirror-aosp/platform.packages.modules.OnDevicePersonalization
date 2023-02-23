@@ -19,7 +19,10 @@ package com.android.odpsamplenetwork;
 import android.annotation.NonNull;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.EventMetricsInput;
+import android.ondevicepersonalization.EventMetricsResult;
 import android.ondevicepersonalization.EventUrlOptions;
+import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RemoteData;
@@ -31,6 +34,7 @@ import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
+import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
@@ -59,9 +63,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
 public class SamplePersonalizationService extends PersonalizationService {
-    public final String TAG = "SamplePersonalizationService";
+    public static final String TAG = "SamplePersonalizationService";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
+    public static final double COST_RAISING_FACTOR = 2.0;
+    private static final String BID_PRICE_KEY = "bidprice";
+
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(
                     /* nThreads */ 4,
@@ -97,6 +104,15 @@ public class SamplePersonalizationService extends PersonalizationService {
     ) {
         Log.d(TAG, "renderContent() started.");
         sBackgroundExecutor.execute(() -> handleRenderContentRequest(input, odpContext, consumer));
+    }
+
+    @Override public void computeEventMetrics(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull Consumer<EventMetricsResult> consumer) {
+        Log.d(TAG, "computeEventMetrics() started.");
+        sBackgroundExecutor.execute(
+                () -> handleComputeEventMetricsRequest(input, odpContext, consumer));
     }
 
     private ListenableFuture<Map<String, byte[]>> readRemoteData(
@@ -191,6 +207,11 @@ public class SamplePersonalizationService extends PersonalizationService {
 
     private SelectContentResult buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
+        PersistableBundle eventParams = new PersistableBundle();
+        // Duplicate ad price in event parameters.
+        // TODO(b/259950177): Update cost raising API to provide query/bid
+        // during cost raising, then remove this workaround.
+        eventParams.putDouble(BID_PRICE_KEY, ad.mPrice);
         return new SelectContentResult.Builder()
                 .addSlotResults(
                     new SlotResult.Builder()
@@ -200,6 +221,7 @@ public class SamplePersonalizationService extends PersonalizationService {
                                 .setPrice(ad.mPrice)
                                 .setScore(ad.mPrice * 10)
                                 .setEventsWithMetrics(EVENT_TYPE_CLICK)
+                                .setEventMetricsParameters(eventParams)
                                 .build())
                         .build())
                 .build();
@@ -320,6 +342,31 @@ public class SamplePersonalizationService extends PersonalizationService {
 
         } catch (Exception e) {
             Log.e(TAG, "handleRenderContentRequest failed.", e);
+            consumer.accept(null);
+        }
+    }
+
+    public void handleComputeEventMetricsRequest(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull Consumer<EventMetricsResult> consumer) {
+        try {
+            Log.d(TAG, "handleComputeEventMetricsRequest() started.");
+            if (input.getEventType() != EVENT_TYPE_CLICK) {
+                consumer.accept(new EventMetricsResult.Builder().build());
+                return;
+            }
+            double bidPrice = 0.0;
+            if (input.getEventParams() != null) {
+                bidPrice = input.getEventParams().getDouble(BID_PRICE_KEY);
+            }
+            double updatedPrice = bidPrice * COST_RAISING_FACTOR;
+            EventMetricsResult result = new EventMetricsResult.Builder()
+                    .setMetrics(new Metrics.Builder().setFloatValues(updatedPrice).build())
+                    .build();
+            consumer.accept(result);
+        } catch (Exception e) {
+            Log.e(TAG, "handleComputeEventMetricsResult failed.", e);
             consumer.accept(null);
         }
     }
