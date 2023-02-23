@@ -140,6 +140,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 }
                 int eventType = params.getInt(Constants.EXTRA_EVENT_TYPE);
                 String bidId = params.getString(Constants.EXTRA_BID_ID);
+                String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
                 if (eventType == 0 || bidId == null || bidId.isEmpty()) {
                     throw new IllegalArgumentException("Missing eventType or bidId");
                 }
@@ -147,7 +148,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     throw new IllegalArgumentException("Invalid bidId");
                 }
                 mInjector.getExecutor().execute(
-                        () -> getEventUrl(eventType, bidId, callback)
+                        () -> getEventUrl(eventType, bidId, destinationUrl, callback)
                 );
                 break;
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_SCAN:
@@ -171,7 +172,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     }
 
     private void getEventUrl(
-            int eventType, @NonNull String bidId, @NonNull IDataAccessServiceCallback callback) {
+            int eventType, @NonNull String bidId, @Nullable String destinationUrl,
+            @NonNull IDataAccessServiceCallback callback) {
         try {
             Log.d(TAG, "getEventUrl() started.");
             Event event = new Event.Builder()
@@ -185,8 +187,15 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     .setSlotPosition(0)  // TODO(b/268718770): Add slot position.
                     .setSlotIndex(0) // TODO(b/268718770): Add slot index.
                     .setBidId(bidId).build();
-            String eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(
-                    new EventUrlPayload.Builder().setEvent(event).build());
+            String eventUrl;
+            if (destinationUrl == null || destinationUrl.isEmpty()) {
+                eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(
+                        new EventUrlPayload.Builder().setEvent(event).build());
+            } else {
+                eventUrl = EventUrlHelper.getEncryptedClickTrackingUrl(
+                        new EventUrlPayload.Builder().setEvent(event).build(),
+                        destinationUrl);
+            }
             Bundle result = new Bundle();
             result.putString(Constants.EXTRA_RESULT, eventUrl);
             Log.d(TAG, "getEventUrl() success. Url: " + eventUrl);
