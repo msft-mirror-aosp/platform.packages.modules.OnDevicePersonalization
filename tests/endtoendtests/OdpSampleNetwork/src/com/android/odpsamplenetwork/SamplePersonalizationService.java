@@ -19,6 +19,7 @@ package com.android.odpsamplenetwork;
 import android.annotation.NonNull;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.EventUrlOptions;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RemoteData;
@@ -39,6 +40,7 @@ import android.util.Log;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -113,15 +115,6 @@ public class SamplePersonalizationService extends PersonalizationService {
                     });
             return "readRemoteData";
         });
-    }
-
-    FluentFuture<Integer> getNumAds(RemoteData remoteData) {
-        Log.d(TAG, "getNumAds() called.");
-        return FluentFuture.from(readRemoteData(remoteData, List.of("numads")))
-                .transform(
-                    result -> Integer.parseInt(new String(result.get("numads"))),
-                    sBackgroundExecutor
-                );
     }
 
     FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
@@ -214,18 +207,89 @@ public class SamplePersonalizationService extends PersonalizationService {
         }
     }
 
+    private ListenableFuture<String> getEventUrl(
+            int eventType, String bidId, String landingPage,
+            OnDevicePersonalizationContext odpContext) {
+        return CallbackToFutureAdapter.getFuture(completer -> {
+            Log.d(TAG, "getEventUrl(): " + eventType);
+            int responseType = landingPage != null
+                    ? EventUrlOptions.RESPONSE_TYPE_NO_CONTENT
+                    : EventUrlOptions.RESPONSE_TYPE_REDIRECT;
+            odpContext.getEventUrl(
+                    eventType,
+                    bidId,
+                    new EventUrlOptions.Builder()
+                        .setResponseType(responseType)
+                        .setDestinationUrl(landingPage)
+                        .build(),
+                    sBackgroundExecutor,
+                    new OutcomeReceiver<String, Exception>() {
+                        @Override public void onResult(String result) {
+                            completer.set(result);
+                        }
+                        @Override public void onError(Exception e) {
+                            completer.setException(e);
+                        }
+                    });
+            return "getEventUrl";
+        });
+    }
+
+    private FluentFuture<Ad> readAd(String id, RemoteData remoteData) {
+        return FluentFuture.from(readRemoteData(remoteData, List.of(id)))
+                .transform(
+                    result -> parseAd(id, result.get(id)),
+                    sBackgroundExecutor
+                );
+    }
+
+    RenderContentResult buildRenderContentResult(Ad ad, String impressionUrl, String clickUrl) {
+        String content =
+                "<img src=\"" + impressionUrl + "\">\n"
+                + "<a href=\"" + clickUrl + "\">Click Here!</a>";
+        Log.d(TAG, "content: " + content);
+        return new RenderContentResult.Builder().setContent(content).build();
+    }
+
     public void handleRenderContentRequest(
             @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderContentResult> consumer
     ) {
-        Log.d(TAG, "renderContent() started.");
-        String content = "<h2>Winners</h2>" + String.join(",", input.getBidIds()) + "<p>";
-        RenderContentResult result =
-                new RenderContentResult.Builder()
-                        .setContent(content).build();
-        Log.d(TAG, "renderContent() finished.");
-        consumer.accept(result);
+        try {
+            Log.d(TAG, "handleRenderContentRequest() started.");
+            String id = input.getBidIds().get(0);
+            var adFuture = readAd(id, odpContext.getRemoteData());
+            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, id, "", odpContext);
+            var clickUrlFuture = adFuture.transformAsync(
+                    ad -> getEventUrl(EVENT_TYPE_CLICK, id, ad.mLandingPage, odpContext),
+                    sBackgroundExecutor);
+            var unused = FluentFuture.from(
+                    Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
+                        .call(
+                            () -> buildRenderContentResult(
+                                Futures.getDone(adFuture), Futures.getDone(impUrlFuture),
+                                Futures.getDone(clickUrlFuture)),
+                            MoreExecutors.directExecutor()))
+                    .transform(
+                        result -> {
+                            consumer.accept(result);
+                            return null;
+                        },
+                        MoreExecutors.directExecutor())
+                    .catching(
+                        Exception.class,
+                        e -> {
+                            Log.e(TAG, "Execution failed.", e);
+                            consumer.accept(null);
+                            return null;
+                        },
+                        MoreExecutors.directExecutor());
+
+        } catch (Exception e) {
+            Log.e(TAG, "handleRenderContentRequest failed.", e);
+            consumer.accept(null);
+        }
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
