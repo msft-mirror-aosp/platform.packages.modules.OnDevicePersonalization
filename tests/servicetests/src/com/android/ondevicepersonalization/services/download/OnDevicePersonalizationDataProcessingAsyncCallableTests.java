@@ -30,7 +30,6 @@ import com.android.ondevicepersonalization.services.data.OnDevicePersonalization
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.data.vendor.VendorDataContract;
-import com.android.ondevicepersonalization.services.download.mdd.LocalFileDownloader;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -80,8 +79,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                        executorService, mContext), executorService);
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();

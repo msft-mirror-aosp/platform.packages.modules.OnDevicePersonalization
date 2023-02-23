@@ -26,6 +26,7 @@ import android.content.IntentFilter;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.res.Configuration;
+import android.database.Cursor;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
@@ -51,6 +52,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Deque;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -126,9 +128,8 @@ public class UserDataCollector {
 
     /**
      * Collects in-memory user data signals and stores in a UserData object.
-     * TODO (b/261642339): read database to reset metadata and histograms in case of system crash.
     */
-    public void initializeUserData(@NonNull UserData userData) {
+    public void initializeUserData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
@@ -147,15 +148,19 @@ public class UserDataCollector {
 
         getInstalledApps(userData.appsInfo);
 
+        recoverAppUsageHistogram(userData.appUsageHistory);
+
         getAppUsageStats(userData.appUsageHistory);
         // TODO (b/261748573): add non-trivial tests for location collection and histogram updates.
+        recoverLocationHistogram(userData.locationHistory);
+
         getLastknownLocation(userData.locationHistory, userData.currentLocation);
 
         getCurrentLocation(userData.locationHistory, userData.currentLocation);
     }
 
     /** Update real-time user data to the latest per request. */
-    public void getRealTimeData(@NonNull UserData userData) {
+    public void getRealTimeData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
@@ -338,9 +343,9 @@ public class UserDataCollector {
 
     /** Collects connection type. */
     @VisibleForTesting
-    public UserData.ConnectionType getConnectionType() {
+    public RawUserData.ConnectionType getConnectionType() {
         if (mNetworkCapabilities == null) {
-            return UserData.ConnectionType.UNKNOWN;
+            return RawUserData.ConnectionType.UNKNOWN;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
             switch (mTelephonyManager.getDataNetworkType()) {
                 case TelephonyManager.NETWORK_TYPE_1xRTT:
@@ -349,7 +354,7 @@ public class UserDataCollector {
                 case TelephonyManager.NETWORK_TYPE_GPRS:
                 case TelephonyManager.NETWORK_TYPE_GSM:
                 case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return UserData.ConnectionType.CELLULAR_2G;
+                    return RawUserData.ConnectionType.CELLULAR_2G;
                 case TelephonyManager.NETWORK_TYPE_EHRPD:
                 case TelephonyManager.NETWORK_TYPE_EVDO_0:
                 case TelephonyManager.NETWORK_TYPE_EVDO_A:
@@ -360,21 +365,21 @@ public class UserDataCollector {
                 case TelephonyManager.NETWORK_TYPE_HSUPA:
                 case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
                 case TelephonyManager.NETWORK_TYPE_UMTS:
-                    return UserData.ConnectionType.CELLULAR_3G;
+                    return RawUserData.ConnectionType.CELLULAR_3G;
                 case TelephonyManager.NETWORK_TYPE_LTE:
                 case TelephonyManager.NETWORK_TYPE_IWLAN:
-                    return UserData.ConnectionType.CELLULAR_4G;
+                    return RawUserData.ConnectionType.CELLULAR_4G;
                 case TelephonyManager.NETWORK_TYPE_NR:
-                    return UserData.ConnectionType.CELLULAR_5G;
+                    return RawUserData.ConnectionType.CELLULAR_5G;
                 default:
-                    return UserData.ConnectionType.UNKNOWN;
+                    return RawUserData.ConnectionType.UNKNOWN;
             }
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            return UserData.ConnectionType.WIFI;
+            return RawUserData.ConnectionType.WIFI;
         } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-            return UserData.ConnectionType.ETHERNET;
+            return RawUserData.ConnectionType.ETHERNET;
         }
-        return UserData.ConnectionType.UNKNOWN;
+        return RawUserData.ConnectionType.UNKNOWN;
     }
 
     /** Collects metered status. */
@@ -594,11 +599,9 @@ public class UserDataCollector {
      * Get 24-hour app usage stats from [yesterday's midnight] to [tonight's midnight],
      * write them to database, and update the [appUsageHistory] histogram.
      * Skip the current collection cycle if yesterday's stats has been collected.
-     * @return true if app usage stats is collected, stored in database, and histogram is updated,
-     * false if any of data collection, data storage, or histogram update fails.
     */
     @VisibleForTesting
-    public boolean getAppUsageStats(HashMap<String, Long> appUsageHistory) {
+    public void getAppUsageStats(HashMap<String, Long> appUsageHistory) {
         Calendar cal = Calendar.getInstance();
         // Obtain the 24-hour query range between [yesterday midnight] and [today midnight].
         cal.set(Calendar.MILLISECOND, 0);
@@ -609,7 +612,7 @@ public class UserDataCollector {
 
         // Skip the current collection cycle.
         if (endTimeMillis == mLastTimeMillisAppUsageCollected) {
-            return false;
+            return;
         }
 
         // Collect yesterday's app usage stats.
@@ -621,19 +624,26 @@ public class UserDataCollector {
 
         List<AppUsageEntry> appUsageEntries = new ArrayList<>();
         for (UsageStats stats: statsList) {
+            if (stats.getTotalTimeVisible() == 0) {
+                continue;
+            }
             appUsageEntries.add(new AppUsageEntry(stats.getPackageName(),
                     startTimeMillis, endTimeMillis, stats.getTotalTimeVisible()));
         }
 
+        // TODO(267678607): refactor the business logic when no stats is available.
+        if (appUsageEntries.size() == 0) {
+            return;
+        }
+
         // Update database.
         if (!mUserDataDao.batchInsertAppUsageStatsData(appUsageEntries)) {
-            return false;
+            return;
         }
         // Update in-memory histogram.
         updateAppUsageHistogram(appUsageHistory, appUsageEntries);
         // Update metadata if all steps succeed as a transaction.
         mLastTimeMillisAppUsageCollected = endTimeMillis;
-        return true;
     }
 
     /**
@@ -789,7 +799,7 @@ public class UserDataCollector {
      * Util to reset all fields in [UserData] to default for testing purpose
      */
     @VisibleForTesting
-    public void clearUserData(@NonNull UserData userData) {
+    public void clearUserData(@NonNull RawUserData userData) {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
@@ -799,7 +809,7 @@ public class UserDataCollector {
         userData.language = Language.UNKNOWN;
         userData.carrier = Carrier.UNKNOWN;
         userData.osVersions = new OSVersion();
-        userData.connectionType = UserData.ConnectionType.UNKNOWN;
+        userData.connectionType = RawUserData.ConnectionType.UNKNOWN;
         userData.networkMeteredStatus = false;
         userData.connectionSpeedKbps = 0;
         userData.deviceMetrics = new DeviceMetrics();
@@ -809,23 +819,124 @@ public class UserDataCollector {
     }
 
     /**
-     * Reset last time collection timestamp in case of system crash.
+     * Util to reset all in-memory metadata for testing purpose.
      */
-    public void setLastTimeMillisAppUsageCollected(long lastTimeMillisAppUsageCollected) {
-        mLastTimeMillisAppUsageCollected = lastTimeMillisAppUsageCollected;
+    @VisibleForTesting
+    public void clearMetadata() {
+        mLastTimeMillisAppUsageCollected = 0L;
+        mAllowedAppUsageEntries = new ArrayDeque<>();
+        mAllowedLocationEntries = new ArrayDeque<>();
     }
 
     /**
-     * Reset allowed app usage entries in case of system crash.
+     * Reset app usage histogram and metadata in case of system crash.
+     * Only used during initial data collection.
      */
-    public void setAllowedAppUsageEntries(Deque<AppUsageEntry> allowedAppUsageEntries) {
-        mAllowedAppUsageEntries = allowedAppUsageEntries;
+    @VisibleForTesting
+    public void recoverAppUsageHistogram(HashMap<String, Long> appUsageHistory) {
+        Cursor cursor = mUserDataDao.readAppUsageInLastXDays(UserDataDao.TTL_IN_MEMORY_DAYS);
+        if (cursor == null) {
+            return;
+        }
+        // Metadata to be reset.
+        appUsageHistory.clear();
+        mLastTimeMillisAppUsageCollected = 0L;
+        mAllowedAppUsageEntries.clear();
+
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+                String packageName = cursor.getString(cursor.getColumnIndex(
+                        UserDataTables.AppUsageHistory.PACKAGE_NAME));
+                long startTimeMillis = cursor.getLong(cursor.getColumnIndex(
+                        UserDataTables.AppUsageHistory.STARTING_TIME_SEC));
+                long endTimeMillis = cursor.getLong(cursor.getColumnIndex(
+                        UserDataTables.AppUsageHistory.ENDING_TIME_SEC));
+                long totalTimeUsedMillis =  cursor.getLong(cursor.getColumnIndex(
+                        UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC));
+                mAllowedAppUsageEntries.add(new AppUsageEntry(packageName,
+                        startTimeMillis, endTimeMillis, totalTimeUsedMillis));
+                appUsageHistory.put(packageName, appUsageHistory.getOrDefault(packageName,
+                        0L) + totalTimeUsedMillis);
+                cursor.moveToNext();
+            }
+        }
+
+        if (cursor.moveToLast()) {
+            mLastTimeMillisAppUsageCollected = cursor.getLong(cursor.getColumnIndex(
+                    UserDataTables.AppUsageHistory.ENDING_TIME_SEC));
+        }
     }
 
     /**
-     * Reset allowed location entries in case of system crash.
+     * Reset location histogram and metadata in case of system crash.
      */
-    public void setAllowedLocationEntries(Deque<LocationInfo> allowedLocationEntries) {
-        mAllowedLocationEntries = allowedLocationEntries;
+    @VisibleForTesting
+    public void recoverLocationHistogram(HashMap<LocationInfo, Long> locationHistory) {
+        Cursor cursor = mUserDataDao.readLocationInLastXDays(mUserDataDao.TTL_IN_MEMORY_DAYS);
+        if (cursor == null) {
+            return;
+        }
+        // Metadata to be reset.
+        locationHistory.clear();
+        mAllowedLocationEntries.clear();
+
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+                long timeMillis = cursor.getLong(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.TIME_SEC));
+                String latitude = cursor.getString(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.LATITUDE));
+                String longitude = cursor.getString(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.LONGITUDE));
+                int source = cursor.getInt(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.SOURCE));
+                boolean isPrecise = cursor.getInt(cursor.getColumnIndex(
+                        UserDataTables.LocationHistory.IS_PRECISE)) > 0;
+                mAllowedLocationEntries.add(new LocationInfo(timeMillis,
+                        Double.parseDouble(latitude),
+                        Double.parseDouble(longitude),
+                        LocationProvider.fromInteger(source),
+                        isPrecise));
+                cursor.moveToNext();
+            }
+        }
+
+        Iterator<LocationInfo> iterator = mAllowedLocationEntries.iterator();
+        while (iterator.hasNext()) {
+            LocationInfo currentLocation = iterator.next();
+            if (!iterator.hasNext()) {
+                return;
+            }
+            LocationInfo nextLocation = iterator.next();
+            final long duration = nextLocation.timeMillis - currentLocation.timeMillis;
+            if (duration < 0) {
+                Log.v(TAG, "LocationInfo entries are retrieved with wrong order.");
+            }
+            locationHistory.put(currentLocation,
+                    locationHistory.getOrDefault(currentLocation, 0L) + duration);
+        }
+    }
+
+    @VisibleForTesting
+    public long getLastTimeMillisAppUsageCollected() {
+        return mLastTimeMillisAppUsageCollected;
+    }
+
+    @VisibleForTesting
+    public Deque<AppUsageEntry> getAllowedAppUsageEntries() {
+        return mAllowedAppUsageEntries;
+    }
+
+    @VisibleForTesting
+    public Deque<LocationInfo> getAllowedLocationEntries() {
+        return mAllowedLocationEntries;
+    }
+
+    /**
+     * Clear all user data in database for testing purpose.
+     */
+    @VisibleForTesting
+    public void clearDatabase() {
+        mUserDataDao.clearUserData();
     }
 }

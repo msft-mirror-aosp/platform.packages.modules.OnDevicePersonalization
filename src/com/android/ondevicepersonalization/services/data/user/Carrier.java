@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.data.user;
 /**
  * A enum class for most carriers used by Android devices.
  */
-enum Carrier {
+public enum Carrier {
     UNKNOWN,
     RELIANCE_JIO,  // Reliance Jio
     VODAFONE,  // Vodafone

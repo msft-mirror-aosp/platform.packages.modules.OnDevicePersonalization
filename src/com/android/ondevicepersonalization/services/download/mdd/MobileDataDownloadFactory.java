@@ -17,46 +17,25 @@
 package com.android.ondevicepersonalization.services.download.mdd;
 
 import android.content.Context;
-import android.content.SharedPreferences;
 
 import androidx.annotation.NonNull;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
-import com.google.android.downloader.AndroidDownloaderLogger;
-import com.google.android.downloader.ConnectivityHandler;
-import com.google.android.downloader.DownloadConstraints;
-import com.google.android.downloader.Downloader;
-import com.google.android.downloader.PlatformUrlEngine;
-import com.google.android.downloader.UrlEngine;
+import com.google.android.libraries.mobiledatadownload.Flags;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownloadBuilder;
 import com.google.android.libraries.mobiledatadownload.downloader.FileDownloader;
-import com.google.android.libraries.mobiledatadownload.downloader.offroad.ExceptionHandler;
-import com.google.android.libraries.mobiledatadownload.downloader.offroad.Offroad2FileDownloader;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.android.libraries.mobiledatadownload.file.backends.AndroidFileBackend;
 import com.google.android.libraries.mobiledatadownload.file.backends.JavaFileBackend;
-import com.google.android.libraries.mobiledatadownload.file.integration.downloader.DownloadMetadataStore;
-import com.google.android.libraries.mobiledatadownload.file.integration.downloader.SharedPreferencesDownloadMetadata;
 import com.google.android.libraries.mobiledatadownload.monitor.NetworkUsageMonitor;
 import com.google.common.base.Optional;
 import com.google.common.collect.ImmutableList;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
-
-import java.util.concurrent.Executor;
 
 /** Mobile Data Download Factory. */
 public class MobileDataDownloadFactory {
-    /** Downloader Connection Timeout in Milliseconds. */
-    private static final int DOWNLOADER_CONNECTION_TIMEOUT_MS = 10 * 1000; // 10 seconds
-    /** Downloader Read Timeout in Milliseconds. */
-    private static final int DOWNLOADER_READ_TIMEOUT_MS = 10 * 1000; // 10 seconds.
-    /** Downloader max download threads. */
-    private static final int DOWNLOADER_MAX_DOWNLOAD_THREADS = 2;
-    private static final String MDD_METADATA_SHARED_PREFERENCES = "mdd_metadata_store";
     private static MobileDataDownload sSingleton;
     private static SynchronousFileStorage sSynchronousFileStorage;
 
@@ -64,14 +43,20 @@ public class MobileDataDownloadFactory {
     @NonNull
     public static synchronized MobileDataDownload getMdd(
             @NonNull Context context) {
-        return getMdd(context, getFileDownloader(context), getControlExecutor());
+        synchronized (MobileDataDownloadFactory.class) {
+            if (sSingleton != null) {
+                return sSingleton;
+            }
+        }
+        return getMdd(context, getControlExecutor(), getDownloadExecutor());
     }
 
     /** Returns a singleton of MobileDataDownload. */
     @NonNull
     public static synchronized MobileDataDownload getMdd(
-            @NonNull Context context, @NonNull FileDownloader downloader,
-            @NonNull ListeningExecutorService executor) {
+            @NonNull Context context,
+            @NonNull ListeningExecutorService controlExecutor,
+            @NonNull ListeningExecutorService downloadExecutor) {
         synchronized (MobileDataDownloadFactory.class) {
             if (sSingleton == null) {
                 SynchronousFileStorage fileStorage = getFileStorage(context);
@@ -84,13 +69,15 @@ public class MobileDataDownloadFactory {
                 sSingleton =
                         MobileDataDownloadBuilder.newBuilder()
                                 .setContext(context)
-                                .setControlExecutor(executor)
+                                .setControlExecutor(controlExecutor)
                                 .setTaskScheduler(Optional.of(new MddTaskScheduler(context)))
                                 .setNetworkUsageMonitor(getNetworkUsageMonitor(context))
                                 .setFileStorage(fileStorage)
-                                .setFileDownloaderSupplier(() -> downloader)
+                                .setFileDownloaderSupplier(
+                                        () -> getFileDownloader(context, downloadExecutor))
                                 .addFileGroupPopulator(
                                         new OnDevicePersonalizationFileGroupPopulator(context))
+                                .setFlagsOptional(Optional.of(getFlags()))
                                 .build();
             }
 
@@ -125,63 +112,20 @@ public class MobileDataDownloadFactory {
     }
 
     @NonNull
-    private static Executor getDownloadExecutor() {
+    private static FileDownloader getFileDownloader(
+            @NonNull Context context,
+            @NonNull ListeningExecutorService downloadExecutor) {
+        return new OnDevicePersonalizationFileDownloader(getFileStorage(context),
+                downloadExecutor, context);
+    }
+
+    @NonNull
+    private static ListeningExecutorService getDownloadExecutor() {
         return OnDevicePersonalizationExecutors.getBackgroundExecutor();
     }
 
     @NonNull
-    private static UrlEngine getUrlEngine() {
-        // TODO(b/219594618): Switch to use CronetUrlEngine.
-        return new PlatformUrlEngine(
-                OnDevicePersonalizationExecutors.getBlockingExecutor(),
-                DOWNLOADER_CONNECTION_TIMEOUT_MS,
-                DOWNLOADER_READ_TIMEOUT_MS);
-    }
-
-    @NonNull
-    private static ExceptionHandler getExceptionHandler() {
-        return ExceptionHandler.withDefaultHandling();
-    }
-
-    @NonNull
-    private static FileDownloader getFileDownloader(
-            @NonNull Context context) {
-        DownloadMetadataStore downloadMetadataStore = getDownloadMetadataStore(context);
-
-        Downloader downloader =
-                new Downloader.Builder()
-                        .withIOExecutor(OnDevicePersonalizationExecutors.getBlockingExecutor())
-                        .withConnectivityHandler(new NoOpConnectivityHandler())
-                        .withMaxConcurrentDownloads(DOWNLOADER_MAX_DOWNLOAD_THREADS)
-                        .withLogger(new AndroidDownloaderLogger())
-                        .addUrlEngine("https", getUrlEngine())
-                        .build();
-
-        return new Offroad2FileDownloader(
-                downloader,
-                getFileStorage(context),
-                getDownloadExecutor(),
-                /* authTokenProvider */ null,
-                downloadMetadataStore,
-                getExceptionHandler(),
-                Optional.absent());
-    }
-
-    @NonNull
-    private static DownloadMetadataStore getDownloadMetadataStore(@NonNull Context context) {
-        SharedPreferences sharedPrefs =
-                context.getSharedPreferences(MDD_METADATA_SHARED_PREFERENCES, Context.MODE_PRIVATE);
-        DownloadMetadataStore downloadMetadataStore =
-                new SharedPreferencesDownloadMetadata(
-                        sharedPrefs, OnDevicePersonalizationExecutors.getBackgroundExecutor());
-        return downloadMetadataStore;
-    }
-
-    // Connectivity constraints will be checked by JobScheduler/WorkManager instead.
-    private static class NoOpConnectivityHandler implements ConnectivityHandler {
-        @Override
-        public ListenableFuture<Void> checkConnectivity(DownloadConstraints constraints) {
-            return Futures.immediateVoidFuture();
-        }
+    private static Flags getFlags() {
+        return new OnDevicePersonalizationMddFlags();
     }
 }

@@ -47,6 +47,9 @@ public class EventUrlHelper {
     private static final String URL_EVENT_KEY = "e";
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
+    private EventUrlHelper() {
+    }
+
     private static SecretKey getSecretKey() throws Exception {
         KeyStore keyStore = KeyStore.getInstance(PROVIDER);
         keyStore.load(null);

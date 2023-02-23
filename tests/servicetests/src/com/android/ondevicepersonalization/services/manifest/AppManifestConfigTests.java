@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.manifest;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -32,7 +33,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class AppManifestConfigTests {
     private static final String BASE_DOWNLOAD_URL =
-            "https://www.gstatic.com/ondevicepersonalization/testing/test_data1.json";
+            "android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1";
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Test
@@ -53,5 +54,11 @@ public class AppManifestConfigTests {
                 AppManifestConfigHelper.getAppManifestConfig(mContext, mContext.getPackageName());
         assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
         assertEquals("com.test.TestPersonalizationService", config.getServiceName());
+    }
+
+    @Test
+    public void testAppManifestConfigBadPackage() {
+        assertThrows(IllegalArgumentException.class,
+                () -> AppManifestConfigHelper.getAppManifestConfig(mContext, "badPackageName"));
     }
 }

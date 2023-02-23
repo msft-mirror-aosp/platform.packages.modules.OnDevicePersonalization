@@ -17,25 +17,23 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.os.Parcelable;
-import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The output to be rendered in a slot within a calling app.
+ * App installed status for app installed history.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class AppRequestInput implements Parcelable {
-    /** The package name of the calling app. */
-    @NonNull String mAppPackageName;
+public final class AppInstallStatus implements Parcelable {
+    /** Package name. */
+    @NonNull String mPackageName;
 
-    /** Parameters provided by the app to the {@link PersonalizationService}. */
-    @Nullable PersistableBundle mAppParams;
+    /** Installed status: installed - true; uninstalled - false. */
+    @NonNull boolean mInstalled;
 
 
 
@@ -45,7 +43,7 @@ public final class AppRequestInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppRequestInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -53,48 +51,50 @@ public final class AppRequestInput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ AppRequestInput(
-            @NonNull String appPackageName,
-            @Nullable PersistableBundle appParams) {
-        this.mAppPackageName = appPackageName;
+    /* package-private */ AppInstallStatus(
+            @NonNull String packageName,
+            @NonNull boolean installed) {
+        this.mPackageName = packageName;
         AnnotationValidations.validate(
-                NonNull.class, null, mAppPackageName);
-        this.mAppParams = appParams;
+                NonNull.class, null, mPackageName);
+        this.mInstalled = installed;
+        AnnotationValidations.validate(
+                NonNull.class, null, mInstalled);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The package name of the calling app.
+     * Package name.
      */
     @DataClass.Generated.Member
-    public @NonNull String getAppPackageName() {
-        return mAppPackageName;
+    public @NonNull String getPackageName() {
+        return mPackageName;
     }
 
     /**
-     * Parameters provided by the app to the {@link PersonalizationService}.
+     * Installed status: installed - true; uninstalled - false.
      */
     @DataClass.Generated.Member
-    public @Nullable PersistableBundle getAppParams() {
-        return mAppParams;
+    public @NonNull boolean isInstalled() {
+        return mInstalled;
     }
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@Nullable Object o) {
+    public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(AppRequestInput other) { ... }
+        // boolean fieldNameEquals(AppInstallStatus other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        AppRequestInput that = (AppRequestInput) o;
+        AppInstallStatus that = (AppInstallStatus) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mAppPackageName, that.mAppPackageName)
-                && java.util.Objects.equals(mAppParams, that.mAppParams);
+                && java.util.Objects.equals(mPackageName, that.mPackageName)
+                && mInstalled == that.mInstalled;
     }
 
     @Override
@@ -104,8 +104,8 @@ public final class AppRequestInput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mAppPackageName);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mAppParams);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mPackageName);
+        _hash = 31 * _hash + Boolean.hashCode(mInstalled);
         return _hash;
     }
 
@@ -116,10 +116,9 @@ public final class AppRequestInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mAppParams != null) flg |= 0x2;
+        if (mInstalled) flg |= 0x2;
         dest.writeByte(flg);
-        dest.writeString(mAppPackageName);
-        if (mAppParams != null) dest.writeTypedObject(mAppParams, flags);
+        dest.writeString(mPackageName);
     }
 
     @Override
@@ -129,84 +128,102 @@ public final class AppRequestInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ AppRequestInput(@NonNull android.os.Parcel in) {
+    /* package-private */ AppInstallStatus(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        String appPackageName = in.readString();
-        PersistableBundle appParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        boolean installed = (flg & 0x2) != 0;
+        String packageName = in.readString();
 
-        this.mAppPackageName = appPackageName;
+        this.mPackageName = packageName;
         AnnotationValidations.validate(
-                NonNull.class, null, mAppPackageName);
-        this.mAppParams = appParams;
+                NonNull.class, null, mPackageName);
+        this.mInstalled = installed;
+        AnnotationValidations.validate(
+                NonNull.class, null, mInstalled);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<AppRequestInput> CREATOR
-            = new Parcelable.Creator<AppRequestInput>() {
+    public static final @NonNull Parcelable.Creator<AppInstallStatus> CREATOR
+            = new Parcelable.Creator<AppInstallStatus>() {
         @Override
-        public AppRequestInput[] newArray(int size) {
-            return new AppRequestInput[size];
+        public AppInstallStatus[] newArray(int size) {
+            return new AppInstallStatus[size];
         }
 
         @Override
-        public AppRequestInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new AppRequestInput(in);
+        public AppInstallStatus createFromParcel(@NonNull android.os.Parcel in) {
+            return new AppInstallStatus(in);
         }
     };
 
     /**
-     * A builder for {@link AppRequestInput}
+     * A builder for {@link AppInstallStatus}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull String mAppPackageName;
-        private @Nullable PersistableBundle mAppParams;
+        private @NonNull String mPackageName;
+        private @NonNull boolean mInstalled;
 
         private long mBuilderFieldsSet = 0L;
 
         /**
          * Creates a new Builder.
+         *
+         * @param packageName
+         *   Package name.
+         * @param installed
+         *   Installed status: installed - true; uninstalled - false.
          */
+        public Builder(
+                @NonNull String packageName,
+                @NonNull boolean installed) {
+            mPackageName = packageName;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mPackageName);
+            mInstalled = installed;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mInstalled);
+        }
+
         public Builder() {
         }
 
         /**
-         * The package name of the calling app.
+         * Package name.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setAppPackageName(@NonNull String value) {
+        public @NonNull Builder setPackageName(@NonNull String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mAppPackageName = value;
+            mPackageName = value;
             return this;
         }
 
         /**
-         * Parameters provided by the app to the {@link PersonalizationService}.
+         * Installed status: installed - true; uninstalled - false.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
+        public @NonNull Builder setInstalled(@NonNull boolean value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mAppParams = value;
+            mInstalled = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull AppRequestInput build() {
+        public @NonNull AppInstallStatus build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
-            AppRequestInput o = new AppRequestInput(
-                    mAppPackageName,
-                    mAppParams);
+            AppInstallStatus o = new AppInstallStatus(
+                    mPackageName,
+                    mInstalled);
             return o;
         }
 
@@ -219,10 +236,10 @@ public final class AppRequestInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1673311094960L,
+            time = 1676499861915L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppRequestInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass AppRequestInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java",
+            inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull boolean mInstalled\nclass AppInstallStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
