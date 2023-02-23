@@ -117,7 +117,7 @@ public class SamplePersonalizationService extends PersonalizationService {
         });
     }
 
-    FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
+    private FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
         Log.d(TAG, "readAds() called.");
         return FluentFuture.from(readRemoteData(remoteData, List.of("numads")))
                 .transformAsync(
@@ -146,19 +146,50 @@ public class SamplePersonalizationService extends PersonalizationService {
                 );
     }
 
-    List<Ad> filterAds(List<Ad> ads, SelectContentInput input) {
+    private boolean isMatch(Ad ad, String requestKeyword) {
+        if (ad.mTargetKeyword != null && !ad.mTargetKeyword.isEmpty()) {
+            if (!ad.mTargetKeyword.equals(requestKeyword)) {
+                return false;
+            }
+        }
+        if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
+            if (ad.mExcludeKeyword.equals(requestKeyword)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<Ad> filterAds(List<Ad> ads, SelectContentInput input) {
         Log.d(TAG, "filterAds() called.");
-        // TODO(b/263493591): Implement match logic.
-        return ads;
+        String requestKeyword = "";
+        if (input != null && input.getAppParams() != null
+                && input.getAppParams().getString("keyword") != null) {
+            requestKeyword = input.getAppParams().getString("keyword");
+        }
+        List<Ad> result = new ArrayList<>();
+        for (Ad ad: ads) {
+            if (isMatch(ad, requestKeyword)) {
+                result.add(ad);
+            }
+        }
+        return result;
     }
 
-    Ad runAuction(List<Ad> ads) {
+    private Ad runAuction(List<Ad> ads) {
         Log.d(TAG, "runAuction() called.");
-        // TODO(b/263493591): Implement auction logic.
-        return ads.get(0);
+        Ad winner = null;
+        double maxPrice = 0.0;
+        for (Ad ad: ads) {
+            if (ad.mPrice > maxPrice) {
+                winner = ad;
+                maxPrice = ad.mPrice;
+            }
+        }
+        return winner;
     }
 
-    SelectContentResult buildResult(Ad ad) {
+    private SelectContentResult buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
         return new SelectContentResult.Builder()
                 .addSlotResults(
@@ -243,7 +274,8 @@ public class SamplePersonalizationService extends PersonalizationService {
                 );
     }
 
-    RenderContentResult buildRenderContentResult(Ad ad, String impressionUrl, String clickUrl) {
+    private RenderContentResult buildRenderContentResult(
+            Ad ad, String impressionUrl, String clickUrl) {
         String content =
                 "<img src=\"" + impressionUrl + "\">\n"
                 + "<a href=\"" + clickUrl + "\">Click Here!</a>";
@@ -251,7 +283,7 @@ public class SamplePersonalizationService extends PersonalizationService {
         return new RenderContentResult.Builder().setContent(content).build();
     }
 
-    public void handleRenderContentRequest(
+    private void handleRenderContentRequest(
             @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderContentResult> consumer
