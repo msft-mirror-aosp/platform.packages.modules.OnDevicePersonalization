@@ -173,6 +173,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                     finalVendorDataMap),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                    .catching(
+                            Exception.class,
+                            e -> {
+                                Log.e(TAG, "Processing failed.", e);
+                                return null;
+                            },
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             Log.e(TAG, "Could not run isolated service.", e);
