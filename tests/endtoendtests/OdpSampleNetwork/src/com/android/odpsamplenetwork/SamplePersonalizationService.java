@@ -46,6 +46,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -227,6 +229,7 @@ public class SamplePersonalizationService extends PersonalizationService {
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
+        Log.d(TAG, "getFilteredKeys() called.");
         List<String> filteredKeys = new ArrayList<String>();
         // Add all keys from the file into the list
         try (InputStream in =
@@ -305,9 +308,35 @@ public class SamplePersonalizationService extends PersonalizationService {
     }
 
     Ad parseAd(String id, byte[] data) {
-        Log.d(TAG, "parseAd: " + id + " " + new String(data));
+        String dataStr = new String(data, StandardCharsets.UTF_8);
+        Log.d(TAG, "parseAd: " + id + " " + dataStr);
         // TODO(b/263493591): Parse JSON ad.
-        return new Ad(id, 1.0, "", "", "");
+        try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
+            reader.beginObject();
+            double price = 0.0;
+            String targetKeyword = "";
+            String excludeKeyword = "";
+            String landingPage = "";
+            while (reader.hasNext()) {
+                String name = reader.nextName();
+                if (name.equals("price")) {
+                    price = reader.nextDouble();
+                } else if (name.equals("keyword")) {
+                    targetKeyword = reader.nextString();
+                } else if (name.equals("excludekeyword")) {
+                    excludeKeyword = reader.nextString();
+                } else if (name.equals("landingPage")) {
+                    landingPage = reader.nextString();
+                } else {
+                    reader.skipValue();
+                }
+            }
+            reader.endObject();
+            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage);
+        } catch (Exception e) {
+            Log.e(TAG, "parseAd() failed.", e);
+            return null;
+        }
     }
 
     private static ThreadPolicy getIoThreadPolicy() {
