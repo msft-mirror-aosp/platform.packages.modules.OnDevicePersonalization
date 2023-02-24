@@ -18,8 +18,11 @@ package com.android.ondevicepersonalization.services.display;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -34,15 +37,45 @@ import java.util.concurrent.Executor;
 
 class OdpWebViewClient extends WebViewClient {
     private static final String TAG = "OdpWebViewClient";
-    private final Executor mExecutor;
+
+    static class Injector {
+        Executor getExecutor() {
+            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
+        }
+
+        void openUrl(String landingPage, Context context) {
+            if (landingPage != null) {
+                Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(landingPage));
+                intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+                context.startActivity(intent);
+            }
+        }
+    }
+
+    private final Injector mInjector;
 
     OdpWebViewClient() {
-        this(OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        this(new Injector());
     }
 
     @VisibleForTesting
-    OdpWebViewClient(Executor executor) {
-        this.mExecutor = executor;
+    OdpWebViewClient(Injector injector) {
+        this.mInjector = injector;
+    }
+
+    @Override public WebResourceResponse shouldInterceptRequest(
+            @NonNull WebView webView, @NonNull WebResourceRequest request) {
+        if (webView == null || request == null || request.getUrl() == null) {
+            Log.e(TAG, "Received null webView or Request or Url");
+            return null;
+        }
+        String url = request.getUrl().toString();
+        if (EventUrlHelper.isOdpUrl(url)) {
+            mInjector.getExecutor().execute(() -> writeEvent(
+                    webView.getContext(), url));
+            // TODO(b/242753206): Return an empty response.
+        }
+        return null;
     }
 
     @Override
@@ -55,13 +88,11 @@ class OdpWebViewClient extends WebViewClient {
         //Decode odp://localhost/ URIs and call Events table API to write an event.
         String url = request.getUrl().toString();
         if (EventUrlHelper.isOdpUrl(url)) {
-            mExecutor.execute(() -> writeEvent(
+            mInjector.getExecutor().execute(() -> writeEvent(
                     webView.getContext(), url));
             String landingPage = request.getUrl().getQueryParameter(
                     EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY);
-            if (landingPage != null) {
-                webView.loadUrl(landingPage);
-            }
+            mInjector.openUrl(landingPage, webView.getContext());
         } else {
             // TODO(b/263180569): Handle any non-odp URLs
             Log.d(TAG, "Non-odp URL encountered: " + url);

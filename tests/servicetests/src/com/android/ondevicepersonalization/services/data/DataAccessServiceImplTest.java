@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 
 import android.content.Context;
+import android.net.Uri;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -92,6 +93,43 @@ public class DataAccessServiceImplTest {
         assertEquals(mApplicationContext.getPackageName(),
                 payload.getEvent().getServicePackageName());
         assertEquals("bid5", payload.getEvent().getBidId());
+    }
+
+    @Test
+    public void testGetClickUrl() throws Exception {
+        Bundle params = new Bundle();
+        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
+        params.putString(Constants.EXTRA_BID_ID, "bid5");
+        params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
+        ArrayList<String> bidIds = new ArrayList<String>();
+        bidIds.add("bid1");
+        bidIds.add("bid3");
+        bidIds.add("bid5");
+        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
+                new DataAccessServiceImpl.EventUrlQueryData(1357, "slot1", bidIds);
+        var serviceImpl = new DataAccessServiceImpl(
+                "com.example.testapp", mApplicationContext.getPackageName(), mApplicationContext,
+                true, eventUrlData, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotEquals(null, mResult);
+        String eventUrl = mResult.getString(Constants.EXTRA_RESULT);
+        assertNotEquals(null, eventUrl);
+        EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
+        assertNotEquals(null, payload);
+        assertEquals(4, payload.getEvent().getType());
+        assertEquals(1357, payload.getEvent().getQueryId());
+        assertEquals(1000, payload.getEvent().getTimeMillis());
+        assertEquals("slot1", payload.getEvent().getSlotId());
+        assertEquals(mApplicationContext.getPackageName(),
+                payload.getEvent().getServicePackageName());
+        assertEquals("bid5", payload.getEvent().getBidId());
+        Uri uri = Uri.parse(eventUrl);
+        assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), "http://example.com");
     }
 
     class TestCallback extends IDataAccessServiceCallback.Stub {
