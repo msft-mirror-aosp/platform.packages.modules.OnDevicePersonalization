@@ -92,8 +92,10 @@ public class AppRequestFlow {
             @NonNull ListeningExecutorService executorService,
             @NonNull Context context) {
         this(callingPackageName, servicePackageName, hostToken, displayId, width, height, params,
-                callback, executorService, context, new DisplayHelper(context));
+                callback, executorService, context,
+                new DisplayHelper(context, servicePackageName));
     }
+
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
@@ -280,6 +282,7 @@ public class AppRequestFlow {
                 .transformAsync(
                         result -> mDisplayHelper.displayHtml(
                                 result,
+                                slotResult,
                                 surfaceInfo.mHostToken,
                                 surfaceInfo.mDisplayId,
                                 surfaceInfo.mWidth,
@@ -297,8 +300,7 @@ public class AppRequestFlow {
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, false,
-                new DataAccessServiceImpl.EventUrlQueryData(
-                    queryId, slotResult.getSlotId(), bidIds));
+                new DataAccessServiceImpl.EventUrlQueryData(queryId, slotResult));
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         // TODO(b/228200518): Create event handling URLs.
         return ProcessUtils.runIsolatedService(
