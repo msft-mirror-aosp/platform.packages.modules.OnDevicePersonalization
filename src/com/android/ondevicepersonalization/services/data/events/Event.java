@@ -65,7 +65,7 @@ public class Event implements Serializable {
     private final String mSlotId;
 
     /** Blob representing the event. */
-    @NonNull
+    @Nullable
     private final byte[] mEventData;
 
 
@@ -93,7 +93,7 @@ public class Event implements Serializable {
             @NonNull int type,
             @NonNull long timeMillis,
             @Nullable String slotId,
-            @NonNull byte[] eventData) {
+            @Nullable byte[] eventData) {
         this.mQueryId = queryId;
         AnnotationValidations.validate(
                 NonNull.class, null, mQueryId);
@@ -117,8 +117,6 @@ public class Event implements Serializable {
                 NonNull.class, null, mTimeMillis);
         this.mSlotId = slotId;
         this.mEventData = eventData;
-        AnnotationValidations.validate(
-                NonNull.class, null, mEventData);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -191,7 +189,7 @@ public class Event implements Serializable {
      * Blob representing the event.
      */
     @DataClass.Generated.Member
-    public @NonNull byte[] getEventData() {
+    public @Nullable byte[] getEventData() {
         return mEventData;
     }
 
@@ -253,7 +251,7 @@ public class Event implements Serializable {
         private @NonNull int mType;
         private @NonNull long mTimeMillis;
         private @Nullable String mSlotId;
-        private @NonNull byte[] mEventData;
+        private @Nullable byte[] mEventData;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -291,7 +289,7 @@ public class Event implements Serializable {
                 @NonNull int type,
                 @NonNull long timeMillis,
                 @Nullable String slotId,
-                @NonNull byte[] eventData) {
+                @Nullable byte[] eventData) {
             mQueryId = queryId;
             AnnotationValidations.validate(
                     NonNull.class, null, mQueryId);
@@ -315,8 +313,6 @@ public class Event implements Serializable {
                     NonNull.class, null, mTimeMillis);
             mSlotId = slotId;
             mEventData = eventData;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mEventData);
         }
 
         /**
@@ -445,10 +441,10 @@ public class Event implements Serializable {
     }
 
     @DataClass.Generated(
-            time = 1676502966925L,
+            time = 1677014614282L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Event.java",
-            inputSignatures = "private final @android.annotation.NonNull long mQueryId\nprivate final @android.annotation.NonNull long mSlotIndex\nprivate final @android.annotation.NonNull java.lang.String mBidId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull int mSlotPosition\nprivate final @android.annotation.NonNull int mType\nprivate final @android.annotation.NonNull long mTimeMillis\nprivate final @android.annotation.Nullable java.lang.String mSlotId\nprivate final @android.annotation.NonNull byte[] mEventData\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final @android.annotation.NonNull long mQueryId\nprivate final @android.annotation.NonNull long mSlotIndex\nprivate final @android.annotation.NonNull java.lang.String mBidId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull int mSlotPosition\nprivate final @android.annotation.NonNull int mType\nprivate final @android.annotation.NonNull long mTimeMillis\nprivate final @android.annotation.Nullable java.lang.String mSlotId\nprivate final @android.annotation.Nullable byte[] mEventData\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

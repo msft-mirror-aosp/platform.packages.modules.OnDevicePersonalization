@@ -20,7 +20,11 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.net.Uri;
+import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SlotResult;
+import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -37,6 +41,7 @@ import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.fbs.EventFields;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -46,6 +51,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
@@ -57,6 +63,13 @@ import java.util.concurrent.atomic.AtomicReference;
 public class OdpWebViewClientTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
+    private final SlotResult mSlotResult = new SlotResult.Builder()
+            .addWinningBids(
+                new ScoredBid.Builder()
+                    .setBidId("bidId")
+                    .setEventMetricsParameters(createEventMetricsParameters())
+                    .build())
+            .build();
     private final Event mTestEvent = new Event.Builder()
             .setType(EventType.B2D.getValue())
             .setEventData("event".getBytes(StandardCharsets.UTF_8))
@@ -106,7 +119,7 @@ public class OdpWebViewClientTests {
 
     @Test
     public void testValidUrl() throws Exception {
-        WebViewClient webViewClient = new OdpWebViewClient(new TestInjector());
+        WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
@@ -125,7 +138,7 @@ public class OdpWebViewClientTests {
         AtomicBoolean result = new AtomicBoolean(false);
         AtomicReference<String> actualLandingPage = new AtomicReference<>();
         OnDevicePersonalizationExecutors.getHandler().postAtFrontOfQueue(() -> {
-            WebViewClient webViewClient = new OdpWebViewClient(new TestInjector());
+            WebViewClient webViewClient = getWebViewClient();
             result.set(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
             latch.countDown();
         });
@@ -139,8 +152,36 @@ public class OdpWebViewClientTests {
     }
 
     @Test
+    public void testValidUrlWithEventMetrics() throws Exception {
+        WebViewClient webViewClient = getWebViewClient();
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("a", 10);
+        params.putDouble("b", 5.0);
+        EventUrlPayload payload = new EventUrlPayload.Builder()
+                .setEvent(mTestEvent)
+                .setEventMetricsRequired(true)
+                .build();
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
+        WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+        assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
+        Cursor result =
+                mDbHelper.getReadableDatabase().query(
+                    EventsContract.EventsEntry.TABLE_NAME, null,
+                    null, null, null, null, null);
+        assertEquals(1, result.getCount());
+        result.moveToFirst();
+        int dataColumn = result.getColumnIndex("eventData");
+        byte[] data = result.getBlob(dataColumn);
+        EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(data));
+        assertEquals(1, eventFields.metrics().intValuesLength());
+        assertEquals(10, eventFields.metrics().intValues(0));
+        assertEquals(1, eventFields.metrics().floatValuesLength());
+        assertEquals(5.0, eventFields.metrics().floatValues(0), 0.001);
+    }
+
+    @Test
     public void testInvalidUrl() {
-        WebViewClient webViewClient = new OdpWebViewClient(new TestInjector());
+        WebViewClient webViewClient = getWebViewClient();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(
                 Uri.parse("https://www.google.com"));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
@@ -158,6 +199,18 @@ public class OdpWebViewClientTests {
             mOpenedUrl = url;
         }
     }
+    private WebViewClient getWebViewClient() {
+        return new OdpWebViewClient(mContext, mContext.getPackageName(), mSlotResult,
+                new TestInjector());
+    }
+
+    private PersistableBundle createEventMetricsParameters() {
+        PersistableBundle data = new PersistableBundle();
+        data.putInt("a", 10);
+        data.putDouble("b", 5.0);
+        return data;
+    }
+
     static class OdpWebView extends WebView {
         private String mLastLoadedUrl;
 
