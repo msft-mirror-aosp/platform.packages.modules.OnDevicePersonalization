@@ -49,6 +49,7 @@ import org.junit.runners.JUnit4;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -77,6 +78,7 @@ public class OdpWebViewClientTests {
     private EventsDao mDao;
     private OnDevicePersonalizationDbHelper mDbHelper;
     private OdpWebView mWebView;
+    private String mOpenedUrl;
 
     @Before
     public void setup() throws Exception {
@@ -104,7 +106,7 @@ public class OdpWebViewClientTests {
 
     @Test
     public void testValidUrl() throws Exception {
-        WebViewClient webViewClient = new OdpWebViewClient(MoreExecutors.directExecutor());
+        WebViewClient webViewClient = new OdpWebViewClient(new TestInjector());
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
@@ -123,15 +125,14 @@ public class OdpWebViewClientTests {
         AtomicBoolean result = new AtomicBoolean(false);
         AtomicReference<String> actualLandingPage = new AtomicReference<>();
         OnDevicePersonalizationExecutors.getHandler().postAtFrontOfQueue(() -> {
-            WebViewClient webViewClient = new OdpWebViewClient(MoreExecutors.directExecutor());
+            WebViewClient webViewClient = new OdpWebViewClient(new TestInjector());
             result.set(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-            actualLandingPage.set(mWebView.getLastLoadedUrl());
             latch.countDown();
         });
         latch.await();
 
         assertTrue(result.get());
-        assertEquals(landingPage, actualLandingPage.get());
+        assertEquals(landingPage, mOpenedUrl);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -139,7 +140,7 @@ public class OdpWebViewClientTests {
 
     @Test
     public void testInvalidUrl() {
-        WebViewClient webViewClient = new OdpWebViewClient(MoreExecutors.directExecutor());
+        WebViewClient webViewClient = new OdpWebViewClient(new TestInjector());
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(
                 Uri.parse("https://www.google.com"));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
@@ -148,6 +149,15 @@ public class OdpWebViewClientTests {
                         null, null, null, null, null).getCount());
     }
 
+    class TestInjector extends OdpWebViewClient.Injector {
+        Executor getExecutor() {
+            return MoreExecutors.directExecutor();
+        }
+
+        void openUrl(String url, Context context) {
+            mOpenedUrl = url;
+        }
+    }
     static class OdpWebView extends WebView {
         private String mLastLoadedUrl;
 
