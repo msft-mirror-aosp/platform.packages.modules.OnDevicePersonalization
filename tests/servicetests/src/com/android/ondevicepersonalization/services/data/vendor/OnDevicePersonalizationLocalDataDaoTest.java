@@ -55,7 +55,7 @@ public class OnDevicePersonalizationLocalDataDaoTest {
 
     @Test
     public void testInsertAndRead() {
-        mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(),
+        mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                 System.currentTimeMillis());
 
         byte[] data = new byte[10];

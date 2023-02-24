@@ -104,7 +104,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         List<VendorData> existingData = new ArrayList<>();
         existingData.add(mContentExtra);
-        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData,
+        List<String> retain = new ArrayList<>();
+        retain.add("keyExtra");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData, retain,
                 System.currentTimeMillis()));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =

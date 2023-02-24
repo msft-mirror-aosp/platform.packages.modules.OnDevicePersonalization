@@ -104,7 +104,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName))
-                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), timestamp));
+                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
+                        timestamp));
 
         String downloadUrl =
                 OnDevicePersonalizationFileGroupPopulator.addDownloadUrlQueryParameters(

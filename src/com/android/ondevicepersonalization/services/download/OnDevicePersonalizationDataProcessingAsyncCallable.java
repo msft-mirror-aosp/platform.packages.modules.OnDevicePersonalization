@@ -187,14 +187,16 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         DownloadResult downloadResult = pluginResult.getParcelable(
                 Constants.EXTRA_RESULT, DownloadResult.class);
         List<String> retainedKeys = downloadResult.getKeysToRetain();
-        if (retainedKeys != null) {
-            for (String key : retainedKeys) {
-                if (vendorDataMap.containsKey(key)) {
-                    filteredList.add(vendorDataMap.get(key));
-                }
+        if (retainedKeys == null) {
+            // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
+            return null;
+        }
+        for (String key : retainedKeys) {
+            if (vendorDataMap.containsKey(key)) {
+                filteredList.add(vendorDataMap.get(key));
             }
         }
-        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
+        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList, retainedKeys,
                 syncToken);
         return null;
     }
