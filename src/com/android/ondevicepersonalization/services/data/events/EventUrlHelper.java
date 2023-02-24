@@ -142,7 +142,7 @@ public class EventUrlHelper {
      */
     public static boolean isOdpUrl(@NonNull String url) {
         Uri uri = Uri.parse(url);
-        return uri.getAuthority().equals(URI_AUTHORITY)
-                && uri.getScheme().equals(URI_SCHEME);
+        return URI_SCHEME.equals(uri.getScheme())
+                && URI_AUTHORITY.equals(uri.getAuthority());
     }
 }
