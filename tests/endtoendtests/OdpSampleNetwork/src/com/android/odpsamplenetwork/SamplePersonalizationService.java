@@ -19,6 +19,10 @@ package com.android.odpsamplenetwork;
 import android.annotation.NonNull;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.EventMetricsInput;
+import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.EventUrlOptions;
+import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RemoteData;
@@ -30,6 +34,7 @@ import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
+import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
@@ -39,6 +44,7 @@ import android.util.Log;
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -46,6 +52,8 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -55,9 +63,12 @@ import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
 public class SamplePersonalizationService extends PersonalizationService {
-    public final String TAG = "SamplePersonalizationService";
+    public static final String TAG = "SamplePersonalizationService";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
+    public static final double COST_RAISING_FACTOR = 2.0;
+    private static final String BID_PRICE_KEY = "bidprice";
+
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(
                     /* nThreads */ 4,
@@ -95,6 +106,15 @@ public class SamplePersonalizationService extends PersonalizationService {
         sBackgroundExecutor.execute(() -> handleRenderContentRequest(input, odpContext, consumer));
     }
 
+    @Override public void computeEventMetrics(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull Consumer<EventMetricsResult> consumer) {
+        Log.d(TAG, "computeEventMetrics() started.");
+        sBackgroundExecutor.execute(
+                () -> handleComputeEventMetricsRequest(input, odpContext, consumer));
+    }
+
     private ListenableFuture<Map<String, byte[]>> readRemoteData(
             RemoteData remoteData, List<String> keys) {
         return CallbackToFutureAdapter.getFuture(completer -> {
@@ -113,16 +133,7 @@ public class SamplePersonalizationService extends PersonalizationService {
         });
     }
 
-    FluentFuture<Integer> getNumAds(RemoteData remoteData) {
-        Log.d(TAG, "getNumAds() called.");
-        return FluentFuture.from(readRemoteData(remoteData, List.of("numads")))
-                .transform(
-                    result -> Integer.parseInt(new String(result.get("numads"))),
-                    sBackgroundExecutor
-                );
-    }
-
-    FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
+    private FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
         Log.d(TAG, "readAds() called.");
         return FluentFuture.from(readRemoteData(remoteData, List.of("numads")))
                 .transformAsync(
@@ -151,20 +162,56 @@ public class SamplePersonalizationService extends PersonalizationService {
                 );
     }
 
-    List<Ad> filterAds(List<Ad> ads, SelectContentInput input) {
+    private boolean isMatch(Ad ad, String requestKeyword) {
+        if (ad.mTargetKeyword != null && !ad.mTargetKeyword.isEmpty()) {
+            if (!ad.mTargetKeyword.equals(requestKeyword)) {
+                return false;
+            }
+        }
+        if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
+            if (ad.mExcludeKeyword.equals(requestKeyword)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private List<Ad> filterAds(List<Ad> ads, SelectContentInput input) {
         Log.d(TAG, "filterAds() called.");
-        // TODO(b/263493591): Implement match logic.
-        return ads;
+        String requestKeyword = "";
+        if (input != null && input.getAppParams() != null
+                && input.getAppParams().getString("keyword") != null) {
+            requestKeyword = input.getAppParams().getString("keyword");
+        }
+        List<Ad> result = new ArrayList<>();
+        for (Ad ad: ads) {
+            if (isMatch(ad, requestKeyword)) {
+                result.add(ad);
+            }
+        }
+        return result;
     }
 
-    Ad runAuction(List<Ad> ads) {
+    private Ad runAuction(List<Ad> ads) {
         Log.d(TAG, "runAuction() called.");
-        // TODO(b/263493591): Implement auction logic.
-        return ads.get(0);
+        Ad winner = null;
+        double maxPrice = 0.0;
+        for (Ad ad: ads) {
+            if (ad.mPrice > maxPrice) {
+                winner = ad;
+                maxPrice = ad.mPrice;
+            }
+        }
+        return winner;
     }
 
-    SelectContentResult buildResult(Ad ad) {
+    private SelectContentResult buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
+        PersistableBundle eventParams = new PersistableBundle();
+        // Duplicate ad price in event parameters.
+        // TODO(b/259950177): Update cost raising API to provide query/bid
+        // during cost raising, then remove this workaround.
+        eventParams.putDouble(BID_PRICE_KEY, ad.mPrice);
         return new SelectContentResult.Builder()
                 .addSlotResults(
                     new SlotResult.Builder()
@@ -174,6 +221,7 @@ public class SamplePersonalizationService extends PersonalizationService {
                                 .setPrice(ad.mPrice)
                                 .setScore(ad.mPrice * 10)
                                 .setEventsWithMetrics(EVENT_TYPE_CLICK)
+                                .setEventMetricsParameters(eventParams)
                                 .build())
                         .build())
                 .build();
@@ -212,21 +260,119 @@ public class SamplePersonalizationService extends PersonalizationService {
         }
     }
 
-    public void handleRenderContentRequest(
+    private ListenableFuture<String> getEventUrl(
+            int eventType, String bidId, String landingPage,
+            OnDevicePersonalizationContext odpContext) {
+        return CallbackToFutureAdapter.getFuture(completer -> {
+            Log.d(TAG, "getEventUrl(): " + eventType);
+            int responseType = landingPage != null
+                    ? EventUrlOptions.RESPONSE_TYPE_NO_CONTENT
+                    : EventUrlOptions.RESPONSE_TYPE_REDIRECT;
+            odpContext.getEventUrl(
+                    eventType,
+                    bidId,
+                    new EventUrlOptions.Builder()
+                        .setResponseType(responseType)
+                        .setDestinationUrl(landingPage)
+                        .build(),
+                    sBackgroundExecutor,
+                    new OutcomeReceiver<String, Exception>() {
+                        @Override public void onResult(String result) {
+                            completer.set(result);
+                        }
+                        @Override public void onError(Exception e) {
+                            completer.setException(e);
+                        }
+                    });
+            return "getEventUrl";
+        });
+    }
+
+    private FluentFuture<Ad> readAd(String id, RemoteData remoteData) {
+        return FluentFuture.from(readRemoteData(remoteData, List.of(id)))
+                .transform(
+                    result -> parseAd(id, result.get(id)),
+                    sBackgroundExecutor
+                );
+    }
+
+    private RenderContentResult buildRenderContentResult(
+            Ad ad, String impressionUrl, String clickUrl) {
+        String content =
+                "<img src=\"" + impressionUrl + "\">\n"
+                + "<a href=\"" + clickUrl + "\">" + ad.mText + "</a>";
+        Log.d(TAG, "content: " + content);
+        return new RenderContentResult.Builder().setContent(content).build();
+    }
+
+    private void handleRenderContentRequest(
             @NonNull RenderContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderContentResult> consumer
     ) {
-        Log.d(TAG, "renderContent() started.");
-        String content = "<h2>Winners</h2>" + String.join(",", input.getBidIds()) + "<p>";
-        RenderContentResult result =
-                new RenderContentResult.Builder()
-                        .setContent(content).build();
-        Log.d(TAG, "renderContent() finished.");
-        consumer.accept(result);
+        try {
+            Log.d(TAG, "handleRenderContentRequest() started.");
+            String id = input.getBidIds().get(0);
+            var adFuture = readAd(id, odpContext.getRemoteData());
+            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, id, "", odpContext);
+            var clickUrlFuture = adFuture.transformAsync(
+                    ad -> getEventUrl(EVENT_TYPE_CLICK, id, ad.mLandingPage, odpContext),
+                    sBackgroundExecutor);
+            var unused = FluentFuture.from(
+                    Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
+                        .call(
+                            () -> buildRenderContentResult(
+                                Futures.getDone(adFuture), Futures.getDone(impUrlFuture),
+                                Futures.getDone(clickUrlFuture)),
+                            MoreExecutors.directExecutor()))
+                    .transform(
+                        result -> {
+                            consumer.accept(result);
+                            return null;
+                        },
+                        MoreExecutors.directExecutor())
+                    .catching(
+                        Exception.class,
+                        e -> {
+                            Log.e(TAG, "Execution failed.", e);
+                            consumer.accept(null);
+                            return null;
+                        },
+                        MoreExecutors.directExecutor());
+
+        } catch (Exception e) {
+            Log.e(TAG, "handleRenderContentRequest failed.", e);
+            consumer.accept(null);
+        }
+    }
+
+    public void handleComputeEventMetricsRequest(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull Consumer<EventMetricsResult> consumer) {
+        try {
+            Log.d(TAG, "handleComputeEventMetricsRequest() started.");
+            if (input.getEventType() != EVENT_TYPE_CLICK) {
+                consumer.accept(new EventMetricsResult.Builder().build());
+                return;
+            }
+            double bidPrice = 0.0;
+            if (input.getEventParams() != null) {
+                bidPrice = input.getEventParams().getDouble(BID_PRICE_KEY);
+            }
+            double updatedPrice = bidPrice * COST_RAISING_FACTOR;
+            EventMetricsResult result = new EventMetricsResult.Builder()
+                    .setMetrics(new Metrics.Builder().setFloatValues(updatedPrice).build())
+                    .build();
+            consumer.accept(result);
+        } catch (Exception e) {
+            Log.e(TAG, "handleComputeEventMetricsResult failed.", e);
+            consumer.accept(null);
+        }
     }
 
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
+        Log.d(TAG, "getFilteredKeys() called.");
         List<String> filteredKeys = new ArrayList<String>();
         // Add all keys from the file into the list
         try (InputStream in =
@@ -294,20 +440,51 @@ public class SamplePersonalizationService extends PersonalizationService {
         final String mTargetKeyword;
         final String mExcludeKeyword;
         final String mLandingPage;
+        final String mText;
         Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage) {
+                String landingPage, String text) {
             mId = id;
             mPrice = price;
             mTargetKeyword = targetKeyword;
             mExcludeKeyword = excludeKeyword;
             mLandingPage = landingPage;
+            mText = text;
         }
     }
 
     Ad parseAd(String id, byte[] data) {
-        Log.d(TAG, "parseAd: " + id + " " + new String(data));
+        String dataStr = new String(data, StandardCharsets.UTF_8);
+        Log.d(TAG, "parseAd: " + id + " " + dataStr);
         // TODO(b/263493591): Parse JSON ad.
-        return new Ad(id, 1.0, "", "", "");
+        try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
+            reader.beginObject();
+            double price = 0.0;
+            String targetKeyword = "";
+            String excludeKeyword = "";
+            String landingPage = "";
+            String text = "Click Here!";
+            while (reader.hasNext()) {
+                String name = reader.nextName();
+                if (name.equals("price")) {
+                    price = reader.nextDouble();
+                } else if (name.equals("keyword")) {
+                    targetKeyword = reader.nextString();
+                } else if (name.equals("excludekeyword")) {
+                    excludeKeyword = reader.nextString();
+                } else if (name.equals("landingPage")) {
+                    landingPage = reader.nextString();
+                } else if (name.equals("text")) {
+                    text = reader.nextString();
+                } else {
+                    reader.skipValue();
+                }
+            }
+            reader.endObject();
+            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text);
+        } catch (Exception e) {
+            Log.e(TAG, "parseAd() failed.", e);
+            return null;
+        }
     }
 
     private static ThreadPolicy getIoThreadPolicy() {
