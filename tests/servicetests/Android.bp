@@ -49,6 +49,7 @@ android_test {
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
+    compile_multilib: "both",
     certificate: "platform",
     test_suites: [
         "general-tests",
