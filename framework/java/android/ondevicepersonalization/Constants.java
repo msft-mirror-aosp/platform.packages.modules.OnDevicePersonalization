@@ -38,6 +38,8 @@ public class Constants {
     public static final String
             EXTRA_BID_ID = "android.ondevicepersonalization.extra.bid_id";
     public static final String
+            EXTRA_DESTINATION_URL = "android.ondevicepersonalization.extra.destination_url";
+    public static final String
             EXTRA_EVENT_TYPE = "android.ondevicepersonalization.extra.event_type";
     public static final String
             EXTRA_INPUT = "android.ondevicepersonalization.extra.input";
