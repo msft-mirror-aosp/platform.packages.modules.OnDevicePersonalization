@@ -59,10 +59,13 @@ public class TestPersonalizationService extends PersonalizationService {
                     @Override
                     public void onResult(@NonNull Map<String, byte[]> result) {
                         Log.d(TAG, "OutcomeReceiver onResult: " + result);
+                        List<String> keysToRetain =
+                                getFilteredKeys(input.getParcelFileDescriptor());
+                        keysToRetain.add("keyExtra");
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
                                 new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
+                                .setKeysToRetain(keysToRetain)
                                 .build();
                         consumer.accept(downloadResult);
                     }
