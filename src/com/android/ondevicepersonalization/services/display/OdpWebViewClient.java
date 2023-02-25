@@ -20,6 +20,14 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.EventMetricsInput;
+import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.Metrics;
+import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SlotResult;
+import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -28,16 +36,28 @@ import android.webkit.WebViewClient;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
+import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
+import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.HashMap;
 import java.util.concurrent.Executor;
 
 class OdpWebViewClient extends WebViewClient {
     private static final String TAG = "OdpWebViewClient";
+    public static final String TASK_NAME = "ComputeEventMetrics";
 
+    @VisibleForTesting
     static class Injector {
         Executor getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
@@ -52,27 +72,38 @@ class OdpWebViewClient extends WebViewClient {
         }
     }
 
-    private final Injector mInjector;
+    @NonNull private final Context mContext;
+    @NonNull private final String mServicePackageName;
+    @NonNull private final HashMap<String, PersistableBundle> mEventParametersMap =
+            new HashMap<>();
+    @NonNull private final Injector mInjector;
 
-    OdpWebViewClient() {
-        this(new Injector());
+    OdpWebViewClient(Context context, String servicePackageName, SlotResult slotResult) {
+        this(context, servicePackageName, slotResult, new Injector());
     }
 
     @VisibleForTesting
-    OdpWebViewClient(Injector injector) {
-        this.mInjector = injector;
+    OdpWebViewClient(Context context, String servicePackageName, SlotResult slotResult,
+            Injector injector) {
+        mContext = context;
+        mServicePackageName = servicePackageName;
+        for (ScoredBid bid: slotResult.getWinningBids()) {
+            if (bid.getEventMetricsParameters() != null) {
+                mEventParametersMap.put(bid.getBidId(), bid.getEventMetricsParameters());
+            }
+        }
+        mInjector = injector;
     }
 
     @Override public WebResourceResponse shouldInterceptRequest(
-            @NonNull WebView webView, @NonNull WebResourceRequest request) {
+        @NonNull WebView webView, @NonNull WebResourceRequest request) {
         if (webView == null || request == null || request.getUrl() == null) {
             Log.e(TAG, "Received null webView or Request or Url");
             return null;
         }
         String url = request.getUrl().toString();
         if (EventUrlHelper.isOdpUrl(url)) {
-            mInjector.getExecutor().execute(() -> writeEvent(
-                    webView.getContext(), url));
+            mInjector.getExecutor().execute(() -> handleEvent(url));
             // TODO(b/242753206): Return an empty response.
         }
         return null;
@@ -88,8 +119,7 @@ class OdpWebViewClient extends WebViewClient {
         //Decode odp://localhost/ URIs and call Events table API to write an event.
         String url = request.getUrl().toString();
         if (EventUrlHelper.isOdpUrl(url)) {
-            mInjector.getExecutor().execute(() -> writeEvent(
-                    webView.getContext(), url));
+            mInjector.getExecutor().execute(() -> handleEvent(url));
             String landingPage = request.getUrl().getQueryParameter(
                     EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY);
             mInjector.openUrl(landingPage, webView.getContext());
@@ -101,15 +131,105 @@ class OdpWebViewClient extends WebViewClient {
         return true;
     }
 
-    private void writeEvent(Context context, String url) {
+    private ListenableFuture<EventMetricsResult> executeComputeEventMetricsHandler(
+            IsolatedServiceInfo isolatedServiceInfo, EventUrlPayload payload) {
         try {
-            EventUrlPayload eventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
-            Event event = eventUrlPayload.getEvent();
-            if (!EventsDao.getInstance(context).insertEvent(event)) {
+            Log.d(TAG, "executeComputeEventMetricsHandler() called");
+            Bundle serviceParams = new Bundle();
+            DataAccessServiceImpl binder = new DataAccessServiceImpl(
+                    null, mServicePackageName, mContext, true, null);
+            serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+            PersistableBundle eventParams = mEventParametersMap.get(payload.getEvent().getBidId());
+            // TODO(b/259950177): Add Query row to input.
+            EventMetricsInput input = new EventMetricsInput.Builder()
+                    .setEventType(payload.getEvent().getType())
+                    .setEventParams(eventParams)
+                    .build();
+            serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
+            return FluentFuture.from(
+                    ProcessUtils.runIsolatedService(
+                        isolatedServiceInfo,
+                        AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                                mContext, mServicePackageName),
+                        Constants.OP_COMPUTE_EVENT_METRICS,
+                        serviceParams))
+                    .transform(
+                            result -> result.getParcelable(
+                                Constants.EXTRA_RESULT, EventMetricsResult.class),
+                            mInjector.getExecutor());
+        } catch (Exception e) {
+            Log.e(TAG, "executeComputeEventMetricsHandler() failed", e);
+            return Futures.immediateFailedFuture(e);
+        }
+
+    }
+
+    ListenableFuture<EventMetricsResult> getEventMetrics(EventUrlPayload payload) {
+        try {
+            Log.d(TAG, "getEventMetrics() called");
+            if (!payload.isEventMetricsRequired()) {
+                return Futures.immediateFuture(new EventMetricsResult.Builder().build());
+            }
+
+            Log.d(TAG, "getEventMetrics(): Starting isolated process.");
+            return FluentFuture.from(ProcessUtils.loadIsolatedService(
+                    TASK_NAME, mServicePackageName, mContext))
+                .transformAsync(
+                        result -> executeComputeEventMetricsHandler(result, payload),
+                        mInjector.getExecutor());
+
+        } catch (Exception e) {
+            Log.e(TAG, "getEventMetrics() failed", e);
+            return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private ListenableFuture<Void> writeEvent(Event event, EventMetricsResult result) {
+        try {
+            Log.d(TAG, "writeEvent() called. event: " + event.toString() + " metrics: "
+                     + result.toString());
+            Metrics metrics = null;
+            if (result != null) {
+                metrics = result.getMetrics();
+            }
+            if (metrics == null) {
+                // Metrics required because eventData column is non-null.
+                metrics = new Metrics.Builder().build();
+            }
+            byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(metrics);
+            event = new Event.Builder(
+                    event.getQueryId(),
+                    event.getSlotIndex(),
+                    event.getBidId(),
+                    event.getServicePackageName(),
+                    event.getSlotPosition(),
+                    event.getType(),
+                    event.getTimeMillis(),
+                    event.getSlotId(),
+                    eventData).build();
+            if (!EventsDao.getInstance(mContext).insertEvent(event)) {
                 Log.e(TAG, "Failed to insert event: " + event);
             }
+            return Futures.immediateFuture(null);
         } catch (Exception e) {
-            Log.e(TAG, "Failed to decrypt EventUrlPayload", e);
+            Log.e(TAG, "writeEvent() failed", e);
+            return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private void handleEvent(String url) {
+        try {
+            Log.d(TAG, "handleEvent() called");
+            EventUrlPayload eventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
+            Event event = eventUrlPayload.getEvent();
+
+            var unused = FluentFuture.from(getEventMetrics(eventUrlPayload))
+                    .transformAsync(
+                        result -> writeEvent(event, result),
+                        mInjector.getExecutor());
+
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to handle Event", e);
         }
     }
 }
