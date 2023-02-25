@@ -21,6 +21,8 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -38,7 +40,6 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.HashMap;
-import java.util.List;
 import java.util.Objects;
 
 /**
@@ -52,11 +53,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     public static class EventUrlQueryData {
         final long mQueryId;
         final String mSlotId;
-        final List<String> mBidIds;
-        public EventUrlQueryData(long queryId, String slotId, List<String> bidIds) {
+        final HashMap<String, ScoredBid> mBids = new HashMap<String, ScoredBid>();
+        public EventUrlQueryData(long queryId, SlotResult slotResult) {
             mQueryId = queryId;
-            mSlotId = slotId;
-            mBidIds = bidIds;
+            mSlotId = slotResult.getSlotId();
+            for (ScoredBid bid : slotResult.getWinningBids()) {
+                mBids.put(bid.getBidId(), bid);
+            }
         }
     }
 
@@ -82,7 +85,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     @NonNull private final String mServicePackageName;
     private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
     private final boolean mIncludeUserData;
-    @Nullable private final EventUrlQueryData mEventUrlData;
+    @Nullable private final EventUrlQueryData mEventUrlQueryData;
     @NonNull private final Injector mInjector;
 
     public DataAccessServiceImpl(
@@ -90,9 +93,9 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeUserData,
-            @Nullable EventUrlQueryData eventUrlData) {
-        this(appPackageName, servicePackageName, applicationContext, includeUserData, eventUrlData,
-                new Injector());
+            @Nullable EventUrlQueryData eventUrlQueryData) {
+        this(appPackageName, servicePackageName, applicationContext, includeUserData,
+                eventUrlQueryData, new Injector());
     }
 
     @VisibleForTesting
@@ -101,7 +104,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeUserData,
-            @Nullable EventUrlQueryData eventUrlData,
+            @Nullable EventUrlQueryData eventUrlQueryData,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
         mServicePackageName = Objects.requireNonNull(servicePackageName);
@@ -112,7 +115,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
             mIncludeUserData = includeUserData;
             // if mIncludeUserData is true, also create a R/W DAO for the LOCAL_DATA table.
-            mEventUrlData = eventUrlData;
+            mEventUrlQueryData = eventUrlQueryData;
         } catch (PackageManager.NameNotFoundException nnfe) {
             throw new IllegalArgumentException("Package: " + servicePackageName
                     + " does not exist.", nnfe);
@@ -134,19 +137,20 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                                 params.getStringArray(Constants.EXTRA_LOOKUP_KEYS), callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_EVENT_URL:
-                if (mEventUrlData == null) {
+                if (mEventUrlQueryData == null) {
                     throw new IllegalArgumentException("EventUrl not available.");
                 }
                 int eventType = params.getInt(Constants.EXTRA_EVENT_TYPE);
                 String bidId = params.getString(Constants.EXTRA_BID_ID);
+                String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
                 if (eventType == 0 || bidId == null || bidId.isEmpty()) {
                     throw new IllegalArgumentException("Missing eventType or bidId");
                 }
-                if (!mEventUrlData.mBidIds.contains(bidId)) {
+                if (!mEventUrlQueryData.mBids.containsKey(bidId)) {
                     throw new IllegalArgumentException("Invalid bidId");
                 }
                 mInjector.getExecutor().execute(
-                        () -> getEventUrl(eventType, bidId, callback)
+                        () -> getEventUrl(eventType, bidId, destinationUrl, callback)
                 );
                 break;
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_SCAN:
@@ -170,21 +174,38 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     }
 
     private void getEventUrl(
-            int eventType, @NonNull String bidId, @NonNull IDataAccessServiceCallback callback) {
+            int eventType, @NonNull String bidId, @Nullable String destinationUrl,
+            @NonNull IDataAccessServiceCallback callback) {
         try {
             Log.d(TAG, "getEventUrl() started.");
             Event event = new Event.Builder()
                     .setType(eventType)
-                    .setQueryId(mEventUrlData.mQueryId)
+                    .setQueryId(mEventUrlQueryData.mQueryId)
                     .setServicePackageName(mServicePackageName)
                     .setTimeMillis(mInjector.getTimeMillis())
-                    .setEventData(new byte[0])  // TODO(b/268718770): Add event data.
-                    .setSlotId(mEventUrlData.mSlotId)
+                    .setSlotId(mEventUrlQueryData.mSlotId)
                     .setSlotPosition(0)  // TODO(b/268718770): Add slot position.
                     .setSlotIndex(0) // TODO(b/268718770): Add slot index.
                     .setBidId(bidId).build();
-            String eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(
-                    new EventUrlPayload.Builder().setEvent(event).build());
+
+            boolean needsMetrics = false;
+            for (int eventWithMetrics:
+                    mEventUrlQueryData.mBids.get(bidId).getEventsWithMetrics()) {
+                if (eventType == eventWithMetrics) {
+                    needsMetrics = true;
+                }
+            }
+            EventUrlPayload payload =  new EventUrlPayload.Builder()
+                    .setEvent(event)
+                    .setEventMetricsRequired(needsMetrics)
+                    .build();
+            String eventUrl;
+            if (destinationUrl == null || destinationUrl.isEmpty()) {
+                eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
+            } else {
+                eventUrl = EventUrlHelper.getEncryptedClickTrackingUrl(
+                        payload, destinationUrl);
+            }
             Bundle result = new Bundle();
             result.putString(Constants.EXTRA_RESULT, eventUrl);
             Log.d(TAG, "getEventUrl() success. Url: " + eventUrl);

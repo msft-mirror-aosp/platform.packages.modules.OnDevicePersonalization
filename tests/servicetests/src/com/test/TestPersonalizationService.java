@@ -19,6 +19,9 @@ package com.test;
 import android.annotation.NonNull;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.EventMetricsInput;
+import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RenderContentInput;
@@ -56,10 +59,13 @@ public class TestPersonalizationService extends PersonalizationService {
                     @Override
                     public void onResult(@NonNull Map<String, byte[]> result) {
                         Log.d(TAG, "OutcomeReceiver onResult: " + result);
+                        List<String> keysToRetain =
+                                getFilteredKeys(input.getParcelFileDescriptor());
+                        keysToRetain.add("keyExtra");
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
                                 new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
+                                .setKeysToRetain(keysToRetain)
                                 .build();
                         consumer.accept(downloadResult);
                     }
@@ -99,6 +105,29 @@ public class TestPersonalizationService extends PersonalizationService {
                 new RenderContentResult.Builder()
                 .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
                 .build();
+        consumer.accept(result);
+    }
+
+    public void computeEventMetrics(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull Consumer<EventMetricsResult> consumer
+    ) {
+        int intValue = 0;
+        double floatValue = 0.0;
+        if (input.getEventParams() != null) {
+            intValue = input.getEventParams().getInt("a");
+            floatValue = input.getEventParams().getDouble("b");
+        }
+        EventMetricsResult result =
+                new EventMetricsResult.Builder()
+                    .setMetrics(
+                            new Metrics.Builder()
+                                .setIntValues(intValue)
+                                .setFloatValues(floatValue)
+                                .build())
+                    .build();
+        Log.d(TAG, "computeEventMetrics() result: " + result.toString());
         consumer.accept(result);
     }
 
