@@ -300,7 +300,7 @@ public class SamplePersonalizationService extends PersonalizationService {
             Ad ad, String impressionUrl, String clickUrl) {
         String content =
                 "<img src=\"" + impressionUrl + "\">\n"
-                + "<a href=\"" + clickUrl + "\">Click Here!</a>";
+                + "<a href=\"" + clickUrl + "\">" + ad.mText + "</a>";
         Log.d(TAG, "content: " + content);
         return new RenderContentResult.Builder().setContent(content).build();
     }
@@ -440,13 +440,15 @@ public class SamplePersonalizationService extends PersonalizationService {
         final String mTargetKeyword;
         final String mExcludeKeyword;
         final String mLandingPage;
+        final String mText;
         Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage) {
+                String landingPage, String text) {
             mId = id;
             mPrice = price;
             mTargetKeyword = targetKeyword;
             mExcludeKeyword = excludeKeyword;
             mLandingPage = landingPage;
+            mText = text;
         }
     }
 
@@ -460,6 +462,7 @@ public class SamplePersonalizationService extends PersonalizationService {
             String targetKeyword = "";
             String excludeKeyword = "";
             String landingPage = "";
+            String text = "Click Here!";
             while (reader.hasNext()) {
                 String name = reader.nextName();
                 if (name.equals("price")) {
@@ -470,12 +473,14 @@ public class SamplePersonalizationService extends PersonalizationService {
                     excludeKeyword = reader.nextString();
                 } else if (name.equals("landingPage")) {
                     landingPage = reader.nextString();
+                } else if (name.equals("text")) {
+                    text = reader.nextString();
                 } else {
                     reader.skipValue();
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage);
+            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;
