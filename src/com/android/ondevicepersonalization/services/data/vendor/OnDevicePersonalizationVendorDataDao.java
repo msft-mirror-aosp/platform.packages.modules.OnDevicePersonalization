@@ -32,6 +32,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Dao used to manage access to vendor data tables
@@ -245,12 +246,13 @@ public class OnDevicePersonalizationVendorDataDao {
     }
 
     /**
-     * Batch updates and/or inserts a list of vendor data and a corresponding syncToken.
+     * Batch updates and/or inserts a list of vendor data and a corresponding syncToken and
+     * deletes unretained keys.
      *
      * @return true if the transaction is successful. False otherwise.
      */
     public boolean batchUpdateOrInsertVendorDataTransaction(List<VendorData> vendorDataList,
-            long syncToken) {
+            List<String> retainedKeys, long syncToken) {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         try {
             db.beginTransactionNonExclusive();
@@ -260,6 +262,9 @@ public class OnDevicePersonalizationVendorDataDao {
             if (!OnDevicePersonalizationLocalDataDao.createTableIfNotExists(
                     OnDevicePersonalizationLocalDataDao.getTableName(mOwner, mCertDigest),
                     mDbHelper)) {
+                return false;
+            }
+            if (!deleteUnretainedRows(retainedKeys)) {
                 return false;
             }
             for (VendorData vendorData : vendorDataList) {
@@ -276,6 +281,21 @@ public class OnDevicePersonalizationVendorDataDao {
             db.endTransaction();
         }
         return true;
+    }
+
+    private boolean deleteUnretainedRows(List<String> retainedKeys) {
+        try {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            String retainedKeysString = retainedKeys.stream().map(s -> "'" + s + "'").collect(
+                    Collectors.joining(",", "(", ")"));
+            String whereClause = VendorDataContract.VendorDataEntry.KEY + " NOT IN "
+                    + retainedKeysString;
+            return db.delete(mTableName, whereClause,
+                    null) != -1;
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to delete unretained rows", e);
+        }
+        return false;
     }
 
     /**
