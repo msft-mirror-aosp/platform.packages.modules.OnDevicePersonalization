@@ -43,6 +43,7 @@ import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -91,8 +92,10 @@ public class AppRequestFlow {
             @NonNull ListeningExecutorService executorService,
             @NonNull Context context) {
         this(callingPackageName, servicePackageName, hostToken, displayId, width, height, params,
-                callback, executorService, context, new DisplayHelper(context));
+                callback, executorService, context,
+                new DisplayHelper(context, servicePackageName));
     }
+
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
@@ -214,8 +217,7 @@ public class AppRequestFlow {
     private ListenableFuture<Long> logQuery(SelectContentResult result) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
-        // TODO(b/228200518): Populate queryData
-        byte[] queryData = new byte[1];
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(result);
         Query query = new Query.Builder()
                 .setServicePackageName(mServicePackageName)
                 .setQueryData(queryData)
@@ -280,6 +282,7 @@ public class AppRequestFlow {
                 .transformAsync(
                         result -> mDisplayHelper.displayHtml(
                                 result,
+                                slotResult,
                                 surfaceInfo.mHostToken,
                                 surfaceInfo.mDisplayId,
                                 surfaceInfo.mWidth,
@@ -297,8 +300,7 @@ public class AppRequestFlow {
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mCallingPackageName, mServicePackageName, mContext, false,
-                new DataAccessServiceImpl.EventUrlQueryData(
-                    queryId, slotResult.getSlotId(), bidIds));
+                new DataAccessServiceImpl.EventUrlQueryData(queryId, slotResult));
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         // TODO(b/228200518): Create event handling URLs.
         return ProcessUtils.runIsolatedService(

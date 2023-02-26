@@ -68,7 +68,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
         dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList,
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key");
+        retainedKeys.add("key2");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
                 timestamp));
     }
 
