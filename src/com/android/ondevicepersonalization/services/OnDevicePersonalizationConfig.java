@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
@@ -53,4 +54,8 @@ public class OnDevicePersonalizationConfig {
     /** Job ID for Maintenance Task
      * ({@link OnDevicePersonalizationMaintenanceJobService}) */
     public static final int MAINTENANCE_TASK_JOB_ID = 1005;
+
+    /** Job ID for User Data Collection Task
+     * ({@link UserDataCollectionJobService}) */
+    public static final int USER_DATA_COLLECTION_ID = 1006;
 }
