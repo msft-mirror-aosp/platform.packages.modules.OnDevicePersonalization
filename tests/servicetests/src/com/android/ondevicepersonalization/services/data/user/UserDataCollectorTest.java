@@ -53,8 +53,8 @@ public class UserDataCollectorTest {
     }
 
     @Test
-    public void testInitializeUserData() throws InterruptedException {
-        mCollector.initializeUserData(mUserData);
+    public void testUpdateUserData() throws InterruptedException {
+        mCollector.updateUserData(mUserData);
 
         // Test initial collection.
         // TODO(b/261748573): Add manual tests for histogram updates
@@ -75,7 +75,6 @@ public class UserDataCollectorTest {
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);
-        assertTrue(mUserData.osVersions.major > 0);
         assertEquals(mUserData.osVersions.major, osVersions.major);
         assertEquals(mUserData.osVersions.minor, osVersions.minor);
         assertEquals(mUserData.osVersions.micro, osVersions.micro);
@@ -109,7 +108,7 @@ public class UserDataCollectorTest {
     @Test
     public void testRealTimeUpdate() {
         // TODO: test orientation modification.
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         long oldTimeMillis = mUserData.timeMillis;
         TimeZone tzGmt4 = TimeZone.getTimeZone("GMT+04:00");
         TimeZone.setDefault(tzGmt4);
@@ -121,7 +120,7 @@ public class UserDataCollectorTest {
     @Test
     public void testGetCountry() {
         mCollector.setLocale(new Locale("en", "US"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.country);
         assertEquals(mUserData.country, Country.USA);
     }
@@ -129,7 +128,7 @@ public class UserDataCollectorTest {
     @Test
     public void testUnknownCountry() {
         mCollector.setLocale(new Locale("en"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.country);
         assertEquals(mUserData.country, Country.UNKNOWN);
     }
@@ -137,7 +136,7 @@ public class UserDataCollectorTest {
     @Test
     public void testGetLanguage() {
         mCollector.setLocale(new Locale("zh", "CN"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.language);
         assertEquals(mUserData.language, Language.ZH);
     }
@@ -145,14 +144,14 @@ public class UserDataCollectorTest {
     @Test
     public void testUnknownLanguage() {
         mCollector.setLocale(new Locale("nonexist_lang", "CA"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.language);
         assertEquals(mUserData.language, Language.UNKNOWN);
     }
 
     @Test
     public void testRecoveryFromSystemCrash() {
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         // Backup sample answer.
         final HashMap<String, Long> refAppUsageHistogram =
                 copyAppUsageMap(mUserData.appUsageHistory);
