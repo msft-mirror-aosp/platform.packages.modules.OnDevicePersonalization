@@ -85,7 +85,7 @@ class UserDataReaderTest : ProcessorNode {
             policies = setOf(DataIngressPolicy.NPA_DATA_POLICY),
             connectionContext = TypedMap(policyContext)
         )
-        userDataCollector.initializeUserData(rawUserData)
+        userDataCollector.updateUserData(rawUserData)
     }
 
     @Test
@@ -106,7 +106,7 @@ class UserDataReaderTest : ProcessorNode {
             // Whether user data is null should not matter to policy engine
             if (userData != null) {
                 verifyData(userData, rawUserData)
-                // test data update
+                // test real-time data update
                 userDataCollector.getRealTimeData(rawUserData)
                 val updatedUserData: UserData? = userDataReader.readUserData()
                 if (updatedUserData != null) {
