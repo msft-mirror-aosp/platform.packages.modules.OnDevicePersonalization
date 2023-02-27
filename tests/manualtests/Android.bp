@@ -43,6 +43,7 @@ android_test {
         "mobile_data_downloader_lib",
         "ondevicepersonalization-protos",
         "ondevicepersonalization-plugin-lib",
+        "apache-velocity-engine-core",
         "flatbuffers-java",
     ],
     target_sdk_version: "current",

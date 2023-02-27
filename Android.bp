@@ -95,6 +95,7 @@ android_app {
         "mobile_data_downloader_lib",
         "ondevicepersonalization-plugin-lib",
         "flatbuffers-java",
+        "apache-velocity-engine-core",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
