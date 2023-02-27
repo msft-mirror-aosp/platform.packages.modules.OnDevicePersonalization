@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.download.mdd;
 
 import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.MDD_TASK_TAG_KEY;
 
+import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
+
 import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Context;
@@ -38,6 +40,8 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class MddJobService extends JobService {
     private static final String TAG = "MddJobService";
 
+    private String mMddTaskTag;
+
     @Override
     public boolean onStartJob(JobParameters params) {
         Log.d(TAG, "onStartJob()");
@@ -48,11 +52,11 @@ public class MddJobService extends JobService {
             Log.e(TAG, "can't find MDD task tag");
             throw new IllegalArgumentException("Can't find MDD Tasks Tag!");
         }
-        String mddTaskTag = extras.getString(MDD_TASK_TAG_KEY);
+        mMddTaskTag = extras.getString(MDD_TASK_TAG_KEY);
 
         ListenableFuture<Void> handleTaskFuture =
                 PropagatedFutures.submitAsync(
-                        () -> MobileDataDownloadFactory.getMdd(this).handleTask(mddTaskTag),
+                        () -> MobileDataDownloadFactory.getMdd(this).handleTask(mMddTaskTag),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
         Context context = this;
@@ -65,7 +69,9 @@ public class MddJobService extends JobService {
                         OnDevicePersonalizationDownloadProcessingJobService.schedule(context);
                         // Tell the JobScheduler that the job has completed and does not needs to be
                         // rescheduled.
-                        jobFinished(params, /* wantsReschedule = */ false);
+                        if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
+                            jobFinished(params, /* wantsReschedule = */ false);
+                        }
                     }
 
                     @Override
@@ -84,7 +90,9 @@ public class MddJobService extends JobService {
     @Override
     public boolean onStopJob(JobParameters params) {
         // Attempt to process any data downloaded before the worker was stopped.
-        OnDevicePersonalizationDownloadProcessingJobService.schedule(this);
+        if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
+            jobFinished(params, /* wantsReschedule = */ false);
+        }
         // Reschedule the job since it ended before finishing
         return true;
     }
