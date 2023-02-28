@@ -58,6 +58,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
@@ -67,7 +68,9 @@ public class SamplePersonalizationService extends PersonalizationService {
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
     public static final double COST_RAISING_FACTOR = 2.0;
+    private static final int MAX_ADS = 100;
     private static final String BID_PRICE_KEY = "bidprice";
+    private static final Set<String> sBlockedKeywords = Set.of("cars", "trucks");
 
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(
@@ -135,18 +138,11 @@ public class SamplePersonalizationService extends PersonalizationService {
 
     private FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
         Log.d(TAG, "readAds() called.");
-        return FluentFuture.from(readRemoteData(remoteData, List.of("numads")))
-                .transformAsync(
-                    result -> {
-                        int numAds = Integer.parseInt(new String(result.get("numads")));
-                        ArrayList<String> keys = new ArrayList<>();
-                        for (int i = 1; i <= numAds; ++i) {
-                            keys.add("ad" + i);
-                        }
-                        return readRemoteData(remoteData, keys);
-                    },
-                    sBackgroundExecutor
-                )
+        ArrayList<String> keys = new ArrayList<>();
+        for (int i = 1; i <= MAX_ADS; ++i) {
+            keys.add("ad" + i);
+        }
+        return FluentFuture.from(readRemoteData(remoteData, keys))
                 .transform(
                     result -> {
                         ArrayList<Ad> ads = new ArrayList<>();
@@ -176,8 +172,8 @@ public class SamplePersonalizationService extends PersonalizationService {
         return true;
     }
 
-    private List<Ad> filterAds(List<Ad> ads, SelectContentInput input) {
-        Log.d(TAG, "filterAds() called.");
+    private List<Ad> matchAds(List<Ad> ads, SelectContentInput input) {
+        Log.d(TAG, "matchAds() called.");
         String requestKeyword = "";
         if (input != null && input.getAppParams() != null
                 && input.getAppParams().getString("keyword") != null) {
@@ -237,7 +233,7 @@ public class SamplePersonalizationService extends PersonalizationService {
 
             var unused = readAds(remoteData)
                     .transform(
-                        ads -> buildResult(runAuction(filterAds(ads, input))),
+                        ads -> buildResult(runAuction(matchAds(ads, input))),
                         sBackgroundExecutor)
                     .transform(
                         result -> {
@@ -371,6 +367,13 @@ public class SamplePersonalizationService extends PersonalizationService {
         }
     }
 
+    boolean isBlockedAd(Ad ad) {
+        if (sBlockedKeywords.contains(ad.mTargetKeyword)) {
+            return true;
+        } else {
+            return false;
+        }
+    }
     private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
         Log.d(TAG, "getFilteredKeys() called.");
         List<String> filteredKeys = new ArrayList<String>();
@@ -385,15 +388,25 @@ public class SamplePersonalizationService extends PersonalizationService {
                         reader.beginArray();
                         while (reader.hasNext()) {
                             reader.beginObject();
+                            String key = null;
+                            byte[] value = null;
                             while (reader.hasNext()) {
                                 String elementName = reader.nextName();
                                 if (elementName.equals("key")) {
-                                    filteredKeys.add(reader.nextString());
+                                    key = reader.nextString();
+                                } else if (elementName.equals("data")) {
+                                    value = reader.nextString().getBytes();
                                 } else {
                                     reader.skipValue();
                                 }
                             }
                             reader.endObject();
+                            if (key != null && value != null) {
+                                Ad ad = parseAd(key, value);
+                                if (ad != null && !isBlockedAd(ad)) {
+                                    filteredKeys.add(key);
+                                }
+                            }
                         }
                         reader.endArray();
                     } else {
@@ -453,6 +466,9 @@ public class SamplePersonalizationService extends PersonalizationService {
     }
 
     Ad parseAd(String id, byte[] data) {
+        if (id == null || data == null) {
+            return null;
+        }
         String dataStr = new String(data, StandardCharsets.UTF_8);
         Log.d(TAG, "parseAd: " + id + " " + dataStr);
         // TODO(b/263493591): Parse JSON ad.
