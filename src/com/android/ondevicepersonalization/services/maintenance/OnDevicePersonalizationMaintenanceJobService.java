@@ -122,7 +122,9 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
     @Override
     public boolean onStopJob(JobParameters params) {
-        mFuture.cancel(true);
+        if (mFuture != null) {
+            mFuture.cancel(true);
+        }
         // Reschedule the job since it ended before finishing
         return true;
     }

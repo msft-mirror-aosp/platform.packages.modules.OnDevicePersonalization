@@ -61,9 +61,7 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
-        mMdd = MobileDataDownloadFactory.getMdd(mContext,
-                new OnDevicePersonalizationLocalFileDownloader(mFileStorage,
-                        executorService, mContext), executorService);
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
         mPackageName = mContext.getPackageName();
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -106,7 +104,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName))
-                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), timestamp));
+                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
+                        timestamp));
 
         String downloadUrl =
                 OnDevicePersonalizationFileGroupPopulator.addDownloadUrlQueryParameters(

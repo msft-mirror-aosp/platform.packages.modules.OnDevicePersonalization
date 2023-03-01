@@ -47,6 +47,9 @@ public class EventUrlHelper {
     private static final String URL_EVENT_KEY = "e";
     private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
+    private EventUrlHelper() {
+    }
+
     private static SecretKey getSecretKey() throws Exception {
         KeyStore keyStore = KeyStore.getInstance(PROVIDER);
         keyStore.load(null);
@@ -139,7 +142,7 @@ public class EventUrlHelper {
      */
     public static boolean isOdpUrl(@NonNull String url) {
         Uri uri = Uri.parse(url);
-        return uri.getAuthority().equals(URI_AUTHORITY)
-                && uri.getScheme().equals(URI_SCHEME);
+        return URI_SCHEME.equals(uri.getScheme())
+                && URI_AUTHORITY.equals(uri.getAuthority());
     }
 }

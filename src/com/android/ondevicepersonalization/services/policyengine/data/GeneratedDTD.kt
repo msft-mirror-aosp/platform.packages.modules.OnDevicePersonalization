@@ -21,8 +21,8 @@ import com.android.libraries.pcc.chronicle.api.FieldType
 import com.android.libraries.pcc.chronicle.api.dataTypeDescriptor
 
 /** User Data DTD. */
-public val FINAL_USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name =
-    "chronicle_dtd.FinalUserData", cls = FinalUserData::class) {
+public val USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name =
+    "chronicle_dtd.UserData", cls = UserData::class) {
       "timeSec" to FieldType.Long
       "timezone" to FieldType.Integer
       "orientation" to FieldType.Integer
@@ -38,7 +38,7 @@ public val FINAL_USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescripto
       }
       "connectionType" to FieldType.Integer
       "connectionSpeedKbps" to FieldType.Integer
-      "networkMeteredStatus" to FieldType.Boolean
+      "networkMetered" to FieldType.Boolean
       "deviceMetrics" to dataTypeDescriptor(name = "chronicle_dtd.DeviceMetrics", cls =
           DeviceMetrics::class) {
         "make" to FieldType.Integer
@@ -49,13 +49,13 @@ public val FINAL_USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescripto
         "ydpi" to FieldType.Float
         "pxRatio" to FieldType.Float
       }
-      "appInstalledHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.AppStatus", cls
-          = AppStatus::class) {
+      "appInstalledHistory" to FieldType.List(dataTypeDescriptor(name =
+          "chronicle_dtd.AppInstallStatus", cls = AppInstallStatus::class) {
         "packageName" to FieldType.String
         "installed" to FieldType.Boolean
       })
-      "appUsageHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.AppUsage", cls =
-          AppUsage::class) {
+      "appUsageHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.AppUsageStatus",
+          cls = AppUsageStatus::class) {
         "packageName" to FieldType.String
         "totalTimeUsedMillis" to FieldType.Long
       })
@@ -65,10 +65,10 @@ public val FINAL_USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescripto
         "latitude" to FieldType.Double
         "longitude" to FieldType.Double
         "locationProvider" to FieldType.Integer
-        "isPreciseLocation" to FieldType.Boolean
+        "preciseLocation" to FieldType.Boolean
       }
-      "locationHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.LocationResult",
-          cls = LocationResult::class) {
+      "locationHistory" to FieldType.List(dataTypeDescriptor(name = "chronicle_dtd.LocationStatus",
+          cls = LocationStatus::class) {
         "latitude" to FieldType.Double
         "longitude" to FieldType.Double
         "durationMillis" to FieldType.Long
