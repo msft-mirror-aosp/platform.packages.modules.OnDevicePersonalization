@@ -173,6 +173,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                     finalVendorDataMap),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                    .catching(
+                            Exception.class,
+                            e -> {
+                                Log.e(TAG, "Processing failed.", e);
+                                return null;
+                            },
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             Log.e(TAG, "Could not run isolated service.", e);
@@ -187,14 +194,16 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         DownloadResult downloadResult = pluginResult.getParcelable(
                 Constants.EXTRA_RESULT, DownloadResult.class);
         List<String> retainedKeys = downloadResult.getKeysToRetain();
-        if (retainedKeys != null) {
-            for (String key : retainedKeys) {
-                if (vendorDataMap.containsKey(key)) {
-                    filteredList.add(vendorDataMap.get(key));
-                }
+        if (retainedKeys == null) {
+            // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
+            return null;
+        }
+        for (String key : retainedKeys) {
+            if (vendorDataMap.containsKey(key)) {
+                filteredList.add(vendorDataMap.get(key));
             }
         }
-        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
+        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList, retainedKeys,
                 syncToken);
         return null;
     }
@@ -203,7 +212,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                null, mPackageName, mContext, true);
+                null, mPackageName, mContext, true, null);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(fd).build();
         pluginParams.putParcelable(Constants.EXTRA_INPUT, input);
