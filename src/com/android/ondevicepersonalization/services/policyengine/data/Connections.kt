@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.policyengine.data
 
-parcelable AppRequestInput;
+import android.ondevicepersonalization.UserData
+
+import com.android.libraries.pcc.chronicle.api.ReadConnection
+
+/** Reader interface for reading the corresponding vendor table. */
+interface UserDataReader : ReadConnection {
+    fun readUserData(): UserData?
+}

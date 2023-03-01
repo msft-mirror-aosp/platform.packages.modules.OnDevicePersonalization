@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.Bundle;
@@ -92,7 +93,7 @@ public class AppRequestFlowTest {
 
     class TestDisplayHelper extends DisplayHelper {
         TestDisplayHelper() {
-            super(mContext);
+            super(mContext, mContext.getPackageName());
         }
 
         @Override public String generateHtml(RenderContentResult renderContentResult) {
@@ -102,7 +103,8 @@ public class AppRequestFlowTest {
         }
 
         @Override public ListenableFuture<SurfacePackage> displayHtml(
-                String html, IBinder hostToken, int displayId, int width, int height) {
+                String html, SlotResult slotResult, IBinder hostToken, int displayId,
+                int width, int height) {
             mGeneratedHtml = html;
             mDisplayHtmlCalled = true;
             return Futures.immediateFuture(null);

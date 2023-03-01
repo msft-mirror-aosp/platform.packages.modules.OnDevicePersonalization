@@ -17,15 +17,18 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.AppRequestInput;
-import android.ondevicepersonalization.AppRequestResult;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.EventMetricsInput;
+import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationService;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.SelectContentInput;
+import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
@@ -56,10 +59,13 @@ public class TestPersonalizationService extends PersonalizationService {
                     @Override
                     public void onResult(@NonNull Map<String, byte[]> result) {
                         Log.d(TAG, "OutcomeReceiver onResult: " + result);
+                        List<String> keysToRetain =
+                                getFilteredKeys(input.getParcelFileDescriptor());
+                        keysToRetain.add("keyExtra");
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
                                 new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
+                                .setKeysToRetain(keysToRetain)
                                 .build();
                         consumer.accept(downloadResult);
                     }
@@ -72,13 +78,13 @@ public class TestPersonalizationService extends PersonalizationService {
                 });
     }
 
-    @Override public void onAppRequest(
-            @NonNull AppRequestInput input,
+    @Override public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<AppRequestResult> consumer
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
-        AppRequestResult result = new AppRequestResult.Builder()
+        SelectContentResult result = new SelectContentResult.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
                         .addWinningBids(
@@ -99,6 +105,29 @@ public class TestPersonalizationService extends PersonalizationService {
                 new RenderContentResult.Builder()
                 .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
                 .build();
+        consumer.accept(result);
+    }
+
+    public void computeEventMetrics(
+            @NonNull EventMetricsInput input,
+            @NonNull OnDevicePersonalizationContext odpContext,
+            @NonNull Consumer<EventMetricsResult> consumer
+    ) {
+        int intValue = 0;
+        double floatValue = 0.0;
+        if (input.getEventParams() != null) {
+            intValue = input.getEventParams().getInt("a");
+            floatValue = input.getEventParams().getDouble("b");
+        }
+        EventMetricsResult result =
+                new EventMetricsResult.Builder()
+                    .setMetrics(
+                            new Metrics.Builder()
+                                .setIntValues(intValue)
+                                .setFloatValues(floatValue)
+                                .build())
+                    .build();
+        Log.d(TAG, "computeEventMetrics() result: " + result.toString());
         consumer.accept(result);
     }
 
