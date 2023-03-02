@@ -120,14 +120,14 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the AppRequestResult object serializes correctly.
+     * Tests that the SelectContentResult object serializes correctly.
      */
     @Test
-    public void testAppRequestResult() {
+    public void testSelectContentResult() {
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt("x", 6);
-        AppRequestResult result =
-                new AppRequestResult.Builder()
+        SelectContentResult result =
+                new SelectContentResult.Builder()
                     .addSlotResults(
                         new SlotResult.Builder().setSlotId("abc")
                             .addWinningBids(
@@ -136,7 +136,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                                     .setPrice(5.0)
                                     .setScore(1.0)
                                     .setMetrics(new Metrics.Builder()
-                                        .setIntMetrics(11).build())
+                                        .setIntValues(11).build())
                                     .setEventsWithMetrics(8)
                                     .setEventMetricsParameters(eventParams)
                                     .build())
@@ -152,14 +152,14 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        AppRequestResult result2 = AppRequestResult.CREATOR.createFromParcel(parcel);
+        SelectContentResult result2 = SelectContentResult.CREATOR.createFromParcel(parcel);
 
         SlotResult slotResult = result2.getSlotResults().get(0);
         assertEquals("abc", slotResult.getSlotId());
         assertEquals("bid1", slotResult.getWinningBids().get(0).getBidId());
         assertEquals(5.0, slotResult.getWinningBids().get(0).getPrice(), 0.0);
         assertEquals(1.0, slotResult.getWinningBids().get(0).getScore(), 0.0);
-        assertEquals(11, slotResult.getWinningBids().get(0).getMetrics().getIntMetrics()[0]);
+        assertEquals(11, slotResult.getWinningBids().get(0).getMetrics().getIntValues()[0]);
         assertEquals(8, slotResult.getWinningBids().get(0).getEventsWithMetrics()[0]);
         assertEquals(
                 6,
@@ -228,7 +228,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         long[] intMetrics = {10, 20};
         double[] floatMetrics = {5.0};
         Metrics result = new Metrics.Builder()
-                .setIntMetrics(intMetrics).setFloatMetrics(floatMetrics).build();
+                .setIntValues(intMetrics).setFloatValues(floatMetrics).build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
@@ -236,9 +236,9 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Metrics result2 = Metrics.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
-        assertEquals(10, result2.getIntMetrics()[0]);
-        assertEquals(20, result2.getIntMetrics()[1]);
-        assertEquals(5.0, result2.getFloatMetrics()[0], 0.0);
+        assertEquals(10, result2.getIntValues()[0]);
+        assertEquals(20, result2.getIntValues()[1]);
+        assertEquals(5.0, result2.getFloatValues()[0], 0.0);
     }
 
     /**
@@ -270,7 +270,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         long[] intMetrics = {10, 20};
         double[] floatMetrics = {5.0};
         EventMetricsResult result = new EventMetricsResult.Builder()
-                .setMetrics(new Metrics.Builder().setIntMetrics(11).build()).build();
+                .setMetrics(new Metrics.Builder().setIntValues(11).build()).build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
@@ -278,6 +278,6 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         EventMetricsResult result2 = EventMetricsResult.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
-        assertEquals(11, result2.getMetrics().getIntMetrics()[0]);
+        assertEquals(11, result2.getMetrics().getIntValues()[0]);
     }
 }
