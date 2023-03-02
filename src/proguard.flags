@@ -1,0 +1,2 @@
+-keep class com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin
+

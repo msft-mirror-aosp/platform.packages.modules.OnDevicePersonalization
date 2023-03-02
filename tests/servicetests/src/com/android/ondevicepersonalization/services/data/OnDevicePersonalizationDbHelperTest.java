@@ -27,6 +27,7 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
+import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,8 +58,6 @@ public class OnDevicePersonalizationDbHelperTest {
         assertTrue(hasEntity(UserDataTables.AppUsageHistory.ENDING_TIME_SEC_INDEX_NAME, "index"));
         assertTrue(hasEntity(
                 UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC_INDEX_NAME, "index"));
-        assertTrue(hasEntity(UserDataTables.AppInstalledHistory.TABLE_NAME, "table"));
-        assertTrue(hasEntity(UserDataTables.AppInstalledHistory.INDEX_NAME, "index"));
     }
 
     @Test

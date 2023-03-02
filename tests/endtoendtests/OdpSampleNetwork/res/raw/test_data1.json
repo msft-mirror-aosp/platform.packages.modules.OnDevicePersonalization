@@ -1,0 +1,14 @@
+{
+  "syncToken": 1662134400,
+  "contents": [
+    { "key": "ad1",
+      "data": "{ \"price\": 10.0, \"landingPage\": \"http://google.com\", \"text\": \"Google\" }"
+    },
+    { "key": "ad2",
+      "data": "{ \"keyword\": \"dog\", \"price\": 20.0, \"landingPage\": \"http://android.com\", \"text\": \"Android\" }"
+    },
+    { "key": "ad3",
+      "data": "{ \"excludekeyword\": \"cat\", \"price\": 15.0, \"landingPage\": \"http://nest.com\", \"text\": \"Nest\" }"
+    }
+  ]
+}
