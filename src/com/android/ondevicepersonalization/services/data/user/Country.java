@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.data.user;
 /**
  * A enum class for all countries in ISO-3166 alpha-3 format.
  */
-enum Country {
+public enum Country {
     UNKNOWN,
     ABW, // Aruba
     AFG, // Afghanistan
