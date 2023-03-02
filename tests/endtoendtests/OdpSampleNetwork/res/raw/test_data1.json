@@ -9,9 +9,6 @@
     },
     { "key": "ad3",
       "data": "{ \"excludekeyword\": \"cat\", \"price\": 15.0, \"landingPage\": \"http://nest.com\", \"text\": \"Nest\" }"
-    },
-    { "key": "numads",
-      "data": "3"
     }
   ]
 }
