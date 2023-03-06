@@ -36,6 +36,12 @@ public class Constants {
             EXTRA_DATA_ACCESS_SERVICE_BINDER =
                 "android.ondevicepersonalization.extra.data_access_service_binder";
     public static final String
+            EXTRA_BID_ID = "android.ondevicepersonalization.extra.bid_id";
+    public static final String
+            EXTRA_DESTINATION_URL = "android.ondevicepersonalization.extra.destination_url";
+    public static final String
+            EXTRA_EVENT_TYPE = "android.ondevicepersonalization.extra.event_type";
+    public static final String
             EXTRA_INPUT = "android.ondevicepersonalization.extra.input";
     public static final String
             EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.extra.lookup_keys";
@@ -45,6 +51,7 @@ public class Constants {
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
     public static final int DATA_ACCESS_OP_REMOTE_DATA_SCAN = 2;
+    public static final int DATA_ACCESS_OP_GET_EVENT_URL = 3;
 
     private Constants() {}
 }

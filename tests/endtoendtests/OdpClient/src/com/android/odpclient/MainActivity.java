@@ -23,11 +23,13 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.OutcomeReceiver;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.Toast;
 
 import java.util.concurrent.Executors;
@@ -36,8 +38,8 @@ public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
     private OnDevicePersonalizationManager mOdpManager = null;
 
-    private Button mGetVersionButton;
-    private Button mBindButton;
+    private EditText mTextBox;
+    private Button mGetAdButton;
     private SurfaceView mRenderedView;
 
     private Context mContext;
@@ -52,23 +54,13 @@ public class MainActivity extends Activity {
         }
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setVisibility(View.INVISIBLE);
-        mGetVersionButton = findViewById(R.id.get_version_button);
-        mBindButton = findViewById(R.id.bind_service_button);
-        registerGetVersionButton();
-        registerBindServiceButton();
+        mGetAdButton = findViewById(R.id.get_ad_button);
+        mTextBox = findViewById(R.id.text_box);
+        registerGetAdButton();
     }
 
-    private void registerGetVersionButton() {
-        mGetVersionButton.setOnClickListener(v -> {
-            if (mOdpManager == null) {
-                makeToast("OnDevicePersonalizationManager is null");
-            } else {
-                makeToast(mOdpManager.getVersion());
-            }
-        });
-    }
-    private void registerBindServiceButton() {
-        mBindButton.setOnClickListener(
+    private void registerGetAdButton() {
+        mGetAdButton.setOnClickListener(
                 v -> {
                     if (mOdpManager == null) {
                         makeToast("OnDevicePersonalizationManager is null");
@@ -86,7 +78,12 @@ public class MainActivity extends Activity {
                         params.putBinder(
                                 OnDevicePersonalizationManager.EXTRA_HOST_TOKEN,
                                 mRenderedView.getHostToken());
-                        Log.i(TAG, "Starting requestSurfacePackage()");
+                        PersistableBundle appParams = new PersistableBundle();
+                        appParams.putString("keyword", mTextBox.getText().toString());
+                        params.putParcelable(
+                                OnDevicePersonalizationManager.EXTRA_APP_PARAMS,
+                                appParams);
+                        Log.i(TAG, "Starting requestSurfacePackage(): " + params.toString());
                         mOdpManager.requestSurfacePackage(
                                 "com.android.odpsamplenetwork",
                                 params,
