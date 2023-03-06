@@ -35,14 +35,18 @@ public class QueriesContract {
         /** Time of the query in milliseconds. */
         public static final String TIME_MILLIS = "timeMillis";
 
+        /** Name of the package that handled the request */
+        public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
+
         /** Blob representing the common query fields. */
-        public static final String QUERY = "query";
+        public static final String QUERY_DATA = "queryData";
 
         public static final String CREATE_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
                     + QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + TIME_MILLIS + " INTEGER NOT NULL,"
-                    + QUERY + " BLOB NOT NULL)";
+                    + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + QUERY_DATA + " BLOB NOT NULL)";
 
         private QueriesEntry() {}
     }

@@ -57,10 +57,10 @@ public abstract class PersonalizationService extends Service {
      * @param odpContext The per-request state for this request.
      * @param consumer Callback to be invoked on completion.
      */
-    public void onAppRequest(
-            @NonNull AppRequestInput input,
+    public void selectContent(
+            @NonNull SelectContentInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<AppRequestResult> consumer
+            @NonNull Consumer<SelectContentResult> consumer
     ) {
         consumer.accept(null);
     }
@@ -83,7 +83,7 @@ public abstract class PersonalizationService extends Service {
     }
 
     /**
-     * Generate HTML for the winning bids that returned as a result of {@link onAppRequest}.
+     * Generate HTML for the winning bids that returned as a result of {@link selectContent}.
      * The platform will render this HTML in a WebView inside a fenced frame.
      *
      * @param input Parameters for the renderContent request.
@@ -126,10 +126,10 @@ public abstract class PersonalizationService extends Service {
             Objects.requireNonNull(callback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
 
-            if (operationCode == Constants.OP_APP_REQUEST) {
+            if (operationCode == Constants.OP_SELECT_CONTENT) {
 
-                AppRequestInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, AppRequestInput.class));
+                SelectContentInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, SelectContentInput.class));
                 Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
@@ -137,8 +137,8 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                PersonalizationService.this.onAppRequest(
-                        input, odpContext, new WrappedCallback<AppRequestResult>(callback));
+                PersonalizationService.this.selectContent(
+                        input, odpContext, new WrappedCallback<SelectContentResult>(callback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
