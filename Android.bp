@@ -80,7 +80,7 @@ android_app {
         ":ondevicepersonalization-fbs",
     ],
     libs: [
-        "framework-ondevicepersonalization",
+        "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
