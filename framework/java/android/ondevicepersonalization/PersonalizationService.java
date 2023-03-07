@@ -24,10 +24,13 @@ import android.ondevicepersonalization.aidl.IPersonalizationService;
 import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -142,9 +145,27 @@ public abstract class PersonalizationService extends Service {
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
-                DownloadInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, DownloadInput.class));
-                Objects.requireNonNull(input.getParcelFileDescriptor());
+                DownloadInputParcel input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, DownloadInputParcel.class));
+                ParcelFileDescriptor fd = Objects.requireNonNull(input.getParcelFileDescriptor());
+
+                List<String> keys = Objects.requireNonNull(input.getDownloadedKeys()).getList();
+                List<byte[]> values = Objects.requireNonNull(input.getDownloadedValues()).getList();
+                if (keys.size() != values.size()) {
+                    throw new IllegalArgumentException(
+                            "Mismatching key and value list sizes of "
+                                    + keys.size() + " and " + values.size());
+                }
+
+                HashMap<String, byte[]> downloadData = new HashMap<>();
+                for (int i = 0; i < keys.size(); i++) {
+                    downloadData.put(keys.get(i), values.get(i));
+                }
+                DownloadInput downloadInput = new DownloadInput.Builder()
+                        .setData(downloadData)
+                        .setParcelFileDescriptor(fd)
+                        .build();
+
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
@@ -152,7 +173,7 @@ public abstract class PersonalizationService extends Service {
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 PersonalizationService.this.onDownload(
-                        input, odpContext, new WrappedCallback<DownloadResult>(callback));
+                        downloadInput, odpContext, new WrappedCallback<DownloadResult>(callback));
 
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 

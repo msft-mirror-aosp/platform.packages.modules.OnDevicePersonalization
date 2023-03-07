@@ -21,8 +21,6 @@ android_test {
     srcs: [
         "src/**/*.java",
         "src/**/*.kt",
-        ":framework-ondevicepersonalization-aidl",
-        ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-sources",
         ":ondevicepersonalization-fbs",
         ":chronicle-sources",
@@ -32,6 +30,7 @@ android_test {
         "android.test.runner",
         "kotlin-annotations",
         "truth-prebuilt",
+        "framework-ondevicepersonalization.impl",
     ],
     static_libs: [
         "androidx.test.ext.junit",
