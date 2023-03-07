@@ -46,14 +46,19 @@ java_sdk_library {
         ":framework-ondevicepersonalization-aidl",
         ":framework-ondevicepersonalization-sources",
     ],
+    libs: [
+        "modules-utils-preconditions",
+    ],
     sdk_version: "module_current",
     defaults: [
         "framework-module-defaults",
         "ondevicepersonalization-java-defaults",
     ],
     permitted_packages: [
+        "android.app.ondevicepersonalization",
         "android.ondevicepersonalization",
         "com.android.ondevicepersonalization.internal",
+        "android.federatedcompute",
     ],
     impl_library_visibility: ["//visibility:public"],
     min_sdk_version: "Tiramisu",
