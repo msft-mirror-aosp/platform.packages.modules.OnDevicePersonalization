@@ -16,27 +16,20 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
-import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.data.VendorData;
-import com.android.ondevicepersonalization.services.data.VendorDataContract;
-import com.android.ondevicepersonalization.services.download.mdd.LocalFileDownloader;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.data.vendor.VendorDataContract;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -45,6 +38,8 @@ import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
 import org.junit.Before;
@@ -54,7 +49,6 @@ import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
@@ -63,35 +57,29 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
-    private PackageInfo mPackageInfo;
     private SynchronousFileStorage mFileStorage;
-    private PluginManager mPluginManager;
     private final VendorData mContent1 = new VendorData.Builder()
             .setKey("key1")
             .setData("dGVzdGRhdGEx".getBytes())
-            .setFp("fp1")
             .build();
 
     private final VendorData mContent2 = new VendorData.Builder()
             .setKey("key2")
             .setData("dGVzdGRhdGEy".getBytes())
-            .setFp("fp2")
             .build();
 
     private final VendorData mContentExtra = new VendorData.Builder()
             .setKey("keyExtra")
             .setData("extra".getBytes())
-            .setFp("fpExtra")
             .build();
 
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
-        mPackageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
-        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
+        // Use direct executor to keep all work sequential for the tests
+        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();
@@ -100,9 +88,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
-
-        mPluginManager = new PluginManagerImpl(
-                Objects.requireNonNull(mContext));
     }
 
     @Test
@@ -117,11 +102,15 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         mMdd.downloadFileGroup(
                 DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
 
-        dao.updateOrInsertVendorData(mContentExtra);
+        List<VendorData> existingData = new ArrayList<>();
+        existingData.add(mContentExtra);
+        List<String> retain = new ArrayList<>();
+        retain.add("keyExtra");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData, retain,
+                System.currentTimeMillis()));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(
-                        mPackageInfo, mContext, mPluginManager);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
         callable.call().get(2000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
@@ -132,12 +121,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             byte[] data = cursor.getBlob(
                     cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.DATA));
 
-            String fp = cursor.getString(
-                    cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.FP));
             vendorDataList.add(new VendorData.Builder()
                     .setKey(key)
                     .setData(data)
-                    .setFp(fp)
                     .build());
         }
         cursor.close();
@@ -158,17 +144,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private void compareDataContent(VendorData expectedData, VendorData actualData) {
         assertEquals(expectedData.getKey(), actualData.getKey());
         assertArrayEquals(expectedData.getData(), actualData.getData());
-        assertEquals(expectedData.getFp(), actualData.getFp());
     }
 
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName));
     }
 }

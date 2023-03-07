@@ -26,12 +26,16 @@ import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
@@ -40,42 +44,37 @@ import java.util.TimeZone;
 public class UserDataCollectorTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private UserDataCollector mCollector;
-    private UserData mUserData;
+    private RawUserData mUserData;
 
     @Before
     public void setup() {
-        mCollector = UserDataCollector.getInstance(mContext);
-        mUserData = UserData.getInstance();
+        mCollector = UserDataCollector.getInstanceForTest(mContext);
+        mUserData = RawUserData.getInstance();
     }
 
     @Test
-    public void testGetUserData() throws InterruptedException {
-        mCollector.initializeUserData(mUserData);
+    public void testUpdateUserData() throws InterruptedException {
+        mCollector.updateUserData(mUserData);
 
-        // Real time data
+        // Test initial collection.
+        // TODO(b/261748573): Add manual tests for histogram updates
         assertTrue(mUserData.timeMillis > 0);
         assertTrue(mUserData.timeMillis <= mCollector.getTimeMillis());
         assertNotNull(mUserData.utcOffset);
         assertEquals(mUserData.utcOffset, mCollector.getUtcOffset());
-        assertEquals(mUserData.orientation, mCollector.getOrientation());
 
         assertTrue(mUserData.availableBytesMB > 0);
-        assertEquals(mUserData.availableBytesMB, mCollector.getAvailableBytesMB());
-        assertTrue(mUserData.batteryPct > 0);
-        assertEquals(mUserData.batteryPct, mCollector.getBatteryPct());
         assertTrue(mUserData.batteryPct > 0);
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
         assertEquals(mUserData.carrier, mCollector.getCarrier());
-        assertTrue(mUserData.connectionType != UserData.ConnectionType.UNKNOWN);
+        assertTrue(mUserData.connectionType != RawUserData.ConnectionType.UNKNOWN);
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
         assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
         assertTrue(mUserData.connectionSpeedKbps > 0);
-        assertEquals(mUserData.connectionSpeedKbps, mCollector.getConnectionSpeedKbps());
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);
-        assertTrue(mUserData.osVersions.major > 0);
         assertEquals(mUserData.osVersions.major, osVersions.major);
         assertEquals(mUserData.osVersions.minor, osVersions.minor);
         assertEquals(mUserData.osVersions.micro, osVersions.micro);
@@ -104,30 +103,24 @@ public class UserDataCollectorTest {
             assertEquals(mUserData.appsInfo.get(i).packageName, appsInfo.get(i).packageName);
             assertEquals(mUserData.appsInfo.get(i).installed, appsInfo.get(i).installed);
         }
-
-        List<AppUsageStats> appUsageStats = new ArrayList();
-        mCollector.getAppUsageStats(appUsageStats);
-        // TODO: test if [appUsageHistory] and [locationHistory] histograms are updated.
-        for (int i = 0; i < appUsageStats.size(); ++i) {
-            AppUsageStats aus = appUsageStats.get(i);
-            assertFalse(TextUtils.isEmpty(aus.packageName));
-            assertTrue(aus.startTimeMillis > 0);
-            assertTrue(aus.endTimeMillis > 0);
-        }
     }
 
     @Test
-    public void testGetUtcOffsetAfterModification() {
+    public void testRealTimeUpdate() {
+        // TODO: test orientation modification.
+        mCollector.updateUserData(mUserData);
+        long oldTimeMillis = mUserData.timeMillis;
         TimeZone tzGmt4 = TimeZone.getTimeZone("GMT+04:00");
         TimeZone.setDefault(tzGmt4);
-        mCollector.initializeUserData(mUserData);
+        mCollector.getRealTimeData(mUserData);
+        assertTrue(oldTimeMillis <= mUserData.timeMillis);
         assertEquals(mUserData.utcOffset, 240);
     }
 
     @Test
     public void testGetCountry() {
         mCollector.setLocale(new Locale("en", "US"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.country);
         assertEquals(mUserData.country, Country.USA);
     }
@@ -135,7 +128,7 @@ public class UserDataCollectorTest {
     @Test
     public void testUnknownCountry() {
         mCollector.setLocale(new Locale("en"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.country);
         assertEquals(mUserData.country, Country.UNKNOWN);
     }
@@ -143,7 +136,7 @@ public class UserDataCollectorTest {
     @Test
     public void testGetLanguage() {
         mCollector.setLocale(new Locale("zh", "CN"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.language);
         assertEquals(mUserData.language, Language.ZH);
     }
@@ -151,8 +144,87 @@ public class UserDataCollectorTest {
     @Test
     public void testUnknownLanguage() {
         mCollector.setLocale(new Locale("nonexist_lang", "CA"));
-        mCollector.initializeUserData(mUserData);
+        mCollector.updateUserData(mUserData);
         assertNotNull(mUserData.language);
         assertEquals(mUserData.language, Language.UNKNOWN);
+    }
+
+    @Test
+    public void testRecoveryFromSystemCrash() {
+        mCollector.updateUserData(mUserData);
+        // Backup sample answer.
+        final HashMap<String, Long> refAppUsageHistogram =
+                copyAppUsageMap(mUserData.appUsageHistory);
+        final HashMap<LocationInfo, Long> refLocationHistogram =
+                copyLocationMap(mUserData.locationHistory);
+        final Deque<AppUsageEntry> refAllowedAppUsageEntries =
+                copyAppUsageEntries(mCollector.getAllowedAppUsageEntries());
+        final Deque<LocationInfo> refAllowedLocationEntries =
+                copyLocationEntries(mCollector.getAllowedLocationEntries());
+        final long refLastTimeAppUsageCollected = mCollector.getLastTimeMillisAppUsageCollected();
+
+        // Mock system crash scenario.
+        mCollector.clearUserData(mUserData);
+        mCollector.clearMetadata();
+        mCollector.recoverAppUsageHistogram(mUserData.appUsageHistory);
+        mCollector.recoverLocationHistogram(mUserData.locationHistory);
+
+        assertEquals(refAppUsageHistogram.size(), mUserData.appUsageHistory.size());
+        for (String key: refAppUsageHistogram.keySet()) {
+            assertTrue(mUserData.appUsageHistory.containsKey(key));
+            assertEquals(refAppUsageHistogram.get(key), mUserData.appUsageHistory.get(key));
+        }
+        assertEquals(refLastTimeAppUsageCollected,
+                mCollector.getLastTimeMillisAppUsageCollected());
+        assertEquals(refAllowedAppUsageEntries.size(),
+                mCollector.getAllowedAppUsageEntries().size());
+
+        assertEquals(refLocationHistogram.size(), mUserData.locationHistory.size());
+        for (LocationInfo locationInfo: refLocationHistogram.keySet()) {
+            assertTrue(mUserData.locationHistory.containsKey(locationInfo));
+            assertEquals(refLocationHistogram.get(locationInfo),
+                    mUserData.locationHistory.get(locationInfo));
+        }
+        assertEquals(refAllowedLocationEntries.size(),
+                mCollector.getAllowedLocationEntries().size());
+    }
+
+    private HashMap<String, Long> copyAppUsageMap(HashMap<String, Long> other) {
+        HashMap<String, Long> copy = new HashMap<>();
+        for (String key: other.keySet()) {
+            copy.put(key, (long) other.get(key));
+        }
+        return copy;
+    }
+
+    private HashMap<LocationInfo, Long> copyLocationMap(HashMap<LocationInfo, Long> other) {
+        HashMap<LocationInfo, Long> copy = new HashMap<>();
+        for (LocationInfo key: other.keySet()) {
+            copy.put(new LocationInfo(key), (long) other.get(key));
+        }
+        return copy;
+    }
+
+    private Deque<AppUsageEntry> copyAppUsageEntries(Deque<AppUsageEntry> other) {
+        Deque<AppUsageEntry> copy = new ArrayDeque<>();
+        for (AppUsageEntry entry: other) {
+            copy.add(new AppUsageEntry(entry));
+        }
+        return copy;
+    }
+
+    private Deque<LocationInfo> copyLocationEntries(Deque<LocationInfo> other) {
+        Deque<LocationInfo> copy = new ArrayDeque<>();
+        for (LocationInfo entry: other) {
+            copy.add(new LocationInfo(entry));
+        }
+        return copy;
+    }
+
+    @After
+    public void cleanUp() {
+        mCollector.clearUserData(mUserData);
+        mCollector.clearMetadata();
+        mCollector.clearDatabase();
     }
 }

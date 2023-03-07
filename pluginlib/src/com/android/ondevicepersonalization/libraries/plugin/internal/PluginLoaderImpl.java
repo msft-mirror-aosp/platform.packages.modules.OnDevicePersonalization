@@ -74,7 +74,9 @@ public final class PluginLoaderImpl implements PluginLoader {
                 Log.e(TAG, "Instance not a Plugin");
                 return null;
             }
-            return (Plugin) instance;
+            Plugin pluginInstance = (Plugin) instance;
+            pluginInstance.setClassLoader(pluginClassLoader);
+            return pluginInstance;
         } catch (IOException e) {
             Log.e(TAG, "Error loading dex files from archive", e);
         } catch (ClassNotFoundException e) {
