@@ -69,7 +69,8 @@ bootclasspath_fragment {
         package_prefixes: [
 	    "android.app.ondevicepersonalization",
             "android.ondevicepersonalization",
-	    "com.android.ondevicepersonalization.internal",
+            "com.android.ondevicepersonalization.internal",
+            "android.federatedcompute",
         ],
     },
 }
@@ -85,7 +86,7 @@ systemserverclasspath_fragment {
 apex {
     name: "com.android.ondevicepersonalization",
     manifest: "manifest.json",
-    apps: ["OnDevicePersonalization"],
+    apps: ["OnDevicePersonalization", "FederatedCompute"],
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
     key: "com.android.ondevicepersonalization.key",
     bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
