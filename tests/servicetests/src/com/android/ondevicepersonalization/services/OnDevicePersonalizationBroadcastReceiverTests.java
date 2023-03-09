@@ -41,7 +41,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
+public class OnDevicePersonalizationBroadcastReceiverTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Before
@@ -53,6 +53,7 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
                 OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID);
     }
 
     @Test
@@ -61,8 +62,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
 
-        OnDevicePersonalizationStartDownloadServiceReceiver receiver =
-                new OnDevicePersonalizationStartDownloadServiceReceiver(
+        OnDevicePersonalizationBroadcastReceiver receiver =
+                new OnDevicePersonalizationBroadcastReceiver(
                         executorService);
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
@@ -71,6 +72,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) != null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) != null);
         // MDD tasks
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) != null);
@@ -84,8 +87,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
     @Test
     public void testOnReceiveInvalidIntent() {
-        OnDevicePersonalizationStartDownloadServiceReceiver receiver =
-                new OnDevicePersonalizationStartDownloadServiceReceiver();
+        OnDevicePersonalizationBroadcastReceiver receiver =
+                new OnDevicePersonalizationBroadcastReceiver();
 
         Intent intent = new Intent(Intent.ACTION_DIAL_EMERGENCY);
         receiver.onReceive(mContext, intent);
@@ -93,6 +96,8 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) == null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) == null);
         // MDD tasks
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID) == null);
@@ -106,9 +111,9 @@ public class OnDevicePersonalizationStartDownloadServiceReceiverTests {
 
     @Test
     public void testEnableReceiver() {
-        assertTrue(OnDevicePersonalizationStartDownloadServiceReceiver.enableReceiver(mContext));
+        assertTrue(OnDevicePersonalizationBroadcastReceiver.enableReceiver(mContext));
         ComponentName componentName = new ComponentName(mContext,
-                OnDevicePersonalizationStartDownloadServiceReceiver.class);
+                OnDevicePersonalizationBroadcastReceiver.class);
         final PackageManager pm = mContext.getPackageManager();
         final int result = pm.getComponentEnabledSetting(componentName);
         assertEquals(COMPONENT_ENABLED_STATE_ENABLED, result);
