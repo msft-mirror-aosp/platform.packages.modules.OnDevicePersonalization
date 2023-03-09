@@ -17,9 +17,17 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.federatedcompute.servicetests" >
+
+    <!-- Used for persisting scheduled jobs -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application android:label="FederatedComputeServicesTests"
                  android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
+        <service android:name="com.android.federatedcompute.services.training.TrainingJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.federatedcompute.servicetests"
