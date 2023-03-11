@@ -31,7 +31,7 @@ android_app {
     libs: [
         "auto_value_annotations",
         "flatbuffers-java",
-        "framework-ondevicepersonalization",
+        "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
     ],
     plugins: ["auto_value_plugin"],

@@ -16,9 +16,9 @@
 
 package com.android.federatedcompute.services;
 
-import android.federatedcompute.IFederatedComputeCallback;
-import android.federatedcompute.IFederatedComputeService;
-import android.federatedcompute.TrainingOptions;
+import android.federatedcompute.aidl.IFederatedComputeCallback;
+import android.federatedcompute.aidl.IFederatedComputeService;
+import android.federatedcompute.common.TrainingOptions;
 import android.os.RemoteException;
 import android.util.Log;
 
