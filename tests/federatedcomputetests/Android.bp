@@ -28,6 +28,7 @@ android_test {
     ],
     libs: [
         "android.test.base",
+        "android.test.mock.stubs",
         "android.test.runner",
         "auto_value_annotations",
         "truth-prebuilt",
@@ -36,6 +37,7 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "mockito-target-extended-minus-junit4",
         "modules-utils-build",
         "flatbuffers-java",
     ],
@@ -43,8 +45,13 @@ android_test {
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     certificate: "platform",
+    compile_multilib: "both",
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
+    ],
+    jni_libs: [
+        "libdexmakerjvmtiagent",
+        "libstaticjvmtiagent",
     ],
 }
