@@ -16,8 +16,8 @@
 
 package com.android.federatedcompute.services;
 
-import android.federatedcompute.IFederatedComputeCallback;
-import android.federatedcompute.TrainingOptions;
+import android.federatedcompute.aidl.IFederatedComputeCallback;
+import android.federatedcompute.common.TrainingOptions;
 import android.os.IBinder;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
