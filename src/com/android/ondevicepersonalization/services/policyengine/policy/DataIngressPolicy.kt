@@ -32,6 +32,7 @@ import java.time.Duration
 class DataIngressPolicy {
     companion object {
         // NPA (No Personalized Ads) policy for user and vendor data in ODA
+        @JvmField
         val NPA_DATA_POLICY = policy(
             name = "npaPolicy",
             egressType = "None",
