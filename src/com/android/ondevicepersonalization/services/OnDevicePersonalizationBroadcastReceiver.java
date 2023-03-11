@@ -30,10 +30,15 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
+import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
+import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
+import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.concurrent.Executor;
 
 /**
@@ -77,6 +82,11 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
             Log.d(TAG, "Received unexpected intent " + intent.getAction());
             return;
         }
+
+        // Initialize policy engine instance
+        ChronicleManager.getInstance(
+                new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),
+                new HashSet<>(Arrays.asList(DataIngressPolicy.NPA_DATA_POLICY)));
 
         // Schedule maintenance task
         OnDevicePersonalizationMaintenanceJobService.schedule(context);
