@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.policyengine.api
 
+import com.android.internal.annotations.VisibleForTesting;
+
 import com.android.libraries.pcc.chronicle.analysis.DefaultChronicleContext
 import com.android.libraries.pcc.chronicle.analysis.DefaultPolicySet
 import com.android.libraries.pcc.chronicle.analysis.impl.ChroniclePolicyEngine
@@ -31,41 +33,61 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
 /** [ChronicleManager] instance that connects to the Chronicle backend. */
-class ChronicleManager(
-    val connectionProviders: Set<ConnectionProvider>,
+class ChronicleManager private constructor (
+    private val connectionProviders: Set<ConnectionProvider>,
     private val policies: Set<Policy>,
-    val connectionContext: TypedMap = TypedMap()
+    private val connectionContext: TypedMap = TypedMap()
 ) {
     private val flags = MutableStateFlow(Flags())
     private val flagsReader: FlagsReader = object : FlagsReader {
         override val config: StateFlow<Flags> = this@ChronicleManager.flags
     }
 
-    val chronicle =
-        DefaultChronicle(
-            chronicleContext =
-                DefaultChronicleContext(
-                    connectionProviders = connectionProviders,
-                    processorNodes = emptySet(),
-                    policySet = DefaultPolicySet(policies),
-                    dataTypeDescriptorSet =
-                        DefaultDataTypeDescriptorSet(
-                        connectionProviders.map { it.dataType.descriptor }.toSet()
-                    ),
-                    connectionContext = connectionContext
+    val chronicle = DefaultChronicle(
+        chronicleContext =
+            DefaultChronicleContext(
+                connectionProviders = connectionProviders,
+                processorNodes = emptySet(),
+                policySet = DefaultPolicySet(policies),
+                dataTypeDescriptorSet =
+                    DefaultDataTypeDescriptorSet(
+                    connectionProviders.map { it.dataType.descriptor }.toSet()
                 ),
-            policyEngine = ChroniclePolicyEngine(),
-            config =
-                DefaultChronicle.Config(
-                    policyMode = DefaultChronicle.Config.PolicyMode.STRICT,
-                    policyConformanceCheck = DefaultPolicyConformanceCheck()
-                ),
-            flags = flagsReader
-        )
+                connectionContext = connectionContext
+            ),
+        policyEngine = ChroniclePolicyEngine(),
+        config =
+            DefaultChronicle.Config(
+                policyMode = DefaultChronicle.Config.PolicyMode.STRICT,
+                policyConformanceCheck = DefaultPolicyConformanceCheck()
+            ),
+        flags = flagsReader
+    )
+
+    companion object {
+        @JvmField
+        @Volatile
+        @VisibleForTesting
+        var instance: ChronicleManager? = null
+
+        @JvmOverloads
+        @JvmStatic
+        fun getInstance(connectionProviders: Set<ConnectionProvider>,
+                policies: Set<Policy>,
+                connectionContext: TypedMap = TypedMap()) =
+            instance
+                ?: synchronized(this) {
+                    // double-checked locking
+                    instance
+                        ?: ChronicleManager(
+                            connectionProviders, policies, connectionContext).also{ instance = it }
+                }
+    }
 
     fun failNewConnections(failNewConnections: Boolean) = updateFlags {
         it.copy(failNewConnections = failNewConnections)
     }
+
     fun disable() = updateFlags { it.copy(emergencyDisable = true) }
 
     private inline fun updateFlags(block: (Flags) -> Flags) {
