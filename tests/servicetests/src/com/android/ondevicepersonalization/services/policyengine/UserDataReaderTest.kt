@@ -63,7 +63,6 @@ import kotlin.test.fail
 @RunWith(AndroidJUnit4::class)
 class UserDataReaderTest : ProcessorNode {
 
-    private lateinit var chronicleManager: ChronicleManager
     private lateinit var policyContext: MutableTypedMap
     private val userDataCollector: UserDataCollector =
             UserDataCollector.getInstanceForTest(ApplicationProvider.getApplicationContext())
@@ -71,6 +70,11 @@ class UserDataReaderTest : ProcessorNode {
     private val TAG: String = "UserDataReaderTest"
 
     override val requiredConnectionTypes = setOf(UserDataReader::class.java)
+
+    private val chronicleManager: ChronicleManager = ChronicleManager.getInstance(
+        connectionProviders = setOf(UserDataConnectionProvider()),
+        policies = setOf(DataIngressPolicy.NPA_DATA_POLICY)
+    )
 
     @Before
     fun setUp() {
@@ -80,29 +84,26 @@ class UserDataReaderTest : ProcessorNode {
         policyContext[AppPersonalizedAdsEnabled] = true
         policyContext[RequestPersonalizedAdsEnabled] = true
 
-        chronicleManager = ChronicleManager(
-            connectionProviders = setOf(UserDataConnectionProvider()),
-            policies = setOf(DataIngressPolicy.NPA_DATA_POLICY),
-            connectionContext = TypedMap(policyContext)
-        )
+        chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
         userDataCollector.updateUserData(rawUserData)
     }
 
     @Test
     fun testUserDataConnection() {
-        val result = chronicleManager.chronicle.getConnection(
+        val result: ConnectionResult<UserDataReader>? = chronicleManager.chronicle.getConnection(
             ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
         )
+        assertThat(result).isNotNull()
         assertThat(result).isInstanceOf(ConnectionResult.Success::class.java)
     }
 
     @Test
     fun testUserDataReader() {
         try {
-            val userDataReader: UserDataReader = chronicleManager.chronicle.getConnectionOrThrow(
+            val userDataReader: UserDataReader? = chronicleManager.chronicle.getConnectionOrThrow(
                 ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
             )
-            val userData: UserData? = userDataReader.readUserData()
+            val userData: UserData? = userDataReader?.readUserData()
             // Whether user data is null should not matter to policy engine
             if (userData != null) {
                 verifyData(userData, rawUserData)
@@ -122,10 +123,11 @@ class UserDataReaderTest : ProcessorNode {
     fun testFailedConnectionContext() {
         policyContext[UserPersonalizedAdsEnabled] = false
         chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
-        val result = chronicleManager.chronicle.getConnection(
+        val result: ConnectionResult<UserDataReader>? = chronicleManager.chronicle.getConnection(
             ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
         )
-        result.expectFailure(PolicyViolation::class.java)
+        assertThat(result).isNotNull()
+        result?.expectFailure(PolicyViolation::class.java)
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
