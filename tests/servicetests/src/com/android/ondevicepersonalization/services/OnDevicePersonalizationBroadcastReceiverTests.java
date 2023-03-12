@@ -19,6 +19,8 @@ package com.android.ondevicepersonalization.services.download;
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.app.job.JobScheduler;
@@ -31,6 +33,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -46,6 +49,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Before
     public void setup() throws Exception {
+        ChronicleManager.instance = null;
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID);
@@ -68,6 +72,9 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
         receiver.onReceive(mContext, intent);
+        // Policy engine should be initialized
+        assertNotNull(ChronicleManager.instance);
+
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
         assertTrue(jobScheduler.getPendingJob(
@@ -92,6 +99,8 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         Intent intent = new Intent(Intent.ACTION_DIAL_EMERGENCY);
         receiver.onReceive(mContext, intent);
+        assertNull(ChronicleManager.instance);
+
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
         assertTrue(jobScheduler.getPendingJob(
