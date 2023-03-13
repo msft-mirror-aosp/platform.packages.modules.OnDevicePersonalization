@@ -46,6 +46,7 @@ android_test {
     min_sdk_version: "Tiramisu",
     certificate: "platform",
     compile_multilib: "both",
+    test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
