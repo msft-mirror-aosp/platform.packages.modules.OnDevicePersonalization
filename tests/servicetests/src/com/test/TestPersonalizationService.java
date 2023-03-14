@@ -52,6 +52,8 @@ public class TestPersonalizationService extends PersonalizationService {
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
             Consumer<DownloadResult> consumer) {
         Log.d(TAG, "Starting filterData.");
+        Log.d(TAG, "Data: " + input.getData());
+
         List<String> lookupKeys = new ArrayList<>();
         lookupKeys.add("keyExtra");
         odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
