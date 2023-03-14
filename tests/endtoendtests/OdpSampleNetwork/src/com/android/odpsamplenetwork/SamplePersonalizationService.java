@@ -358,7 +358,7 @@ public class SamplePersonalizationService extends PersonalizationService {
             }
             double updatedPrice = bidPrice * COST_RAISING_FACTOR;
             EventMetricsResult result = new EventMetricsResult.Builder()
-                    .setMetrics(new Metrics.Builder().setFloatValues(updatedPrice).build())
+                    .setMetrics(new Metrics.Builder().setDoubleValues(updatedPrice).build())
                     .build();
             consumer.accept(result);
         } catch (Exception e) {
