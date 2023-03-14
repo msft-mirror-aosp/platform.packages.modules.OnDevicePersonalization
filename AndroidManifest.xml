@@ -45,6 +45,11 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
+        <service android:name=".OnDevicePersonalizationPrivacyStatusServiceImpl" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.OnDevicePersonalizationPrivacyStatusService" />
+            </intent-filter>
+        </service>
         <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
