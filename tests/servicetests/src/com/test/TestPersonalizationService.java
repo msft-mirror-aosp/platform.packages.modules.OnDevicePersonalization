@@ -125,8 +125,8 @@ public class TestPersonalizationService extends PersonalizationService {
                 new EventMetricsResult.Builder()
                     .setMetrics(
                             new Metrics.Builder()
-                                .setIntValues(intValue)
-                                .setFloatValues(floatValue)
+                                .setLongValues(intValue)
+                                .setDoubleValues(floatValue)
                                 .build())
                     .build();
         Log.d(TAG, "computeEventMetrics() result: " + result.toString());
