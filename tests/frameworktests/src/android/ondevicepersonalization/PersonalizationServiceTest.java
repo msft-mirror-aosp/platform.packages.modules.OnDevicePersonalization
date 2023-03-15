@@ -31,6 +31,9 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.StringParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -195,7 +198,11 @@ public class PersonalizationServiceTest {
     @Test
     public void testOnDownload() throws Exception {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        DownloadInputParcel input = new DownloadInputParcel.Builder()
+                .setParcelFileDescriptor(pfds[0])
+                .setDownloadedKeys(StringParceledListSlice.emptyList())
+                .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
@@ -237,7 +244,11 @@ public class PersonalizationServiceTest {
     @Test
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        DownloadInputParcel input = new DownloadInputParcel.Builder()
+                .setParcelFileDescriptor(pfds[0])
+                .setDownloadedKeys(StringParceledListSlice.emptyList())
+                .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
@@ -254,7 +265,11 @@ public class PersonalizationServiceTest {
     @Test
     public void testOnDownloadThrowsIfCallbackMissing() throws Exception {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        DownloadInputParcel input = new DownloadInputParcel.Builder()
+                .setParcelFileDescriptor(pfds[0])
+                .setDownloadedKeys(StringParceledListSlice.emptyList())
+                .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
