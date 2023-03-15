@@ -473,7 +473,7 @@ public class PersonalizationServiceTest {
                 });
     }
 
-    class TestPersonalizationService extends PersonalizationService {
+    class TestPersonalizationHandler implements PersonalizationHandler {
         @Override public void selectContent(
                 SelectContentInput input,
                 OnDevicePersonalizationContext odpContext,
@@ -536,6 +536,12 @@ public class PersonalizationServiceTest {
                             new Metrics.Builder().setLongValues(2468).build())
                         .build());
             }
+        }
+    }
+
+    class TestPersonalizationService extends PersonalizationService {
+        @Override public PersonalizationHandler getHandler() {
+            return new TestPersonalizationHandler();
         }
     }
 
