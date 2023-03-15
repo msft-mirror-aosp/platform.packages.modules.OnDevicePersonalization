@@ -30,13 +30,11 @@ filegroup {
 
 filegroup {
     name: "framework-ondevicepersonalization-sources",
+    defaults: ["framework-sources-module-defaults"],
     srcs: [
         "java/**/*.java",
     ],
-    visibility: [
-        "//frameworks/base",
-        "//packages/modules/OnDevicePersonalization:__subpackages__"
-    ],
+    visibility: ["//packages/modules/OnDevicePersonalization:__subpackages__"],
     path: "java",
 }
 
