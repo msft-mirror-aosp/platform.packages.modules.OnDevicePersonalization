@@ -5,8 +5,8 @@ table EventFields {
 }
 
 table Metrics {
-    int_values:[long];
-    float_values:[double];
+    long_values:[long];
+    double_values:[double];
 }
 
 root_type EventFields;
