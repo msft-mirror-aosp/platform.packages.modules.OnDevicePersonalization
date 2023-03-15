@@ -20,13 +20,15 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.DownloadInput;
+import android.ondevicepersonalization.DownloadInputParcel;
 import android.ondevicepersonalization.DownloadResult;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
 import android.util.Log;
 
+import com.android.ondevicepersonalization.internal.StringParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -169,7 +171,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                                             result,
                                             fileStorage.open(
                                                     uri,
-                                                    ParcelFileDescriptorOpener.create())),
+                                                    ParcelFileDescriptorOpener.create()),
+                                            finalVendorDataMap),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                     finalVendorDataMap),
@@ -209,13 +212,33 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     }
 
     private ListenableFuture<Bundle> executeDownloadHandler(
-            IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
+            IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd,
+            Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 null, mPackageName, mContext, true, null);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(fd).build();
-        pluginParams.putParcelable(Constants.EXTRA_INPUT, input);
+
+        List<String> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+        for (String key : vendorDataMap.keySet()) {
+            keys.add(key);
+            values.add(vendorDataMap.get(key).getData());
+        }
+        StringParceledListSlice keysListSlice = new StringParceledListSlice(keys);
+        // This needs to be set to a small number >0 for the parcel.
+        keysListSlice.setInlineCountLimit(1);
+        ByteArrayParceledListSlice valuesListSlice = new ByteArrayParceledListSlice(values);
+        valuesListSlice.setInlineCountLimit(1);
+
+        // TODO(b/272051806): Stop sending the file descriptor
+        DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
+                .setParcelFileDescriptor(fd)
+                .setDownloadedKeys(keysListSlice)
+                .setDownloadedValues(valuesListSlice)
+                .build();
+
+        pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
