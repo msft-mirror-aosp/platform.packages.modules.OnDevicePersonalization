@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.download;
+package com.android.ondevicepersonalization.services;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
@@ -31,7 +31,6 @@ import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
 
