@@ -197,9 +197,7 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownload() throws Exception {
-        ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(pfds[0])
                 .setDownloadedKeys(StringParceledListSlice.emptyList())
                 .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
                 .build();
@@ -213,8 +211,6 @@ public class PersonalizationServiceTest {
         DownloadResult downloadResult =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, DownloadResult.class);
         assertEquals("12", downloadResult.getKeysToRetain().get(0));
-        pfds[0].close();
-        pfds[1].close();
     }
 
     @Test
@@ -243,9 +239,7 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
-        ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(pfds[0])
                 .setDownloadedKeys(StringParceledListSlice.emptyList())
                 .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
                 .build();
@@ -258,15 +252,12 @@ public class PersonalizationServiceTest {
                             Constants.OP_DOWNLOAD_FINISHED, params,
                             new TestPersonalizationServiceCallback());
                 });
-        pfds[0].close();
-        pfds[1].close();
     }
 
     @Test
     public void testOnDownloadThrowsIfCallbackMissing() throws Exception {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(pfds[0])
                 .setDownloadedKeys(StringParceledListSlice.emptyList())
                 .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
                 .build();
