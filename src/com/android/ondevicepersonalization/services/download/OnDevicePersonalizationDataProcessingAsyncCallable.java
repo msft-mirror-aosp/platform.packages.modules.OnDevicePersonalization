@@ -23,7 +23,6 @@ import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.DownloadInputParcel;
 import android.ondevicepersonalization.DownloadResult;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
 import android.util.Log;
 
@@ -43,7 +42,6 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
-import com.google.android.libraries.mobiledatadownload.file.openers.ParcelFileDescriptorOpener;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -169,9 +167,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             result ->
                                     executeDownloadHandler(
                                             result,
-                                            fileStorage.open(
-                                                    uri,
-                                                    ParcelFileDescriptorOpener.create()),
                                             finalVendorDataMap),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
@@ -212,7 +207,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     }
 
     private ListenableFuture<Bundle> executeDownloadHandler(
-            IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd,
+            IsolatedServiceInfo isolatedServiceInfo,
             Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
@@ -231,9 +226,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         ByteArrayParceledListSlice valuesListSlice = new ByteArrayParceledListSlice(values);
         valuesListSlice.setInlineCountLimit(1);
 
-        // TODO(b/272051806): Stop sending the file descriptor
         DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(fd)
                 .setDownloadedKeys(keysListSlice)
                 .setDownloadedValues(valuesListSlice)
                 .build();

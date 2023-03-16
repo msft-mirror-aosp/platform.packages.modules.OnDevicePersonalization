@@ -31,17 +31,14 @@ import android.ondevicepersonalization.SelectContentInput;
 import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 import android.os.OutcomeReceiver;
-import android.os.ParcelFileDescriptor;
-import android.util.JsonReader;
 import android.util.Log;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
@@ -62,7 +59,7 @@ public class TestPersonalizationHandler implements PersonalizationHandler {
                     public void onResult(@NonNull Map<String, byte[]> result) {
                         Log.d(TAG, "OutcomeReceiver onResult: " + result);
                         List<String> keysToRetain =
-                                getFilteredKeys(input.getParcelFileDescriptor());
+                                getFilteredKeys(input.getData());
                         keysToRetain.add("keyExtra");
                         // Get the keys to keep from the downloaded data
                         DownloadResult downloadResult =
@@ -133,40 +130,9 @@ public class TestPersonalizationHandler implements PersonalizationHandler {
         consumer.accept(result);
     }
 
-    private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
-        List<String> filteredKeys = new ArrayList<String>();
-        // Add all keys from the file into the list
-        try (InputStream in =
-                     new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-            try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
-                reader.beginObject();
-                while (reader.hasNext()) {
-                    String name = reader.nextName();
-                    if (name.equals("contents")) {
-                        reader.beginArray();
-                        while (reader.hasNext()) {
-                            reader.beginObject();
-                            while (reader.hasNext()) {
-                                String elementName = reader.nextName();
-                                if (elementName.equals("key")) {
-                                    filteredKeys.add(reader.nextString());
-                                } else {
-                                    reader.skipValue();
-                                }
-                            }
-                            reader.endObject();
-                        }
-                        reader.endArray();
-                    } else {
-                        reader.skipValue();
-                    }
-                }
-                reader.endObject();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to parse downloaded data from fd");
-        }
-        // Just keep the first 2 keys for the test.
-        return filteredKeys.subList(0, 2);
+    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+        Set<String> filteredKeys = data.keySet();
+        filteredKeys.remove("key3");
+        return new ArrayList<>(filteredKeys);
     }
 }

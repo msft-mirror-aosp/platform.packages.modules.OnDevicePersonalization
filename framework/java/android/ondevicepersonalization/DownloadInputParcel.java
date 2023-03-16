@@ -17,7 +17,6 @@
 package android.ondevicepersonalization;
 
 import android.annotation.Nullable;
-import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 
 import com.android.modules.utils.StringParceledListSlice;
@@ -31,10 +30,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public class DownloadInputParcel implements Parcelable {
-    /** A file descriptor to read the downloaded content. */
-    @Nullable
-    ParcelFileDescriptor mParcelFileDescriptor;
-
     /** List of downloaded keys */
     @Nullable
     StringParceledListSlice mDownloadedKeys;
@@ -60,22 +55,12 @@ public class DownloadInputParcel implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ DownloadInputParcel(
-            @Nullable ParcelFileDescriptor parcelFileDescriptor,
             @Nullable StringParceledListSlice downloadedKeys,
             @Nullable ByteArrayParceledListSlice downloadedValues) {
-        this.mParcelFileDescriptor = parcelFileDescriptor;
         this.mDownloadedKeys = downloadedKeys;
         this.mDownloadedValues = downloadedValues;
 
         // onConstructed(); // You can define this method to get a callback
-    }
-
-    /**
-     * A file descriptor to read the downloaded content.
-     */
-    @DataClass.Generated.Member
-    public @Nullable ParcelFileDescriptor getParcelFileDescriptor() {
-        return mParcelFileDescriptor;
     }
 
     /**
@@ -107,7 +92,6 @@ public class DownloadInputParcel implements Parcelable {
         DownloadInputParcel that = (DownloadInputParcel) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mParcelFileDescriptor, that.mParcelFileDescriptor)
                 && java.util.Objects.equals(mDownloadedKeys, that.mDownloadedKeys)
                 && java.util.Objects.equals(mDownloadedValues, that.mDownloadedValues);
     }
@@ -119,7 +103,6 @@ public class DownloadInputParcel implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mParcelFileDescriptor);
         _hash = 31 * _hash + java.util.Objects.hashCode(mDownloadedKeys);
         _hash = 31 * _hash + java.util.Objects.hashCode(mDownloadedValues);
         return _hash;
@@ -132,11 +115,9 @@ public class DownloadInputParcel implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mParcelFileDescriptor != null) flg |= 0x1;
-        if (mDownloadedKeys != null) flg |= 0x2;
-        if (mDownloadedValues != null) flg |= 0x4;
+        if (mDownloadedKeys != null) flg |= 0x1;
+        if (mDownloadedValues != null) flg |= 0x2;
         dest.writeByte(flg);
-        if (mParcelFileDescriptor != null) dest.writeTypedObject(mParcelFileDescriptor, flags);
         if (mDownloadedKeys != null) dest.writeTypedObject(mDownloadedKeys, flags);
         if (mDownloadedValues != null) dest.writeTypedObject(mDownloadedValues, flags);
     }
@@ -153,11 +134,9 @@ public class DownloadInputParcel implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        ParcelFileDescriptor parcelFileDescriptor = (flg & 0x1) == 0 ? null : (ParcelFileDescriptor) in.readTypedObject(ParcelFileDescriptor.CREATOR);
-        StringParceledListSlice downloadedKeys = (flg & 0x2) == 0 ? null : (StringParceledListSlice) in.readTypedObject(StringParceledListSlice.CREATOR);
-        ByteArrayParceledListSlice downloadedValues = (flg & 0x4) == 0 ? null : (ByteArrayParceledListSlice) in.readTypedObject(ByteArrayParceledListSlice.CREATOR);
+        StringParceledListSlice downloadedKeys = (flg & 0x1) == 0 ? null : (StringParceledListSlice) in.readTypedObject(StringParceledListSlice.CREATOR);
+        ByteArrayParceledListSlice downloadedValues = (flg & 0x2) == 0 ? null : (ByteArrayParceledListSlice) in.readTypedObject(ByteArrayParceledListSlice.CREATOR);
 
-        this.mParcelFileDescriptor = parcelFileDescriptor;
         this.mDownloadedKeys = downloadedKeys;
         this.mDownloadedValues = downloadedValues;
 
@@ -185,7 +164,6 @@ public class DownloadInputParcel implements Parcelable {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @Nullable ParcelFileDescriptor mParcelFileDescriptor;
         private @Nullable StringParceledListSlice mDownloadedKeys;
         private @Nullable ByteArrayParceledListSlice mDownloadedValues;
 
@@ -197,31 +175,16 @@ public class DownloadInputParcel implements Parcelable {
         /**
          * Creates a new Builder.
          *
-         * @param parcelFileDescriptor
-         *   A file descriptor to read the downloaded content.
          * @param downloadedKeys
          *   List of downloaded keys
          * @param downloadedValues
          *   List of downloaded values
          */
         public Builder(
-                @Nullable ParcelFileDescriptor parcelFileDescriptor,
                 @Nullable StringParceledListSlice downloadedKeys,
                 @Nullable ByteArrayParceledListSlice downloadedValues) {
-            mParcelFileDescriptor = parcelFileDescriptor;
             mDownloadedKeys = downloadedKeys;
             mDownloadedValues = downloadedValues;
-        }
-
-        /**
-         * A file descriptor to read the downloaded content.
-         */
-        @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setParcelFileDescriptor(@android.annotation.NonNull ParcelFileDescriptor value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x1;
-            mParcelFileDescriptor = value;
-            return this;
         }
 
         /**
@@ -230,7 +193,7 @@ public class DownloadInputParcel implements Parcelable {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setDownloadedKeys(@android.annotation.NonNull StringParceledListSlice value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
+            mBuilderFieldsSet |= 0x1;
             mDownloadedKeys = value;
             return this;
         }
@@ -241,7 +204,7 @@ public class DownloadInputParcel implements Parcelable {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setDownloadedValues(@android.annotation.NonNull ByteArrayParceledListSlice value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x2;
             mDownloadedValues = value;
             return this;
         }
@@ -249,17 +212,16 @@ public class DownloadInputParcel implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull DownloadInputParcel build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8; // Mark builder used
+            mBuilderFieldsSet |= 0x4; // Mark builder used
 
             DownloadInputParcel o = new DownloadInputParcel(
-                    mParcelFileDescriptor,
                     mDownloadedKeys,
                     mDownloadedValues);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x8) != 0) {
+            if ((mBuilderFieldsSet & 0x4) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -267,10 +229,10 @@ public class DownloadInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1678299991866L,
+            time = 1678905403334L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadInputParcel.java",
-            inputSignatures = " @android.annotation.Nullable android.os.ParcelFileDescriptor mParcelFileDescriptor\n @android.annotation.Nullable com.android.modules.utils.StringParceledListSlice mDownloadedKeys\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mDownloadedValues\nclass DownloadInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.Nullable com.android.modules.utils.StringParceledListSlice mDownloadedKeys\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mDownloadedValues\nclass DownloadInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
