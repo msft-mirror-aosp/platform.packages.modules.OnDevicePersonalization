@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.download;
+package com.android.ondevicepersonalization.services;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
@@ -26,38 +26,43 @@ import android.content.pm.PackageManager;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
+import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
+import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
+import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.concurrent.Executor;
 
 /**
  * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
  */
-public class OnDevicePersonalizationStartDownloadServiceReceiver extends BroadcastReceiver {
-    private static final String TAG = "OnDevicePersonalizationStartDownloadServiceReceiver";
+public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
+    private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
     private final Executor mExecutor;
 
-    public OnDevicePersonalizationStartDownloadServiceReceiver() {
+    public OnDevicePersonalizationBroadcastReceiver() {
         this.mExecutor = OnDevicePersonalizationExecutors.getLightweightExecutor();
     }
 
     @VisibleForTesting
-    public OnDevicePersonalizationStartDownloadServiceReceiver(Executor executor) {
+    public OnDevicePersonalizationBroadcastReceiver(Executor executor) {
         this.mExecutor = executor;
     }
 
-    /** Enable the OnDevicePersonalizationStartDownloadServiceReceiver */
+    /** Enable the OnDevicePersonalizationBroadcastReceiver */
     public static boolean enableReceiver(Context context) {
         try {
             context.getPackageManager()
                     .setComponentEnabledSetting(
                             new ComponentName(context,
-                                    OnDevicePersonalizationStartDownloadServiceReceiver.class),
+                                    OnDevicePersonalizationBroadcastReceiver.class),
                             COMPONENT_ENABLED_STATE_ENABLED,
                             PackageManager.DONT_KILL_APP);
         } catch (IllegalArgumentException e) {
@@ -77,8 +82,16 @@ public class OnDevicePersonalizationStartDownloadServiceReceiver extends Broadca
             return;
         }
 
+        // Initialize policy engine instance
+        ChronicleManager.getInstance(
+                new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),
+                new HashSet<>(Arrays.asList(DataIngressPolicy.NPA_DATA_POLICY)));
+
         // Schedule maintenance task
         OnDevicePersonalizationMaintenanceJobService.schedule(context);
+
+        // Schedule user data collection task
+        UserDataCollectionJobService.schedule(context);
 
         final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
