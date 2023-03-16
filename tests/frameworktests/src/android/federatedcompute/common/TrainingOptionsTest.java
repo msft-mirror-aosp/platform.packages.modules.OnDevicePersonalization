@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package android.federatedcompute;
+package android.federatedcompute.common;
 
-import static android.federatedcompute.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
+import static android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
 
 import static com.google.common.truth.Truth.assertThat;
 
