@@ -23,6 +23,10 @@ import android.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.android.ondevicepersonalization.services.data.user.PrivacySignal;
+import com.android.ondevicepersonalization.services.data.user.RawUserData;
+import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
+
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -40,15 +44,30 @@ public class OnDevicePersonalizationPrivacyStatusServiceDelegate
         mContext = context;
     }
 
-    // TODO (b/270467190): implement the stub.
     @Override
     public void setKidStatus(boolean kidStatusEnabled,
             @NonNull IPrivacyStatusServiceCallback callback) {
         Objects.requireNonNull(callback);
-
+        // TODO(b/272823829): Verify caller's permission
+        // TODO(b/270468742): Call system server for U+ devices
         sBackgroundExecutor.execute(
                 () -> {
                     try {
+                        PrivacySignal privacySignal = PrivacySignal.getInstance();
+
+                        if (kidStatusEnabled == privacySignal.isKidStatusEnabled()) {
+                            callback.onSuccess();
+                            return;
+                        }
+
+                        privacySignal.setKidStatusEnabled(kidStatusEnabled);
+                        // Rollback all user data if kid status changes
+                        RawUserData userData = RawUserData.getInstance();
+                        UserDataCollector userDataCollector =
+                                UserDataCollector.getInstance(mContext);
+                        userDataCollector.clearUserData(userData);
+                        userDataCollector.clearMetadata();
+                        userDataCollector.clearDatabase();
                         callback.onSuccess();
                     } catch (RemoteException re) {
                         Log.e(TAG, "Unable to send result to the callback.", re);
