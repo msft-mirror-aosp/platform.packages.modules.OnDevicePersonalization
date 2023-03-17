@@ -24,7 +24,6 @@ import android.ondevicepersonalization.aidl.IPersonalizationService;
 import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.ParcelFileDescriptor;
 import android.os.Parcelable;
 import android.os.RemoteException;
 import android.util.Log;
@@ -87,7 +86,6 @@ public abstract class PersonalizationService extends Service {
 
                 DownloadInputParcel input = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, DownloadInputParcel.class));
-                ParcelFileDescriptor fd = Objects.requireNonNull(input.getParcelFileDescriptor());
 
                 List<String> keys = Objects.requireNonNull(input.getDownloadedKeys()).getList();
                 List<byte[]> values = Objects.requireNonNull(input.getDownloadedValues()).getList();
@@ -103,7 +101,6 @@ public abstract class PersonalizationService extends Service {
                 }
                 DownloadInput downloadInput = new DownloadInput.Builder()
                         .setData(downloadData)
-                        .setParcelFileDescriptor(fd)
                         .build();
 
                 IDataAccessService binder =
