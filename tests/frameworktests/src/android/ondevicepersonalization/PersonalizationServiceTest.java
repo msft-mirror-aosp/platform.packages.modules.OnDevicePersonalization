@@ -31,6 +31,9 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.StringParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -194,8 +197,10 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownload() throws Exception {
-        ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        DownloadInputParcel input = new DownloadInputParcel.Builder()
+                .setDownloadedKeys(StringParceledListSlice.emptyList())
+                .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
@@ -206,8 +211,6 @@ public class PersonalizationServiceTest {
         DownloadResult downloadResult =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, DownloadResult.class);
         assertEquals("12", downloadResult.getKeysToRetain().get(0));
-        pfds[0].close();
-        pfds[1].close();
     }
 
     @Test
@@ -236,8 +239,10 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
-        ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        DownloadInputParcel input = new DownloadInputParcel.Builder()
+                .setDownloadedKeys(StringParceledListSlice.emptyList())
+                .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
@@ -247,14 +252,15 @@ public class PersonalizationServiceTest {
                             Constants.OP_DOWNLOAD_FINISHED, params,
                             new TestPersonalizationServiceCallback());
                 });
-        pfds[0].close();
-        pfds[1].close();
     }
 
     @Test
     public void testOnDownloadThrowsIfCallbackMissing() throws Exception {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(pfds[0]).build();
+        DownloadInputParcel input = new DownloadInputParcel.Builder()
+                .setDownloadedKeys(StringParceledListSlice.emptyList())
+                .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
@@ -386,7 +392,7 @@ public class PersonalizationServiceTest {
         assertTrue(mComputeEventMetricsCalled);
         EventMetricsResult result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventMetricsResult.class);
-        assertEquals(2468, result.getMetrics().getIntValues()[0]);
+        assertEquals(2468, result.getMetrics().getLongValues()[0]);
     }
 
     @Test
@@ -458,7 +464,7 @@ public class PersonalizationServiceTest {
                 });
     }
 
-    class TestPersonalizationService extends PersonalizationService {
+    class TestPersonalizationHandler implements PersonalizationHandler {
         @Override public void selectContent(
                 SelectContentInput input,
                 OnDevicePersonalizationContext odpContext,
@@ -518,9 +524,15 @@ public class PersonalizationServiceTest {
                 consumer.accept(
                         new EventMetricsResult.Builder()
                         .setMetrics(
-                            new Metrics.Builder().setIntValues(2468).build())
+                            new Metrics.Builder().setLongValues(2468).build())
                         .build());
             }
+        }
+    }
+
+    class TestPersonalizationService extends PersonalizationService {
+        @Override public PersonalizationHandler getHandler() {
+            return new TestPersonalizationHandler();
         }
     }
 

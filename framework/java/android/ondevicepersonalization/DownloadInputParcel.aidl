@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,6 @@
  * limitations under the License.
  */
 
-package com.android.odpsamplenetwork;
+package android.ondevicepersonalization;
 
-import android.annotation.NonNull;
-import android.ondevicepersonalization.PersonalizationHandler;
-import android.ondevicepersonalization.PersonalizationService;
-
-public class SamplePersonalizationService extends PersonalizationService {
-    @NonNull @Override public PersonalizationHandler getHandler() {
-        return new SamplePersonalizationHandler();
-    }
-}
+parcelable DownloadInputParcel;
