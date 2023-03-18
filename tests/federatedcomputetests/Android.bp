@@ -20,8 +20,6 @@ android_test {
     name: "FederatedComputeServicesTests",
     srcs: [
         "src/**/*.java",
-        ":framework-ondevicepersonalization-aidl",
-        ":framework-ondevicepersonalization-sources",
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
 
@@ -31,6 +29,8 @@ android_test {
         "android.test.mock.stubs",
         "android.test.runner",
         "auto_value_annotations",
+        "framework-annotations-lib",
+        "framework-ondevicepersonalization.impl",
         "truth-prebuilt",
     ],
     static_libs: [
@@ -42,10 +42,12 @@ android_test {
         "flatbuffers-java",
     ],
     plugins: ["auto_value_plugin"],
+    sdk_version: "module_current",
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     certificate: "platform",
     compile_multilib: "both",
+    test_config: "AndroidTest.xml",
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
         "general-tests",
