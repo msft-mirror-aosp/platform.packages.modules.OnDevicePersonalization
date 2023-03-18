@@ -20,10 +20,7 @@ android_test {
     name: "OnDevicePersonalizationManualTests",
     srcs: [
         "src/**/*.java",
-        ":framework-ondevicepersonalization-aidl",
-        ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-sources",
-        ":framework-ondevicepersonalization-sources",
         ":ondevicepersonalization-fbs",
         ":chronicle-sources",
     ],
@@ -32,6 +29,7 @@ android_test {
         "android.test.runner",
         "kotlin-annotations",
         "truth-prebuilt",
+        "framework-ondevicepersonalization.impl",
     ],
     static_libs: [
         "androidx.test.ext.junit",
@@ -45,6 +43,7 @@ android_test {
         "ondevicepersonalization-plugin-lib",
         "apache-velocity-engine-core",
         "flatbuffers-java",
+        "modules-utils-list-slice",
     ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",

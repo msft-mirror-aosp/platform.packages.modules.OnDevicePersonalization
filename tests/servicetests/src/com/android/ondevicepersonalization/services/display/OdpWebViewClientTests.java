@@ -173,10 +173,10 @@ public class OdpWebViewClientTests {
         int dataColumn = result.getColumnIndex("eventData");
         byte[] data = result.getBlob(dataColumn);
         EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(data));
-        assertEquals(1, eventFields.metrics().intValuesLength());
-        assertEquals(10, eventFields.metrics().intValues(0));
-        assertEquals(1, eventFields.metrics().floatValuesLength());
-        assertEquals(5.0, eventFields.metrics().floatValues(0), 0.001);
+        assertEquals(1, eventFields.metrics().longValuesLength());
+        assertEquals(10, eventFields.metrics().longValues(0));
+        assertEquals(1, eventFields.metrics().doubleValuesLength());
+        assertEquals(5.0, eventFields.metrics().doubleValues(0), 0.001);
     }
 
     @Test
