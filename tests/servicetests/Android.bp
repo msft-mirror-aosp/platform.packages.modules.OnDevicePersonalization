@@ -28,6 +28,8 @@ android_test {
     libs: [
         "android.test.base",
         "android.test.runner",
+        "framework-annotations-lib",
+        "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
         "truth-prebuilt",
         "framework-ondevicepersonalization.impl",
@@ -46,6 +48,7 @@ android_test {
         "apache-velocity-engine-core",
         "flatbuffers-java",
     ],
+    sdk_version: "module_current",
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     compile_multilib: "both",
@@ -54,6 +57,7 @@ android_test {
         "general-tests",
         "mts-ondevicepersonalization",
     ],
+    test_config: "AndroidTest.xml",
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     // mockito-target-inline dependency
     jni_libs: [

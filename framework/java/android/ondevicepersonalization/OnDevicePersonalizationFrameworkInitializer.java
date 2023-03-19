@@ -17,6 +17,7 @@
 package android.ondevicepersonalization;
 
 import static android.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
+import static android.ondevicepersonalization.OnDevicePersonalizationPrivacyStatusManager.ON_DEVICE_PERSONALIZATION_PRIVACY_STATUS_SERVICE;
 
 import android.annotation.SystemApi;
 import android.app.SystemServiceRegistry;
@@ -44,5 +45,9 @@ public class OnDevicePersonalizationFrameworkInitializer {
         SystemServiceRegistry.registerContextAwareService(
                 ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,
                 (c) -> new OnDevicePersonalizationManager(c));
+        SystemServiceRegistry.registerContextAwareService(
+                ON_DEVICE_PERSONALIZATION_PRIVACY_STATUS_SERVICE,
+                OnDevicePersonalizationPrivacyStatusManager.class,
+                (c) -> new OnDevicePersonalizationPrivacyStatusManager(c));
     }
 }
