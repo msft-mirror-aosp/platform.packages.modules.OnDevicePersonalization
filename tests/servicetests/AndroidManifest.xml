@@ -57,7 +57,7 @@
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <!-- TODO(b/250001593) Enable any required broadcast receivers during runtime/onCreate. -->
-        <receiver android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationBroadcastReceiver"
+        <receiver android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationBroadcastReceiver"
                   android:enabled="false"
                   android:exported="false">
             <intent-filter>
