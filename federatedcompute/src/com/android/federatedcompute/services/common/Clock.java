@@ -16,44 +16,11 @@
 
 package com.android.federatedcompute.services.common;
 
-import android.os.SystemClock;
+/** Wrapper of time operations. */
+public interface Clock {
+    /** Returns milliseconds since boot, including time spent in sleep. */
+    long elapsedRealtime();
 
-/**
- * Class for SystemClock call. Copied from
- * https://source.corp.google.com/android/frameworks/base/core/java/com/android/internal/os/Clock.java
- */
-public abstract class Clock {
-    /** Elapsed Realtime, see SystemClock.elapsedRealtime() */
-    public long elapsedRealtime() {
-        throw new UnsupportedOperationException();
-    }
-
-    /** Uptime, see SystemClock.uptimeMillis() */
-    public long uptimeMillis() {
-        throw new UnsupportedOperationException();
-    }
-
-    /** Wall-clock time as per System.currentTimeMillis() */
-    public long currentTimeMillis() {
-        throw new UnsupportedOperationException();
-    }
-
-    public static final Clock SYSTEM_CLOCK =
-            new Clock() {
-
-                @Override
-                public long elapsedRealtime() {
-                    return SystemClock.elapsedRealtime();
-                }
-
-                @Override
-                public long uptimeMillis() {
-                    return SystemClock.uptimeMillis();
-                }
-
-                @Override
-                public long currentTimeMillis() {
-                    return System.currentTimeMillis();
-                }
-            };
+    /** Get the current time of the clock in milliseconds. */
+    long currentTimeMillis();
 }
