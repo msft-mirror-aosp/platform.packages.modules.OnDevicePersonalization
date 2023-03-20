@@ -29,7 +29,7 @@ import java.util.List;
  *
  * @hide
  */
-public final class ByteArrayParceledListSlice extends BaseParceledListSlice<byte[]> {
+public final class ByteArrayParceledListSlice extends BaseOdpParceledListSlice<byte[]> {
     @SuppressWarnings("unchecked")
     @NonNull
     public static final Creator<byte[]> BYTE_ARRAY_CREATOR = new Creator<byte[]>() {
