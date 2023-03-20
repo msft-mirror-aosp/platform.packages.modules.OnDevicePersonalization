@@ -39,4 +39,6 @@ android_test {
     test_suites: [
         "general-tests",
     ],
+    test_config: "AndroidTest.xml",
+    test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
 }
