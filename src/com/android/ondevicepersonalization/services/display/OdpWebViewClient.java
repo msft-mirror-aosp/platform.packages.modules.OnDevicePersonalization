@@ -137,7 +137,7 @@ class OdpWebViewClient extends WebViewClient {
             Log.d(TAG, "executeComputeEventMetricsHandler() called");
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                    null, mServicePackageName, mContext, true, null);
+                    mServicePackageName, mContext, true, null);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
             PersistableBundle eventParams = mEventParametersMap.get(payload.getEvent().getBidId());
             // TODO(b/259950177): Add Query row to input.

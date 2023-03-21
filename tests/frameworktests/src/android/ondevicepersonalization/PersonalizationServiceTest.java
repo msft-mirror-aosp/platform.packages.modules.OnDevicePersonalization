@@ -83,7 +83,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .setAppParams(appParams)
                 .build();
         Bundle params = new Bundle();
@@ -106,7 +105,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .setAppParams(appParams)
                 .build();
         Bundle params = new Bundle();
@@ -124,7 +122,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -164,7 +161,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -182,7 +178,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
