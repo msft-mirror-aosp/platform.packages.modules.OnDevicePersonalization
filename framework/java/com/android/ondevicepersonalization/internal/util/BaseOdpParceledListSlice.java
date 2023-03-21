@@ -38,8 +38,8 @@ import java.util.List;
  * a different result if the class name encoded in the Parcelable is a Base type.
  * See b/17671747.
  */
-abstract class BaseParceledListSlice<T> implements Parcelable {
-    private static final String TAG = "ParceledListSlice";
+abstract class BaseOdpParceledListSlice<T> implements Parcelable {
+    private static final String TAG = "OdpParceledListSlice";
     private static final boolean DEBUG = false;
 
     /*
@@ -52,12 +52,12 @@ abstract class BaseParceledListSlice<T> implements Parcelable {
 
     private int mInlineCountLimit = Integer.MAX_VALUE;
 
-    BaseParceledListSlice(List<T> list) {
+    BaseOdpParceledListSlice(List<T> list) {
         mList = list;
     }
 
     @SuppressWarnings("unchecked")
-    BaseParceledListSlice(Parcel p, ClassLoader loader) {
+    BaseOdpParceledListSlice(Parcel p, ClassLoader loader) {
         final int numItems = p.readInt();
         mList = new ArrayList<T>(numItems);
         if (DEBUG) Log.d(TAG, "Retrieving " + numItems + " items");

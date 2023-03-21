@@ -26,8 +26,8 @@ import android.os.Bundle;
 import android.util.JsonReader;
 import android.util.Log;
 
-import com.android.ondevicepersonalization.internal.StringParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
