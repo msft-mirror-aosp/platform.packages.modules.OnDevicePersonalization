@@ -211,7 +211,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                null, mPackageName, mContext, true, null);
+                mPackageName, mContext, true, null);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
 
         List<String> keys = new ArrayList<>();
