@@ -52,6 +52,36 @@ public final class ScheduleFederatedComputeRequestTest {
     }
 
     @Test
+    public void testScheduleFederatedComputeRequestEquals() {
+        ScheduleFederatedComputeRequest request1 =
+                new ScheduleFederatedComputeRequest.Builder()
+                        .setTrainingOptions(
+                                new TrainingOptions.Builder()
+                                        .setPopulationName(POPULATION_NAME)
+                                        .setJobSchedulerJobId(JOB_ID)
+                                        .setTrainingInterval(
+                                                new TrainingInterval.Builder()
+                                                        .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
+                                                        .build())
+                                        .build())
+                        .build();
+        ScheduleFederatedComputeRequest request2 =
+                new ScheduleFederatedComputeRequest.Builder()
+                        .setTrainingOptions(
+                                new TrainingOptions.Builder()
+                                        .setPopulationName(POPULATION_NAME)
+                                        .setJobSchedulerJobId(JOB_ID)
+                                        .setTrainingInterval(
+                                                new TrainingInterval.Builder()
+                                                        .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
+                                                        .build())
+                                        .build())
+                        .build();
+
+        assertThat(request1).isEqualTo(request2);
+    }
+
+    @Test
     public void buildNullTrainingOptions_failed() {
         assertThrows(
                 NullPointerException.class,
