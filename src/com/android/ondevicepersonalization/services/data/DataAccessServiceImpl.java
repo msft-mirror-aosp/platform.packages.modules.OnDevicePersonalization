@@ -89,18 +89,16 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     @NonNull private final Injector mInjector;
 
     public DataAccessServiceImpl(
-            @NonNull String appPackageName,
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeUserData,
             @Nullable EventUrlQueryData eventUrlQueryData) {
-        this(appPackageName, servicePackageName, applicationContext, includeUserData,
+        this(servicePackageName, applicationContext, includeUserData,
                 eventUrlQueryData, new Injector());
     }
 
     @VisibleForTesting
     public DataAccessServiceImpl(
-            @NonNull String appPackageName,
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeUserData,
