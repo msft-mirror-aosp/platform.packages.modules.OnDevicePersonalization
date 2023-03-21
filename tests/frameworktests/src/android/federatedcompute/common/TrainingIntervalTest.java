@@ -20,6 +20,8 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
+import android.os.Parcel;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import org.junit.Test;
@@ -73,6 +75,19 @@ public class TrainingIntervalTest {
         TrainingInterval differentInterval =
                 createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, 20000);
         assertThat(interval.equals(differentInterval)).isFalse();
+    }
+
+    @Test
+    public void testParcelValidInterval() {
+        TrainingInterval interval =
+                createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, 10000);
+
+        Parcel p = Parcel.obtain();
+        interval.writeToParcel(p, 0);
+        p.setDataPosition(0);
+        TrainingInterval fromParcel = TrainingInterval.CREATOR.createFromParcel(p);
+
+        assertThat(interval).isEqualTo(fromParcel);
     }
 
     private static TrainingInterval createInterval(int mode, long minimumIntervalMillis) {

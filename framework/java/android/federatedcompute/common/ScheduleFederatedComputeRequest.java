@@ -120,22 +120,6 @@ public class ScheduleFederatedComputeRequest {
         }
     }
 
-    @DataClass.Generated(
-            time = 1674685159828L,
-            codegenVersion = "1.0.23",
-            sourceFile =
-                    "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/federatedcompute/ScheduleFederatedComputeRequest.java",
-            inputSignatures =
-                    "private final @android.annotation.NonNull"
-                        + " android.ondevicepersonalization.federatedcompute.TrainingOptions"
-                        + " mTrainingOptions\n"
-                        + "class ScheduleFederatedComputeRequest extends java.lang.Object"
-                        + " implements []\n"
-                        + "@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true,"
-                        + " genEqualsHashCode=true)")
-    @Deprecated
-    private void __metadata() {}
-
     // @formatter:on
     // End of generated code
 
