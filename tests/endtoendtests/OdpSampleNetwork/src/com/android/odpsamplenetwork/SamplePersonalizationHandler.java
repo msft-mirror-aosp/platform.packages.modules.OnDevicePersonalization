@@ -22,10 +22,10 @@ import android.ondevicepersonalization.DownloadResult;
 import android.ondevicepersonalization.EventMetricsInput;
 import android.ondevicepersonalization.EventMetricsResult;
 import android.ondevicepersonalization.EventUrlOptions;
+import android.ondevicepersonalization.ImmutableMap;
 import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.PersonalizationHandler;
-import android.ondevicepersonalization.RemoteData;
 import android.ondevicepersonalization.RenderContentInput;
 import android.ondevicepersonalization.RenderContentResult;
 import android.ondevicepersonalization.ScoredBid;
@@ -45,6 +45,7 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListenableFutureTask;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -52,6 +53,7 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -116,24 +118,20 @@ public class SamplePersonalizationHandler implements PersonalizationHandler {
     }
 
     private ListenableFuture<Map<String, byte[]>> readRemoteData(
-            RemoteData remoteData, List<String> keys) {
-        return CallbackToFutureAdapter.getFuture(completer -> {
-            remoteData.lookup(
-                    keys,
-                    sBackgroundExecutor,
-                    new OutcomeReceiver<Map<String, byte[]>, Exception>() {
-                        @Override public void onResult(Map<String, byte[]> result) {
-                            completer.set(result);
-                        }
-                        @Override public void onError(Exception e) {
-                            completer.setException(e);
-                        }
-                    });
-            return "readRemoteData";
+            ImmutableMap remoteData, List<String> keys) {
+        return ListenableFutureTask.create(() -> {
+            Map<String, byte[]> result = new HashMap<>();
+            for (String key : keys) {
+                byte[] value = remoteData.get(key);
+                if (null != value) {
+                    result.put(key, value);
+                }
+            }
+            return result;
         });
     }
 
-    private FluentFuture<List<Ad>> readAds(RemoteData remoteData) {
+    private FluentFuture<List<Ad>> readAds(ImmutableMap remoteData) {
         Log.d(TAG, "readAds() called.");
         ArrayList<String> keys = new ArrayList<>();
         for (int i = 1; i <= MAX_ADS; ++i) {
@@ -226,7 +224,7 @@ public class SamplePersonalizationHandler implements PersonalizationHandler {
             @NonNull Consumer<SelectContentResult> consumer
     ) {
         try {
-            RemoteData remoteData = odpContext.getRemoteData();
+            ImmutableMap remoteData = odpContext.getRemoteData();
 
             var unused = readAds(remoteData)
                     .transform(
@@ -281,7 +279,7 @@ public class SamplePersonalizationHandler implements PersonalizationHandler {
         });
     }
 
-    private FluentFuture<Ad> readAd(String id, RemoteData remoteData) {
+    private FluentFuture<Ad> readAd(String id, ImmutableMap remoteData) {
         return FluentFuture.from(readRemoteData(remoteData, List.of(id)))
                 .transform(
                     result -> parseAd(id, result.get(id)),

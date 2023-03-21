@@ -40,6 +40,7 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Objects;
 
 /**
@@ -136,6 +137,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> remoteDataLookup(
                                 params.getStringArray(Constants.EXTRA_LOOKUP_KEYS), callback));
                 break;
+            case Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET:
+                mInjector.getExecutor().execute(
+                        () -> remoteDataKeyset(callback));
+                break;
             case Constants.DATA_ACCESS_OP_GET_EVENT_URL:
                 if (mEventUrlQueryData == null) {
                     throw new IllegalArgumentException("EventUrl not available.");
@@ -153,10 +158,16 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> getEventUrl(eventType, bidId, destinationUrl, callback)
                 );
                 break;
-            case Constants.DATA_ACCESS_OP_REMOTE_DATA_SCAN:
             default:
                 sendError(callback);
         }
+    }
+
+    private void remoteDataKeyset(@NonNull IDataAccessServiceCallback callback) {
+        Bundle result = new Bundle();
+        result.putSerializable(Constants.EXTRA_RESULT,
+                new HashSet<>(mVendorDataDao.readAllVendorDataKeys()));
+        sendResult(result, callback);
     }
 
     private void remoteDataLookup(String[] keys, @NonNull IDataAccessServiceCallback callback) {

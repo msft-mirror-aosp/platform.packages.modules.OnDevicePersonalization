@@ -30,12 +30,10 @@ import android.ondevicepersonalization.ScoredBid;
 import android.ondevicepersonalization.SelectContentInput;
 import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
-import android.os.OutcomeReceiver;
 import android.util.Log;
 
-import com.google.common.util.concurrent.MoreExecutors;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -48,33 +46,26 @@ public class TestPersonalizationHandler implements PersonalizationHandler {
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
             Consumer<DownloadResult> consumer) {
-        Log.d(TAG, "Starting filterData.");
-        Log.d(TAG, "Data: " + input.getData());
+        try {
+            Log.d(TAG, "Starting filterData.");
+            Log.d(TAG, "Data: " + input.getData());
 
-        List<String> lookupKeys = new ArrayList<>();
-        lookupKeys.add("keyExtra");
-        odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
-                new OutcomeReceiver<Map<String, byte[]>, Exception>() {
-                    @Override
-                    public void onResult(@NonNull Map<String, byte[]> result) {
-                        Log.d(TAG, "OutcomeReceiver onResult: " + result);
-                        List<String> keysToRetain =
-                                getFilteredKeys(input.getData());
-                        keysToRetain.add("keyExtra");
-                        // Get the keys to keep from the downloaded data
-                        DownloadResult downloadResult =
-                                new DownloadResult.Builder()
-                                .setKeysToRetain(keysToRetain)
-                                .build();
-                        consumer.accept(downloadResult);
-                    }
+            Log.d(TAG, "Existing keyExtra: "
+                    + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
-                        consumer.accept(null);
-                    }
-                });
+            List<String> keysToRetain =
+                    getFilteredKeys(input.getData());
+            keysToRetain.add("keyExtra");
+            // Get the keys to keep from the downloaded data
+            DownloadResult downloadResult =
+                    new DownloadResult.Builder()
+                            .setKeysToRetain(keysToRetain)
+                            .build();
+            consumer.accept(downloadResult);
+        } catch (Exception e) {
+            Log.e(TAG, "Error occurred in onDownload", e);
+        }
     }
 
     @Override public void selectContent(
