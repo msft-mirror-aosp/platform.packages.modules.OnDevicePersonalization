@@ -238,24 +238,6 @@ public final class TrainingOptions implements Parcelable {
         }
     }
 
-    @DataClass.Generated(
-            time = 1674685740223L,
-            codegenVersion = "1.0.23",
-            sourceFile =
-                    "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/federatedcompute/TrainingOptions.java",
-            inputSignatures =
-                    "private  int mJobSchedulerJobId\n"
-                        + "private @android.annotation.NonNull java.lang.String mPopulationName\n"
-                        + "private @android.annotation.Nullable"
-                        + " android.ondevicepersonalization.federatedcompute.TrainingInterval"
-                        + " mTrainingInterval\n"
-                        + "class TrainingOptions extends java.lang.Object implements"
-                        + " [android.os.Parcelable]\n"
-                        + "@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true,"
-                        + " genEqualsHashCode=true)")
-    @Deprecated
-    private void __metadata() {}
-
     // @formatter:on
     // End of generated code
 
