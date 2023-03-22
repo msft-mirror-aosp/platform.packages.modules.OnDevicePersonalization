@@ -842,7 +842,6 @@ public class UserDataCollector {
     /**
      * Util to reset all fields in [UserData] to default for testing purpose
      */
-    @VisibleForTesting
     public void clearUserData(@NonNull RawUserData userData) {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
@@ -865,7 +864,6 @@ public class UserDataCollector {
     /**
      * Util to reset all in-memory metadata for testing purpose.
      */
-    @VisibleForTesting
     public void clearMetadata() {
         mInitialized = false;
         mLastTimeMillisAppUsageCollected = 0L;
@@ -963,6 +961,11 @@ public class UserDataCollector {
     }
 
     @VisibleForTesting
+    public boolean isInitialized() {
+        return mInitialized;
+    }
+
+    @VisibleForTesting
     public long getLastTimeMillisAppUsageCollected() {
         return mLastTimeMillisAppUsageCollected;
     }
@@ -980,7 +983,6 @@ public class UserDataCollector {
     /**
      * Clear all user data in database for testing purpose.
      */
-    @VisibleForTesting
     public void clearDatabase() {
         mUserDataDao.clearUserData();
     }
