@@ -197,17 +197,18 @@ class OdpWebViewClient extends WebViewClient {
                 metrics = new Metrics.Builder().build();
             }
             byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(metrics);
-            event = new Event.Builder(
-                    event.getQueryId(),
-                    event.getSlotIndex(),
-                    event.getBidId(),
-                    event.getServicePackageName(),
-                    event.getSlotPosition(),
-                    event.getType(),
-                    event.getTimeMillis(),
-                    event.getSlotId(),
-                    eventData).build();
-            if (!EventsDao.getInstance(mContext).insertEvent(event)) {
+            event = new Event.Builder()
+                    .setType(event.getType())
+                    .setQueryId(event.getQueryId())
+                    .setServicePackageName(event.getServicePackageName())
+                    .setTimeMillis(event.getTimeMillis())
+                    .setSlotId(event.getSlotId())
+                    .setSlotPosition(event.getSlotPosition())
+                    .setSlotIndex(event.getSlotIndex())
+                    .setBidId(event.getBidId())
+                    .setEventData(eventData)
+                    .build();
+            if (-1 == EventsDao.getInstance(mContext).insertEvent(event)) {
                 Log.e(TAG, "Failed to insert event: " + event);
             }
             return Futures.immediateFuture(null);
