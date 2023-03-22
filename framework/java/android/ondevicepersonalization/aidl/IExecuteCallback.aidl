@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,24 +16,10 @@
 
 package android.ondevicepersonalization.aidl;
 
-import android.ondevicepersonalization.aidl.IExecuteCallback;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 
 /** @hide */
-interface IOnDevicePersonalizationManagingService {
-    String getVersion();
-    void execute(
-        in String callingPackageName,
-        in String servicePackageName,
-        in PersistableBundle params,
-        in IExecuteCallback callback);
-
-    void requestSurfacePackage(
-        in String slotResultToken,
-        in IBinder hostToken,
-        int displayId,
-        int width,
-        int height,
-        in IRequestSurfacePackageCallback callback);
+oneway interface IExecuteCallback {
+    void onSuccess(in List<String> slotResultTokens);
+    void onError(int errorCode);
 }
