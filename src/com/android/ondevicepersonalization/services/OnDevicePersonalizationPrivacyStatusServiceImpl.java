@@ -30,7 +30,6 @@ public class OnDevicePersonalizationPrivacyStatusServiceImpl extends Service {
 
     @Override
     public void onCreate() {
-        // TODO (b/272075982): inject the OdpPrivacyFlags class.
         mBinder = new OnDevicePersonalizationPrivacyStatusServiceDelegate(this);
     }
 
