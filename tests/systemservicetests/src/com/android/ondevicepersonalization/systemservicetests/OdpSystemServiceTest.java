@@ -48,9 +48,11 @@ public class OdpSystemServiceTest {
             return;
         }
 
+        OnDevicePersonalizationSystemServiceManager manager =
+                mContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
+        assertNotEquals(null, manager);
         IOnDevicePersonalizationSystemService service =
-                mContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class)
-                    .getService();
+                manager.getService();
         assertNotEquals(null, service);
         service.onRequest(
                 new Bundle(),
