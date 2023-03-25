@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package android.federatedcompute.aidl;
 
-/** Wrapper of time operations. */
-public interface Clock {
-    /** Returns milliseconds since boot, including time spent in sleep. */
-    long elapsedRealtime();
+import android.federatedcompute.aidl.IExampleStoreIteratorCallback;
 
-    /** Get the current time of the clock in milliseconds. */
-    long currentTimeMillis();
+/**
+ * Iterator interface that client apps must implement to return training data to the federated
+ * training service.
+ *
+ * @hide
+ */
+interface IExampleStoreIterator {
+    /** Called when the training service needs another training example. */
+    void next(in IExampleStoreIteratorCallback callback);
+
+    /** Called by the training service when it is done using this iterator instance. */
+    void close();
 }

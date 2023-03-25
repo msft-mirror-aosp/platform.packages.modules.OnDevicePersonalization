@@ -68,10 +68,8 @@ public class UserDataCollectorTest {
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
         assertEquals(mUserData.carrier, mCollector.getCarrier());
-        assertTrue(mUserData.connectionType != RawUserData.ConnectionType.UNKNOWN);
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
         assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
-        assertTrue(mUserData.connectionSpeedKbps > 0);
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);

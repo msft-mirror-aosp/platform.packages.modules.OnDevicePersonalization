@@ -249,25 +249,6 @@ public final class TrainingInterval implements Parcelable {
         }
     }
 
-    @DataClass.Generated(
-            time = 1674685733347L,
-            codegenVersion = "1.0.23",
-            sourceFile =
-                    "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/federatedcompute/TrainingInterval.java",
-            inputSignatures =
-                    "public static final  int SCHEDULING_MODE_RECURRENT\n"
-                        + "public static final  int SCHEDULING_MODE_ONE_TIME\n"
-                        + "private"
-                        + " @android.ondevicepersonalization.federatedcompute.TrainingInterval.SchedulingMode"
-                        + " int mSchedulingMode\n"
-                        + "private  long mMinimumIntervalMillis\n"
-                        + "class TrainingInterval extends java.lang.Object implements"
-                        + " [android.os.Parcelable]\n"
-                        + "@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true,"
-                        + " genEqualsHashCode=true)")
-    @Deprecated
-    private void __metadata() {}
-
     // @formatter:on
     // End of generated code
 
