@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package android.ondevicepersonalization.aidl;
 
-/** Wrapper of time operations. */
-public interface Clock {
-    /** Returns milliseconds since boot, including time spent in sleep. */
-    long elapsedRealtime();
+import android.os.Bundle;
 
-    /** Get the current time of the clock in milliseconds. */
-    long currentTimeMillis();
+/** @hide */
+oneway interface IExecuteCallback {
+    void onSuccess(in List<String> slotResultTokens);
+    void onError(int errorCode);
 }
