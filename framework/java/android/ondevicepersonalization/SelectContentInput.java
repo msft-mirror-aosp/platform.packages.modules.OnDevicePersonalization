@@ -24,8 +24,6 @@ import android.os.PersistableBundle;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
-import java.util.List;
-
 /**
  * The output to be rendered in a slot within a calling app.
  *
@@ -35,9 +33,6 @@ import java.util.List;
 public final class SelectContentInput implements Parcelable {
     /** The package name of the calling app. */
     @NonNull String mAppPackageName;
-
-    /** Properties of each slot within the calling app where content is to be rendered. */
-    @NonNull private List<SlotInfo> mSlotInfos;
 
     /** Parameters provided by the app to the {@link PersonalizationService}. */
     @Nullable PersistableBundle mAppParams;
@@ -60,14 +55,10 @@ public final class SelectContentInput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ SelectContentInput(
             @NonNull String appPackageName,
-            @NonNull List<SlotInfo> slotInfos,
             @Nullable PersistableBundle appParams) {
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
-        this.mSlotInfos = slotInfos;
-        AnnotationValidations.validate(
-                NonNull.class, null, mSlotInfos);
         this.mAppParams = appParams;
 
         // onConstructed(); // You can define this method to get a callback
@@ -79,14 +70,6 @@ public final class SelectContentInput implements Parcelable {
     @DataClass.Generated.Member
     public @NonNull String getAppPackageName() {
         return mAppPackageName;
-    }
-
-    /**
-     * Properties of each slot within the calling app where content is to be rendered.
-     */
-    @DataClass.Generated.Member
-    public @NonNull List<SlotInfo> getSlotInfos() {
-        return mSlotInfos;
     }
 
     /**
@@ -111,7 +94,6 @@ public final class SelectContentInput implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mAppPackageName, that.mAppPackageName)
-                && java.util.Objects.equals(mSlotInfos, that.mSlotInfos)
                 && java.util.Objects.equals(mAppParams, that.mAppParams);
     }
 
@@ -123,7 +105,6 @@ public final class SelectContentInput implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppPackageName);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mSlotInfos);
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppParams);
         return _hash;
     }
@@ -135,10 +116,9 @@ public final class SelectContentInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mAppParams != null) flg |= 0x4;
+        if (mAppParams != null) flg |= 0x2;
         dest.writeByte(flg);
         dest.writeString(mAppPackageName);
-        dest.writeParcelableList(mSlotInfos, flags);
         if (mAppParams != null) dest.writeTypedObject(mAppParams, flags);
     }
 
@@ -155,16 +135,11 @@ public final class SelectContentInput implements Parcelable {
 
         byte flg = in.readByte();
         String appPackageName = in.readString();
-        List<SlotInfo> slotInfos = new java.util.ArrayList<>();
-        in.readParcelableList(slotInfos, SlotInfo.class.getClassLoader());
-        PersistableBundle appParams = (flg & 0x4) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        PersistableBundle appParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
-        this.mSlotInfos = slotInfos;
-        AnnotationValidations.validate(
-                NonNull.class, null, mSlotInfos);
         this.mAppParams = appParams;
 
         // onConstructed(); // You can define this method to get a callback
@@ -192,15 +167,27 @@ public final class SelectContentInput implements Parcelable {
     public static final class Builder {
 
         private @NonNull String mAppPackageName;
-        private @NonNull List<SlotInfo> mSlotInfos;
         private @Nullable PersistableBundle mAppParams;
 
         private long mBuilderFieldsSet = 0L;
 
+        public Builder() {}
+
         /**
          * Creates a new Builder.
+         *
+         * @param appPackageName
+         *   The package name of the calling app.
+         * @param appParams
+         *   Parameters provided by the app to the {@link PersonalizationService}.
          */
-        public Builder() {
+        public Builder(
+                @NonNull String appPackageName,
+                @Nullable PersistableBundle appParams) {
+            mAppPackageName = appPackageName;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mAppPackageName);
+            mAppParams = appParams;
         }
 
         /**
@@ -215,34 +202,12 @@ public final class SelectContentInput implements Parcelable {
         }
 
         /**
-         * Properties of each slot within the calling app where content is to be rendered.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setSlotInfos(@NonNull List<SlotInfo> value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mSlotInfos = value;
-            return this;
-        }
-
-        /** @see #setSlotInfos */
-        @DataClass.Generated.Member
-        public @NonNull Builder addSlotInfos(@NonNull SlotInfo value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mSlotInfos == null) setSlotInfos(new java.util.ArrayList<>());
-            mSlotInfos.add(value);
-            return this;
-        }
-
-        /**
          * Parameters provided by the app to the {@link PersonalizationService}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x2;
             mAppParams = value;
             return this;
         }
@@ -250,17 +215,16 @@ public final class SelectContentInput implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull SelectContentInput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8; // Mark builder used
+            mBuilderFieldsSet |= 0x4; // Mark builder used
 
             SelectContentInput o = new SelectContentInput(
                     mAppPackageName,
-                    mSlotInfos,
                     mAppParams);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x8) != 0) {
+            if ((mBuilderFieldsSet & 0x4) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -268,10 +232,10 @@ public final class SelectContentInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675280235088L,
+            time = 1679343385240L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SelectContentInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull android.ondevicepersonalization.List<android.ondevicepersonalization.SlotInfo> mSlotInfos\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass SelectContentInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass SelectContentInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

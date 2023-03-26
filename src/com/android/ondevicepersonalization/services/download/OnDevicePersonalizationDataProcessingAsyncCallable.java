@@ -26,8 +26,8 @@ import android.os.Bundle;
 import android.util.JsonReader;
 import android.util.Log;
 
-import com.android.ondevicepersonalization.internal.StringParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -211,7 +211,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                null, mPackageName, mContext, true, null);
+                mPackageName, mContext, true, null);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
 
         List<String> keys = new ArrayList<>();
