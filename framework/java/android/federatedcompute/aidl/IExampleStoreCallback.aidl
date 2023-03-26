@@ -14,13 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package android.federatedcompute.aidl;
 
-/** Wrapper of time operations. */
-public interface Clock {
-    /** Returns milliseconds since boot, including time spent in sleep. */
-    long elapsedRealtime();
+import android.os.Bundle;
+import android.federatedcompute.aidl.IExampleStoreIterator;
 
-    /** Get the current time of the clock in milliseconds. */
-    long currentTimeMillis();
+/** @hide */
+interface IExampleStoreCallback {
+    /** Called when the iterator is ready for use. */
+    void onStartQuerySuccess(in IExampleStoreIterator iterator);
+
+    /** Called when an error occurred and the iterator cannot not be created. */
+    void onStartQueryFailure(int errorCode);
 }

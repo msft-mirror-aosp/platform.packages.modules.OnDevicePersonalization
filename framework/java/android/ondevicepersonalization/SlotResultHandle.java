@@ -14,13 +14,22 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package android.ondevicepersonalization;
 
-/** Wrapper of time operations. */
-public interface Clock {
-    /** Returns milliseconds since boot, including time spent in sleep. */
-    long elapsedRealtime();
+import android.annotation.NonNull;
 
-    /** Get the current time of the clock in milliseconds. */
-    long currentTimeMillis();
+/**
+ * An opaque reference to a {@link SlotResult} returned by a {@link PersonalizationHandler}.
+ * @hide
+ */
+public class SlotResultHandle {
+    @NonNull private final String mSlotResultToken;
+
+    SlotResultHandle(@NonNull String slotResultToken) {
+        mSlotResultToken = slotResultToken;
+    }
+
+    @NonNull String getSlotResultToken() {
+        return mSlotResultToken;
+    }
 }

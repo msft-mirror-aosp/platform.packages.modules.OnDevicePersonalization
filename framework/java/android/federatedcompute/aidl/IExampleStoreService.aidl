@@ -14,13 +14,20 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package android.federatedcompute.aidl;
 
-/** Wrapper of time operations. */
-public interface Clock {
-    /** Returns milliseconds since boot, including time spent in sleep. */
-    long elapsedRealtime();
+import android.os.Bundle;
+import android.federatedcompute.aidl.IExampleStoreCallback;
 
-    /** Get the current time of the clock in milliseconds. */
-    long currentTimeMillis();
+/**
+* The interface that client apps must implement to provide training examples
+* or aggregation reports for federated computation job.
+* @hide
+*/
+interface IExampleStoreService {
+    /**
+    * Start a new example query for the data in the given collection using
+    * the given selection criteria.
+    */
+    void startQuery(in Bundle params, in IExampleStoreCallback callback);
 }
