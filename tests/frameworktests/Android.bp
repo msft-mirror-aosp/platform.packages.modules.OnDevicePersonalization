@@ -24,6 +24,7 @@ android_test {
     srcs: ["**/*.java"],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
+    sdk_version: "module_current",
     target_sdk_version: "Tiramisu",
     static_libs: [
         "androidx.test.core",
@@ -43,4 +44,5 @@ android_test {
         "general-tests",
     	"mts-ondevicepersonalization",
     ],
+    test_config: "AndroidTest.xml",
 }

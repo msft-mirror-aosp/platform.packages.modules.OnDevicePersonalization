@@ -31,8 +31,8 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
-import com.android.ondevicepersonalization.internal.StringParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -83,7 +83,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .setAppParams(appParams)
                 .build();
         Bundle params = new Bundle();
@@ -106,7 +105,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .setAppParams(appParams)
                 .build();
         Bundle params = new Bundle();
@@ -124,7 +122,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -164,7 +161,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -182,7 +178,6 @@ public class PersonalizationServiceTest {
         SelectContentInput input =
                 new SelectContentInput.Builder()
                 .setAppPackageName("com.testapp")
-                .addSlotInfos(new SlotInfo.Builder().setWidth(100).setHeight(50).build())
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -197,9 +192,7 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownload() throws Exception {
-        ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(pfds[0])
                 .setDownloadedKeys(StringParceledListSlice.emptyList())
                 .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
                 .build();
@@ -213,8 +206,6 @@ public class PersonalizationServiceTest {
         DownloadResult downloadResult =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, DownloadResult.class);
         assertEquals("12", downloadResult.getKeysToRetain().get(0));
-        pfds[0].close();
-        pfds[1].close();
     }
 
     @Test
@@ -243,9 +234,7 @@ public class PersonalizationServiceTest {
 
     @Test
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
-        ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(pfds[0])
                 .setDownloadedKeys(StringParceledListSlice.emptyList())
                 .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
                 .build();
@@ -258,15 +247,12 @@ public class PersonalizationServiceTest {
                             Constants.OP_DOWNLOAD_FINISHED, params,
                             new TestPersonalizationServiceCallback());
                 });
-        pfds[0].close();
-        pfds[1].close();
     }
 
     @Test
     public void testOnDownloadThrowsIfCallbackMissing() throws Exception {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input = new DownloadInputParcel.Builder()
-                .setParcelFileDescriptor(pfds[0])
                 .setDownloadedKeys(StringParceledListSlice.emptyList())
                 .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
                 .build();

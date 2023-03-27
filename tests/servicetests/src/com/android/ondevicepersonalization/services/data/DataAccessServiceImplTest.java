@@ -83,7 +83,7 @@ public class DataAccessServiceImplTest {
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
         var serviceImpl = new DataAccessServiceImpl(
-                "com.example.testapp", mApplicationContext.getPackageName(), mApplicationContext,
+                mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
         IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
         serviceProxy.onRequest(
@@ -126,7 +126,7 @@ public class DataAccessServiceImplTest {
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
         var serviceImpl = new DataAccessServiceImpl(
-                "com.example.testapp", mApplicationContext.getPackageName(), mApplicationContext,
+                mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
         IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
         serviceProxy.onRequest(

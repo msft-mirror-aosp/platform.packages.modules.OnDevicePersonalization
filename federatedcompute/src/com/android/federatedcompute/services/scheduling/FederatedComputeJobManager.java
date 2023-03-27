@@ -32,6 +32,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.federatedcompute.services.common.Clock;
+import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
@@ -82,12 +83,13 @@ public class FederatedComputeJobManager {
     public static FederatedComputeJobManager getInstance(@NonNull Context mContext) {
         synchronized (FederatedComputeJobManager.class) {
             if (sSingletonInstance == null) {
+                Clock clock = MonotonicClock.getInstance();
                 sSingletonInstance =
                         new FederatedComputeJobManager(
                                 mContext,
                                 FederatedTrainingTaskDao.getInstance(mContext),
-                                new JobSchedulerHelper(Clock.SYSTEM_CLOCK),
-                                Clock.SYSTEM_CLOCK);
+                                new JobSchedulerHelper(clock),
+                                clock);
             }
             return sSingletonInstance;
         }
