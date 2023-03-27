@@ -35,6 +35,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -51,7 +52,7 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
      * The uri to download should be formatted as an android.resource uri:
      * android.resource://<package_name>/<resource_type>/<resource_name>
      */
-    private static final String DEBUG_SCHEME = "android.resource";
+    private static final Set<String> sDebugSchemes = Set.of("android.resource", "file");
 
     private final Executor mExecutor;
     private final SynchronousFileStorage mFileStorage;
@@ -72,7 +73,7 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
      */
     public static boolean isLocalOdpUri(Uri uri) {
         String scheme = uri.getScheme();
-        if (scheme != null && scheme.equals(DEBUG_SCHEME)) {
+        if (scheme != null && sDebugSchemes.contains(scheme)) {
             return true;
         }
         return false;

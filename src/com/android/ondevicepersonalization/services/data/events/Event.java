@@ -32,37 +32,39 @@ import java.io.Serializable;
         genEqualsHashCode = true
 )
 public class Event implements Serializable {
+    /** The id of the event. */
+    private final long mEventId;
+
     /** The id of the query. */
-    @NonNull
     private final long mQueryId;
 
-    /** Time of the event in milliseconds. */
-    @NonNull
-    private final long mTimeMillis;
-
-    /** Id of the slot owner for this event */
-    @NonNull
-    private final String mSlotId;
+    /** Index of the slot for this event. */
+    private final long mSlotIndex;
 
     /** Id of the bidder for this event */
     @NonNull
     private final String mBidId;
 
-    /** Name of the service package or this event */
+    /** Name of the service package for this event */
     @NonNull
     private final String mServicePackageName;
 
     /** The position of the event in the slot */
-    @NonNull
     private final int mSlotPosition;
 
     /** {@link EventType} defining the type of event */
-    @NonNull
     private final int mType;
 
+    /** Time of the event in milliseconds. */
+    private final long mTimeMillis;
+
+    /** Id of the slot for this event */
+    @Nullable
+    private final String mSlotId;
+
     /** Blob representing the event. */
-    @NonNull
-    private final byte[] mEvent;
+    @Nullable
+    private final byte[] mEventData;
 
 
 
@@ -81,23 +83,19 @@ public class Event implements Serializable {
 
     @DataClass.Generated.Member
     /* package-private */ Event(
-            @NonNull long queryId,
-            @NonNull long timeMillis,
-            @NonNull String slotId,
+            long eventId,
+            long queryId,
+            long slotIndex,
             @NonNull String bidId,
             @NonNull String servicePackageName,
-            @NonNull int slotPosition,
-            @NonNull int type,
-            @NonNull byte[] event) {
+            int slotPosition,
+            int type,
+            long timeMillis,
+            @Nullable String slotId,
+            @Nullable byte[] eventData) {
+        this.mEventId = eventId;
         this.mQueryId = queryId;
-        AnnotationValidations.validate(
-                NonNull.class, null, mQueryId);
-        this.mTimeMillis = timeMillis;
-        AnnotationValidations.validate(
-                NonNull.class, null, mTimeMillis);
-        this.mSlotId = slotId;
-        AnnotationValidations.validate(
-                NonNull.class, null, mSlotId);
+        this.mSlotIndex = slotIndex;
         this.mBidId = bidId;
         AnnotationValidations.validate(
                 NonNull.class, null, mBidId);
@@ -105,40 +103,36 @@ public class Event implements Serializable {
         AnnotationValidations.validate(
                 NonNull.class, null, mServicePackageName);
         this.mSlotPosition = slotPosition;
-        AnnotationValidations.validate(
-                NonNull.class, null, mSlotPosition);
         this.mType = type;
-        AnnotationValidations.validate(
-                NonNull.class, null, mType);
-        this.mEvent = event;
-        AnnotationValidations.validate(
-                NonNull.class, null, mEvent);
+        this.mTimeMillis = timeMillis;
+        this.mSlotId = slotId;
+        this.mEventData = eventData;
 
         // onConstructed(); // You can define this method to get a callback
+    }
+
+    /**
+     * The id of the event.
+     */
+    @DataClass.Generated.Member
+    public long getEventId() {
+        return mEventId;
     }
 
     /**
      * The id of the query.
      */
     @DataClass.Generated.Member
-    public @NonNull long getQueryId() {
+    public long getQueryId() {
         return mQueryId;
     }
 
     /**
-     * Time of the query in milliseconds.
+     * Index of the slot for this event.
      */
     @DataClass.Generated.Member
-    public @NonNull long getTimeMillis() {
-        return mTimeMillis;
-    }
-
-    /**
-     * Id of the slot owner for this event
-     */
-    @DataClass.Generated.Member
-    public @NonNull String getSlotId() {
-        return mSlotId;
+    public long getSlotIndex() {
+        return mSlotIndex;
     }
 
     /**
@@ -150,7 +144,7 @@ public class Event implements Serializable {
     }
 
     /**
-     * Name of the service package or this event
+     * Name of the service package for this event
      */
     @DataClass.Generated.Member
     public @NonNull String getServicePackageName() {
@@ -161,7 +155,7 @@ public class Event implements Serializable {
      * The position of the event in the slot
      */
     @DataClass.Generated.Member
-    public @NonNull int getSlotPosition() {
+    public int getSlotPosition() {
         return mSlotPosition;
     }
 
@@ -169,16 +163,32 @@ public class Event implements Serializable {
      * {@link EventType} defining the type of event
      */
     @DataClass.Generated.Member
-    public @NonNull int getType() {
+    public int getType() {
         return mType;
+    }
+
+    /**
+     * Time of the event in milliseconds.
+     */
+    @DataClass.Generated.Member
+    public long getTimeMillis() {
+        return mTimeMillis;
+    }
+
+    /**
+     * Id of the slot for this event
+     */
+    @DataClass.Generated.Member
+    public @Nullable String getSlotId() {
+        return mSlotId;
     }
 
     /**
      * Blob representing the event.
      */
     @DataClass.Generated.Member
-    public @NonNull byte[] getEvent() {
-        return mEvent;
+    public @Nullable byte[] getEventData() {
+        return mEventData;
     }
 
     @Override
@@ -194,14 +204,16 @@ public class Event implements Serializable {
         Event that = (Event) o;
         //noinspection PointlessBooleanExpression
         return true
+                && mEventId == that.mEventId
                 && mQueryId == that.mQueryId
-                && mTimeMillis == that.mTimeMillis
-                && java.util.Objects.equals(mSlotId, that.mSlotId)
+                && mSlotIndex == that.mSlotIndex
                 && java.util.Objects.equals(mBidId, that.mBidId)
                 && java.util.Objects.equals(mServicePackageName, that.mServicePackageName)
                 && mSlotPosition == that.mSlotPosition
                 && mType == that.mType
-                && java.util.Arrays.equals(mEvent, that.mEvent);
+                && mTimeMillis == that.mTimeMillis
+                && java.util.Objects.equals(mSlotId, that.mSlotId)
+                && java.util.Arrays.equals(mEventData, that.mEventData);
     }
 
     @Override
@@ -211,14 +223,16 @@ public class Event implements Serializable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
+        _hash = 31 * _hash + Long.hashCode(mEventId);
         _hash = 31 * _hash + Long.hashCode(mQueryId);
-        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mSlotId);
+        _hash = 31 * _hash + Long.hashCode(mSlotIndex);
         _hash = 31 * _hash + java.util.Objects.hashCode(mBidId);
         _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
         _hash = 31 * _hash + mSlotPosition;
         _hash = 31 * _hash + mType;
-        _hash = 31 * _hash + java.util.Arrays.hashCode(mEvent);
+        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mSlotId);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mEventData);
         return _hash;
     }
 
@@ -229,14 +243,16 @@ public class Event implements Serializable {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @NonNull long mQueryId;
-        private @NonNull long mTimeMillis;
-        private @NonNull String mSlotId;
+        private long mEventId;
+        private long mQueryId;
+        private long mSlotIndex;
         private @NonNull String mBidId;
         private @NonNull String mServicePackageName;
-        private @NonNull int mSlotPosition;
-        private @NonNull int mType;
-        private @NonNull byte[] mEvent;
+        private int mSlotPosition;
+        private int mType;
+        private long mTimeMillis;
+        private @Nullable String mSlotId;
+        private @Nullable byte[] mEventData;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -246,41 +262,41 @@ public class Event implements Serializable {
         /**
          * Creates a new Builder.
          *
+         * @param eventId
+         *   The id of the event.
          * @param queryId
          *   The id of the query.
-         * @param timeMillis
-         *   Time of the query in milliseconds.
-         * @param slotId
-         *   Id of the slot owner for this event
+         * @param slotIndex
+         *   Index of the slot for this event.
          * @param bidId
          *   Id of the bidder for this event
          * @param servicePackageName
-         *   Name of the service package or this event
+         *   Name of the service package for this event
          * @param slotPosition
          *   The position of the event in the slot
          * @param type
          *   {@link EventType} defining the type of event
-         * @param event
+         * @param timeMillis
+         *   Time of the event in milliseconds.
+         * @param slotId
+         *   Id of the slot for this event
+         * @param eventData
          *   Blob representing the event.
          */
         public Builder(
-                @NonNull long queryId,
-                @NonNull long timeMillis,
-                @NonNull String slotId,
+                long eventId,
+                long queryId,
+                long slotIndex,
                 @NonNull String bidId,
                 @NonNull String servicePackageName,
-                @NonNull int slotPosition,
-                @NonNull int type,
-                @NonNull byte[] event) {
+                int slotPosition,
+                int type,
+                long timeMillis,
+                @Nullable String slotId,
+                @Nullable byte[] eventData) {
+            mEventId = eventId;
             mQueryId = queryId;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mQueryId);
-            mTimeMillis = timeMillis;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mTimeMillis);
-            mSlotId = slotId;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mSlotId);
+            mSlotIndex = slotIndex;
             mBidId = bidId;
             AnnotationValidations.validate(
                     NonNull.class, null, mBidId);
@@ -288,46 +304,42 @@ public class Event implements Serializable {
             AnnotationValidations.validate(
                     NonNull.class, null, mServicePackageName);
             mSlotPosition = slotPosition;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mSlotPosition);
             mType = type;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mType);
-            mEvent = event;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mEvent);
+            mTimeMillis = timeMillis;
+            mSlotId = slotId;
+            mEventData = eventData;
+        }
+
+        /**
+         * The id of the event.
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setEventId(long value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x1;
+            mEventId = value;
+            return this;
         }
 
         /**
          * The id of the query.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setQueryId(@NonNull long value) {
+        public @NonNull Builder setQueryId(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x1;
+            mBuilderFieldsSet |= 0x2;
             mQueryId = value;
             return this;
         }
 
         /**
-         * Time of the query in milliseconds.
+         * Index of the slot for this event.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTimeMillis(@NonNull long value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mTimeMillis = value;
-            return this;
-        }
-
-        /**
-         * Id of the slot owner for this event
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setSlotId(@NonNull String value) {
+        public @NonNull Builder setSlotIndex(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
-            mSlotId = value;
+            mSlotIndex = value;
             return this;
         }
 
@@ -343,7 +355,7 @@ public class Event implements Serializable {
         }
 
         /**
-         * Name of the service package or this event
+         * Name of the service package for this event
          */
         @DataClass.Generated.Member
         public @NonNull Builder setServicePackageName(@NonNull String value) {
@@ -357,7 +369,7 @@ public class Event implements Serializable {
          * The position of the event in the slot
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setSlotPosition(@NonNull int value) {
+        public @NonNull Builder setSlotPosition(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x20;
             mSlotPosition = value;
@@ -368,7 +380,7 @@ public class Event implements Serializable {
          * {@link EventType} defining the type of event
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setType(@NonNull int value) {
+        public @NonNull Builder setType(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x40;
             mType = value;
@@ -376,35 +388,59 @@ public class Event implements Serializable {
         }
 
         /**
+         * Time of the event in milliseconds.
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setTimeMillis(long value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x80;
+            mTimeMillis = value;
+            return this;
+        }
+
+        /**
+         * Id of the slot for this event
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setSlotId(@NonNull String value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x100;
+            mSlotId = value;
+            return this;
+        }
+
+        /**
          * Blob representing the event.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setEvent(@NonNull byte... value) {
+        public @NonNull Builder setEventData(@NonNull byte... value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x80;
-            mEvent = value;
+            mBuilderFieldsSet |= 0x200;
+            mEventData = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull Event build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x100; // Mark builder used
+            mBuilderFieldsSet |= 0x400; // Mark builder used
 
             Event o = new Event(
+                    mEventId,
                     mQueryId,
-                    mTimeMillis,
-                    mSlotId,
+                    mSlotIndex,
                     mBidId,
                     mServicePackageName,
                     mSlotPosition,
                     mType,
-                    mEvent);
+                    mTimeMillis,
+                    mSlotId,
+                    mEventData);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x100) != 0) {
+            if ((mBuilderFieldsSet & 0x400) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -412,10 +448,10 @@ public class Event implements Serializable {
     }
 
     @DataClass.Generated(
-            time = 1674839291488L,
+            time = 1679497934336L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Event.java",
-            inputSignatures = "private final @android.annotation.NonNull long mQueryId\nprivate final @android.annotation.NonNull long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mSlotId\nprivate final @android.annotation.NonNull java.lang.String mBidId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull int mSlotPosition\nprivate final @android.annotation.NonNull int mType\nprivate final @android.annotation.NonNull byte[] mEvent\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final  long mEventId\nprivate final  long mQueryId\nprivate final  long mSlotIndex\nprivate final @android.annotation.NonNull java.lang.String mBidId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final  int mSlotPosition\nprivate final  int mType\nprivate final  long mTimeMillis\nprivate final @android.annotation.Nullable java.lang.String mSlotId\nprivate final @android.annotation.Nullable byte[] mEventData\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
