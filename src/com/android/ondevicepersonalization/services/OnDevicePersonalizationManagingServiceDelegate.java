@@ -19,13 +19,16 @@ package com.android.ondevicepersonalization.services;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
-import android.os.Bundle;
 import android.os.IBinder;
+import android.os.PersistableBundle;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
+import com.android.ondevicepersonalization.services.request.RenderFlow;
 
 import java.util.Objects;
 
@@ -34,8 +37,43 @@ public class OnDevicePersonalizationManagingServiceDelegate
         extends IOnDevicePersonalizationManagingService.Stub {
     @NonNull private final Context mContext;
 
+    @VisibleForTesting
+    static class Injector {
+        AppRequestFlow getAppRequestFlow(
+                String callingPackageName,
+                String servicePackageName,
+                PersistableBundle params,
+                IExecuteCallback callback,
+                Context context) {
+            return new AppRequestFlow(
+                    callingPackageName, servicePackageName, params, callback, context);
+        }
+
+        RenderFlow getRenderFlow(
+                String slotResultToken,
+                IBinder hostToken,
+                int displayId,
+                int width,
+                int height,
+                IRequestSurfacePackageCallback callback,
+                Context context) {
+            return new RenderFlow(
+                    slotResultToken, hostToken, displayId, width, height, callback, context);
+        }
+    }
+
+    @NonNull private final Injector mInjector;
+
     public OnDevicePersonalizationManagingServiceDelegate(@NonNull Context context) {
-        mContext = context;
+        this(context, new Injector());
+    }
+
+    @VisibleForTesting
+    public OnDevicePersonalizationManagingServiceDelegate(
+            @NonNull Context context,
+            @NonNull Injector injector) {
+        mContext = Objects.requireNonNull(context);
+        mInjector = Objects.requireNonNull(injector);
     }
 
     @Override
@@ -44,34 +82,58 @@ public class OnDevicePersonalizationManagingServiceDelegate
     }
 
     @Override
-    public void requestSurfacePackage(
+    public void execute(
             @NonNull String callingPackageName,
-            @NonNull String exchangePackageName,
-            @NonNull IBinder hostToken,
-            int displayId,
-            int width,
-            int height,
-            @NonNull Bundle params,
-            @NonNull IRequestSurfacePackageCallback callback) {
+            @NonNull String servicePackageName,
+            @NonNull PersistableBundle params,
+            @NonNull IExecuteCallback callback) {
         Objects.requireNonNull(callingPackageName);
-        Objects.requireNonNull(exchangePackageName);
-        Objects.requireNonNull(hostToken);
+        Objects.requireNonNull(servicePackageName);
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
 
-        AppRequestFlow flow = new AppRequestFlow(
+        AppRequestFlow flow = mInjector.getAppRequestFlow(
                 callingPackageName,
-                exchangePackageName,
+                servicePackageName,
+                params,
+                callback,
+                mContext);
+        flow.run();
+    }
+
+    @Override
+    public void requestSurfacePackage(
+            @NonNull String slotResultToken,
+            @NonNull IBinder hostToken,
+            int displayId,
+            int width,
+            int height,
+            @NonNull IRequestSurfacePackageCallback callback) {
+        Objects.requireNonNull(slotResultToken);
+        Objects.requireNonNull(hostToken);
+        Objects.requireNonNull(callback);
+        if (width <= 0) {
+            throw new IllegalArgumentException("width must be > 0");
+        }
+
+        if (height <= 0) {
+            throw new IllegalArgumentException("height must be > 0");
+        }
+
+        if (displayId < 0) {
+            throw new IllegalArgumentException("displayId must be >= 0");
+        }
+
+        RenderFlow flow = mInjector.getRenderFlow(
+                slotResultToken,
                 hostToken,
                 displayId,
                 width,
                 height,
-                params,
                 callback,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(),
                 mContext);
         flow.run();
     }

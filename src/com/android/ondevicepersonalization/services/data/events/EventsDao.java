@@ -71,9 +71,9 @@ public class EventsDao {
     /**
      * Inserts the Event into the Events table.
      *
-     * @return true if the insert succeeded, false otherwise
+     * @return The row id of the newly inserted row if successful, -1 otherwise
      */
-    public boolean insertEvent(@NonNull Event event) {
+    public long insertEvent(@NonNull Event event) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
@@ -88,11 +88,11 @@ public class EventsDao {
             values.put(EventsContract.EventsEntry.TYPE, event.getType());
             values.put(EventsContract.EventsEntry.EVENT_DATA, event.getEventData());
             return db.insert(EventsContract.EventsEntry.TABLE_NAME, null,
-                    values) != -1;
+                    values);
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to insert event", e);
         }
-        return false;
+        return -1;
     }
 
     /**
