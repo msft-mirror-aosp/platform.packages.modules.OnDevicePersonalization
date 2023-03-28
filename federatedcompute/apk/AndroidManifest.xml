@@ -19,11 +19,21 @@
     package="com.android.federatedcompute.services"
     android:versionCode="1"
     android:versionName="T-initial">
+
+    <!-- Required for persisting scheduled jobs -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
     <application>
         <service android:name=".FederatedComputeServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="com.android.federatedcompute.FederatedComputeService" />
             </intent-filter>
+        </service>
+        <!-- The JobService runs in main process, so when JobScheduler wakes up, it allows us to
+             decide not to start training without incurring overhead. -->
+        <service android:name="com.android.federatedcompute.services.training.TrainingJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
     </application>
 </manifest>

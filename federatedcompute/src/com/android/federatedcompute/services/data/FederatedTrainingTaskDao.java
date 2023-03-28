@@ -150,6 +150,17 @@ public class FederatedTrainingTaskDao {
         return values;
     }
 
+    /** It's only public to unit test. Clears all records in task table. */
+    @VisibleForTesting
+    public boolean clearDatabase() {
+        SQLiteDatabase db = getWritableDatabase();
+        if (db == null) {
+            return false;
+        }
+        db.delete(FEDERATED_TRAINING_TASKS_TABLE, null, null);
+        return true;
+    }
+
     /* Returns a writable database object or null if error occurs. */
     @Nullable
     private SQLiteDatabase getWritableDatabase() {
