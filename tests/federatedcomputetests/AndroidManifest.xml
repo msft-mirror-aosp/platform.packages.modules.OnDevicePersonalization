@@ -18,6 +18,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.federatedcompute.servicetests" >
 
+    <!-- Used for scheduling connectivity jobs -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
