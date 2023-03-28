@@ -14,13 +14,15 @@
  * limitations under the License.
  */
 
-package android.federatedcompute;
+package android.federatedcompute.common;
 
-import static android.federatedcompute.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
+import static android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+
+import android.os.Parcel;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -101,5 +103,22 @@ public final class TrainingOptionsTest {
                         .setTrainingInterval(null)
                         .build();
         assertThat(options.getTrainingInterval()).isNull();
+    }
+
+    @Test
+    public void testParcelValidInterval() {
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName(mTestPopulation)
+                        .setJobSchedulerJobId(mTestJobId)
+                        .setTrainingInterval(null)
+                        .build();
+
+        Parcel p = Parcel.obtain();
+        options.writeToParcel(p, 0);
+        p.setDataPosition(0);
+        TrainingOptions fromParcel = TrainingOptions.CREATOR.createFromParcel(p);
+
+        assertThat(options).isEqualTo(fromParcel);
     }
 }
