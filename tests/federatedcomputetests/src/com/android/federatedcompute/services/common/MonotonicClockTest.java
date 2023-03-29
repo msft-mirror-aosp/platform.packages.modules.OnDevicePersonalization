@@ -31,6 +31,8 @@ public final class MonotonicClockTest {
         long start = clock.currentTimeMillis();
         Thread.sleep(200);
         long end = clock.currentTimeMillis();
-        assertThat(end - start).isEqualTo(200);
+        // Processing/Calling function may cost time, so elapse time sometimes is a little larger
+        // than sleep time.
+        assertThat(end - start).isAtLeast(200);
     }
 }
