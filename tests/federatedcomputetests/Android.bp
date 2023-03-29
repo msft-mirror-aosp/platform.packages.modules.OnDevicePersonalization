@@ -48,7 +48,6 @@ android_test {
     certificate: "platform",
     compile_multilib: "both",
     test_config: "AndroidTest.xml",
-    test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
