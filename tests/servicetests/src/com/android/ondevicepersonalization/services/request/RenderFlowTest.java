@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -29,7 +30,9 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
+import com.android.ondevicepersonalization.services.util.CryptUtils;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -72,6 +75,24 @@ public class RenderFlowTest {
         assertTrue(mDisplayHtmlCalled);
         assertTrue(mRenderedContent.contains("bid1"));
         assertTrue(mGeneratedHtml.contains("bid1"));
+    }
+
+    @Test
+    public void testDefaultInjector() throws Exception {
+        RenderFlow.Injector injector = new RenderFlow.Injector();
+        assertEquals(OnDevicePersonalizationExecutors.getBackgroundExecutor(),
+                injector.getExecutor());
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
+                        .build();
+        SlotRenderingData data = new SlotRenderingData(
+                slotResult, mContext.getPackageName(), 0);
+        String encrypted = CryptUtils.encrypt(data);
+        SlotRenderingData decrypted = injector.decryptToken(encrypted);
+        assertEquals(data.getQueryId(), decrypted.getQueryId());
+        assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
+        assertEquals(data.getSlotResult(), decrypted.getSlotResult());
     }
 
     class TestInjector extends RenderFlow.Injector {
