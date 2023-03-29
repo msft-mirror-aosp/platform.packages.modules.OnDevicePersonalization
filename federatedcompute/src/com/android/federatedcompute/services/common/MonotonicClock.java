@@ -37,7 +37,7 @@ public class MonotonicClock implements Clock {
 
     @Override
     public long currentTimeMillis() {
-        return mStartTimestampMs + SystemClock.elapsedRealtime();
+        return mStartTimestampMs + elapsedRealtime();
     }
 
     @Override

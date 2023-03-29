@@ -16,23 +16,15 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.federatedcompute.servicetests" >
+          package="com.android.ondevicepersonalization.systemserviceimpltests" >
 
-    <!-- Used for scheduling connectivity jobs -->
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Used for persisting scheduled jobs -->
-    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
-    <application android:label="FederatedComputeServicesTests"
-                 android:debuggable="true">
+    <application android:label="OnDevicePersonalizationSystemServiceImplTests">
         <uses-library android:name="android.test.runner"/>
-        <service android:name="com.android.federatedcompute.services.training.TrainingJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
-        </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.federatedcompute.servicetests"
-                     android:label="Tests of FederatedComputeManagingService"/>
+                     android:targetPackage="com.android.ondevicepersonalization.systemserviceimpltests"
+                     android:label="Unit Tests of OnDevicePersonalizationSystemService"/>
 </manifest>

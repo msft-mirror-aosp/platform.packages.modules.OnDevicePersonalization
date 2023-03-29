@@ -35,6 +35,9 @@ public class VelocityEngineFactory {
 
     private static final int MAX_FOREACH = 100;
 
+    private VelocityEngineFactory() {
+    }
+
     /**
      * Returns a singleton of VelocityEngine.
      */
