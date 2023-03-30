@@ -28,6 +28,8 @@ import android.os.Parcelable;
 import android.os.RemoteException;
 import android.util.Log;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
@@ -40,6 +42,7 @@ import java.util.function.Consumer;
 public abstract class PersonalizationService extends Service {
     private static final String TAG = "PersonalizationService";
     private IBinder mBinder;
+    @NonNull private final PersonalizationHandler mHandler = getHandler();
 
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
@@ -50,70 +53,9 @@ public abstract class PersonalizationService extends Service {
     }
 
     /**
-     * Handle a request from an app. A {@link PersonalizationService} that
-     * processes requests from apps must override this method.
-     *
-     * @param input App Request Parameters.
-     * @param odpContext The per-request state for this request.
-     * @param consumer Callback to be invoked on completion.
+     * Return an instance of {@link PersonalizationHandler} that handles client requests.
      */
-    public void selectContent(
-            @NonNull SelectContentInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<SelectContentResult> consumer
-    ) {
-        consumer.accept(null);
-    }
-
-    /**
-     * Handle a completed download. The platform downloads content using the
-     * parameters defined in the package manifest of the {@link PersonalizationService}
-     * and calls this function after the download is complete.
-     *
-     * @param input Download handler parameters.
-     * @param odpContext The per-request state for this request.
-     * @param consumer Callback to be invoked on completion.
-     */
-    public void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<DownloadResult> consumer
-    ) {
-        consumer.accept(null);
-    }
-
-    /**
-     * Generate HTML for the winning bids that returned as a result of {@link selectContent}.
-     * The platform will render this HTML in a WebView inside a fenced frame.
-     *
-     * @param input Parameters for the renderContent request.
-     * @param bidIds A List of Bid Ids to be rendered
-     * @param odpContext The per-request state for this request.
-     * @param consumer Callback to be invoked on completion.
-     */
-    public void renderContent(
-            @NonNull RenderContentInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<RenderContentResult> consumer
-    ) {
-        consumer.accept(null);
-    }
-
-    /**
-     * Compute a list of metrics to be logged in the events table with this event.
-     *
-     * @param input The query-time data required to compute the event metrics.
-     * @param odpContext The per-request state for this request.
-     * @param consumer Callback to be invoked on completion.
-     */
-    // TODO(b/259950177): Also provide the Query event from the Query table.
-    public void computeEventMetrics(
-            @NonNull EventMetricsInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<EventMetricsResult> consumer
-    ) {
-        consumer.accept(null);
-    }
+    @NonNull public abstract PersonalizationHandler getHandler();
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
@@ -137,22 +79,38 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                PersonalizationService.this.selectContent(
+                mHandler.selectContent(
                         input, odpContext, new WrappedCallback<SelectContentResult>(callback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
-                DownloadInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, DownloadInput.class));
-                Objects.requireNonNull(input.getParcelFileDescriptor());
+                DownloadInputParcel input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, DownloadInputParcel.class));
+
+                List<String> keys = Objects.requireNonNull(input.getDownloadedKeys()).getList();
+                List<byte[]> values = Objects.requireNonNull(input.getDownloadedValues()).getList();
+                if (keys.size() != values.size()) {
+                    throw new IllegalArgumentException(
+                            "Mismatching key and value list sizes of "
+                                    + keys.size() + " and " + values.size());
+                }
+
+                HashMap<String, byte[]> downloadData = new HashMap<>();
+                for (int i = 0; i < keys.size(); i++) {
+                    downloadData.put(keys.get(i), values.get(i));
+                }
+                DownloadInput downloadInput = new DownloadInput.Builder()
+                        .setData(downloadData)
+                        .build();
+
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                PersonalizationService.this.onDownload(
-                        input, odpContext, new WrappedCallback<DownloadResult>(callback));
+                mHandler.onDownload(
+                        downloadInput, odpContext, new WrappedCallback<DownloadResult>(callback));
 
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 
@@ -166,7 +124,7 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                PersonalizationService.this.renderContent(
+                mHandler.renderContent(
                         input, odpContext, new WrappedCallback<RenderContentResult>(callback));
 
             } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
@@ -178,7 +136,7 @@ public abstract class PersonalizationService extends Service {
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                PersonalizationService.this.computeEventMetrics(
+                mHandler.computeEventMetrics(
                         input, odpContext, new WrappedCallback<EventMetricsResult>(callback));
 
             } else {

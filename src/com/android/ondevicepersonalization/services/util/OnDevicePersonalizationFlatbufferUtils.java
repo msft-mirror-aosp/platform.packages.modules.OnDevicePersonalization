@@ -113,16 +113,17 @@ public class OnDevicePersonalizationFlatbufferUtils {
     private static int createMetrics(FlatBufferBuilder builder,
             android.ondevicepersonalization.Metrics metrics) {
         int intValuesOffset = 0;
-        if (metrics.getIntValues() != null) {
-            intValuesOffset = Metrics.createIntValuesVector(builder, metrics.getIntValues());
+        if (metrics.getLongValues() != null) {
+            intValuesOffset = Metrics.createLongValuesVector(builder, metrics.getLongValues());
         }
         int floatValuesOffset = 0;
-        if (metrics.getFloatValues() != null) {
-            floatValuesOffset = Metrics.createFloatValuesVector(builder, metrics.getFloatValues());
+        if (metrics.getDoubleValues() != null) {
+            floatValuesOffset = Metrics.createDoubleValuesVector(
+                    builder, metrics.getDoubleValues());
         }
         Metrics.startMetrics(builder);
-        Metrics.addIntValues(builder, intValuesOffset);
-        Metrics.addFloatValues(builder, floatValuesOffset);
+        Metrics.addLongValues(builder, intValuesOffset);
+        Metrics.addDoubleValues(builder, floatValuesOffset);
         return Metrics.endMetrics(builder);
     }
 }
