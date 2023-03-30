@@ -26,6 +26,14 @@ import org.junit.Test
 
 import android.util.Log
 
+import android.ondevicepersonalization.AppInstallStatus
+import android.ondevicepersonalization.AppUsageStatus
+import android.ondevicepersonalization.DeviceMetrics
+import android.ondevicepersonalization.OSVersion
+import android.ondevicepersonalization.Location
+import android.ondevicepersonalization.LocationStatus
+import android.ondevicepersonalization.UserData
+
 import com.android.libraries.pcc.chronicle.util.MutableTypedMap
 import com.android.libraries.pcc.chronicle.util.TypedMap
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
@@ -37,7 +45,6 @@ import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
 
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager
-import com.android.ondevicepersonalization.services.policyengine.data.FinalUserData
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
 import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy
@@ -46,7 +53,7 @@ import com.android.ondevicepersonalization.services.policyengine.policy.rules.Us
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.AppPersonalizedAdsEnabled
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.RequestPersonalizedAdsEnabled
 
-import com.android.ondevicepersonalization.services.data.user.UserData
+import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector
 
 import com.google.common.truth.Truth.assertThat
@@ -56,14 +63,18 @@ import kotlin.test.fail
 @RunWith(AndroidJUnit4::class)
 class UserDataReaderTest : ProcessorNode {
 
-    private lateinit var chronicleManager: ChronicleManager
     private lateinit var policyContext: MutableTypedMap
     private val userDataCollector: UserDataCollector =
             UserDataCollector.getInstanceForTest(ApplicationProvider.getApplicationContext())
-    private val rawUserData: UserData = UserData.getInstance()
+    private val rawUserData: RawUserData = RawUserData.getInstance()
     private val TAG: String = "UserDataReaderTest"
 
     override val requiredConnectionTypes = setOf(UserDataReader::class.java)
+
+    private val chronicleManager: ChronicleManager = ChronicleManager.getInstance(
+        connectionProviders = setOf(UserDataConnectionProvider()),
+        policies = setOf(DataIngressPolicy.NPA_DATA_POLICY)
+    )
 
     @Before
     fun setUp() {
@@ -73,35 +84,32 @@ class UserDataReaderTest : ProcessorNode {
         policyContext[AppPersonalizedAdsEnabled] = true
         policyContext[RequestPersonalizedAdsEnabled] = true
 
-        chronicleManager = ChronicleManager(
-            connectionProviders = setOf(UserDataConnectionProvider()),
-            policies = setOf(DataIngressPolicy.NPA_DATA_POLICY),
-            connectionContext = TypedMap(policyContext)
-        )
-        userDataCollector.initializeUserData(rawUserData)
+        chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
+        userDataCollector.updateUserData(rawUserData)
     }
 
     @Test
     fun testUserDataConnection() {
-        val result = chronicleManager.chronicle.getConnection(
+        val result: ConnectionResult<UserDataReader>? = chronicleManager.chronicle.getConnection(
             ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
         )
+        assertThat(result).isNotNull()
         assertThat(result).isInstanceOf(ConnectionResult.Success::class.java)
     }
 
     @Test
     fun testUserDataReader() {
         try {
-            val userDataReader: UserDataReader = chronicleManager.chronicle.getConnectionOrThrow(
+            val userDataReader: UserDataReader? = chronicleManager.chronicle.getConnectionOrThrow(
                 ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
             )
-            val userData: FinalUserData? = userDataReader.readUserData()
+            val userData: UserData? = userDataReader?.readUserData()
             // Whether user data is null should not matter to policy engine
             if (userData != null) {
                 verifyData(userData, rawUserData)
-                // test data update
+                // test real-time data update
                 userDataCollector.getRealTimeData(rawUserData)
-                val updatedUserData: FinalUserData? = userDataReader.readUserData()
+                val updatedUserData: UserData? = userDataReader.readUserData()
                 if (updatedUserData != null) {
                     verifyData(updatedUserData, rawUserData)
                 }
@@ -115,64 +123,59 @@ class UserDataReaderTest : ProcessorNode {
     fun testFailedConnectionContext() {
         policyContext[UserPersonalizedAdsEnabled] = false
         chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
-        val result = chronicleManager.chronicle.getConnection(
+        val result: ConnectionResult<UserDataReader>? = chronicleManager.chronicle.getConnection(
             ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
         )
-        result.expectFailure(PolicyViolation::class.java)
+        assertThat(result).isNotNull()
+        result?.expectFailure(PolicyViolation::class.java)
     }
 
-    private fun verifyData(userData: FinalUserData, ref: UserData) {
-        assertThat(userData.timeSec).isEqualTo(ref.timeMillis / 1000)
-        assertThat(userData.timezone).isEqualTo(ref.utcOffset)
-        assertThat(userData.orientation).isEqualTo(ref.orientation)
-        assertThat(userData.availableBytesMB).isEqualTo(ref.availableBytesMB)
-        assertThat(userData.batteryPct).isEqualTo(ref.batteryPct)
-        assertThat(userData.country).isEqualTo(ref.country.ordinal)
-        assertThat(userData.language).isEqualTo(ref.language.ordinal)
-        assertThat(userData.carrier).isEqualTo(ref.carrier.ordinal)
+    private fun verifyData(userData: UserData, ref: RawUserData) {
+        assertThat(userData.getTimeSec()).isEqualTo(ref.timeMillis / 1000)
+        assertThat(userData.getTimezone()).isEqualTo(ref.utcOffset)
+        assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
+        assertThat(userData.getAvailableBytesMB()).isEqualTo(ref.availableBytesMB)
+        assertThat(userData.getBatteryPct()).isEqualTo(ref.batteryPct)
+        assertThat(userData.getCountry()).isEqualTo(ref.country.ordinal)
+        assertThat(userData.getLanguage()).isEqualTo(ref.language.ordinal)
+        assertThat(userData.getCarrier()).isEqualTo(ref.carrier.ordinal)
 
-        assertThat(userData.osVersions.major).isEqualTo(ref.osVersions.major)
-        assertThat(userData.osVersions.minor).isEqualTo(ref.osVersions.minor)
-        assertThat(userData.osVersions.micro).isEqualTo(ref.osVersions.micro)
+        val osVersion: OSVersion = userData.getOsVersions()
+        assertThat(osVersion.getMajor()).isEqualTo(ref.osVersions.major)
+        assertThat(osVersion.getMinor()).isEqualTo(ref.osVersions.minor)
+        assertThat(osVersion.getMicro()).isEqualTo(ref.osVersions.micro)
 
-        assertThat(userData.connectionType).isEqualTo(ref.connectionType.ordinal)
-        assertThat(userData.connectionSpeedKbps).isEqualTo(ref.connectionSpeedKbps)
-        assertThat(userData.networkMeteredStatus).isEqualTo(ref.networkMeteredStatus)
+        assertThat(userData.getConnectionType()).isEqualTo(ref.connectionType.ordinal)
+        assertThat(userData.getConnectionSpeedKbps()).isEqualTo(ref.connectionSpeedKbps)
+        assertThat(userData.isNetworkMetered()).isEqualTo(ref.networkMeteredStatus)
 
-        assertThat(userData.deviceMetrics.make).isEqualTo(
-            ref.deviceMetrics.make.ordinal)
-        assertThat(userData.deviceMetrics.model).isEqualTo(
-            ref.deviceMetrics.model.ordinal)
-        assertThat(userData.deviceMetrics.screenHeightDp).isEqualTo(
-            ref.deviceMetrics.screenHeight)
-        assertThat(userData.deviceMetrics.screenWidthDp).isEqualTo(
-            ref.deviceMetrics.screenWidth)
-        assertThat(userData.deviceMetrics.xdpi).isEqualTo(
-            ref.deviceMetrics.xdpi)
-        assertThat(userData.deviceMetrics.ydpi).isEqualTo(
-            ref.deviceMetrics.ydpi)
-        assertThat(userData.deviceMetrics.pxRatio).isEqualTo(
-            ref.deviceMetrics.pxRatio)
+        val deviceMetrics: DeviceMetrics = userData.getDeviceMetrics()
 
-        assertThat(userData.currentLocation.timeSec).isEqualTo(
-            rawUserData.currentLocation.timeMillis / 1000)
-        assertThat(userData.currentLocation.latitude).isEqualTo(
-            rawUserData.currentLocation.latitude)
-        assertThat(userData.currentLocation.longitude).isEqualTo(
-            rawUserData.currentLocation.longitude)
-        assertThat(userData.currentLocation.locationProvider).isEqualTo(
-            rawUserData.currentLocation.provider.ordinal)
-        assertThat(userData.currentLocation.isPreciseLocation).isEqualTo(
-            rawUserData.currentLocation.isPreciseLocation)
+        assertThat(deviceMetrics.getMake()).isEqualTo(ref.deviceMetrics.make.ordinal)
+        assertThat(deviceMetrics.getModel()).isEqualTo(ref.deviceMetrics.model.ordinal)
+        assertThat(deviceMetrics.getScreenHeights()).isEqualTo(ref.deviceMetrics.screenHeight)
+        assertThat(deviceMetrics.getScreenWidth()).isEqualTo(ref.deviceMetrics.screenWidth)
+        assertThat(deviceMetrics.getXdpi()).isEqualTo(ref.deviceMetrics.xdpi)
+        assertThat(deviceMetrics.getYdpi()).isEqualTo(ref.deviceMetrics.ydpi)
+        assertThat(deviceMetrics.getPxRatio()).isEqualTo(ref.deviceMetrics.pxRatio)
 
-        assertThat(userData.appInstalledHistory.size).isEqualTo(rawUserData.appsInfo.size)
-        for ((index, appStatus) in userData.appInstalledHistory.withIndex()) {
-            assertThat(appStatus.packageName).isEqualTo(rawUserData.appsInfo[index].packageName)
-            assertThat(appStatus.installed).isEqualTo(rawUserData.appsInfo[index].installed)
+        val currentLocation: Location = userData.getCurrentLocation()
+
+        assertThat(currentLocation.getTimeSec()).isEqualTo(rawUserData.currentLocation.timeMillis / 1000)
+        assertThat(currentLocation.getLatitude()).isEqualTo(rawUserData.currentLocation.latitude)
+        assertThat(currentLocation.getLongitude()).isEqualTo(rawUserData.currentLocation.longitude)
+        assertThat(currentLocation.getLocationProvider()).isEqualTo(rawUserData.currentLocation.provider.ordinal)
+        assertThat(currentLocation.isPreciseLocation()).isEqualTo(rawUserData.currentLocation.isPreciseLocation)
+
+        assertThat(userData.getAppInstalledHistory().size).isEqualTo(rawUserData.appsInfo.size)
+
+        for ((index, appStatus) in userData.getAppInstalledHistory().withIndex()) {
+            assertThat(appStatus.getPackageName()).isEqualTo(rawUserData.appsInfo[index].packageName)
+            assertThat(appStatus.isInstalled()).isEqualTo(rawUserData.appsInfo[index].installed)
         }
 
-        assertThat(userData.appUsageHistory.size).isEqualTo(rawUserData.appUsageHistory.size)
-        assertThat(userData.locationHistory.size).isEqualTo(rawUserData.locationHistory.size)
+        assertThat(userData.getAppUsageHistory().size).isEqualTo(rawUserData.appUsageHistory.size)
+        assertThat(userData.getLocationHistory().size).isEqualTo(rawUserData.locationHistory.size)
     }
 
     private fun ConnectionResult<*>.expectFailure(cls: Class<out ChronicleError>) {

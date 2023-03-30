@@ -17,8 +17,6 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 
@@ -40,18 +38,20 @@ public class EventsDaoTest {
     private EventsDao mDao;
     private Event mTestEvent = new Event.Builder()
             .setType(EventType.B2D.getValue())
-            .setEvent("event".getBytes(StandardCharsets.UTF_8))
+            .setEventData("event".getBytes(StandardCharsets.UTF_8))
             .setBidId("bidId")
             .setServicePackageName("servicePackageName")
             .setSlotId("slotId")
             .setSlotPosition(1)
             .setQueryId(1L)
             .setTimeMillis(1L)
+            .setSlotIndex(0)
             .build();
 
     private Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setQuery("query".getBytes(StandardCharsets.UTF_8))
+            .setServicePackageName("servicePackageName")
+            .setQueryData("query".getBytes(StandardCharsets.UTF_8))
             .build();
 
     @Before
@@ -71,12 +71,24 @@ public class EventsDaoTest {
     @Test
     public void testInsertQueryAndEvent() {
         assertEquals(1, mDao.insertQuery(mTestQuery));
-        assertTrue(mDao.insertEvent(mTestEvent));
+        assertEquals(1, mDao.insertEvent(mTestEvent));
+        Event testEvent = new Event.Builder()
+                .setType(EventType.CLICK.getValue())
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setBidId("bidId")
+                .setServicePackageName("servicePackageName")
+                .setSlotId("slotId")
+                .setSlotPosition(1)
+                .setQueryId(1L)
+                .setTimeMillis(1L)
+                .setSlotIndex(0)
+                .build();
+        assertEquals(2, mDao.insertEvent(testEvent));
     }
 
     @Test
     public void testInsertEventFKError() {
-        assertFalse(mDao.insertEvent(mTestEvent));
+        assertEquals(-1, mDao.insertEvent(mTestEvent));
     }
 
     @Test
@@ -88,8 +100,8 @@ public class EventsDaoTest {
     @Test
     public void testInsertEventExistingKey() {
         assertEquals(1, mDao.insertQuery(mTestQuery));
-        assertTrue(mDao.insertEvent(mTestEvent));
-        assertFalse(mDao.insertEvent(mTestEvent));
+        assertEquals(1, mDao.insertEvent(mTestEvent));
+        assertEquals(-1, mDao.insertEvent(mTestEvent));
     }
 
 }

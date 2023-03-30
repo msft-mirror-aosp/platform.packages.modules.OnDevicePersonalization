@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.policyengine.policy
 import com.android.libraries.pcc.chronicle.api.policy.StorageMedium
 import com.android.libraries.pcc.chronicle.api.policy.UsageType
 import com.android.libraries.pcc.chronicle.api.policy.builder.policy
-import com.android.ondevicepersonalization.services.policyengine.data.FINAL_USER_DATA_GENERATED_DTD
+import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_GENERATED_DTD
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.DeviceAllowsPersonalizedAds
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.UserAllowsPersonalizedAds
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.AppAllowsPersonalizedAds
@@ -32,6 +32,7 @@ import java.time.Duration
 class DataIngressPolicy {
     companion object {
         // NPA (No Personalized Ads) policy for user and vendor data in ODA
+        @JvmField
         val NPA_DATA_POLICY = policy(
             name = "npaPolicy",
             egressType = "None",
@@ -41,7 +42,7 @@ class DataIngressPolicy {
                 Policy that grant on-device data to ad vendors if no NPA flag is set.
                 """
                 .trimIndent()
-            target(FINAL_USER_DATA_GENERATED_DTD, Duration.ofDays(30)) {
+            target(USER_DATA_GENERATED_DTD, Duration.ofDays(30)) {
                 retention(medium = StorageMedium.RAM, encryptionRequired = false)
                 "timeSec" {rawUsage(UsageType.ANY)}
                 "timezone" {rawUsage(UsageType.ANY)}
@@ -58,7 +59,7 @@ class DataIngressPolicy {
                 }
                 "connectionType" {rawUsage(UsageType.ANY)}
                 "connectionSpeedKbps" {rawUsage(UsageType.ANY)}
-                "networkMeteredStatus" {rawUsage(UsageType.ANY)}
+                "networkMetered" {rawUsage(UsageType.ANY)}
                 "deviceMetrics" {
                     "make" {rawUsage(UsageType.ANY)}
                     "model" {rawUsage(UsageType.ANY)}
@@ -81,7 +82,7 @@ class DataIngressPolicy {
                     "latitude" {rawUsage(UsageType.ANY)}
                     "longitude" {rawUsage(UsageType.ANY)}
                     "locationProvider" {rawUsage(UsageType.ANY)}
-                    "isPreciseLocation" {rawUsage(UsageType.ANY)}
+                    "preciseLocation" {rawUsage(UsageType.ANY)}
                 }
                 "locationHistory" {
                     "latitude" {rawUsage(UsageType.ANY)}

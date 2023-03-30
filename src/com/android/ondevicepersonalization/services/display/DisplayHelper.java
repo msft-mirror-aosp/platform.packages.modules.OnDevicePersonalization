@@ -20,6 +20,7 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.SlotResult;
 import android.os.IBinder;
 import android.util.Log;
 import android.view.Display;
@@ -51,13 +52,15 @@ public class DisplayHelper {
 
     /** Creates a webview and displays the provided HTML. */
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
-            @NonNull String html, @NonNull IBinder hostToken,
-            int displayId, int width, int height) {
+            @NonNull String html, @NonNull SlotResult slotResult,
+            @NonNull String servicePackageName,
+            @NonNull IBinder hostToken, int displayId, int width, int height) {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
         try {
             Log.d(TAG, "displayHtml");
             OnDevicePersonalizationExecutors.getHandler().post(() -> {
-                createWebView(html, hostToken, displayId, width, height, result);
+                createWebView(html, slotResult, servicePackageName,
+                        hostToken, displayId, width, height, result);
             });
         } catch (Exception e) {
             result.setException(e);
@@ -66,12 +69,15 @@ public class DisplayHelper {
     }
 
     private void createWebView(
-            @NonNull String html, @NonNull IBinder hostToken, int displayId, int width, int height,
+            @NonNull String html, @NonNull SlotResult slotResult,
+            @NonNull String servicePackageName,
+            @NonNull IBinder hostToken, int displayId, int width, int height,
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
         try {
             Log.d(TAG, "createWebView() started");
             WebView webView = new WebView(mContext);
-            webView.setWebViewClient(new OdpWebViewClient());
+            webView.setWebViewClient(
+                    new OdpWebViewClient(mContext, servicePackageName, slotResult));
             WebSettings webViewSettings = webView.getSettings();
             // Do not allow using file:// or content:// URLs.
             webViewSettings.setAllowFileAccess(false);

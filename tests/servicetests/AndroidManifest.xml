@@ -24,6 +24,8 @@
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
+    <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"/>
+
 
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
@@ -50,10 +52,14 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <!-- TODO(b/250001593) Enable any required broadcast receivers during runtime/onCreate. -->
-        <receiver android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationStartDownloadServiceReceiver"
+        <receiver android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationBroadcastReceiver"
                   android:enabled="false"
                   android:exported="false">
             <intent-filter>

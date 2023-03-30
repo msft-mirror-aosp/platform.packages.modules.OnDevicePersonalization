@@ -45,11 +45,20 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
+        <service android:name=".OnDevicePersonalizationPrivacyStatusServiceImpl" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.OnDevicePersonalizationPrivacyStatusService" />
+            </intent-filter>
+        </service>
         <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
@@ -63,7 +72,7 @@
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <!-- TODO(b/250001593) Enable any required broadcast receivers during runtime/onCreate. -->
-        <receiver android:name=".download.OnDevicePersonalizationStartDownloadServiceReceiver"
+        <receiver android:name=".OnDevicePersonalizationBroadcastReceiver"
                   android:enabled="false"
                   android:exported="false">
             <intent-filter>

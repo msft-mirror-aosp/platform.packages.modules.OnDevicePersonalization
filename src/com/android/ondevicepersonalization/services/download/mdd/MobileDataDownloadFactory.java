@@ -39,10 +39,18 @@ public class MobileDataDownloadFactory {
     private static MobileDataDownload sSingleton;
     private static SynchronousFileStorage sSynchronousFileStorage;
 
+    private MobileDataDownloadFactory() {
+    }
+
     /** Returns a singleton of MobileDataDownload. */
     @NonNull
     public static synchronized MobileDataDownload getMdd(
             @NonNull Context context) {
+        synchronized (MobileDataDownloadFactory.class) {
+            if (sSingleton != null) {
+                return sSingleton;
+            }
+        }
         return getMdd(context, getControlExecutor(), getDownloadExecutor());
     }
 
