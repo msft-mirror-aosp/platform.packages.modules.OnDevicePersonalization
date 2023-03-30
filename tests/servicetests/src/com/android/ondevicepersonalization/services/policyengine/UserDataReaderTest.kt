@@ -48,10 +48,8 @@ import com.android.ondevicepersonalization.services.policyengine.api.ChronicleMa
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
 import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.DevicePersonalizedAdsEnabled
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.UserPersonalizedAdsEnabled
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.AppPersonalizedAdsEnabled
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.RequestPersonalizedAdsEnabled
+import com.android.ondevicepersonalization.services.policyengine.policy.rules.KidStatusEnabled
+import com.android.ondevicepersonalization.services.policyengine.policy.rules.LimitedAdsTrackingEnabled
 
 import com.android.ondevicepersonalization.services.data.user.RawUserData
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector
@@ -79,10 +77,8 @@ class UserDataReaderTest : ProcessorNode {
     @Before
     fun setUp() {
         policyContext = MutableTypedMap()
-        policyContext[DevicePersonalizedAdsEnabled] = true
-        policyContext[UserPersonalizedAdsEnabled] = true
-        policyContext[AppPersonalizedAdsEnabled] = true
-        policyContext[RequestPersonalizedAdsEnabled] = true
+        policyContext[KidStatusEnabled] = false
+        policyContext[LimitedAdsTrackingEnabled] = false
 
         chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
         userDataCollector.updateUserData(rawUserData)
@@ -121,7 +117,7 @@ class UserDataReaderTest : ProcessorNode {
 
     @Test
     fun testFailedConnectionContext() {
-        policyContext[UserPersonalizedAdsEnabled] = false
+        policyContext[KidStatusEnabled] = true
         chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
         val result: ConnectionResult<UserDataReader>? = chronicleManager.chronicle.getConnection(
             ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
