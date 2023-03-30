@@ -30,6 +30,9 @@ public class EventsContract {
     public static class EventsEntry implements BaseColumns {
         public static final String TABLE_NAME = "events";
 
+        /** The id of the event. */
+        public static final String EVENT_ID = "eventId";
+
         /** The id of the query. */
         public static final String QUERY_ID = "queryId";
 
@@ -59,6 +62,7 @@ public class EventsContract {
 
         public static final String CREATE_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
+                    + EVENT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + QUERY_ID + " INTEGER NOT NULL,"
                     + SLOT_INDEX + " INTEGER NOT NULL,"
                     + BID_ID + " TEXT NOT NULL,"
@@ -71,7 +75,7 @@ public class EventsContract {
                     + "FOREIGN KEY(" + QUERY_ID + ") REFERENCES "
                         + QueriesContract.QueriesEntry.TABLE_NAME + "("
                         + QueriesContract.QueriesEntry.QUERY_ID + "),"
-                    + "PRIMARY KEY(" + QUERY_ID + ","
+                    + "UNIQUE(" + QUERY_ID + ","
                         + SLOT_INDEX + ","
                         + BID_ID + ","
                         + SERVICE_PACKAGE_NAME + ","
