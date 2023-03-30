@@ -14,6 +14,27 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.ondevicepersonalization.services;
 
-parcelable DownloadInput;
+import android.app.Service;
+import android.content.Intent;
+import android.os.IBinder;
+
+/**
+ * ODP service that modifies and persists user's privacy status.
+ */
+public class OnDevicePersonalizationPrivacyStatusServiceImpl extends Service {
+
+    /** Binder interface. */
+    private OnDevicePersonalizationPrivacyStatusServiceDelegate mBinder;
+
+    @Override
+    public void onCreate() {
+        mBinder = new OnDevicePersonalizationPrivacyStatusServiceDelegate(this);
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
+}

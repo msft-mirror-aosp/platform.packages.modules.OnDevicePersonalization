@@ -14,9 +14,9 @@
  * limitations under the License.
  */
 
-package android.federatedcompute;
+package android.federatedcompute.common;
 
-import static android.federatedcompute.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
+import static android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -49,6 +49,36 @@ public final class ScheduleFederatedComputeRequestTest {
 
         assertThat(request.getTrainingOptions().getJobSchedulerJobId()).isEqualTo(JOB_ID);
         assertThat(request.getTrainingOptions().getPopulationName()).isEqualTo(POPULATION_NAME);
+    }
+
+    @Test
+    public void testScheduleFederatedComputeRequestEquals() {
+        ScheduleFederatedComputeRequest request1 =
+                new ScheduleFederatedComputeRequest.Builder()
+                        .setTrainingOptions(
+                                new TrainingOptions.Builder()
+                                        .setPopulationName(POPULATION_NAME)
+                                        .setJobSchedulerJobId(JOB_ID)
+                                        .setTrainingInterval(
+                                                new TrainingInterval.Builder()
+                                                        .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
+                                                        .build())
+                                        .build())
+                        .build();
+        ScheduleFederatedComputeRequest request2 =
+                new ScheduleFederatedComputeRequest.Builder()
+                        .setTrainingOptions(
+                                new TrainingOptions.Builder()
+                                        .setPopulationName(POPULATION_NAME)
+                                        .setJobSchedulerJobId(JOB_ID)
+                                        .setTrainingInterval(
+                                                new TrainingInterval.Builder()
+                                                        .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
+                                                        .build())
+                                        .build())
+                        .build();
+
+        assertThat(request1).isEqualTo(request2);
     }
 
     @Test

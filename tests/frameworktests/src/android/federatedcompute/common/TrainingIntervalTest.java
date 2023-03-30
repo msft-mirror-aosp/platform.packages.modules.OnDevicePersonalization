@@ -14,11 +14,13 @@
  * limitations under the License.
  */
 
-package android.federatedcompute;
+package android.federatedcompute.common;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+
+import android.os.Parcel;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -33,16 +35,16 @@ public class TrainingIntervalTest {
         long minimumIntervalMillis = 10000000L;
         TrainingInterval interval =
                 createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, minimumIntervalMillis);
-        assertThat(interval.getSchedulingMode()).isEqualTo(
-                TrainingInterval.SCHEDULING_MODE_RECURRENT);
+        assertThat(interval.getSchedulingMode())
+                .isEqualTo(TrainingInterval.SCHEDULING_MODE_RECURRENT);
         assertThat(interval.getMinimumIntervalMillis()).isEqualTo(minimumIntervalMillis);
     }
 
     @Test
     public void testOneOffTask() {
         TrainingInterval interval = createInterval(TrainingInterval.SCHEDULING_MODE_ONE_TIME, 0);
-        assertThat(interval.getSchedulingMode()).isEqualTo(
-                TrainingInterval.SCHEDULING_MODE_ONE_TIME);
+        assertThat(interval.getSchedulingMode())
+                .isEqualTo(TrainingInterval.SCHEDULING_MODE_ONE_TIME);
     }
 
     @Test
@@ -58,21 +60,34 @@ public class TrainingIntervalTest {
 
     @Test
     public void testEquals() {
-        TrainingInterval interval = createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT,
-                10000);
+        TrainingInterval interval =
+                createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, 10000);
         TrainingInterval copy = interval;
         assertThat(interval.equals(copy)).isTrue();
         assertThat(interval.equals(new Object())).isFalse();
-        TrainingInterval identical = createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT,
-                10000);
+        TrainingInterval identical =
+                createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, 10000);
         assertThat(interval.equals(identical)).isTrue();
         assertThat(interval.hashCode()).isEqualTo(identical.hashCode());
-        TrainingInterval differentMode = createInterval(TrainingInterval.SCHEDULING_MODE_ONE_TIME,
-                10000);
+        TrainingInterval differentMode =
+                createInterval(TrainingInterval.SCHEDULING_MODE_ONE_TIME, 10000);
         assertThat(interval.equals(differentMode)).isFalse();
-        TrainingInterval differentInterval = createInterval(
-                TrainingInterval.SCHEDULING_MODE_RECURRENT, 20000);
+        TrainingInterval differentInterval =
+                createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, 20000);
         assertThat(interval.equals(differentInterval)).isFalse();
+    }
+
+    @Test
+    public void testParcelValidInterval() {
+        TrainingInterval interval =
+                createInterval(TrainingInterval.SCHEDULING_MODE_RECURRENT, 10000);
+
+        Parcel p = Parcel.obtain();
+        interval.writeToParcel(p, 0);
+        p.setDataPosition(0);
+        TrainingInterval fromParcel = TrainingInterval.CREATOR.createFromParcel(p);
+
+        assertThat(interval).isEqualTo(fromParcel);
     }
 
     private static TrainingInterval createInterval(int mode, long minimumIntervalMillis) {
