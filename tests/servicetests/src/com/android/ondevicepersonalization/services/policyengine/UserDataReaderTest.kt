@@ -42,6 +42,7 @@ import com.android.libraries.pcc.chronicle.api.ReadConnection
 import com.android.libraries.pcc.chronicle.api.error.ChronicleError
 import com.android.libraries.pcc.chronicle.api.error.PolicyNotFound
 import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
+import com.android.libraries.pcc.chronicle.api.error.Disabled
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
 
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager
@@ -73,7 +74,8 @@ class UserDataReaderTest : ProcessorNode {
 
     private val chronicleManager: ChronicleManager = ChronicleManager.getInstance(
         connectionProviders = setOf(UserDataConnectionProvider()),
-        policies = setOf(DataIngressPolicy.NPA_DATA_POLICY)
+        policies = setOf(DataIngressPolicy.NPA_DATA_POLICY),
+        connectionContext = TypedMap()
     )
 
     @Before
@@ -85,6 +87,7 @@ class UserDataReaderTest : ProcessorNode {
         policyContext[RequestPersonalizedAdsEnabled] = true
 
         chronicleManager.chronicle.updateConnectionContext(TypedMap(policyContext))
+        chronicleManager.failNewConnections(false)
         userDataCollector.updateUserData(rawUserData)
     }
 
@@ -128,6 +131,16 @@ class UserDataReaderTest : ProcessorNode {
         )
         assertThat(result).isNotNull()
         result?.expectFailure(PolicyViolation::class.java)
+    }
+
+    @Test
+    fun testFailNewConnection() {
+        chronicleManager.failNewConnections(true)
+        val result: ConnectionResult<UserDataReader>? = chronicleManager.chronicle.getConnection(
+            ConnectionRequest(UserDataReader::class.java, this, DataIngressPolicy.NPA_DATA_POLICY)
+        )
+        assertThat(result).isNotNull()
+        result?.expectFailure(Disabled::class.java)
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
