@@ -40,9 +40,6 @@ java_sdk_library {
     visibility: [
         "//packages/modules/OnDevicePersonalization/tests:__subpackages__",
     ],
-    impl_library_visibility: [
-        "//packages/modules/OnDevicePersonalization/tests:__subpackages__",
-    ],
     permitted_packages: [
         "com.android.server.ondevicepersonalization",
     ],
