@@ -59,7 +59,6 @@ android_test {
         "mts-ondevicepersonalization",
     ],
     test_config: "AndroidTest.xml",
-    test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     // mockito-target-inline dependency
     jni_libs: [
         "libdexmakerjvmtiagent",
