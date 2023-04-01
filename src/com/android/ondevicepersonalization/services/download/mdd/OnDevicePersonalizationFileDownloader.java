@@ -25,6 +25,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.android.downloader.AndroidDownloaderLogger;
@@ -164,7 +165,8 @@ public class OnDevicePersonalizationFileDownloader implements FileDownloader {
     }
 
     // Connectivity constraints will be checked by JobScheduler/WorkManager instead.
-    private static class NoOpConnectivityHandler implements ConnectivityHandler {
+    @VisibleForTesting
+    static class NoOpConnectivityHandler implements ConnectivityHandler {
         @Override
         public ListenableFuture<Void> checkConnectivity(DownloadConstraints constraints) {
             return Futures.immediateVoidFuture();
