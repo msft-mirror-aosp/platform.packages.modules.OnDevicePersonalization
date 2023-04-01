@@ -127,6 +127,25 @@ public class VendorData {
         }
 
         /**
+         * Creates a new Builder.
+         *
+         * @param key
+         *   Lookup key for the row - unique for each vendor
+         * @param data
+         *   Row data - ads or other vendor settings
+         */
+        public Builder(
+                @NonNull String key,
+                @NonNull byte[] data) {
+            mKey = key;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mKey);
+            mData = data;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mData);
+        }
+
+        /**
          * Lookup key for the row - unique for each vendor
          */
         @DataClass.Generated.Member
@@ -168,7 +187,7 @@ public class VendorData {
     }
 
     @DataClass.Generated(
-            time = 1673030365347L,
+            time = 1680017865553L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/vendor/VendorData.java",
             inputSignatures = "private final @android.annotation.NonNull java.lang.String mKey\nprivate final @android.annotation.NonNull byte[] mData\nclass VendorData extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
