@@ -16,13 +16,26 @@
 
 package com.android.ondevicepersonalization.services.policyengine.policy.rules
 
-import com.android.libraries.pcc.chronicle.util.Key
+import com.android.libraries.pcc.chronicle.api.policy.contextrules.PolicyContextRule
+import com.android.libraries.pcc.chronicle.util.TypedMap
 
-/** Defines NPA-related keys */
-object DevicePersonalizedAdsEnabled : Key<Boolean>
+/**
+ * Defines the [PolicyContextRule]s related to NPA (No Personalized Ads) settings.
+ *
+ * NPA is enabled by default.
+ */
+object UnicornAccount : PolicyContextRule {
+    override val name: String = "UnicornAccount"
+    override val operands: List<PolicyContextRule> = emptyList()
+    override fun invoke(context: TypedMap): Boolean {
+      return context[KidStatusEnabled] == true
+    }
+}
 
-object UserPersonalizedAdsEnabled : Key<Boolean>
-
-object AppPersonalizedAdsEnabled : Key<Boolean>
-
-object RequestPersonalizedAdsEnabled : Key<Boolean>
+object UserOptsInLimitedAdsTracking : PolicyContextRule {
+    override val name: String = "LimitedAdsTracking"
+    override val operands: List<PolicyContextRule> = emptyList()
+    override fun invoke(context: TypedMap): Boolean {
+      return context[LimitedAdsTrackingEnabled] == true
+    }
+}

@@ -24,5 +24,7 @@ package android.federatedcompute.common;
 public final class ClientConstants {
     public static final int STATUS_INTERNAL_ERROR = 100;
 
+    public static final String EXTRA_COLLECTION_NAME = "android.federatedcompute.collection_name";
+
     private ClientConstants() {}
 }

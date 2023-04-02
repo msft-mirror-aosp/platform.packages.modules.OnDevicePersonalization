@@ -22,6 +22,9 @@
 
     <!-- Required for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Used for scheduling connectivity jobs -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application>
         <service android:name=".FederatedComputeServiceImpl" android:exported="true" >

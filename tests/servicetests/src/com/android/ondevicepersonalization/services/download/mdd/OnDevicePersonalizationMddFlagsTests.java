@@ -14,11 +14,20 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.policyengine.policy.rules
+package com.android.ondevicepersonalization.services.download.mdd;
 
-import com.android.libraries.pcc.chronicle.util.Key
+import static org.junit.Assert.assertFalse;
 
-/** Defines NPA-related keys */
-object KidStatusEnabled : Key<Boolean>
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
-object LimitedAdsTrackingEnabled : Key<Boolean>
+@RunWith(JUnit4.class)
+public class OnDevicePersonalizationMddFlagsTests {
+
+    @Test
+    public void testBackgroundExecutorSettings() {
+        OnDevicePersonalizationMddFlags mddFlags = new OnDevicePersonalizationMddFlags();
+        assertFalse(mddFlags.downloaderEnforceHttps());
+    }
+}

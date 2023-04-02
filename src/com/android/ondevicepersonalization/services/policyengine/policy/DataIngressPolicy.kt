@@ -20,11 +20,10 @@ import com.android.libraries.pcc.chronicle.api.policy.StorageMedium
 import com.android.libraries.pcc.chronicle.api.policy.UsageType
 import com.android.libraries.pcc.chronicle.api.policy.builder.policy
 import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_GENERATED_DTD
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.DeviceAllowsPersonalizedAds
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.UserAllowsPersonalizedAds
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.AppAllowsPersonalizedAds
-import com.android.ondevicepersonalization.services.policyengine.policy.rules.RequestAllowsPersonalizedAds
+import com.android.ondevicepersonalization.services.policyengine.policy.rules.UserOptsInLimitedAdsTracking
+import com.android.ondevicepersonalization.services.policyengine.policy.rules.UnicornAccount
 import com.android.libraries.pcc.chronicle.api.policy.contextrules.and
+import com.android.libraries.pcc.chronicle.api.policy.contextrules.not
 
 import java.time.Duration
 
@@ -91,10 +90,7 @@ class DataIngressPolicy {
                 }
             }
 
-            allowedContext = DeviceAllowsPersonalizedAds and
-                UserAllowsPersonalizedAds and
-                AppAllowsPersonalizedAds and
-                RequestAllowsPersonalizedAds
+            allowedContext = not(UnicornAccount) and not(UserOptsInLimitedAdsTracking)
         }
     }
 }
