@@ -16,42 +16,9 @@
 
 package com.android.ondevicepersonalization.services.policyengine.policy.rules
 
-import com.android.libraries.pcc.chronicle.api.policy.contextrules.PolicyContextRule
-import com.android.libraries.pcc.chronicle.util.TypedMap
+import com.android.libraries.pcc.chronicle.util.Key
 
-/**
- * Defines the [PolicyContextRule]s related to NPA (No Personalized Ads) settings.
- *
- * Personalized ads are enabled by default.
- */
-object DeviceAllowsPersonalizedAds : PolicyContextRule {
-    override val name: String = "DeviceAllowsPersonalizedAds"
-    override val operands: List<PolicyContextRule> = emptyList()
-    override fun invoke(context: TypedMap): Boolean {
-      return context[DevicePersonalizedAdsEnabled] == true
-    }
-}
+/** Defines NPA-related keys */
+object KidStatusEnabled : Key<Boolean>
 
-object UserAllowsPersonalizedAds : PolicyContextRule {
-    override val name: String = "UserAllowsPersonalizedAds"
-    override val operands: List<PolicyContextRule> = emptyList()
-    override fun invoke(context: TypedMap): Boolean {
-      return context[UserPersonalizedAdsEnabled] == true
-    }
-}
-
-object AppAllowsPersonalizedAds : PolicyContextRule {
-    override val name: String = "AppAllowsPersonalizedAds"
-    override val operands: List<PolicyContextRule> = emptyList()
-    override fun invoke(context: TypedMap): Boolean {
-        return context[AppPersonalizedAdsEnabled] == true
-    }
-}
-
-object RequestAllowsPersonalizedAds : PolicyContextRule {
-    override val name: String = "RequestAllowsPersonalizedAds"
-    override val operands: List<PolicyContextRule> = emptyList()
-    override fun invoke(context: TypedMap): Boolean {
-        return context[RequestPersonalizedAdsEnabled] == true
-    }
-}
+object LimitedAdsTrackingEnabled : Key<Boolean>
