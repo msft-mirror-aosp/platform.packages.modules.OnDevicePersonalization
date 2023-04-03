@@ -17,9 +17,9 @@
 package com.test;
 
 import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.DownloadOutput;
+import android.ondevicepersonalization.IsolatedComputationHandler;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.PersonalizationHandler;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -30,23 +30,23 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements PersonalizationHandler {
-    public final String TAG = "TestPersonalizationHandler";
+public class TestPersonalizationHandler implements IsolatedComputationHandler {
+    public final String TAG = "TestIsolatedComputationHandler";
 
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadResult> consumer) {
+            Consumer<DownloadOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Existing keyExtra: "
                     + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
             Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
 
-            DownloadResult downloadResult =
-                    new DownloadResult.Builder()
+            DownloadOutput result =
+                    new DownloadOutput.Builder()
                             .setKeysToRetain(getFilteredKeys(input.getData()))
                             .build();
-            consumer.accept(downloadResult);
+            consumer.accept(result);
         } catch (Exception e) {
             Log.e(TAG, "Error occurred in onDownload", e);
         }

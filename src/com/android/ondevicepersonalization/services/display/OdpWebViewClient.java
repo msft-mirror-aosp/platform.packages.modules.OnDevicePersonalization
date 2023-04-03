@@ -20,11 +20,11 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.EventMetricsInput;
-import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.EventInput;
+import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.Metrics;
-import android.ondevicepersonalization.ScoredBid;
 import android.ondevicepersonalization.SlotResult;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -87,7 +87,7 @@ class OdpWebViewClient extends WebViewClient {
             Injector injector) {
         mContext = context;
         mServicePackageName = servicePackageName;
-        for (ScoredBid bid: slotResult.getWinningBids()) {
+        for (Bid bid: slotResult.getWinningBids()) {
             if (bid.getEventMetricsParameters() != null) {
                 mEventParametersMap.put(bid.getBidId(), bid.getEventMetricsParameters());
             }
@@ -131,17 +131,17 @@ class OdpWebViewClient extends WebViewClient {
         return true;
     }
 
-    private ListenableFuture<EventMetricsResult> executeComputeEventMetricsHandler(
+    private ListenableFuture<EventOutput> executeEventHandler(
             IsolatedServiceInfo isolatedServiceInfo, EventUrlPayload payload) {
         try {
-            Log.d(TAG, "executeComputeEventMetricsHandler() called");
+            Log.d(TAG, "executeEventHandler() called");
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
                     mServicePackageName, mContext, true, null);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
             PersistableBundle eventParams = mEventParametersMap.get(payload.getEvent().getBidId());
             // TODO(b/259950177): Add Query row to input.
-            EventMetricsInput input = new EventMetricsInput.Builder()
+            EventInput input = new EventInput.Builder()
                     .setEventType(payload.getEvent().getType())
                     .setEventParams(eventParams)
                     .build();
@@ -155,27 +155,27 @@ class OdpWebViewClient extends WebViewClient {
                         serviceParams))
                     .transform(
                             result -> result.getParcelable(
-                                Constants.EXTRA_RESULT, EventMetricsResult.class),
+                                Constants.EXTRA_RESULT, EventOutput.class),
                             mInjector.getExecutor());
         } catch (Exception e) {
-            Log.e(TAG, "executeComputeEventMetricsHandler() failed", e);
+            Log.e(TAG, "executeEventHandler() failed", e);
             return Futures.immediateFailedFuture(e);
         }
 
     }
 
-    ListenableFuture<EventMetricsResult> getEventMetrics(EventUrlPayload payload) {
+    ListenableFuture<EventOutput> getEventMetrics(EventUrlPayload payload) {
         try {
             Log.d(TAG, "getEventMetrics() called");
             if (!payload.isEventMetricsRequired()) {
-                return Futures.immediateFuture(new EventMetricsResult.Builder().build());
+                return Futures.immediateFuture(new EventOutput.Builder().build());
             }
 
             Log.d(TAG, "getEventMetrics(): Starting isolated process.");
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                     TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
-                        result -> executeComputeEventMetricsHandler(result, payload),
+                        result -> executeEventHandler(result, payload),
                         mInjector.getExecutor());
 
         } catch (Exception e) {
@@ -184,7 +184,7 @@ class OdpWebViewClient extends WebViewClient {
         }
     }
 
-    private ListenableFuture<Void> writeEvent(Event event, EventMetricsResult result) {
+    private ListenableFuture<Void> writeEvent(Event event, EventOutput result) {
         try {
             Log.d(TAG, "writeEvent() called. event: " + event.toString() + " metrics: "
                      + result.toString());
