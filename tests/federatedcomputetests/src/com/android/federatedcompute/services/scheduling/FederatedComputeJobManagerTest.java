@@ -16,9 +16,6 @@
 
 package com.android.federatedcompute.services.scheduling;
 
-import static com.android.federatedcompute.services.scheduling.FederatedComputeJobManager.DEFAULT_SCHEDULING_PERIOD_SECS;
-import static com.android.federatedcompute.services.scheduling.FederatedComputeJobManager.MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION;
-
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
@@ -37,6 +34,7 @@ import android.federatedcompute.common.TrainingOptions;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Clock;
+import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDbHelper;
@@ -65,8 +63,12 @@ public final class FederatedComputeJobManagerTest {
     private static final String POPULATION_NAME2 = "population2";
     private static final int JOB_ID1 = 700000001;
     private static final int JOB_ID2 = 700000002;
+    private static final long DEFAULT_SCHEDULING_PERIOD_SECS = 1234;
     private static final long DEFAULT_SCHEDULING_PERIOD_MILLIS =
             DEFAULT_SCHEDULING_PERIOD_SECS * 1000;
+    private static final long MAX_SCHEDULING_PERIOD_SECS = 912000;
+    private static final long MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION = 604800L;
+
     private static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.TrainingJobService";
     private static final long CURRENT_TIME_MILLIS = 1000L;
@@ -89,6 +91,7 @@ public final class FederatedComputeJobManagerTest {
     private final CountDownLatch mLatch = new CountDownLatch(1);
 
     @Mock private Clock mClock;
+    @Mock private Flags mMockFlags;
     private JobScheduler mJobScheduler;
 
     @Before
@@ -99,8 +102,18 @@ public final class FederatedComputeJobManagerTest {
         mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
         mJobManager =
                 new FederatedComputeJobManager(
-                        mContext, mTrainingTaskDao, new JobSchedulerHelper(mClock), mClock);
+                        mContext,
+                        mTrainingTaskDao,
+                        new JobSchedulerHelper(mClock),
+                        mClock,
+                        mMockFlags);
         when(mClock.currentTimeMillis()).thenReturn(CURRENT_TIME_MILLIS);
+        when(mMockFlags.getDefaultSchedulingPeriodSecs())
+                .thenReturn(DEFAULT_SCHEDULING_PERIOD_SECS);
+        when(mMockFlags.getMaxSchedulingIntervalSecsForFederatedComputation())
+                .thenReturn(MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
+        when(mMockFlags.getMinSchedulingIntervalSecsForFederatedComputation()).thenReturn(1L);
+        when(mMockFlags.getMaxSchedulingPeriodSecs()).thenReturn(MAX_SCHEDULING_PERIOD_SECS);
     }
 
     @After
@@ -174,20 +187,19 @@ public final class FederatedComputeJobManagerTest {
     public void testOnTrainerStartCalledFL_withIntervalSmallerThanDefaultInterval()
             throws Exception {
         testOnTrainerStartCalledFLWithInterval(
-                /* userDefinedIntervalMillis= */ 100000,
-                /* defaultIntervalMillis= */ DEFAULT_SCHEDULING_PERIOD_MILLIS);
+                /* userDefinedIntervalMillis= */ 1000000, /* defaultIntervalMillis= */ 2000000);
     }
 
     @Test
     public void testOnTrainerStartCalledFL_withIntervalLargerThanDefaultInterval()
             throws Exception {
         testOnTrainerStartCalledFLWithInterval(
-                /* userDefinedIntervalMillis= */ 400000,
-                /* defaultIntervalMillis= */ DEFAULT_SCHEDULING_PERIOD_MILLIS);
+                /* userDefinedIntervalMillis= */ 2000000, /* defaultIntervalMillis= */ 1000000);
     }
 
     private void testOnTrainerStartCalledFLWithInterval(
             long userDefinedIntervalMillis, long defaultIntervalMillis) throws Exception {
+        when(mMockFlags.getDefaultSchedulingPeriodSecs()).thenReturn(defaultIntervalMillis / 1000);
         TrainingOptions trainerOptions =
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
@@ -263,7 +275,9 @@ public final class FederatedComputeJobManagerTest {
     @Test
     public void testOnTrainerStartCalled_multipleTimes_sameParamsFLWithIntervalLargerThanServerMax()
             throws Exception {
-        int minIntervalMills = 7 * 24 * 60 * 60; // server max is 6 days.
+        long minIntervalMills = 10000L; // 10 seconds
+        // Maximum server specified interval is 5 seconds
+        when(mMockFlags.getMaxSchedulingPeriodSecs()).thenReturn(5L);
         TrainingOptions trainingOptions =
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
@@ -289,7 +303,7 @@ public final class FederatedComputeJobManagerTest {
                 createTrainingIntervalOptions(SchedulingMode.RECURRENT, minIntervalMills);
         FederatedTrainingTask expectedTask =
                 basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, expectedInterval)
-                        .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                        .earliestNextRunTime(1000 + minIntervalMills)
                         .lastScheduledTime(3000L)
                         .creationTime(1000L)
                         .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
@@ -299,7 +313,7 @@ public final class FederatedComputeJobManagerTest {
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(1);
         assertJobInfosMatch(
                 mJobScheduler.getPendingJob(JOB_ID1),
-                buildExpectedJobInfo(JOB_ID1, DEFAULT_SCHEDULING_PERIOD_MILLIS));
+                buildExpectedJobInfo(JOB_ID1, minIntervalMills));
     }
 
     /**
@@ -310,8 +324,9 @@ public final class FederatedComputeJobManagerTest {
     @Test
     public void testOnTrainerStartCalled_multipleTimes_sameParamsFLWithIntervalDifferentMax()
             throws Exception {
-        // Initial user specified interval is smaller than server max (6 days).
-        long minIntervalMills = 4 * 60 * 1000;
+        // Initial max 20 seconds is larger than the user specified interval.
+        when(mMockFlags.getMaxSchedulingIntervalSecsForFederatedComputation()).thenReturn(20L);
+        long minIntervalMills = 10000L; // 10 seconds
         TrainingOptions trainingOptions =
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
@@ -343,8 +358,11 @@ public final class FederatedComputeJobManagerTest {
                 mJobScheduler.getPendingJob(JOB_ID1),
                 buildExpectedJobInfo(JOB_ID1, minIntervalMills));
 
-        // Increase user defined interval larger than server max (6 days).
-        long newMinIntervalMills = 7 * 24 * 60 * 60 * 1000;
+        // Now lower allowed max for the user specified interval
+        long newMaxSec = 5L;
+        long newMinIntervalMills = newMaxSec * 1000;
+        when(mMockFlags.getMaxSchedulingIntervalSecsForFederatedComputation())
+                .thenReturn(newMaxSec);
         TrainingOptions newTrainingOptions =
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
@@ -358,13 +376,12 @@ public final class FederatedComputeJobManagerTest {
         when(mClock.currentTimeMillis()).thenReturn(2000L);
         mJobManager.onTrainerStartCalled(newTrainingOptions, new TestFederatedComputeCallback());
 
-        long expectedMinInterval = MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION * 1000;
         taskList = mTrainingTaskDao.getFederatedTrainingTask(null, null);
         expectedInterval =
                 createTrainingIntervalOptions(SchedulingMode.RECURRENT, newMinIntervalMills);
         expectedTask =
                 basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, expectedInterval)
-                        .earliestNextRunTime(2000L + expectedMinInterval)
+                        .earliestNextRunTime(2000L + newMinIntervalMills)
                         .lastScheduledTime(2000L)
                         .creationTime(1000L)
                         .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
@@ -373,20 +390,26 @@ public final class FederatedComputeJobManagerTest {
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(1);
         assertJobInfosMatch(
                 mJobScheduler.getPendingJob(JOB_ID1),
-                buildExpectedJobInfo(JOB_ID1, expectedMinInterval));
+                buildExpectedJobInfo(JOB_ID1, newMinIntervalMills));
     }
 
     @Test
     public void testOnTrainerStartCalled_fLCustomerSpecifiedIntervalSmallerThanDefinedMin()
             throws Exception {
-        long minIntervalMills = 4 * 60 * 1000;
+        when(mMockFlags.getDefaultSchedulingPeriodSecs()).thenReturn(2000L);
+        long minTrainingIntervalSecByFederatedCompute = 1800L;
+        long minTrainingIntervalMillsByFederatedCompute =
+                minTrainingIntervalSecByFederatedCompute * 1000;
+        when(mMockFlags.getMinSchedulingIntervalSecsForFederatedComputation())
+                .thenReturn(minTrainingIntervalSecByFederatedCompute);
+
         TrainingOptions trainingOptions =
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
                                 new TrainingInterval.Builder()
                                         .setSchedulingMode(
                                                 TrainingInterval.SCHEDULING_MODE_RECURRENT)
-                                        .setMinimumIntervalMillis(minIntervalMills)
+                                        .setMinimumIntervalMillis(1000L)
                                         .build())
                         .build();
 
@@ -395,11 +418,10 @@ public final class FederatedComputeJobManagerTest {
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
-        byte[] expectedInterval =
-                createTrainingIntervalOptions(SchedulingMode.RECURRENT, minIntervalMills);
+        byte[] expectedInterval = createTrainingIntervalOptions(SchedulingMode.RECURRENT, 1000L);
         FederatedTrainingTask expectedTask =
                 basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, expectedInterval)
-                        .earliestNextRunTime(1000L + minIntervalMills)
+                        .earliestNextRunTime(1000L + minTrainingIntervalMillsByFederatedCompute)
                         .lastScheduledTime(1000L)
                         .creationTime(1000L)
                         .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
@@ -409,7 +431,7 @@ public final class FederatedComputeJobManagerTest {
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(1);
         assertJobInfosMatch(
                 mJobScheduler.getPendingJob(JOB_ID1),
-                buildExpectedJobInfo(JOB_ID1, minIntervalMills));
+                buildExpectedJobInfo(JOB_ID1, minTrainingIntervalMillsByFederatedCompute));
     }
 
     @Test
