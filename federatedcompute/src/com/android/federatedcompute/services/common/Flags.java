@@ -57,4 +57,11 @@ public interface Flags {
     default long getTrainingServiceResultCallbackTimeoutSecs() {
         return TRAINING_SERVICE_RESULT_CALLBACK_TIMEOUT_SEC;
     }
+
+    /** Flags for {@link FederatedExampleIterator}. */
+    long APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS = 30;
+
+    default long getAppHostedExampleStoreTimeoutSecs() {
+        return APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS;
+    }
 }
