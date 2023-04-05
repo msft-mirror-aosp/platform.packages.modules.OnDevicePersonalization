@@ -57,6 +57,7 @@ android_test {
         "general-tests",
         "mts-ondevicepersonalization",
     ],
+    manifest: "AndroidManifest.xml",
     test_config: "AndroidTest.xml",
     // mockito-target-inline dependency
     jni_libs: [
