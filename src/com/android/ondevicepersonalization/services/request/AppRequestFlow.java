@@ -19,8 +19,8 @@ package com.android.ondevicepersonalization.services.request;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.SelectContentInput;
-import android.ondevicepersonalization.SelectContentResult;
+import android.ondevicepersonalization.ExecuteInput;
+import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.Bundle;
@@ -109,7 +109,7 @@ public class AppRequestFlow {
             mServiceClassName = Objects.requireNonNull(
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                             mContext, mServicePackageName));
-            ListenableFuture<SelectContentResult> resultFuture = FluentFuture.from(
+            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
                                     TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
@@ -119,7 +119,7 @@ public class AppRequestFlow {
                     .transform(
                             result -> {
                                 return result.getParcelable(
-                                        Constants.EXTRA_RESULT, SelectContentResult.class);
+                                        Constants.EXTRA_RESULT, ExecuteOutput.class);
                             },
                             mExecutorService
                     );
@@ -160,8 +160,8 @@ public class AppRequestFlow {
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
         Log.d(TAG, "executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        SelectContentInput input =
-                new SelectContentInput.Builder()
+        ExecuteInput input =
+                new ExecuteInput.Builder()
                         .setAppPackageName(mCallingPackageName)
                         .setAppParams(mParams)
                         .build();
@@ -173,7 +173,7 @@ public class AppRequestFlow {
                 isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
     }
 
-    private ListenableFuture<Long> logQuery(SelectContentResult result) {
+    private ListenableFuture<Long> logQuery(ExecuteOutput result) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(result);
@@ -190,11 +190,11 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<List<String>> createTokens(
-            ListenableFuture<SelectContentResult> selectContentResultFuture,
+            ListenableFuture<ExecuteOutput> selectContentResultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
             Log.d(TAG, "createTokens() started.");
-            SelectContentResult selectContentResult = Futures.getDone(selectContentResultFuture);
+            ExecuteOutput selectContentResult = Futures.getDone(selectContentResultFuture);
             long queryId = Futures.getDone(queryIdFuture);
             List<SlotResult> slotResults = selectContentResult.getSlotResults();
             Objects.requireNonNull(slotResults);

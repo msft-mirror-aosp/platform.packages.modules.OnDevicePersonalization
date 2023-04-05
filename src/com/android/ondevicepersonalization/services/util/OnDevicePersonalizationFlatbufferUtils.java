@@ -16,8 +16,7 @@
 
 package com.android.ondevicepersonalization.services.util;
 
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentResult;
+import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.SlotResult;
 
 import com.android.ondevicepersonalization.services.fbs.Bid;
@@ -40,7 +39,7 @@ public class OnDevicePersonalizationFlatbufferUtils {
     /**
      * Creates a byte array representing the QueryData as a flatbuffer
      */
-    public static byte[] createQueryData(SelectContentResult selectContentResult) {
+    public static byte[] createQueryData(ExecuteOutput selectContentResult) {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         int slotsOffset = 0;
         if (selectContentResult.getSlotResults() != null) {
@@ -91,23 +90,25 @@ public class OnDevicePersonalizationFlatbufferUtils {
         return builder.sizedByteArray();
     }
 
-    private static int createBidVector(FlatBufferBuilder builder, List<ScoredBid> scoredBids) {
-        int[] bids = new int[scoredBids.size()];
-        for (int i = 0; i < scoredBids.size(); i++) {
-            ScoredBid scoredBid = scoredBids.get(i);
-            int bidIdOffset = builder.createString(scoredBid.getBidId());
+    private static int createBidVector(
+            FlatBufferBuilder builder,
+            List<android.ondevicepersonalization.Bid> bids) {
+        int[] loggedBids = new int[bids.size()];
+        for (int i = 0; i < bids.size(); i++) {
+            android.ondevicepersonalization.Bid bid = bids.get(i);
+            int bidIdOffset = builder.createString(bid.getBidId());
             int metricsOffset = 0;
-            if (scoredBid.getMetrics() != null) {
-                metricsOffset = createMetrics(builder, scoredBid.getMetrics());
+            if (bid.getMetrics() != null) {
+                metricsOffset = createMetrics(builder, bid.getMetrics());
             }
             Bid.startBid(builder);
             Bid.addId(builder, bidIdOffset);
-            Bid.addPrice(builder, scoredBid.getPrice());
-            Bid.addScore(builder, scoredBid.getScore());
+            Bid.addPrice(builder, bid.getPrice());
+            Bid.addScore(builder, bid.getScore());
             Bid.addMetrics(builder, metricsOffset);
-            bids[i] = Bid.endBid(builder);
+            loggedBids[i] = Bid.endBid(builder);
         }
-        return Slot.createWinningBidsVector(builder, bids);
+        return Slot.createWinningBidsVector(builder, loggedBids);
     }
 
     private static int createMetrics(FlatBufferBuilder builder,

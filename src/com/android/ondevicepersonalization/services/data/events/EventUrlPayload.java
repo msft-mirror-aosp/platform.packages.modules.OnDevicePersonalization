@@ -123,6 +123,9 @@ public class EventUrlPayload implements Serializable {
 
         private long mBuilderFieldsSet = 0L;
 
+        /**
+         * Creates a new Builder.
+         */
         public Builder() {
         }
 
@@ -184,7 +187,7 @@ public class EventUrlPayload implements Serializable {
     }
 
     @DataClass.Generated(
-            time = 1677094521252L,
+            time = 1680554327193L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/EventUrlPayload.java",
             inputSignatures = "private final @android.annotation.NonNull com.android.ondevicepersonalization.services.data.events.Event mEvent\nprivate  boolean mEventMetricsRequired\nclass EventUrlPayload extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

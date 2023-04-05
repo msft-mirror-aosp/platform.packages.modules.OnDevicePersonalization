@@ -17,11 +17,11 @@
 package com.android.odpsamplenetwork;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.PersonalizationHandler;
+import android.ondevicepersonalization.IsolatedComputationHandler;
 import android.ondevicepersonalization.PersonalizationService;
 
 public class SamplePersonalizationService extends PersonalizationService {
-    @NonNull @Override public PersonalizationHandler getHandler() {
-        return new SamplePersonalizationHandler();
+    @NonNull @Override public IsolatedComputationHandler getHandler() {
+        return new SampleHandler();
     }
 }
