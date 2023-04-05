@@ -36,7 +36,9 @@ android_app {
     ],
     plugins: ["auto_value_plugin"],
     static_libs: [
+        "federatedcompute-service-proto-lite",
         "guava",
+        "modules-utils-preconditions",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",

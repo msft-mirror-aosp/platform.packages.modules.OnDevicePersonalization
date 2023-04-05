@@ -88,8 +88,6 @@ class ChronicleManager private constructor (
         it.copy(failNewConnections = failNewConnections)
     }
 
-    fun disable() = updateFlags { it.copy(emergencyDisable = true) }
-
     private inline fun updateFlags(block: (Flags) -> Flags) {
         do {
             val before = flags.value

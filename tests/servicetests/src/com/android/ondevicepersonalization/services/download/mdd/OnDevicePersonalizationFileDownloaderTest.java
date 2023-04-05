@@ -24,6 +24,7 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.google.android.downloader.ConnectivityHandler;
 import com.google.android.libraries.mobiledatadownload.downloader.DownloadConstraints;
 import com.google.android.libraries.mobiledatadownload.downloader.DownloadRequest;
 import com.google.android.libraries.mobiledatadownload.downloader.FileDownloader;
@@ -38,6 +39,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFileDownloaderTest {
@@ -81,6 +83,14 @@ public class OnDevicePersonalizationFileDownloaderTest {
 
         ListenableFuture<Void> future = downloader.startDownloading(downloadRequest);
         assertThrows(ExecutionException.class, () -> future.get());
+    }
+
+    @Test
+    public void testNoOpConnectivityHandler() throws Exception {
+        ConnectivityHandler connectivityHandler =
+                new OnDevicePersonalizationFileDownloader.NoOpConnectivityHandler();
+        // This will throw an exception if it fails to pass connectivity.
+        connectivityHandler.checkConnectivity(null).get(10, TimeUnit.MILLISECONDS);
     }
 
 }
