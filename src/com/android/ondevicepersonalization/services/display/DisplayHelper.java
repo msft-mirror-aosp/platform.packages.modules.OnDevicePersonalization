@@ -38,11 +38,9 @@ import com.google.common.util.concurrent.SettableFuture;
 public class DisplayHelper {
     private static final String TAG = "DisplayHelper";
     @NonNull private final Context mContext;
-    @NonNull private final String mServicePackageName;
 
-    public DisplayHelper(Context context, String servicePackageName) {
+    public DisplayHelper(Context context) {
         mContext = context;
-        mServicePackageName = servicePackageName;
     }
 
     /** Generates an HTML string from the template data in RenderContentResult. */
@@ -54,13 +52,15 @@ public class DisplayHelper {
 
     /** Creates a webview and displays the provided HTML. */
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
-            @NonNull String html, @NonNull SlotResult slotResult, @NonNull IBinder hostToken,
-            int displayId, int width, int height) {
+            @NonNull String html, @NonNull SlotResult slotResult,
+            @NonNull String servicePackageName,
+            @NonNull IBinder hostToken, int displayId, int width, int height) {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
         try {
             Log.d(TAG, "displayHtml");
             OnDevicePersonalizationExecutors.getHandler().post(() -> {
-                createWebView(html, slotResult, hostToken, displayId, width, height, result);
+                createWebView(html, slotResult, servicePackageName,
+                        hostToken, displayId, width, height, result);
             });
         } catch (Exception e) {
             result.setException(e);
@@ -69,14 +69,15 @@ public class DisplayHelper {
     }
 
     private void createWebView(
-            @NonNull String html, @NonNull SlotResult slotResult, @NonNull IBinder hostToken,
-            int displayId, int width, int height,
+            @NonNull String html, @NonNull SlotResult slotResult,
+            @NonNull String servicePackageName,
+            @NonNull IBinder hostToken, int displayId, int width, int height,
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
         try {
             Log.d(TAG, "createWebView() started");
             WebView webView = new WebView(mContext);
             webView.setWebViewClient(
-                    new OdpWebViewClient(mContext, mServicePackageName, slotResult));
+                    new OdpWebViewClient(mContext, servicePackageName, slotResult));
             WebSettings webViewSettings = webView.getSettings();
             // Do not allow using file:// or content:// URLs.
             webViewSettings.setAllowFileAccess(false);
