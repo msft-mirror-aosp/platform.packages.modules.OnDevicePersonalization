@@ -48,6 +48,7 @@ android_test {
         "ondevicepersonalization-plugin-lib",
         "apache-velocity-engine-core",
         "flatbuffers-java",
+        "owasp-java-encoder",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
