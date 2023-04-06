@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,20 +16,4 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.NonNull;
-
-/**
- * An opaque reference to a {@link SlotResult} returned by a {@link IsolatedComputationHandler}.
- * @hide
- */
-public class SlotResultHandle {
-    @NonNull private final String mSlotResultToken;
-
-    SlotResultHandle(@NonNull String slotResultToken) {
-        mSlotResultToken = slotResultToken;
-    }
-
-    @NonNull String getSlotResultToken() {
-        return mSlotResultToken;
-    }
-}
+parcelable ExecuteInput;

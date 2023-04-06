@@ -38,6 +38,7 @@ android_app {
     static_libs: [
         "federatedcompute-service-proto-lite",
         "guava",
+        "modules-utils-preconditions",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",

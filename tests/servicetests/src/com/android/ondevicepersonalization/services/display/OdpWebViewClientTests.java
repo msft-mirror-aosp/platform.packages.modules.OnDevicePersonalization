@@ -26,7 +26,7 @@ import static org.mockito.Mockito.verify;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.SlotResult;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
@@ -71,7 +71,7 @@ public class OdpWebViewClientTests {
 
     private final SlotResult mSlotResult = new SlotResult.Builder()
             .addWinningBids(
-                new ScoredBid.Builder()
+                new Bid.Builder()
                     .setBidId("bidId")
                     .setEventMetricsParameters(createEventMetricsParameters())
                     .build())

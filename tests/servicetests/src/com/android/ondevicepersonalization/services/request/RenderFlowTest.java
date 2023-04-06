@@ -20,8 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.Bid;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
@@ -84,7 +84,7 @@ public class RenderFlowTest {
                 injector.getExecutor());
         SlotResult slotResult =
                 new SlotResult.Builder()
-                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
+                        .addWinningBids(new Bid.Builder().setBidId("bid1").build())
                         .build();
         SlotRenderingData data = new SlotRenderingData(
                 slotResult, mContext.getPackageName(), 0);
@@ -104,7 +104,7 @@ public class RenderFlowTest {
             if (token.equals("token")) {
                 SlotResult slotResult =
                         new SlotResult.Builder()
-                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
+                        .addWinningBids(new Bid.Builder().setBidId("bid1").build())
                         .build();
                 SlotRenderingData data = new SlotRenderingData(
                         slotResult, mContext.getPackageName(), 0);
@@ -120,7 +120,7 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderContentResult renderContentResult) {
+        @Override public String generateHtml(RenderOutput renderContentResult) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;

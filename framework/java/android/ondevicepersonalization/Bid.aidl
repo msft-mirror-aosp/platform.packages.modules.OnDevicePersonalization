@@ -16,4 +16,4 @@
 
 package android.ondevicepersonalization;
 
-parcelable RenderContentInput;
+parcelable Bid;
