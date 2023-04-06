@@ -18,9 +18,8 @@ package com.android.ondevicepersonalization.services.util;
 
 import static org.junit.Assert.assertEquals;
 
+import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.Metrics;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentResult;
 import android.ondevicepersonalization.SlotResult;
 
 import com.android.ondevicepersonalization.services.fbs.Bid;
@@ -63,7 +62,7 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
 
     @Test
     public void testCreateQueryDataNullSlotResults() {
-        SelectContentResult selectContentResult = new SelectContentResult.Builder().setSlotResults(
+        ExecuteOutput selectContentResult = new ExecuteOutput.Builder().setSlotResults(
                 null).build();
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 selectContentResult);
@@ -74,12 +73,12 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
 
     @Test
     public void testCreateQueryData() {
-        SelectContentResult selectContentResult = new SelectContentResult.Builder()
+        ExecuteOutput selectContentResult = new ExecuteOutput.Builder()
                 .addSlotResults(
                         new SlotResult.Builder()
                                 .setSlotId("abc")
                                 .addWinningBids(
-                                        new ScoredBid.Builder()
+                                        new android.ondevicepersonalization.Bid.Builder()
                                                 .setBidId("bid1")
                                                 .setPrice(5.0)
                                                 .setScore(1.0)
@@ -87,7 +86,7 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
                                                         .setLongValues(11).build())
                                                 .build())
                                 .addRejectedBids(
-                                        new ScoredBid.Builder()
+                                        new android.ondevicepersonalization.Bid.Builder()
                                                 .setBidId("bid2")
                                                 .setPrice(1.0)
                                                 .setScore(0.1)

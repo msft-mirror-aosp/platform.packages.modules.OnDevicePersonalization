@@ -25,12 +25,12 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The output to be rendered in a slot within a calling app.
+ * The input data for an {@link IsolatedComputationHandler}.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class SelectContentInput implements Parcelable {
+public final class ExecuteInput implements Parcelable {
     /** The package name of the calling app. */
     @NonNull String mAppPackageName;
 
@@ -45,7 +45,7 @@ public final class SelectContentInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SelectContentInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -53,7 +53,7 @@ public final class SelectContentInput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ SelectContentInput(
+    /* package-private */ ExecuteInput(
             @NonNull String appPackageName,
             @Nullable PersistableBundle appParams) {
         this.mAppPackageName = appPackageName;
@@ -84,13 +84,13 @@ public final class SelectContentInput implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(SelectContentInput other) { ... }
+        // boolean fieldNameEquals(ExecuteInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        SelectContentInput that = (SelectContentInput) o;
+        ExecuteInput that = (ExecuteInput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mAppPackageName, that.mAppPackageName)
@@ -129,7 +129,7 @@ public final class SelectContentInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ SelectContentInput(@NonNull android.os.Parcel in) {
+    /* package-private */ ExecuteInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -146,21 +146,21 @@ public final class SelectContentInput implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<SelectContentInput> CREATOR
-            = new Parcelable.Creator<SelectContentInput>() {
+    public static final @NonNull Parcelable.Creator<ExecuteInput> CREATOR
+            = new Parcelable.Creator<ExecuteInput>() {
         @Override
-        public SelectContentInput[] newArray(int size) {
-            return new SelectContentInput[size];
+        public ExecuteInput[] newArray(int size) {
+            return new ExecuteInput[size];
         }
 
         @Override
-        public SelectContentInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new SelectContentInput(in);
+        public ExecuteInput createFromParcel(@NonNull android.os.Parcel in) {
+            return new ExecuteInput(in);
         }
     };
 
     /**
-     * A builder for {@link SelectContentInput}
+     * A builder for {@link ExecuteInput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -171,7 +171,11 @@ public final class SelectContentInput implements Parcelable {
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {}
+        /**
+         * Creates a new Builder.
+         */
+        public Builder() {
+        }
 
         /**
          * Creates a new Builder.
@@ -213,11 +217,11 @@ public final class SelectContentInput implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull SelectContentInput build() {
+        public @NonNull ExecuteInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
-            SelectContentInput o = new SelectContentInput(
+            ExecuteInput o = new ExecuteInput(
                     mAppPackageName,
                     mAppParams);
             return o;
@@ -232,10 +236,10 @@ public final class SelectContentInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1679343385240L,
+            time = 1680551305542L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SelectContentInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass SelectContentInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteInput.java",
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

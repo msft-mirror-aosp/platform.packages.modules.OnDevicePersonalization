@@ -42,7 +42,7 @@ import java.util.function.Consumer;
 public abstract class PersonalizationService extends Service {
     private static final String TAG = "PersonalizationService";
     private IBinder mBinder;
-    @NonNull private final PersonalizationHandler mHandler = getHandler();
+    @NonNull private final IsolatedComputationHandler mHandler = getHandler();
 
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
@@ -53,9 +53,9 @@ public abstract class PersonalizationService extends Service {
     }
 
     /**
-     * Return an instance of {@link PersonalizationHandler} that handles client requests.
+     * Return an instance of {@link IsolatedComputationHandler} that handles client requests.
      */
-    @NonNull public abstract PersonalizationHandler getHandler();
+    @NonNull public abstract IsolatedComputationHandler getHandler();
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
@@ -70,8 +70,8 @@ public abstract class PersonalizationService extends Service {
 
             if (operationCode == Constants.OP_SELECT_CONTENT) {
 
-                SelectContentInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, SelectContentInput.class));
+                ExecuteInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, ExecuteInput.class));
                 Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
@@ -79,8 +79,8 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.selectContent(
-                        input, odpContext, new WrappedCallback<SelectContentResult>(callback));
+                mHandler.onExecute(
+                        input, odpContext, new WrappedCallback<ExecuteOutput>(callback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
 
@@ -110,12 +110,12 @@ public abstract class PersonalizationService extends Service {
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
                 mHandler.onDownload(
-                        downloadInput, odpContext, new WrappedCallback<DownloadResult>(callback));
+                        downloadInput, odpContext, new WrappedCallback<DownloadOutput>(callback));
 
             } else if (operationCode == Constants.OP_RENDER_CONTENT) {
 
-                RenderContentInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, RenderContentInput.class));
+                RenderInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, RenderInput.class));
                 Objects.requireNonNull(input.getSlotInfo());
                 Objects.requireNonNull(input.getBidIds());
                 IDataAccessService binder =
@@ -124,20 +124,20 @@ public abstract class PersonalizationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.renderContent(
-                        input, odpContext, new WrappedCallback<RenderContentResult>(callback));
+                mHandler.onRender(
+                        input, odpContext, new WrappedCallback<RenderOutput>(callback));
 
             } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
 
-                EventMetricsInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, EventMetricsInput.class));
+                EventInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, EventInput.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.computeEventMetrics(
-                        input, odpContext, new WrappedCallback<EventMetricsResult>(callback));
+                mHandler.onEvent(
+                        input, odpContext, new WrappedCallback<EventOutput>(callback));
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);

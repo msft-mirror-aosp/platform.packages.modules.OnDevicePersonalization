@@ -24,7 +24,7 @@ import java.util.function.Consumer;
  * Interface for services that perform personalized computation using user data.
  * @hide
  */
-public interface PersonalizationHandler {
+public interface IsolatedComputationHandler {
 
     /**
      * Handle a request from an app. A {@link PersonalizationService} that
@@ -34,10 +34,10 @@ public interface PersonalizationHandler {
      * @param odpContext The per-request state for this request.
      * @param consumer Callback to be invoked on completion.
      */
-    default void selectContent(
-            @NonNull SelectContentInput input,
+    default void onExecute(
+            @NonNull ExecuteInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<SelectContentResult> consumer
+            @NonNull Consumer<ExecuteOutput> consumer
     ) {
         consumer.accept(null);
     }
@@ -54,23 +54,23 @@ public interface PersonalizationHandler {
     default void onDownload(
             @NonNull DownloadInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<DownloadResult> consumer
+            @NonNull Consumer<DownloadOutput> consumer
     ) {
         consumer.accept(null);
     }
 
     /**
-     * Generate HTML for the winning bids that returned as a result of {@link selectContent}.
+     * Generate HTML for the winning bids that returned as a result of {@link execute}.
      * The platform will render this HTML in a WebView inside a fenced frame.
      *
      * @param input Parameters for the renderContent request.
      * @param odpContext The per-request state for this request.
      * @param consumer Callback to be invoked on completion.
      */
-    default void renderContent(
-            @NonNull RenderContentInput input,
+    default void onRender(
+            @NonNull RenderInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<RenderContentResult> consumer
+            @NonNull Consumer<RenderOutput> consumer
     ) {
         consumer.accept(null);
     }
@@ -83,10 +83,10 @@ public interface PersonalizationHandler {
      * @param consumer Callback to be invoked on completion.
      */
     // TODO(b/259950177): Also provide the Query event from the Query table.
-    default void computeEventMetrics(
-            @NonNull EventMetricsInput input,
+    default void onEvent(
+            @NonNull EventInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<EventMetricsResult> consumer
+            @NonNull Consumer<EventOutput> consumer
     ) {
         consumer.accept(null);
     }
