@@ -120,7 +120,7 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderOutput renderContentResult) {
+        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;
