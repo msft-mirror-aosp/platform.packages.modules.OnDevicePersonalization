@@ -35,8 +35,10 @@ import org.junit.runners.JUnit4;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationVendorDataDaoTest {
@@ -75,6 +77,16 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         cursor = mDao.readAllVendorData();
         assertEquals(3, cursor.getCount());
         cursor.close();
+    }
+
+    @Test
+    public void testGetAllVendorKeys() {
+        addTestData(System.currentTimeMillis());
+        Set<String> keys = mDao.readAllVendorDataKeys();
+        Set<String> expectedKeys = new HashSet<>();
+        expectedKeys.add("key");
+        expectedKeys.add("key2");
+        assertEquals(expectedKeys, keys);
     }
 
     @Test
