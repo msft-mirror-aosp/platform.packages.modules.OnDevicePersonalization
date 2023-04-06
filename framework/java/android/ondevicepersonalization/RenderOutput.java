@@ -27,7 +27,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class RenderContentResult implements Parcelable {
+public final class RenderOutput implements Parcelable {
     /** The content to be rendered. */
     @Nullable private String mContent = "";
 
@@ -42,7 +42,7 @@ public final class RenderContentResult implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentResult.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -50,7 +50,7 @@ public final class RenderContentResult implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ RenderContentResult(
+    /* package-private */ RenderOutput(
             @Nullable String content) {
         this.mContent = content;
 
@@ -69,13 +69,13 @@ public final class RenderContentResult implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(RenderContentResult other) { ... }
+        // boolean fieldNameEquals(RenderOutput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        RenderContentResult that = (RenderContentResult) o;
+        RenderOutput that = (RenderOutput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mContent, that.mContent);
@@ -111,7 +111,7 @@ public final class RenderContentResult implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ RenderContentResult(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ RenderOutput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -124,21 +124,21 @@ public final class RenderContentResult implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<RenderContentResult> CREATOR
-            = new Parcelable.Creator<RenderContentResult>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<RenderOutput> CREATOR
+            = new Parcelable.Creator<RenderOutput>() {
         @Override
-        public RenderContentResult[] newArray(int size) {
-            return new RenderContentResult[size];
+        public RenderOutput[] newArray(int size) {
+            return new RenderOutput[size];
         }
 
         @Override
-        public RenderContentResult createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new RenderContentResult(in);
+        public RenderOutput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new RenderOutput(in);
         }
     };
 
     /**
-     * A builder for {@link RenderContentResult}
+     * A builder for {@link RenderOutput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -163,14 +163,14 @@ public final class RenderContentResult implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull RenderContentResult build() {
+        public @android.annotation.NonNull RenderOutput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mContent = "";
             }
-            RenderContentResult o = new RenderContentResult(
+            RenderOutput o = new RenderOutput(
                     mContent);
             return o;
         }
@@ -184,10 +184,10 @@ public final class RenderContentResult implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1671568236503L,
+            time = 1680551336578L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentResult.java",
-            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nclass RenderContentResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderOutput.java",
+            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nclass RenderOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -20,8 +20,8 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.ScoredBid;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -54,11 +54,11 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     public static class EventUrlQueryData {
         final long mQueryId;
         final String mSlotId;
-        final HashMap<String, ScoredBid> mBids = new HashMap<String, ScoredBid>();
+        final HashMap<String, Bid> mBids = new HashMap<String, Bid>();
         public EventUrlQueryData(long queryId, SlotResult slotResult) {
             mQueryId = queryId;
             mSlotId = slotResult.getSlotId();
-            for (ScoredBid bid : slotResult.getWinningBids()) {
+            for (Bid bid : slotResult.getWinningBids()) {
                 mBids.put(bid.getBidId(), bid);
             }
         }
