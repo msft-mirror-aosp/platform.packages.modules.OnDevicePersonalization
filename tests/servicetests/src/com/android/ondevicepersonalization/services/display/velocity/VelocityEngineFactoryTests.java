@@ -32,6 +32,8 @@ import org.junit.runners.JUnit4;
 import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(JUnit4.class)
 public class VelocityEngineFactoryTests {
@@ -43,7 +45,7 @@ public class VelocityEngineFactoryTests {
         VelocityEngine ve = VelocityEngineFactory.getVelocityEngine(mContext);
         String inputTemplate = "Hello $tool.encodeHtml($name)! I am $age.";
         PersistableBundle bundle = new PersistableBundle();
-        bundle.putString("name", "odp");
+        bundle.putString("name", "<script>script</script>");
         bundle.putInt("age", 100);
 
         Template template = ve.getTemplate(createTempTemplate(inputTemplate));
@@ -52,12 +54,55 @@ public class VelocityEngineFactoryTests {
 
         StringWriter writer = new StringWriter();
         template.merge(ctx, writer);
-        String expected = "Hello odp! I am 100.";
+        String expected = "Hello &lt;script&gt;script&lt;/script&gt;! I am 100.";
         assertEquals(expected, writer.toString());
     }
 
+    @Test
+    public void testMaxParseDepth() throws Exception {
+        VelocityEngine ve = VelocityEngineFactory.getVelocityEngine(mContext);
+        String parseFileName = createTempTemplate("world");
+        String inputTemplate = "Hello #parse(\"" + parseFileName + "\")!";
+        PersistableBundle bundle = new PersistableBundle();
+
+        Template template = ve.getTemplate(createTempTemplate(inputTemplate));
+        org.apache.velocity.context.Context ctx =
+                VelocityEngineFactory.createVelocityContext(bundle);
+
+        StringWriter writer = new StringWriter();
+        template.merge(ctx, writer);
+        // Parse depth >1 not allowed. The parse will do nothing.
+        String expected = "Hello !";
+        assertEquals(expected, writer.toString());
+    }
+
+    @Test
+    public void testMaxForeach() throws Exception {
+        List<String> testList = new ArrayList<>();
+        String expectedResult = "";
+        for (int i = 0; i < 500; i++) {
+            testList.add(String.valueOf(i));
+            if (i < 100) {
+                expectedResult += testList.get(i);
+            }
+        }
+        VelocityEngine ve = VelocityEngineFactory.getVelocityEngine(mContext);
+        String inputTemplate = "#foreach($s in $testList)$s#end";
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putStringArray("testList", testList.toArray(new String[0]));
+
+        Template template = ve.getTemplate(createTempTemplate(inputTemplate));
+        org.apache.velocity.context.Context ctx =
+                VelocityEngineFactory.createVelocityContext(bundle);
+
+        StringWriter writer = new StringWriter();
+        template.merge(ctx, writer);
+        assertEquals(expectedResult, writer.toString());
+    }
+
     private String createTempTemplate(String s) throws Exception {
-        File temp = File.createTempFile("VelocityEngineFactoryTests", "vm", mContext.getCacheDir());
+        File temp = File.createTempFile("VelocityEngineFactoryTests", ".vm",
+                mContext.getCacheDir());
         try (PrintWriter out = new PrintWriter(temp)) {
             out.print(s);
         }
