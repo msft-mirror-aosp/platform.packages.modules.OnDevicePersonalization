@@ -34,7 +34,7 @@ import java.util.concurrent.Executor;
  */
 public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizationContext {
     @NonNull private IDataAccessService mDataAccessService;
-    @NonNull private RemoteData mRemoteData;
+    @NonNull private ImmutableMap mRemoteData;
 
     /** @hide */
     public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
@@ -42,7 +42,7 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
         mRemoteData = new RemoteDataImpl(binder);
     }
 
-    @Override @NonNull public RemoteData getRemoteData() {
+    @Override @NonNull public ImmutableMap getRemoteData() {
         return mRemoteData;
     }
 

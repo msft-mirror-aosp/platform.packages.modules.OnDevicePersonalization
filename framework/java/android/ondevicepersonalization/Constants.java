@@ -50,7 +50,7 @@ public class Constants {
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
-    public static final int DATA_ACCESS_OP_REMOTE_DATA_SCAN = 2;
+    public static final int DATA_ACCESS_OP_REMOTE_DATA_KEYSET = 2;
     public static final int DATA_ACCESS_OP_GET_EVENT_URL = 3;
 
     private Constants() {}
