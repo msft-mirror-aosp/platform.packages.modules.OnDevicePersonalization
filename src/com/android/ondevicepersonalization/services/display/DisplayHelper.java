@@ -18,10 +18,12 @@ package com.android.ondevicepersonalization.services.display;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.os.IBinder;
+import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
@@ -30,9 +32,21 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.display.velocity.VelocityEngineFactory;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.SettableFuture;
+
+import org.apache.velocity.Template;
+import org.apache.velocity.app.VelocityEngine;
+
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
 
 /** Helper class to display personalized content. */
 public class DisplayHelper {
@@ -45,9 +59,53 @@ public class DisplayHelper {
 
     /** Generates an HTML string from the template data in RenderOutput. */
     @NonNull public String generateHtml(
-            @NonNull RenderOutput renderContentResult) {
-        // TODO(b/263180569): Use the template and params from renderContentResult.
-        return renderContentResult.getContent();
+            @NonNull RenderOutput renderContentResult,
+            @NonNull String servicePackageName) {
+        // If htmlContent is provided, do not render the template.
+        String htmlContent = renderContentResult.getContent();
+        if (null != htmlContent && !htmlContent.isEmpty()) {
+            return htmlContent;
+        }
+        PersistableBundle templateParams = renderContentResult.getTemplateParams();
+        String templateId = renderContentResult.getTemplateId();
+        if (null == templateParams || null == templateId) {
+            throw new IllegalArgumentException(
+                    "Valid rendering output not provided for generateHtml");
+        }
+        try {
+            byte[] templateBytes = OnDevicePersonalizationVendorDataDao.getInstance(
+                    mContext,
+                    servicePackageName,
+                    PackageUtils.getCertDigest(mContext, servicePackageName))
+                    .readSingleVendorDataRow(templateId);
+            if (null == templateBytes) {
+                throw new IllegalArgumentException(
+                        "Provided templateId not found during generateHtml");
+            }
+            String templateContent = new String(templateBytes, StandardCharsets.UTF_8);
+            // Move the template into a temp file to pass to Velocity.
+            String templateFileName = createTempTemplateFile(templateContent, servicePackageName);
+            VelocityEngine ve = VelocityEngineFactory.getVelocityEngine(mContext);
+            Template template = ve.getTemplate(templateFileName);
+            org.apache.velocity.context.Context ctx =
+                    VelocityEngineFactory.createVelocityContext(templateParams);
+
+            StringWriter writer = new StringWriter();
+            template.merge(ctx, writer);
+            return writer.toString();
+        } catch (PackageManager.NameNotFoundException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private String createTempTemplateFile(String templateContent, String templateId)
+            throws IOException {
+        File temp = File.createTempFile(templateId, ".vm", mContext.getCacheDir());
+        try (PrintWriter out = new PrintWriter(temp)) {
+            out.print(templateContent);
+        }
+        temp.deleteOnExit();
+        return temp.getName();
     }
 
     /** Creates a webview and displays the provided HTML. */
