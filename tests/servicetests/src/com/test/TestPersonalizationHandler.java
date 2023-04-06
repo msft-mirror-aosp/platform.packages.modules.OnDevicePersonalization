@@ -17,18 +17,18 @@
 package com.test;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
-import android.ondevicepersonalization.EventMetricsInput;
-import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.DownloadOutput;
+import android.ondevicepersonalization.EventInput;
+import android.ondevicepersonalization.EventOutput;
+import android.ondevicepersonalization.ExecuteInput;
+import android.ondevicepersonalization.ExecuteOutput;
+import android.ondevicepersonalization.IsolatedComputationHandler;
 import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.PersonalizationHandler;
-import android.ondevicepersonalization.RenderContentInput;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentInput;
-import android.ondevicepersonalization.SelectContentResult;
+import android.ondevicepersonalization.RenderInput;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.util.Log;
 
@@ -40,12 +40,12 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements PersonalizationHandler {
+public class TestPersonalizationHandler implements IsolatedComputationHandler {
     public final String TAG = "TestPersonalizationHandler";
 
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadResult> consumer) {
+            Consumer<DownloadOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Data: " + input.getData());
@@ -58,50 +58,50 @@ public class TestPersonalizationHandler implements PersonalizationHandler {
                     getFilteredKeys(input.getData());
             keysToRetain.add("keyExtra");
             // Get the keys to keep from the downloaded data
-            DownloadResult downloadResult =
-                    new DownloadResult.Builder()
+            DownloadOutput result =
+                    new DownloadOutput.Builder()
                             .setKeysToRetain(keysToRetain)
                             .build();
-            consumer.accept(downloadResult);
+            consumer.accept(result);
         } catch (Exception e) {
             Log.e(TAG, "Error occurred in onDownload", e);
         }
     }
 
-    @Override public void selectContent(
-            @NonNull SelectContentInput input,
+    @Override public void onExecute(
+            @NonNull ExecuteInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<SelectContentResult> consumer
+            @NonNull Consumer<ExecuteOutput> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
-        SelectContentResult result = new SelectContentResult.Builder()
+        ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
                         .addWinningBids(
-                            new ScoredBid.Builder()
+                            new Bid.Builder()
                             .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
                         .build())
                 .build();
         consumer.accept(result);
     }
 
-    @Override public void renderContent(
-            @NonNull RenderContentInput input,
+    @Override public void onRender(
+            @NonNull RenderInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<RenderContentResult> consumer
+            @NonNull Consumer<RenderOutput> consumer
     ) {
         Log.d(TAG, "renderContent() started.");
-        RenderContentResult result =
-                new RenderContentResult.Builder()
+        RenderOutput result =
+                new RenderOutput.Builder()
                 .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
                 .build();
         consumer.accept(result);
     }
 
-    public void computeEventMetrics(
-            @NonNull EventMetricsInput input,
+    public void onEvent(
+            @NonNull EventInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<EventMetricsResult> consumer
+            @NonNull Consumer<EventOutput> consumer
     ) {
         int intValue = 0;
         double floatValue = 0.0;
@@ -109,8 +109,8 @@ public class TestPersonalizationHandler implements PersonalizationHandler {
             intValue = input.getEventParams().getInt("a");
             floatValue = input.getEventParams().getDouble("b");
         }
-        EventMetricsResult result =
-                new EventMetricsResult.Builder()
+        EventOutput result =
+                new EventOutput.Builder()
                     .setMetrics(
                             new Metrics.Builder()
                                 .setLongValues(intValue)

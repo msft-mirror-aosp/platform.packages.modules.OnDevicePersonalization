@@ -41,12 +41,12 @@ public final class SlotResult implements Parcelable {
      * A list of winning bids in this slot. Will be rendered and logged for
      * reporting and training.
      */
-    @Nullable private List<ScoredBid> mWinningBids = null;
+    @Nullable private List<Bid> mWinningBids = null;
 
     /**
      * A list of candidate bids that were rejected. Will be logged for training.
      */
-    @Nullable private List<ScoredBid> mRejectedBids = null;
+    @Nullable private List<Bid> mRejectedBids = null;
 
 
 
@@ -67,8 +67,8 @@ public final class SlotResult implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ SlotResult(
             @NonNull String slotId,
-            @Nullable List<ScoredBid> winningBids,
-            @Nullable List<ScoredBid> rejectedBids) {
+            @Nullable List<Bid> winningBids,
+            @Nullable List<Bid> rejectedBids) {
         this.mSlotId = slotId;
         AnnotationValidations.validate(
                 NonNull.class, null, mSlotId);
@@ -91,7 +91,7 @@ public final class SlotResult implements Parcelable {
      * reporting and training.
      */
     @DataClass.Generated.Member
-    public @Nullable List<ScoredBid> getWinningBids() {
+    public @Nullable List<Bid> getWinningBids() {
         return mWinningBids;
     }
 
@@ -99,7 +99,7 @@ public final class SlotResult implements Parcelable {
      * A list of candidate bids that were rejected. Will be logged for training.
      */
     @DataClass.Generated.Member
-    public @Nullable List<ScoredBid> getRejectedBids() {
+    public @Nullable List<Bid> getRejectedBids() {
         return mRejectedBids;
     }
 
@@ -162,15 +162,15 @@ public final class SlotResult implements Parcelable {
 
         byte flg = in.readByte();
         String slotId = in.readString();
-        List<ScoredBid> winningBids = null;
+        List<Bid> winningBids = null;
         if ((flg & 0x2) != 0) {
             winningBids = new java.util.ArrayList<>();
-            in.readParcelableList(winningBids, ScoredBid.class.getClassLoader());
+            in.readParcelableList(winningBids, Bid.class.getClassLoader());
         }
-        List<ScoredBid> rejectedBids = null;
+        List<Bid> rejectedBids = null;
         if ((flg & 0x4) != 0) {
             rejectedBids = new java.util.ArrayList<>();
-            in.readParcelableList(rejectedBids, ScoredBid.class.getClassLoader());
+            in.readParcelableList(rejectedBids, Bid.class.getClassLoader());
         }
 
         this.mSlotId = slotId;
@@ -204,8 +204,8 @@ public final class SlotResult implements Parcelable {
     public static final class Builder {
 
         private @NonNull String mSlotId;
-        private @Nullable List<ScoredBid> mWinningBids;
-        private @Nullable List<ScoredBid> mRejectedBids;
+        private @Nullable List<Bid> mWinningBids;
+        private @Nullable List<Bid> mRejectedBids;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -228,7 +228,7 @@ public final class SlotResult implements Parcelable {
          * reporting and training.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setWinningBids(@NonNull List<ScoredBid> value) {
+        public @NonNull Builder setWinningBids(@NonNull List<Bid> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mWinningBids = value;
@@ -237,7 +237,7 @@ public final class SlotResult implements Parcelable {
 
         /** @see #setWinningBids */
         @DataClass.Generated.Member
-        public @NonNull Builder addWinningBids(@NonNull ScoredBid value) {
+        public @NonNull Builder addWinningBids(@NonNull Bid value) {
             // You can refine this method's name by providing item's singular name, e.g.:
             // @DataClass.PluralOf("item")) mItems = ...
 
@@ -250,7 +250,7 @@ public final class SlotResult implements Parcelable {
          * A list of candidate bids that were rejected. Will be logged for training.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRejectedBids(@NonNull List<ScoredBid> value) {
+        public @NonNull Builder setRejectedBids(@NonNull List<Bid> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mRejectedBids = value;
@@ -259,7 +259,7 @@ public final class SlotResult implements Parcelable {
 
         /** @see #setRejectedBids */
         @DataClass.Generated.Member
-        public @NonNull Builder addRejectedBids(@NonNull ScoredBid value) {
+        public @NonNull Builder addRejectedBids(@NonNull Bid value) {
             // You can refine this method's name by providing item's singular name, e.g.:
             // @DataClass.PluralOf("item")) mItems = ...
 
@@ -301,7 +301,7 @@ public final class SlotResult implements Parcelable {
             time = 1671484302594L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SlotResult.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mSlotId\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.ScoredBid> mWinningBids\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.ScoredBid> mRejectedBids\nclass SlotResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mSlotId\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.Bid> mWinningBids\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.Bid> mRejectedBids\nclass SlotResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -24,7 +24,7 @@ import static org.junit.Assert.assertNotNull;
 import android.Manifest;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
@@ -51,7 +51,7 @@ public class DisplayHelperTest {
     @Test
     public void testGenerateHtml() {
         DisplayHelper displayHelper = new DisplayHelper(mContext);
-        RenderContentResult renderContentResult = new RenderContentResult.Builder()
+        RenderOutput renderContentResult = new RenderOutput.Builder()
                 .setContent("html").build();
         assertEquals("html", displayHelper.generateHtml(renderContentResult));
     }

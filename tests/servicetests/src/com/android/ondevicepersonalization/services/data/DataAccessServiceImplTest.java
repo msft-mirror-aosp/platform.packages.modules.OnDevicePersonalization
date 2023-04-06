@@ -22,8 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.net.Uri;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.ScoredBid;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -74,7 +74,7 @@ public class DataAccessServiceImplTest {
                 new SlotResult.Builder()
                     .setSlotId("slot1")
                     .addWinningBids(
-                        new ScoredBid.Builder()
+                        new Bid.Builder()
                             .setBidId("bid5")
                             .setEventsWithMetrics(4)
                             .setEventMetricsParameters(null)
@@ -117,7 +117,7 @@ public class DataAccessServiceImplTest {
                 new SlotResult.Builder()
                     .setSlotId("slot1")
                     .addWinningBids(
-                        new ScoredBid.Builder()
+                        new Bid.Builder()
                             .setBidId("bid5")
                             .setEventsWithMetrics(4)
                             .setEventMetricsParameters(null)
