@@ -18,6 +18,7 @@ package android.ondevicepersonalization;
 
 import android.annotation.Nullable;
 import android.os.Parcelable;
+import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -31,7 +32,15 @@ public final class RenderOutput implements Parcelable {
     /** The content to be rendered. */
     @Nullable private String mContent = "";
 
-    // TODO(b/263180569): Add rendering template parameters.
+    /**
+     * Parameters for template rendering
+     */
+    @Nullable private PersistableBundle mTemplateParams;
+
+    /**
+     * Template ID to retrieve from REMOTE_DATA for rendering
+     */
+    @Nullable private String mTemplateId;
 
 
 
@@ -51,8 +60,12 @@ public final class RenderOutput implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ RenderOutput(
-            @Nullable String content) {
+            @Nullable String content,
+            @Nullable PersistableBundle templateParams,
+            @Nullable String templateId) {
         this.mContent = content;
+        this.mTemplateParams = templateParams;
+        this.mTemplateId = templateId;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -63,6 +76,22 @@ public final class RenderOutput implements Parcelable {
     @DataClass.Generated.Member
     public @Nullable String getContent() {
         return mContent;
+    }
+
+    /**
+     * Parameters for template rendering
+     */
+    @DataClass.Generated.Member
+    public @Nullable PersistableBundle getTemplateParams() {
+        return mTemplateParams;
+    }
+
+    /**
+     * Template ID to retrieve from REMOTE_DATA for rendering
+     */
+    @DataClass.Generated.Member
+    public @Nullable String getTemplateId() {
+        return mTemplateId;
     }
 
     @Override
@@ -78,7 +107,9 @@ public final class RenderOutput implements Parcelable {
         RenderOutput that = (RenderOutput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mContent, that.mContent);
+                && java.util.Objects.equals(mContent, that.mContent)
+                && java.util.Objects.equals(mTemplateParams, that.mTemplateParams)
+                && java.util.Objects.equals(mTemplateId, that.mTemplateId);
     }
 
     @Override
@@ -89,6 +120,8 @@ public final class RenderOutput implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mContent);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mTemplateParams);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mTemplateId);
         return _hash;
     }
 
@@ -100,8 +133,12 @@ public final class RenderOutput implements Parcelable {
 
         byte flg = 0;
         if (mContent != null) flg |= 0x1;
+        if (mTemplateParams != null) flg |= 0x2;
+        if (mTemplateId != null) flg |= 0x4;
         dest.writeByte(flg);
         if (mContent != null) dest.writeString(mContent);
+        if (mTemplateParams != null) dest.writeTypedObject(mTemplateParams, flags);
+        if (mTemplateId != null) dest.writeString(mTemplateId);
     }
 
     @Override
@@ -117,8 +154,12 @@ public final class RenderOutput implements Parcelable {
 
         byte flg = in.readByte();
         String content = (flg & 0x1) == 0 ? null : in.readString();
+        PersistableBundle templateParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        String templateId = (flg & 0x4) == 0 ? null : in.readString();
 
         this.mContent = content;
+        this.mTemplateParams = templateParams;
+        this.mTemplateId = templateId;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -145,10 +186,27 @@ public final class RenderOutput implements Parcelable {
     public static final class Builder {
 
         private @Nullable String mContent;
+        private @Nullable PersistableBundle mTemplateParams;
+        private @Nullable String mTemplateId;
 
         private long mBuilderFieldsSet = 0L;
 
         public Builder() {
+        }
+
+        /**
+         * Creates a new Builder.
+         *
+         * @param templateParams
+         *   Parameters for template rendering
+         * @param templateId
+         *   Template ID to retrieve from REMOTE_DATA for rendering
+         */
+        public Builder(
+                @Nullable PersistableBundle templateParams,
+                @Nullable String templateId) {
+            mTemplateParams = templateParams;
+            mTemplateId = templateId;
         }
 
         /**
@@ -162,21 +220,45 @@ public final class RenderOutput implements Parcelable {
             return this;
         }
 
+        /**
+         * Parameters for template rendering
+         */
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setTemplateParams(@android.annotation.NonNull PersistableBundle value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x2;
+            mTemplateParams = value;
+            return this;
+        }
+
+        /**
+         * Template ID to retrieve from REMOTE_DATA for rendering
+         */
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setTemplateId(@android.annotation.NonNull String value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mTemplateId = value;
+            return this;
+        }
+
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull RenderOutput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x2; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mContent = "";
             }
             RenderOutput o = new RenderOutput(
-                    mContent);
+                    mContent,
+                    mTemplateParams,
+                    mTemplateId);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x2) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -184,10 +266,10 @@ public final class RenderOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1680551336578L,
+            time = 1680809171341L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderOutput.java",
-            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nclass RenderOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nprivate @android.annotation.Nullable android.os.PersistableBundle mTemplateParams\nprivate @android.annotation.Nullable java.lang.String mTemplateId\nclass RenderOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

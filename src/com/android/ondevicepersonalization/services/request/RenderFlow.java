@@ -195,7 +195,7 @@ public class RenderFlow {
                                 Constants.EXTRA_RESULT, RenderOutput.class);
                     }, mInjector.getExecutor())
                     .transform(
-                            result -> mDisplayHelper.generateHtml(result),
+                            result -> mDisplayHelper.generateHtml(result, mServicePackageName),
                             mInjector.getExecutor())
                     .transformAsync(
                             result -> mDisplayHelper.displayHtml(
