@@ -16,8 +16,12 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
@@ -33,7 +37,11 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
+import com.android.ondevicepersonalization.services.data.vendor.LocalData;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -45,6 +53,9 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -58,10 +69,156 @@ public class DataAccessServiceImplTest {
     private int mErrorCode = 0;
     private boolean mOnSuccessCalled = false;
     private boolean mOnErrorCalled = false;
+    private OnDevicePersonalizationLocalDataDao mLocalDao;
+    private OnDevicePersonalizationVendorDataDao mVendorDao;
+
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         mInjector = new TestInjector();
+        mVendorDao =  mInjector.getVendorDataDao(mApplicationContext,
+                mApplicationContext.getPackageName(),
+                PackageUtils.getCertDigest(mApplicationContext,
+                        mApplicationContext.getPackageName()));
+
+        mLocalDao =  mInjector.getLocalDataDao(mApplicationContext,
+                mApplicationContext.getPackageName(),
+                PackageUtils.getCertDigest(mApplicationContext,
+                        mApplicationContext.getPackageName()));
+    }
+
+    @Test
+    public void testRemoteDataLookup() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"key"});
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashMap<String, byte[]> data = mResult.getSerializable(
+                Constants.EXTRA_RESULT, HashMap.class);
+        assertNotNull(data);
+        assertNotNull(data.get("key"));
+    }
+
+    @Test
+    public void testLocalDataLookup() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashMap<String, byte[]> data = mResult.getSerializable(
+                Constants.EXTRA_RESULT, HashMap.class);
+        assertNotNull(data);
+        assertNotNull(data.get("localkey"));
+    }
+
+    @Test
+    public void testRemoteDataKeyset() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashSet<String> resultSet =
+                mResult.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
+        assertNotNull(resultSet);
+        assertEquals(2, resultSet.size());
+        assertTrue(resultSet.contains("key"));
+        assertTrue(resultSet.contains("key2"));
+    }
+
+    @Test
+    public void testLocalDataKeyset() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashSet<String> resultSet =
+                mResult.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
+        assertNotNull(resultSet);
+        assertEquals(2, resultSet.size());
+        assertTrue(resultSet.contains("localkey"));
+        assertTrue(resultSet.contains("localkey2"));
+    }
+
+    @Test
+    public void testLocalDataPut() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        byte[] arr = new byte[100];
+        params.putByteArray(Constants.EXTRA_VALUE, arr);
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashMap<String, byte[]> data = mResult.getSerializable(
+                Constants.EXTRA_RESULT, HashMap.class);
+        assertNotNull(data);
+        // Contains previous value
+        assertNotNull(data.get("localkey"));
+        assertArrayEquals(mLocalDao.readSingleLocalDataRow("localkey"), arr);
+    }
+
+    @Test
+    public void testLocalDataRemove() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashMap<String, byte[]> data = mResult.getSerializable(
+                Constants.EXTRA_RESULT, HashMap.class);
+        assertNotNull(data);
+        // Contains previous value
+        assertNotNull(data.get("localkey"));
+        assertNull(mLocalDao.readSingleLocalDataRow("localkey"));
     }
 
     @Test
@@ -150,6 +307,34 @@ public class DataAccessServiceImplTest {
         assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), "http://example.com");
     }
 
+    @Test
+    public void testLocalDataThrowsNotIncluded() {
+        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                false, null, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
+        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
+                params,
+                new TestCallback()));
+        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
+                params,
+                new TestCallback()));
+        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
+                params,
+                new TestCallback()));
+        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
+                params,
+                new TestCallback()));
+
+    }
+
     class TestCallback extends IDataAccessServiceCallback.Stub {
         @Override public void onSuccess(Bundle result) {
             mResult = result;
@@ -178,6 +363,31 @@ public class DataAccessServiceImplTest {
             return OnDevicePersonalizationVendorDataDao.getInstanceForTest(
                     context, packageName, certDigest);
         }
+
+        OnDevicePersonalizationLocalDataDao getLocalDataDao(
+                Context context, String packageName, String certDigest
+        ) {
+            return OnDevicePersonalizationLocalDataDao.getInstanceForTest(
+                    context, packageName, certDigest);
+        }
+    }
+
+    private void addTestData() {
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key");
+        retainedKeys.add("key2");
+        mVendorDao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
+                System.currentTimeMillis());
+
+        mLocalDao.updateOrInsertLocalData(
+                new LocalData.Builder().setKey("localkey").setData(new byte[10]).build());
+        mLocalDao.updateOrInsertLocalData(
+                new LocalData.Builder().setKey("localkey2").setData(new byte[10]).build());
+
     }
 
     @After
