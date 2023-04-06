@@ -107,7 +107,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         List<String> retain = new ArrayList<>();
         retain.add("keyExtra");
         assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData, retain,
-                System.currentTimeMillis()));
+                100));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
@@ -134,6 +134,53 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             } else if (data.getKey().equals(mContent2.getKey())) {
                 compareDataContent(mContent2, data);
             } else if (data.getKey().equals(mContentExtra.getKey())) {
+                compareDataContent(mContentExtra, data);
+            } else {
+                fail("Vendor data from DB contains unexpected key");
+            }
+        }
+    }
+
+    @Test
+    public void testRunOldDataDownloaded() throws Exception {
+        OnDevicePersonalizationVendorDataDao dao =
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                        PackageUtils.getCertDigest(mContext, mPackageName));
+        mPopulator.refreshFileGroups(mMdd).get();
+        String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                mPackageName, mContext);
+        // Trigger the download immediately.
+        mMdd.downloadFileGroup(
+                DownloadFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
+
+        List<VendorData> existingData = new ArrayList<>();
+        existingData.add(mContentExtra);
+        List<String> retain = new ArrayList<>();
+        retain.add("keyExtra");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(existingData, retain,
+                System.currentTimeMillis()));
+
+        OnDevicePersonalizationDataProcessingAsyncCallable callable =
+                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
+        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        Cursor cursor = dao.readAllVendorData();
+        List<VendorData> vendorDataList = new ArrayList<>();
+        while (cursor.moveToNext()) {
+            String key = cursor.getString(
+                    cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.KEY));
+
+            byte[] data = cursor.getBlob(
+                    cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.DATA));
+
+            vendorDataList.add(new VendorData.Builder()
+                    .setKey(key)
+                    .setData(data)
+                    .build());
+        }
+        cursor.close();
+        assertEquals(1, vendorDataList.size());
+        for (VendorData data : vendorDataList) {
+            if (data.getKey().equals(mContentExtra.getKey())) {
                 compareDataContent(mContentExtra, data);
             } else {
                 fail("Vendor data from DB contains unexpected key");

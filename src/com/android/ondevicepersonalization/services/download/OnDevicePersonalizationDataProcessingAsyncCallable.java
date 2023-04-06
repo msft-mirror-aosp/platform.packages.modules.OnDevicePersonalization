@@ -153,8 +153,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 PackageUtils.getCertDigest(mContext, mPackageName));
         long existingSyncToken = mDao.getSyncToken();
 
-        // Check if the downloaded file has newer data than what is currently stored
-        if (existingSyncToken != -1 && existingSyncToken <= syncToken) {
+        // If existingToken is greaterThan or equal to the new token, skip as there is no new data.
+        if (existingSyncToken >= syncToken) {
             return Futures.immediateFuture(null);
         }
 
