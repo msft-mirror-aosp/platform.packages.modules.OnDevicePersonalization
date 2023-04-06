@@ -24,13 +24,13 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 import java.util.List;
 
 /**
- * The result returned by a {@link PersonalizationService} in response to a request from a
+ * The result returned by an {@link IsolatedComputationHandler} in response to a request from a
  * calling app.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class SelectContentResult implements Parcelable {
+public final class ExecuteOutput implements Parcelable {
     /**
      * A list of {@link SlotResult} objects, one per slot specified in the request from the
      * calling app.
@@ -45,7 +45,7 @@ public final class SelectContentResult implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SelectContentResult.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -53,7 +53,7 @@ public final class SelectContentResult implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ SelectContentResult(
+    /* package-private */ ExecuteOutput(
             @Nullable List<SlotResult> slotResults) {
         this.mSlotResults = slotResults;
 
@@ -73,13 +73,13 @@ public final class SelectContentResult implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(SelectContentResult other) { ... }
+        // boolean fieldNameEquals(ExecuteOutput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        SelectContentResult that = (SelectContentResult) o;
+        ExecuteOutput that = (ExecuteOutput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mSlotResults, that.mSlotResults);
@@ -115,7 +115,7 @@ public final class SelectContentResult implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ SelectContentResult(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ ExecuteOutput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -132,21 +132,21 @@ public final class SelectContentResult implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<SelectContentResult> CREATOR
-            = new Parcelable.Creator<SelectContentResult>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<ExecuteOutput> CREATOR
+            = new Parcelable.Creator<ExecuteOutput>() {
         @Override
-        public SelectContentResult[] newArray(int size) {
-            return new SelectContentResult[size];
+        public ExecuteOutput[] newArray(int size) {
+            return new ExecuteOutput[size];
         }
 
         @Override
-        public SelectContentResult createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new SelectContentResult(in);
+        public ExecuteOutput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new ExecuteOutput(in);
         }
     };
 
     /**
-     * A builder for {@link SelectContentResult}
+     * A builder for {@link ExecuteOutput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -183,14 +183,14 @@ public final class SelectContentResult implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull SelectContentResult build() {
+        public @android.annotation.NonNull ExecuteOutput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mSlotResults = null;
             }
-            SelectContentResult o = new SelectContentResult(
+            ExecuteOutput o = new ExecuteOutput(
                     mSlotResults);
             return o;
         }
@@ -204,10 +204,10 @@ public final class SelectContentResult implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1675280067432L,
+            time = 1680551310517L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SelectContentResult.java",
-            inputSignatures = "private @android.annotation.Nullable java.util.List<android.ondevicepersonalization.SlotResult> mSlotResults\nclass SelectContentResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteOutput.java",
+            inputSignatures = "private @android.annotation.Nullable java.util.List<android.ondevicepersonalization.SlotResult> mSlotResults\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

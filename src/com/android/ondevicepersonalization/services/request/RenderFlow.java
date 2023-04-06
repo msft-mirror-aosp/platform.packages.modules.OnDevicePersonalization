@@ -18,10 +18,10 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.RenderContentInput;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.RenderInput;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotInfo;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -177,7 +177,7 @@ public class RenderFlow {
                             .setHeight(mHeight)
                             .setWidth(mWidth).build();
             List<String> bidIds = new ArrayList<String>();
-            for (ScoredBid bid : slotResult.getWinningBids()) {
+            for (Bid bid : slotResult.getWinningBids()) {
                 bidIds.add(Objects.requireNonNull(bid.getBidId()));
             }
             if (bidIds.isEmpty()) {
@@ -192,7 +192,7 @@ public class RenderFlow {
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
-                                Constants.EXTRA_RESULT, RenderContentResult.class);
+                                Constants.EXTRA_RESULT, RenderOutput.class);
                     }, mInjector.getExecutor())
                     .transform(
                             result -> mDisplayHelper.generateHtml(result),
@@ -217,8 +217,8 @@ public class RenderFlow {
             long queryId, List<String> bidIds) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
-        RenderContentInput input =
-                new RenderContentInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
+        RenderInput input =
+                new RenderInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mServicePackageName, mContext, false,
