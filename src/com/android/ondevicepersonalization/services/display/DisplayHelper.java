@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.display;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.os.IBinder;
 import android.util.Log;
@@ -43,9 +43,9 @@ public class DisplayHelper {
         mContext = context;
     }
 
-    /** Generates an HTML string from the template data in RenderContentResult. */
+    /** Generates an HTML string from the template data in RenderOutput. */
     @NonNull public String generateHtml(
-            @NonNull RenderContentResult renderContentResult) {
+            @NonNull RenderOutput renderContentResult) {
         // TODO(b/263180569): Use the template and params from renderContentResult.
         return renderContentResult.getContent();
     }
