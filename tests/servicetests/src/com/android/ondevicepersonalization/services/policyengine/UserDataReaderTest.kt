@@ -33,6 +33,7 @@ import android.ondevicepersonalization.OSVersion
 import android.ondevicepersonalization.Location
 import android.ondevicepersonalization.LocationStatus
 import android.ondevicepersonalization.UserData
+import android.os.Parcel
 
 import com.android.libraries.pcc.chronicle.util.MutableTypedMap
 import com.android.libraries.pcc.chronicle.util.TypedMap
@@ -139,6 +140,20 @@ class UserDataReaderTest : ProcessorNode {
         result?.expectFailure(Disabled::class.java)
     }
 
+    @Test
+    fun testAppInstallStatus() {
+        var appInstallStatus1 = AppInstallStatus.Builder()
+                .setPackageName("package")
+                .setInstalled(true)
+                .build()
+        var parcel = Parcel.obtain()
+        appInstallStatus1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var appInstallStatus2 = AppInstallStatus.CREATOR.createFromParcel(parcel)
+        assertThat(appInstallStatus1).isEqualTo(appInstallStatus2)
+        assertThat(appInstallStatus1.hashCode()).isEqualTo(appInstallStatus2.hashCode())
+    }
+
     private fun verifyData(userData: UserData, ref: RawUserData) {
         assertThat(userData.getTimeSec()).isEqualTo(ref.timeMillis / 1000)
         assertThat(userData.getTimezone()).isEqualTo(ref.utcOffset)
@@ -181,6 +196,7 @@ class UserDataReaderTest : ProcessorNode {
         for ((index, appStatus) in userData.getAppInstalledHistory().withIndex()) {
             assertThat(appStatus.getPackageName()).isEqualTo(rawUserData.appsInfo[index].packageName)
             assertThat(appStatus.isInstalled()).isEqualTo(rawUserData.appsInfo[index].installed)
+            assertThat(appStatus.describeContents()).isEqualTo(0)
         }
 
         assertThat(userData.getAppUsageHistory().size).isEqualTo(rawUserData.appUsageHistory.size)
