@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -121,7 +120,7 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @Test
-    public void testAddDownloadUrlQueryParameters() throws Exception {
+    public void testCreateDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName))
@@ -129,8 +128,7 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
                         timestamp));
 
         String downloadUrl =
-                OnDevicePersonalizationFileGroupPopulator.addDownloadUrlQueryParameters(
-                        Uri.parse(BASE_URL), mPackageName, mContext);
+                OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(BASE_URL));
         assertTrue(downloadUrl.contains(String.valueOf(timestamp)));
     }
