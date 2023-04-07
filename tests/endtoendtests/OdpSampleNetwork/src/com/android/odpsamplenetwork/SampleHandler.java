@@ -151,6 +151,7 @@ public class SampleHandler implements IsolatedComputationHandler {
                 && input.getAppParams().getString("keyword") != null) {
             requestKeyword = input.getAppParams().getString("keyword");
         }
+
         List<Ad> result = new ArrayList<>();
         for (Ad ad: ads) {
             if (isMatch(ad, requestKeyword)) {
@@ -266,11 +267,22 @@ public class SampleHandler implements IsolatedComputationHandler {
 
     private RenderOutput buildRenderOutput(
             Ad ad, String impressionUrl, String clickUrl) {
-        String content =
-                "<img src=\"" + impressionUrl + "\">\n"
-                + "<a href=\"" + clickUrl + "\">" + ad.mText + "</a>";
-        Log.d(TAG, "content: " + content);
-        return new RenderOutput.Builder().setContent(content).build();
+        if (ad.mTemplateId != null) {
+            PersistableBundle templateParams = new PersistableBundle();
+            templateParams.putString("impressionUrl", impressionUrl);
+            templateParams.putString("clickUrl", clickUrl);
+            templateParams.putString("adText", ad.mText);
+            return new RenderOutput.Builder()
+                    .setTemplateId(ad.mTemplateId)
+                    .setTemplateParams(templateParams)
+                    .build();
+        } else {
+            String content =
+                    "<img src=\"" + impressionUrl + "\">\n"
+                            + "<a href=\"" + clickUrl + "\">" + ad.mText + "</a>";
+            Log.d(TAG, "content: " + content);
+            return new RenderOutput.Builder().setContent(content).build();
+        }
     }
 
     private void handleOnRender(
@@ -349,8 +361,12 @@ public class SampleHandler implements IsolatedComputationHandler {
         // Add all keys from the file into the list
         for (String key : data.keySet()) {
             if (key != null && data.get(key) != null) {
-                Ad ad = parseAd(key, data.get(key));
-                if (ad != null && !isBlockedAd(ad)) {
+                if (key.startsWith("ad")) {
+                    Ad ad = parseAd(key, data.get(key));
+                    if (ad != null && !isBlockedAd(ad)) {
+                        filteredKeys.add(key);
+                    }
+                } else if (key.startsWith("template")) {
                     filteredKeys.add(key);
                 }
             }
@@ -391,14 +407,16 @@ public class SampleHandler implements IsolatedComputationHandler {
         final String mExcludeKeyword;
         final String mLandingPage;
         final String mText;
+        final String mTemplateId;
         Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage, String text) {
+                String landingPage, String text, String templateId) {
             mId = id;
             mPrice = price;
             mTargetKeyword = targetKeyword;
             mExcludeKeyword = excludeKeyword;
             mLandingPage = landingPage;
             mText = text;
+            mTemplateId = templateId;
         }
     }
 
@@ -416,6 +434,7 @@ public class SampleHandler implements IsolatedComputationHandler {
             String excludeKeyword = "";
             String landingPage = "";
             String text = "Click Here!";
+            String templateId = null;
             while (reader.hasNext()) {
                 String name = reader.nextName();
                 if (name.equals("price")) {
@@ -428,12 +447,14 @@ public class SampleHandler implements IsolatedComputationHandler {
                     landingPage = reader.nextString();
                 } else if (name.equals("text")) {
                     text = reader.nextString();
+                } else if (name.equals("template")) {
+                    templateId = reader.nextString();
                 } else {
                     reader.skipValue();
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text);
+            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;
