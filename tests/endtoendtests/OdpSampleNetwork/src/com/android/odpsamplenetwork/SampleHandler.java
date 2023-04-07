@@ -45,7 +45,6 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListenableFutureTask;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
@@ -53,7 +52,6 @@ import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -67,7 +65,6 @@ public class SampleHandler implements IsolatedComputationHandler {
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
     public static final double COST_RAISING_FACTOR = 2.0;
-    private static final int MAX_ADS = 100;
     private static final String BID_PRICE_KEY = "bidprice";
     private static final Set<String> sBlockedKeywords = Set.of("cars", "trucks");
 
@@ -117,40 +114,20 @@ public class SampleHandler implements IsolatedComputationHandler {
                 () -> handleOnEvent(input, odpContext, consumer));
     }
 
-    private ListenableFuture<Map<String, byte[]>> readRemoteData(
-            ImmutableMap remoteData, List<String> keys) {
-        return ListenableFutureTask.create(() -> {
-            Map<String, byte[]> result = new HashMap<>();
-            for (String key : keys) {
-                byte[] value = remoteData.get(key);
-                if (null != value) {
-                    result.put(key, value);
+    private ListenableFuture<List<Ad>> readAds(ImmutableMap remoteData) {
+        Log.d(TAG, "readAds() called.");
+        try {
+            ArrayList<Ad> ads = new ArrayList<>();
+            for (var key: remoteData.keySet()) {
+                Ad ad = parseAd(key, remoteData.get(key));
+                if (ad != null) {
+                    ads.add(ad);
                 }
             }
-            return result;
-        });
-    }
-
-    private FluentFuture<List<Ad>> readAds(ImmutableMap remoteData) {
-        Log.d(TAG, "readAds() called.");
-        ArrayList<String> keys = new ArrayList<>();
-        for (int i = 1; i <= MAX_ADS; ++i) {
-            keys.add("ad" + i);
+            return Futures.immediateFuture(ads);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
         }
-        return FluentFuture.from(readRemoteData(remoteData, keys))
-                .transform(
-                    result -> {
-                        ArrayList<Ad> ads = new ArrayList<>();
-                        for (var entry: result.entrySet()) {
-                            Ad ad = parseAd(entry.getKey(), entry.getValue());
-                            if (ad != null) {
-                                ads.add(ad);
-                            }
-                        }
-                        return ads;
-                    },
-                    sBackgroundExecutor
-                );
     }
 
     private boolean isMatch(Ad ad, String requestKeyword) {
@@ -226,7 +203,7 @@ public class SampleHandler implements IsolatedComputationHandler {
         try {
             ImmutableMap remoteData = odpContext.getRemoteData();
 
-            var unused = readAds(remoteData)
+            var unused = FluentFuture.from(readAds(remoteData))
                     .transform(
                         ads -> buildResult(runAuction(matchAds(ads, input))),
                         sBackgroundExecutor)
@@ -279,12 +256,12 @@ public class SampleHandler implements IsolatedComputationHandler {
         });
     }
 
-    private FluentFuture<Ad> readAd(String id, ImmutableMap remoteData) {
-        return FluentFuture.from(readRemoteData(remoteData, List.of(id)))
-                .transform(
-                    result -> parseAd(id, result.get(id)),
-                    sBackgroundExecutor
-                );
+    private ListenableFuture<Ad> readAd(String id, ImmutableMap remoteData) {
+        try {
+            return Futures.immediateFuture(parseAd(id, remoteData.get(id)));
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     private RenderOutput buildRenderOutput(
@@ -306,7 +283,7 @@ public class SampleHandler implements IsolatedComputationHandler {
             String id = input.getBidIds().get(0);
             var adFuture = readAd(id, odpContext.getRemoteData());
             var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, id, "", odpContext);
-            var clickUrlFuture = adFuture.transformAsync(
+            var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(
                     ad -> getEventUrl(EVENT_TYPE_CLICK, id, ad.mLandingPage, odpContext),
                     sBackgroundExecutor);
             var unused = FluentFuture.from(
