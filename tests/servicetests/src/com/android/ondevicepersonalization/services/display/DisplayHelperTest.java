@@ -24,8 +24,9 @@ import static org.junit.Assert.assertNotNull;
 import android.Manifest;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderContentResult;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
+import android.os.PersistableBundle;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceView;
@@ -34,26 +35,69 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
+
 import com.google.common.util.concurrent.ListenableFuture;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class DisplayHelperTest {
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
+    private OnDevicePersonalizationVendorDataDao mDao;
+
+    @Before
+    public void setup() throws Exception {
+        mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(
+                mContext,
+                mContext.getPackageName(),
+                PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
+    }
 
     @Test
     public void testGenerateHtml() {
         DisplayHelper displayHelper = new DisplayHelper(mContext);
-        RenderContentResult renderContentResult = new RenderContentResult.Builder()
+        RenderOutput renderContentResult = new RenderOutput.Builder()
                 .setContent("html").build();
-        assertEquals("html", displayHelper.generateHtml(renderContentResult));
+        assertEquals("html", displayHelper.generateHtml(renderContentResult,
+                mContext.getPackageName()));
+    }
+
+    @Test
+    public void testGenerateHtmlViaTemplate() {
+        String templateContents = "Hello $tool.encodeHtml($name)! I am $age.";
+        List<VendorData> data = new ArrayList<>();
+        data.add(new VendorData.Builder().setKey("templateId").setData(templateContents.getBytes(
+                StandardCharsets.UTF_8)).build());
+        List<String> keysToRetain = new ArrayList<>();
+        keysToRetain.add("templateId");
+        mDao.batchUpdateOrInsertVendorDataTransaction(data, keysToRetain,
+                System.currentTimeMillis());
+
+        DisplayHelper displayHelper = new DisplayHelper(mContext);
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putString("name", "odp");
+        bundle.putInt("age", 100);
+        RenderOutput renderContentResult = new RenderOutput.Builder()
+                .setTemplateId("templateId")
+                .setTemplateParams(bundle)
+                .build();
+        String expected = "Hello odp! I am 100.";
+        assertEquals(expected, displayHelper.generateHtml(renderContentResult,
+                mContext.getPackageName()));
     }
 
     @Test
@@ -80,5 +124,14 @@ public class DisplayHelperTest {
                 result.get(120, TimeUnit.SECONDS);
         assertNotNull(surfacePackage);
         surfacePackage.release();
+    }
+
+    @After
+    public void cleanup() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        dbHelper.getWritableDatabase().close();
+        dbHelper.getReadableDatabase().close();
+        dbHelper.close();
     }
 }

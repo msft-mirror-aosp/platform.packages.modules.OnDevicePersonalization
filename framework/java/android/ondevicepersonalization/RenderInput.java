@@ -25,12 +25,12 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 import java.util.List;
 
 /**
- * The output to be rendered in a slot within a calling app.
+ * The rendering input data for an {@link IsolatedComputationHandler}.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class RenderContentInput implements Parcelable {
+public final class RenderInput implements Parcelable {
     /** Properties of the slot to be rendered in. */
     @NonNull SlotInfo mSlotInfo;
 
@@ -45,7 +45,7 @@ public final class RenderContentInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -53,7 +53,7 @@ public final class RenderContentInput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ RenderContentInput(
+    /* package-private */ RenderInput(
             @NonNull SlotInfo slotInfo,
             @NonNull List<String> bidIds) {
         this.mSlotInfo = slotInfo;
@@ -86,13 +86,13 @@ public final class RenderContentInput implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(RenderContentInput other) { ... }
+        // boolean fieldNameEquals(RenderInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        RenderContentInput that = (RenderContentInput) o;
+        RenderInput that = (RenderInput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mSlotInfo, that.mSlotInfo)
@@ -128,7 +128,7 @@ public final class RenderContentInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ RenderContentInput(@NonNull android.os.Parcel in) {
+    /* package-private */ RenderInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -147,21 +147,21 @@ public final class RenderContentInput implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<RenderContentInput> CREATOR
-            = new Parcelable.Creator<RenderContentInput>() {
+    public static final @NonNull Parcelable.Creator<RenderInput> CREATOR
+            = new Parcelable.Creator<RenderInput>() {
         @Override
-        public RenderContentInput[] newArray(int size) {
-            return new RenderContentInput[size];
+        public RenderInput[] newArray(int size) {
+            return new RenderInput[size];
         }
 
         @Override
-        public RenderContentInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new RenderContentInput(in);
+        public RenderInput createFromParcel(@NonNull android.os.Parcel in) {
+            return new RenderInput(in);
         }
     };
 
     /**
-     * A builder for {@link RenderContentInput}
+     * A builder for {@link RenderInput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -176,6 +176,25 @@ public final class RenderContentInput implements Parcelable {
          * Creates a new Builder.
          */
         public Builder() {
+        }
+
+        /**
+         * Creates a new Builder.
+         *
+         * @param slotInfo
+         *   Properties of the slot to be rendered in.
+         * @param bidIds
+         *   A List of Bid Ids to be rendered.
+         */
+        public Builder(
+                @NonNull SlotInfo slotInfo,
+                @NonNull List<String> bidIds) {
+            mSlotInfo = slotInfo;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mSlotInfo);
+            mBidIds = bidIds;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mBidIds);
         }
 
         /**
@@ -212,11 +231,11 @@ public final class RenderContentInput implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull RenderContentInput build() {
+        public @NonNull RenderInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
-            RenderContentInput o = new RenderContentInput(
+            RenderInput o = new RenderInput(
                     mSlotInfo,
                     mBidIds);
             return o;
@@ -231,10 +250,10 @@ public final class RenderContentInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1673307990754L,
+            time = 1680551331663L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentInput.java",
-            inputSignatures = " @android.annotation.NonNull android.ondevicepersonalization.SlotInfo mSlotInfo\n @android.annotation.NonNull java.util.List<java.lang.String> mBidIds\nclass RenderContentInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java",
+            inputSignatures = " @android.annotation.NonNull android.ondevicepersonalization.SlotInfo mSlotInfo\n @android.annotation.NonNull java.util.List<java.lang.String> mBidIds\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

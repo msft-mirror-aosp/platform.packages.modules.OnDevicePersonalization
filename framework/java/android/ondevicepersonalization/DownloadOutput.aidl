@@ -16,4 +16,4 @@
 
 package android.ondevicepersonalization;
 
-parcelable SelectContentResult;
+parcelable DownloadOutput;

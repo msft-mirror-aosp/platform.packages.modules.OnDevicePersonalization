@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,21 +18,24 @@ package android.ondevicepersonalization;
 
 import android.annotation.Nullable;
 import android.os.Parcelable;
+import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The output to be rendered in a slot within a calling app.
+ * The inputs required for computing event-level metrics to be logged.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class RenderContentResult implements Parcelable {
-    /** The content to be rendered. */
-    @Nullable private String mContent = "";
+public final class EventInput implements Parcelable {
+    /** The type of the event. */
+    private int mEventType = 0;
 
-    // TODO(b/263180569): Add rendering template parameters.
+    /** Parameters needed for computing event metrics. */
+    @Nullable private PersistableBundle mEventParams = null;
 
+    // TODO(b/259950177): Add Query and Event row contents.
 
 
 
@@ -42,7 +45,7 @@ public final class RenderContentResult implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentResult.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -50,35 +53,46 @@ public final class RenderContentResult implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ RenderContentResult(
-            @Nullable String content) {
-        this.mContent = content;
+    /* package-private */ EventInput(
+            int eventType,
+            @Nullable PersistableBundle eventParams) {
+        this.mEventType = eventType;
+        this.mEventParams = eventParams;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The content to be rendered.
+     * The type of the event.
      */
     @DataClass.Generated.Member
-    public @Nullable String getContent() {
-        return mContent;
+    public int getEventType() {
+        return mEventType;
+    }
+
+    /**
+     * Parameters needed for computing event metrics.
+     */
+    @DataClass.Generated.Member
+    public @Nullable PersistableBundle getEventParams() {
+        return mEventParams;
     }
 
     @Override
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(RenderContentResult other) { ... }
+        // boolean fieldNameEquals(EventInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        RenderContentResult that = (RenderContentResult) o;
+        EventInput that = (EventInput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mContent, that.mContent);
+                && mEventType == that.mEventType
+                && java.util.Objects.equals(mEventParams, that.mEventParams);
     }
 
     @Override
@@ -88,7 +102,8 @@ public final class RenderContentResult implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mContent);
+        _hash = 31 * _hash + mEventType;
+        _hash = 31 * _hash + java.util.Objects.hashCode(mEventParams);
         return _hash;
     }
 
@@ -99,9 +114,10 @@ public final class RenderContentResult implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mContent != null) flg |= 0x1;
+        if (mEventParams != null) flg |= 0x2;
         dest.writeByte(flg);
-        if (mContent != null) dest.writeString(mContent);
+        dest.writeInt(mEventType);
+        if (mEventParams != null) dest.writeTypedObject(mEventParams, flags);
     }
 
     @Override
@@ -111,40 +127,43 @@ public final class RenderContentResult implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ RenderContentResult(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ EventInput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        String content = (flg & 0x1) == 0 ? null : in.readString();
+        int eventType = in.readInt();
+        PersistableBundle eventParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
-        this.mContent = content;
+        this.mEventType = eventType;
+        this.mEventParams = eventParams;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<RenderContentResult> CREATOR
-            = new Parcelable.Creator<RenderContentResult>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<EventInput> CREATOR
+            = new Parcelable.Creator<EventInput>() {
         @Override
-        public RenderContentResult[] newArray(int size) {
-            return new RenderContentResult[size];
+        public EventInput[] newArray(int size) {
+            return new EventInput[size];
         }
 
         @Override
-        public RenderContentResult createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new RenderContentResult(in);
+        public EventInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new EventInput(in);
         }
     };
 
     /**
-     * A builder for {@link RenderContentResult}
+     * A builder for {@link EventInput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable String mContent;
+        private int mEventType;
+        private @Nullable PersistableBundle mEventParams;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -152,31 +171,46 @@ public final class RenderContentResult implements Parcelable {
         }
 
         /**
-         * The content to be rendered.
+         * The type of the event.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setContent(@android.annotation.NonNull String value) {
+        public @android.annotation.NonNull Builder setEventType(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mContent = value;
+            mEventType = value;
+            return this;
+        }
+
+        /**
+         * Parameters needed for computing event metrics.
+         */
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setEventParams(@android.annotation.NonNull PersistableBundle value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x2;
+            mEventParams = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull RenderContentResult build() {
+        public @android.annotation.NonNull EventInput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x2; // Mark builder used
+            mBuilderFieldsSet |= 0x4; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mContent = "";
+                mEventType = 0;
             }
-            RenderContentResult o = new RenderContentResult(
-                    mContent);
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mEventParams = null;
+            }
+            EventInput o = new EventInput(
+                    mEventType,
+                    mEventParams);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x2) != 0) {
+            if ((mBuilderFieldsSet & 0x4) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -184,10 +218,10 @@ public final class RenderContentResult implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1671568236503L,
+            time = 1680551341542L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderContentResult.java",
-            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nclass RenderContentResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventInput.java",
+            inputSignatures = "private  int mEventType\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventParams\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

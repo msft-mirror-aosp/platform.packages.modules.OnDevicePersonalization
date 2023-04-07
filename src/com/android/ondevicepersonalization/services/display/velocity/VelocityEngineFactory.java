@@ -100,7 +100,7 @@ public class VelocityEngineFactory {
         props.put("resource.default_encoding", "UTF-8");
 
         // Do not allow defining global macros.
-        props.put("velocimacro.inline.local_scope", true);
+        props.put("velocimacro.permissions.allow.inline.local.scope", true);
 
         return props;
     }
