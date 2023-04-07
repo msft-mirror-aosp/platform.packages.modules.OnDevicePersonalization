@@ -35,15 +35,21 @@ import java.util.concurrent.Executor;
 public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizationContext {
     @NonNull private IDataAccessService mDataAccessService;
     @NonNull private ImmutableMap mRemoteData;
+    @NonNull private MutableMap mLocalData;
 
     /** @hide */
     public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
         mRemoteData = new RemoteDataImpl(binder);
+        mLocalData = new LocalDataImpl(binder);
     }
 
     @Override @NonNull public ImmutableMap getRemoteData() {
         return mRemoteData;
+    }
+
+    @Override @NonNull public MutableMap getLocalData() {
+        return mLocalData;
     }
 
     @Override public void getEventUrl(

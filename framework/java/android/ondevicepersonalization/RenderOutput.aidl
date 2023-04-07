@@ -16,4 +16,4 @@
 
 package android.ondevicepersonalization;
 
-parcelable RenderContentResult;
+parcelable RenderOutput;

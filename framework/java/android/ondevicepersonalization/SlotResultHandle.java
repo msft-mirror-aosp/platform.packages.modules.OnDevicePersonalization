@@ -19,7 +19,7 @@ package android.ondevicepersonalization;
 import android.annotation.NonNull;
 
 /**
- * An opaque reference to a {@link SlotResult} returned by a {@link PersonalizationHandler}.
+ * An opaque reference to a {@link SlotResult} returned by a {@link IsolatedComputationHandler}.
  * @hide
  */
 public class SlotResultHandle {

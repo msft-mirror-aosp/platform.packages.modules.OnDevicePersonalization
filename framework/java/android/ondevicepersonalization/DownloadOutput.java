@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2022 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -21,15 +21,17 @@ import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.util.List;
+
 /**
- * A list of per-event metrics to be logged in the Events table.
+ * The result of the download post-processing task.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class EventMetricsResult implements Parcelable {
-    /** The metrics to be logged with this event. */
-    @Nullable Metrics mMetrics = null;
+public final class DownloadOutput implements Parcelable {
+    /** The keys to be retained in the REMOTE_DATA table. */
+    @Nullable private List<String> mKeysToRetain = null;
 
 
 
@@ -39,7 +41,7 @@ public final class EventMetricsResult implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventMetricsResult.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -47,35 +49,35 @@ public final class EventMetricsResult implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ EventMetricsResult(
-            @Nullable Metrics metrics) {
-        this.mMetrics = metrics;
+    /* package-private */ DownloadOutput(
+            @Nullable List<String> keysToRetain) {
+        this.mKeysToRetain = keysToRetain;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The metrics to be logged with this event.
+     * The keys to be retained in the REMOTE_DATA table.
      */
     @DataClass.Generated.Member
-    public @Nullable Metrics getMetrics() {
-        return mMetrics;
+    public @Nullable List<String> getKeysToRetain() {
+        return mKeysToRetain;
     }
 
     @Override
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(EventMetricsResult other) { ... }
+        // boolean fieldNameEquals(DownloadOutput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        EventMetricsResult that = (EventMetricsResult) o;
+        DownloadOutput that = (DownloadOutput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mMetrics, that.mMetrics);
+                && java.util.Objects.equals(mKeysToRetain, that.mKeysToRetain);
     }
 
     @Override
@@ -85,7 +87,7 @@ public final class EventMetricsResult implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mMetrics);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mKeysToRetain);
         return _hash;
     }
 
@@ -96,9 +98,9 @@ public final class EventMetricsResult implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mMetrics != null) flg |= 0x1;
+        if (mKeysToRetain != null) flg |= 0x1;
         dest.writeByte(flg);
-        if (mMetrics != null) dest.writeTypedObject(mMetrics, flags);
+        if (mKeysToRetain != null) dest.writeStringList(mKeysToRetain);
     }
 
     @Override
@@ -108,40 +110,44 @@ public final class EventMetricsResult implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ EventMetricsResult(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ DownloadOutput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        Metrics metrics = (flg & 0x1) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
+        List<String> keysToRetain = null;
+        if ((flg & 0x1) != 0) {
+            keysToRetain = new java.util.ArrayList<>();
+            in.readStringList(keysToRetain);
+        }
 
-        this.mMetrics = metrics;
+        this.mKeysToRetain = keysToRetain;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<EventMetricsResult> CREATOR
-            = new Parcelable.Creator<EventMetricsResult>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<DownloadOutput> CREATOR
+            = new Parcelable.Creator<DownloadOutput>() {
         @Override
-        public EventMetricsResult[] newArray(int size) {
-            return new EventMetricsResult[size];
+        public DownloadOutput[] newArray(int size) {
+            return new DownloadOutput[size];
         }
 
         @Override
-        public EventMetricsResult createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new EventMetricsResult(in);
+        public DownloadOutput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new DownloadOutput(in);
         }
     };
 
     /**
-     * A builder for {@link EventMetricsResult}
+     * A builder for {@link DownloadOutput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable Metrics mMetrics;
+        private @Nullable List<String> mKeysToRetain;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -149,26 +155,37 @@ public final class EventMetricsResult implements Parcelable {
         }
 
         /**
-         * The metrics to be logged with this event.
+         * The keys to be retained in the REMOTE_DATA table.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setMetrics(@android.annotation.NonNull Metrics value) {
+        public @android.annotation.NonNull Builder setKeysToRetain(@android.annotation.NonNull List<String> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mMetrics = value;
+            mKeysToRetain = value;
+            return this;
+        }
+
+        /** @see #setKeysToRetain */
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder addKeysToRetain(@android.annotation.NonNull String value) {
+            // You can refine this method's name by providing item's singular name, e.g.:
+            // @DataClass.PluralOf("item")) mItems = ...
+
+            if (mKeysToRetain == null) setKeysToRetain(new java.util.ArrayList<>());
+            mKeysToRetain.add(value);
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull EventMetricsResult build() {
+        public @android.annotation.NonNull DownloadOutput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mMetrics = null;
+                mKeysToRetain = null;
             }
-            EventMetricsResult o = new EventMetricsResult(
-                    mMetrics);
+            DownloadOutput o = new DownloadOutput(
+                    mKeysToRetain);
             return o;
         }
 
@@ -181,10 +198,10 @@ public final class EventMetricsResult implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1672952921121L,
+            time = 1680551322132L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventMetricsResult.java",
-            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass EventMetricsResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadOutput.java",
+            inputSignatures = "private @android.annotation.Nullable java.util.List<java.lang.String> mKeysToRetain\nclass DownloadOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
