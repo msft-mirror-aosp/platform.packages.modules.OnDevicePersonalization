@@ -92,6 +92,11 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
         Uri fileUri = downloadRequest.fileUri();
         String urlToDownload = downloadRequest.urlToDownload();
         Uri uriToDownload = Uri.parse(urlToDownload);
+        // Strip away the query params for local download.
+        uriToDownload = new Uri.Builder()
+                .scheme(uriToDownload.getScheme())
+                .authority(uriToDownload.getAuthority())
+                .path(uriToDownload.getPath()).build();
         Log.d(TAG, "Starting local download for url: " + urlToDownload);
 
         try {
