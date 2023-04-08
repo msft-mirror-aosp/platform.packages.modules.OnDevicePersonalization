@@ -32,7 +32,9 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.federatedcompute.services.common.Clock;
+import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
+import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
@@ -50,32 +52,26 @@ import java.util.Set;
 /** Handles scheduling training tasks e.g. calling into JobScheduler, maintaining datastore. */
 public class FederatedComputeJobManager {
     private static final String TAG = "FederatedComputeJobManager";
-    // TODO(b/238193394): use PH flag for these settings.
-    static final int DEFAULT_SCHEDULING_PERIOD_SECS = 60 * 5; // 5 minutes
-    static final int MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION = 1 * 60; // 1 min
-    static final int MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION =
-            6 * 24 * 60 * 60; // 6 days (< default ttl 7d)
-    private static final int MAX_SCHEDULING_PERIOD_SECS = 60 * 60 * 24 * 2; // 2 days
-    static final int TRAINING_TIME_FOR_LIVE_SECONDS = 7 * 24 * 60 * 60; // one week
-    static final int TRAINING_SERVICE_RESULT_CALLBACK_TIMEOUT_SEC =
-            60 * 9 + 45; // 9 minutes 45 seconds, leaving ~15 seconds to clean up.
 
     @NonNull private final Context mContext;
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
     private static FederatedComputeJobManager sSingletonInstance;
     private Clock mClock;
+    private final Flags mFlags;
 
     @VisibleForTesting
     FederatedComputeJobManager(
             @NonNull Context context,
             FederatedTrainingTaskDao federatedTrainingTaskDao,
             JobSchedulerHelper jobSchedulerHelper,
-            @NonNull Clock clock) {
+            @NonNull Clock clock,
+            Flags flag) {
         this.mContext = context.getApplicationContext();
         this.mFederatedTrainingTaskDao = federatedTrainingTaskDao;
         this.mJobSchedulerHelper = jobSchedulerHelper;
         this.mClock = clock;
+        this.mFlags = flag;
     }
 
     /** Returns an instance of FederatedComputeJobManager given a context. */
@@ -89,7 +85,8 @@ public class FederatedComputeJobManager {
                                 mContext,
                                 FederatedTrainingTaskDao.getInstance(mContext),
                                 new JobSchedulerHelper(clock),
-                                clock);
+                                clock,
+                                PhFlags.getInstance());
             }
             return sSingletonInstance;
         }
@@ -165,7 +162,7 @@ public class FederatedComputeJobManager {
                 long sanitizedMinLatencyMillis =
                         sanitizeMinimumLatencyMillis(existingTaskMinLatencyMillis, schedulingMode);
                 long maxExpectedRuntimeSecs =
-                        TRAINING_SERVICE_RESULT_CALLBACK_TIMEOUT_SEC + /*buffer*/ 30;
+                        mFlags.getTrainingServiceResultCallbackTimeoutSecs() + /*buffer*/ 30;
                 boolean currentlyRunningHeuristic =
                         existingTask.lastRunStartTime() < nowMs
                                 && nowMs - existingTask.lastRunStartTime()
@@ -318,20 +315,21 @@ public class FederatedComputeJobManager {
         if (schedulingMode == SchedulingMode.RECURRENT) {
             // Recurrent task with user defined interval
             lowerBoundMillis =
-                    SECONDS.toMillis(MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
+                    SECONDS.toMillis(mFlags.getMinSchedulingIntervalSecsForFederatedComputation());
             upperBoundMillis =
-                    SECONDS.toMillis(MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
+                    SECONDS.toMillis(mFlags.getMaxSchedulingIntervalSecsForFederatedComputation());
         } else {
             // One-time task or recurrent task without user defined interval
             lowerBoundMillis = 0L;
-            upperBoundMillis = SECONDS.toMillis(MAX_SCHEDULING_PERIOD_SECS);
+            upperBoundMillis = SECONDS.toMillis(mFlags.getMaxSchedulingPeriodSecs());
         }
         return max(lowerBoundMillis, min(upperBoundMillis, unsanitizedMillis));
     }
 
     private long getEarliestRuntimeForInitialSchedule(
             long nowMs, long lastRunTimeMs, TrainingOptions trainerOptions) {
-        long defaultNextRunTimeMs = nowMs + SECONDS.toMillis(DEFAULT_SCHEDULING_PERIOD_SECS);
+        long defaultNextRunTimeMs =
+                nowMs + SECONDS.toMillis(mFlags.getDefaultSchedulingPeriodSecs());
         int schedulingMode =
                 trainerOptions.getTrainingInterval() != null
                         ? convertSchedulingMode(

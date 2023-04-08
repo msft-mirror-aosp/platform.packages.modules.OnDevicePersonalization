@@ -34,18 +34,18 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public class OnDevicePersonalizationFrameworkClassesTest {
     /**
-     * Tests that the SelectContentResult object serializes correctly.
+     * Tests that the ExecuteOutput object serializes correctly.
      */
     @Test
-    public void testSelectContentResult() {
+    public void testExecuteOutput() {
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt("x", 6);
-        SelectContentResult result =
-                new SelectContentResult.Builder()
+        ExecuteOutput result =
+                new ExecuteOutput.Builder()
                     .addSlotResults(
                         new SlotResult.Builder().setSlotId("abc")
                             .addWinningBids(
-                                new ScoredBid.Builder()
+                                new Bid.Builder()
                                     .setBidId("bid1")
                                     .setPrice(5.0)
                                     .setScore(1.0)
@@ -55,7 +55,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                                     .setEventMetricsParameters(eventParams)
                                     .build())
                             .addRejectedBids(
-                                new ScoredBid.Builder()
+                                new Bid.Builder()
                                     .setBidId("bid2")
                                     .setPrice(1.0)
                                     .setScore(0.1)
@@ -66,7 +66,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        SelectContentResult result2 = SelectContentResult.CREATOR.createFromParcel(parcel);
+        ExecuteOutput result2 = ExecuteOutput.CREATOR.createFromParcel(parcel);
 
         SlotResult slotResult = result2.getSlotResults().get(0);
         assertEquals("abc", slotResult.getSlotId());
@@ -101,33 +101,33 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the RenderContentResult object serializes correctly.
+     * Tests that the RenderOutput object serializes correctly.
      */
     @Test
-    public void testRenderContentResult() {
-        RenderContentResult result = new RenderContentResult.Builder().setContent("abc").build();
+    public void testRenderOutput() {
+        RenderOutput result = new RenderOutput.Builder().setContent("abc").build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        RenderContentResult result2 = RenderContentResult.CREATOR.createFromParcel(parcel);
+        RenderOutput result2 = RenderOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals("abc", result2.getContent());
     }
 
     /**
-     * Tests that the DownloadResult object serializes correctly.
+     * Tests that the DownloadOutput object serializes correctly.
      */
     @Test
-    public void teetDownloadResult() {
-        DownloadResult result = new DownloadResult.Builder()
+    public void teetDownloadOutput() {
+        DownloadOutput result = new DownloadOutput.Builder()
                 .addKeysToRetain("abc").addKeysToRetain("def").build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        DownloadResult result2 = DownloadResult.CREATOR.createFromParcel(parcel);
+        DownloadOutput result2 = DownloadOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals("abc", result2.getKeysToRetain().get(0));
@@ -156,13 +156,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the EventMetricsInput object serializes correctly.
+     * Tests that the EventInput object serializes correctly.
      */
     @Test
-    public void testEventMetricsInput() {
+    public void testEventInput() {
         PersistableBundle params = new PersistableBundle();
         params.putInt("x", 3);
-        EventMetricsInput result = new EventMetricsInput.Builder()
+        EventInput result = new EventInput.Builder()
                 .setEventType(6)
                 .setEventParams(params)
                 .build();
@@ -170,7 +170,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        EventMetricsInput result2 = EventMetricsInput.CREATOR.createFromParcel(parcel);
+        EventInput result2 = EventInput.CREATOR.createFromParcel(parcel);
 
         assertEquals(6, result2.getEventType());
         assertEquals(3, result2.getEventParams().getInt("x"));
@@ -180,16 +180,16 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      * Tests that the Metrics object serializes correctly.
      */
     @Test
-    public void testEventMetricsResult() {
+    public void testEventOutput() {
         long[] intMetrics = {10, 20};
         double[] floatMetrics = {5.0};
-        EventMetricsResult result = new EventMetricsResult.Builder()
+        EventOutput result = new EventOutput.Builder()
                 .setMetrics(new Metrics.Builder().setLongValues(11).build()).build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        EventMetricsResult result2 = EventMetricsResult.CREATOR.createFromParcel(parcel);
+        EventOutput result2 = EventOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals(11, result2.getMetrics().getLongValues()[0]);
