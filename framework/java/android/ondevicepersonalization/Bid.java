@@ -30,7 +30,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class ScoredBid implements Parcelable {
+public final class Bid implements Parcelable {
     /**
      * A key in the REMOTE_DATA table that identifies this bid. This will be used
      * to fetch the bid data for rendering if this is a winning bid.
@@ -72,7 +72,7 @@ public final class ScoredBid implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ScoredBid.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Bid.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -80,7 +80,7 @@ public final class ScoredBid implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ ScoredBid(
+    /* package-private */ Bid(
             @NonNull String bidId,
             double price,
             double score,
@@ -154,13 +154,13 @@ public final class ScoredBid implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(ScoredBid other) { ... }
+        // boolean fieldNameEquals(Bid other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        ScoredBid that = (ScoredBid) o;
+        Bid that = (Bid) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mBidId, that.mBidId)
@@ -213,7 +213,7 @@ public final class ScoredBid implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ ScoredBid(@NonNull android.os.Parcel in) {
+    /* package-private */ Bid(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -238,21 +238,21 @@ public final class ScoredBid implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<ScoredBid> CREATOR
-            = new Parcelable.Creator<ScoredBid>() {
+    public static final @NonNull Parcelable.Creator<Bid> CREATOR
+            = new Parcelable.Creator<Bid>() {
         @Override
-        public ScoredBid[] newArray(int size) {
-            return new ScoredBid[size];
+        public Bid[] newArray(int size) {
+            return new Bid[size];
         }
 
         @Override
-        public ScoredBid createFromParcel(@NonNull android.os.Parcel in) {
-            return new ScoredBid(in);
+        public Bid createFromParcel(@NonNull android.os.Parcel in) {
+            return new Bid(in);
         }
     };
 
     /**
-     * A builder for {@link ScoredBid}
+     * A builder for {@link Bid}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -340,7 +340,7 @@ public final class ScoredBid implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull ScoredBid build() {
+        public @NonNull Bid build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x40; // Mark builder used
 
@@ -362,7 +362,7 @@ public final class ScoredBid implements Parcelable {
             if ((mBuilderFieldsSet & 0x20) == 0) {
                 mEventMetricsParameters = null;
             }
-            ScoredBid o = new ScoredBid(
+            Bid o = new Bid(
                     mBidId,
                     mPrice,
                     mScore,
@@ -381,10 +381,10 @@ public final class ScoredBid implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1673388734872L,
+            time = 1680553765802L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ScoredBid.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  double mPrice\nprivate  double mScore\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nprivate @android.annotation.Nullable int[] mEventsWithMetrics\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventMetricsParameters\nclass ScoredBid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Bid.java",
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  double mPrice\nprivate  double mScore\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nprivate @android.annotation.Nullable int[] mEventsWithMetrics\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventMetricsParameters\nclass Bid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -77,9 +77,11 @@ public class MainActivity extends Activity {
             CountDownLatch latch = new CountDownLatch(1);
             Log.i(TAG, "Starting execute()");
             AtomicReference<SlotResultHandle> slotResultHandle = new AtomicReference<>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString("keyword", mTextBox.getText().toString());
             mOdpManager.execute(
                     "com.android.odpsamplenetwork",
-                    PersistableBundle.EMPTY,
+                    appParams,
                     Executors.newSingleThreadExecutor(),
                     new OutcomeReceiver<List<SlotResultHandle>, Exception>() {
                         @Override

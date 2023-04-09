@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,18 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.federatedcompute.services.common;
 
-parcelable SelectContentInput;
+import android.annotation.NonNull;
+
+/** A placeholder class for PhFlag. */
+public final class PhFlags implements Flags {
+
+    private static final PhFlags sSingleton = new PhFlags();
+
+    /** Returns the singleton instance of the PhFlags. */
+    @NonNull
+    public static PhFlags getInstance() {
+        return sSingleton;
+    }
+}

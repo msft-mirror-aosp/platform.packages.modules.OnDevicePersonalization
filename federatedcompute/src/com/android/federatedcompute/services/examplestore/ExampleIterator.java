@@ -14,6 +14,20 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package com.android.federatedcompute.services.examplestore;
 
-parcelable EventMetricsResult;
+import java.io.Closeable;
+
+/** The interface of ExampleIterator. */
+public interface ExampleIterator extends Closeable {
+
+    /** Called to check if next example is available. */
+    boolean hasNext() throws InterruptedException;
+
+    /** Called when federated computation job needs another example. */
+    byte[] next() throws InterruptedException;
+
+    /** Called when it is done using this iterator instance. */
+    @Override
+    void close();
+}

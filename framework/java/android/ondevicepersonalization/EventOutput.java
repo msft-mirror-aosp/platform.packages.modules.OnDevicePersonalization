@@ -18,24 +18,18 @@ package android.ondevicepersonalization;
 
 import android.annotation.Nullable;
 import android.os.Parcelable;
-import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The inputs required for computing event-level metrics to be logged.
+ * A list of per-event metrics to be logged in the Events table.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class EventMetricsInput implements Parcelable {
-    /** The type of the event. */
-    private int mEventType = 0;
-
-    /** Parameters needed for computing event metrics. */
-    @Nullable private PersistableBundle mEventParams = null;
-
-    // TODO(b/259950177): Add Query and Event row contents.
+public final class EventOutput implements Parcelable {
+    /** The metrics to be logged with this event. */
+    @Nullable Metrics mMetrics = null;
 
 
 
@@ -45,7 +39,7 @@ public final class EventMetricsInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventMetricsInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -53,46 +47,35 @@ public final class EventMetricsInput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ EventMetricsInput(
-            int eventType,
-            @Nullable PersistableBundle eventParams) {
-        this.mEventType = eventType;
-        this.mEventParams = eventParams;
+    /* package-private */ EventOutput(
+            @Nullable Metrics metrics) {
+        this.mMetrics = metrics;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The type of the event.
+     * The metrics to be logged with this event.
      */
     @DataClass.Generated.Member
-    public int getEventType() {
-        return mEventType;
-    }
-
-    /**
-     * Parameters needed for computing event metrics.
-     */
-    @DataClass.Generated.Member
-    public @Nullable PersistableBundle getEventParams() {
-        return mEventParams;
+    public @Nullable Metrics getMetrics() {
+        return mMetrics;
     }
 
     @Override
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(EventMetricsInput other) { ... }
+        // boolean fieldNameEquals(EventOutput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        EventMetricsInput that = (EventMetricsInput) o;
+        EventOutput that = (EventOutput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mEventType == that.mEventType
-                && java.util.Objects.equals(mEventParams, that.mEventParams);
+                && java.util.Objects.equals(mMetrics, that.mMetrics);
     }
 
     @Override
@@ -102,8 +85,7 @@ public final class EventMetricsInput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + mEventType;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mEventParams);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mMetrics);
         return _hash;
     }
 
@@ -114,10 +96,9 @@ public final class EventMetricsInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mEventParams != null) flg |= 0x2;
+        if (mMetrics != null) flg |= 0x1;
         dest.writeByte(flg);
-        dest.writeInt(mEventType);
-        if (mEventParams != null) dest.writeTypedObject(mEventParams, flags);
+        if (mMetrics != null) dest.writeTypedObject(mMetrics, flags);
     }
 
     @Override
@@ -127,43 +108,40 @@ public final class EventMetricsInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ EventMetricsInput(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ EventOutput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        int eventType = in.readInt();
-        PersistableBundle eventParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        Metrics metrics = (flg & 0x1) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
 
-        this.mEventType = eventType;
-        this.mEventParams = eventParams;
+        this.mMetrics = metrics;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<EventMetricsInput> CREATOR
-            = new Parcelable.Creator<EventMetricsInput>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<EventOutput> CREATOR
+            = new Parcelable.Creator<EventOutput>() {
         @Override
-        public EventMetricsInput[] newArray(int size) {
-            return new EventMetricsInput[size];
+        public EventOutput[] newArray(int size) {
+            return new EventOutput[size];
         }
 
         @Override
-        public EventMetricsInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new EventMetricsInput(in);
+        public EventOutput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new EventOutput(in);
         }
     };
 
     /**
-     * A builder for {@link EventMetricsInput}
+     * A builder for {@link EventOutput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private int mEventType;
-        private @Nullable PersistableBundle mEventParams;
+        private @Nullable Metrics mMetrics;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -171,46 +149,31 @@ public final class EventMetricsInput implements Parcelable {
         }
 
         /**
-         * The type of the event.
+         * The metrics to be logged with this event.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventType(int value) {
+        public @android.annotation.NonNull Builder setMetrics(@android.annotation.NonNull Metrics value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mEventType = value;
-            return this;
-        }
-
-        /**
-         * Parameters needed for computing event metrics.
-         */
-        @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventParams(@android.annotation.NonNull PersistableBundle value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mEventParams = value;
+            mMetrics = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull EventMetricsInput build() {
+        public @android.annotation.NonNull EventOutput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
+            mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mEventType = 0;
+                mMetrics = null;
             }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mEventParams = null;
-            }
-            EventMetricsInput o = new EventMetricsInput(
-                    mEventType,
-                    mEventParams);
+            EventOutput o = new EventOutput(
+                    mMetrics);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
+            if ((mBuilderFieldsSet & 0x2) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -218,10 +181,10 @@ public final class EventMetricsInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1673388114737L,
+            time = 1680551346461L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventMetricsInput.java",
-            inputSignatures = "private  int mEventType\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventParams\nclass EventMetricsInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventOutput.java",
+            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass EventOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
