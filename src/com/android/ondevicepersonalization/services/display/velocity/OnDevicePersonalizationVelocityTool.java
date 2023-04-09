@@ -16,17 +16,46 @@
 
 package com.android.ondevicepersonalization.services.display.velocity;
 
+import org.owasp.encoder.Encode;
+
 /**
  * Tool containing methods passed to the velocity engine
  * to be used during rendering within the template
  */
 public class OnDevicePersonalizationVelocityTool {
-    // TODO(b/263180569): Implement this class to include basic encoding/escaping methods.
 
     /**
      * Encode string for HTML context.
      */
     public static String encodeHtml(String s) {
-        return s;
+        return Encode.forHtml(s);
+    }
+
+    /**
+     * Encode string for URL context.
+     */
+    public static String encodeUrl(String s) {
+        return Encode.forUriComponent(s);
+    }
+
+    /**
+     * Encode string for JS context.
+     */
+    public static String encodeJs(String s) {
+        return Encode.forJavaScript(s);
+    }
+
+    /**
+     * Encode string for CSS string context.
+     */
+    public static String encodeCssString(String s) {
+        return Encode.forCssString(s);
+    }
+
+    /**
+     * Encode string for CSS URL context.
+     */
+    public static String encodeCssUrl(String s) {
+        return Encode.forCssUrl(s);
     }
 }

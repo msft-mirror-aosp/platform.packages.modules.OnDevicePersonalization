@@ -23,10 +23,20 @@ import com.google.android.libraries.mobiledatadownload.Flags;
  */
 public class OnDevicePersonalizationMddFlags implements Flags {
     /**
+     *  Allow non-http urls. This will be used for debuggable packages.
      * {@link OnDevicePersonalizationFileDownloader} will enforce uri scheme instead.
      */
     @Override
     public boolean downloaderEnforceHttps() {
         return false;
+    }
+
+    /**
+     * Allow sideloading for files. This will be used for debuggable packages.
+     * {@link OnDevicePersonalizationFileDownloader} will enforce uri scheme instead.
+     */
+    @Override
+    public boolean enableSideloading() {
+        return true;
     }
 }
