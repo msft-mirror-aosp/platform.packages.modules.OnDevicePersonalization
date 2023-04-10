@@ -24,7 +24,7 @@ import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSl
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input sent to the PersonalizationService
+ * The input sent to the {@link IsolatedComputationService}.
  *
  * @hide
  */
