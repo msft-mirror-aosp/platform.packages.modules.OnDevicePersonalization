@@ -18,10 +18,10 @@ package com.test;
 
 import android.annotation.NonNull;
 import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.IsolatedComputationService;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationService extends PersonalizationService {
+public class TestPersonalizationService extends IsolatedComputationService {
     @NonNull @Override public IsolatedComputationHandler getHandler() {
         return new TestPersonalizationHandler();
     }

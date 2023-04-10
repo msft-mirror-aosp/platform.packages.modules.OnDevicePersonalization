@@ -84,7 +84,7 @@ public class OnDevicePersonalizationManager {
     /**
      * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
      * its value should define a {@link PersistableBundle} that is passed to the
-     * {@link PersonalizationService}.
+     * {@link IsolatedComputationService}.
      */
     public static final String EXTRA_APP_PARAMS =
             "android.ondevicepersonalization.extra.APP_PARAMS";
