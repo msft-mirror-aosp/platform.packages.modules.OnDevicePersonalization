@@ -17,124 +17,12 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.AppRequestInput;
-import android.ondevicepersonalization.AppRequestResult;
-import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.IsolatedComputationHandler;
 import android.ondevicepersonalization.PersonalizationService;
-import android.ondevicepersonalization.RenderContentInput;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SlotResult;
-import android.os.OutcomeReceiver;
-import android.os.ParcelFileDescriptor;
-import android.util.JsonReader;
-import android.util.Log;
-
-import com.google.common.util.concurrent.MoreExecutors;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends PersonalizationService {
-    public final String TAG = "TestPersonalizationService";
-
-    @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            PersonalizationService.Callback<DownloadResult> callback) {
-        Log.d(TAG, "Starting filterData.");
-        List<String> lookupKeys = new ArrayList<>();
-        lookupKeys.add("keyExtra");
-        odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
-                new OutcomeReceiver<Map<String, byte[]>, Exception>() {
-                    @Override
-                    public void onResult(@NonNull Map<String, byte[]> result) {
-                        Log.d(TAG, "OutcomeReceiver onResult: " + result);
-                        // Get the keys to keep from the downloaded data
-                        DownloadResult downloadResult =
-                                new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
-                                .build();
-                        callback.onResult(downloadResult);
-                    }
-
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
-                        callback.onError();
-                    }
-                });
-    }
-
-    @Override public void onAppRequest(
-            @NonNull AppRequestInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<AppRequestResult> callback
-    ) {
-        Log.d(TAG, "onAppRequest() started.");
-        AppRequestResult result = new AppRequestResult.Builder()
-                .addSlotResults(new SlotResult.Builder()
-                        .setSlotId("slot_id")
-                        .addWinningBids(
-                            new ScoredBid.Builder()
-                            .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
-                        .build())
-                .build();
-        callback.onResult(result);
-    }
-
-    @Override public void renderContent(
-            @NonNull RenderContentInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull PersonalizationService.Callback<RenderContentResult> callback
-    ) {
-        Log.d(TAG, "renderContent() started.");
-        RenderContentResult result =
-                new RenderContentResult.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
-                .build();
-        callback.onResult(result);
-    }
-
-    private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
-        List<String> filteredKeys = new ArrayList<String>();
-        // Add all keys from the file into the list
-        try (InputStream in =
-                     new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-            try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
-                reader.beginObject();
-                while (reader.hasNext()) {
-                    String name = reader.nextName();
-                    if (name.equals("contents")) {
-                        reader.beginArray();
-                        while (reader.hasNext()) {
-                            reader.beginObject();
-                            while (reader.hasNext()) {
-                                String elementName = reader.nextName();
-                                if (elementName.equals("key")) {
-                                    filteredKeys.add(reader.nextString());
-                                } else {
-                                    reader.skipValue();
-                                }
-                            }
-                            reader.endObject();
-                        }
-                        reader.endArray();
-                    } else {
-                        reader.skipValue();
-                    }
-                }
-                reader.endObject();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to parse downloaded data from fd");
-        }
-        // Just keep the first 2 keys for the test.
-        return filteredKeys.subList(0, 2);
+    @NonNull @Override public IsolatedComputationHandler getHandler() {
+        return new TestPersonalizationHandler();
     }
 }

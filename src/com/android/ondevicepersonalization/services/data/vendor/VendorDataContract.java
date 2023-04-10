@@ -24,11 +24,11 @@ public class VendorDataContract {
     }
 
     /**
-     * Table containing data belonging to vendors. Each table is owned by a single vendor and
-     * contains data which will be used during ad requests.
+     * Table containing immutable data belonging to vendors. Each table is owned by a single vendor
+     * and contains data which will be used during ad requests.
      */
     public static class VendorDataEntry implements BaseColumns {
-        /** Lookup key for the row - unique for each vendor */
+        /** Lookup key for the row */
         public static final String KEY = "key";
         /** Row data - ads or other vendor settings */
         public static final String DATA = "data";

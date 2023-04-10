@@ -33,13 +33,14 @@ public class EventUrlHelperTest {
 
     private static final Event TEST_EVENT = new Event.Builder()
             .setType(EventType.B2D.getValue())
-            .setEvent("test".getBytes(StandardCharsets.UTF_8))
+            .setEventData("test".getBytes(StandardCharsets.UTF_8))
             .setBidId("bidId")
             .setServicePackageName("packageName")
             .setSlotId("slotId")
             .setSlotPosition(1)
-            .setThreadId(1L)
-            .setTimeUsec(1L)
+            .setQueryId(1L)
+            .setTimeMillis(1L)
+            .setSlotIndex(0)
             .build();
 
     private static final EventUrlPayload TEST_EVENT_URL_PAYLOAD = new EventUrlPayload.Builder()

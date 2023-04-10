@@ -18,20 +18,8 @@ package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
 import android.net.Uri;
-import android.security.keystore.KeyGenParameterSpec;
-import android.security.keystore.KeyProperties;
-import android.util.Base64;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.security.KeyStore;
-
-import javax.crypto.Cipher;
-import javax.crypto.KeyGenerator;
-import javax.crypto.SealedObject;
-import javax.crypto.SecretKey;
+import com.android.ondevicepersonalization.services.util.CryptUtils;
 
 /**
  * Helper class to manage creation of ODP event URLs.
@@ -42,54 +30,17 @@ public class EventUrlHelper {
     public static final String URL_LANDING_PAGE_EVENT_KEY = "r";
 
     private static final String BASE_URL = URI_SCHEME + "://" + URI_AUTHORITY;
-    private static final String KEY_ALIAS = "odp_key_alias";
-    private static final String PROVIDER = "AndroidKeyStore";
     private static final String URL_EVENT_KEY = "e";
-    private static final String TRANSFORMATION = "AES/GCM/NoPadding";
 
-    private static SecretKey getSecretKey() throws Exception {
-        KeyStore keyStore = KeyStore.getInstance(PROVIDER);
-        keyStore.load(null);
-        if (keyStore.containsAlias(KEY_ALIAS)) {
-            KeyStore.SecretKeyEntry secretKeyEntry = (KeyStore.SecretKeyEntry) keyStore.getEntry(
-                    KEY_ALIAS, null);
-            return secretKeyEntry.getSecretKey();
-        } else {
-            KeyGenerator keyGenerator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES,
-                    PROVIDER);
-            KeyGenParameterSpec keyGenParameterSpec = new KeyGenParameterSpec.Builder(KEY_ALIAS,
-                    KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT).setBlockModes(
-                    KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(
-                    KeyProperties.ENCRYPTION_PADDING_NONE).build();
-            keyGenerator.init(keyGenParameterSpec);
-            return keyGenerator.generateKey();
-        }
+    private EventUrlHelper() {
     }
 
     private static String encryptEvent(EventUrlPayload event) throws Exception {
-        Cipher cipher = Cipher.getInstance(TRANSFORMATION);
-        cipher.init(Cipher.ENCRYPT_MODE, getSecretKey());
-
-        SealedObject sealedEvent = new SealedObject(event, cipher);
-
-        try (ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-             ObjectOutputStream objectOutputStream = new ObjectOutputStream(
-                     byteArrayOutputStream)) {
-            objectOutputStream.writeObject(sealedEvent);
-            byte[] eventBytes = byteArrayOutputStream.toByteArray();
-            return Base64.encodeToString(eventBytes, Base64.URL_SAFE | Base64.NO_WRAP);
-        }
+        return CryptUtils.encrypt(event);
     }
 
     private static EventUrlPayload decryptEvent(String base64Event) throws Exception {
-        byte[] cipherMessage = Base64.decode(base64Event, Base64.URL_SAFE | Base64.NO_WRAP);
-
-        try (ByteArrayInputStream byteArrayInputStream = new ByteArrayInputStream(cipherMessage);
-             ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream)) {
-            SealedObject sealedEvent = (SealedObject) objectInputStream.readObject();
-
-            return (EventUrlPayload) sealedEvent.getObject(getSecretKey());
-        }
+        return (EventUrlPayload) CryptUtils.decrypt(base64Event);
     }
 
     /**
@@ -139,7 +90,7 @@ public class EventUrlHelper {
      */
     public static boolean isOdpUrl(@NonNull String url) {
         Uri uri = Uri.parse(url);
-        return uri.getAuthority().equals(URI_AUTHORITY)
-                && uri.getScheme().equals(URI_SCHEME);
+        return URI_SCHEME.equals(uri.getScheme())
+                && URI_AUTHORITY.equals(uri.getAuthority());
     }
 }

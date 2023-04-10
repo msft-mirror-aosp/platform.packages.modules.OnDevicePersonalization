@@ -71,46 +71,48 @@ public class EventsDao {
     /**
      * Inserts the Event into the Events table.
      *
-     * @return true if the insert succeeded, false otherwise
+     * @return The row id of the newly inserted row if successful, -1 otherwise
      */
-    public boolean insertEvent(@NonNull Event event) {
+    public long insertEvent(@NonNull Event event) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(EventsContract.EventsEntry.TIME_USEC, event.getTimeUsec());
-            values.put(EventsContract.EventsEntry.THREAD_ID, event.getThreadId());
+            values.put(EventsContract.EventsEntry.QUERY_ID, event.getQueryId());
+            values.put(EventsContract.EventsEntry.SLOT_INDEX, event.getSlotIndex());
+            values.put(EventsContract.EventsEntry.TIME_MILLIS, event.getTimeMillis());
             values.put(EventsContract.EventsEntry.SLOT_ID, event.getSlotId());
             values.put(EventsContract.EventsEntry.BID_ID, event.getBidId());
             values.put(EventsContract.EventsEntry.SERVICE_PACKAGE_NAME,
                     event.getServicePackageName());
             values.put(EventsContract.EventsEntry.SLOT_POSITION, event.getSlotPosition());
             values.put(EventsContract.EventsEntry.TYPE, event.getType());
-            values.put(EventsContract.EventsEntry.EVENT, event.getEvent());
+            values.put(EventsContract.EventsEntry.EVENT_DATA, event.getEventData());
             return db.insert(EventsContract.EventsEntry.TABLE_NAME, null,
-                    values) != -1;
+                    values);
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to insert event", e);
         }
-        return false;
+        return -1;
     }
 
     /**
      * Inserts the Query into the Queries table.
      *
-     * @return true if the insert succeeded, false otherwise
+     * @return The row id of the newly inserted row if successful, -1 otherwise
      */
-    public boolean insertQuery(@NonNull Query query) {
+    public long insertQuery(@NonNull Query query) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(QueriesContract.QueriesEntry.TIME_USEC, query.getTimeUsec());
-            values.put(QueriesContract.QueriesEntry.THREAD_ID, query.getThreadId());
-            values.put(QueriesContract.QueriesEntry.QUERY, query.getQuery());
+            values.put(QueriesContract.QueriesEntry.TIME_MILLIS, query.getTimeMillis());
+            values.put(QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME,
+                    query.getServicePackageName());
+            values.put(QueriesContract.QueriesEntry.QUERY_DATA, query.getQueryData());
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
-                    values) != -1;
+                    values);
         } catch (SQLiteException e) {
             Log.e(TAG, "Failed to insert query", e);
         }
-        return false;
+        return -1;
     }
 }

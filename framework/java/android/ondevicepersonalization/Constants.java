@@ -26,7 +26,7 @@ public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
 
     // Operations implemented by personalization services.
-    public static final int OP_APP_REQUEST = 1;
+    public static final int OP_SELECT_CONTENT = 1;
     public static final int OP_DOWNLOAD_FINISHED = 2;
     public static final int OP_RENDER_CONTENT = 3;
     public static final int OP_COMPUTE_EVENT_METRICS = 4;
@@ -36,15 +36,29 @@ public class Constants {
             EXTRA_DATA_ACCESS_SERVICE_BINDER =
                 "android.ondevicepersonalization.extra.data_access_service_binder";
     public static final String
+            EXTRA_BID_ID = "android.ondevicepersonalization.extra.bid_id";
+    public static final String
+            EXTRA_DESTINATION_URL = "android.ondevicepersonalization.extra.destination_url";
+    public static final String
+            EXTRA_EVENT_TYPE = "android.ondevicepersonalization.extra.event_type";
+    public static final String
             EXTRA_INPUT = "android.ondevicepersonalization.extra.input";
     public static final String
             EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.extra.lookup_keys";
+    public static final String
+            EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
     public static final String
             EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
-    public static final int DATA_ACCESS_OP_REMOTE_DATA_SCAN = 2;
+    public static final int DATA_ACCESS_OP_REMOTE_DATA_KEYSET = 2;
+    public static final int DATA_ACCESS_OP_GET_EVENT_URL = 3;
+    public static final int DATA_ACCESS_OP_LOCAL_DATA_LOOKUP = 4;
+    public static final int DATA_ACCESS_OP_LOCAL_DATA_KEYSET = 5;
+    public static final int DATA_ACCESS_OP_LOCAL_DATA_PUT = 6;
+    public static final int DATA_ACCESS_OP_LOCAL_DATA_REMOVE = 7;
+
 
     private Constants() {}
 }
