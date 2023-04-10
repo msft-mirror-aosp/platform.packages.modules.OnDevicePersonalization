@@ -14,14 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.odpsamplenetwork;
+package android.ondevicepersonalization.aidl;
 
-import android.annotation.NonNull;
-import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.PersonalizationService;
+import android.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
+import android.os.Bundle;
 
-public class SamplePersonalizationService extends PersonalizationService {
-    @NonNull @Override public IsolatedComputationHandler getHandler() {
-        return new SampleHandler();
-    }
+/** @hide */
+interface IIsolatedComputationService {
+    void onRequest(
+            in int operationCode,
+            in Bundle params,
+            in IIsolatedComputationServiceCallback callback
+    );
 }

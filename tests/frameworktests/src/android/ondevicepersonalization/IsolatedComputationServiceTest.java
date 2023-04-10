@@ -22,8 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
-import android.ondevicepersonalization.aidl.IPersonalizationService;
-import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
+import android.ondevicepersonalization.aidl.IIsolatedComputationService;
+import android.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
@@ -42,14 +42,13 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 /**
- * Unit Tests of PersonalizationService class.
+ * Unit Tests of IsolatedComputationService class.
  */
 @SmallTest
 @RunWith(AndroidJUnit4.class)
-public class PersonalizationServiceTest {
-    private final TestPersonalizationService mTestPersonalizationService =
-            new TestPersonalizationService();
-    private IPersonalizationService mBinder;
+public class IsolatedComputationServiceTest {
+    private final TestService mTestService = new TestService();
+    private IIsolatedComputationService mBinder;
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private boolean mSelectContentCalled;
     private boolean mOnDownloadCalled;
@@ -60,9 +59,8 @@ public class PersonalizationServiceTest {
 
     @Before
     public void setUp() {
-        mTestPersonalizationService.onCreate();
-        mBinder =
-            IPersonalizationService.Stub.asInterface(mTestPersonalizationService.onBind(null));
+        mTestService.onCreate();
+        mBinder = IIsolatedComputationService.Stub.asInterface(mTestService.onBind(null));
     }
 
     @Test
@@ -72,7 +70,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             9999, new Bundle(),
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -89,7 +87,7 @@ public class PersonalizationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
         ExecuteOutput result =
@@ -111,7 +109,7 @@ public class PersonalizationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
@@ -127,7 +125,7 @@ public class PersonalizationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_SELECT_CONTENT, params, new TestPersonalizationServiceCallback());
+                Constants.OP_SELECT_CONTENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
     }
@@ -139,7 +137,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_SELECT_CONTENT, null,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -152,7 +150,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_SELECT_CONTENT, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -169,7 +167,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_SELECT_CONTENT, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -200,7 +198,7 @@ public class PersonalizationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_DOWNLOAD_FINISHED, params, new TestPersonalizationServiceCallback());
+                Constants.OP_DOWNLOAD_FINISHED, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
         DownloadOutput result =
@@ -215,7 +213,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_DOWNLOAD_FINISHED, null,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -228,7 +226,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_DOWNLOAD_FINISHED, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -245,7 +243,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_DOWNLOAD_FINISHED, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -281,7 +279,7 @@ public class PersonalizationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_RENDER_CONTENT, params, new TestPersonalizationServiceCallback());
+                Constants.OP_RENDER_CONTENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mRenderContentCalled);
         RenderOutput result =
@@ -302,7 +300,7 @@ public class PersonalizationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_RENDER_CONTENT, params, new TestPersonalizationServiceCallback());
+                Constants.OP_RENDER_CONTENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mRenderContentCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
@@ -315,7 +313,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_RENDER_CONTENT, null,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -328,7 +326,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_RENDER_CONTENT, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -349,7 +347,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_RENDER_CONTENT, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -382,7 +380,7 @@ public class PersonalizationServiceTest {
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_COMPUTE_EVENT_METRICS, params,
-                new TestPersonalizationServiceCallback());
+                new TestServiceCallback());
         mLatch.await();
         assertTrue(mComputeEventMetricsCalled);
         EventOutput result =
@@ -401,7 +399,7 @@ public class PersonalizationServiceTest {
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_COMPUTE_EVENT_METRICS, params,
-                new TestPersonalizationServiceCallback());
+                new TestServiceCallback());
         mLatch.await();
         assertTrue(mComputeEventMetricsCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
@@ -414,7 +412,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_COMPUTE_EVENT_METRICS, null,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -427,7 +425,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_COMPUTE_EVENT_METRICS, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -441,7 +439,7 @@ public class PersonalizationServiceTest {
                 () -> {
                     mBinder.onRequest(
                             Constants.OP_COMPUTE_EVENT_METRICS, params,
-                            new TestPersonalizationServiceCallback());
+                            new TestServiceCallback());
                 });
     }
 
@@ -525,7 +523,7 @@ public class PersonalizationServiceTest {
         }
     }
 
-    class TestPersonalizationService extends PersonalizationService {
+    class TestService extends IsolatedComputationService {
         @Override public IsolatedComputationHandler getHandler() {
             return new TestHandler();
         }
@@ -540,7 +538,7 @@ public class PersonalizationServiceTest {
         ) {}
     }
 
-    class TestPersonalizationServiceCallback extends IPersonalizationServiceCallback.Stub {
+    class TestServiceCallback extends IIsolatedComputationServiceCallback.Stub {
         @Override public void onSuccess(Bundle result) {
             mCallbackResult = result;
             mLatch.countDown();
