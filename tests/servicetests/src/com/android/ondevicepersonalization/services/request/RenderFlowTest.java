@@ -16,11 +16,12 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.Bid;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
@@ -29,7 +30,9 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
+import com.android.ondevicepersonalization.services.util.CryptUtils;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -74,6 +77,24 @@ public class RenderFlowTest {
         assertTrue(mGeneratedHtml.contains("bid1"));
     }
 
+    @Test
+    public void testDefaultInjector() throws Exception {
+        RenderFlow.Injector injector = new RenderFlow.Injector();
+        assertEquals(OnDevicePersonalizationExecutors.getBackgroundExecutor(),
+                injector.getExecutor());
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                        .addWinningBids(new Bid.Builder().setBidId("bid1").build())
+                        .build();
+        SlotRenderingData data = new SlotRenderingData(
+                slotResult, mContext.getPackageName(), 0);
+        String encrypted = CryptUtils.encrypt(data);
+        SlotRenderingData decrypted = injector.decryptToken(encrypted);
+        assertEquals(data.getQueryId(), decrypted.getQueryId());
+        assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
+        assertEquals(data.getSlotResult(), decrypted.getSlotResult());
+    }
+
     class TestInjector extends RenderFlow.Injector {
         ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
@@ -83,7 +104,7 @@ public class RenderFlowTest {
             if (token.equals("token")) {
                 SlotResult slotResult =
                         new SlotResult.Builder()
-                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
+                        .addWinningBids(new Bid.Builder().setBidId("bid1").build())
                         .build();
                 SlotRenderingData data = new SlotRenderingData(
                         slotResult, mContext.getPackageName(), 0);
@@ -99,7 +120,7 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderContentResult renderContentResult) {
+        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;

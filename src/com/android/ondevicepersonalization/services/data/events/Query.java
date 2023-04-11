@@ -31,11 +31,9 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 )
 public class Query {
     /** The id of the query. */
-    @Nullable
     private final long mQueryId;
 
     /** Time of the query in milliseconds. */
-    @NonNull
     private final long mTimeMillis;
 
     /** Name of the package that handled the request */
@@ -63,14 +61,12 @@ public class Query {
 
     @DataClass.Generated.Member
     /* package-private */ Query(
-            @Nullable long queryId,
-            @NonNull long timeMillis,
+            long queryId,
+            long timeMillis,
             @NonNull String servicePackageName,
             @NonNull byte[] queryData) {
         this.mQueryId = queryId;
         this.mTimeMillis = timeMillis;
-        AnnotationValidations.validate(
-                NonNull.class, null, mTimeMillis);
         this.mServicePackageName = servicePackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mServicePackageName);
@@ -85,7 +81,7 @@ public class Query {
      * The id of the query.
      */
     @DataClass.Generated.Member
-    public @Nullable long getQueryId() {
+    public long getQueryId() {
         return mQueryId;
     }
 
@@ -93,7 +89,7 @@ public class Query {
      * Time of the query in milliseconds.
      */
     @DataClass.Generated.Member
-    public @NonNull long getTimeMillis() {
+    public long getTimeMillis() {
         return mTimeMillis;
     }
 
@@ -153,8 +149,8 @@ public class Query {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @Nullable long mQueryId;
-        private @NonNull long mTimeMillis;
+        private long mQueryId;
+        private long mTimeMillis;
         private @NonNull String mServicePackageName;
         private @NonNull byte[] mQueryData;
 
@@ -176,14 +172,12 @@ public class Query {
          *   Blob representing the query.
          */
         public Builder(
-                @Nullable long queryId,
-                @NonNull long timeMillis,
+                long queryId,
+                long timeMillis,
                 @NonNull String servicePackageName,
                 @NonNull byte[] queryData) {
             mQueryId = queryId;
             mTimeMillis = timeMillis;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mTimeMillis);
             mServicePackageName = servicePackageName;
             AnnotationValidations.validate(
                     NonNull.class, null, mServicePackageName);
@@ -196,7 +190,7 @@ public class Query {
          * The id of the query.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setQueryId(@NonNull long value) {
+        public @NonNull Builder setQueryId(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mQueryId = value;
@@ -207,7 +201,7 @@ public class Query {
          * Time of the query in milliseconds.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTimeMillis(@NonNull long value) {
+        public @NonNull Builder setTimeMillis(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mTimeMillis = value;
@@ -258,10 +252,10 @@ public class Query {
     }
 
     @DataClass.Generated(
-            time = 1676498251853L,
+            time = 1680018439034L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Query.java",
-            inputSignatures = "private final @android.annotation.Nullable long mQueryId\nprivate final @android.annotation.NonNull long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull byte[] mQueryData\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull byte[] mQueryData\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

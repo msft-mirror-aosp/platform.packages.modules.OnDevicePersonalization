@@ -21,7 +21,7 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.DownloadInputParcel;
-import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.DownloadOutput;
 import android.os.Bundle;
 import android.util.JsonReader;
 import android.util.Log;
@@ -153,8 +153,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 PackageUtils.getCertDigest(mContext, mPackageName));
         long existingSyncToken = mDao.getSyncToken();
 
-        // Check if the downloaded file has newer data than what is currently stored
-        if (existingSyncToken != -1 && existingSyncToken <= syncToken) {
+        // If existingToken is greaterThan or equal to the new token, skip as there is no new data.
+        if (existingSyncToken >= syncToken) {
             return Futures.immediateFuture(null);
         }
 
@@ -189,8 +189,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        DownloadResult downloadResult = pluginResult.getParcelable(
-                Constants.EXTRA_RESULT, DownloadResult.class);
+        DownloadOutput downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadOutput.class);
         List<String> retainedKeys = downloadResult.getKeysToRetain();
         if (retainedKeys == null) {
             // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
