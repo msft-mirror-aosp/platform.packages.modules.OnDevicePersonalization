@@ -34,7 +34,7 @@ public final class ExecuteInput implements Parcelable {
     /** The package name of the calling app. */
     @NonNull String mAppPackageName;
 
-    /** Parameters provided by the app to the {@link PersonalizationService}. */
+    /** Parameters provided by the app to the {@link IsolatedComputationService}. */
     @Nullable PersistableBundle mAppParams;
 
 
@@ -73,7 +73,7 @@ public final class ExecuteInput implements Parcelable {
     }
 
     /**
-     * Parameters provided by the app to the {@link PersonalizationService}.
+     * Parameters provided by the app to the {@link IsolatedComputationService}.
      */
     @DataClass.Generated.Member
     public @Nullable PersistableBundle getAppParams() {
@@ -183,7 +183,7 @@ public final class ExecuteInput implements Parcelable {
          * @param appPackageName
          *   The package name of the calling app.
          * @param appParams
-         *   Parameters provided by the app to the {@link PersonalizationService}.
+         *   Parameters provided by the app to the {@link IsolatedComputationService}.
          */
         public Builder(
                 @NonNull String appPackageName,
@@ -206,7 +206,7 @@ public final class ExecuteInput implements Parcelable {
         }
 
         /**
-         * Parameters provided by the app to the {@link PersonalizationService}.
+         * Parameters provided by the app to the {@link IsolatedComputationService}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
