@@ -8,12 +8,12 @@ table QueryFields {
 
 table Slot {
     id:string;
-    winning_bids:[Bid];
-    rejected_bids:[Bid];
+    bids:[Bid];
 }
 
 table Bid {
     id:string;
+    rendered:bool;
     price:double;
     score:double;
     metrics:Metrics;

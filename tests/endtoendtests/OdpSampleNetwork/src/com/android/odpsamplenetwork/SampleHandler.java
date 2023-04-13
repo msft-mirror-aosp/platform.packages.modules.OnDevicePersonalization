@@ -184,9 +184,10 @@ public class SampleHandler implements IsolatedComputationHandler {
         return new ExecuteOutput.Builder()
                 .addSlotResults(
                     new SlotResult.Builder()
-                        .addWinningBids(
+                        .addBids(
                             new Bid.Builder()
                                 .setBidId(ad.mId)
+                                .setRendered(true)
                                 .setPrice(ad.mPrice)
                                 .setScore(ad.mPrice * 10)
                                 .build())
