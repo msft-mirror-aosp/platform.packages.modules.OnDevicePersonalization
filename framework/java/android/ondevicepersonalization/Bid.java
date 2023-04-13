@@ -42,16 +42,6 @@ public final class Bid implements Parcelable {
     private boolean mRendered = false;
 
     /**
-     * The price to be paid, if this bid is a winner.
-     */
-    private double mPrice = 0.0;
-
-    /**
-     * The auction ranking for this bid.
-     */
-    private double mScore = 0.0;
-
-    /**
      * The query level metrics to be logged.
      */
     @Nullable private Metrics mMetrics = null;
@@ -75,15 +65,11 @@ public final class Bid implements Parcelable {
     /* package-private */ Bid(
             @NonNull String bidId,
             boolean rendered,
-            double price,
-            double score,
             @Nullable Metrics metrics) {
         this.mBidId = bidId;
         AnnotationValidations.validate(
                 NonNull.class, null, mBidId);
         this.mRendered = rendered;
-        this.mPrice = price;
-        this.mScore = score;
         this.mMetrics = metrics;
 
         // onConstructed(); // You can define this method to get a callback
@@ -104,22 +90,6 @@ public final class Bid implements Parcelable {
     @DataClass.Generated.Member
     public boolean isRendered() {
         return mRendered;
-    }
-
-    /**
-     * The price to be paid, if this bid is a winner.
-     */
-    @DataClass.Generated.Member
-    public double getPrice() {
-        return mPrice;
-    }
-
-    /**
-     * The auction ranking for this bid.
-     */
-    @DataClass.Generated.Member
-    public double getScore() {
-        return mScore;
     }
 
     /**
@@ -145,8 +115,6 @@ public final class Bid implements Parcelable {
         return true
                 && java.util.Objects.equals(mBidId, that.mBidId)
                 && mRendered == that.mRendered
-                && mPrice == that.mPrice
-                && mScore == that.mScore
                 && java.util.Objects.equals(mMetrics, that.mMetrics);
     }
 
@@ -159,8 +127,6 @@ public final class Bid implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mBidId);
         _hash = 31 * _hash + Boolean.hashCode(mRendered);
-        _hash = 31 * _hash + Double.hashCode(mPrice);
-        _hash = 31 * _hash + Double.hashCode(mScore);
         _hash = 31 * _hash + java.util.Objects.hashCode(mMetrics);
         return _hash;
     }
@@ -173,11 +139,9 @@ public final class Bid implements Parcelable {
 
         byte flg = 0;
         if (mRendered) flg |= 0x2;
-        if (mMetrics != null) flg |= 0x10;
+        if (mMetrics != null) flg |= 0x4;
         dest.writeByte(flg);
         dest.writeString(mBidId);
-        dest.writeDouble(mPrice);
-        dest.writeDouble(mScore);
         if (mMetrics != null) dest.writeTypedObject(mMetrics, flags);
     }
 
@@ -195,16 +159,12 @@ public final class Bid implements Parcelable {
         byte flg = in.readByte();
         boolean rendered = (flg & 0x2) != 0;
         String bidId = in.readString();
-        double price = in.readDouble();
-        double score = in.readDouble();
-        Metrics metrics = (flg & 0x10) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
+        Metrics metrics = (flg & 0x4) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
 
         this.mBidId = bidId;
         AnnotationValidations.validate(
                 NonNull.class, null, mBidId);
         this.mRendered = rendered;
-        this.mPrice = price;
-        this.mScore = score;
         this.mMetrics = metrics;
 
         // onConstructed(); // You can define this method to get a callback
@@ -233,8 +193,6 @@ public final class Bid implements Parcelable {
 
         private @NonNull String mBidId;
         private boolean mRendered;
-        private double mPrice;
-        private double mScore;
         private @Nullable Metrics mMetrics;
 
         private long mBuilderFieldsSet = 0L;
@@ -266,34 +224,12 @@ public final class Bid implements Parcelable {
         }
 
         /**
-         * The price to be paid, if this bid is a winner.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setPrice(double value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
-            mPrice = value;
-            return this;
-        }
-
-        /**
-         * The auction ranking for this bid.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setScore(double value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
-            mScore = value;
-            return this;
-        }
-
-        /**
          * The query level metrics to be logged.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setMetrics(@NonNull Metrics value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10;
+            mBuilderFieldsSet |= 0x4;
             mMetrics = value;
             return this;
         }
@@ -301,7 +237,7 @@ public final class Bid implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull Bid build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x20; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mBidId = "";
@@ -310,25 +246,17 @@ public final class Bid implements Parcelable {
                 mRendered = false;
             }
             if ((mBuilderFieldsSet & 0x4) == 0) {
-                mPrice = 0.0;
-            }
-            if ((mBuilderFieldsSet & 0x8) == 0) {
-                mScore = 0.0;
-            }
-            if ((mBuilderFieldsSet & 0x10) == 0) {
                 mMetrics = null;
             }
             Bid o = new Bid(
                     mBidId,
                     mRendered,
-                    mPrice,
-                    mScore,
                     mMetrics);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x20) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -336,10 +264,10 @@ public final class Bid implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1681414335075L,
+            time = 1681419018828L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Bid.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  boolean mRendered\nprivate  double mPrice\nprivate  double mScore\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass Bid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  boolean mRendered\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass Bid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
