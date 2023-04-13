@@ -390,12 +390,11 @@ public class IsolatedComputationServiceTest {
 
     @Test
     public void testOnEventPropagatesError() throws Exception {
-        PersistableBundle eventParams = new PersistableBundle();
-        eventParams.putInt("x", 9999);  // Input value 9999 will trigger an error in the service.
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new EventInput.Builder().setEventParams(eventParams).build());
+                // Input value 9999 will trigger an error in the mock service.
+                new EventInput.Builder().setEventType(9999).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
                 Constants.OP_COMPUTE_EVENT_METRICS, params,
@@ -511,7 +510,7 @@ public class IsolatedComputationServiceTest {
                 Consumer<EventOutput> consumer
         ) {
             mComputeEventMetricsCalled = true;
-            if (input.getEventParams() != null && input.getEventParams().getInt("x") == 9999) {
+            if (input.getEventType() == 9999) {
                 consumer.accept(null);
             } else {
                 consumer.accept(
