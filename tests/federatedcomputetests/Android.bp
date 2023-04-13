@@ -26,7 +26,6 @@ android_test {
     ],
     libs: [
         "android.test.base",
-        "android.test.mock.stubs",
         "android.test.runner",
         "auto_value_annotations",
         "framework-annotations-lib",
