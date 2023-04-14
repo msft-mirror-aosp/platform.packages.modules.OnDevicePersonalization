@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.download.mdd;
 
 import android.content.Context;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
 
@@ -25,6 +26,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.google.android.libraries.mobiledatadownload.Flags;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownloadBuilder;
+import com.google.android.libraries.mobiledatadownload.TimeSource;
 import com.google.android.libraries.mobiledatadownload.downloader.FileDownloader;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.android.libraries.mobiledatadownload.file.backends.AndroidFileBackend;
@@ -90,7 +92,17 @@ public class MobileDataDownloadFactory {
 
     @NonNull
     private static NetworkUsageMonitor getNetworkUsageMonitor(@NonNull Context context) {
-        return new NetworkUsageMonitor(context, System::currentTimeMillis);
+        return new NetworkUsageMonitor(context, new TimeSource() {
+                    @Override
+                    public long currentTimeMillis() {
+                        return System.currentTimeMillis();
+                    }
+
+                    @Override
+                    public long elapsedRealtimeNanos() {
+                        return SystemClock.elapsedRealtimeNanos();
+                    }
+                });
     }
 
     @NonNull
