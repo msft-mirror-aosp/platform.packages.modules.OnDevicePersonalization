@@ -99,8 +99,6 @@ public class OnDevicePersonalizationFlatbufferUtils {
             Bid.startBid(builder);
             Bid.addId(builder, bidIdOffset);
             Bid.addRendered(builder, bid.isRendered());
-            Bid.addPrice(builder, bid.getPrice());
-            Bid.addScore(builder, bid.getScore());
             Bid.addMetrics(builder, metricsOffset);
             loggedBids[i] = Bid.endBid(builder);
         }

@@ -46,16 +46,12 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                                 new Bid.Builder()
                                     .setBidId("bid1")
                                     .setRendered(true)
-                                    .setPrice(5.0)
-                                    .setScore(1.0)
                                     .setMetrics(new Metrics.Builder()
                                         .setLongValues(11).build())
                                     .build())
                             .addBids(
                                 new Bid.Builder()
                                     .setBidId("bid2")
-                                    .setPrice(1.0)
-                                    .setScore(0.1)
                                     .build())
                             .build())
                     .build();
@@ -69,13 +65,9 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals("abc", slotResult.getSlotId());
         assertEquals("bid1", slotResult.getBids().get(0).getBidId());
         assertEquals(true, slotResult.getBids().get(0).isRendered());
-        assertEquals(5.0, slotResult.getBids().get(0).getPrice(), 0.0);
-        assertEquals(1.0, slotResult.getBids().get(0).getScore(), 0.0);
         assertEquals(11, slotResult.getBids().get(0).getMetrics().getLongValues()[0]);
         assertEquals("bid2", slotResult.getBids().get(1).getBidId());
         assertEquals(false, slotResult.getBids().get(1).isRendered());
-        assertEquals(1.0, slotResult.getBids().get(1).getPrice(), 0.0);
-        assertEquals(0.1, slotResult.getBids().get(1).getScore(), 0.0);
     }
 
     /**
