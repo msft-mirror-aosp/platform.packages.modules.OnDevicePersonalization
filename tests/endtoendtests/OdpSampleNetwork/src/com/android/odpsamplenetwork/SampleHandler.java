@@ -66,6 +66,7 @@ public class SampleHandler implements IsolatedComputationHandler {
     public static final int EVENT_TYPE_CLICK = 2;
     public static final double COST_RAISING_FACTOR = 2.0;
     private static final String BID_PRICE_KEY = "bidprice";
+    private static final int BID_PRICE_OFFSET = 0;
     private static final Set<String> sBlockedKeywords = Set.of("cars", "trucks");
 
     private static final ListeningExecutorService sBackgroundExecutor =
@@ -174,6 +175,10 @@ public class SampleHandler implements IsolatedComputationHandler {
         return winner;
     }
 
+    private Metrics createMetrics(double price, double score) {
+        return new Metrics.Builder().setDoubleValues(price, score).build();
+    }
+
     private ExecuteOutput buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
         PersistableBundle eventParams = new PersistableBundle();
@@ -188,8 +193,7 @@ public class SampleHandler implements IsolatedComputationHandler {
                             new Bid.Builder()
                                 .setBidId(ad.mId)
                                 .setRendered(true)
-                                .setPrice(ad.mPrice)
-                                .setScore(ad.mPrice * 10)
+                                .setMetrics(createMetrics(ad.mPrice, ad.mPrice * 10))
                                 .build())
                         .build())
                 .build();
@@ -336,8 +340,11 @@ public class SampleHandler implements IsolatedComputationHandler {
                 return;
             }
             double bidPrice = 0.0;
-            if (input.getBid() != null) {
-                bidPrice = input.getBid().getPrice();
+            if (input.getBid() != null
+                    && input.getBid().getMetrics() != null
+                    && input.getBid().getMetrics().getDoubleValues() != null
+                    && input.getBid().getMetrics().getDoubleValues().length > BID_PRICE_OFFSET) {
+                bidPrice = input.getBid().getMetrics().getDoubleValues()[BID_PRICE_OFFSET];
             }
             double updatedPrice = bidPrice * COST_RAISING_FACTOR;
             EventOutput result = new EventOutput.Builder()
