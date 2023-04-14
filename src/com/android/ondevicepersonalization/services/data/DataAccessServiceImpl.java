@@ -60,8 +60,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         public EventUrlQueryData(long queryId, SlotResult slotResult) {
             mQueryId = queryId;
             mSlotId = slotResult.getSlotId();
-            for (Bid bid : slotResult.getWinningBids()) {
-                mBids.put(bid.getBidId(), bid);
+            for (Bid bid : slotResult.getBids()) {
+                if (bid.isRendered()) {
+                    mBids.put(bid.getBidId(), bid);
+                }
             }
         }
     }

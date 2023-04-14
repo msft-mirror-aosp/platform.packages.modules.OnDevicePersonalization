@@ -230,9 +230,10 @@ public class DataAccessServiceImplTest {
         SlotResult slotResult =
                 new SlotResult.Builder()
                     .setSlotId("slot1")
-                    .addWinningBids(
+                    .addBids(
                         new Bid.Builder()
                             .setBidId("bid5")
+                            .setRendered(true)
                             .build())
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
@@ -270,9 +271,10 @@ public class DataAccessServiceImplTest {
         SlotResult slotResult =
                 new SlotResult.Builder()
                     .setSlotId("slot1")
-                    .addWinningBids(
+                    .addBids(
                         new Bid.Builder()
                             .setBidId("bid5")
+                            .setRendered(true)
                             .build())
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =

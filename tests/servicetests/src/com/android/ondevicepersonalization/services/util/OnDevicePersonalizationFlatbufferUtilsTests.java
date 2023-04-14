@@ -77,15 +77,16 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
                 .addSlotResults(
                         new SlotResult.Builder()
                                 .setSlotId("abc")
-                                .addWinningBids(
+                                .addBids(
                                         new android.ondevicepersonalization.Bid.Builder()
                                                 .setBidId("bid1")
+                                                .setRendered(true)
                                                 .setPrice(5.0)
                                                 .setScore(1.0)
                                                 .setMetrics(new Metrics.Builder()
                                                         .setLongValues(11).build())
                                                 .build())
-                                .addRejectedBids(
+                                .addBids(
                                         new android.ondevicepersonalization.Bid.Builder()
                                                 .setBidId("bid2")
                                                 .setPrice(1.0)
@@ -100,17 +101,18 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
         assertEquals(1, queryFields.slotsLength());
         Slot slot = queryFields.slots(0);
         assertEquals("abc", slot.id());
-        assertEquals(1, slot.winningBidsLength());
-        Bid winningBid = slot.winningBids(0);
+        assertEquals(2, slot.bidsLength());
+        Bid winningBid = slot.bids(0);
         assertEquals("bid1", winningBid.id());
+        assertEquals(true, winningBid.rendered());
         assertEquals(5.0, winningBid.price(), DELTA);
         assertEquals(1.0, winningBid.score(), DELTA);
         assertEquals(11, winningBid.metrics().longValues(0));
         assertEquals(0, winningBid.metrics().doubleValuesLength());
 
-        assertEquals(1, slot.rejectedBidsLength());
-        Bid rejectedBid = slot.rejectedBids(0);
+        Bid rejectedBid = slot.bids(1);
         assertEquals("bid2", rejectedBid.id());
+        assertEquals(false, rejectedBid.rendered());
         assertEquals(1.0, rejectedBid.price(), DELTA);
         assertEquals(0.1, rejectedBid.score(), DELTA);
         assertEquals(null, rejectedBid.metrics());
