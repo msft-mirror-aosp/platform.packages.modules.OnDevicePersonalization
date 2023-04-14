@@ -14,8 +14,6 @@ table Slot {
 table Bid {
     id:string;
     rendered:bool;
-    price:double;
-    score:double;
     metrics:Metrics;
 }
 

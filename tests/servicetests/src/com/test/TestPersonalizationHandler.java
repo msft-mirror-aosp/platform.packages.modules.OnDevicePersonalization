@@ -81,8 +81,9 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
                             new Bid.Builder()
                                 .setBidId("bid1")
                                 .setRendered(true)
-                                .setPrice(5.0)
-                                .setScore(1.0)
+                                .setMetrics(new Metrics.Builder()
+                                    .setDoubleValues(5.0, 1.0)
+                                    .build())
                                 .build())
                         .build())
                 .build();
