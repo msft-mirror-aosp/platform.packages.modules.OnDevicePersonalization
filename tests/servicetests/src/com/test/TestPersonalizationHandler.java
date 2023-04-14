@@ -77,9 +77,13 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
         ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
-                        .addWinningBids(
+                        .addBids(
                             new Bid.Builder()
-                            .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
+                                .setBidId("bid1")
+                                .setRendered(true)
+                                .setPrice(5.0)
+                                .setScore(1.0)
+                                .build())
                         .build())
                 .build();
         consumer.accept(result);

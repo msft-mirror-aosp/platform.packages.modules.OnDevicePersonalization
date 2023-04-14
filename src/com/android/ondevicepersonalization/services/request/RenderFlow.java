@@ -177,8 +177,10 @@ public class RenderFlow {
                             .setHeight(mHeight)
                             .setWidth(mWidth).build();
             List<String> bidIds = new ArrayList<String>();
-            for (Bid bid : slotResult.getWinningBids()) {
-                bidIds.add(Objects.requireNonNull(bid.getBidId()));
+            for (Bid bid : slotResult.getBids()) {
+                if (bid.isRendered()) {
+                    bidIds.add(Objects.requireNonNull(bid.getBidId()));
+                }
             }
             if (bidIds.isEmpty()) {
                 return Futures.immediateFailedFuture(new IllegalArgumentException("No bids"));
