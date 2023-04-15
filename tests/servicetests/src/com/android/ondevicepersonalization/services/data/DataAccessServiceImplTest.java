@@ -230,11 +230,10 @@ public class DataAccessServiceImplTest {
         SlotResult slotResult =
                 new SlotResult.Builder()
                     .setSlotId("slot1")
-                    .addWinningBids(
+                    .addBids(
                         new Bid.Builder()
                             .setBidId("bid5")
-                            .setEventsWithMetrics(4)
-                            .setEventMetricsParameters(null)
+                            .setRendered(true)
                             .build())
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
@@ -260,7 +259,6 @@ public class DataAccessServiceImplTest {
         assertEquals(mApplicationContext.getPackageName(),
                 payload.getEvent().getServicePackageName());
         assertEquals("bid5", payload.getEvent().getBidId());
-        assertTrue(payload.isEventMetricsRequired());
     }
 
     @Test
@@ -273,11 +271,10 @@ public class DataAccessServiceImplTest {
         SlotResult slotResult =
                 new SlotResult.Builder()
                     .setSlotId("slot1")
-                    .addWinningBids(
+                    .addBids(
                         new Bid.Builder()
                             .setBidId("bid5")
-                            .setEventsWithMetrics(4)
-                            .setEventMetricsParameters(null)
+                            .setRendered(true)
                             .build())
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =

@@ -50,19 +50,14 @@ public class OnDevicePersonalizationFlatbufferUtils {
                 SlotResult slotResult = slotResults.get(i);
                 int slotIdOffset = builder.createString(slotResult.getSlotId());
 
-                int winningBidsOffset = 0;
-                if (slotResult.getWinningBids() != null) {
-                    winningBidsOffset = createBidVector(builder, slotResult.getWinningBids());
+                int bidsOffset = 0;
+                if (slotResult.getBids() != null) {
+                    bidsOffset = createBidVector(builder, slotResult.getBids());
                 }
 
-                int rejectedBidsOffset = 0;
-                if (slotResult.getRejectedBids() != null) {
-                    rejectedBidsOffset = createBidVector(builder, slotResult.getRejectedBids());
-                }
                 Slot.startSlot(builder);
                 Slot.addId(builder, slotIdOffset);
-                Slot.addWinningBids(builder, winningBidsOffset);
-                Slot.addRejectedBids(builder, rejectedBidsOffset);
+                Slot.addBids(builder, bidsOffset);
                 slots[i] = Slot.endSlot(builder);
             }
             slotsOffset = QueryFields.createSlotsVector(builder, slots);
@@ -103,12 +98,11 @@ public class OnDevicePersonalizationFlatbufferUtils {
             }
             Bid.startBid(builder);
             Bid.addId(builder, bidIdOffset);
-            Bid.addPrice(builder, bid.getPrice());
-            Bid.addScore(builder, bid.getScore());
+            Bid.addRendered(builder, bid.isRendered());
             Bid.addMetrics(builder, metricsOffset);
             loggedBids[i] = Bid.endBid(builder);
         }
-        return Slot.createWinningBidsVector(builder, loggedBids);
+        return Slot.createBidsVector(builder, loggedBids);
     }
 
     private static int createMetrics(FlatBufferBuilder builder,
