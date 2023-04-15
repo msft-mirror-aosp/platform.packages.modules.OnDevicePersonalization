@@ -85,8 +85,10 @@ class OdpWebViewClient extends WebViewClient {
             Injector injector) {
         mContext = context;
         mServicePackageName = servicePackageName;
-        for (Bid bid: slotResult.getWinningBids()) {
-            mBidsMap.put(bid.getBidId(), bid);
+        for (Bid bid: slotResult.getBids()) {
+            if (bid.isRendered()) {
+                mBidsMap.put(bid.getBidId(), bid);
+            }
         }
         mInjector = injector;
     }
