@@ -20,8 +20,8 @@ import android.annotation.NonNull;
 import android.app.Service;
 import android.content.Intent;
 import android.ondevicepersonalization.aidl.IDataAccessService;
-import android.ondevicepersonalization.aidl.IPersonalizationService;
-import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
+import android.ondevicepersonalization.aidl.IIsolatedComputationService;
+import android.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcelable;
@@ -39,8 +39,8 @@ import java.util.function.Consumer;
  *
  * @hide
  */
-public abstract class PersonalizationService extends Service {
-    private static final String TAG = "PersonalizationService";
+public abstract class IsolatedComputationService extends Service {
+    private static final String TAG = "IsolatedComputationService";
     private IBinder mBinder;
     @NonNull private final IsolatedComputationHandler mHandler = getHandler();
 
@@ -59,11 +59,11 @@ public abstract class PersonalizationService extends Service {
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
-    class ServiceBinder extends IPersonalizationService.Stub {
+    class ServiceBinder extends IIsolatedComputationService.Stub {
         @Override public void onRequest(
                 int operationCode,
                 @NonNull Bundle params,
-                @NonNull IPersonalizationServiceCallback callback) {
+                @NonNull IIsolatedComputationServiceCallback callback) {
             Objects.requireNonNull(params);
             Objects.requireNonNull(callback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
@@ -146,8 +146,8 @@ public abstract class PersonalizationService extends Service {
     }
 
     private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
-        @NonNull private final IPersonalizationServiceCallback mCallback;
-        WrappedCallback(IPersonalizationServiceCallback callback) {
+        @NonNull private final IIsolatedComputationServiceCallback mCallback;
+        WrappedCallback(IIsolatedComputationServiceCallback callback) {
             mCallback = Objects.requireNonNull(callback);
         }
 

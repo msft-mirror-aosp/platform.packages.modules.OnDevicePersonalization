@@ -21,7 +21,7 @@
                  android:debuggable="true">
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
-        <service android:name="com.android.odpsamplenetwork.SamplePersonalizationService"
+        <service android:name="com.android.odpsamplenetwork.SampleService"
                 android:exported="true" android:isolatedProcess="true" />
     </application>
 </manifest>
