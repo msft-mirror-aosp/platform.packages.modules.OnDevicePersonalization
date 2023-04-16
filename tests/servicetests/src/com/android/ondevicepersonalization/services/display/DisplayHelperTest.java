@@ -111,7 +111,7 @@ public class DisplayHelperTest {
         DisplayHelper displayHelper = new DisplayHelper(mContext);
         SurfaceView surfaceView = new SurfaceView(mContext);
         SlotResult slotResult = new SlotResult.Builder()
-                .setSlotId("slotId").setWinningBids(new ArrayList<>()).build();
+                .setSlotId("slotId").setBids(new ArrayList<>()).build();
         final DisplayManager dm = mContext.getSystemService(DisplayManager.class);
         final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
         final Context windowContext = mContext.createDisplayContext(primaryDisplay);
