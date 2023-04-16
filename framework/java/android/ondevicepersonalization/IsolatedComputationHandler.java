@@ -27,7 +27,7 @@ import java.util.function.Consumer;
 public interface IsolatedComputationHandler {
 
     /**
-     * Handle a request from an app. A {@link PersonalizationService} that
+     * Handle a request from an app. A {@link IsolatedComputationService} that
      * processes requests from apps must override this method.
      *
      * @param input App Request Parameters.
@@ -44,7 +44,7 @@ public interface IsolatedComputationHandler {
 
     /**
      * Handle a completed download. The platform downloads content using the
-     * parameters defined in the package manifest of the {@link PersonalizationService}
+     * parameters defined in the package manifest of the {@link IsolatedComputationService}
      * and calls this function after the download is complete.
      *
      * @param input Download handler parameters.

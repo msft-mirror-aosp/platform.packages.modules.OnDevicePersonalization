@@ -18,9 +18,9 @@ package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.ondevicepersonalization.PersonalizationService;
-import android.ondevicepersonalization.aidl.IPersonalizationService;
-import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
+import android.ondevicepersonalization.IsolatedComputationService;
+import android.ondevicepersonalization.aidl.IIsolatedComputationService;
+import android.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -77,15 +77,15 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             }
 
             Class<?> clazz = Class.forName(className, true, mClassLoader);
-            PersonalizationService personalizationService =
-                    (PersonalizationService) clazz.getDeclaredConstructor().newInstance();
+            IsolatedComputationService service =
+                    (IsolatedComputationService) clazz.getDeclaredConstructor().newInstance();
             // TODO(b/249345663): Set the 'Context' for the service.
-            personalizationService.onCreate();
-            IPersonalizationService binder =
-                    (IPersonalizationService) personalizationService.onBind(null);
+            service.onCreate();
+            IIsolatedComputationService binder =
+                    (IIsolatedComputationService) service.onBind(null);
 
             binder.onRequest(operation, serviceParams,
-                    new IPersonalizationServiceCallback.Stub() {
+                    new IIsolatedComputationServiceCallback.Stub() {
                         @Override public void onSuccess(Bundle result) {
                             try {
                                 mPluginCallback.onSuccess(result);

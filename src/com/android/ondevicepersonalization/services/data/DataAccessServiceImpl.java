@@ -60,8 +60,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         public EventUrlQueryData(long queryId, SlotResult slotResult) {
             mQueryId = queryId;
             mSlotId = slotResult.getSlotId();
-            for (Bid bid : slotResult.getWinningBids()) {
-                mBids.put(bid.getBidId(), bid);
+            for (Bid bid : slotResult.getBids()) {
+                if (bid.isRendered()) {
+                    mBids.put(bid.getBidId(), bid);
+                }
             }
         }
     }
@@ -311,16 +313,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     .setSlotIndex(0) // TODO(b/268718770): Add slot index.
                     .setBidId(bidId).build();
 
-            boolean needsMetrics = false;
-            for (int eventWithMetrics:
-                    mEventUrlQueryData.mBids.get(bidId).getEventsWithMetrics()) {
-                if (eventType == eventWithMetrics) {
-                    needsMetrics = true;
-                }
-            }
             EventUrlPayload payload =  new EventUrlPayload.Builder()
                     .setEvent(event)
-                    .setEventMetricsRequired(needsMetrics)
                     .build();
             String eventUrl;
             if (destinationUrl == null || destinationUrl.isEmpty()) {
