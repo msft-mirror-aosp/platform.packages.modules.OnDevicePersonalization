@@ -39,10 +39,14 @@ public final class SlotResult implements Parcelable {
     @NonNull private String mSlotId = "";
 
     /**
-     * A list of bids in this slot. These will all be logged and available for
-     * reporting and training.
+     * A list of keys in the REMOTE_DATA table that represent bids to be rendered
+     * in this slot.
      */
-    @Nullable private List<Bid> mBids = null;
+    @Nullable private List<String> mRenderedBidIds = null;
+    /**
+     * A list of bids with metrics to be logged in the QUERIES table.
+     */
+    @Nullable private List<Bid> mLoggedBids = null;
 
 
 
@@ -62,11 +66,13 @@ public final class SlotResult implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ SlotResult(
             @NonNull String slotId,
-            @Nullable List<Bid> bids) {
+            @Nullable List<String> renderedBidIds,
+            @Nullable List<Bid> loggedBids) {
         this.mSlotId = slotId;
         AnnotationValidations.validate(
                 NonNull.class, null, mSlotId);
-        this.mBids = bids;
+        this.mRenderedBidIds = renderedBidIds;
+        this.mLoggedBids = loggedBids;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -81,12 +87,20 @@ public final class SlotResult implements Parcelable {
     }
 
     /**
-     * A list of bids in this slot. These will all be logged and available for
-     * reporting and training.
+     * A list of keys in the REMOTE_DATA table that represent bids to be rendered
+     * in this slot.
      */
     @DataClass.Generated.Member
-    public @Nullable List<Bid> getBids() {
-        return mBids;
+    public @Nullable List<String> getRenderedBidIds() {
+        return mRenderedBidIds;
+    }
+
+    /**
+     * A list of bids with metrics to be logged in the QUERIES table.
+     */
+    @DataClass.Generated.Member
+    public @Nullable List<Bid> getLoggedBids() {
+        return mLoggedBids;
     }
 
     @Override
@@ -103,7 +117,8 @@ public final class SlotResult implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mSlotId, that.mSlotId)
-                && java.util.Objects.equals(mBids, that.mBids);
+                && java.util.Objects.equals(mRenderedBidIds, that.mRenderedBidIds)
+                && java.util.Objects.equals(mLoggedBids, that.mLoggedBids);
     }
 
     @Override
@@ -114,7 +129,8 @@ public final class SlotResult implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mSlotId);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mBids);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderedBidIds);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mLoggedBids);
         return _hash;
     }
 
@@ -125,10 +141,12 @@ public final class SlotResult implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mBids != null) flg |= 0x2;
+        if (mRenderedBidIds != null) flg |= 0x2;
+        if (mLoggedBids != null) flg |= 0x4;
         dest.writeByte(flg);
         dest.writeString(mSlotId);
-        if (mBids != null) dest.writeParcelableList(mBids, flags);
+        if (mRenderedBidIds != null) dest.writeStringList(mRenderedBidIds);
+        if (mLoggedBids != null) dest.writeParcelableList(mLoggedBids, flags);
     }
 
     @Override
@@ -144,16 +162,22 @@ public final class SlotResult implements Parcelable {
 
         byte flg = in.readByte();
         String slotId = in.readString();
-        List<Bid> bids = null;
+        List<String> renderedBidIds = null;
         if ((flg & 0x2) != 0) {
-            bids = new java.util.ArrayList<>();
-            in.readParcelableList(bids, Bid.class.getClassLoader());
+            renderedBidIds = new java.util.ArrayList<>();
+            in.readStringList(renderedBidIds);
+        }
+        List<Bid> loggedBids = null;
+        if ((flg & 0x4) != 0) {
+            loggedBids = new java.util.ArrayList<>();
+            in.readParcelableList(loggedBids, Bid.class.getClassLoader());
         }
 
         this.mSlotId = slotId;
         AnnotationValidations.validate(
                 NonNull.class, null, mSlotId);
-        this.mBids = bids;
+        this.mRenderedBidIds = renderedBidIds;
+        this.mLoggedBids = loggedBids;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -180,7 +204,8 @@ public final class SlotResult implements Parcelable {
     public static final class Builder {
 
         private @NonNull String mSlotId;
-        private @Nullable List<Bid> mBids;
+        private @Nullable List<String> mRenderedBidIds;
+        private @Nullable List<Bid> mLoggedBids;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -200,47 +225,73 @@ public final class SlotResult implements Parcelable {
         }
 
         /**
-         * A list of bids in this slot. These will all be logged and available for
-         * reporting and training.
+         * A list of keys in the REMOTE_DATA table that represent bids to be rendered
+         * in this slot.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setBids(@NonNull List<Bid> value) {
+        public @NonNull Builder setRenderedBidIds(@NonNull List<String> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mBids = value;
+            mRenderedBidIds = value;
             return this;
         }
 
-        /** @see #setBids */
+        /** @see #setRenderedBidIds */
         @DataClass.Generated.Member
-        public @NonNull Builder addBids(@NonNull Bid value) {
+        public @NonNull Builder addRenderedBidIds(@NonNull String value) {
             // You can refine this method's name by providing item's singular name, e.g.:
             // @DataClass.PluralOf("item")) mItems = ...
 
-            if (mBids == null) setBids(new java.util.ArrayList<>());
-            mBids.add(value);
+            if (mRenderedBidIds == null) setRenderedBidIds(new java.util.ArrayList<>());
+            mRenderedBidIds.add(value);
+            return this;
+        }
+
+        /**
+         * A list of bids with metrics to be logged in the QUERIES table.
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setLoggedBids(@NonNull List<Bid> value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mLoggedBids = value;
+            return this;
+        }
+
+        /** @see #setLoggedBids */
+        @DataClass.Generated.Member
+        public @NonNull Builder addLoggedBids(@NonNull Bid value) {
+            // You can refine this method's name by providing item's singular name, e.g.:
+            // @DataClass.PluralOf("item")) mItems = ...
+
+            if (mLoggedBids == null) setLoggedBids(new java.util.ArrayList<>());
+            mLoggedBids.add(value);
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull SlotResult build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mSlotId = "";
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mBids = null;
+                mRenderedBidIds = null;
+            }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mLoggedBids = null;
             }
             SlotResult o = new SlotResult(
                     mSlotId,
-                    mBids);
+                    mRenderedBidIds,
+                    mLoggedBids);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -248,10 +299,10 @@ public final class SlotResult implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1681414342858L,
+            time = 1681844661327L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/SlotResult.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mSlotId\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.Bid> mBids\nclass SlotResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mSlotId\nprivate @android.annotation.Nullable java.util.List<java.lang.String> mRenderedBidIds\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.Bid> mLoggedBids\nclass SlotResult extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
