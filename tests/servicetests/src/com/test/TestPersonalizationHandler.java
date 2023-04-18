@@ -76,11 +76,11 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
         Log.d(TAG, "onAppRequest() started.");
         ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(new SlotResult.Builder()
-                        .setSlotId("slot_id")
-                        .addRenderedBidIds("bid1")
+                        .setSlotKey("slot_id")
+                        .addRenderedBidKeys("bid1")
                         .addLoggedBids(
                             new Bid.Builder()
-                                .setBidId("bid1")
+                                .setKey("bid1")
                                 .setMetrics(new Metrics.Builder()
                                     .setDoubleValues(5.0, 1.0)
                                     .build())
@@ -98,7 +98,7 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
         Log.d(TAG, "renderContent() started.");
         RenderOutput result =
                 new RenderOutput.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
+                .setContent("<p>RenderResult: " + String.join(",", input.getBidKeys()) + "<p>")
                 .build();
         consumer.accept(result);
     }
