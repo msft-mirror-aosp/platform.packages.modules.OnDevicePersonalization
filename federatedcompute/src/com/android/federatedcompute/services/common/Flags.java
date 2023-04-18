@@ -58,6 +58,18 @@ public interface Flags {
         return TRAINING_SERVICE_RESULT_CALLBACK_TIMEOUT_SEC;
     }
 
+    float TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT = 0.2f;
+
+    default float getTransientErrorRetryDelayJitterPercent() {
+        return TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT;
+    }
+
+    long TRANSIENT_ERROR_RETRY_DELAY_SECS = 15 * 60; // 15 minutes
+
+    default long getTransientErrorRetryDelaySecs() {
+        return TRANSIENT_ERROR_RETRY_DELAY_SECS;
+    }
+
     /** Flags for {@link FederatedExampleIterator}. */
     long APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS = 30;
 
