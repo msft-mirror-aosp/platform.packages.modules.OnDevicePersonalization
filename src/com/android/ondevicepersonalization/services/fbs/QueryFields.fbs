@@ -7,12 +7,12 @@ table QueryFields {
 }
 
 table Slot {
-    id:string;
+    key:string;
     bids:[Bid];
 }
 
 table Bid {
-    id:string;
+    key:string;
     metrics:Metrics;
 }
 

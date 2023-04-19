@@ -48,7 +48,7 @@ public class OnDevicePersonalizationFlatbufferUtils {
             int[] slots = new int[slotResults.size()];
             for (int i = 0; i < slotResults.size(); i++) {
                 SlotResult slotResult = slotResults.get(i);
-                int slotIdOffset = builder.createString(slotResult.getSlotId());
+                int slotKeyOffset = builder.createString(slotResult.getSlotKey());
 
                 int bidsOffset = 0;
                 if (slotResult.getLoggedBids() != null) {
@@ -56,7 +56,7 @@ public class OnDevicePersonalizationFlatbufferUtils {
                 }
 
                 Slot.startSlot(builder);
-                Slot.addId(builder, slotIdOffset);
+                Slot.addKey(builder, slotKeyOffset);
                 Slot.addBids(builder, bidsOffset);
                 slots[i] = Slot.endSlot(builder);
             }
@@ -91,13 +91,13 @@ public class OnDevicePersonalizationFlatbufferUtils {
         int[] loggedBids = new int[bids.size()];
         for (int i = 0; i < bids.size(); i++) {
             android.ondevicepersonalization.Bid bid = bids.get(i);
-            int bidIdOffset = builder.createString(bid.getBidId());
+            int bidKeyOffset = builder.createString(bid.getKey());
             int metricsOffset = 0;
             if (bid.getMetrics() != null) {
                 metricsOffset = createMetrics(builder, bid.getMetrics());
             }
             Bid.startBid(builder);
-            Bid.addId(builder, bidIdOffset);
+            Bid.addKey(builder, bidKeyOffset);
             Bid.addMetrics(builder, metricsOffset);
             loggedBids[i] = Bid.endBid(builder);
         }
