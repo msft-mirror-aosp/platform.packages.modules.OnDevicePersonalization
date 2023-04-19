@@ -27,7 +27,7 @@
     <application android:label="FederatedComputeServicesTests"
                  android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
-        <service android:name="com.android.federatedcompute.services.training.TrainingJobService"
+        <service android:name="com.android.federatedcompute.services.training.FederatedJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
