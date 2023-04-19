@@ -24,6 +24,7 @@ import android.ondevicepersonalization.SlotResult;
 
 import com.android.ondevicepersonalization.services.fbs.Bid;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
+import com.android.ondevicepersonalization.services.fbs.QueryData;
 import com.android.ondevicepersonalization.services.fbs.QueryFields;
 import com.android.ondevicepersonalization.services.fbs.Slot;
 
@@ -69,18 +70,22 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
 
     @Test
     public void testCreateQueryDataNullSlotResults() {
-        ExecuteOutput selectContentResult = new ExecuteOutput.Builder().setSlotResults(
+        ExecuteOutput result = new ExecuteOutput.Builder().setSlotResults(
                 null).build();
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                selectContentResult);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                null, null, result);
 
-        QueryFields queryFields = QueryFields.getRootAsQueryFields(ByteBuffer.wrap(queryData));
+        QueryData queryData = QueryData.getRootAsQueryData(ByteBuffer.wrap(queryDataBytes));
+        assertEquals(1, queryData.queryFieldsLength());
+        QueryFields queryFields = queryData.queryFields(0);
+        assertEquals(null, queryFields.owner().packageName());
+        assertEquals(null, queryFields.owner().certDigest());
         assertEquals(0, queryFields.slotsLength());
     }
 
     @Test
     public void testCreateQueryData() {
-        ExecuteOutput selectContentResult = new ExecuteOutput.Builder()
+        ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(
                         new SlotResult.Builder()
                                 .setSlotKey("abc")
@@ -97,10 +102,14 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
                                                 .build())
                                 .build())
                 .build();
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                selectContentResult);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                "testPackage", "testCert", result);
 
-        QueryFields queryFields = QueryFields.getRootAsQueryFields(ByteBuffer.wrap(queryData));
+        QueryData queryData = QueryData.getRootAsQueryData(ByteBuffer.wrap(queryDataBytes));
+        assertEquals(1, queryData.queryFieldsLength());
+        QueryFields queryFields = queryData.queryFields(0);
+        assertEquals("testPackage", queryFields.owner().packageName());
+        assertEquals("testCert", queryFields.owner().certDigest());
         assertEquals(1, queryFields.slotsLength());
         Slot slot = queryFields.slots(0);
         assertEquals("abc", slot.key());
