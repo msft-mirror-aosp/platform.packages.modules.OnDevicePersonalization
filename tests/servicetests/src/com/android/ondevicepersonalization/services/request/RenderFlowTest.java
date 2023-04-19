@@ -84,7 +84,8 @@ public class RenderFlowTest {
                 injector.getExecutor());
         SlotResult slotResult =
                 new SlotResult.Builder()
-                        .addBids(new Bid.Builder().setBidId("bid1").setRendered(true).build())
+                        .addRenderedBidIds("bid1")
+                        .addLoggedBids(new Bid.Builder().setBidId("bid1").build())
                         .build();
         SlotRenderingData data = new SlotRenderingData(
                 slotResult, mContext.getPackageName(), 0);
@@ -104,8 +105,9 @@ public class RenderFlowTest {
             if (token.equals("token")) {
                 SlotResult slotResult =
                         new SlotResult.Builder()
-                        .addBids(new Bid.Builder().setBidId("bid1").setRendered(true).build())
-                        .addBids(new Bid.Builder().setBidId("bid2").build())
+                        .addRenderedBidIds("bid1")
+                        .addLoggedBids(new Bid.Builder().setBidId("bid1").build())
+                        .addLoggedBids(new Bid.Builder().setBidId("bid2").build())
                         .build();
                 SlotRenderingData data = new SlotRenderingData(
                         slotResult, mContext.getPackageName(), 0);
