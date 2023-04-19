@@ -182,17 +182,14 @@ public class SampleHandler implements IsolatedComputationHandler {
     private ExecuteOutput buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
         PersistableBundle eventParams = new PersistableBundle();
-        // Duplicate ad price in event parameters.
-        // TODO(b/259950177): Update cost raising API to provide query/bid
-        // during cost raising, then remove this workaround.
         eventParams.putDouble(BID_PRICE_KEY, ad.mPrice);
         return new ExecuteOutput.Builder()
                 .addSlotResults(
                     new SlotResult.Builder()
-                        .addBids(
+                        .addRenderedBidIds(ad.mId)
+                        .addLoggedBids(
                             new Bid.Builder()
                                 .setBidId(ad.mId)
-                                .setRendered(true)
                                 .setMetrics(createMetrics(ad.mPrice, ad.mPrice * 10))
                                 .build())
                         .build())
