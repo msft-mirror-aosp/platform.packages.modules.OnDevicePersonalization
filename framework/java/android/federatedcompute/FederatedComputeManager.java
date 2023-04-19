@@ -48,7 +48,7 @@ import java.util.concurrent.Executor;
  *
  * @hide
  */
-final class FederatedComputeManager {
+public final class FederatedComputeManager {
     private static final String TAG = "FederatedComputeManager";
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
