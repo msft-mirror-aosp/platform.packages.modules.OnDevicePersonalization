@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
 import android.content.Context;
-import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
@@ -46,7 +45,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -176,13 +174,8 @@ public class RenderFlow {
                     new SlotInfo.Builder()
                             .setHeight(mHeight)
                             .setWidth(mWidth).build();
-            List<String> bidIds = new ArrayList<String>();
-            for (Bid bid : slotResult.getBids()) {
-                if (bid.isRendered()) {
-                    bidIds.add(Objects.requireNonNull(bid.getBidId()));
-                }
-            }
-            if (bidIds.isEmpty()) {
+            List<String> bidIds = slotResult.getRenderedBidIds();
+            if (bidIds == null || bidIds.isEmpty()) {
                 return Futures.immediateFailedFuture(new IllegalArgumentException("No bids"));
             }
 
