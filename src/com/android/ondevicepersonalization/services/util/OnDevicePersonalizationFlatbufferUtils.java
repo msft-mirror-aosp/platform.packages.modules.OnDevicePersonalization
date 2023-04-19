@@ -51,8 +51,8 @@ public class OnDevicePersonalizationFlatbufferUtils {
                 int slotIdOffset = builder.createString(slotResult.getSlotId());
 
                 int bidsOffset = 0;
-                if (slotResult.getBids() != null) {
-                    bidsOffset = createBidVector(builder, slotResult.getBids());
+                if (slotResult.getLoggedBids() != null) {
+                    bidsOffset = createBidVector(builder, slotResult.getLoggedBids());
                 }
 
                 Slot.startSlot(builder);
@@ -98,7 +98,6 @@ public class OnDevicePersonalizationFlatbufferUtils {
             }
             Bid.startBid(builder);
             Bid.addId(builder, bidIdOffset);
-            Bid.addRendered(builder, bid.isRendered());
             Bid.addMetrics(builder, metricsOffset);
             loggedBids[i] = Bid.endBid(builder);
         }
@@ -116,9 +115,15 @@ public class OnDevicePersonalizationFlatbufferUtils {
             floatValuesOffset = Metrics.createDoubleValuesVector(
                     builder, metrics.getDoubleValues());
         }
+        int booleanValuesOffset = 0;
+        if (metrics.getBooleanValues() != null) {
+            booleanValuesOffset = Metrics.createBooleanValuesVector(
+                    builder, metrics.getBooleanValues());
+        }
         Metrics.startMetrics(builder);
         Metrics.addLongValues(builder, intValuesOffset);
         Metrics.addDoubleValues(builder, floatValuesOffset);
+        Metrics.addBooleanValues(builder, booleanValuesOffset);
         return Metrics.endMetrics(builder);
     }
 }
