@@ -92,8 +92,8 @@ public class IsolatedComputationServiceTest {
         assertTrue(mSelectContentCalled);
         ExecuteOutput result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutput.class);
-        assertEquals("123", result.getSlotResults().get(0).getBids().get(0).getBidId());
-        assertEquals(true, result.getSlotResults().get(0).getBids().get(0).isRendered());
+        assertEquals("123", result.getSlotResults().get(0).getLoggedBids().get(0).getBidId());
+        assertEquals("123", result.getSlotResults().get(0).getRenderedBidIds().get(0));
     }
 
     @Test
@@ -470,10 +470,10 @@ public class IsolatedComputationServiceTest {
                         new ExecuteOutput.Builder()
                         .addSlotResults(
                             new SlotResult.Builder()
-                                .addBids(
+                                .addRenderedBidIds("123")
+                                .addLoggedBids(
                                     new Bid.Builder()
                                     .setBidId("123")
-                                    .setRendered(true)
                                     .build()
                                 )
                                 .build()
