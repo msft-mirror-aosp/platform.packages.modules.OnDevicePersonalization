@@ -92,8 +92,8 @@ public class IsolatedComputationServiceTest {
         assertTrue(mSelectContentCalled);
         ExecuteOutput result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutput.class);
-        assertEquals("123", result.getSlotResults().get(0).getLoggedBids().get(0).getBidId());
-        assertEquals("123", result.getSlotResults().get(0).getRenderedBidIds().get(0));
+        assertEquals("123", result.getSlotResults().get(0).getLoggedBids().get(0).getKey());
+        assertEquals("123", result.getSlotResults().get(0).getRenderedBidKeys().get(0));
     }
 
     @Test
@@ -272,8 +272,8 @@ public class IsolatedComputationServiceTest {
                 .setSlotInfo(
                     new SlotInfo.Builder().build()
                 )
-                .addBidIds("a")
-                .addBidIds("b")
+                .addBidKeys("a")
+                .addBidKeys("b")
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -294,7 +294,7 @@ public class IsolatedComputationServiceTest {
                 .setSlotInfo(
                     new SlotInfo.Builder().build()
                 )
-                .addBidIds("z")  // Trigger error in service.
+                .addBidKeys("z")  // Trigger error in service.
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -337,8 +337,8 @@ public class IsolatedComputationServiceTest {
                 .setSlotInfo(
                     new SlotInfo.Builder().build()
                 )
-                .addBidIds("a")
-                .addBidIds("b")
+                .addBidKeys("a")
+                .addBidKeys("b")
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -358,8 +358,8 @@ public class IsolatedComputationServiceTest {
                 .setSlotInfo(
                     new SlotInfo.Builder().build()
                 )
-                .addBidIds("a")
-                .addBidIds("b")
+                .addBidKeys("a")
+                .addBidKeys("b")
                 .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -470,10 +470,10 @@ public class IsolatedComputationServiceTest {
                         new ExecuteOutput.Builder()
                         .addSlotResults(
                             new SlotResult.Builder()
-                                .addRenderedBidIds("123")
+                                .addRenderedBidKeys("123")
                                 .addLoggedBids(
                                     new Bid.Builder()
-                                    .setBidId("123")
+                                    .setKey("123")
                                     .build()
                                 )
                                 .build()
@@ -497,7 +497,7 @@ public class IsolatedComputationServiceTest {
                 Consumer<RenderOutput> consumer
         ) {
             mRenderContentCalled = true;
-            if (input.getBidIds().size() >= 1 && input.getBidIds().get(0).equals("z")) {
+            if (input.getBidKeys().size() >= 1 && input.getBidKeys().get(0).equals("z")) {
                 consumer.accept(null);
             } else {
                 consumer.accept(
