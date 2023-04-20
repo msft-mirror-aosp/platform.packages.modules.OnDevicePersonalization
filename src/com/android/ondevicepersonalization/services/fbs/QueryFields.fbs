@@ -13,7 +13,6 @@ table Slot {
 
 table Bid {
     id:string;
-    rendered:bool;
     metrics:Metrics;
 }
 

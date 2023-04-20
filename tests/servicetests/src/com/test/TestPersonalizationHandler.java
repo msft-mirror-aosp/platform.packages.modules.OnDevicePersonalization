@@ -77,10 +77,10 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
         ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(new SlotResult.Builder()
                         .setSlotId("slot_id")
-                        .addBids(
+                        .addRenderedBidIds("bid1")
+                        .addLoggedBids(
                             new Bid.Builder()
                                 .setBidId("bid1")
-                                .setRendered(true)
                                 .setMetrics(new Metrics.Builder()
                                     .setDoubleValues(5.0, 1.0)
                                     .build())
