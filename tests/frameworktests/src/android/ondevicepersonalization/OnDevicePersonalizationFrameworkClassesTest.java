@@ -41,17 +41,17 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         ExecuteOutput result =
                 new ExecuteOutput.Builder()
                     .addSlotResults(
-                        new SlotResult.Builder().setSlotId("abc")
-                            .addRenderedBidIds("bid1")
+                        new SlotResult.Builder().setSlotKey("abc")
+                            .addRenderedBidKeys("bid1")
                             .addLoggedBids(
                                 new Bid.Builder()
-                                    .setBidId("bid1")
+                                    .setKey("bid1")
                                     .setMetrics(new Metrics.Builder()
                                         .setLongValues(11).build())
                                     .build())
                             .addLoggedBids(
                                 new Bid.Builder()
-                                    .setBidId("bid2")
+                                    .setKey("bid2")
                                     .build())
                             .build())
                     .build();
@@ -62,11 +62,11 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         ExecuteOutput result2 = ExecuteOutput.CREATOR.createFromParcel(parcel);
 
         SlotResult slotResult = result2.getSlotResults().get(0);
-        assertEquals("abc", slotResult.getSlotId());
-        assertEquals("bid1", slotResult.getLoggedBids().get(0).getBidId());
-        assertEquals("bid1", slotResult.getRenderedBidIds().get(0));
+        assertEquals("abc", slotResult.getSlotKey());
+        assertEquals("bid1", slotResult.getLoggedBids().get(0).getKey());
+        assertEquals("bid1", slotResult.getRenderedBidKeys().get(0));
         assertEquals(11, slotResult.getLoggedBids().get(0).getMetrics().getLongValues()[0]);
-        assertEquals("bid2", slotResult.getLoggedBids().get(1).getBidId());
+        assertEquals("bid2", slotResult.getLoggedBids().get(1).getKey());
     }
 
     /**
@@ -153,7 +153,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         params.putInt("x", 3);
         EventInput result = new EventInput.Builder()
                 .setEventType(6)
-                .setBid(new Bid.Builder().setBidId("a").build())
+                .setBid(new Bid.Builder().setKey("a").build())
                 .build();
 
         Parcel parcel = Parcel.obtain();
@@ -162,7 +162,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         EventInput result2 = EventInput.CREATOR.createFromParcel(parcel);
 
         assertEquals(6, result2.getEventType());
-        assertEquals("a", result2.getBid().getBidId());
+        assertEquals("a", result2.getBid().getKey());
     }
 
     /**
