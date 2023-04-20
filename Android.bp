@@ -90,6 +90,7 @@ android_app {
     libs: [
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
     ],
