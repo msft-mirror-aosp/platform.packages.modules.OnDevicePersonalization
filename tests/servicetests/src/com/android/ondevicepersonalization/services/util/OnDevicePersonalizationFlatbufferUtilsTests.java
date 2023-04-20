@@ -40,7 +40,11 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
 
     @Test
     public void testCreateEventData() {
-        Metrics metrics = new Metrics.Builder().setLongValues(1, 2).setDoubleValues(1, 2).build();
+        Metrics metrics = new Metrics.Builder()
+                        .setLongValues(1, 2)
+                        .setDoubleValues(1, 2)
+                        .setBooleanValues(true, false)
+                        .build();
         byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(metrics);
 
         EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(eventData));
@@ -50,6 +54,9 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
         assertEquals(2, eventFields.metrics().doubleValuesLength());
         assertEquals(1, eventFields.metrics().doubleValues(0), DELTA);
         assertEquals(2, eventFields.metrics().doubleValues(1), DELTA);
+        assertEquals(2, eventFields.metrics().booleanValuesLength());
+        assertEquals(true, eventFields.metrics().booleanValues(0));
+        assertEquals(false, eventFields.metrics().booleanValues(1));
     }
 
     @Test
@@ -77,14 +84,14 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
                 .addSlotResults(
                         new SlotResult.Builder()
                                 .setSlotId("abc")
-                                .addBids(
+                                .addRenderedBidIds("bid1")
+                                .addLoggedBids(
                                         new android.ondevicepersonalization.Bid.Builder()
                                                 .setBidId("bid1")
-                                                .setRendered(true)
                                                 .setMetrics(new Metrics.Builder()
                                                         .setLongValues(11).build())
                                                 .build())
-                                .addBids(
+                                .addLoggedBids(
                                         new android.ondevicepersonalization.Bid.Builder()
                                                 .setBidId("bid2")
                                                 .build())
@@ -100,13 +107,11 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
         assertEquals(2, slot.bidsLength());
         Bid winningBid = slot.bids(0);
         assertEquals("bid1", winningBid.id());
-        assertEquals(true, winningBid.rendered());
         assertEquals(11, winningBid.metrics().longValues(0));
         assertEquals(0, winningBid.metrics().doubleValuesLength());
 
         Bid rejectedBid = slot.bids(1);
         assertEquals("bid2", rejectedBid.id());
-        assertEquals(false, rejectedBid.rendered());
         assertEquals(null, rejectedBid.metrics());
     }
 }

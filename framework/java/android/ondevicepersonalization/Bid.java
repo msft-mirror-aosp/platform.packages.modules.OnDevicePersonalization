@@ -37,11 +37,6 @@ public final class Bid implements Parcelable {
     @NonNull private String mBidId = "";
 
     /**
-     * If true, the bid will be included in the rendered HTML output.
-     */
-    private boolean mRendered = false;
-
-    /**
      * The query level metrics to be logged.
      */
     @Nullable private Metrics mMetrics = null;
@@ -64,12 +59,10 @@ public final class Bid implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ Bid(
             @NonNull String bidId,
-            boolean rendered,
             @Nullable Metrics metrics) {
         this.mBidId = bidId;
         AnnotationValidations.validate(
                 NonNull.class, null, mBidId);
-        this.mRendered = rendered;
         this.mMetrics = metrics;
 
         // onConstructed(); // You can define this method to get a callback
@@ -82,14 +75,6 @@ public final class Bid implements Parcelable {
     @DataClass.Generated.Member
     public @NonNull String getBidId() {
         return mBidId;
-    }
-
-    /**
-     * If true, the bid will be included in the rendered HTML output.
-     */
-    @DataClass.Generated.Member
-    public boolean isRendered() {
-        return mRendered;
     }
 
     /**
@@ -114,7 +99,6 @@ public final class Bid implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mBidId, that.mBidId)
-                && mRendered == that.mRendered
                 && java.util.Objects.equals(mMetrics, that.mMetrics);
     }
 
@@ -126,7 +110,6 @@ public final class Bid implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mBidId);
-        _hash = 31 * _hash + Boolean.hashCode(mRendered);
         _hash = 31 * _hash + java.util.Objects.hashCode(mMetrics);
         return _hash;
     }
@@ -138,8 +121,7 @@ public final class Bid implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mRendered) flg |= 0x2;
-        if (mMetrics != null) flg |= 0x4;
+        if (mMetrics != null) flg |= 0x2;
         dest.writeByte(flg);
         dest.writeString(mBidId);
         if (mMetrics != null) dest.writeTypedObject(mMetrics, flags);
@@ -157,14 +139,12 @@ public final class Bid implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        boolean rendered = (flg & 0x2) != 0;
         String bidId = in.readString();
-        Metrics metrics = (flg & 0x4) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
+        Metrics metrics = (flg & 0x2) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
 
         this.mBidId = bidId;
         AnnotationValidations.validate(
                 NonNull.class, null, mBidId);
-        this.mRendered = rendered;
         this.mMetrics = metrics;
 
         // onConstructed(); // You can define this method to get a callback
@@ -192,7 +172,6 @@ public final class Bid implements Parcelable {
     public static final class Builder {
 
         private @NonNull String mBidId;
-        private boolean mRendered;
         private @Nullable Metrics mMetrics;
 
         private long mBuilderFieldsSet = 0L;
@@ -213,23 +192,12 @@ public final class Bid implements Parcelable {
         }
 
         /**
-         * If true, the bid will be included in the rendered HTML output.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setRendered(boolean value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mRendered = value;
-            return this;
-        }
-
-        /**
          * The query level metrics to be logged.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setMetrics(@NonNull Metrics value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x2;
             mMetrics = value;
             return this;
         }
@@ -237,26 +205,22 @@ public final class Bid implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull Bid build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8; // Mark builder used
+            mBuilderFieldsSet |= 0x4; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mBidId = "";
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mRendered = false;
-            }
-            if ((mBuilderFieldsSet & 0x4) == 0) {
                 mMetrics = null;
             }
             Bid o = new Bid(
                     mBidId,
-                    mRendered,
                     mMetrics);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x8) != 0) {
+            if ((mBuilderFieldsSet & 0x4) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -264,10 +228,10 @@ public final class Bid implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1681419018828L,
+            time = 1681840636575L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Bid.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate  boolean mRendered\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass Bid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mBidId\nprivate @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass Bid extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
