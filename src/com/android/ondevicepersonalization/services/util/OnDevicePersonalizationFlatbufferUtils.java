@@ -22,6 +22,8 @@ import android.ondevicepersonalization.SlotResult;
 import com.android.ondevicepersonalization.services.fbs.Bid;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
 import com.android.ondevicepersonalization.services.fbs.Metrics;
+import com.android.ondevicepersonalization.services.fbs.Owner;
+import com.android.ondevicepersonalization.services.fbs.QueryData;
 import com.android.ondevicepersonalization.services.fbs.QueryFields;
 import com.android.ondevicepersonalization.services.fbs.Slot;
 
@@ -39,12 +41,14 @@ public class OnDevicePersonalizationFlatbufferUtils {
     /**
      * Creates a byte array representing the QueryData as a flatbuffer
      */
-    public static byte[] createQueryData(ExecuteOutput selectContentResult) {
+    public static byte[] createQueryData(
+            String servicePackageName, String certDigest, ExecuteOutput executeOutput) {
         FlatBufferBuilder builder = new FlatBufferBuilder();
+        int ownerOffset = createOwner(builder, servicePackageName, certDigest);
         int slotsOffset = 0;
-        if (selectContentResult.getSlotResults() != null) {
+        if (executeOutput.getSlotResults() != null) {
             // Create slots vector
-            List<SlotResult> slotResults = selectContentResult.getSlotResults();
+            List<SlotResult> slotResults = executeOutput.getSlotResults();
             int[] slots = new int[slotResults.size()];
             for (int i = 0; i < slotResults.size(); i++) {
                 SlotResult slotResult = slotResults.get(i);
@@ -63,9 +67,15 @@ public class OnDevicePersonalizationFlatbufferUtils {
             slotsOffset = QueryFields.createSlotsVector(builder, slots);
         }
         QueryFields.startQueryFields(builder);
+        QueryFields.addOwner(builder, ownerOffset);
         QueryFields.addSlots(builder, slotsOffset);
-        int queryFieldOffset = QueryFields.endQueryFields(builder);
-        builder.finish(queryFieldOffset);
+        int[] queryFieldsOffset = new int[1];
+        queryFieldsOffset[0] = QueryFields.endQueryFields(builder);
+        int queryFieldsListOffset = QueryData.createQueryFieldsVector(builder, queryFieldsOffset);
+        QueryData.startQueryData(builder);
+        QueryData.addQueryFields(builder, queryFieldsListOffset);
+        int queryDataOffset = QueryData.endQueryData(builder);
+        builder.finish(queryDataOffset);
         return builder.sizedByteArray();
     }
 
@@ -83,6 +93,24 @@ public class OnDevicePersonalizationFlatbufferUtils {
         int eventFieldsOffset = EventFields.endEventFields(builder);
         builder.finish(eventFieldsOffset);
         return builder.sizedByteArray();
+    }
+
+    private static int createOwner(
+            FlatBufferBuilder builder,
+            String packageName,
+            String certDigest) {
+        int packageNameOffset = 0;
+        if (packageName != null) {
+            packageNameOffset = builder.createString(packageName);
+        }
+        int certDigestOffset = 0;
+        if (certDigest != null) {
+            certDigestOffset = builder.createString(certDigest);
+        }
+        Owner.startOwner(builder);
+        Owner.addPackageName(builder, packageNameOffset);
+        Owner.addCertDigest(builder, certDigestOffset);
+        return Owner.endOwner(builder);
     }
 
     private static int createBidVector(
