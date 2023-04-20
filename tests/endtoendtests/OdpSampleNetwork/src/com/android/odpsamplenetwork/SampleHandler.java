@@ -186,10 +186,10 @@ public class SampleHandler implements IsolatedComputationHandler {
         return new ExecuteOutput.Builder()
                 .addSlotResults(
                     new SlotResult.Builder()
-                        .addRenderedBidIds(ad.mId)
+                        .addRenderedBidKeys(ad.mId)
                         .addLoggedBids(
                             new Bid.Builder()
-                                .setBidId(ad.mId)
+                                .setKey(ad.mId)
                                 .setMetrics(createMetrics(ad.mPrice, ad.mPrice * 10))
                                 .build())
                         .build())
@@ -292,7 +292,7 @@ public class SampleHandler implements IsolatedComputationHandler {
     ) {
         try {
             Log.d(TAG, "handleOnRender() started.");
-            String id = input.getBidIds().get(0);
+            String id = input.getBidKeys().get(0);
             var adFuture = readAd(id, odpContext.getRemoteData());
             var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, id, "", odpContext);
             var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(

@@ -176,7 +176,9 @@ public class AppRequestFlow {
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {
         Log.d(TAG, "logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(result);
+        // TODO(b/259950173): Add certDigest to queryData.
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                mServicePackageName, null, result);
         Query query = new Query.Builder()
                 .setServicePackageName(mServicePackageName)
                 .setQueryData(queryData)
