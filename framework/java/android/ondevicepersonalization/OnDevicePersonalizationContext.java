@@ -30,9 +30,15 @@ import java.util.concurrent.Executor;
 public interface OnDevicePersonalizationContext {
     /**
      * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link RemoteData} object that provides access to the REMOTE_DATA table.
+     * @return A {@link ImmutableMap} object that provides access to the REMOTE_DATA table.
      */
-    @NonNull RemoteData getRemoteData();
+    @NonNull ImmutableMap getRemoteData();
+
+    /**
+     * Returns a DAO for the LOCAL_DATA table.
+     * @return A {@link MutableMap} object that provides access to the LOCAL_DATA table.
+     */
+    @NonNull MutableMap getLocalData();
 
     /** Return an Event URL for a single bid. */
     void getEventUrl(

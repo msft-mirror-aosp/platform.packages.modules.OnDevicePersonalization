@@ -25,15 +25,18 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Slog;
 import android.view.SurfaceControlViewHost;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -81,7 +84,7 @@ public class OnDevicePersonalizationManager {
     /**
      * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
      * its value should define a {@link PersistableBundle} that is passed to the
-     * {@link PersonalizationService}.
+     * {@link IsolatedComputationService}.
      */
     public static final String EXTRA_APP_PARAMS =
             "android.ondevicepersonalization.extra.APP_PARAMS";
@@ -142,11 +145,69 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Requests a surface package from an {@link PersonalizationService} running in the
-     * OnDevicePersonalization sandbox.
+     * Executes a {@link IsolatedComputationHandler} in the OnDevicePersonalization sandbox.
      *
-     * @param servicePackageName name of the {@link PersonalizationService} that will handle the
-     *     request.
+     * @param servicePackageName The name of the package containing the handler.
+     * @param params a {@link PersistableBundle} passed from the calling app to the handler.
+     * @param executor the {@link Executor} on which to invoke the callback
+     * @param receiver This returns a list of {@link SlotResultHandle} objects, each of which is an
+     *     opaque reference to a {@link SlotResult} returned by a
+     *     {@link IsolatedComputationHandler}, or an {@link Exception} on failure. The returned
+     *     {@link SlotResultHandle} objects can be used in a subsequent
+     *     {@link requestSurfacePackage} call to display the result in a view.
+     */
+    public void execute(
+            @NonNull String servicePackageName,
+            @NonNull PersistableBundle params,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<List<SlotResultHandle>, Exception> receiver
+    ) {
+        try {
+            bindService(executor);
+
+            IExecuteCallback callbackWrapper = new IExecuteCallback.Stub() {
+                @Override
+                public void onSuccess(
+                        @NonNull List<String> slotResultTokens) {
+                    executor.execute(() -> {
+                        try {
+                            ArrayList<SlotResultHandle> slotResults =
+                                    new ArrayList<>(slotResultTokens.size());
+                            for (String token : slotResultTokens) {
+                                if (token == null) {
+                                    slotResults.add(null);
+                                } else {
+                                    slotResults.add(new SlotResultHandle(token));
+                                }
+                            }
+                            receiver.onResult(slotResults);
+                        } catch (Exception e) {
+                            receiver.onError(e);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(int errorCode) {
+                    executor.execute(() -> receiver.onError(
+                            new OnDevicePersonalizationException(errorCode)));
+                }
+            };
+
+            mService.execute(
+                    mContext.getPackageName(), servicePackageName, params, callbackWrapper);
+
+        } catch (Exception e) {
+            receiver.onError(e);
+        }
+    }
+
+    /**
+     * Requests a surface package. The surface package will contain a {@link WebView} with html from
+     * a {@link IsolatedComputationHandler} running in the OnDevicePersonalization sandbox.
+     *
+     * @param slotResultHandle a reference to a {@link SlotResultHandle} returned by a prior call to
+     *     {@link execute}.
      * @param params the parameters from the client application, it must
      *     contain the following params: (EXTRA_WIDTH_IN_PIXELS, EXTRA_HEIGHT_IN_PIXELS,
      *     EXTRA_DISPLAY_ID, EXTRA_HOST_TOKEN). If any of these params is missing, an
@@ -162,44 +223,15 @@ public class OnDevicePersonalizationManager {
      * @hide
      */
     public void requestSurfacePackage(
-            @NonNull String servicePackageName,
-            @NonNull Bundle params,
+            @NonNull SlotResultHandle slotResultHandle,
+            IBinder hostToken,
+            int displayId,
+            int width,
+            int height,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<Bundle, Exception> receiver
+            @NonNull OutcomeReceiver<SurfaceControlViewHost.SurfacePackage, Exception> receiver
     ) {
         try {
-            int width = params.getInt(EXTRA_WIDTH_IN_PIXELS, -1); // -1 means invalid width
-            if (width <= 0) {
-                throw new IllegalArgumentException(
-                        "Field params should have the entry for the key ("
-                                + EXTRA_WIDTH_IN_PIXELS
-                                + ") with positive integer value");
-            }
-
-            int height = params.getInt(EXTRA_HEIGHT_IN_PIXELS, -1); // -1 means invalid height
-            if (height <= 0) {
-                throw new IllegalArgumentException(
-                        "Field params should have the entry for the key ("
-                                + EXTRA_HEIGHT_IN_PIXELS
-                                + ") with positive integer value");
-            }
-
-            int displayId = params.getInt(EXTRA_DISPLAY_ID, -1); // -1 means invalid displayId
-            if (displayId < 0) {
-                throw new IllegalArgumentException(
-                        "Field params should have the entry for the key ("
-                                + EXTRA_DISPLAY_ID
-                                + ") with integer >= 0");
-            }
-
-            IBinder hostToken = params.getBinder(EXTRA_HOST_TOKEN);
-            if (hostToken == null) {
-                throw new IllegalArgumentException(
-                        "Field params should have the entry for the key ("
-                                + EXTRA_HOST_TOKEN
-                                + ") with not null IBinder value");
-            }
-
             bindService(executor);
 
             IRequestSurfacePackageCallback callbackWrapper =
@@ -208,9 +240,7 @@ public class OnDevicePersonalizationManager {
                         public void onSuccess(
                                 @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage) {
                             executor.execute(() -> {
-                                Bundle result = new Bundle();
-                                result.putParcelable(EXTRA_SURFACE_PACKAGE, surfacePackage);
-                                receiver.onResult(result);
+                                receiver.onResult(surfacePackage);
                             });
                         }
 
@@ -222,8 +252,8 @@ public class OnDevicePersonalizationManager {
                     };
 
             mService.requestSurfacePackage(
-                    mContext.getPackageName(), servicePackageName, hostToken, displayId,
-                    width, height, params, callbackWrapper);
+                    slotResultHandle.getSlotResultToken(), hostToken, displayId,
+                    width, height, callbackWrapper);
 
         } catch (InterruptedException
                 | NullPointerException

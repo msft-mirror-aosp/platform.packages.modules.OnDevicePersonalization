@@ -24,6 +24,7 @@ import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.SystemService;
 
 /**
@@ -33,7 +34,8 @@ public class OnDevicePersonalizationSystemService
         extends IOnDevicePersonalizationSystemService.Stub {
     private static final String TAG = "OnDevicePersonalizationSystemService";
 
-    private OnDevicePersonalizationSystemService(Context context) {
+    @VisibleForTesting
+    OnDevicePersonalizationSystemService(Context context) {
     }
 
     @Override public void onRequest(

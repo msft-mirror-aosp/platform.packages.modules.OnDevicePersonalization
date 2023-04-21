@@ -59,11 +59,12 @@ import java.util.TimeZone;
 
 /**
  * A collector for getting user data signals.
- * This class only exposes two public operations: init and update.
- * Init operation will be run only once, after ODA starts, to populate
- * the UserData singleton for the first time.
- * Update operation will be run in real-time per any data change
- * and update a few signals in UserData to the latest version.
+ * This class only exposes two public operations: periodic update, and
+ * real-time update.
+ * Periodic update operation will be run every 4 hours in the background,
+ * given several on-device resource constraints are satisfied.
+ * Real-time update operation will be run before any ads serving request
+ * and update a few time-sensitive signals in UserData to the latest version.
  */
 public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
@@ -83,6 +84,8 @@ public class UserDataCollector {
     @NonNull private Deque<AppUsageEntry> mAllowedAppUsageEntries;
     // Metadata to track the expired location entries, which are to be evicted.
     @NonNull private Deque<LocationInfo> mAllowedLocationEntries;
+    // Metadata to track whether UserData has been initialized.
+    @NonNull private boolean mInitialized;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
@@ -98,6 +101,7 @@ public class UserDataCollector {
         mLastTimeMillisAppUsageCollected = 0L;
         mAllowedAppUsageEntries = new ArrayDeque<>();
         mAllowedLocationEntries = new ArrayDeque<>();
+        mInitialized = false;
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -126,10 +130,48 @@ public class UserDataCollector {
         }
     }
 
+    /** Update real-time user data to the latest per request. */
+    public void getRealTimeData(@NonNull RawUserData userData) {
+        /**
+         * Ads serving requires real-time latency. If user data has not been initialized,
+         * we will skip user data collection for the incoming request and wait until the first
+         * {@link UserDataCollectionJobService} to be scheduled.
+         */
+        if (!mInitialized) {
+            return;
+        }
+        userData.timeMillis = getTimeMillis();
+        userData.utcOffset = getUtcOffset();
+        userData.orientation = getOrientation();
+    }
+
+    /** Update user data per periodic job servce. */
+    public void updateUserData(@NonNull RawUserData userData) {
+        if (!mInitialized) {
+            initializeUserData(userData);
+            return;
+        }
+        userData.availableBytesMB = getAvailableBytesMB();
+        userData.batteryPct = getBatteryPct();
+        userData.country = getCountry();
+        userData.language = getLanguage();
+        userData.carrier = getCarrier();
+        userData.connectionType = getConnectionType();
+        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.connectionSpeedKbps = getConnectionSpeedKbps();
+
+        getOSVersions(userData.osVersions);
+        getInstalledApps(userData.appsInfo);
+        getAppUsageStats(userData.appUsageHistory);
+        getLastknownLocation(userData.locationHistory, userData.currentLocation);
+        getCurrentLocation(userData.locationHistory, userData.currentLocation);
+    }
+
     /**
-     * Collects in-memory user data signals and stores in a UserData object.
+     * Collects in-memory user data signals and stores in a UserData object
+     * for the schedule of {@link UserDataCollectionJobService}
     */
-    public void initializeUserData(@NonNull RawUserData userData) {
+    private void initializeUserData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
@@ -157,13 +199,7 @@ public class UserDataCollector {
         getLastknownLocation(userData.locationHistory, userData.currentLocation);
 
         getCurrentLocation(userData.locationHistory, userData.currentLocation);
-    }
-
-    /** Update real-time user data to the latest per request. */
-    public void getRealTimeData(@NonNull RawUserData userData) {
-        userData.timeMillis = getTimeMillis();
-        userData.utcOffset = getUtcOffset();
-        userData.orientation = getOrientation();
+        mInitialized = true;
     }
 
     /** Collects current system clock on the device. */
@@ -308,7 +344,8 @@ public class UserDataCollector {
         }
     }
 
-    /** Collects device OS version info.
+    /**
+     * Collects device OS version info.
      * ODA only identifies three valid raw forms of OS releases
      * and convert it to the three-version format.
      * 13 -> 13.0.0
@@ -318,18 +355,21 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getOSVersions(@NonNull OSVersion osVersions) {
         String osRelease = Build.VERSION.RELEASE;
+        int major = 0;
+        int minor = 0;
+        int micro = 0;
         try {
-            osVersions.major = Integer.parseInt(osRelease);
+            major = Integer.parseInt(osRelease);
         } catch (NumberFormatException nfe1) {
             try {
-                String[] versions = osRelease.split(".");
+                String[] versions = osRelease.split("[.]");
                 if (versions.length == 2) {
-                    osVersions.major = Integer.parseInt(versions[0]);
-                    osVersions.minor = Integer.parseInt(versions[1]);
+                    major = Integer.parseInt(versions[0]);
+                    minor = Integer.parseInt(versions[1]);
                 } else if (versions.length == 3) {
-                    osVersions.major = Integer.parseInt(versions[0]);
-                    osVersions.minor = Integer.parseInt(versions[1]);
-                    osVersions.micro = Integer.parseInt(versions[2]);
+                    major = Integer.parseInt(versions[0]);
+                    minor = Integer.parseInt(versions[1]);
+                    micro = Integer.parseInt(versions[2]);
                 } else {
                     // An irregular release like "UpsideDownCake"
                     Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe1);
@@ -338,6 +378,10 @@ public class UserDataCollector {
                 // An irrgular release like "QKQ1.200830.002"
                 Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe2);
             }
+        } finally {
+            osVersions.major = major;
+            osVersions.minor = minor;
+            osVersions.micro = micro;
         }
     }
 
@@ -798,7 +842,6 @@ public class UserDataCollector {
     /**
      * Util to reset all fields in [UserData] to default for testing purpose
      */
-    @VisibleForTesting
     public void clearUserData(@NonNull RawUserData userData) {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
@@ -821,8 +864,8 @@ public class UserDataCollector {
     /**
      * Util to reset all in-memory metadata for testing purpose.
      */
-    @VisibleForTesting
     public void clearMetadata() {
+        mInitialized = false;
         mLastTimeMillisAppUsageCollected = 0L;
         mAllowedAppUsageEntries = new ArrayDeque<>();
         mAllowedLocationEntries = new ArrayDeque<>();
@@ -918,6 +961,11 @@ public class UserDataCollector {
     }
 
     @VisibleForTesting
+    public boolean isInitialized() {
+        return mInitialized;
+    }
+
+    @VisibleForTesting
     public long getLastTimeMillisAppUsageCollected() {
         return mLastTimeMillisAppUsageCollected;
     }
@@ -935,7 +983,6 @@ public class UserDataCollector {
     /**
      * Clear all user data in database for testing purpose.
      */
-    @VisibleForTesting
     public void clearDatabase() {
         mUserDataDao.clearUserData();
     }
