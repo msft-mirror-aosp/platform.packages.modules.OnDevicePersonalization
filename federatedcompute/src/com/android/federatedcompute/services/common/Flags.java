@@ -76,4 +76,18 @@ public interface Flags {
     default long getAppHostedExampleStoreTimeoutSecs() {
         return APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS;
     }
+
+    /** Flags for ResultHandlingService. */
+    long RESULT_HANDLING_BIND_SERVICE_TIMEOUT_SECS = 10;
+
+    default long getResultHandlingBindServiceTimeoutSecs() {
+        return RESULT_HANDLING_BIND_SERVICE_TIMEOUT_SECS;
+    }
+
+    // 9 minutes 45 seconds, leaving ~15 seconds to clean up.
+    long RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS = 60 * 9 + 45;
+
+    default long getResultHandlingServiceCallbackTimeoutSecs() {
+        return RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS;
+    }
 }
