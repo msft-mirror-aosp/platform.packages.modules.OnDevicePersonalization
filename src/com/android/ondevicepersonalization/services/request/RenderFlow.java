@@ -174,8 +174,8 @@ public class RenderFlow {
                     new SlotInfo.Builder()
                             .setHeight(mHeight)
                             .setWidth(mWidth).build();
-            List<String> bidIds = slotResult.getRenderedBidIds();
-            if (bidIds == null || bidIds.isEmpty()) {
+            List<String> bidKeys = slotResult.getRenderedBidKeys();
+            if (bidKeys == null || bidKeys.isEmpty()) {
                 return Futures.immediateFailedFuture(new IllegalArgumentException("No bids"));
             }
 
@@ -183,7 +183,7 @@ public class RenderFlow {
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    loadResult, slotInfo, slotResult, queryId, bidIds),
+                                    loadResult, slotInfo, slotResult, queryId, bidKeys),
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
@@ -209,11 +209,11 @@ public class RenderFlow {
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
             IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, SlotResult slotResult,
-            long queryId, List<String> bidIds) {
+            long queryId, List<String> bidKeys) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
         RenderInput input =
-                new RenderInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
+                new RenderInput.Builder().setSlotInfo(slotInfo).setBidKeys(bidKeys).build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mServicePackageName, mContext, false,

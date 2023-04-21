@@ -59,9 +59,9 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         final HashMap<String, Bid> mBids = new HashMap<String, Bid>();
         public EventUrlQueryData(long queryId, SlotResult slotResult) {
             mQueryId = queryId;
-            mSlotId = slotResult.getSlotId();
+            mSlotId = slotResult.getSlotKey();
             for (Bid bid : slotResult.getLoggedBids()) {
-                mBids.put(bid.getBidId(), bid);
+                mBids.put(bid.getKey(), bid);
             }
         }
     }

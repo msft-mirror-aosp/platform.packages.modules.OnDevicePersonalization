@@ -2,18 +2,28 @@ include "EventFields.fbs";
 
 namespace com.android.ondevicepersonalization.services.fbs;
 
+table QueryData {
+    query_fields:[QueryFields];
+}
+
 table QueryFields {
+    owner:Owner;
     slots:[Slot];
 }
 
+table Owner {
+    package_name:string;
+    cert_digest:string;
+}
+
 table Slot {
-    id:string;
+    key:string;
     bids:[Bid];
 }
 
 table Bid {
-    id:string;
+    key:string;
     metrics:Metrics;
 }
 
-root_type QueryFields;
+root_type QueryData;
