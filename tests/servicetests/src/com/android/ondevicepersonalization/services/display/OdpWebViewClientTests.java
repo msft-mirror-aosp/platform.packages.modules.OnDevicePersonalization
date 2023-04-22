@@ -71,10 +71,10 @@ public class OdpWebViewClientTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private final SlotResult mSlotResult = new SlotResult.Builder()
-            .addBids(
+            .addRenderedBidKeys("bidId")
+            .addLoggedBids(
                 new Bid.Builder()
-                    .setBidId("bidId")
-                    .setRendered(true)
+                    .setKey("bidId")
                     .build())
             .build();
     private final Event mTestEvent = new Event.Builder()
@@ -171,10 +171,10 @@ public class OdpWebViewClientTests {
     @Test
     public void testValidUrlWithEventMetrics() throws Exception {
         SlotResult slotResult = new SlotResult.Builder()
-                .addBids(
+                .addRenderedBidKeys("bidId")
+                .addLoggedBids(
                     new Bid.Builder()
-                        .setBidId("bidId")
-                        .setRendered(true)
+                        .setKey("bidId")
                         .setMetrics(new Metrics.Builder()
                             .setLongValues(10)
                             .setDoubleValues(5.0)

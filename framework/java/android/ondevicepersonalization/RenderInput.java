@@ -16,10 +16,9 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.os.Parcelable;
 
-import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 import java.util.List;
@@ -32,10 +31,10 @@ import java.util.List;
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderInput implements Parcelable {
     /** Properties of the slot to be rendered in. */
-    @NonNull SlotInfo mSlotInfo;
+    @Nullable SlotInfo mSlotInfo = null;
 
-    /** A List of Bid Ids to be rendered. */
-    @NonNull List<String> mBidIds;
+    /** A List of Bid Keys to be rendered. Keys must be present in REMOTE_DATA. */
+    @Nullable List<String> mBidKeys = null;
 
 
 
@@ -54,14 +53,10 @@ public final class RenderInput implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ RenderInput(
-            @NonNull SlotInfo slotInfo,
-            @NonNull List<String> bidIds) {
+            @Nullable SlotInfo slotInfo,
+            @Nullable List<String> bidKeys) {
         this.mSlotInfo = slotInfo;
-        AnnotationValidations.validate(
-                NonNull.class, null, mSlotInfo);
-        this.mBidIds = bidIds;
-        AnnotationValidations.validate(
-                NonNull.class, null, mBidIds);
+        this.mBidKeys = bidKeys;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -70,21 +65,21 @@ public final class RenderInput implements Parcelable {
      * Properties of the slot to be rendered in.
      */
     @DataClass.Generated.Member
-    public @NonNull SlotInfo getSlotInfo() {
+    public @Nullable SlotInfo getSlotInfo() {
         return mSlotInfo;
     }
 
     /**
-     * A List of Bid Ids to be rendered.
+     * A List of Bid Keys to be rendered. Keys must be present in REMOTE_DATA.
      */
     @DataClass.Generated.Member
-    public @NonNull List<String> getBidIds() {
-        return mBidIds;
+    public @Nullable List<String> getBidKeys() {
+        return mBidKeys;
     }
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@android.annotation.Nullable Object o) {
+    public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(RenderInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -96,7 +91,7 @@ public final class RenderInput implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mSlotInfo, that.mSlotInfo)
-                && java.util.Objects.equals(mBidIds, that.mBidIds);
+                && java.util.Objects.equals(mBidKeys, that.mBidKeys);
     }
 
     @Override
@@ -107,18 +102,22 @@ public final class RenderInput implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mSlotInfo);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mBidIds);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mBidKeys);
         return _hash;
     }
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
-        dest.writeTypedObject(mSlotInfo, flags);
-        dest.writeStringList(mBidIds);
+        byte flg = 0;
+        if (mSlotInfo != null) flg |= 0x1;
+        if (mBidKeys != null) flg |= 0x2;
+        dest.writeByte(flg);
+        if (mSlotInfo != null) dest.writeTypedObject(mSlotInfo, flags);
+        if (mBidKeys != null) dest.writeStringList(mBidKeys);
     }
 
     @Override
@@ -128,26 +127,26 @@ public final class RenderInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ RenderInput(@NonNull android.os.Parcel in) {
+    /* package-private */ RenderInput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
-        SlotInfo slotInfo = (SlotInfo) in.readTypedObject(SlotInfo.CREATOR);
-        List<String> bidIds = new java.util.ArrayList<>();
-        in.readStringList(bidIds);
+        byte flg = in.readByte();
+        SlotInfo slotInfo = (flg & 0x1) == 0 ? null : (SlotInfo) in.readTypedObject(SlotInfo.CREATOR);
+        List<String> bidKeys = null;
+        if ((flg & 0x2) != 0) {
+            bidKeys = new java.util.ArrayList<>();
+            in.readStringList(bidKeys);
+        }
 
         this.mSlotInfo = slotInfo;
-        AnnotationValidations.validate(
-                NonNull.class, null, mSlotInfo);
-        this.mBidIds = bidIds;
-        AnnotationValidations.validate(
-                NonNull.class, null, mBidIds);
+        this.mBidKeys = bidKeys;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<RenderInput> CREATOR
+    public static final @android.annotation.NonNull Parcelable.Creator<RenderInput> CREATOR
             = new Parcelable.Creator<RenderInput>() {
         @Override
         public RenderInput[] newArray(int size) {
@@ -155,7 +154,7 @@ public final class RenderInput implements Parcelable {
         }
 
         @Override
-        public RenderInput createFromParcel(@NonNull android.os.Parcel in) {
+        public RenderInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
             return new RenderInput(in);
         }
     };
@@ -167,41 +166,19 @@ public final class RenderInput implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull SlotInfo mSlotInfo;
-        private @NonNull List<String> mBidIds;
+        private @Nullable SlotInfo mSlotInfo;
+        private @Nullable List<String> mBidKeys;
 
         private long mBuilderFieldsSet = 0L;
 
-        /**
-         * Creates a new Builder.
-         */
         public Builder() {
-        }
-
-        /**
-         * Creates a new Builder.
-         *
-         * @param slotInfo
-         *   Properties of the slot to be rendered in.
-         * @param bidIds
-         *   A List of Bid Ids to be rendered.
-         */
-        public Builder(
-                @NonNull SlotInfo slotInfo,
-                @NonNull List<String> bidIds) {
-            mSlotInfo = slotInfo;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mSlotInfo);
-            mBidIds = bidIds;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mBidIds);
         }
 
         /**
          * Properties of the slot to be rendered in.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setSlotInfo(@NonNull SlotInfo value) {
+        public @android.annotation.NonNull Builder setSlotInfo(@android.annotation.NonNull SlotInfo value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mSlotInfo = value;
@@ -209,35 +186,41 @@ public final class RenderInput implements Parcelable {
         }
 
         /**
-         * A List of Bid Ids to be rendered.
+         * A List of Bid Keys to be rendered. Keys must be present in REMOTE_DATA.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setBidIds(@NonNull List<String> value) {
+        public @android.annotation.NonNull Builder setBidKeys(@android.annotation.NonNull List<String> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mBidIds = value;
+            mBidKeys = value;
             return this;
         }
 
-        /** @see #setBidIds */
+        /** @see #setBidKeys */
         @DataClass.Generated.Member
-        public @NonNull Builder addBidIds(@NonNull String value) {
+        public @android.annotation.NonNull Builder addBidKeys(@android.annotation.NonNull String value) {
             // You can refine this method's name by providing item's singular name, e.g.:
             // @DataClass.PluralOf("item")) mItems = ...
 
-            if (mBidIds == null) setBidIds(new java.util.ArrayList<>());
-            mBidIds.add(value);
+            if (mBidKeys == null) setBidKeys(new java.util.ArrayList<>());
+            mBidKeys.add(value);
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull RenderInput build() {
+        public @android.annotation.NonNull RenderInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mSlotInfo = null;
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mBidKeys = null;
+            }
             RenderInput o = new RenderInput(
                     mSlotInfo,
-                    mBidIds);
+                    mBidKeys);
             return o;
         }
 
@@ -250,10 +233,10 @@ public final class RenderInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1680551331663L,
+            time = 1681848000397L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java",
-            inputSignatures = " @android.annotation.NonNull android.ondevicepersonalization.SlotInfo mSlotInfo\n @android.annotation.NonNull java.util.List<java.lang.String> mBidIds\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.SlotInfo mSlotInfo\n @android.annotation.Nullable java.util.List<java.lang.String> mBidKeys\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
