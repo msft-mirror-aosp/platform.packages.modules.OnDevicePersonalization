@@ -182,17 +182,14 @@ public class SampleHandler implements IsolatedComputationHandler {
     private ExecuteOutput buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
         PersistableBundle eventParams = new PersistableBundle();
-        // Duplicate ad price in event parameters.
-        // TODO(b/259950177): Update cost raising API to provide query/bid
-        // during cost raising, then remove this workaround.
         eventParams.putDouble(BID_PRICE_KEY, ad.mPrice);
         return new ExecuteOutput.Builder()
                 .addSlotResults(
                     new SlotResult.Builder()
-                        .addBids(
+                        .addRenderedBidKeys(ad.mId)
+                        .addLoggedBids(
                             new Bid.Builder()
-                                .setBidId(ad.mId)
-                                .setRendered(true)
+                                .setKey(ad.mId)
                                 .setMetrics(createMetrics(ad.mPrice, ad.mPrice * 10))
                                 .build())
                         .build())
@@ -295,7 +292,7 @@ public class SampleHandler implements IsolatedComputationHandler {
     ) {
         try {
             Log.d(TAG, "handleOnRender() started.");
-            String id = input.getBidIds().get(0);
+            String id = input.getBidKeys().get(0);
             var adFuture = readAd(id, odpContext.getRemoteData());
             var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, id, "", odpContext);
             var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(
