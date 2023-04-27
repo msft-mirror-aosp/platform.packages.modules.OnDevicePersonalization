@@ -20,8 +20,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.Bid;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
@@ -84,7 +84,8 @@ public class RenderFlowTest {
                 injector.getExecutor());
         SlotResult slotResult =
                 new SlotResult.Builder()
-                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
+                        .addRenderedBidKeys("bid1")
+                        .addLoggedBids(new Bid.Builder().setKey("bid1").build())
                         .build();
         SlotRenderingData data = new SlotRenderingData(
                 slotResult, mContext.getPackageName(), 0);
@@ -104,7 +105,9 @@ public class RenderFlowTest {
             if (token.equals("token")) {
                 SlotResult slotResult =
                         new SlotResult.Builder()
-                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
+                        .addRenderedBidKeys("bid1")
+                        .addLoggedBids(new Bid.Builder().setKey("bid1").build())
+                        .addLoggedBids(new Bid.Builder().setKey("bid2").build())
                         .build();
                 SlotRenderingData data = new SlotRenderingData(
                         slotResult, mContext.getPackageName(), 0);
@@ -120,7 +123,7 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderContentResult renderContentResult) {
+        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;

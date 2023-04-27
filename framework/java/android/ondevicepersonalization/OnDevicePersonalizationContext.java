@@ -34,6 +34,12 @@ public interface OnDevicePersonalizationContext {
      */
     @NonNull ImmutableMap getRemoteData();
 
+    /**
+     * Returns a DAO for the LOCAL_DATA table.
+     * @return A {@link MutableMap} object that provides access to the LOCAL_DATA table.
+     */
+    @NonNull MutableMap getLocalData();
+
     /** Return an Event URL for a single bid. */
     void getEventUrl(
             int eventType,

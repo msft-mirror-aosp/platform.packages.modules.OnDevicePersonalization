@@ -96,6 +96,7 @@ android_app {
         "ondevicepersonalization-plugin-lib",
         "flatbuffers-java",
         "apache-velocity-engine-core",
+        "owasp-java-encoder",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",

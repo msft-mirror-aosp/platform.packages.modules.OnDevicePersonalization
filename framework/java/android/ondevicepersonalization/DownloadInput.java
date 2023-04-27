@@ -105,8 +105,8 @@ public final class DownloadInput {
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {
-        }
+        /** Creates a new Builder. */
+        public Builder() {}
 
         /**
          * Creates a new Builder.
@@ -162,7 +162,7 @@ public final class DownloadInput {
     }
 
     @DataClass.Generated(
-            time = 1678905396099L,
+            time = 1680551317042L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadInput.java",
             inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
