@@ -91,4 +91,15 @@ public final class AppManifestConfigHelper {
             String packageName) {
         return getAppManifestConfig(context, packageName).getServiceName();
     }
+
+    /**
+     * Gets the handler name from package's ODP settings config
+     *
+     * @param context     the context of the API call.
+     * @param packageName the packageName of the package whose manifest config will be read
+     */
+    public static String getHandlerNameFromOdpSettings(Context context,
+            String packageName) {
+        return getAppManifestConfig(context, packageName).getHandlerName();
+    }
 }
