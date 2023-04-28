@@ -17,6 +17,7 @@
 package com.android.odpclient;
 
 import android.app.Activity;
+import android.content.ComponentName;
 import android.content.Context;
 import android.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.ondevicepersonalization.SlotResultHandle;
@@ -80,7 +81,9 @@ public class MainActivity extends Activity {
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("keyword", mTextBox.getText().toString());
             mOdpManager.execute(
-                    "com.android.odpsamplenetwork",
+                    ComponentName.createRelative(
+                        "com.android.odpsamplenetwork",
+                        "com.android.odpsamplenetwork.SampleHandler"),
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     new OutcomeReceiver<List<SlotResultHandle>, Exception>() {

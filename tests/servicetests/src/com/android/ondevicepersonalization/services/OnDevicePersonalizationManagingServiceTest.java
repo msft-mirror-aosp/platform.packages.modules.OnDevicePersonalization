@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
@@ -69,10 +70,11 @@ public class OnDevicePersonalizationManagingServiceTest {
     public void testExecuteInvokesAppRequestFlow() throws Exception {
         var callback = new ExecuteCallback();
         mService.execute(
-                        mContext.getPackageName(),
-                        mContext.getPackageName(),
-                        PersistableBundle.EMPTY,
-                        callback);
+                mContext.getPackageName(),
+                new ComponentName(
+                    mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                PersistableBundle.EMPTY,
+                callback);
         assertTrue(mAppRequestFlowStarted);
     }
 
@@ -84,7 +86,9 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.execute(
                         "abc",
-                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(),
+                            "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         callback));
     }
@@ -97,13 +101,15 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.execute(
                         null,
-                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(),
+                            "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         callback));
     }
 
     @Test
-    public void testExecuteThrowsIfServicePackageMissing() throws Exception {
+    public void testExecuteThrowsIfSHandlerMissing() throws Exception {
         var callback = new ExecuteCallback();
         assertThrows(
                 NullPointerException.class,
@@ -122,7 +128,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.execute(
                         mContext.getPackageName(),
-                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         null));
     }
@@ -238,7 +245,8 @@ public class OnDevicePersonalizationManagingServiceTest {
 
         assertNotNull(injector.getAppRequestFlow(
                 mContext.getPackageName(),
-                mContext.getPackageName(),
+                new ComponentName(
+                    mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                 PersistableBundle.EMPTY,
                 executeCallback,
                 mContext));
@@ -265,12 +273,12 @@ public class OnDevicePersonalizationManagingServiceTest {
     class TestInjector extends OnDevicePersonalizationManagingServiceDelegate.Injector {
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
-                String servicePackageName,
+                ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
                 Context context) {
             return new AppRequestFlow(
-                    callingPackageName, servicePackageName, params, callback, context) {
+                    callingPackageName, handler, params, callback, context) {
                 @Override public void run() {
                     mAppRequestFlowStarted = true;
                 }

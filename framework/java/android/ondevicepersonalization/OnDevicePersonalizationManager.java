@@ -147,7 +147,7 @@ public class OnDevicePersonalizationManager {
     /**
      * Executes a {@link IsolatedComputationHandler} in the OnDevicePersonalization sandbox.
      *
-     * @param servicePackageName The name of the package containing the handler.
+     * @param handler The {@link ComponentName} of the {@link IsolatedComputationHandler}.
      * @param params a {@link PersistableBundle} passed from the calling app to the handler.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This returns a list of {@link SlotResultHandle} objects, each of which is an
@@ -157,7 +157,7 @@ public class OnDevicePersonalizationManager {
      *     {@link requestSurfacePackage} call to display the result in a view.
      */
     public void execute(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<List<SlotResultHandle>, Exception> receiver
@@ -195,7 +195,7 @@ public class OnDevicePersonalizationManager {
             };
 
             mService.execute(
-                    mContext.getPackageName(), servicePackageName, params, callbackWrapper);
+                    mContext.getPackageName(), handler, params, callbackWrapper);
 
         } catch (Exception e) {
             receiver.onError(e);
