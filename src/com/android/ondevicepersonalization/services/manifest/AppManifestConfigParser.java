@@ -16,7 +16,6 @@
 
 package com.android.ondevicepersonalization.services.manifest;
 
-import android.content.res.XmlResourceParser;
 import android.util.Log;
 
 import org.xmlpull.v1.XmlPullParser;
@@ -28,6 +27,7 @@ import java.io.IOException;
 public class AppManifestConfigParser {
     private static final String TAG = "AppManifestConfigParser";
     private static final String TAG_ON_DEVICE_PERSONALIZATION_CONFIG = "on-device-personalization";
+    private static final String TAG_HANDLER = "handler";
     private static final String TAG_DOWNLOAD_SETTINGS = "download-settings";
     private static final String TAG_SERVICE = "service";
     private static final String ATTR_DOWNLOAD_URL = "url";
@@ -41,20 +41,27 @@ public class AppManifestConfigParser {
      *
      * @param parser the XmlParser representing the OnDevicePersonalization app manifest config
      */
-    public static AppManifestConfig getConfig(XmlResourceParser parser) throws IOException,
+    public static AppManifestConfig getConfig(XmlPullParser parser) throws IOException,
             XmlPullParserException {
         String downloadUrl = null;
         String serviceName = null;
+        String handlerName = null;
 
-        // The first next goes to START_DOCUMENT, so we need another next to go to START_TAG.
-        parser.next();
-        parser.next();
+        while (parser.getEventType() != XmlPullParser.START_TAG) {
+            parser.next();
+        }
         parser.require(XmlPullParser.START_TAG, null, TAG_ON_DEVICE_PERSONALIZATION_CONFIG);
+        parser.next();
+        while (parser.getEventType() != XmlPullParser.START_TAG) {
+            parser.next();
+        }
+        parser.require(XmlPullParser.START_TAG, null, TAG_HANDLER);
+        handlerName = parser.getAttributeValue(null, ATTR_NAME);
         parser.next();
 
         // Walk through the config to parse required values.
-        while (parser.getEventType() != XmlResourceParser.END_DOCUMENT) {
-            if (parser.getEventType() != XmlResourceParser.START_TAG) {
+        while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) {
                 parser.next();
                 continue;
             }
@@ -71,6 +78,6 @@ public class AppManifestConfigParser {
             parser.next();
         }
 
-        return new AppManifestConfig(downloadUrl, serviceName);
+        return new AppManifestConfig(downloadUrl, serviceName, handlerName);
     }
 }
