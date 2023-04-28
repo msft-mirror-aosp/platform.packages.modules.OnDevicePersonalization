@@ -66,8 +66,26 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:isolatedProcess="true" android:exported="false" >
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
+                 android:enabled="true" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.federatedcompute.EXAMPLE_STORE" />
+                <data android:scheme="app" />
+            </intent-filter>
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpResultHandlingService"
+                 android:enabled="true" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
+                <data android:scheme="app" />
+            </intent-filter>
         </service>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
