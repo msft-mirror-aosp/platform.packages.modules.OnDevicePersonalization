@@ -226,13 +226,14 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
         params.putString(Constants.EXTRA_BID_ID, "bid5");
-        ArrayList<String> bidIds = new ArrayList<String>();
+        ArrayList<String> bidKeys = new ArrayList<String>();
         SlotResult slotResult =
                 new SlotResult.Builder()
-                    .setSlotId("slot1")
-                    .addWinningBids(
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
                         new Bid.Builder()
-                            .setBidId("bid5")
+                            .setKey("bid5")
                             .build())
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
@@ -266,13 +267,14 @@ public class DataAccessServiceImplTest {
         params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
         params.putString(Constants.EXTRA_BID_ID, "bid5");
         params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
-        ArrayList<String> bidIds = new ArrayList<String>();
+        ArrayList<String> bidKeys = new ArrayList<String>();
         SlotResult slotResult =
                 new SlotResult.Builder()
-                    .setSlotId("slot1")
-                    .addWinningBids(
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
                         new Bid.Builder()
-                            .setBidId("bid5")
+                            .setKey("bid5")
                             .build())
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
