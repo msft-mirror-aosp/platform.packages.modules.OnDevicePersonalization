@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
@@ -41,12 +42,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
     static class Injector {
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
-                String servicePackageName,
+                ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
                 Context context) {
             return new AppRequestFlow(
-                    callingPackageName, servicePackageName, params, callback, context);
+                    callingPackageName, handler, params, callback, context);
         }
 
         RenderFlow getRenderFlow(
@@ -84,11 +85,13 @@ public class OnDevicePersonalizationManagingServiceDelegate
     @Override
     public void execute(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback) {
         Objects.requireNonNull(callingPackageName);
-        Objects.requireNonNull(servicePackageName);
+        Objects.requireNonNull(handler);
+        Objects.requireNonNull(handler.getPackageName());
+        Objects.requireNonNull(handler.getClassName());
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
 
@@ -97,7 +100,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         AppRequestFlow flow = mInjector.getAppRequestFlow(
                 callingPackageName,
-                servicePackageName,
+                handler,
                 params,
                 callback,
                 mContext);
