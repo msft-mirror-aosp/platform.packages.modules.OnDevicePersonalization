@@ -28,6 +28,7 @@ import android.util.Log;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+import com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
 import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
@@ -89,6 +90,9 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
         // Schedule maintenance task
         OnDevicePersonalizationMaintenanceJobService.schedule(context);
+
+        // Schedule federatedCompute task
+        OdpFederatedComputeJobService.schedule(context);
 
         // Schedule user data collection task
         UserDataCollectionJobService.schedule(context);

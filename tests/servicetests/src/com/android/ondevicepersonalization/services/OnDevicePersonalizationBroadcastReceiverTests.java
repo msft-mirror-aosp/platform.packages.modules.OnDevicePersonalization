@@ -57,6 +57,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID);
     }
 
     @Test
@@ -78,6 +79,8 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) != null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID) != null);
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) != null);
         // MDD tasks
@@ -104,6 +107,8 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) == null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID) == null);
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) == null);
         // MDD tasks
