@@ -16,6 +16,7 @@
 
 package android.ondevicepersonalization.aidl;
 
+import android.content.ComponentName;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
@@ -25,7 +26,7 @@ interface IOnDevicePersonalizationManagingService {
     String getVersion();
     void execute(
         in String callingPackageName,
-        in String servicePackageName,
+        in ComponentName handler,
         in PersistableBundle params,
         in IExecuteCallback callback);
 
