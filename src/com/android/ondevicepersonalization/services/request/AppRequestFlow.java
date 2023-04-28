@@ -17,10 +17,12 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
+import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.Bundle;
@@ -33,6 +35,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
@@ -59,7 +62,7 @@ public class AppRequestFlow {
     @NonNull
     private final String mCallingPackageName;
     @NonNull
-    private final String mServicePackageName;
+    private final ComponentName mHandler;
     @NonNull
     private final PersistableBundle mParams;
     @NonNull
@@ -74,25 +77,25 @@ public class AppRequestFlow {
 
     public AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context) {
-        this(callingPackageName, servicePackageName, params,
+        this(callingPackageName, handler, params,
                 callback, context, OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             @NonNull ListeningExecutorService executorService) {
         Log.d(TAG, "AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
-        mServicePackageName = Objects.requireNonNull(servicePackageName);
+        mHandler = Objects.requireNonNull(handler);
         mParams = Objects.requireNonNull(params);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
@@ -106,12 +109,21 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            mServiceClassName = Objects.requireNonNull(
-                    AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                            mContext, mServicePackageName));
+            AppManifestConfig config = Objects.requireNonNull(
+                    AppManifestConfigHelper.getAppManifestConfig(
+                        mContext, mHandler.getPackageName()));
+            if (!mHandler.getClassName().equals(config.getHandlerName())) {
+                // TODO(b/228200518): Define a new error code and map it to a specific
+                // exception type in the client API.
+                throw new OnDevicePersonalizationException(
+                    Constants.STATUS_INTERNAL_ERROR,
+                    "Name not found: " + mHandler.getClassName()
+                    + " expected: " + config.getHandlerName());
+            }
+            mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, mServicePackageName, mContext))
+                                    TASK_NAME, mHandler.getPackageName(), mContext))
                     .transformAsync(
                             result -> executeAppRequest(result),
                             mExecutorService
@@ -167,7 +179,7 @@ public class AppRequestFlow {
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mServicePackageName, mContext, true, null);
+                mHandler.getPackageName(), mContext, true, null);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
@@ -178,9 +190,9 @@ public class AppRequestFlow {
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
         // TODO(b/259950173): Add certDigest to queryData.
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                mServicePackageName, null, result);
+                mHandler.getPackageName(), null, result);
         Query query = new Query.Builder()
-                .setServicePackageName(mServicePackageName)
+                .setServicePackageName(mHandler.getPackageName())
                 .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
@@ -207,7 +219,7 @@ public class AppRequestFlow {
                     slotResultTokens.add(null);
                 } else {
                     SlotRenderingData wrapper = new SlotRenderingData(
-                            slotResult, mServicePackageName, queryId);
+                            slotResult, mHandler.getPackageName(), queryId);
                     slotResultTokens.add(CryptUtils.encrypt(wrapper));
                 }
             }

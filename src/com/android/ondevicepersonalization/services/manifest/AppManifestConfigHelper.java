@@ -49,7 +49,8 @@ public final class AppManifestConfigHelper {
         return true;
     }
 
-    static AppManifestConfig getAppManifestConfig(Context context,
+    /** Returns the ODP manifest config for a package. */
+    public static AppManifestConfig getAppManifestConfig(Context context,
             String packageName) {
         if (!manifestContainsOdpSettings(context, packageName)) {
             // TODO(b/241941021) Determine correct exception to throw
