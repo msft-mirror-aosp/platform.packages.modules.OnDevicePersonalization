@@ -30,8 +30,10 @@ import com.android.ondevicepersonalization.services.data.OnDevicePersonalization
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -243,6 +245,39 @@ public class OnDevicePersonalizationVendorDataDao {
             Log.e(TAG, "Failed to read vendor data row", e);
         }
         return null;
+    }
+
+    /**
+     * Reads all keys in the vendor data table
+     *
+     * @return Set of keys in the vendor data table.
+     */
+    public Set<String> readAllVendorDataKeys() {
+        Set<String> keyset = new HashSet<>();
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {VendorDataContract.VendorDataEntry.KEY};
+            try (Cursor cursor = db.query(
+                    mTableName,
+                    projection,
+                    /* selection= */ null,
+                    /* selectionArgs= */ null,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    /* orderBy= */ null
+            )) {
+                while (cursor.moveToNext()) {
+                    String key = cursor.getString(
+                            cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.KEY));
+                    keyset.add(key);
+                }
+                cursor.close();
+                return keyset;
+            }
+        } catch (SQLiteException e) {
+            Log.e(TAG, "Failed to read all vendor data keys", e);
+        }
+        return keyset;
     }
 
     /**
