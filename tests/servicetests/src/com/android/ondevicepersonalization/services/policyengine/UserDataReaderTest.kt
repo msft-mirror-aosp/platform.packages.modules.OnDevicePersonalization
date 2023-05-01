@@ -152,6 +152,146 @@ class UserDataReaderTest : ProcessorNode {
         var appInstallStatus2 = AppInstallStatus.CREATOR.createFromParcel(parcel)
         assertThat(appInstallStatus1).isEqualTo(appInstallStatus2)
         assertThat(appInstallStatus1.hashCode()).isEqualTo(appInstallStatus2.hashCode())
+        assertThat(appInstallStatus1.describeContents()).isEqualTo(0)
+    }
+
+    @Test
+    fun testAppUsageStatus() {
+        var appUsageStatus1 = AppUsageStatus.Builder()
+                .setPackageName("package")
+                .setTotalTimeUsedInMillis(1000)
+                .build()
+        var parcel = Parcel.obtain()
+        appUsageStatus1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var appUsageStatus2 = AppUsageStatus.CREATOR.createFromParcel(parcel)
+        assertThat(appUsageStatus1).isEqualTo(appUsageStatus2)
+        assertThat(appUsageStatus1.hashCode()).isEqualTo(appUsageStatus2.hashCode())
+        assertThat(appUsageStatus1.describeContents()).isEqualTo(0)
+    }
+
+    @Test
+    fun testDeviceMetrics() {
+        var deviceMetrics1 = DeviceMetrics.Builder()
+                .setMake(111)
+                .setModel(222)
+                .setScreenHeights(333)
+                .setScreenWidth(444)
+                .setXdpi(0.1f)
+                .setYdpi(0.2f)
+                .setPxRatio(0.5f)
+                .build()
+        var parcel = Parcel.obtain()
+        deviceMetrics1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var deviceMetrics2 = DeviceMetrics.CREATOR.createFromParcel(parcel)
+        assertThat(deviceMetrics1).isEqualTo(deviceMetrics2)
+        assertThat(deviceMetrics1.hashCode()).isEqualTo(deviceMetrics2.hashCode())
+        assertThat(deviceMetrics1.describeContents()).isEqualTo(0)
+    }
+
+    @Test
+    fun testLocation() {
+        var location1 = Location.Builder()
+                .setTimeSec(111111)
+                .setLatitude(0.1)
+                .setLongitude(0.2)
+                .setLocationProvider(1)
+                .setPreciseLocation(true)
+                .build()
+        var parcel = Parcel.obtain()
+        location1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var location2 = Location.CREATOR.createFromParcel(parcel)
+        assertThat(location1).isEqualTo(location2)
+        assertThat(location1.hashCode()).isEqualTo(location2.hashCode())
+        assertThat(location1.describeContents()).isEqualTo(0)
+    }
+
+    @Test
+    fun testLocationStatus() {
+        var locationStatus1 = LocationStatus.Builder()
+                .setLatitude(0.1)
+                .setLongitude(0.2)
+                .setDurationMillis(111111)
+                .build()
+        var parcel = Parcel.obtain()
+        locationStatus1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var locationStatus2 = LocationStatus.CREATOR.createFromParcel(parcel)
+        assertThat(locationStatus1).isEqualTo(locationStatus2)
+        assertThat(locationStatus1.hashCode()).isEqualTo(locationStatus2.hashCode())
+        assertThat(locationStatus1.describeContents()).isEqualTo(0)
+    }
+
+    @Test
+    fun testOSVersion() {
+        var oSVersion1 = OSVersion.Builder()
+                .setMajor(111)
+                .setMinor(222)
+                .setMicro(333)
+                .build()
+        var parcel = Parcel.obtain()
+        oSVersion1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var oSVersion2 = OSVersion.CREATOR.createFromParcel(parcel)
+        assertThat(oSVersion1).isEqualTo(oSVersion2)
+        assertThat(oSVersion1.hashCode()).isEqualTo(oSVersion2.hashCode())
+        assertThat(oSVersion1.describeContents()).isEqualTo(0)
+    }
+
+    @Test
+    fun testUserData() {
+        var oSVersion = OSVersion.Builder()
+                .setMajor(111)
+                .setMinor(222)
+                .setMicro(333)
+                .build()
+        var deviceMetrics = DeviceMetrics.Builder()
+                .setMake(111)
+                .setModel(222)
+                .setScreenHeights(333)
+                .setScreenWidth(444)
+                .setXdpi(0.1f)
+                .setYdpi(0.2f)
+                .setPxRatio(0.5f)
+                .build()
+        val appInstalledHistory: List<AppInstallStatus> = listOf();
+        val appUsageHistory: List<AppUsageStatus> = listOf();
+        var location = Location.Builder()
+                .setTimeSec(111111)
+                .setLatitude(0.1)
+                .setLongitude(0.2)
+                .setLocationProvider(1)
+                .setPreciseLocation(true)
+                .build()
+        val locationHistory: List<LocationStatus> = listOf();
+        var userData1 = UserData.Builder()
+                .setTimeSec(111)
+                .setTimezone(1)
+                .setOrientation(1)
+                .setAvailableBytesMB(222)
+                .setBatteryPct(33)
+                .setCountry(123)
+                .setLanguage(34)
+                .setCarrier(55)
+                .setOsVersions(oSVersion)
+                .setConnectionType(2)
+                .setConnectionSpeedKbps(666)
+                .setNetworkMetered(true)
+                .setDeviceMetrics(deviceMetrics)
+                .setAppInstalledHistory(appInstalledHistory)
+                .setAppUsageHistory(appUsageHistory)
+                .setCurrentLocation(location)
+                .setLocationHistory(locationHistory)
+                .build()
+        var parcel = Parcel.obtain()
+        userData1.writeToParcel(parcel, 0)
+        parcel.setDataPosition(0);
+        var userData2 = UserData.CREATOR.createFromParcel(parcel)
+        assertThat(userData1).isEqualTo(userData2)
+        assertThat(userData1.hashCode()).isEqualTo(userData2.hashCode())
+        assertThat(userData1.describeContents()).isEqualTo(0)
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
@@ -182,6 +322,7 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(deviceMetrics.getXdpi()).isEqualTo(ref.deviceMetrics.xdpi)
         assertThat(deviceMetrics.getYdpi()).isEqualTo(ref.deviceMetrics.ydpi)
         assertThat(deviceMetrics.getPxRatio()).isEqualTo(ref.deviceMetrics.pxRatio)
+        assertThat(deviceMetrics.describeContents()).isEqualTo(0)
 
         val currentLocation: Location = userData.getCurrentLocation()
 
