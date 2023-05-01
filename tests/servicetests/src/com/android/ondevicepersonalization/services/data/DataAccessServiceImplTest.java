@@ -28,6 +28,7 @@ import android.content.Context;
 import android.net.Uri;
 import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -226,6 +227,8 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
         params.putString(Constants.EXTRA_BID_ID, "bid5");
+        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
+                OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT);
         ArrayList<String> bidKeys = new ArrayList<String>();
         SlotResult slotResult =
                 new SlotResult.Builder()
@@ -262,10 +265,124 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
+    public void testGetEventUrlThrowsIfEventTypeMissing() throws Exception {
+        Bundle params = new Bundle();
+        params.putString(Constants.EXTRA_BID_ID, "bid5");
+        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
+                OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT);
+        ArrayList<String> bidKeys = new ArrayList<String>();
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
+                        new Bid.Builder()
+                            .setKey("bid5")
+                            .build())
+                    .build();
+        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
+        var serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, eventUrlData, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
+                params,
+                new TestCallback()));
+    }
+
+    @Test
+    public void testGetEventUrlThrowsIfBidIdMissing() throws Exception {
+        Bundle params = new Bundle();
+        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
+        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
+                OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT);
+        ArrayList<String> bidKeys = new ArrayList<String>();
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
+                        new Bid.Builder()
+                            .setKey("bid5")
+                            .build())
+                    .build();
+        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
+        var serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, eventUrlData, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
+                params,
+                new TestCallback()));
+    }
+
+    @Test
+    public void testGetEventUrlThrowsIfBidIdInvalid() throws Exception {
+        Bundle params = new Bundle();
+        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
+        params.putString(Constants.EXTRA_BID_ID, "bid50");
+        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
+                OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT);
+        ArrayList<String> bidKeys = new ArrayList<String>();
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
+                        new Bid.Builder()
+                            .setKey("bid5")
+                            .build())
+                    .build();
+        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
+        var serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, eventUrlData, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
+                params,
+                new TestCallback()));
+    }
+
+    @Test
+    public void testGetEventUrlThrowsIfResponseTypeMissing() throws Exception {
+        Bundle params = new Bundle();
+        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
+        params.putString(Constants.EXTRA_BID_ID, "bid5");
+        ArrayList<String> bidKeys = new ArrayList<String>();
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
+                        new Bid.Builder()
+                            .setKey("bid5")
+                            .build())
+                    .build();
+        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
+        var serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, eventUrlData, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
+                params,
+                new TestCallback()));
+    }
+
+    @Test
     public void testGetClickUrl() throws Exception {
         Bundle params = new Bundle();
         params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
         params.putString(Constants.EXTRA_BID_ID, "bid5");
+        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
+                OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT);
         params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
         ArrayList<String> bidKeys = new ArrayList<String>();
         SlotResult slotResult =
@@ -302,6 +419,35 @@ public class DataAccessServiceImplTest {
         assertEquals("bid5", payload.getEvent().getBidId());
         Uri uri = Uri.parse(eventUrl);
         assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), "http://example.com");
+    }
+
+    @Test
+    public void testGetClickUrlThrowsIfDestinationUrlMissing() throws Exception {
+        Bundle params = new Bundle();
+        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
+        params.putString(Constants.EXTRA_BID_ID, "bid5");
+        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
+                OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT);
+        ArrayList<String> bidKeys = new ArrayList<String>();
+        SlotResult slotResult =
+                new SlotResult.Builder()
+                    .setSlotKey("slot1")
+                    .addRenderedBidKeys("bid5")
+                    .addLoggedBids(
+                        new Bid.Builder()
+                            .setKey("bid5")
+                            .build())
+                    .build();
+        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
+                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
+        var serviceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, eventUrlData, mInjector);
+        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
+                params,
+                new TestCallback()));
     }
 
     @Test

@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.SlotResult;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -208,9 +209,16 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 }
                 int eventType = params.getInt(Constants.EXTRA_EVENT_TYPE);
                 String bidId = params.getString(Constants.EXTRA_BID_ID);
+                int responseType = params.getInt(Constants.EXTRA_RESPONSE_TYPE);
                 String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
-                if (eventType == 0 || bidId == null || bidId.isEmpty()) {
-                    throw new IllegalArgumentException("Missing eventType or bidId");
+                if (eventType == 0 || bidId == null || bidId.isEmpty() || responseType == 0) {
+                    throw new IllegalArgumentException(String.format(
+                            "Missing parameters. eventType: %d bidId: [%s] responseType: %d",
+                            eventType, bidId, responseType));
+                }
+                if (responseType == OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT
+                        && (destinationUrl == null || destinationUrl.isEmpty())) {
+                    throw new IllegalArgumentException("Missing destinationUrl");
                 }
                 if (!mEventUrlQueryData.mBids.containsKey(bidId)) {
                     throw new IllegalArgumentException("Invalid bidId");

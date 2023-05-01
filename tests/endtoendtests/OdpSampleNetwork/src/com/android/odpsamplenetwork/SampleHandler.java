@@ -22,7 +22,6 @@ import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
 import android.ondevicepersonalization.EventInput;
 import android.ondevicepersonalization.EventOutput;
-import android.ondevicepersonalization.EventUrlOptions;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.ImmutableMap;
@@ -32,15 +31,12 @@ import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
-import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
 import android.util.JsonReader;
 import android.util.Log;
-
-import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -232,29 +228,15 @@ public class SampleHandler implements IsolatedComputationHandler {
     private ListenableFuture<String> getEventUrl(
             int eventType, String bidId, String landingPage,
             OnDevicePersonalizationContext odpContext) {
-        return CallbackToFutureAdapter.getFuture(completer -> {
-            Log.d(TAG, "getEventUrl(): " + eventType);
+        try {
             int responseType = landingPage != null
-                    ? EventUrlOptions.RESPONSE_TYPE_NO_CONTENT
-                    : EventUrlOptions.RESPONSE_TYPE_REDIRECT;
-            odpContext.getEventUrl(
-                    eventType,
-                    bidId,
-                    new EventUrlOptions.Builder()
-                        .setResponseType(responseType)
-                        .setDestinationUrl(landingPage)
-                        .build(),
-                    sBackgroundExecutor,
-                    new OutcomeReceiver<String, Exception>() {
-                        @Override public void onResult(String result) {
-                            completer.set(result);
-                        }
-                        @Override public void onError(Exception e) {
-                            completer.setException(e);
-                        }
-                    });
-            return "getEventUrl";
-        });
+                    ? OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT
+                    : OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT;
+            String url = odpContext.getEventUrl(eventType, bidId, responseType, landingPage);
+            return Futures.immediateFuture(url);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     private ListenableFuture<Ad> readAd(String id, ImmutableMap remoteData) {
