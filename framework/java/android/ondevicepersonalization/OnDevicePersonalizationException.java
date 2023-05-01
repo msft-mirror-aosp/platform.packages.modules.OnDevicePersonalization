@@ -25,11 +25,20 @@ public class OnDevicePersonalizationException extends Exception {
     private final int mErrorCode;
 
     public OnDevicePersonalizationException(int errorCode) {
-        this(errorCode, null);
+        this(errorCode, "");
     }
 
     public OnDevicePersonalizationException(int errorCode, String errorMessage) {
         super("Error code: " + errorCode + " message: " + errorMessage);
+        mErrorCode = errorCode;
+    }
+
+    public OnDevicePersonalizationException(int errorCode, Throwable cause) {
+        this(errorCode, "", cause);
+    }
+
+    public OnDevicePersonalizationException(int errorCode, String errorMessage, Throwable cause) {
+        super("Error code: " + errorCode + " message: " + errorMessage, cause);
         mErrorCode = errorCode;
     }
 

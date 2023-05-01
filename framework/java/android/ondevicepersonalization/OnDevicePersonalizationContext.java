@@ -16,11 +16,8 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
-import android.os.OutcomeReceiver;
-
-import java.util.concurrent.Executor;
+import android.annotation.Nullable;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated process.
@@ -28,6 +25,15 @@ import java.util.concurrent.Executor;
  * @hide
  */
 public interface OnDevicePersonalizationContext {
+    /** Return a 204 No Content HTTP response. */
+    int RESPONSE_TYPE_NO_CONTENT = 1;
+
+    /** Redirect to the provided destination URL. */
+    int RESPONSE_TYPE_REDIRECT = 2;
+
+    /** Return a 1x1 blank GIF image. */
+    int RESPONSE_TYPE_1X1_IMAGE = 3;
+
     /**
      * Returns a DAO for the REMOTE_DATA table.
      * @return A {@link ImmutableMap} object that provides access to the REMOTE_DATA table.
@@ -41,12 +47,9 @@ public interface OnDevicePersonalizationContext {
     @NonNull MutableMap getLocalData();
 
     /** Return an Event URL for a single bid. */
-    void getEventUrl(
+    @NonNull String getEventUrl(
             int eventType,
             @NonNull String bidId,
-            @NonNull EventUrlOptions options,
-            @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<String, Exception> receiver);
-
-    // TODO(b/228200518): Add DAOs for LOCAL_DATA and USER_DATA.
+            int responseType,
+            @Nullable String destinationUrl) throws OnDevicePersonalizationException;
 }

@@ -16,15 +16,17 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
-import android.os.OutcomeReceiver;
+import android.os.RemoteException;
 
 import java.util.Objects;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated
@@ -36,6 +38,8 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
     @NonNull private IDataAccessService mDataAccessService;
     @NonNull private ImmutableMap mRemoteData;
     @NonNull private MutableMap mLocalData;
+
+    private static final long ASYNC_TIMEOUT_MS = 1000;
 
     /** @hide */
     public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
@@ -52,41 +56,53 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
         return mLocalData;
     }
 
-    @Override public void getEventUrl(
+    @Override public String getEventUrl(
             int eventType,
             @NonNull String bidId,
-            @NonNull EventUrlOptions options,
-            @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<String, Exception> receiver) {
+            int responseType,
+            @Nullable String destinationUrl) throws OnDevicePersonalizationException {
         try {
+            BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
             params.putInt(Constants.EXTRA_EVENT_TYPE, eventType);
             params.putString(Constants.EXTRA_BID_ID, bidId);
-            params.putString(Constants.EXTRA_DESTINATION_URL, options.getDestinationUrl());
+            params.putInt(Constants.EXTRA_RESPONSE_TYPE, responseType);
+            params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
             mDataAccessService.onRequest(
                     Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                     params,
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            executor.execute(() -> {
-                                try {
-                                    String url = result.getString(Constants.EXTRA_RESULT);
-                                    receiver.onResult(url);
-                                } catch (Exception e) {
-                                    receiver.onError(e);
-                                }
-                            });
+                            asyncResult.add(new CallbackResult(result, 0));
                         }
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> {
-                                receiver.onError(new OnDevicePersonalizationException(errorCode));
-                            });
+                            asyncResult.add(new CallbackResult(null, errorCode));
                         }
                 });
-        } catch (Exception e) {
-            receiver.onError(e);
+            CallbackResult callbackResult =
+                    asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            Objects.requireNonNull(callbackResult);
+            if (callbackResult.mErrorCode != 0) {
+                throw new OnDevicePersonalizationException(callbackResult.mErrorCode);
+            }
+            Bundle result = Objects.requireNonNull(callbackResult.mResult);
+            String url = Objects.requireNonNull(result.getString(Constants.EXTRA_RESULT));
+            return url;
+        } catch (InterruptedException | RemoteException e) {
+            throw new OnDevicePersonalizationException(
+                    Constants.STATUS_INTERNAL_ERROR, (Throwable) e);
+        }
+    }
+
+    private static class CallbackResult {
+        final Bundle mResult;
+        final int mErrorCode;
+
+        CallbackResult(Bundle result, int errorCode) {
+            mResult = result;
+            mErrorCode = errorCode;
         }
     }
 }
