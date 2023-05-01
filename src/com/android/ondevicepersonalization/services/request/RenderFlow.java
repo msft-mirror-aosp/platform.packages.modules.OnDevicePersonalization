@@ -220,7 +220,7 @@ public class RenderFlow {
                 new DataAccessServiceImpl.EventUrlQueryData(queryId, slotResult));
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER_CONTENT,
+                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,
                 serviceParams);
     }
 

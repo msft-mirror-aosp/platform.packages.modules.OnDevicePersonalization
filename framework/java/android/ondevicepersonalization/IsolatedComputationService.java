@@ -68,7 +68,7 @@ public abstract class IsolatedComputationService extends Service {
             Objects.requireNonNull(callback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
 
-            if (operationCode == Constants.OP_SELECT_CONTENT) {
+            if (operationCode == Constants.OP_EXECUTE) {
 
                 ExecuteInput input = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, ExecuteInput.class));
@@ -82,7 +82,7 @@ public abstract class IsolatedComputationService extends Service {
                 mHandler.onExecute(
                         input, odpContext, new WrappedCallback<ExecuteOutput>(callback));
 
-            } else if (operationCode == Constants.OP_DOWNLOAD_FINISHED) {
+            } else if (operationCode == Constants.OP_DOWNLOAD) {
 
                 DownloadInputParcel input = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, DownloadInputParcel.class));
@@ -112,7 +112,7 @@ public abstract class IsolatedComputationService extends Service {
                 mHandler.onDownload(
                         downloadInput, odpContext, new WrappedCallback<DownloadOutput>(callback));
 
-            } else if (operationCode == Constants.OP_RENDER_CONTENT) {
+            } else if (operationCode == Constants.OP_RENDER) {
 
                 RenderInput input = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, RenderInput.class));
@@ -127,7 +127,7 @@ public abstract class IsolatedComputationService extends Service {
                 mHandler.onRender(
                         input, odpContext, new WrappedCallback<RenderOutput>(callback));
 
-            } else if (operationCode == Constants.OP_COMPUTE_EVENT_METRICS) {
+            } else if (operationCode == Constants.OP_EVENT) {
 
                 EventInput input = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, EventInput.class));
