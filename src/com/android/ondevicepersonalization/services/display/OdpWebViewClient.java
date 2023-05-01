@@ -147,7 +147,7 @@ class OdpWebViewClient extends WebViewClient {
                         isolatedServiceInfo,
                         AppManifestConfigHelper.getServiceNameFromOdpSettings(
                                 mContext, mServicePackageName),
-                        Constants.OP_COMPUTE_EVENT_METRICS,
+                        Constants.OP_EVENT,
                         serviceParams))
                     .transform(
                             result -> result.getParcelable(

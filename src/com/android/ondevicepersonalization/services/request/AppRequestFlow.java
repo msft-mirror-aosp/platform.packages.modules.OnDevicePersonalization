@@ -182,7 +182,7 @@ public class AppRequestFlow {
                 mHandler.getPackageName(), mContext, true, null);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
+                isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {

@@ -26,10 +26,10 @@ public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
 
     // Operations implemented by personalization services.
-    public static final int OP_SELECT_CONTENT = 1;
-    public static final int OP_DOWNLOAD_FINISHED = 2;
-    public static final int OP_RENDER_CONTENT = 3;
-    public static final int OP_COMPUTE_EVENT_METRICS = 4;
+    public static final int OP_EXECUTE = 1;
+    public static final int OP_DOWNLOAD = 2;
+    public static final int OP_RENDER = 3;
+    public static final int OP_EVENT = 4;
 
     // Keys for Bundle objects passed between processes.
     public static final String

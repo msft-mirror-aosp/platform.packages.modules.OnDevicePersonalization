@@ -235,7 +235,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
-                Constants.OP_DOWNLOAD_FINISHED,
+                Constants.OP_DOWNLOAD,
                 pluginParams);
     }
 

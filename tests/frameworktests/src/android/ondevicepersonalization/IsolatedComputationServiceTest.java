@@ -87,7 +87,7 @@ public class IsolatedComputationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_SELECT_CONTENT, params, new TestServiceCallback());
+                Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
         ExecuteOutput result =
@@ -109,7 +109,7 @@ public class IsolatedComputationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_SELECT_CONTENT, params, new TestServiceCallback());
+                Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
@@ -125,7 +125,7 @@ public class IsolatedComputationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_SELECT_CONTENT, params, new TestServiceCallback());
+                Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
     }
@@ -136,7 +136,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_SELECT_CONTENT, null,
+                            Constants.OP_EXECUTE, null,
                             new TestServiceCallback());
                 });
     }
@@ -149,7 +149,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_SELECT_CONTENT, params,
+                            Constants.OP_EXECUTE, params,
                             new TestServiceCallback());
                 });
     }
@@ -166,7 +166,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_SELECT_CONTENT, params,
+                            Constants.OP_EXECUTE, params,
                             new TestServiceCallback());
                 });
     }
@@ -184,7 +184,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_SELECT_CONTENT, params, null);
+                            Constants.OP_EXECUTE, params, null);
                 });
     }
 
@@ -198,7 +198,7 @@ public class IsolatedComputationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_DOWNLOAD_FINISHED, params, new TestServiceCallback());
+                Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
         DownloadOutput result =
@@ -212,7 +212,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_DOWNLOAD_FINISHED, null,
+                            Constants.OP_DOWNLOAD, null,
                             new TestServiceCallback());
                 });
     }
@@ -225,7 +225,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_DOWNLOAD_FINISHED, params,
+                            Constants.OP_DOWNLOAD, params,
                             new TestServiceCallback());
                 });
     }
@@ -242,7 +242,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_DOWNLOAD_FINISHED, params,
+                            Constants.OP_DOWNLOAD, params,
                             new TestServiceCallback());
                 });
     }
@@ -261,7 +261,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_DOWNLOAD_FINISHED, params, null);
+                            Constants.OP_DOWNLOAD, params, null);
                 });
     }
 
@@ -279,7 +279,7 @@ public class IsolatedComputationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_RENDER_CONTENT, params, new TestServiceCallback());
+                Constants.OP_RENDER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mRenderContentCalled);
         RenderOutput result =
@@ -300,7 +300,7 @@ public class IsolatedComputationServiceTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_RENDER_CONTENT, params, new TestServiceCallback());
+                Constants.OP_RENDER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mRenderContentCalled);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
@@ -312,7 +312,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_RENDER_CONTENT, null,
+                            Constants.OP_RENDER, null,
                             new TestServiceCallback());
                 });
     }
@@ -325,7 +325,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_RENDER_CONTENT, params,
+                            Constants.OP_RENDER, params,
                             new TestServiceCallback());
                 });
     }
@@ -346,7 +346,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_RENDER_CONTENT, params,
+                            Constants.OP_RENDER, params,
                             new TestServiceCallback());
                 });
     }
@@ -368,7 +368,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_RENDER_CONTENT, params, null);
+                            Constants.OP_RENDER, params, null);
                 });
     }
 
@@ -379,7 +379,7 @@ public class IsolatedComputationServiceTest {
                 Constants.EXTRA_INPUT, new EventInput.Builder().build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_COMPUTE_EVENT_METRICS, params,
+                Constants.OP_EVENT, params,
                 new TestServiceCallback());
         mLatch.await();
         assertTrue(mComputeEventMetricsCalled);
@@ -397,7 +397,7 @@ public class IsolatedComputationServiceTest {
                 new EventInput.Builder().setEventType(9999).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(
-                Constants.OP_COMPUTE_EVENT_METRICS, params,
+                Constants.OP_EVENT, params,
                 new TestServiceCallback());
         mLatch.await();
         assertTrue(mComputeEventMetricsCalled);
@@ -410,7 +410,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_COMPUTE_EVENT_METRICS, null,
+                            Constants.OP_EVENT, null,
                             new TestServiceCallback());
                 });
     }
@@ -423,7 +423,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_COMPUTE_EVENT_METRICS, params,
+                            Constants.OP_EVENT, params,
                             new TestServiceCallback());
                 });
     }
@@ -437,7 +437,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_COMPUTE_EVENT_METRICS, params,
+                            Constants.OP_EVENT, params,
                             new TestServiceCallback());
                 });
     }
@@ -452,7 +452,7 @@ public class IsolatedComputationServiceTest {
                 NullPointerException.class,
                 () -> {
                     mBinder.onRequest(
-                            Constants.OP_COMPUTE_EVENT_METRICS, params, null);
+                            Constants.OP_EVENT, params, null);
                 });
     }
 
