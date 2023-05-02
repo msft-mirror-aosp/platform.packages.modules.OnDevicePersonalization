@@ -216,7 +216,7 @@ public final class FederatedExampleIteratorTest {
         assertThat(exception)
                 .hasCauseThat()
                 .hasMessageThat()
-                .isEqualTo("onStartQueryFailure collection /collection1 error code 100");
+                .isEqualTo("onStartQueryFailure collection /collection1 error code 1");
     }
 
     @Test
@@ -229,7 +229,7 @@ public final class FederatedExampleIteratorTest {
         assertThat(exception)
                 .hasCauseThat()
                 .hasMessageThat()
-                .isEqualTo("onStartQueryFailure collection /collection1 error code 100");
+                .isEqualTo("onStartQueryFailure collection /collection1 error code 1");
     }
 
     @Test
@@ -248,7 +248,7 @@ public final class FederatedExampleIteratorTest {
         assertThat(exception)
                 .hasCauseThat()
                 .hasMessageThat()
-                .isEqualTo("OnIteratorNextFailure: /collection1: 100");
+                .isEqualTo("OnIteratorNextFailure: /collection1: 1");
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
         runInBackgroundAndWait(mIterator::close);
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
@@ -270,7 +270,7 @@ public final class FederatedExampleIteratorTest {
         assertThat(exception)
                 .hasCauseThat()
                 .hasMessageThat()
-                .isEqualTo("OnIteratorNextFailure: /collection1: 100");
+                .isEqualTo("OnIteratorNextFailure: /collection1: 1");
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
         runInBackgroundAndWait(mIterator::close);
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
