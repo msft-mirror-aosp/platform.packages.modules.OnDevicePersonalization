@@ -24,8 +24,6 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF
 import com.android.federatedcompute.proto.ForwardingInfo;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
-import com.google.protobuf.ByteString;
-
 import java.util.HashMap;
 
 /**
@@ -66,7 +64,7 @@ public final class ProtocolRequestCreator {
 
     /** Creates a {@link FederatedComputeHttpRequest} with base uri and compression setting. */
     public FederatedComputeHttpRequest createProtoRequest(
-            String uri, HttpMethod httpMethod, ByteString requestBody, boolean isProtobufEncoded) {
+            String uri, HttpMethod httpMethod, byte[] requestBody, boolean isProtobufEncoded) {
         HashMap<String, String> extraHeaders = new HashMap<>();
         return createProtoRequest(uri, httpMethod, extraHeaders, requestBody, isProtobufEncoded);
     }
@@ -78,19 +76,26 @@ public final class ProtocolRequestCreator {
     public FederatedComputeHttpRequest createProtoRequest(
             String uri,
             HttpMethod httpMethod,
-            HashMap<String, String> extraHeaders,
-            ByteString requestBody,
+            HashMap<String, String> params,
+            byte[] requestBody,
             boolean isProtobufEncoded) {
         HashMap<String, String> requestHeader = mHeaderList;
         requestHeader.put(API_KEY_HDR, mApiKey.isEmpty() ? FAKE_API_KEY : mApiKey);
-        requestHeader.putAll(extraHeaders);
 
         if (isProtobufEncoded) {
-            if (!requestBody.isEmpty()) {
+            if (requestBody.length > 0) {
                 requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
             }
+            params.put("%24alt", "proto");
         }
-        String requestUriSuffix = uri.concat("?").concat(String.join("=", "%24alt", "proto"));
+
+        String requestUriSuffix = uri;
+        if (!params.isEmpty()) {
+            requestUriSuffix = uri.concat("?");
+            for (String key : params.keySet()) {
+                requestUriSuffix = requestUriSuffix.concat(String.join("=", key, params.get(key)));
+            }
+        }
 
         return FederatedComputeHttpRequest.create(
                 joinBaseUriWithSuffix(mRequestBaseUri, requestUriSuffix),
