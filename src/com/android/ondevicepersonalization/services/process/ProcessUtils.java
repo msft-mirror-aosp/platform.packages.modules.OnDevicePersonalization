@@ -160,10 +160,5 @@ public class ProcessUtils {
         return vendorPackageName + "-" + taskName;
     }
 
-    static String getVendorPackageNameFromPluginId(String pluginId) {
-        // TODO(b/249345663) Perform any validation needed on the input.
-        return pluginId.split("-")[0];
-    }
-
     private ProcessUtils() {}
 }

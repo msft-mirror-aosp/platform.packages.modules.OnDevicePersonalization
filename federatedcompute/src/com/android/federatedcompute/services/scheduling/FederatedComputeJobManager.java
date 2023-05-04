@@ -18,8 +18,8 @@ package com.android.federatedcompute.services.scheduling;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
-import static java.lang.Math.max;
-import static java.lang.Math.min;
+import static com.android.federatedcompute.services.scheduling.SchedulingUtil.convertSchedulingMode;
+
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import android.annotation.NonNull;
@@ -32,7 +32,11 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.android.federatedcompute.services.common.Clock;
+import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
+import com.android.federatedcompute.services.common.PhFlags;
+import com.android.federatedcompute.services.common.TaskRetry;
+import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
@@ -50,32 +54,26 @@ import java.util.Set;
 /** Handles scheduling training tasks e.g. calling into JobScheduler, maintaining datastore. */
 public class FederatedComputeJobManager {
     private static final String TAG = "FederatedComputeJobManager";
-    // TODO(b/238193394): use PH flag for these settings.
-    static final int DEFAULT_SCHEDULING_PERIOD_SECS = 60 * 5; // 5 minutes
-    static final int MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION = 1 * 60; // 1 min
-    static final int MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION =
-            6 * 24 * 60 * 60; // 6 days (< default ttl 7d)
-    private static final int MAX_SCHEDULING_PERIOD_SECS = 60 * 60 * 24 * 2; // 2 days
-    static final int TRAINING_TIME_FOR_LIVE_SECONDS = 7 * 24 * 60 * 60; // one week
-    static final int TRAINING_SERVICE_RESULT_CALLBACK_TIMEOUT_SEC =
-            60 * 9 + 45; // 9 minutes 45 seconds, leaving ~15 seconds to clean up.
 
     @NonNull private final Context mContext;
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
     private static FederatedComputeJobManager sSingletonInstance;
     private Clock mClock;
+    private final Flags mFlags;
 
     @VisibleForTesting
     FederatedComputeJobManager(
             @NonNull Context context,
             FederatedTrainingTaskDao federatedTrainingTaskDao,
             JobSchedulerHelper jobSchedulerHelper,
-            @NonNull Clock clock) {
-        this.mContext = context.getApplicationContext();
+            @NonNull Clock clock,
+            Flags flag) {
+        this.mContext = context;
         this.mFederatedTrainingTaskDao = federatedTrainingTaskDao;
         this.mJobSchedulerHelper = jobSchedulerHelper;
         this.mClock = clock;
+        this.mFlags = flag;
     }
 
     /** Returns an instance of FederatedComputeJobManager given a context. */
@@ -89,7 +87,8 @@ public class FederatedComputeJobManager {
                                 mContext,
                                 FederatedTrainingTaskDao.getInstance(mContext),
                                 new JobSchedulerHelper(clock),
-                                clock);
+                                clock,
+                                PhFlags.getInstance());
             }
             return sSingletonInstance;
         }
@@ -124,8 +123,8 @@ public class FederatedComputeJobManager {
                             .constraints(newTrainingConstraint)
                             .populationName(trainingOptions.getPopulationName())
                             .earliestNextRunTime(
-                                    getEarliestRuntimeForInitialSchedule(
-                                            nowMs, 0, trainingOptions));
+                                    SchedulingUtil.getEarliestRuntimeForInitialSchedule(
+                                            nowMs, 0, trainingOptions, mFlags));
             if (trainingOptions.getTrainingInterval() != null) {
                 newTaskBuilder.intervalOptions(
                         buildTrainingIntervalOptions(trainingOptions.getTrainingInterval()));
@@ -148,30 +147,24 @@ public class FederatedComputeJobManager {
                 newTaskBuilder
                         .populationName(trainingOptions.getPopulationName())
                         .earliestNextRunTime(
-                                getEarliestRuntimeForInitialSchedule(
-                                        nowMs, nowMs, trainingOptions));
+                                SchedulingUtil.getEarliestRuntimeForInitialSchedule(
+                                        nowMs, nowMs, trainingOptions, mFlags));
                 if (trainingOptions.getTrainingInterval() != null) {
                     newTaskBuilder.intervalOptions(
                             buildTrainingIntervalOptions(trainingOptions.getTrainingInterval()));
                 }
                 shouldSchedule = true;
             } else {
-                long existingTaskMinLatencyMillis = existingTask.earliestNextRunTime() - nowMs;
-                int schedulingMode =
-                        trainingOptions.getTrainingInterval() != null
-                                ? convertSchedulingMode(
-                                        trainingOptions.getTrainingInterval().getSchedulingMode())
-                                : SchedulingMode.ONE_TIME;
-                long sanitizedMinLatencyMillis =
-                        sanitizeMinimumLatencyMillis(existingTaskMinLatencyMillis, schedulingMode);
+                long earliestNextRunTime =
+                        SchedulingUtil.getEarliestRuntimeForExistingTask(
+                                existingTask, trainingOptions, mFlags, nowMs);
                 long maxExpectedRuntimeSecs =
-                        TRAINING_SERVICE_RESULT_CALLBACK_TIMEOUT_SEC + /*buffer*/ 30;
+                        mFlags.getTrainingServiceResultCallbackTimeoutSecs() + /*buffer*/ 30;
                 boolean currentlyRunningHeuristic =
                         existingTask.lastRunStartTime() < nowMs
                                 && nowMs - existingTask.lastRunStartTime()
                                         < 1000 * maxExpectedRuntimeSecs
                                 && existingTask.lastRunStartTime() > existingTask.lastRunEndTime();
-                long earliestNextRunTime = nowMs + sanitizedMinLatencyMillis;
                 shouldSchedule =
                         !currentlyRunningHeuristic
                                 && (!mJobSchedulerHelper.isTaskScheduled(mContext, existingTask)
@@ -230,6 +223,83 @@ public class FederatedComputeJobManager {
         sendSuccess(callback);
     }
 
+    /** Called when a training task identified by {@code jobId} starts running. */
+    @Nullable
+    public synchronized FederatedTrainingTask onTrainingStarted(int jobId) {
+        FederatedTrainingTask existingTask =
+                mFederatedTrainingTaskDao.findAndRemoveTaskByJobId(jobId);
+        if (existingTask == null) {
+            return null;
+        }
+        long ttlMs = SECONDS.toMillis(mFlags.getTrainingTimeForLiveSeconds());
+        long nowMs = mClock.currentTimeMillis();
+        if (ttlMs > 0 && nowMs - existingTask.lastScheduledTime() > ttlMs) {
+            // If the TTL is expired, then delete the task.
+            Log.i(TAG, String.format("Training task %d TTLd", jobId));
+            return null;
+        }
+        FederatedTrainingTask newTask = existingTask.toBuilder().lastRunStartTime(nowMs).build();
+        mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
+        return newTask;
+    }
+
+    /** Called when a training task completed. */
+    public synchronized void onTrainingCompleted(
+            int jobId,
+            String populationName,
+            TrainingIntervalOptions trainingIntervalOptions,
+            TaskRetry taskRetry,
+            @TrainingResult int trainingResult) {
+        boolean result =
+                rescheduleFederatedTaskAfterTraining(
+                        jobId, populationName, trainingIntervalOptions, taskRetry, trainingResult);
+        if (!result) {
+            Log.e(TAG, "JobScheduler returned failure after successful run!");
+        }
+    }
+
+    /** Tries to reschedule a federated task after a failed or successful training run. */
+    private synchronized boolean rescheduleFederatedTaskAfterTraining(
+            int jobId,
+            String populationName,
+            TrainingIntervalOptions intervalOptions,
+            TaskRetry taskRetry,
+            @TrainingResult int trainingResult) {
+        FederatedTrainingTask existingTask =
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(
+                        populationName, jobId);
+        // If task was deleted already, then return early, but still consider it a success
+        // since this is not really an error case (e.g. Trainer.stop may have simply been
+        // called while training was running).
+        if (existingTask == null) {
+            return true;
+        }
+        boolean hasContributed = trainingResult == TrainingResult.SUCCESS;
+        if (intervalOptions != null
+                && intervalOptions.schedulingMode() == SchedulingMode.ONE_TIME
+                && hasContributed) {
+            mJobSchedulerHelper.cancelTask(mContext, existingTask);
+            Log.i(TAG, "federated task remove because oneoff task succeeded: " + jobId);
+            return true;
+        }
+        // Update the task and add it back to the training task store.
+        long nowMillis = mClock.currentTimeMillis();
+        long earliestNextRunTime =
+                SchedulingUtil.getEarliestRuntimeForFCReschedule(
+                        nowMillis, intervalOptions, taskRetry, hasContributed, mFlags);
+        FederatedTrainingTask.Builder newTaskBuilder =
+                existingTask.toBuilder()
+                        .lastRunEndTime(nowMillis)
+                        .earliestNextRunTime(earliestNextRunTime);
+        newTaskBuilder.schedulingReason(
+                taskRetry != null
+                        ? SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY
+                        : SchedulingReason.SCHEDULING_REASON_FAILURE);
+        FederatedTrainingTask newTask = newTaskBuilder.build();
+        mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
+        return mJobSchedulerHelper.scheduleTask(mContext, newTask);
+    }
+
     private static byte[] buildTrainingConstraints() {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
@@ -252,16 +322,6 @@ public class FederatedComputeJobManager {
                         trainingInterval.getMinimumIntervalMillis()));
 
         return builder.sizedByteArray();
-    }
-
-    private static int convertSchedulingMode(@TrainingInterval.SchedulingMode int schedulingMode) {
-        if (schedulingMode == TrainingInterval.SCHEDULING_MODE_RECURRENT) {
-            return SchedulingMode.RECURRENT;
-        } else if (schedulingMode == TrainingInterval.SCHEDULING_MODE_ONE_TIME) {
-            return SchedulingMode.ONE_TIME;
-        } else {
-            throw new IllegalStateException("Unknown value for scheduling mode");
-        }
     }
 
     private boolean detectKeyParametersChanged(
@@ -310,57 +370,6 @@ public class FederatedComputeJobManager {
                         ? null
                         : buildTrainingIntervalOptions(newTaskOptions.getTrainingInterval());
         return !Arrays.equals(incomingTrainingIntervalOptions, existingTask.intervalOptions());
-    }
-
-    private long sanitizeMinimumLatencyMillis(long unsanitizedMillis, int schedulingMode) {
-        long lowerBoundMillis;
-        long upperBoundMillis;
-        if (schedulingMode == SchedulingMode.RECURRENT) {
-            // Recurrent task with user defined interval
-            lowerBoundMillis =
-                    SECONDS.toMillis(MIN_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
-            upperBoundMillis =
-                    SECONDS.toMillis(MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
-        } else {
-            // One-time task or recurrent task without user defined interval
-            lowerBoundMillis = 0L;
-            upperBoundMillis = SECONDS.toMillis(MAX_SCHEDULING_PERIOD_SECS);
-        }
-        return max(lowerBoundMillis, min(upperBoundMillis, unsanitizedMillis));
-    }
-
-    private long getEarliestRuntimeForInitialSchedule(
-            long nowMs, long lastRunTimeMs, TrainingOptions trainerOptions) {
-        long defaultNextRunTimeMs = nowMs + SECONDS.toMillis(DEFAULT_SCHEDULING_PERIOD_SECS);
-        int schedulingMode =
-                trainerOptions.getTrainingInterval() != null
-                        ? convertSchedulingMode(
-                                trainerOptions.getTrainingInterval().getSchedulingMode())
-                        : SchedulingMode.ONE_TIME;
-        if (schedulingMode != SchedulingMode.RECURRENT) {
-            // Non-recurrent task doesn't have user defined interval.
-            return defaultNextRunTimeMs;
-        }
-
-        long userDefinedMinIntervalMillis =
-                sanitizeMinimumLatencyMillis(
-                        trainerOptions.getTrainingInterval() == null
-                                ? 0
-                                : trainerOptions.getTrainingInterval().getMinimumIntervalMillis(),
-                        schedulingMode);
-        // Take the smaller value of default next run time, and the next run time with user defined
-        // interval.
-        long minIntervalMsForRecurrentTask =
-                min(nowMs + userDefinedMinIntervalMillis, defaultNextRunTimeMs);
-
-        if (lastRunTimeMs == 0) {
-            // The task has never run in the past
-            return minIntervalMsForRecurrentTask;
-        } else {
-            // If the task has run in the past, we want to make sure the user defined minimum
-            // interval has passed since last time it ran.
-            return max(lastRunTimeMs + userDefinedMinIntervalMillis, minIntervalMsForRecurrentTask);
-        }
     }
 
     private void sendError(@NonNull IFederatedComputeCallback callback) {
