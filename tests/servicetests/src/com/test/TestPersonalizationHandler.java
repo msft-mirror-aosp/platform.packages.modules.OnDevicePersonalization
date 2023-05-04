@@ -17,112 +17,108 @@
 package com.test;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
-import android.ondevicepersonalization.EventMetricsInput;
-import android.ondevicepersonalization.EventMetricsResult;
+import android.ondevicepersonalization.DownloadOutput;
+import android.ondevicepersonalization.EventInput;
+import android.ondevicepersonalization.EventOutput;
+import android.ondevicepersonalization.ExecuteInput;
+import android.ondevicepersonalization.ExecuteOutput;
+import android.ondevicepersonalization.IsolatedComputationHandler;
 import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.PersonalizationHandler;
-import android.ondevicepersonalization.RenderContentInput;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentInput;
-import android.ondevicepersonalization.SelectContentResult;
+import android.ondevicepersonalization.RenderInput;
+import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.SlotResult;
-import android.os.OutcomeReceiver;
 import android.util.Log;
 
-import com.google.common.util.concurrent.MoreExecutors;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements PersonalizationHandler {
+public class TestPersonalizationHandler implements IsolatedComputationHandler {
     public final String TAG = "TestPersonalizationHandler";
 
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadResult> consumer) {
-        Log.d(TAG, "Starting filterData.");
-        Log.d(TAG, "Data: " + input.getData());
+            Consumer<DownloadOutput> consumer) {
+        try {
+            Log.d(TAG, "Starting filterData.");
+            Log.d(TAG, "Data: " + input.getData());
 
-        List<String> lookupKeys = new ArrayList<>();
-        lookupKeys.add("keyExtra");
-        odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
-                new OutcomeReceiver<Map<String, byte[]>, Exception>() {
-                    @Override
-                    public void onResult(@NonNull Map<String, byte[]> result) {
-                        Log.d(TAG, "OutcomeReceiver onResult: " + result);
-                        List<String> keysToRetain =
-                                getFilteredKeys(input.getData());
-                        keysToRetain.add("keyExtra");
-                        // Get the keys to keep from the downloaded data
-                        DownloadResult downloadResult =
-                                new DownloadResult.Builder()
-                                .setKeysToRetain(keysToRetain)
-                                .build();
-                        consumer.accept(downloadResult);
-                    }
+            Log.d(TAG, "Existing keyExtra: "
+                    + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
-                        consumer.accept(null);
-                    }
-                });
+            List<String> keysToRetain =
+                    getFilteredKeys(input.getData());
+            keysToRetain.add("keyExtra");
+            // Get the keys to keep from the downloaded data
+            DownloadOutput result =
+                    new DownloadOutput.Builder()
+                            .setKeysToRetain(keysToRetain)
+                            .build();
+            consumer.accept(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Error occurred in onDownload", e);
+        }
     }
 
-    @Override public void selectContent(
-            @NonNull SelectContentInput input,
+    @Override public void onExecute(
+            @NonNull ExecuteInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<SelectContentResult> consumer
+            @NonNull Consumer<ExecuteOutput> consumer
     ) {
         Log.d(TAG, "onAppRequest() started.");
-        SelectContentResult result = new SelectContentResult.Builder()
+        ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(new SlotResult.Builder()
-                        .setSlotId("slot_id")
-                        .addWinningBids(
-                            new ScoredBid.Builder()
-                            .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
+                        .setSlotKey("slot_id")
+                        .addRenderedBidKeys("bid1")
+                        .addLoggedBids(
+                            new Bid.Builder()
+                                .setKey("bid1")
+                                .setMetrics(new Metrics.Builder()
+                                    .setDoubleValues(5.0, 1.0)
+                                    .build())
+                                .build())
                         .build())
                 .build();
         consumer.accept(result);
     }
 
-    @Override public void renderContent(
-            @NonNull RenderContentInput input,
+    @Override public void onRender(
+            @NonNull RenderInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<RenderContentResult> consumer
+            @NonNull Consumer<RenderOutput> consumer
     ) {
         Log.d(TAG, "renderContent() started.");
-        RenderContentResult result =
-                new RenderContentResult.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
+        RenderOutput result =
+                new RenderOutput.Builder()
+                .setContent("<p>RenderResult: " + String.join(",", input.getBidKeys()) + "<p>")
                 .build();
         consumer.accept(result);
     }
 
-    public void computeEventMetrics(
-            @NonNull EventMetricsInput input,
+    public void onEvent(
+            @NonNull EventInput input,
             @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<EventMetricsResult> consumer
+            @NonNull Consumer<EventOutput> consumer
     ) {
-        int intValue = 0;
+        long longValue = 0;
         double floatValue = 0.0;
-        if (input.getEventParams() != null) {
-            intValue = input.getEventParams().getInt("a");
-            floatValue = input.getEventParams().getDouble("b");
+        if (input.getBid() != null && input.getBid().getMetrics() != null) {
+            longValue = input.getBid().getMetrics().getLongValues()[0];
+            floatValue = input.getBid().getMetrics().getDoubleValues()[0];
         }
-        EventMetricsResult result =
-                new EventMetricsResult.Builder()
+        EventOutput result =
+                new EventOutput.Builder()
                     .setMetrics(
                             new Metrics.Builder()
-                                .setLongValues(intValue)
+                                .setLongValues(longValue)
                                 .setDoubleValues(floatValue)
                                 .build())
                     .build();
