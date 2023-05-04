@@ -27,9 +27,25 @@
     <application android:label="FederatedComputeServicesTests"
                  android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
-        <service android:name="com.android.federatedcompute.services.training.TrainingJobService"
+        <service android:name="com.android.federatedcompute.services.training.FederatedJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.federatedcompute.services.examplestore.SampleExampleStoreService"
+                 android:enabled="true"
+                 android:exported="true">
+                 <intent-filter>
+                    <action android:name="android.federatedcompute.EXAMPLE_STORE" />
+                    <data android:scheme="app" />
+                 </intent-filter>
+        </service>
+        <service android:name="com.android.federatedcompute.services.training.SampleResultHandlingService"
+                 android:enabled="true"
+                 android:exported="true">
+                 <intent-filter>
+                    <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
+                    <data android:scheme="app" />
+                 </intent-filter>
         </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

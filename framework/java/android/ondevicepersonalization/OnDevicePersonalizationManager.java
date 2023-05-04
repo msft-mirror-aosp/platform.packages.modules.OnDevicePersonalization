@@ -84,7 +84,7 @@ public class OnDevicePersonalizationManager {
     /**
      * The name of key to be used in the Bundle fields of {@link #requestSurfacePackage()},
      * its value should define a {@link PersistableBundle} that is passed to the
-     * {@link PersonalizationService}.
+     * {@link IsolatedComputationService}.
      */
     public static final String EXTRA_APP_PARAMS =
             "android.ondevicepersonalization.extra.APP_PARAMS";
@@ -145,15 +145,16 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Executes a {@link PersonalizationHandler} in the OnDevicePersonalization sandbox.
+     * Executes a {@link IsolatedComputationHandler} in the OnDevicePersonalization sandbox.
      *
      * @param servicePackageName The name of the package containing the handler.
      * @param params a {@link PersistableBundle} passed from the calling app to the handler.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This returns a list of {@link SlotResultHandle} objects, each of which is an
-     *     opaque reference to a {@link SlotResult} returned by a {@link PersonalizationHandler},
-     *     or an {@link Exception} on failure. The returned {@link SlotResultHandle} objects can be
-     *     used in a subsequent {@link requestSurfacePackage} call to display the result in a view.
+     *     opaque reference to a {@link SlotResult} returned by a
+     *     {@link IsolatedComputationHandler}, or an {@link Exception} on failure. The returned
+     *     {@link SlotResultHandle} objects can be used in a subsequent
+     *     {@link requestSurfacePackage} call to display the result in a view.
      */
     public void execute(
             @NonNull String servicePackageName,
@@ -203,7 +204,7 @@ public class OnDevicePersonalizationManager {
 
     /**
      * Requests a surface package. The surface package will contain a {@link WebView} with html from
-     * a {@link PersonalizationHandler} running in the OnDevicePersonalization sandbox.
+     * a {@link IsolatedComputationHandler} running in the OnDevicePersonalization sandbox.
      *
      * @param slotResultHandle a reference to a {@link SlotResultHandle} returned by a prior call to
      *     {@link execute}.
