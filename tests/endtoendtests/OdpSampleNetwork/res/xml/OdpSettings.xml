@@ -17,6 +17,6 @@
 
 <!-- Odp Settings, in XML resource -->
 <on-device-personalization>
-    <service name="com.android.odpsamplenetwork.SamplePersonalizationService" />
+    <service name="com.android.odpsamplenetwork.SampleService" />
     <download-settings url="android.resource://com.android.odpsamplenetwork/raw/test_data1" />
 </on-device-personalization>
