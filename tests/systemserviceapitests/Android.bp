@@ -17,7 +17,7 @@ package {
 }
 
 android_test {
-    name: "OnDevicePersonalizationSystemServiceTests",
+    name: "OnDevicePersonalizationSystemServiceApiTests",
     srcs: [
         "src/**/*.java",
     ],
@@ -34,6 +34,8 @@ android_test {
         "androidx.test.rules",
         "modules-utils-build",
     ],
+    sdk_version: "module_current",
+    target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     certificate: "platform",
     test_suites: [
