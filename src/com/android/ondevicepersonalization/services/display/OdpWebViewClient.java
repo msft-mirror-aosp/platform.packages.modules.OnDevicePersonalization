@@ -64,6 +64,7 @@ class OdpWebViewClient extends WebViewClient {
 
         void openUrl(String landingPage, Context context) {
             if (landingPage != null) {
+                Log.d(TAG, "Sending intent to open landingPage: " + landingPage);
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(landingPage));
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);

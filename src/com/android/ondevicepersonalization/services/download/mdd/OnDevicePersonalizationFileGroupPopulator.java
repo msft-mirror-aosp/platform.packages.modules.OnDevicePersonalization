@@ -213,6 +213,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                     }
 
                     for (String group : fileGroupsToRemove) {
+                        Log.d(TAG, "Removing file group: " + group);
                         mFutures.add(mobileDataDownload.removeFileGroup(
                                 RemoveFileGroupRequest.newBuilder().setGroupName(group).build()));
                     }
