@@ -16,13 +16,14 @@
 
 package com.android.ondevicepersonalization.services.util;
 
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentResult;
+import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.SlotResult;
 
 import com.android.ondevicepersonalization.services.fbs.Bid;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
 import com.android.ondevicepersonalization.services.fbs.Metrics;
+import com.android.ondevicepersonalization.services.fbs.Owner;
+import com.android.ondevicepersonalization.services.fbs.QueryData;
 import com.android.ondevicepersonalization.services.fbs.QueryFields;
 import com.android.ondevicepersonalization.services.fbs.Slot;
 
@@ -40,38 +41,41 @@ public class OnDevicePersonalizationFlatbufferUtils {
     /**
      * Creates a byte array representing the QueryData as a flatbuffer
      */
-    public static byte[] createQueryData(SelectContentResult selectContentResult) {
+    public static byte[] createQueryData(
+            String servicePackageName, String certDigest, ExecuteOutput executeOutput) {
         FlatBufferBuilder builder = new FlatBufferBuilder();
+        int ownerOffset = createOwner(builder, servicePackageName, certDigest);
         int slotsOffset = 0;
-        if (selectContentResult.getSlotResults() != null) {
+        if (executeOutput.getSlotResults() != null) {
             // Create slots vector
-            List<SlotResult> slotResults = selectContentResult.getSlotResults();
+            List<SlotResult> slotResults = executeOutput.getSlotResults();
             int[] slots = new int[slotResults.size()];
             for (int i = 0; i < slotResults.size(); i++) {
                 SlotResult slotResult = slotResults.get(i);
-                int slotIdOffset = builder.createString(slotResult.getSlotId());
+                int slotKeyOffset = builder.createString(slotResult.getSlotKey());
 
-                int winningBidsOffset = 0;
-                if (slotResult.getWinningBids() != null) {
-                    winningBidsOffset = createBidVector(builder, slotResult.getWinningBids());
+                int bidsOffset = 0;
+                if (slotResult.getLoggedBids() != null) {
+                    bidsOffset = createBidVector(builder, slotResult.getLoggedBids());
                 }
 
-                int rejectedBidsOffset = 0;
-                if (slotResult.getRejectedBids() != null) {
-                    rejectedBidsOffset = createBidVector(builder, slotResult.getRejectedBids());
-                }
                 Slot.startSlot(builder);
-                Slot.addId(builder, slotIdOffset);
-                Slot.addWinningBids(builder, winningBidsOffset);
-                Slot.addRejectedBids(builder, rejectedBidsOffset);
+                Slot.addKey(builder, slotKeyOffset);
+                Slot.addBids(builder, bidsOffset);
                 slots[i] = Slot.endSlot(builder);
             }
             slotsOffset = QueryFields.createSlotsVector(builder, slots);
         }
         QueryFields.startQueryFields(builder);
+        QueryFields.addOwner(builder, ownerOffset);
         QueryFields.addSlots(builder, slotsOffset);
-        int queryFieldOffset = QueryFields.endQueryFields(builder);
-        builder.finish(queryFieldOffset);
+        int[] queryFieldsOffset = new int[1];
+        queryFieldsOffset[0] = QueryFields.endQueryFields(builder);
+        int queryFieldsListOffset = QueryData.createQueryFieldsVector(builder, queryFieldsOffset);
+        QueryData.startQueryData(builder);
+        QueryData.addQueryFields(builder, queryFieldsListOffset);
+        int queryDataOffset = QueryData.endQueryData(builder);
+        builder.finish(queryDataOffset);
         return builder.sizedByteArray();
     }
 
@@ -91,23 +95,41 @@ public class OnDevicePersonalizationFlatbufferUtils {
         return builder.sizedByteArray();
     }
 
-    private static int createBidVector(FlatBufferBuilder builder, List<ScoredBid> scoredBids) {
-        int[] bids = new int[scoredBids.size()];
-        for (int i = 0; i < scoredBids.size(); i++) {
-            ScoredBid scoredBid = scoredBids.get(i);
-            int bidIdOffset = builder.createString(scoredBid.getBidId());
+    private static int createOwner(
+            FlatBufferBuilder builder,
+            String packageName,
+            String certDigest) {
+        int packageNameOffset = 0;
+        if (packageName != null) {
+            packageNameOffset = builder.createString(packageName);
+        }
+        int certDigestOffset = 0;
+        if (certDigest != null) {
+            certDigestOffset = builder.createString(certDigest);
+        }
+        Owner.startOwner(builder);
+        Owner.addPackageName(builder, packageNameOffset);
+        Owner.addCertDigest(builder, certDigestOffset);
+        return Owner.endOwner(builder);
+    }
+
+    private static int createBidVector(
+            FlatBufferBuilder builder,
+            List<android.ondevicepersonalization.Bid> bids) {
+        int[] loggedBids = new int[bids.size()];
+        for (int i = 0; i < bids.size(); i++) {
+            android.ondevicepersonalization.Bid bid = bids.get(i);
+            int bidKeyOffset = builder.createString(bid.getKey());
             int metricsOffset = 0;
-            if (scoredBid.getMetrics() != null) {
-                metricsOffset = createMetrics(builder, scoredBid.getMetrics());
+            if (bid.getMetrics() != null) {
+                metricsOffset = createMetrics(builder, bid.getMetrics());
             }
             Bid.startBid(builder);
-            Bid.addId(builder, bidIdOffset);
-            Bid.addPrice(builder, scoredBid.getPrice());
-            Bid.addScore(builder, scoredBid.getScore());
+            Bid.addKey(builder, bidKeyOffset);
             Bid.addMetrics(builder, metricsOffset);
-            bids[i] = Bid.endBid(builder);
+            loggedBids[i] = Bid.endBid(builder);
         }
-        return Slot.createWinningBidsVector(builder, bids);
+        return Slot.createBidsVector(builder, loggedBids);
     }
 
     private static int createMetrics(FlatBufferBuilder builder,
@@ -121,9 +143,15 @@ public class OnDevicePersonalizationFlatbufferUtils {
             floatValuesOffset = Metrics.createDoubleValuesVector(
                     builder, metrics.getDoubleValues());
         }
+        int booleanValuesOffset = 0;
+        if (metrics.getBooleanValues() != null) {
+            booleanValuesOffset = Metrics.createBooleanValuesVector(
+                    builder, metrics.getBooleanValues());
+        }
         Metrics.startMetrics(builder);
         Metrics.addLongValues(builder, intValuesOffset);
         Metrics.addDoubleValues(builder, floatValuesOffset);
+        Metrics.addBooleanValues(builder, booleanValuesOffset);
         return Metrics.endMetrics(builder);
     }
 }
