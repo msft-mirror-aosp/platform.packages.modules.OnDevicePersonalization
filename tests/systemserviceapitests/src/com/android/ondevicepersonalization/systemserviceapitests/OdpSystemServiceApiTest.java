@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.systemservicetests;
+package com.android.ondevicepersonalization.systemserviceapitests;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -37,7 +37,7 @@ import org.junit.runners.JUnit4;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
-public class OdpSystemServiceTest {
+public class OdpSystemServiceApiTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     boolean mOnResultCalled = false;
     CountDownLatch mLatch = new CountDownLatch(1);
