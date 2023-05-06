@@ -16,15 +16,15 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.ondevicepersonalization.systemservicetests" >
+          package="com.android.ondevicepersonalization.systemserviceapitests" >
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
 
-    <application android:label="OnDevicePersonalizationSystemServiceTests">
+    <application android:label="OnDevicePersonalizationSystemServiceApiTests">
         <uses-library android:name="android.test.runner"/>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.ondevicepersonalization.systemservicetests"
+                     android:targetPackage="com.android.ondevicepersonalization.systemserviceapitests"
                      android:label="Tests of OnDevicePersonalizationSystemService"/>
 </manifest>
