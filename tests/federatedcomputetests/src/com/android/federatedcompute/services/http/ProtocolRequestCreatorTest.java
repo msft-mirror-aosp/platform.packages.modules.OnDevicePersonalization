@@ -30,8 +30,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.android.federatedcompute.proto.ForwardingInfo;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
-import com.google.protobuf.ByteString;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -41,18 +39,24 @@ import java.util.HashMap;
 public final class ProtocolRequestCreatorTest {
     private static final String REQUEST_BASE_URI = "https://initial.uri";
     private static final String API_KEY = "apiKey";
-    private static final ByteString REQUEST_BODY = ByteString.copyFromUtf8("expectedBody");
+    private static final byte[] REQUEST_BODY = "expectedBody".getBytes();
     private static final String AGGREGATION_TARGET_URI = "https://aggregation.uri/";
 
     @Test
     public void testCreateProtobufEncodedRequest() {
         ProtocolRequestCreator requestCreator =
                 new ProtocolRequestCreator(
-                        REQUEST_BASE_URI, API_KEY, new HashMap<String, String>(), false);
+                        REQUEST_BASE_URI,
+                        API_KEY,
+                        new HashMap<String, String>(),
+                        /* useCompression= */ false);
 
         FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
-                        "/v1/request", HttpMethod.POST, REQUEST_BODY, true);
+                        "/v1/request",
+                        HttpMethod.POST,
+                        REQUEST_BODY,
+                        /* isProtobufEncoded= */ true);
 
         assertThat(request.getUri()).isEqualTo("https://initial.uri/v1/request?%24alt=proto");
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
@@ -71,7 +75,9 @@ public final class ProtocolRequestCreatorTest {
                         IllegalArgumentException.class,
                         () ->
                                 ProtocolRequestCreator.create(
-                                        API_KEY, ForwardingInfo.getDefaultInstance(), false));
+                                        API_KEY,
+                                        ForwardingInfo.getDefaultInstance(),
+                                        /* useCompression= */ false));
 
         assertThat(exception)
                 .hasMessageThat()
@@ -82,14 +88,20 @@ public final class ProtocolRequestCreatorTest {
     public void testCreateProtocolRequestInvalidSuffix() {
         ProtocolRequestCreator requestCreator =
                 new ProtocolRequestCreator(
-                        REQUEST_BASE_URI, API_KEY, new HashMap<String, String>(), false);
+                        REQUEST_BASE_URI,
+                        API_KEY,
+                        new HashMap<String, String>(),
+                        /* useCompression= */ false);
 
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
                         () ->
                                 requestCreator.createProtoRequest(
-                                        "v1/request", HttpMethod.POST, REQUEST_BODY, false));
+                                        "v1/request",
+                                        HttpMethod.POST,
+                                        REQUEST_BODY,
+                                        /* isProtobufEncoded= */ true));
 
         assertThat(exception)
                 .hasMessageThat()
@@ -100,11 +112,17 @@ public final class ProtocolRequestCreatorTest {
     public void testCreateProtoRequest() {
         ProtocolRequestCreator requestCreator =
                 new ProtocolRequestCreator(
-                        REQUEST_BASE_URI, API_KEY, new HashMap<String, String>(), false);
+                        REQUEST_BASE_URI,
+                        API_KEY,
+                        new HashMap<String, String>(),
+                        /* useCompression= */ false);
 
         FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
-                        "/v1/request", HttpMethod.POST, REQUEST_BODY, false);
+                        "/v1/request",
+                        HttpMethod.POST,
+                        REQUEST_BODY,
+                        /* isProtobufEncoded= */ true);
 
         assertThat(request.getUri()).isEqualTo("https://initial.uri/v1/request?%24alt=proto");
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
@@ -112,6 +130,7 @@ public final class ProtocolRequestCreatorTest {
         HashMap<String, String> expectedHeaders = new HashMap<String, String>();
         expectedHeaders.put(API_KEY_HDR, API_KEY);
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(12));
+        expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         assertThat(request.getExtraHeaders()).isEqualTo(expectedHeaders);
     }
 
@@ -120,11 +139,14 @@ public final class ProtocolRequestCreatorTest {
         ForwardingInfo forwardingInfo =
                 ForwardingInfo.newBuilder().setTargetUriPrefix(AGGREGATION_TARGET_URI).build();
         ProtocolRequestCreator requestCreator =
-                ProtocolRequestCreator.create(API_KEY, forwardingInfo, false);
+                ProtocolRequestCreator.create(API_KEY, forwardingInfo, /* useCompression= */ false);
 
         FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
-                        "/v1/request", HttpMethod.POST, REQUEST_BODY, false);
+                        "/v1/request",
+                        HttpMethod.POST,
+                        REQUEST_BODY,
+                        /* isProtobufEncoded= */ true);
 
         assertThat(request.getUri()).isEqualTo("https://aggregation.uri/v1/request?%24alt=proto");
     }
