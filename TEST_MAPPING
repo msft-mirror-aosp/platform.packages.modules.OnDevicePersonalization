@@ -21,10 +21,6 @@
       "name": "FederatedComputeServicesTests[com.google.android.ondevicepersonalization.apex]"
     },
     {
-      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationSystemServiceApiTests.
-      "name": "OnDevicePersonalizationSystemServiceApiTests[com.google.android.ondevicepersonalization.apex]"
-    },
-    {
       // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationSystemServiceImplTests.
       "name": "OnDevicePersonalizationSystemServiceImplTests[com.google.android.ondevicepersonalization.apex]"
     }
@@ -44,9 +40,6 @@
     },
     {
       "name": "FederatedComputeServicesTests"
-    },
-    {
-      "name": "OnDevicePersonalizationSystemServiceApiTests"
     },
     {
       "name": "OnDevicePersonalizationSystemServiceImplTests"
