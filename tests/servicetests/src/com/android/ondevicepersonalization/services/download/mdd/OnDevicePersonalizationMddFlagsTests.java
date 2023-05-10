@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.download.mdd;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,8 +27,14 @@ import org.junit.runners.JUnit4;
 public class OnDevicePersonalizationMddFlagsTests {
 
     @Test
-    public void testBackgroundExecutorSettings() {
+    public void testDownloaderEnforceHttps() {
         OnDevicePersonalizationMddFlags mddFlags = new OnDevicePersonalizationMddFlags();
         assertFalse(mddFlags.downloaderEnforceHttps());
+    }
+
+    @Test
+    public void testEnableSideloading() {
+        OnDevicePersonalizationMddFlags mddFlags = new OnDevicePersonalizationMddFlags();
+        assertTrue(mddFlags.enableSideloading());
     }
 }

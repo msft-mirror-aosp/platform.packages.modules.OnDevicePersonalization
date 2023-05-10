@@ -18,12 +18,12 @@ package android.ondevicepersonalization;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
-import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -32,12 +32,9 @@ import androidx.test.filters.SmallTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executors;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Unit Tests of RemoteData API.
@@ -45,63 +42,31 @@ import java.util.concurrent.Executors;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class RemoteDataTest {
-    RemoteData mRemoteData = new RemoteDataImpl(
+    ImmutableMap mRemoteData = new RemoteDataImpl(
             IDataAccessService.Stub.asInterface(
                     new RemoteDataService()));
-    CountDownLatch mLatch = new CountDownLatch(1);
-    Map<String, byte[]> mResult;
-    Exception mException;
 
     @Test
     public void testLookupSuccess() throws Exception {
-        List<String> keys = new ArrayList<String>();
-        keys.add("a");
-        keys.add("c");
-        keys.add("e");
-        mRemoteData.lookup(
-                keys,
-                Executors.newSingleThreadExecutor(),
-                new ResultReceiver());
-        mLatch.await();
-        HashMap<String, byte[]> expectedResult = new HashMap<String, byte[]>();
-        expectedResult.put("a", new byte[] {1, 2, 3});
-        expectedResult.put("c", new byte[] {7, 8, 9});
-        assertEquals(expectedResult.keySet(), mResult.keySet());
-        for (String key : expectedResult.keySet()) {
-            assertArrayEquals(expectedResult.get(key), mResult.get(key));
-        }
-        assertEquals(null, mException);
+        assertArrayEquals(new byte[] {1, 2, 3}, mRemoteData.get("a"));
+        assertArrayEquals(new byte[] {7, 8, 9}, mRemoteData.get("c"));
+        assertNull(mRemoteData.get("e"));
     }
 
     @Test
-    public void testLookupError() throws Exception {
-        List<String> keys = new ArrayList<String>();
-        keys.add("z");  // Triggers an expected error in the mock service.
-        mRemoteData.lookup(
-                keys,
-                Executors.newSingleThreadExecutor(),
-                new ResultReceiver());
-        mLatch.await();
-        assertEquals(null, mResult);
-        assertTrue(mException instanceof OnDevicePersonalizationException);
-        assertEquals(
-                Constants.STATUS_INTERNAL_ERROR,
-                ((OnDevicePersonalizationException) mException).getErrorCode());
+    public void testLookupError() {
+        // Triggers an expected error in the mock service.
+        assertThrows(OnDevicePersonalizationException.class, () -> mRemoteData.get("z"));
     }
 
-    public class ResultReceiver
-            implements OutcomeReceiver<Map<String, byte[]>, Exception> {
-        @Override
-        public void onResult(Map<String, byte[]> result) {
-            mResult = result;
-            mLatch.countDown();
-        }
+    @Test
+    public void testKeysetSuccess() throws OnDevicePersonalizationException {
+        Set<String> expectedResult = new HashSet<>();
+        expectedResult.add("a");
+        expectedResult.add("b");
+        expectedResult.add("c");
 
-        @Override
-        public void onError(Exception e) {
-            mException = e;
-            mLatch.countDown();
-        }
+        assertEquals(expectedResult, mRemoteData.keySet());
     }
 
     public static class RemoteDataService extends IDataAccessService.Stub {
@@ -118,6 +83,19 @@ public class RemoteDataTest {
                 int operation,
                 Bundle params,
                 IDataAccessServiceCallback callback) {
+
+            if (operation == Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET) {
+                Bundle result = new Bundle();
+                result.putSerializable(Constants.EXTRA_RESULT,
+                        new HashSet<>(mContents.keySet()));
+                try {
+                    callback.onSuccess(result);
+                } catch (RemoteException e) {
+                    // Ignored.
+                }
+                return;
+            }
+
             if (operation != Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP) {
                 try {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
