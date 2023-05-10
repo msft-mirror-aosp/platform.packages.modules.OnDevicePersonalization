@@ -13,8 +13,16 @@
       "name": "OdpChronicleTests[com.google.android.ondevicepersonalization.apex]"
     },
     {
+      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationPluginTests.
+      "name": "OnDevicePersonalizationPluginTests[com.google.android.ondevicepersonalization.apex]"
+    },
+    {
       // Install com.google.android.ondevicepersonalization.apex and run FederatedComputeServicesTests.
       "name": "FederatedComputeServicesTests[com.google.android.ondevicepersonalization.apex]"
+    },
+    {
+      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationSystemServiceImplTests.
+      "name": "OnDevicePersonalizationSystemServiceImplTests[com.google.android.ondevicepersonalization.apex]"
     }
   ],
   "presubmit": [
@@ -28,7 +36,13 @@
       "name": "OdpChronicleTests"
     },
     {
+      "name": "OnDevicePersonalizationPluginTests"
+    },
+    {
       "name": "FederatedComputeServicesTests"
+    },
+    {
+      "name": "OnDevicePersonalizationSystemServiceImplTests"
     }
   ]
 }

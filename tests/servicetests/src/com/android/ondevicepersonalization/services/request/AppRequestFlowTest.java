@@ -19,24 +19,17 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ComponentName;
 import android.content.Context;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
-import android.os.Binder;
-import android.os.Bundle;
-import android.os.IBinder;
-import android.view.SurfaceControlViewHost.SurfacePackage;
+import android.ondevicepersonalization.aidl.IExecuteCallback;
+import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
-import com.android.ondevicepersonalization.services.display.DisplayHelper;
 
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
@@ -45,6 +38,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -76,43 +70,20 @@ public class AppRequestFlowTest {
     @Test
     public void testRunAppRequestFlow() throws Exception {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
-                "abc", mContext.getPackageName(), new Binder(), -1, 100, 50,
-                new Bundle(), new TestCallback(), MoreExecutors.newDirectExecutorService(),
-                mContext, new TestDisplayHelper());
+                "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                PersistableBundle.EMPTY,
+                new TestCallback(), mContext, MoreExecutors.newDirectExecutorService());
         appRequestFlow.run();
         mLatch.await();
-        assertTrue(mGenerateHtmlCalled);
-        assertTrue(mDisplayHtmlCalled);
         assertTrue(mCallbackSuccess);
-        assertTrue(mRenderedContent.contains("bid1"));
-        assertTrue(mGeneratedHtml.contains("bid1"));
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
     }
 
-    class TestDisplayHelper extends DisplayHelper {
-        TestDisplayHelper() {
-            super(mContext, mContext.getPackageName());
-        }
-
-        @Override public String generateHtml(RenderContentResult renderContentResult) {
-            mRenderedContent = renderContentResult.getContent();
-            mGenerateHtmlCalled = true;
-            return mRenderedContent;
-        }
-
-        @Override public ListenableFuture<SurfacePackage> displayHtml(
-                String html, SlotResult slotResult, IBinder hostToken, int displayId,
-                int width, int height) {
-            mGeneratedHtml = html;
-            mDisplayHtmlCalled = true;
-            return Futures.immediateFuture(null);
-        }
-    }
-
-    class TestCallback extends IRequestSurfacePackageCallback.Stub {
-        @Override public void onSuccess(SurfacePackage surfacePackage) {
+    class TestCallback extends IExecuteCallback.Stub {
+        @Override public void onSuccess(List<String> tokens) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }

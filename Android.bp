@@ -90,6 +90,7 @@ android_app {
     libs: [
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
     ],
@@ -103,6 +104,8 @@ android_app {
         "mobile_data_downloader_lib",
         "ondevicepersonalization-plugin-lib",
         "flatbuffers-java",
+        "apache-velocity-engine-core",
+        "owasp-java-encoder",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",

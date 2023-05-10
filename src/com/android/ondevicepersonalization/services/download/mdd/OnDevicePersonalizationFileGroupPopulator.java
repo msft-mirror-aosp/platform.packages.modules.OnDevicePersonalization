@@ -133,14 +133,14 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
             throw new IllegalArgumentException("Failed to retrieve base download URL");
         }
         Uri uri = Uri.parse(baseURL);
-        // Handle odp debug URLs
-        if (OnDevicePersonalizationLocalFileDownloader.isLocalOdpUri(uri)
-                && PackageUtils.isPackageDebuggable(context, packageName)) {
-            return uri.toString();
-        }
 
         // Enforce URI scheme
-        if (!baseURL.startsWith("https")) {
+        if (OnDevicePersonalizationLocalFileDownloader.isLocalOdpUri(uri)) {
+            if (!PackageUtils.isPackageDebuggable(context, packageName)) {
+                throw new IllegalArgumentException("Local urls are only valid "
+                        + "for debuggable packages: " + baseURL);
+            }
+        } else if (!baseURL.startsWith("https")) {
             throw new IllegalArgumentException("File url is not secure: " + baseURL);
         }
 
@@ -150,7 +150,8 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     /**
      * Adds query parameters to the download URL.
      */
-    public static String addDownloadUrlQueryParameters(Uri uri, String packageName, Context context)
+    private static String addDownloadUrlQueryParameters(Uri uri, String packageName,
+            Context context)
             throws PackageManager.NameNotFoundException {
         long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
                 PackageUtils.getCertDigest(context, packageName)).getSyncToken();
@@ -212,6 +213,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                     }
 
                     for (String group : fileGroupsToRemove) {
+                        Log.d(TAG, "Removing file group: " + group);
                         mFutures.add(mobileDataDownload.removeFileGroup(
                                 RemoveFileGroupRequest.newBuilder().setGroupName(group).build()));
                     }

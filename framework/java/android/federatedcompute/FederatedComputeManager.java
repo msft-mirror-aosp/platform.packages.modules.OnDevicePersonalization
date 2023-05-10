@@ -27,6 +27,9 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.federatedcompute.aidl.IFederatedComputeCallback;
+import android.federatedcompute.aidl.IFederatedComputeService;
+import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -45,7 +48,7 @@ import java.util.concurrent.Executor;
  *
  * @hide
  */
-final class FederatedComputeManager {
+public final class FederatedComputeManager {
     private static final String TAG = "FederatedComputeManager";
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
@@ -68,7 +71,6 @@ final class FederatedComputeManager {
     FederatedComputeManager(Context context) {
         this.mContext = context;
     }
-
 
     /**
      * Schedule FederatedCompute task.
@@ -124,8 +126,8 @@ final class FederatedComputeManager {
                 mConnectionCountDownLatch = new CountDownLatch(1);
                 mServiceConnection = new FederatedComputeServiceConnection();
                 boolean result =
-                        mContext.bindService(intent, Context.BIND_AUTO_CREATE, executor,
-                                mServiceConnection);
+                        mContext.bindService(
+                                intent, Context.BIND_AUTO_CREATE, executor, mServiceConnection);
                 if (!result) {
                     mServiceConnection = null;
                     throw new IllegalStateException("Unable to bind to the service");

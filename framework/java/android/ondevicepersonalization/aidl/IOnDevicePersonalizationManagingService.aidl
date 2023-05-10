@@ -16,19 +16,25 @@
 
 package android.ondevicepersonalization.aidl;
 
+import android.content.ComponentName;
+import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 
 /** @hide */
 interface IOnDevicePersonalizationManagingService {
     String getVersion();
-    void requestSurfacePackage(
+    void execute(
         in String callingPackageName,
-        in String exchangePackageName,
+        in ComponentName handler,
+        in PersistableBundle params,
+        in IExecuteCallback callback);
+
+    void requestSurfacePackage(
+        in String slotResultToken,
         in IBinder hostToken,
         int displayId,
         int width,
         int height,
-        in Bundle params,
         in IRequestSurfacePackageCallback callback);
 }
