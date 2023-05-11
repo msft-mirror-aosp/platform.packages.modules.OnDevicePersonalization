@@ -76,10 +76,15 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
         Log.d(TAG, "onAppRequest() started.");
         ExecuteOutput result = new ExecuteOutput.Builder()
                 .addSlotResults(new SlotResult.Builder()
-                        .setSlotId("slot_id")
-                        .addWinningBids(
+                        .setSlotKey("slot_id")
+                        .addRenderedBidKeys("bid1")
+                        .addLoggedBids(
                             new Bid.Builder()
-                            .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
+                                .setKey("bid1")
+                                .setMetrics(new Metrics.Builder()
+                                    .setDoubleValues(5.0, 1.0)
+                                    .build())
+                                .build())
                         .build())
                 .build();
         consumer.accept(result);
@@ -93,7 +98,7 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
         Log.d(TAG, "renderContent() started.");
         RenderOutput result =
                 new RenderOutput.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
+                .setContent("<p>RenderResult: " + String.join(",", input.getBidKeys()) + "<p>")
                 .build();
         consumer.accept(result);
     }
@@ -103,17 +108,17 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<EventOutput> consumer
     ) {
-        int intValue = 0;
+        long longValue = 0;
         double floatValue = 0.0;
-        if (input.getEventParams() != null) {
-            intValue = input.getEventParams().getInt("a");
-            floatValue = input.getEventParams().getDouble("b");
+        if (input.getBid() != null && input.getBid().getMetrics() != null) {
+            longValue = input.getBid().getMetrics().getLongValues()[0];
+            floatValue = input.getBid().getMetrics().getDoubleValues()[0];
         }
         EventOutput result =
                 new EventOutput.Builder()
                     .setMetrics(
                             new Metrics.Builder()
-                                .setLongValues(intValue)
+                                .setLongValues(longValue)
                                 .setDoubleValues(floatValue)
                                 .build())
                     .build();

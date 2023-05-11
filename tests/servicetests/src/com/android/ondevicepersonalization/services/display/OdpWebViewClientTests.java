@@ -27,6 +27,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.ondevicepersonalization.Bid;
+import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.SlotResult;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
@@ -70,10 +71,10 @@ public class OdpWebViewClientTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private final SlotResult mSlotResult = new SlotResult.Builder()
-            .addWinningBids(
+            .addRenderedBidKeys("bidId")
+            .addLoggedBids(
                 new Bid.Builder()
-                    .setBidId("bidId")
-                    .setEventMetricsParameters(createEventMetricsParameters())
+                    .setKey("bidId")
                     .build())
             .build();
     private final Event mTestEvent = new Event.Builder()
@@ -169,13 +170,20 @@ public class OdpWebViewClientTests {
 
     @Test
     public void testValidUrlWithEventMetrics() throws Exception {
-        WebViewClient webViewClient = getWebViewClient();
-        PersistableBundle params = new PersistableBundle();
-        params.putInt("a", 10);
-        params.putDouble("b", 5.0);
+        SlotResult slotResult = new SlotResult.Builder()
+                .addRenderedBidKeys("bidId")
+                .addLoggedBids(
+                    new Bid.Builder()
+                        .setKey("bidId")
+                        .setMetrics(new Metrics.Builder()
+                            .setLongValues(10)
+                            .setDoubleValues(5.0)
+                            .build())
+                        .build())
+                .build();
+        WebViewClient webViewClient = getWebViewClient(slotResult);
         EventUrlPayload payload = new EventUrlPayload.Builder()
                 .setEvent(mTestEvent)
-                .setEventMetricsRequired(true)
                 .build();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
@@ -235,8 +243,13 @@ public class OdpWebViewClientTests {
             mOpenedUrl = url;
         }
     }
+
     private WebViewClient getWebViewClient() {
-        return new OdpWebViewClient(mContext, mContext.getPackageName(), mSlotResult,
+        return getWebViewClient(mSlotResult);
+    }
+
+    private WebViewClient getWebViewClient(SlotResult slotResult) {
+        return new OdpWebViewClient(mContext, mContext.getPackageName(), slotResult,
                 new TestInjector());
     }
 

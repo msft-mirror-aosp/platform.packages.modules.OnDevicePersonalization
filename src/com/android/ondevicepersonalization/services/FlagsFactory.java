@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,14 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.odpsamplenetwork;
+package com.android.ondevicepersonalization.services;
 
-import android.annotation.NonNull;
-import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.PersonalizationService;
-
-public class SamplePersonalizationService extends PersonalizationService {
-    @NonNull @Override public IsolatedComputationHandler getHandler() {
-        return new SampleHandler();
+/** Factory class for creating OnDevicePersonalization Flags */
+public class FlagsFactory {
+    /** OnDevicePersonalization Flags backed by Phenotype/Heterodyne. */
+    public static Flags getFlags() {
+        // Use the Flags backed by PH.
+        return PhFlags.getInstance();
     }
 }

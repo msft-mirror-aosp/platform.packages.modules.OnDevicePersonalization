@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
 import android.content.Context;
-import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
@@ -46,7 +45,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
@@ -176,11 +174,8 @@ public class RenderFlow {
                     new SlotInfo.Builder()
                             .setHeight(mHeight)
                             .setWidth(mWidth).build();
-            List<String> bidIds = new ArrayList<String>();
-            for (Bid bid : slotResult.getWinningBids()) {
-                bidIds.add(Objects.requireNonNull(bid.getBidId()));
-            }
-            if (bidIds.isEmpty()) {
+            List<String> bidKeys = slotResult.getRenderedBidKeys();
+            if (bidKeys == null || bidKeys.isEmpty()) {
                 return Futures.immediateFailedFuture(new IllegalArgumentException("No bids"));
             }
 
@@ -188,7 +183,7 @@ public class RenderFlow {
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    loadResult, slotInfo, slotResult, queryId, bidIds),
+                                    loadResult, slotInfo, slotResult, queryId, bidKeys),
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
@@ -214,11 +209,11 @@ public class RenderFlow {
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
             IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, SlotResult slotResult,
-            long queryId, List<String> bidIds) {
+            long queryId, List<String> bidKeys) {
         Log.d(TAG, "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
         RenderInput input =
-                new RenderInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
+                new RenderInput.Builder().setSlotInfo(slotInfo).setBidKeys(bidKeys).build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mServicePackageName, mContext, false,

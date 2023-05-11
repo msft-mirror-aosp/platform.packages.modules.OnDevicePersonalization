@@ -29,6 +29,7 @@ android_test {
         "android.test.base",
         "android.test.runner",
         "framework-annotations-lib",
+        "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
         "truth-prebuilt",

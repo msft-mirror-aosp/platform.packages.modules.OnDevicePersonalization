@@ -18,7 +18,6 @@ package android.ondevicepersonalization;
 
 import android.annotation.Nullable;
 import android.os.Parcelable;
-import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -32,10 +31,8 @@ public final class EventInput implements Parcelable {
     /** The type of the event. */
     private int mEventType = 0;
 
-    /** Parameters needed for computing event metrics. */
-    @Nullable private PersistableBundle mEventParams = null;
-
-    // TODO(b/259950177): Add Query and Event row contents.
+    /** The {@link Bid} that this event is for. */
+    @Nullable private Bid mBid = null;
 
 
 
@@ -55,9 +52,9 @@ public final class EventInput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ EventInput(
             int eventType,
-            @Nullable PersistableBundle eventParams) {
+            @Nullable Bid bid) {
         this.mEventType = eventType;
-        this.mEventParams = eventParams;
+        this.mBid = bid;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -71,11 +68,11 @@ public final class EventInput implements Parcelable {
     }
 
     /**
-     * Parameters needed for computing event metrics.
+     * The {@link Bid} that this event is for.
      */
     @DataClass.Generated.Member
-    public @Nullable PersistableBundle getEventParams() {
-        return mEventParams;
+    public @Nullable Bid getBid() {
+        return mBid;
     }
 
     @Override
@@ -92,7 +89,7 @@ public final class EventInput implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && mEventType == that.mEventType
-                && java.util.Objects.equals(mEventParams, that.mEventParams);
+                && java.util.Objects.equals(mBid, that.mBid);
     }
 
     @Override
@@ -103,7 +100,7 @@ public final class EventInput implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + mEventType;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mEventParams);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mBid);
         return _hash;
     }
 
@@ -114,10 +111,10 @@ public final class EventInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mEventParams != null) flg |= 0x2;
+        if (mBid != null) flg |= 0x2;
         dest.writeByte(flg);
         dest.writeInt(mEventType);
-        if (mEventParams != null) dest.writeTypedObject(mEventParams, flags);
+        if (mBid != null) dest.writeTypedObject(mBid, flags);
     }
 
     @Override
@@ -133,10 +130,10 @@ public final class EventInput implements Parcelable {
 
         byte flg = in.readByte();
         int eventType = in.readInt();
-        PersistableBundle eventParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        Bid bid = (flg & 0x2) == 0 ? null : (Bid) in.readTypedObject(Bid.CREATOR);
 
         this.mEventType = eventType;
-        this.mEventParams = eventParams;
+        this.mBid = bid;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -163,7 +160,7 @@ public final class EventInput implements Parcelable {
     public static final class Builder {
 
         private int mEventType;
-        private @Nullable PersistableBundle mEventParams;
+        private @Nullable Bid mBid;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -182,13 +179,13 @@ public final class EventInput implements Parcelable {
         }
 
         /**
-         * Parameters needed for computing event metrics.
+         * The {@link Bid} that this event is for.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventParams(@android.annotation.NonNull PersistableBundle value) {
+        public @android.annotation.NonNull Builder setBid(@android.annotation.NonNull Bid value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mEventParams = value;
+            mBid = value;
             return this;
         }
 
@@ -201,11 +198,11 @@ public final class EventInput implements Parcelable {
                 mEventType = 0;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mEventParams = null;
+                mBid = null;
             }
             EventInput o = new EventInput(
                     mEventType,
-                    mEventParams);
+                    mBid);
             return o;
         }
 
@@ -218,10 +215,10 @@ public final class EventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1680551341542L,
+            time = 1681339263640L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventInput.java",
-            inputSignatures = "private  int mEventType\nprivate @android.annotation.Nullable android.os.PersistableBundle mEventParams\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mEventType\nprivate @android.annotation.Nullable android.ondevicepersonalization.Bid mBid\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

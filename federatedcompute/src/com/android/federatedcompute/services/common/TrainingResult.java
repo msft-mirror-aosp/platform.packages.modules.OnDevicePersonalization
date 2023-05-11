@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,16 +14,14 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.aidl;
+package com.android.federatedcompute.services.common;
 
-import android.ondevicepersonalization.aidl.IPersonalizationServiceCallback;
-import android.os.Bundle;
+import android.annotation.IntDef;
 
-/** @hide */
-interface IPersonalizationService {
-    void onRequest(
-            in int operationCode,
-            in Bundle params,
-            in IPersonalizationServiceCallback callback
-    );
+/** Represents the result of a finished run. */
+@IntDef({TrainingResult.SUCCESS, TrainingResult.FAIL, TrainingResult.NEEDS_RESUME})
+public @interface TrainingResult {
+    int SUCCESS = 0;
+    int FAIL = 1;
+    int NEEDS_RESUME = 2;
 }
