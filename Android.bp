@@ -32,7 +32,8 @@ filegroup {
     name: "ondevicepersonalization-sources",
     srcs: [
         "src/**/*.java",
-        "src/**/*.aidl"
+        "src/**/*.aidl",
+        "src/com/android/ondevicepersonalization/services/policyengine/**/*.kt"
     ],
     path: "src",
 }
@@ -40,7 +41,7 @@ filegroup {
 filegroup {
     name: "chronicle-sources",
     srcs: [
-        "src/**/*.kt",
+        "src/com/android/libraries/**/*.kt",
     ],
     path: "src",
 }
@@ -79,14 +80,13 @@ android_app {
         ":ondevicepersonalization-fbs",
     ],
     libs: [
-        "framework-ondevicepersonalization",
+        "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
     ],
     static_libs: [
         "androidx.concurrent_concurrent-futures",
-        "androidx.work_work-runtime",
         "guava",
         "kotlin-stdlib",
         "kotlinx_coroutines",
@@ -95,6 +95,8 @@ android_app {
         "mobile_data_downloader_lib",
         "ondevicepersonalization-plugin-lib",
         "flatbuffers-java",
+        "apache-velocity-engine-core",
+        "owasp-java-encoder",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
@@ -104,4 +106,7 @@ android_app {
     defaults: [
         "ondevicepersonalization-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["src/proguard.flags"],
+    },
 }

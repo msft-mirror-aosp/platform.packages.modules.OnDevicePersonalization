@@ -16,24 +16,25 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
+
+import android.app.job.JobInfo;
+import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.SharedPreferences;
-
-import androidx.work.Constraints;
-import androidx.work.Data;
-import androidx.work.ExistingPeriodicWorkPolicy;
-import androidx.work.NetworkType;
-import androidx.work.PeriodicWorkRequest;
-import androidx.work.WorkManager;
+import android.os.PersistableBundle;
 
 import com.google.android.libraries.mobiledatadownload.TaskScheduler;
 
-import java.util.concurrent.TimeUnit;
-
 /**
- * MddTaskScheduler that uses WorkManager to schedule MDD background tasks
+ * MddTaskScheduler that uses JobScheduler to schedule MDD background tasks
  */
 public class MddTaskScheduler implements TaskScheduler {
+    static final String MDD_TASK_TAG_KEY = "MDD_TASK_TAG_KEY";
     private static final String MDD_TASK_SHARED_PREFS = "mdd_worker_task_periods";
     private final Context mContext;
 
@@ -41,63 +42,75 @@ public class MddTaskScheduler implements TaskScheduler {
         this.mContext = context;
     }
 
-    private static Constraints getConstraints(NetworkState networkState) {
-        return new Constraints.Builder()
-                .setRequiresDeviceIdle(true)
-                .setRequiresCharging(false)
-                .setRequiresBatteryNotLow(true)
-                .setRequiredNetworkType(getNetworkType(networkState))
-                .build();
+    static int getMddTaskJobId(String mddTag) {
+        switch (mddTag) {
+            case MAINTENANCE_PERIODIC_TASK:
+                return MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID;
+            case CHARGING_PERIODIC_TASK:
+                return MDD_CHARGING_PERIODIC_TASK_JOB_ID;
+            case CELLULAR_CHARGING_PERIODIC_TASK:
+                return MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID;
+            default:
+                return MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
+        }
     }
 
-    private static NetworkType getNetworkType(NetworkState networkState) {
+    // Maps from the MDD-supplied NetworkState to the JobInfo equivalent int code.
+    static int getNetworkConstraints(NetworkState networkState) {
         switch (networkState) {
             case NETWORK_STATE_ANY:
-                return androidx.work.NetworkType.NOT_REQUIRED;
+                // Network not required.
+                return JobInfo.NETWORK_TYPE_NONE;
             case NETWORK_STATE_CONNECTED:
-                return androidx.work.NetworkType.CONNECTED;
+                // Metered or unmetered network available.
+                return JobInfo.NETWORK_TYPE_ANY;
             case NETWORK_STATE_UNMETERED:
-                return androidx.work.NetworkType.UNMETERED;
+            default:
+                return JobInfo.NETWORK_TYPE_UNMETERED;
         }
-        return androidx.work.NetworkType.NOT_REQUIRED;
-    }
-
-    private static ExistingPeriodicWorkPolicy getExistingPeriodicWorkPolicy(boolean updateCurrent) {
-        // When updateCurrent == true, use ExistingWorkPolicy.REPLACE to cancel and delete any
-        // existing
-        // pending (uncompleted) work with the same unique name. Then, insert the newly-specified
-        // work.
-        return updateCurrent ? ExistingPeriodicWorkPolicy.REPLACE : ExistingPeriodicWorkPolicy.KEEP;
     }
 
     @Override
-    public void schedulePeriodicTask(String mddTaskTag, long period, NetworkState networkState) {
+    public void schedulePeriodicTask(String mddTaskTag, long periodSeconds,
+            NetworkState networkState) {
         SharedPreferences prefs =
                 mContext.getSharedPreferences(MDD_TASK_SHARED_PREFS, Context.MODE_PRIVATE);
 
-        // When the period changes, update the existing workers
-        if (prefs.getLong(mddTaskTag, 0) != period) {
-            schedulePeriodicTaskWithUpdate(mddTaskTag, period, networkState, true);
+        // When the period change, we will need to update the existing works.
+        boolean updateCurrent = false;
+        if (prefs.getLong(mddTaskTag, 0) != periodSeconds) {
             SharedPreferences.Editor editor = prefs.edit();
-            editor.putLong(mddTaskTag, period);
+            editor.putLong(mddTaskTag, periodSeconds);
             editor.apply();
-        } else {
-            schedulePeriodicTaskWithUpdate(mddTaskTag, period, networkState, false);
+            updateCurrent = true;
+        }
+
+        if (updateCurrent) {
+            schedulePeriodicTaskWithUpdate(mddTaskTag, periodSeconds, networkState);
         }
     }
 
-    private void schedulePeriodicTaskWithUpdate(String mddTaskTag, long period,
-            NetworkState networkState, boolean updateCurrent) {
-        PeriodicWorkRequest workRequest = new PeriodicWorkRequest.Builder(
-                PeriodicWorker.class, period, TimeUnit.SECONDS)
-                .addTag(mddTaskTag)
-                .setConstraints(getConstraints(networkState))
-                .setInputData(
-                        new Data.Builder().putString(PeriodicWorker.MDD_TASK_TAG_KEY,
-                                mddTaskTag).build())
-                .build();
+    private void schedulePeriodicTaskWithUpdate(String mddTaskTag, long periodSeconds,
+            NetworkState networkState) {
+        final JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 
-        WorkManager.getInstance(mContext).enqueueUniquePeriodicWork(
-                mddTaskTag, getExistingPeriodicWorkPolicy(updateCurrent), workRequest);
+        // We use Extra to pass the MDD Task Tag. This will be used in the MddJobService.
+        PersistableBundle extras = new PersistableBundle();
+        extras.putString(MDD_TASK_TAG_KEY, mddTaskTag);
+
+        final JobInfo job =
+                new JobInfo.Builder(
+                        getMddTaskJobId(mddTaskTag),
+                        new ComponentName(mContext, MddJobService.class))
+                        .setRequiresDeviceIdle(true)
+                        .setRequiresCharging(false)
+                        .setRequiresBatteryNotLow(true)
+                        .setPeriodic(1000 * periodSeconds) // JobScheduler uses Milliseconds.
+                        // persist this job across boots
+                        .setPersisted(true)
+                        .setRequiredNetworkType(getNetworkConstraints(networkState))
+                        .setExtras(extras)
+                        .build();
+        jobScheduler.schedule(job);
     }
 }

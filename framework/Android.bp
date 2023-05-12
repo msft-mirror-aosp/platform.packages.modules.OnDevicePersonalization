@@ -40,11 +40,19 @@ filegroup {
     path: "java",
 }
 
+filegroup {
+    name: "framework-ondevicepersonalization-jarjar",
+    srcs: ["jarjar_rules.txt"]
+}
+
 java_sdk_library {
     name: "framework-ondevicepersonalization",
     srcs: [
         ":framework-ondevicepersonalization-aidl",
         ":framework-ondevicepersonalization-sources",
+    ],
+    libs: [
+        "modules-utils-preconditions",
     ],
     sdk_version: "module_current",
     defaults: [
@@ -52,8 +60,15 @@ java_sdk_library {
         "ondevicepersonalization-java-defaults",
     ],
     permitted_packages: [
+        "android.app.ondevicepersonalization",
         "android.ondevicepersonalization",
         "com.android.ondevicepersonalization.internal",
+        "android.federatedcompute",
+    ],
+    jarjar_rules: ":framework-ondevicepersonalization-jarjar",
+    static_libs: [
+            "modules-utils-build",
+            "modules-utils-list-slice",
     ],
     impl_library_visibility: ["//visibility:public"],
     min_sdk_version: "Tiramisu",

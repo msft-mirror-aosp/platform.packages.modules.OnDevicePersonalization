@@ -17,18 +17,21 @@
 package com.android.ondevicepersonalization.services.download;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.ondevicepersonalization.Constants;
+import android.ondevicepersonalization.DownloadInputParcel;
+import android.ondevicepersonalization.DownloadOutput;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
 import android.util.Log;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.data.VendorData;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -39,7 +42,6 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
-import com.google.android.libraries.mobiledatadownload.file.openers.ParcelFileDescriptorOpener;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -65,13 +67,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
     private final Context mContext;
-    private final PackageInfo mPackageInfo;
     private OnDevicePersonalizationVendorDataDao mDao;
 
-    public OnDevicePersonalizationDataProcessingAsyncCallable(PackageInfo packageInfo,
+    public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
             Context context) {
-        mPackageInfo = packageInfo;
-        mPackageName = packageInfo.packageName;
+        mPackageName = packageName;
         mContext = context;
     }
 
@@ -153,8 +153,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 PackageUtils.getCertDigest(mContext, mPackageName));
         long existingSyncToken = mDao.getSyncToken();
 
-        // Check if the downloaded file has newer data than what is currently stored
-        if (existingSyncToken != -1 && existingSyncToken <= syncToken) {
+        // If existingToken is greaterThan or equal to the new token, skip as there is no new data.
+        if (existingSyncToken >= syncToken) {
             return Futures.immediateFuture(null);
         }
 
@@ -167,12 +167,17 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             result ->
                                     executeDownloadHandler(
                                             result,
-                                            fileStorage.open(
-                                                    uri,
-                                                    ParcelFileDescriptorOpener.create())),
+                                            finalVendorDataMap),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                     finalVendorDataMap),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                    .catching(
+                            Exception.class,
+                            e -> {
+                                Log.e(TAG, "Processing failed.", e);
+                                return null;
+                            },
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             Log.e(TAG, "Could not run isolated service.", e);
@@ -184,28 +189,54 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        String[] retainedKeys = pluginResult.getStringArray(ProcessUtils.OUTPUT_RESULT_KEY);
+        DownloadOutput downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadOutput.class);
+        List<String> retainedKeys = downloadResult.getKeysToRetain();
+        if (retainedKeys == null) {
+            // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
+            return null;
+        }
         for (String key : retainedKeys) {
             if (vendorDataMap.containsKey(key)) {
                 filteredList.add(vendorDataMap.get(key));
             }
         }
-        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
+        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList, retainedKeys,
                 syncToken);
         return null;
     }
 
     private ListenableFuture<Bundle> executeDownloadHandler(
-            IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
+            IsolatedServiceInfo isolatedServiceInfo,
+            Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
-        pluginParams.putString(ProcessUtils.PARAM_CLASS_NAME_KEY,
-                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageInfo));
-        pluginParams.putInt(ProcessUtils.PARAM_OPERATION_KEY,
-                ProcessUtils.OP_DOWNLOAD_FILTER_HANDLER);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(null, mPackageName, mContext);
-        pluginParams.putBinder(ProcessUtils.PARAM_DATA_ACCESS_BINDER, binder);
-        pluginParams.putParcelable(ProcessUtils.INPUT_PARCEL_FD, fd);
-        return ProcessUtils.runIsolatedService(isolatedServiceInfo, pluginParams);
+        DataAccessServiceImpl binder = new DataAccessServiceImpl(
+                mPackageName, mContext, true, null);
+        pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+
+        List<String> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+        for (String key : vendorDataMap.keySet()) {
+            keys.add(key);
+            values.add(vendorDataMap.get(key).getData());
+        }
+        StringParceledListSlice keysListSlice = new StringParceledListSlice(keys);
+        // This needs to be set to a small number >0 for the parcel.
+        keysListSlice.setInlineCountLimit(1);
+        ByteArrayParceledListSlice valuesListSlice = new ByteArrayParceledListSlice(values);
+        valuesListSlice.setInlineCountLimit(1);
+
+        DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
+                .setDownloadedKeys(keysListSlice)
+                .setDownloadedValues(valuesListSlice)
+                .build();
+
+        pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
+        return ProcessUtils.runIsolatedService(
+                isolatedServiceInfo,
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
+                Constants.OP_DOWNLOAD_FINISHED,
+                pluginParams);
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
@@ -225,7 +256,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private VendorData readContent(JsonReader reader) throws IOException {
         String key = null;
         byte[] data = null;
-        String fp = null;
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
@@ -233,16 +263,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 key = reader.nextString();
             } else if (name.equals("data")) {
                 data = reader.nextString().getBytes();
-            } else if (name.equals("fp")) {
-                fp = reader.nextString();
             } else {
                 reader.skipValue();
             }
         }
         reader.endObject();
-        if (key == null || data == null || fp == null) {
+        if (key == null || data == null) {
             return null;
         }
-        return new VendorData.Builder().setKey(key).setData(data).setFp(fp).build();
+        return new VendorData.Builder().setKey(key).setData(data).build();
     }
 }

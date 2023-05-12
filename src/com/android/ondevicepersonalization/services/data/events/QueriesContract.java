@@ -29,21 +29,24 @@ public class QueriesContract {
     public static class QueriesEntry implements BaseColumns {
         public static final String TABLE_NAME = "queries";
 
-        /** Time of the query in microseconds. */
-        public static final String TIME_USEC = "timeUsec";
+        /** The id of the query. */
+        public static final String QUERY_ID = "queryId";
 
-        /** The id of the thread serving the query. */
-        public static final String THREAD_ID = "threadId";
+        /** Time of the query in milliseconds. */
+        public static final String TIME_MILLIS = "timeMillis";
+
+        /** Name of the package that handled the request */
+        public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
 
         /** Blob representing the common query fields. */
-        public static final String QUERY = "query";
+        public static final String QUERY_DATA = "queryData";
 
         public static final String CREATE_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
-                    + TIME_USEC + " INTEGER NOT NULL,"
-                    + THREAD_ID + " INTEGER NOT NULL,"
-                    + QUERY + " BLOB NOT NULL,"
-                    + "PRIMARY KEY(" + TIME_USEC + "," + THREAD_ID + "))";
+                    + QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + TIME_MILLIS + " INTEGER NOT NULL,"
+                    + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + QUERY_DATA + " BLOB NOT NULL)";
 
         private QueriesEntry() {}
     }

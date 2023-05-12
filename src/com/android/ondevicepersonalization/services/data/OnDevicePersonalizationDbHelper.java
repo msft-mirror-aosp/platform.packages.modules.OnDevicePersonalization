@@ -25,6 +25,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
+import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 /**
  * Helper to manage the OnDevicePersonalization database.
@@ -90,5 +91,11 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         Log.d(TAG, "DB upgrade from " + oldVersion + " to " + newVersion);
         throw new UnsupportedOperationException(
                 "Database upgrade for OnDevicePersonalization is unsupported");
+    }
+
+    @Override
+    public void onConfigure(SQLiteDatabase db) {
+        db.setForeignKeyConstraintsEnabled(true);
+        db.enableWriteAheadLogging();
     }
 }

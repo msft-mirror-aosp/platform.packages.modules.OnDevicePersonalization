@@ -30,14 +30,14 @@ public class EventsContract {
     public static class EventsEntry implements BaseColumns {
         public static final String TABLE_NAME = "events";
 
-        /** Time of the query in microseconds. */
-        public static final String TIME_USEC = "timeUsec";
+        /** The id of the event. */
+        public static final String EVENT_ID = "eventId";
 
-        /** The id of the thread serving the query. */
-        public static final String THREAD_ID = "threadId";
+        /** The id of the query. */
+        public static final String QUERY_ID = "queryId";
 
-        /** Id of the slot owner for this event */
-        public static final String SLOT_ID = "slotId";
+        /** Index of the slot for this event */
+        public static final String SLOT_INDEX = "slotIndex";
 
         /** Id of the bidder for this event */
         public static final String BID_ID = "bidId";
@@ -51,26 +51,32 @@ public class EventsContract {
         /** {@link EventType} defining the type of event */
         public static final String TYPE = "type";
 
+        /** Time of the event in milliseconds. */
+        public static final String TIME_MILLIS = "timeMillis";
+
+        /** Id of the slot for this event */
+        public static final String SLOT_ID = "slotId";
+
         /** Blob representing the event. */
-        public static final String EVENT = "event";
+        public static final String EVENT_DATA = "eventData";
 
         public static final String CREATE_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
-                    + TIME_USEC + " INTEGER NOT NULL,"
-                    + THREAD_ID + " INTEGER NOT NULL,"
-                    + SLOT_ID + " TEXT NOT NULL,"
+                    + EVENT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + QUERY_ID + " INTEGER NOT NULL,"
+                    + SLOT_INDEX + " INTEGER NOT NULL,"
                     + BID_ID + " TEXT NOT NULL,"
                     + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
                     + SLOT_POSITION + " INTEGER NOT NULL,"
                     + TYPE + " INTEGER NOT NULL,"
-                    + EVENT + " BLOB NOT NULL,"
-                    + "FOREIGN KEY(" + TIME_USEC + "," + THREAD_ID + ") REFERENCES "
+                    + TIME_MILLIS + " INTEGER NOT NULL,"
+                    + SLOT_ID + " TEXT NULL,"
+                    + EVENT_DATA + " BLOB NOT NULL,"
+                    + "FOREIGN KEY(" + QUERY_ID + ") REFERENCES "
                         + QueriesContract.QueriesEntry.TABLE_NAME + "("
-                        + QueriesContract.QueriesEntry.TIME_USEC + ","
-                        + QueriesContract.QueriesEntry.THREAD_ID + "),"
-                    + "PRIMARY KEY(" + TIME_USEC + ","
-                        + THREAD_ID + ","
-                        + SLOT_ID + ","
+                        + QueriesContract.QueriesEntry.QUERY_ID + "),"
+                    + "UNIQUE(" + QUERY_ID + ","
+                        + SLOT_INDEX + ","
                         + BID_ID + ","
                         + SERVICE_PACKAGE_NAME + ","
                         + SLOT_POSITION + ","
