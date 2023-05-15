@@ -88,6 +88,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
@@ -115,6 +119,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int width,
             int height,
             @NonNull IRequestSurfacePackageCallback callback) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
         Objects.requireNonNull(callback);
