@@ -14,39 +14,39 @@
  * limitations under the License.
  */
 
-// package com.android.libraries.pcc.chronicle.test
+package com.android.libraries.pcc.chronicle.test
 
-// import com.google.common.truth.Truth.assertThat
-// import org.junit.Test
-// import androidx.test.ext.junit.runners.AndroidJUnit4
-// import org.junit.runner.RunWith
-// import com.android.libraries.pcc.chronicle.api.policy.annotation.annotation
-// import com.android.libraries.pcc.chronicle.api.policy.annotation.AnnotationParam
-// import com.android.libraries.pcc.chronicle.api.policy.annotation.AnnotationBuilder
+import com.google.common.truth.Truth.assertThat
+import org.junit.Test
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import org.junit.runner.RunWith
+import com.android.libraries.pcc.chronicle.api.policy.annotation.annotation
+import com.android.libraries.pcc.chronicle.api.policy.annotation.AnnotationParam
+import com.android.libraries.pcc.chronicle.api.policy.annotation.AnnotationBuilder
 
 
-// @RunWith(AndroidJUnit4::class)
-// class ChronicleApiPolicyAnnotationTest {
-//     @Test
-//     fun testAnnotationEmptyBlock() {
-//         val actual = annotation("ttl")
+@RunWith(AndroidJUnit4::class)
+class ChronicleApiPolicyAnnotationTest {
+    @Test
+    fun testAnnotationEmptyBlock() {
+        val actual = annotation("ttl")
 
-//         assertThat(actual.name).isEqualTo("ttl")
-//         assertThat(actual.params).isEmpty()
-//     }
+        assertThat(actual.name).isEqualTo("ttl")
+        assertThat(actual.params).isEmpty()
+    }
 
-//     @Test
-//     fun testAnnotationNonEmptyBlock() {
-//         val actual = annotation("ttl") {
-//             param("stringParam", "My String Value")
-//             param("intParam", 42)
-//             param("boolParam", true)
-//         }
+    @Test
+    fun testAnnotationNonEmptyBlock() {
+        val actual = annotation("ttl") {
+            param("stringParam", "My String Value")
+            param("intParam", 42)
+            param("boolParam", true)
+        }
 
-//         assertThat(actual.name).isEqualTo("ttl")
-//         assertThat(actual.params).hasSize(3)
-//         assertThat(actual.getParam("intParam")).isEqualTo(AnnotationParam.Num(42))
-//         assertThat(actual.getStringParam("stringParam")).isEqualTo("My String Value")
-//         assertThat(actual.getOptionalStringParam("Param not Found!")).isEqualTo(null)
-//     }
-// }
+        assertThat(actual.name).isEqualTo("ttl")
+        assertThat(actual.params).hasSize(3)
+        assertThat(actual.getParam("intParam")).isEqualTo(AnnotationParam.Num(42))
+        assertThat(actual.getStringParam("stringParam")).isEqualTo("My String Value")
+        assertThat(actual.getOptionalStringParam("Param not Found!")).isEqualTo(null)
+    }
+}
