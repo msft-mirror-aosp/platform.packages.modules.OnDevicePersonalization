@@ -29,7 +29,7 @@ import com.android.federatedcompute.services.data.FederatedTrainingTask;
 public class JobSchedulerHelper {
     private static final String TAG = "JobSchedulerHelper";
     private static final String TRAINING_JOB_SERVICE =
-            "com.android.federatedcompute.services.training.TrainingJobService";
+            "com.android.federatedcompute.services.training.FederatedJobService";
     private Clock mClock;
 
     public JobSchedulerHelper(Clock clock) {

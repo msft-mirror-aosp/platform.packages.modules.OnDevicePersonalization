@@ -18,11 +18,16 @@ package com.android.ondevicepersonalization.services.display;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.ondevicepersonalization.ScoredBid;
+import android.ondevicepersonalization.Bid;
+import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.SlotResult;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
@@ -32,6 +37,7 @@ import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -50,6 +56,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.MockitoSession;
+import org.mockito.quality.Strictness;
 
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -57,17 +65,16 @@ import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(JUnit4.class)
 public class OdpWebViewClientTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    private final CountDownLatch mLatch = new CountDownLatch(1);
+
     private final SlotResult mSlotResult = new SlotResult.Builder()
-            .addWinningBids(
-                new ScoredBid.Builder()
-                    .setBidId("bidId")
-                    .setEventMetricsParameters(createEventMetricsParameters())
+            .addRenderedBidKeys("bidId")
+            .addLoggedBids(
+                new Bid.Builder()
+                    .setKey("bidId")
                     .build())
             .build();
     private final Event mTestEvent = new Event.Builder()
@@ -118,11 +125,22 @@ public class OdpWebViewClientTests {
     }
 
     @Test
-    public void testValidUrl() throws Exception {
+    public void testValidUrlOverride() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
+        assertEquals(1,
+                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
+                        null, null, null, null, null).getCount());
+    }
+
+    @Test
+    public void testValidUrlIntercept() throws Exception {
+        WebViewClient webViewClient = getWebViewClient();
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
+        WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+        assertEquals(null, webViewClient.shouldInterceptRequest(mWebView, webResourceRequest));
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -136,7 +154,6 @@ public class OdpWebViewClientTests {
 
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean result = new AtomicBoolean(false);
-        AtomicReference<String> actualLandingPage = new AtomicReference<>();
         OnDevicePersonalizationExecutors.getHandler().postAtFrontOfQueue(() -> {
             WebViewClient webViewClient = getWebViewClient();
             result.set(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
@@ -153,13 +170,20 @@ public class OdpWebViewClientTests {
 
     @Test
     public void testValidUrlWithEventMetrics() throws Exception {
-        WebViewClient webViewClient = getWebViewClient();
-        PersistableBundle params = new PersistableBundle();
-        params.putInt("a", 10);
-        params.putDouble("b", 5.0);
+        SlotResult slotResult = new SlotResult.Builder()
+                .addRenderedBidKeys("bidId")
+                .addLoggedBids(
+                    new Bid.Builder()
+                        .setKey("bidId")
+                        .setMetrics(new Metrics.Builder()
+                            .setLongValues(10)
+                            .setDoubleValues(5.0)
+                            .build())
+                        .build())
+                .build();
+        WebViewClient webViewClient = getWebViewClient(slotResult);
         EventUrlPayload payload = new EventUrlPayload.Builder()
                 .setEvent(mTestEvent)
-                .setEventMetricsRequired(true)
                 .build();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
@@ -190,6 +214,26 @@ public class OdpWebViewClientTests {
                         null, null, null, null, null).getCount());
     }
 
+    @Test
+    public void testDefaultInjector() {
+        // Assert constructor using default injector succeeds.
+        new OdpWebViewClient(mContext, mContext.getPackageName(), mSlotResult);
+
+        // Mock context for default injector tests.
+        MockitoSession session = ExtendedMockito.mockitoSession().strictness(
+                Strictness.LENIENT).startMocking();
+        try {
+            Context mockContext = mock(Context.class);
+            OdpWebViewClient.Injector injector = new OdpWebViewClient.Injector();
+            injector.openUrl("https://google.com", mockContext);
+            assertEquals(injector.getExecutor(),
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            verify(mockContext, times(1)).startActivity(any());
+        } finally {
+            session.finishMocking();
+        }
+    }
+
     class TestInjector extends OdpWebViewClient.Injector {
         Executor getExecutor() {
             return MoreExecutors.directExecutor();
@@ -199,8 +243,13 @@ public class OdpWebViewClientTests {
             mOpenedUrl = url;
         }
     }
+
     private WebViewClient getWebViewClient() {
-        return new OdpWebViewClient(mContext, mContext.getPackageName(), mSlotResult,
+        return getWebViewClient(mSlotResult);
+    }
+
+    private WebViewClient getWebViewClient(SlotResult slotResult) {
+        return new OdpWebViewClient(mContext, mContext.getPackageName(), slotResult,
                 new TestInjector());
     }
 

@@ -22,7 +22,24 @@ package android.federatedcompute.common;
  * @hide
  */
 public final class ClientConstants {
-    public static final int STATUS_INTERNAL_ERROR = 100;
+    // Status code constants.
+    public static final int STATUS_SUCCESS = 0;
+    public static final int STATUS_INTERNAL_ERROR = 1;
+
+    public static final String EXTRA_COLLECTION_NAME = "android.federatedcompute.collection_name";
+
+    // ExampleStoreService related constants.
+    public static final String EXAMPLE_STORE_ACTION = "android.federatedcompute.EXAMPLE_STORE";
+    public static final String EXTRA_EXAMPLE_ITERATOR_CRITERIA =
+            "android.federatedcompute.example_iterator_criteria";
+    public static final String EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN =
+            "android.federatedcompute.example_iterator_resumption_token";
+    public static final String EXTRA_EXAMPLE_ITERATOR_RESULT =
+            "android.federatedcompute.example_iterator_result";
+
+    // ResultHandlingService related constants.
+    public static final String RESULT_HANDLING_SERVICE_ACTION =
+            "android.federatedcompute.COMPUTATION_RESULT";
 
     private ClientConstants() {}
 }
