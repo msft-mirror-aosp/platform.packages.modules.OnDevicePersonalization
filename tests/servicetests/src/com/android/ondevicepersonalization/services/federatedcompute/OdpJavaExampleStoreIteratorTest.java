@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
-public class OdpExampleStoreIteratorTest {
+public class OdpJavaExampleStoreIteratorTest {
     private final CountDownLatch mLatch = new CountDownLatch(1);
 
     private boolean mIteratorCallbackOnSuccessCalled = false;
