@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.download.mdd;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.MDD_TASK_TAG_KEY;
 
-import static com.google.android.libraries.mobiledatadownload.TaskScheduler.MAINTENANCE_PERIODIC_TASK;
+import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
 
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -87,7 +87,7 @@ public class MddJobServiceTest {
 
             JobParameters jobParameters = mock(JobParameters.class);
             PersistableBundle extras = new PersistableBundle();
-            extras.putString(MDD_TASK_TAG_KEY, MAINTENANCE_PERIODIC_TASK);
+            extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
             doReturn(extras).when(jobParameters).getExtras();
 
             boolean result = mSpyService.onStartJob(jobParameters);
@@ -150,7 +150,7 @@ public class MddJobServiceTest {
                 Strictness.LENIENT).startMocking();
         try {
             assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
-            verify(mMockJobScheduler, times(1)).schedule(any());
+            verify(mMockJobScheduler, times(0)).schedule(any());
         } finally {
             session.finishMocking();
         }

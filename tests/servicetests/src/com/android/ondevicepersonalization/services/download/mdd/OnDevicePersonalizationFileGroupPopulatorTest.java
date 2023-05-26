@@ -21,7 +21,6 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -29,7 +28,9 @@ import com.android.ondevicepersonalization.services.data.OnDevicePersonalization
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
+import com.google.android.libraries.mobiledatadownload.AddFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
+import com.google.android.libraries.mobiledatadownload.GetFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
@@ -37,6 +38,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFile;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
+import com.google.mobiledatadownload.DownloadConfigProto;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +47,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFileGroupPopulatorTest {
@@ -93,6 +96,23 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @Test
+    public void cleanupOldFileGroup() throws Exception {
+        addTestFileGroup("groupToBeRemoved");
+        GetFileGroupsByFilterRequest request =
+                GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
+        List<ClientFileGroup> clientFileGroups = mMdd.getFileGroupsByFilter(request).get();
+        assertEquals(1, clientFileGroups.size());
+        assertEquals("groupToBeRemoved", clientFileGroups.get(0).getGroupName());
+
+        mPopulator.refreshFileGroups(mMdd).get();
+        request = GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
+        clientFileGroups = mMdd.getFileGroupsByFilter(request).get();
+        assertEquals(1, clientFileGroups.size());
+        assertEquals(OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                mPackageName, mContext), clientFileGroups.get(0).getGroupName());
+    }
+
+    @Test
     public void testCreateDownloadUrlNoSyncToken() throws Exception {
         String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
                 mPackageName, mContext);
@@ -100,7 +120,7 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @Test
-    public void testAddDownloadUrlQueryParameters() throws Exception {
+    public void testCreateDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName))
@@ -108,10 +128,35 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
                         timestamp));
 
         String downloadUrl =
-                OnDevicePersonalizationFileGroupPopulator.addDownloadUrlQueryParameters(
-                        Uri.parse(BASE_URL), mPackageName, mContext);
+                OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(BASE_URL));
         assertTrue(downloadUrl.contains(String.valueOf(timestamp)));
+    }
+
+    private void addTestFileGroup(String groupName) throws Exception {
+        String ownerPackage = mContext.getPackageName();
+        String fileId = groupName;
+        int byteSize = 0;
+        String checksum = "";
+        DownloadConfigProto.DataFile.ChecksumType checksumType =
+                DownloadConfigProto.DataFile.ChecksumType.NONE;
+        String downloadUrl = "http://google.com/";
+        DownloadConfigProto.DownloadConditions.DeviceNetworkPolicy
+                deviceNetworkPolicy =
+                DownloadConfigProto.DownloadConditions.DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
+        DownloadConfigProto.DataFileGroup dataFileGroup =
+                OnDevicePersonalizationFileGroupPopulator.createDataFileGroup(
+                groupName,
+                ownerPackage,
+                new String[]{fileId},
+                new int[]{byteSize},
+                new String[]{checksum},
+                new DownloadConfigProto.DataFile.ChecksumType[]{checksumType},
+                new String[]{downloadUrl},
+                deviceNetworkPolicy);
+        mMdd.addFileGroup(
+                AddFileGroupRequest.newBuilder().setDataFileGroup(
+                        dataFileGroup).build()).get();
     }
 
     @After

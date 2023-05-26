@@ -20,13 +20,14 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
+import android.ondevicepersonalization.DownloadInputParcel;
+import android.ondevicepersonalization.DownloadOutput;
 import android.os.Bundle;
-import android.os.ParcelFileDescriptor;
 import android.util.JsonReader;
 import android.util.Log;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -41,7 +42,6 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
-import com.google.android.libraries.mobiledatadownload.file.openers.ParcelFileDescriptorOpener;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -153,8 +153,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 PackageUtils.getCertDigest(mContext, mPackageName));
         long existingSyncToken = mDao.getSyncToken();
 
-        // Check if the downloaded file has newer data than what is currently stored
-        if (existingSyncToken != -1 && existingSyncToken <= syncToken) {
+        // If existingToken is greaterThan or equal to the new token, skip as there is no new data.
+        if (existingSyncToken >= syncToken) {
             return Futures.immediateFuture(null);
         }
 
@@ -167,9 +167,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             result ->
                                     executeDownloadHandler(
                                             result,
-                                            fileStorage.open(
-                                                    uri,
-                                                    ParcelFileDescriptorOpener.create())),
+                                            finalVendorDataMap),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                     finalVendorDataMap),
@@ -191,8 +189,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Log.d(TAG, "Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        DownloadResult downloadResult = pluginResult.getParcelable(
-                Constants.EXTRA_RESULT, DownloadResult.class);
+        DownloadOutput downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadOutput.class);
         List<String> retainedKeys = downloadResult.getKeysToRetain();
         if (retainedKeys == null) {
             // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
@@ -209,13 +207,31 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     }
 
     private ListenableFuture<Bundle> executeDownloadHandler(
-            IsolatedServiceInfo isolatedServiceInfo, ParcelFileDescriptor fd) {
+            IsolatedServiceInfo isolatedServiceInfo,
+            Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                null, mPackageName, mContext, true, null);
+                mPackageName, mContext, true, null);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        DownloadInput input = new DownloadInput.Builder().setParcelFileDescriptor(fd).build();
-        pluginParams.putParcelable(Constants.EXTRA_INPUT, input);
+
+        List<String> keys = new ArrayList<>();
+        List<byte[]> values = new ArrayList<>();
+        for (String key : vendorDataMap.keySet()) {
+            keys.add(key);
+            values.add(vendorDataMap.get(key).getData());
+        }
+        StringParceledListSlice keysListSlice = new StringParceledListSlice(keys);
+        // This needs to be set to a small number >0 for the parcel.
+        keysListSlice.setInlineCountLimit(1);
+        ByteArrayParceledListSlice valuesListSlice = new ByteArrayParceledListSlice(values);
+        valuesListSlice.setInlineCountLimit(1);
+
+        DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
+                .setDownloadedKeys(keysListSlice)
+                .setDownloadedValues(valuesListSlice)
+                .build();
+
+        pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
