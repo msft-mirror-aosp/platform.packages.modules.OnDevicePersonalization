@@ -90,4 +90,46 @@ public interface Flags {
     default long getResultHandlingServiceCallbackTimeoutSecs() {
         return RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS;
     }
+
+    /**
+     * The minimum percentage (expressed as an integer between 0 and 100) of battery charge that
+     * must be remaining in order start training as well as continue it once started.
+     */
+    int TRAINING_MIN_BATTERY_LEVEL = 30;
+
+    default int getTrainingMinBatteryLevel() {
+        return TRAINING_MIN_BATTERY_LEVEL;
+    }
+
+    /**
+     * The thermal status reported by `PowerManager#getCurrentThermalStatus()` at which to interrupt
+     * training. Must be one of:
+     *
+     * <p>THERMAL_STATUS_NONE = 0;<br>
+     * THERMAL_STATUS_LIGHT = 1; <br>
+     * THERMAL_STATUS_MODERATE = 2; <br>
+     * THERMAL_STATUS_SEVERE = 3; <br>
+     * THERMAL_STATUS_CRITICAL = 4;<br>
+     * THERMAL_STATUS_EMERGENCY = 5; <br>
+     * THERMAL_STATUS_SHUTDOWN = 6; <br>
+     */
+    int THERMAL_STATUS_TO_THROTTLE = 2;
+
+    default int getThermalStatusToThrottle() {
+        return THERMAL_STATUS_TO_THROTTLE;
+    }
+
+    /** When false, the min battery level constraint will be ignored during training. */
+    boolean ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK = false;
+
+    default boolean getEnableTrainingMinBatteryLevelCheck() {
+        return ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK;
+    }
+
+    /** The minimum duration between two training condition checks in milliseconds. */
+    long TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS = 1000;
+
+    default long getTrainingConditionCheckThrottlePeriodMillis() {
+        return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
+    }
 }
