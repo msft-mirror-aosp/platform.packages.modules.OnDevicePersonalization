@@ -22,6 +22,7 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.SystemProperties;
 import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -58,6 +59,11 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     private static final String TAG = "OnDevicePersonalizationFileGroupPopulator";
 
     private final Context mContext;
+
+    private static final String OVERRIDE_DOWNLOAD_URL_PACKAGE =
+            "debug.ondevicepersonalization.override_download_url_package";
+    private static final String OVERRIDE_DOWNLOAD_URL =
+            "debug.ondevicepersonalization.override_download_url";
 
     public OnDevicePersonalizationFileGroupPopulator(Context context) {
         this.mContext = context;
@@ -129,9 +135,23 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
             PackageManager.NameNotFoundException {
         String baseURL = AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
                 context, packageName);
-        if (baseURL == null) {
+
+        // Check for override manifest url property, if package is debuggable
+        if (PackageUtils.isPackageDebuggable(context, packageName)) {
+            if (SystemProperties.get(OVERRIDE_DOWNLOAD_URL_PACKAGE, "").equals(packageName)) {
+                String overrideManifestUrl = SystemProperties.get(OVERRIDE_DOWNLOAD_URL, "");
+                if (!overrideManifestUrl.isEmpty()) {
+                    Log.d(TAG, "Overriding baseURL for package "
+                            + packageName + " to " + overrideManifestUrl);
+                    baseURL = overrideManifestUrl;
+                }
+            }
+        }
+
+        if (baseURL == null || baseURL.isEmpty()) {
             throw new IllegalArgumentException("Failed to retrieve base download URL");
         }
+
         Uri uri = Uri.parse(baseURL);
 
         // Enforce URI scheme

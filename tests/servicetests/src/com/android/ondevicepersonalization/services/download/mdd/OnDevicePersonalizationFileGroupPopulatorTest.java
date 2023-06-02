@@ -24,6 +24,7 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -120,6 +121,19 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @Test
+    public void testCreateDownloadUrlOverrideManifest() throws Exception {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url_package "
+                        + mPackageName);
+        String overrideUrl = "https://google.com";
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url " + overrideUrl);
+        String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
+                mPackageName, mContext);
+        assertTrue(downloadUrl.startsWith(overrideUrl));
+    }
+
+    @Test
     public void testCreateDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
@@ -161,6 +175,10 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
 
     @After
     public void cleanup() {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url_package \"\"");
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url \"\"");
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
