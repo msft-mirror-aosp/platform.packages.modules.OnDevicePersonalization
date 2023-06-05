@@ -189,7 +189,8 @@ class OdpWebViewClient extends WebViewClient {
                 // Metrics required because eventData column is non-null.
                 metrics = new Metrics.Builder().build();
             }
-            byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(metrics);
+            // TODO(b/228200518): Extract log data from EventOutput.
+            byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(null);
             event = new Event.Builder()
                     .setType(event.getType())
                     .setQueryId(event.getQueryId())

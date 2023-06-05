@@ -197,10 +197,8 @@ public class OdpWebViewClientTests {
         int dataColumn = result.getColumnIndex("eventData");
         byte[] data = result.getBlob(dataColumn);
         EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(data));
-        assertEquals(1, eventFields.metrics().longValuesLength());
-        assertEquals(10, eventFields.metrics().longValues(0));
-        assertEquals(1, eventFields.metrics().doubleValuesLength());
-        assertEquals(5.0, eventFields.metrics().doubleValues(0), 0.001);
+        // TODO(b/228200518): Verify that event fields contain expected data.
+        assertEquals(0, eventFields.data().entriesLength());
     }
 
     @Test
