@@ -16,28 +16,43 @@
 
 package com.android.ondevicepersonalization.services.request;
 
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RequestLogRecord;
 
 import com.android.ondevicepersonalization.services.util.ParcelWrapper;
 
 import java.io.Serializable;
 
 /**
- * A Serializable wrapper for the SlotResult object.
+ * A Serializable wrapper for the data used internally for rendering.
  */
-class SlotRenderingData implements Serializable {
-    private ParcelWrapper<SlotResult> mWrappedSlotResult;
+class SlotWrapper implements Serializable {
+    private ParcelWrapper<RequestLogRecord> mWrappedLogRecord;
+    private int mSlotIndex;
+    private ParcelWrapper<RenderingData> mWrappedRenderingData;
     private String mServicePackageName;
     private long mQueryId;
 
-    SlotRenderingData(SlotResult slotResult, String servicePackageName, long queryId) {
-        mWrappedSlotResult = new ParcelWrapper<>(slotResult);
+    SlotWrapper(
+            RequestLogRecord logInfo, int slotIndex, RenderingData slotRenderingInfo,
+            String servicePackageName, long queryId) {
+        mWrappedLogRecord = new ParcelWrapper<>(logInfo);
+        mWrappedRenderingData = new ParcelWrapper<>(slotRenderingInfo);
         mServicePackageName = servicePackageName;
+        mSlotIndex = slotIndex;
         mQueryId = queryId;
     }
 
-    SlotResult getSlotResult() {
-        return mWrappedSlotResult.get(SlotResult.CREATOR);
+    RequestLogRecord getLogRecord() {
+        return mWrappedLogRecord.get(RequestLogRecord.CREATOR);
+    }
+
+    int getSlotIndex() {
+        return mSlotIndex;
+    }
+
+    RenderingData getRenderingData() {
+        return mWrappedRenderingData.get(RenderingData.CREATOR);
     }
 
     String getServicePackageName() {

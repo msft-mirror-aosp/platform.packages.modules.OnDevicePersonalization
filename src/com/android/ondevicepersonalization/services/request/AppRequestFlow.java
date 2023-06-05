@@ -23,7 +23,7 @@ import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RenderingData;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -181,7 +181,7 @@ public class AppRequestFlow {
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mService.getPackageName(), mContext, true, null);
+                mService.getPackageName(), mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
@@ -191,7 +191,7 @@ public class AppRequestFlow {
         sLogger.d(TAG + ": logQuery() started.");
         // TODO(b/228200518): Extract log data from ExecuteOutput.
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                mService.getPackageName(), null, null);
+                mService.getPackageName(), null, result.getRequestLogRecord().getRows());
         Query query = new Query.Builder()
                 .setServicePackageName(mService.getPackageName())
                 .setQueryData(queryData)
@@ -205,24 +205,27 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<List<String>> createTokens(
-            ListenableFuture<ExecuteOutput> selectContentResultFuture,
+            ListenableFuture<ExecuteOutput> resultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
             sLogger.d(TAG + ": createTokens() started.");
-            ExecuteOutput selectContentResult = Futures.getDone(selectContentResultFuture);
+            ExecuteOutput result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<SlotResult> slotResults = selectContentResult.getSlotResults();
+            List<RenderingData> slotResults = result.getRenderingDataList();
             Objects.requireNonNull(slotResults);
 
             List<String> slotResultTokens = new ArrayList<String>();
-            for (SlotResult slotResult : slotResults) {
+            int slotIndex = 0;
+            for (RenderingData slotResult : slotResults) {
                 if (slotResult == null) {
                     slotResultTokens.add(null);
                 } else {
-                    SlotRenderingData wrapper = new SlotRenderingData(
-                            slotResult, mService.getPackageName(), queryId);
+                    SlotWrapper wrapper = new SlotWrapper(
+                            result.getRequestLogRecord(), slotIndex, slotResult,
+                            mService.getPackageName(), queryId);
                     slotResultTokens.add(CryptUtils.encrypt(wrapper));
                 }
+                ++slotIndex;
             }
 
             return Futures.immediateFuture(slotResultTokens);
