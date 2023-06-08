@@ -83,7 +83,7 @@ public class MainActivity extends Activity {
             mOdpManager.execute(
                     ComponentName.createRelative(
                         "com.android.odpsamplenetwork",
-                        "com.android.odpsamplenetwork.SampleHandler"),
+                        "com.android.odpsamplenetwork.SampleService"),
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     new OutcomeReceiver<List<SlotResultHandle>, Exception>() {
