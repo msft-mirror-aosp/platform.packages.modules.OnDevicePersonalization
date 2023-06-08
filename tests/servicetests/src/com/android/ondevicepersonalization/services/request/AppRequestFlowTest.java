@@ -71,7 +71,7 @@ public class AppRequestFlowTest {
     public void testRunAppRequestFlow() throws Exception {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 PersistableBundle.EMPTY,
                 new TestCallback(), mContext, MoreExecutors.newDirectExecutorService());
         appRequestFlow.run();
