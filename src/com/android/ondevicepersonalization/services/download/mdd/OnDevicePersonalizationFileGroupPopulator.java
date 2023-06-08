@@ -23,9 +23,10 @@ import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.SystemProperties;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -56,6 +57,7 @@ import java.util.Set;
  * FileGroupPopulator to add FileGroups for ODP onboarded packages
  */
 public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopulator {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationFileGroupPopulator";
 
     private final Context mContext;
@@ -141,7 +143,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
             if (SystemProperties.get(OVERRIDE_DOWNLOAD_URL_PACKAGE, "").equals(packageName)) {
                 String overrideManifestUrl = SystemProperties.get(OVERRIDE_DOWNLOAD_URL, "");
                 if (!overrideManifestUrl.isEmpty()) {
-                    Log.d(TAG, "Overriding baseURL for package "
+                    sLogger.d(TAG + ": Overriding baseURL for package "
                             + packageName + " to " + overrideManifestUrl);
                     baseURL = overrideManifestUrl;
                 }
@@ -226,14 +228,14 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                         AddFileGroupRequest.newBuilder().setDataFileGroup(
                                                 dataFileGroup).build()));
                             } catch (Exception e) {
-                                Log.e(TAG, "Failed to create file group for "
+                                sLogger.e(TAG + ": Failed to create file group for "
                                         + packageInfo.packageName, e);
                             }
                         }
                     }
 
                     for (String group : fileGroupsToRemove) {
-                        Log.d(TAG, "Removing file group: " + group);
+                        sLogger.d(TAG + ": Removing file group: " + group);
                         mFutures.add(mobileDataDownload.removeFileGroup(
                                 RemoveFileGroupRequest.newBuilder().setGroupName(group).build()));
                     }
@@ -242,9 +244,9 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                             Futures.successfulAsList(mFutures),
                             result -> {
                                 if (result.contains(null)) {
-                                    Log.d(TAG, "Failed to add or remove a file group");
+                                    sLogger.d(TAG + ": Failed to add or remove a file group");
                                 } else {
-                                    Log.d(TAG, "Successfully updated all file groups");
+                                    sLogger.d(TAG + ": Successfully updated all file groups");
                                 }
                                 return null;
                             },

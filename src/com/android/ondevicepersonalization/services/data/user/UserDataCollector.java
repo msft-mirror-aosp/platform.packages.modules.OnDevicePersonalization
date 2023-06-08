@@ -37,12 +37,12 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.LocationInfo.LocationProvider;
 
 import com.google.common.base.Strings;
@@ -70,22 +70,33 @@ public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
     private static UserDataCollector sUserDataCollector = null;
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataCollector";
 
-    @NonNull private final Context mContext;
-    @NonNull private Locale mLocale;
-    @NonNull private final TelephonyManager mTelephonyManager;
-    @NonNull private final NetworkCapabilities mNetworkCapabilities;
-    @NonNull private final LocationManager mLocationManager;
-    @NonNull private final UserDataDao mUserDataDao;
+    @NonNull
+    private final Context mContext;
+    @NonNull
+    private Locale mLocale;
+    @NonNull
+    private final TelephonyManager mTelephonyManager;
+    @NonNull
+    private final NetworkCapabilities mNetworkCapabilities;
+    @NonNull
+    private final LocationManager mLocationManager;
+    @NonNull
+    private final UserDataDao mUserDataDao;
     // Metadata to keep track of the latest ending timestamp of app usage collection.
-    @NonNull private long mLastTimeMillisAppUsageCollected;
+    @NonNull
+    private long mLastTimeMillisAppUsageCollected;
     // Metadata to track the expired app usage entries, which are to be evicted.
-    @NonNull private Deque<AppUsageEntry> mAllowedAppUsageEntries;
+    @NonNull
+    private Deque<AppUsageEntry> mAllowedAppUsageEntries;
     // Metadata to track the expired location entries, which are to be evicted.
-    @NonNull private Deque<LocationInfo> mAllowedLocationEntries;
+    @NonNull
+    private Deque<LocationInfo> mAllowedLocationEntries;
     // Metadata to track whether UserData has been initialized.
-    @NonNull private boolean mInitialized;
+    @NonNull
+    private boolean mInitialized;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
@@ -109,7 +120,7 @@ public class UserDataCollector {
         synchronized (UserDataCollector.class) {
             if (sUserDataCollector == null) {
                 sUserDataCollector = new UserDataCollector(
-                    context, UserDataDao.getInstance(context));
+                        context, UserDataDao.getInstance(context));
             }
             return sUserDataCollector;
         }
@@ -118,7 +129,7 @@ public class UserDataCollector {
     /**
      * Returns an instance of the UserDataCollector given a context. This is used
      * for testing only.
-    */
+     */
     @VisibleForTesting
     public static UserDataCollector getInstanceForTest(Context context) {
         synchronized (UserDataCollector.class) {
@@ -170,7 +181,7 @@ public class UserDataCollector {
     /**
      * Collects in-memory user data signals and stores in a UserData object
      * for the schedule of {@link UserDataCollectionJobService}
-    */
+     */
     private void initializeUserData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
@@ -252,7 +263,7 @@ public class UserDataCollector {
             try {
                 country = Country.valueOf(countryCode);
             } catch (IllegalArgumentException iae) {
-                Log.e(TAG, "Country code cannot match to a country.", iae);
+                sLogger.e(TAG + ": Country code cannot match to a country.", iae);
                 return country;
             }
             return country;
@@ -270,7 +281,7 @@ public class UserDataCollector {
             try {
                 language = Language.valueOf(langCode.toUpperCase(Locale.US));
             } catch (IllegalArgumentException iae) {
-                Log.e(TAG, "Language code cannot match to a language.", iae);
+                sLogger.e(TAG + ": Language code cannot match to a language.", iae);
                 return language;
             }
             return language;
@@ -372,11 +383,13 @@ public class UserDataCollector {
                     micro = Integer.parseInt(versions[2]);
                 } else {
                     // An irregular release like "UpsideDownCake"
-                    Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe1);
+                    sLogger.e(TAG + ": OS release string cannot be matched to a regular version.",
+                            nfe1);
                 }
             } catch (NumberFormatException nfe2) {
                 // An irrgular release like "QKQ1.200830.002"
-                Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe2);
+                sLogger.e(TAG + ": OS release string cannot be matched to a regular version.",
+                        nfe2);
             }
         } finally {
             osVersions.major = major;
@@ -481,7 +494,8 @@ public class UserDataCollector {
             // handle corner cases for irregularly formatted string.
             make = getMakeFromSpecialString(manufacturer);
             if (make == Make.UNKNOWN) {
-                Log.e(TAG, "Manufacturer string cannot match to an available make type.", iae);
+                sLogger.e(TAG + ": Manufacturer string cannot match to an available make type.",
+                        iae);
             }
             return make;
         }
@@ -500,7 +514,7 @@ public class UserDataCollector {
             // handle corner cases for irregularly formatted string.
             model = getModelFromSpecialString(deviceModel);
             if (model == Model.UNKNOWN) {
-                Log.e(TAG, "Model string cannot match to an available make type.", iae);
+                sLogger.e(TAG + ": Model string cannot match to an available make type.", iae);
             }
             return model;
         }
@@ -643,7 +657,7 @@ public class UserDataCollector {
      * Get 24-hour app usage stats from [yesterday's midnight] to [tonight's midnight],
      * write them to database, and update the [appUsageHistory] histogram.
      * Skip the current collection cycle if yesterday's stats has been collected.
-    */
+     */
     @VisibleForTesting
     public void getAppUsageStats(HashMap<String, Long> appUsageHistory) {
         Calendar cal = Calendar.getInstance();
@@ -667,7 +681,7 @@ public class UserDataCollector {
                 UsageStatsManager.INTERVAL_BEST, startTimeMillis, endTimeMillis);
 
         List<AppUsageEntry> appUsageEntries = new ArrayList<>();
-        for (UsageStats stats: statsList) {
+        for (UsageStats stats : statsList) {
             if (stats.getTotalTimeVisible() == 0) {
                 continue;
             }
@@ -695,7 +709,7 @@ public class UserDataCollector {
      */
     private void updateAppUsageHistogram(HashMap<String, Long> appUsageHistory,
             List<AppUsageEntry> entries) {
-        for (AppUsageEntry entry: entries) {
+        for (AppUsageEntry entry : entries) {
             mAllowedAppUsageEntries.add(entry);
             appUsageHistory.put(entry.packageName, appUsageHistory.getOrDefault(
                     entry.packageName, 0L) + entry.totalTimeUsedMillis);
@@ -761,12 +775,13 @@ public class UserDataCollector {
      * Persist collected location info and populate the in-memory current location.
      * The method should succeed or fail as a transaction to avoid discrepancies between
      * database and memory.
+     *
      * @return true if location info collection is successful, false otherwise.
      */
     private boolean setLocationInfo(Location location, LocationInfo locationInfo) {
         long timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
-        double truncatedLatitude = Math.round(location.getLatitude() *  10000.0) / 10000.0;
-        double truncatedLongitude = Math.round(location.getLongitude() *  10000.0) / 10000.0;
+        double truncatedLatitude = Math.round(location.getLatitude() * 10000.0) / 10000.0;
+        double truncatedLongitude = Math.round(location.getLongitude() * 10000.0) / 10000.0;
         LocationInfo.LocationProvider locationProvider = LocationProvider.UNKNOWN;
         boolean isPrecise = false;
 
@@ -817,7 +832,7 @@ public class UserDataCollector {
                 && mAllowedLocationEntries.peekFirst().timeMillis < thresholdTimeMillis) {
             LocationInfo evictedLocation = mAllowedLocationEntries.removeFirst();
             if (!mAllowedLocationEntries.isEmpty()) {
-                long evictedDuration =  mAllowedLocationEntries.peekFirst().timeMillis
+                long evictedDuration = mAllowedLocationEntries.peekFirst().timeMillis
                         - evictedLocation.timeMillis;
                 if (locationHistory.containsKey(evictedLocation)) {
                     long updatedDuration = locationHistory.get(evictedLocation) - evictedDuration;
@@ -894,7 +909,7 @@ public class UserDataCollector {
                         UserDataTables.AppUsageHistory.STARTING_TIME_SEC));
                 long endTimeMillis = cursor.getLong(cursor.getColumnIndex(
                         UserDataTables.AppUsageHistory.ENDING_TIME_SEC));
-                long totalTimeUsedMillis =  cursor.getLong(cursor.getColumnIndex(
+                long totalTimeUsedMillis = cursor.getLong(cursor.getColumnIndex(
                         UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC));
                 mAllowedAppUsageEntries.add(new AppUsageEntry(packageName,
                         startTimeMillis, endTimeMillis, totalTimeUsedMillis));
@@ -953,7 +968,7 @@ public class UserDataCollector {
             LocationInfo nextLocation = iterator.next();
             final long duration = nextLocation.timeMillis - currentLocation.timeMillis;
             if (duration < 0) {
-                Log.v(TAG, "LocationInfo entries are retrieved with wrong order.");
+                sLogger.v(TAG + ": LocationInfo entries are retrieved with wrong order.");
             }
             locationHistory.put(currentLocation,
                     locationHistory.getOrDefault(currentLocation, 0L) + duration);

@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.manifest;
 
-import android.util.Log;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -25,6 +27,7 @@ import java.io.IOException;
 
 /** Parser and validator for OnDevicePersonalization app manifest configs. */
 public class AppManifestConfigParser {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppManifestConfigParser";
     private static final String TAG_ON_DEVICE_PERSONALIZATION_CONFIG = "on-device-personalization";
     private static final String TAG_HANDLER = "handler";
@@ -73,7 +76,7 @@ public class AppManifestConfigParser {
                     serviceName = parser.getAttributeValue(null, ATTR_NAME);
                     break;
                 default:
-                    Log.i(TAG, "Unknown tag: " + parser.getName());
+                    sLogger.i(TAG + ": Unknown tag: " + parser.getName());
             }
             parser.next();
         }

@@ -28,9 +28,10 @@ import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -57,6 +58,7 @@ import java.util.Objects;
  * Handles a surface package request from an app or SDK.
  */
 public class AppRequestFlow {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppRequestFlow";
     private static final String TASK_NAME = "AppRequest";
     @NonNull
@@ -93,7 +95,7 @@ public class AppRequestFlow {
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             @NonNull ListeningExecutorService executorService) {
-        Log.d(TAG, "AppRequestFlow created.");
+        sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
         mHandler = Objects.requireNonNull(handler);
         mParams = Objects.requireNonNull(params);
@@ -158,19 +160,19 @@ public class AppRequestFlow {
 
                         @Override
                         public void onFailure(Throwable t) {
-                            Log.w(TAG, "Request failed.", t);
+                            sLogger.w(TAG + ": Request failed.", t);
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
                     },
                     mExecutorService);
         } catch (Exception e) {
-            Log.e(TAG, "Could not process request.", e);
+            sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
     }
 
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
-        Log.d(TAG, "executeAppRequest() started.");
+        sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
         ExecuteInput input =
                 new ExecuteInput.Builder()
@@ -186,7 +188,7 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {
-        Log.d(TAG, "logQuery() started.");
+        sLogger.d(TAG + ": logQuery() started.");
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
         // TODO(b/259950173): Add certDigest to queryData.
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
@@ -207,7 +209,7 @@ public class AppRequestFlow {
             ListenableFuture<ExecuteOutput> selectContentResultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
-            Log.d(TAG, "createTokens() started.");
+            sLogger.d(TAG + ": createTokens() started.");
             ExecuteOutput selectContentResult = Futures.getDone(selectContentResultFuture);
             long queryId = Futures.getDone(queryIdFuture);
             List<SlotResult> slotResults = selectContentResult.getSlotResults();
@@ -235,11 +237,11 @@ public class AppRequestFlow {
             if (slotResultTokens != null && slotResultTokens.size() > 0) {
                 mCallback.onSuccess(slotResultTokens);
             } else {
-                Log.w(TAG, "slotResultTokens is null or empty");
+                sLogger.w(TAG + ": slotResultTokens is null or empty");
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
             }
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 
@@ -247,7 +249,7 @@ public class AppRequestFlow {
         try {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 }

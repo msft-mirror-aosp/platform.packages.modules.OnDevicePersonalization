@@ -21,7 +21,9 @@ import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -34,6 +36,7 @@ import java.util.concurrent.TimeUnit;
 /** @hide */
 public class LocalDataImpl implements MutableMap {
     private static final String TAG = "LocalDataImpl";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     @NonNull
     IDataAccessService mDataAccessService;
 
@@ -69,13 +72,13 @@ public class LocalDataImpl implements MutableMap {
             throws OnDevicePersonalizationException {
         Bundle result = handleAsyncRequest(op, params);
         if (null == result) {
-            Log.e(TAG, "Timed out waiting for result of lookup for op: " + op);
+            sLogger.e(TAG + ": Timed out waiting for result of lookup for op: " + op);
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
         HashMap<String, byte[]> data = result.getSerializable(
                 Constants.EXTRA_RESULT, HashMap.class);
         if (null == data) {
-            Log.e(TAG, "No EXTRA_RESULT was present in bundle");
+            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
         return data.get(key);
@@ -86,13 +89,13 @@ public class LocalDataImpl implements MutableMap {
         Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 Bundle.EMPTY);
         if (null == result) {
-            Log.e(TAG, "Timed out waiting for result of keySet");
+            sLogger.e(TAG + ": Timed out waiting for result of keySet");
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
         HashSet<String> resultSet =
                 result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
         if (null == resultSet) {
-            Log.e(TAG, "No EXTRA_RESULT was present in bundle");
+            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
         return resultSet;
@@ -118,7 +121,7 @@ public class LocalDataImpl implements MutableMap {
                     });
             return asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         } catch (InterruptedException | RemoteException e) {
-            Log.e(TAG, "Failed to retrieve result from localData", e);
+            sLogger.e(TAG + ": Failed to retrieve result from localData", e);
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
     }

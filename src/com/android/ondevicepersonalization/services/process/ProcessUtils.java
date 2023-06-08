@@ -22,10 +22,11 @@ import android.content.Context;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.os.Bundle;
-import android.util.Log;
+
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
 import com.android.ondevicepersonalization.libraries.plugin.PluginController;
@@ -41,6 +42,7 @@ import java.util.Objects;
 
 /** Utilities to support loading and executing plugins. */
 public class ProcessUtils {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "ProcessUtils";
     private static final String ENTRY_POINT_CLASS =
             "com.android.ondevicepersonalization.services.process.OnDevicePersonalizationPlugin";
@@ -56,7 +58,7 @@ public class ProcessUtils {
             @NonNull String taskName, @NonNull String packageName,
             @NonNull Context context) {
         try {
-            Log.d(TAG, "loadIsolatedService: " + packageName);
+            sLogger.d(TAG + ": loadIsolatedService: " + packageName);
             return loadPlugin(createPluginController(
                     createPluginId(packageName, taskName),
                     getPluginManager(context), packageName));
@@ -71,7 +73,7 @@ public class ProcessUtils {
             @NonNull String className,
             int operationCode,
             @NonNull Bundle serviceParams) {
-        Log.d(TAG, "runIsolatedService: " + className + " op: " + operationCode);
+        sLogger.d(TAG + ": runIsolatedService: " + className + " op: " + operationCode);
         Bundle pluginParams = new Bundle();
         pluginParams.putString(PARAM_CLASS_NAME_KEY, className);
         pluginParams.putInt(PARAM_OPERATION_KEY, operationCode);
@@ -101,7 +103,7 @@ public class ProcessUtils {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
                 try {
-                    Log.d(TAG, "loadPlugin");
+                    sLogger.d(TAG + ": loadPlugin");
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
                             completer.set(new IsolatedServiceInfo(pluginController));
@@ -125,7 +127,7 @@ public class ProcessUtils {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
                 try {
-                    Log.d(TAG, "executePlugin");
+                    sLogger.d(TAG + ": executePlugin");
                     pluginController.execute(pluginParams, new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
                             completer.set(bundle);

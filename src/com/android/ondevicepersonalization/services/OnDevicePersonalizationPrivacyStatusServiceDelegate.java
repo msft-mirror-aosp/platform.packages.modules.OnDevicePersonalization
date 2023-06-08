@@ -21,8 +21,9 @@ import android.content.Context;
 import android.ondevicepersonalization.aidl.IPrivacyStatusService;
 import android.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.os.RemoteException;
-import android.util.Log;
 
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.PrivacySignal;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
@@ -35,6 +36,7 @@ import java.util.concurrent.Executor;
  */
 public class OnDevicePersonalizationPrivacyStatusServiceDelegate
         extends IPrivacyStatusService.Stub {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationPrivacyStatusServiceDelegate";
     private final Context mContext;
     private static final Executor sBackgroundExecutor =
@@ -70,7 +72,7 @@ public class OnDevicePersonalizationPrivacyStatusServiceDelegate
                         userDataCollector.clearDatabase();
                         callback.onSuccess();
                     } catch (RemoteException re) {
-                        Log.e(TAG, "Unable to send result to the callback.", re);
+                        sLogger.e(TAG + ": Unable to send result to the callback.", re);
                     }
                 }
         );

@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import android.content.res.Configuration;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.List;
 public final class RawUserData {
 
     private static RawUserData sUserData = null;
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserData";
 
     // The current system time in milliseconds.
