@@ -22,12 +22,10 @@ package com.android.ondevicepersonalization.services.manifest;
 public class AppManifestConfig {
     private final String mDownloadUrl;
     private final String mServiceName;
-    private final String mHandlerName;
 
-    public AppManifestConfig(String downloadUrl, String serviceName, String handlerName) {
+    public AppManifestConfig(String downloadUrl, String serviceName) {
         mDownloadUrl = downloadUrl;
         mServiceName = serviceName;
-        mHandlerName = handlerName;
     }
 
     /**
@@ -42,12 +40,5 @@ public class AppManifestConfig {
      */
     public String getServiceName() {
         return mServiceName;
-    }
-
-    /**
-     * @return The handler name configured in manifest
-     */
-    public String getHandlerName() {
-        return mHandlerName;
     }
 }

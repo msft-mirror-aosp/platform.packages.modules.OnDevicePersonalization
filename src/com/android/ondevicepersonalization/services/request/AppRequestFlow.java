@@ -62,7 +62,7 @@ public class AppRequestFlow {
     @NonNull
     private final String mCallingPackageName;
     @NonNull
-    private final ComponentName mHandler;
+    private final ComponentName mService;
     @NonNull
     private final PersistableBundle mParams;
     @NonNull
@@ -77,25 +77,25 @@ public class AppRequestFlow {
 
     public AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull ComponentName handler,
+            @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context) {
-        this(callingPackageName, handler, params,
+        this(callingPackageName, service, params,
                 callback, context, OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull ComponentName handler,
+            @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             @NonNull ListeningExecutorService executorService) {
         Log.d(TAG, "AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
-        mHandler = Objects.requireNonNull(handler);
+        mService = Objects.requireNonNull(service);
         mParams = Objects.requireNonNull(params);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
@@ -111,19 +111,19 @@ public class AppRequestFlow {
         try {
             AppManifestConfig config = Objects.requireNonNull(
                     AppManifestConfigHelper.getAppManifestConfig(
-                        mContext, mHandler.getPackageName()));
-            if (!mHandler.getClassName().equals(config.getHandlerName())) {
+                        mContext, mService.getPackageName()));
+            if (!mService.getClassName().equals(config.getServiceName())) {
                 // TODO(b/228200518): Define a new error code and map it to a specific
                 // exception type in the client API.
                 throw new OnDevicePersonalizationException(
                     Constants.STATUS_INTERNAL_ERROR,
-                    "Name not found: " + mHandler.getClassName()
-                    + " expected: " + config.getHandlerName());
+                    "Name not found: " + mService.getClassName()
+                    + " expected: " + config.getServiceName());
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, mHandler.getPackageName(), mContext))
+                                    TASK_NAME, mService.getPackageName(), mContext))
                     .transformAsync(
                             result -> executeAppRequest(result),
                             mExecutorService
@@ -179,7 +179,7 @@ public class AppRequestFlow {
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mHandler.getPackageName(), mContext, true, null);
+                mService.getPackageName(), mContext, true, null);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
@@ -190,9 +190,9 @@ public class AppRequestFlow {
         // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
         // TODO(b/259950173): Add certDigest to queryData.
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                mHandler.getPackageName(), null, result);
+                mService.getPackageName(), null, result);
         Query query = new Query.Builder()
-                .setServicePackageName(mHandler.getPackageName())
+                .setServicePackageName(mService.getPackageName())
                 .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
@@ -219,7 +219,7 @@ public class AppRequestFlow {
                     slotResultTokens.add(null);
                 } else {
                     SlotRenderingData wrapper = new SlotRenderingData(
-                            slotResult, mHandler.getPackageName(), queryId);
+                            slotResult, mService.getPackageName(), queryId);
                     slotResultTokens.add(CryptUtils.encrypt(wrapper));
                 }
             }
