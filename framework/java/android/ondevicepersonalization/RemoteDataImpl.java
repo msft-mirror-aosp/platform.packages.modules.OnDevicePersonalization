@@ -21,7 +21,9 @@ import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -33,6 +35,7 @@ import java.util.concurrent.TimeUnit;
 
 /** @hide */
 public class RemoteDataImpl implements ImmutableMap {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "RemoteDataImpl";
     @NonNull
     IDataAccessService mDataAccessService;
@@ -65,18 +68,18 @@ public class RemoteDataImpl implements ImmutableMap {
                     });
             Bundle result = asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             if (null == result) {
-                Log.e(TAG, "Timed out waiting for result of remoteData lookup");
+                sLogger.e(TAG + ": Timed out waiting for result of remoteData lookup");
                 throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
             }
             HashMap<String, byte[]> data = result.getSerializable(
                             Constants.EXTRA_RESULT, HashMap.class);
             if (null == data) {
-                Log.e(TAG, "No EXTRA_RESULT was present in bundle");
+                sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
                 throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
             }
             return data.get(key);
         } catch (InterruptedException | RemoteException e) {
-            Log.e(TAG, "Failed to retrieve key from remoteData", e);
+            sLogger.e(TAG + ": Failed to retrieve key from remoteData", e);
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
     }
@@ -101,18 +104,18 @@ public class RemoteDataImpl implements ImmutableMap {
                     });
             Bundle result = asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
             if (null == result) {
-                Log.e(TAG, "Timed out waiting for result of remoteData keySet");
+                sLogger.e(TAG + ": Timed out waiting for result of remoteData keySet");
                 throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
             }
             HashSet<String> resultSet =
                     result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
             if (null == resultSet) {
-                Log.e(TAG, "No EXTRA_RESULT was present in bundle");
+                sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
                 throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
             }
             return resultSet;
         } catch (InterruptedException | RemoteException e) {
-            Log.e(TAG, "Failed to retrieve keySet from remoteData", e);
+            sLogger.e(TAG + ": Failed to retrieve keySet from remoteData", e);
             throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
         }
     }

@@ -27,10 +27,10 @@ import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
@@ -52,6 +52,7 @@ import java.util.Objects;
  * Handles a surface package request from an app or SDK.
  */
 public class RenderFlow {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "RenderFlow";
     private static final String TASK_NAME = "Render";
 
@@ -111,7 +112,7 @@ public class RenderFlow {
             @NonNull Context context,
             @NonNull Injector injector,
             @NonNull DisplayHelper displayHelper) {
-        Log.d(TAG, "RenderFlow created.");
+        sLogger.d(TAG + ": RenderFlow created.");
         mSlotResultToken = Objects.requireNonNull(slotResultToken);
         mHostToken = Objects.requireNonNull(hostToken);
         mDisplayId = displayId;
@@ -150,13 +151,13 @@ public class RenderFlow {
 
                         @Override
                         public void onFailure(Throwable t) {
-                            Log.w(TAG, "Request failed.", t);
+                            sLogger.w(TAG + ": Request failed.", t);
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
                     },
                     mInjector.getExecutor());
         } catch (Exception e) {
-            Log.e(TAG, "Could not process request.", e);
+            sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
     }
@@ -165,7 +166,7 @@ public class RenderFlow {
             SlotRenderingData slotRenderingData
     ) {
         try {
-            Log.d(TAG, "renderContentForSlot() started.");
+            sLogger.d(TAG + ": renderContentForSlot() started.");
             Objects.requireNonNull(slotRenderingData);
             SlotResult slotResult = slotRenderingData.getSlotResult();
             Objects.requireNonNull(slotResult);
@@ -210,7 +211,7 @@ public class RenderFlow {
     private ListenableFuture<Bundle> executeRenderContentRequest(
             IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, SlotResult slotResult,
             long queryId, List<String> bidKeys) {
-        Log.d(TAG, "executeRenderContentRequest() started.");
+        sLogger.d(TAG + ": executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
         RenderInput input =
                 new RenderInput.Builder().setSlotInfo(slotInfo).setBidKeys(bidKeys).build();
@@ -229,11 +230,11 @@ public class RenderFlow {
             if (surfacePackage != null) {
                 mCallback.onSuccess(surfacePackage);
             } else {
-                Log.w(TAG, "surfacePackages is null or empty");
+                sLogger.w(TAG + ": surfacePackages is null or empty");
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
             }
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 
@@ -241,7 +242,7 @@ public class RenderFlow {
         try {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 }

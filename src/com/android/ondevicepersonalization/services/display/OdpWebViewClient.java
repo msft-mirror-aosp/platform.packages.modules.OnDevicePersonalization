@@ -27,13 +27,13 @@ import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.SlotResult;
 import android.os.Bundle;
-import android.util.Log;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -53,6 +53,7 @@ import java.util.HashMap;
 import java.util.concurrent.Executor;
 
 class OdpWebViewClient extends WebViewClient {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OdpWebViewClient";
     public static final String TASK_NAME = "ComputeEventMetrics";
 
@@ -64,7 +65,7 @@ class OdpWebViewClient extends WebViewClient {
 
         void openUrl(String landingPage, Context context) {
             if (landingPage != null) {
-                Log.d(TAG, "Sending intent to open landingPage: " + landingPage);
+                sLogger.d(TAG + ": Sending intent to open landingPage: " + landingPage);
                 Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(landingPage));
                 intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
                 context.startActivity(intent);
@@ -95,7 +96,7 @@ class OdpWebViewClient extends WebViewClient {
     @Override public WebResourceResponse shouldInterceptRequest(
         @NonNull WebView webView, @NonNull WebResourceRequest request) {
         if (webView == null || request == null || request.getUrl() == null) {
-            Log.e(TAG, "Received null webView or Request or Url");
+            sLogger.e(TAG + ": Received null webView or Request or Url");
             return null;
         }
         String url = request.getUrl().toString();
@@ -110,7 +111,7 @@ class OdpWebViewClient extends WebViewClient {
     public boolean shouldOverrideUrlLoading(
             @NonNull WebView webView, @NonNull WebResourceRequest request) {
         if (webView == null || request == null) {
-            Log.e(TAG, "Received null webView or Request");
+            sLogger.e(TAG + ": Received null webView or Request");
             return true;
         }
         //Decode odp://localhost/ URIs and call Events table API to write an event.
@@ -122,7 +123,7 @@ class OdpWebViewClient extends WebViewClient {
             mInjector.openUrl(landingPage, webView.getContext());
         } else {
             // TODO(b/263180569): Handle any non-odp URLs
-            Log.d(TAG, "Non-odp URL encountered: " + url);
+            sLogger.d(TAG + ": Non-odp URL encountered: " + url);
         }
         // Cancel the current load
         return true;
@@ -131,7 +132,7 @@ class OdpWebViewClient extends WebViewClient {
     private ListenableFuture<EventOutput> executeEventHandler(
             IsolatedServiceInfo isolatedServiceInfo, EventUrlPayload payload) {
         try {
-            Log.d(TAG, "executeEventHandler() called");
+            sLogger.d(TAG + ": executeEventHandler() called");
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
                     mServicePackageName, mContext, true, null);
@@ -155,7 +156,7 @@ class OdpWebViewClient extends WebViewClient {
                                 Constants.EXTRA_RESULT, EventOutput.class),
                             mInjector.getExecutor());
         } catch (Exception e) {
-            Log.e(TAG, "executeEventHandler() failed", e);
+            sLogger.e(TAG + ": executeEventHandler() failed", e);
             return Futures.immediateFailedFuture(e);
         }
 
@@ -163,7 +164,7 @@ class OdpWebViewClient extends WebViewClient {
 
     ListenableFuture<EventOutput> getEventMetrics(EventUrlPayload payload) {
         try {
-            Log.d(TAG, "getEventMetrics(): Starting isolated process.");
+            sLogger.d(TAG + ": getEventMetrics(): Starting isolated process.");
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                     TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
@@ -171,14 +172,14 @@ class OdpWebViewClient extends WebViewClient {
                         mInjector.getExecutor());
 
         } catch (Exception e) {
-            Log.e(TAG, "getEventMetrics() failed", e);
+            sLogger.e(TAG + ": getEventMetrics() failed", e);
             return Futures.immediateFailedFuture(e);
         }
     }
 
     private ListenableFuture<Void> writeEvent(Event event, EventOutput result) {
         try {
-            Log.d(TAG, "writeEvent() called. event: " + event.toString() + " metrics: "
+            sLogger.d(TAG + ": writeEvent() called. event: " + event.toString() + " metrics: "
                      + result.toString());
             Metrics metrics = null;
             if (result != null) {
@@ -201,18 +202,18 @@ class OdpWebViewClient extends WebViewClient {
                     .setEventData(eventData)
                     .build();
             if (-1 == EventsDao.getInstance(mContext).insertEvent(event)) {
-                Log.e(TAG, "Failed to insert event: " + event);
+                sLogger.e(TAG + ": Failed to insert event: " + event);
             }
             return Futures.immediateFuture(null);
         } catch (Exception e) {
-            Log.e(TAG, "writeEvent() failed", e);
+            sLogger.e(TAG + ": writeEvent() failed", e);
             return Futures.immediateFailedFuture(e);
         }
     }
 
     private void handleEvent(String url) {
         try {
-            Log.d(TAG, "handleEvent() called");
+            sLogger.d(TAG + ": handleEvent() called");
             EventUrlPayload eventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
             Event event = eventUrlPayload.getEvent();
 
@@ -222,7 +223,7 @@ class OdpWebViewClient extends WebViewClient {
                         mInjector.getExecutor());
 
         } catch (Exception e) {
-            Log.e(TAG, "Failed to handle Event", e);
+            sLogger.e(TAG + ": Failed to handle Event", e);
         }
     }
 }

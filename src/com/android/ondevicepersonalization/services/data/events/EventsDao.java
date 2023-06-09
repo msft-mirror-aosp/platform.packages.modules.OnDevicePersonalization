@@ -21,15 +21,17 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 /**
  * Dao used to manage access to Events and Queries tables
  */
 public class EventsDao {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "EventsDao";
 
     private static EventsDao sSingleton;
@@ -90,7 +92,7 @@ public class EventsDao {
             return db.insert(EventsContract.EventsEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert event", e);
+            sLogger.e(TAG + ": Failed to insert event", e);
         }
         return -1;
     }
@@ -111,7 +113,7 @@ public class EventsDao {
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert query", e);
+            sLogger.e(TAG + ": Failed to insert query", e);
         }
         return -1;
     }

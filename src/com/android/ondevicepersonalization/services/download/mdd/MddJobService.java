@@ -24,8 +24,9 @@ import android.app.job.JobParameters;
 import android.app.job.JobService;
 import android.content.Context;
 import android.os.PersistableBundle;
-import android.util.Log;
 
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
 
@@ -38,18 +39,19 @@ import com.google.common.util.concurrent.ListenableFuture;
  * MDD JobService. This will download MDD files in background tasks.
  */
 public class MddJobService extends JobService {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "MddJobService";
 
     private String mMddTaskTag;
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        Log.d(TAG, "onStartJob()");
+        sLogger.d(TAG + ": onStartJob()");
 
         // Get the mddTaskTag from input.
         PersistableBundle extras = params.getExtras();
         if (null == extras) {
-            Log.e(TAG, "can't find MDD task tag");
+            sLogger.e(TAG + ": can't find MDD task tag");
             throw new IllegalArgumentException("Can't find MDD Tasks Tag!");
         }
         mMddTaskTag = extras.getString(MDD_TASK_TAG_KEY);
@@ -65,7 +67,7 @@ public class MddJobService extends JobService {
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Log.d(TAG, "MddJobService.MddHandleTask succeeded!");
+                        sLogger.d(TAG + ": MddJobService.MddHandleTask succeeded!");
                         OnDevicePersonalizationDownloadProcessingJobService.schedule(context);
                         // Tell the JobScheduler that the job has completed and does not needs to be
                         // rescheduled.
@@ -76,7 +78,7 @@ public class MddJobService extends JobService {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to handle JobService: " + params.getJobId(), t);
+                        sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
                         //  When failure, also tell the JobScheduler that the job has completed and
                         // does not need to be rescheduled.
                         jobFinished(params, /* wantsReschedule = */ false);

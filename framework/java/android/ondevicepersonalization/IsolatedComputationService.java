@@ -26,7 +26,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcelable;
 import android.os.RemoteException;
-import android.util.Log;
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.HashMap;
 import java.util.List;
@@ -41,6 +42,7 @@ import java.util.function.Consumer;
  */
 public abstract class IsolatedComputationService extends Service {
     private static final String TAG = "IsolatedComputationService";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private IBinder mBinder;
     @NonNull private final IsolatedComputationHandler mHandler = getHandler();
 
@@ -156,7 +158,7 @@ public abstract class IsolatedComputationService extends Service {
                 try {
                     mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
                 } catch (RemoteException e) {
-                    Log.w(TAG, "Callback failed.", e);
+                    sLogger.w(TAG + ": Callback failed.", e);
                 }
             } else {
                 Bundle bundle = new Bundle();
@@ -164,7 +166,7 @@ public abstract class IsolatedComputationService extends Service {
                 try {
                     mCallback.onSuccess(bundle);
                 } catch (RemoteException e) {
-                    Log.w(TAG, "Callback failed.", e);
+                    sLogger.w(TAG + ": Callback failed.", e);
                 }
             }
         }
