@@ -27,8 +27,9 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.util.Log;
 
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -43,7 +44,8 @@ import java.util.List;
  * JobService to handle the processing of the downloaded vendor data
  */
 public class OnDevicePersonalizationDownloadProcessingJobService extends JobService {
-    public static final String TAG = "OnDevicePersonalizationDownloadProcessingJobService";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "OnDevicePersonalizationDownloadProcessingJobService";
     private List<ListenableFuture<Void>> mFutures;
 
     /**
@@ -53,7 +55,7 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID) != null) {
-            Log.d(TAG, "Job is already scheduled. Doing nothing,");
+            sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
             return RESULT_FAILURE;
         }
         ComponentName serviceComponent = new ComponentName(context,
@@ -72,7 +74,7 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        Log.d(TAG, "onStartJob()");
+        sLogger.d(TAG + ": onStartJob()");
         mFutures = new ArrayList<>();
         for (PackageInfo packageInfo : this.getPackageManager().getInstalledPackages(
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {

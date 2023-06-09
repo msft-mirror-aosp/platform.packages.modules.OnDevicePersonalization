@@ -33,8 +33,9 @@ import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
-import android.util.Slog;
 import android.view.SurfaceControlViewHost;
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -98,6 +99,7 @@ public class OnDevicePersonalizationManager {
             "android.ondevicepersonalization.extra.SURFACE_PACKAGE";
 
     private boolean mBound = false;
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OdpManager";
 
     private IOnDevicePersonalizationManagingService mService;
@@ -269,7 +271,7 @@ public class OnDevicePersonalizationManager {
             ComponentName serviceComponent =
                     resolveService(intent, mContext.getPackageManager());
             if (serviceComponent == null) {
-                Slog.e(TAG, "Invalid component for ondevicepersonalization service");
+                sLogger.e(TAG + ": Invalid component for ondevicepersonalization service");
                 return;
             }
 
@@ -293,7 +295,7 @@ public class OnDevicePersonalizationManager {
         List<ResolveInfo> services =
                 pm.queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(0));
         if (services == null || services.isEmpty()) {
-            Slog.e(TAG, "Failed to find ondevicepersonalization service");
+            sLogger.e(TAG + ": Failed to find ondevicepersonalization service");
             return null;
         }
 
@@ -305,7 +307,7 @@ public class OnDevicePersonalizationManager {
             // If there's more than one, return the first one found.
             return resolved;
         }
-        Slog.e(TAG, "Didn't find any matching ondevicepersonalization service.");
+        sLogger.e(TAG + ": Didn't find any matching ondevicepersonalization service.");
         return null;
     }
 }

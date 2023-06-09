@@ -30,7 +30,8 @@ import android.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
-import android.util.Slog;
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -45,6 +46,7 @@ import java.util.concurrent.TimeUnit;
 public class OnDevicePersonalizationPrivacyStatusManager {
     public static final String ON_DEVICE_PERSONALIZATION_PRIVACY_STATUS_SERVICE =
             "on_device_personalization_privacy_status_service";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OdpPrivacyStatusManager";
     private static final String ODP_PRIVACY_STATUS_SERVICE_INTENT =
             "android.OnDevicePersonalizationPrivacyStatusService";
@@ -116,7 +118,7 @@ public class OnDevicePersonalizationPrivacyStatusManager {
             Intent intent = new Intent(ODP_PRIVACY_STATUS_SERVICE_INTENT);
             ComponentName serviceComponent = resolveService(intent);
             if (serviceComponent == null) {
-                Slog.e(TAG, "Invalid component for ODP privacy status service");
+                sLogger.e(TAG + ": Invalid component for ODP privacy status service");
                 return;
             }
 
@@ -139,21 +141,21 @@ public class OnDevicePersonalizationPrivacyStatusManager {
     private ComponentName resolveService(@NonNull Intent intent) {
         List<ResolveInfo> services = mContext.getPackageManager().queryIntentServices(intent, 0);
         if (services == null || services.isEmpty()) {
-            Slog.e(TAG, "Failed to find OdpPrivacyStatus service");
+            sLogger.e(TAG + ": Failed to find OdpPrivacyStatus service");
             return null;
         }
 
         for (int i = 0; i < services.size(); i++) {
             ServiceInfo serviceInfo = services.get(i).serviceInfo;
             if (serviceInfo == null) {
-                Slog.e(TAG, "Failed to find serviceInfo for OdpPrivacyStatus service.");
+                sLogger.e(TAG + ": Failed to find serviceInfo for OdpPrivacyStatus service.");
                 return null;
             }
             // There should only be one matching service inside the given package.
             // If there's more than one, return the first one found.
             return new ComponentName(serviceInfo.packageName, serviceInfo.name);
         }
-        Slog.e(TAG, "Didn't find any matching OdpPrivacyStatus service.");
+        sLogger.e(TAG + ": Didn't find any matching OdpPrivacyStatus service.");
         return null;
     }
 }

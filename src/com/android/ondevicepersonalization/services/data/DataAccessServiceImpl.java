@@ -28,9 +28,10 @@ import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
@@ -51,6 +52,7 @@ import java.util.Objects;
  * can use to request data from the managing service.
  */
 public class DataAccessServiceImpl extends IDataAccessService.Stub {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "DataAccessServiceImpl";
 
     /** Parameters needed for generating event URLs. */
@@ -145,7 +147,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull Bundle params,
             @NonNull IDataAccessServiceCallback callback
     ) {
-        Log.d(TAG, "onRequest: op=" + operation + " params: " + params.toString());
+        sLogger.d(TAG + ": onRequest: op=" + operation + " params: " + params.toString());
         switch (operation) {
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
                 String[] lookupKeys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
@@ -308,7 +310,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             int eventType, @NonNull String bidId, @Nullable String destinationUrl,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            Log.d(TAG, "getEventUrl() started.");
+            sLogger.d(TAG + ": getEventUrl() started.");
             Event event = new Event.Builder()
                     .setType(eventType)
                     .setQueryId(mEventUrlQueryData.mQueryId)
@@ -331,10 +333,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             }
             Bundle result = new Bundle();
             result.putString(Constants.EXTRA_RESULT, eventUrl);
-            Log.d(TAG, "getEventUrl() success. Url: " + eventUrl);
+            sLogger.d(TAG + ": getEventUrl() success. Url: " + eventUrl);
             sendResult(result, callback);
         } catch (Exception e) {
-            Log.d(TAG, "getEventUrl() failed.", e);
+            sLogger.d(TAG + ": getEventUrl() failed.", e);
             sendError(callback);
         }
     }
@@ -345,7 +347,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             callback.onSuccess(result);
         } catch (RemoteException e) {
-            Log.e(TAG, "Callback error", e);
+            sLogger.e(TAG + ": Callback error", e);
         }
     }
 
@@ -353,7 +355,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             callback.onError(Constants.STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
-            Log.e(TAG, "Callback error", e);
+            sLogger.e(TAG + ": Callback error", e);
         }
     }
 }

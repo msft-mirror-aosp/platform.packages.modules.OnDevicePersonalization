@@ -24,9 +24,10 @@ import android.ondevicepersonalization.DownloadInputParcel;
 import android.ondevicepersonalization.DownloadOutput;
 import android.os.Bundle;
 import android.util.JsonReader;
-import android.util.Log;
+
 
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
@@ -64,6 +65,7 @@ import java.util.concurrent.ExecutionException;
  */
 public class OnDevicePersonalizationDataProcessingAsyncCallable implements AsyncCallable {
     public static final String TASK_NAME = "DownloadJob";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
     private final String mPackageName;
     private final Context mContext;
@@ -85,7 +87,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
      * vendor tables
      */
     public ListenableFuture<Void> call() {
-        Log.d(TAG, "Package Name: " + mPackageName);
+        sLogger.d(TAG + ": Package Name: " + mPackageName);
         MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
         try {
             String fileGroupName =
@@ -94,12 +96,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             ClientFileGroup clientFileGroup = mdd.getFileGroup(
                     GetFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
             if (clientFileGroup == null) {
-                Log.d(TAG, mPackageName + " has no completed downloads.");
+                sLogger.d(TAG + mPackageName + " has no completed downloads.");
                 return Futures.immediateFuture(null);
             }
             // It is currently expected that we will only download a single file per package.
             if (clientFileGroup.getFileCount() != 1) {
-                Log.d(TAG, mPackageName + " has " + clientFileGroup.getFileCount()
+                sLogger.d(TAG + mPackageName + " has " + clientFileGroup.getFileCount()
                         + " files in the fileGroup");
                 return Futures.immediateFuture(null);
             }
@@ -107,11 +109,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Uri androidUri = Uri.parse(clientFile.getFileUri());
             return processDownloadedJsonFile(androidUri);
         } catch (PackageManager.NameNotFoundException e) {
-            Log.d(TAG, "NameNotFoundException for package: " + mPackageName);
+            sLogger.d(TAG + ": NameNotFoundException for package: " + mPackageName);
         } catch (ExecutionException | IOException e) {
-            Log.e(TAG, "Exception for package: " + mPackageName, e);
+            sLogger.e(TAG + ": Exception for package: " + mPackageName, e);
         } catch (InterruptedException e) {
-            Log.d(TAG, mPackageName + " was interrupted.");
+            sLogger.d(TAG + mPackageName + " was interrupted.");
         }
         return Futures.immediateFuture(null);
     }
@@ -140,11 +142,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
 
         if (syncToken == -1 || !validateSyncToken(syncToken)) {
-            Log.d(TAG, mPackageName + " downloaded JSON file has invalid syncToken provided");
+            sLogger.d(TAG + mPackageName + " downloaded JSON file has invalid syncToken provided");
             return Futures.immediateFuture(null);
         }
         if (vendorDataMap == null || vendorDataMap.size() == 0) {
-            Log.d(TAG, mPackageName + " downloaded JSON file has no content provided");
+            sLogger.d(TAG + mPackageName + " downloaded JSON file has no content provided");
             return Futures.immediateFuture(null);
         }
 
@@ -175,19 +177,19 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                     .catching(
                             Exception.class,
                             e -> {
-                                Log.e(TAG, "Processing failed.", e);
+                                sLogger.e(TAG + ": Processing failed.", e);
                                 return null;
                             },
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
-            Log.e(TAG, "Could not run isolated service.", e);
+            sLogger.e(TAG + ": Could not run isolated service.", e);
             return Futures.immediateFuture(null);
         }
     }
 
     private Void filterAndStoreData(Bundle pluginResult, long syncToken,
             Map<String, VendorData> vendorDataMap) {
-        Log.d(TAG, "Plugin filter code completed successfully");
+        sLogger.d(TAG + ": Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
         DownloadOutput downloadResult = pluginResult.getParcelable(
                 Constants.EXTRA_RESULT, DownloadOutput.class);

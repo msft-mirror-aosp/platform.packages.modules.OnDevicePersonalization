@@ -23,9 +23,10 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService;
@@ -45,6 +46,7 @@ import java.util.concurrent.Executor;
  * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
  */
 public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
     private final Executor mExecutor;
 
@@ -67,7 +69,7 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                             COMPONENT_ENABLED_STATE_ENABLED,
                             PackageManager.DONT_KILL_APP);
         } catch (IllegalArgumentException e) {
-            Log.e(TAG, "enableService failed for " + context.getPackageName(), e);
+            sLogger.e(TAG + ": enableService failed for " + context.getPackageName(), e);
             return false;
         }
         return true;
@@ -77,9 +79,9 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
      * Called when the broadcast is received. OnDevicePersonalization jobs will be started here.
      */
     public void onReceive(Context context, Intent intent) {
-        Log.d(TAG, "onReceive() with intent + " + intent.getAction());
+        sLogger.d(TAG + ": onReceive() with intent + " + intent.getAction());
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
-            Log.d(TAG, "Received unexpected intent " + intent.getAction());
+            sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
         }
 
@@ -104,13 +106,13 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Log.d(TAG, "Successfully scheduled MDD tasks.");
+                        sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
                         pendingResult.finish();
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to schedule MDD tasks.", t);
+                        sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
                         pendingResult.finish();
                     }
                 },
