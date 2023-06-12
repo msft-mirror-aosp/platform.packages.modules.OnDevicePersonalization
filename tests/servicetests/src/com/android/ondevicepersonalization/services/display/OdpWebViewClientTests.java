@@ -39,8 +39,6 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.data.events.Event;
-import com.android.ondevicepersonalization.services.data.events.EventType;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -70,17 +68,6 @@ public class OdpWebViewClientTests {
     private static final long QUERY_ID = 1L;
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
-    private final Event mTestEvent = new Event.Builder()
-            .setType(EventType.B2D.getValue())
-            .setEventData("event".getBytes(StandardCharsets.UTF_8))
-            .setBidId("bidId")
-            .setServicePackageName("servicePackageName")
-            .setSlotId("slotId")
-            .setSlotPosition(1)
-            .setQueryId(QUERY_ID)
-            .setTimeMillis(1L)
-            .setSlotIndex(0)
-            .build();
     private final EventUrlPayload mTestEventPayload = new EventUrlPayload(createEventParameters());
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
