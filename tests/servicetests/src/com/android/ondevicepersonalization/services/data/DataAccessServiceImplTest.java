@@ -72,7 +72,8 @@ public class DataAccessServiceImplTest {
     private boolean mOnErrorCalled = false;
     private OnDevicePersonalizationLocalDataDao mLocalDao;
     private OnDevicePersonalizationVendorDataDao mVendorDao;
-
+    private DataAccessServiceImpl mServiceImpl;
+    private IDataAccessService mServiceProxy;
 
     @Before
     public void setup() throws Exception {
@@ -86,6 +87,12 @@ public class DataAccessServiceImplTest {
                 mApplicationContext.getPackageName(),
                 PackageUtils.getCertDigest(mApplicationContext,
                         mApplicationContext.getPackageName()));
+
+        mServiceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, null, mInjector);
+
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
     }
 
     @Test
@@ -93,11 +100,7 @@ public class DataAccessServiceImplTest {
         addTestData();
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"key"});
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP,
                 params,
                 new TestCallback());
@@ -114,11 +117,7 @@ public class DataAccessServiceImplTest {
         addTestData();
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
                 params,
                 new TestCallback());
@@ -134,11 +133,7 @@ public class DataAccessServiceImplTest {
     public void testRemoteDataKeyset() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET,
                 params,
                 new TestCallback());
@@ -156,11 +151,7 @@ public class DataAccessServiceImplTest {
     public void testLocalDataKeyset() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 params,
                 new TestCallback());
@@ -181,11 +172,7 @@ public class DataAccessServiceImplTest {
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
         byte[] arr = new byte[100];
         params.putByteArray(Constants.EXTRA_VALUE, arr);
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
                 params,
                 new TestCallback());
@@ -204,11 +191,7 @@ public class DataAccessServiceImplTest {
         addTestData();
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback());
@@ -241,11 +224,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback());
@@ -282,11 +265,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback()));
@@ -310,11 +293,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback()));
@@ -339,11 +322,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback()));
@@ -366,11 +349,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback()));
@@ -396,11 +379,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback());
@@ -440,11 +423,11 @@ public class DataAccessServiceImplTest {
                     .build();
         DataAccessServiceImpl.EventUrlQueryData eventUrlData =
                 new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
+        mServiceImpl = new DataAccessServiceImpl(
                 mApplicationContext.getPackageName(), mApplicationContext,
                 true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        assertThrows(IllegalArgumentException.class, () -> serviceProxy.onRequest(
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback()));
@@ -452,26 +435,26 @@ public class DataAccessServiceImplTest {
 
     @Test
     public void testLocalDataThrowsNotIncluded() {
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                false, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        mServiceImpl = new DataAccessServiceImpl(
+            mApplicationContext.getPackageName(), mApplicationContext,
+            false, null, mInjector);
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
         params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
                 params,
                 new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 params,
                 new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
                 params,
                 new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback()));
