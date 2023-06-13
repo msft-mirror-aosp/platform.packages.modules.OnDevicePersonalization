@@ -18,6 +18,7 @@ package android.ondevicepersonalization;
 
 import static org.junit.Assert.assertEquals;
 
+import android.content.ContentValues;
 import android.os.Parcel;
 import android.os.PersistableBundle;
 
@@ -26,6 +27,8 @@ import androidx.test.filters.SmallTest;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.ArrayList;
 
 /**
  * Unit Tests of Framework API Classes.
@@ -182,5 +185,45 @@ public class OnDevicePersonalizationFrameworkClassesTest {
 
         assertEquals(result, result2);
         assertEquals(11, result2.getMetrics().getLongValues()[0]);
+    }
+
+    /** Test for RenderingData class. */
+    @Test
+    public void testRenderingData() {
+        RenderingData data = new RenderingData.Builder().addKeys("a").addKeys("b").build();
+        assertEquals(2, data.getKeys().size());
+        assertEquals("a", data.getKeys().get(0));
+        assertEquals("b", data.getKeys().get(1));
+    }
+
+    /** Test for RequestLogRecord class. */
+    @Test
+    public void testRequestLogRecord() {
+        ArrayList<ContentValues> rows = new ArrayList<>();
+        ContentValues row = new ContentValues();
+        row.put("a", 5);
+        rows.add(row);
+        row = new ContentValues();
+        row.put("b", 6);
+        rows.add(row);
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().setRows(rows).build();
+        assertEquals(2, logRecord.getRows().size());
+        assertEquals(5, logRecord.getRows().get(0).getAsInteger("a").intValue());
+        assertEquals(6, logRecord.getRows().get(1).getAsInteger("b").intValue());
+    }
+
+    /** Test for RequestLogRecord class. */
+    @Test
+    public void testEventLogRecord() {
+        ContentValues row = new ContentValues();
+        row.put("a", 5);
+        EventLogRecord logRecord = new EventLogRecord.Builder()
+                .setType(1)
+                .setRowIndex(2)
+                .setData(row)
+                .build();
+        assertEquals(1, logRecord.getType());
+        assertEquals(2, logRecord.getRowIndex());
+        assertEquals(5, logRecord.getData().getAsInteger("a").intValue());
     }
 }
