@@ -23,11 +23,12 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.ondevicepersonalization.Bid;
-import android.ondevicepersonalization.Metrics;
+import android.ondevicepersonalization.RequestLogRecord;
 import android.ondevicepersonalization.SlotResult;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
@@ -68,6 +69,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 @RunWith(JUnit4.class)
 public class OdpWebViewClientTests {
+    private static final long QUERY_ID = 1L;
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private final SlotResult mSlotResult = new SlotResult.Builder()
@@ -84,12 +86,11 @@ public class OdpWebViewClientTests {
             .setServicePackageName("servicePackageName")
             .setSlotId("slotId")
             .setSlotPosition(1)
-            .setQueryId(1L)
+            .setQueryId(QUERY_ID)
             .setTimeMillis(1L)
             .setSlotIndex(0)
             .build();
-    private final EventUrlPayload mTestEventPayload = new EventUrlPayload.Builder()
-            .setEvent(mTestEvent).build();
+    private final EventUrlPayload mTestEventPayload = new EventUrlPayload(createEventParameters());
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
             .setServicePackageName("servicePackageName")
@@ -170,22 +171,8 @@ public class OdpWebViewClientTests {
 
     @Test
     public void testValidUrlWithEventMetrics() throws Exception {
-        SlotResult slotResult = new SlotResult.Builder()
-                .addRenderedBidKeys("bidId")
-                .addLoggedBids(
-                    new Bid.Builder()
-                        .setKey("bidId")
-                        .setMetrics(new Metrics.Builder()
-                            .setLongValues(10)
-                            .setDoubleValues(5.0)
-                            .build())
-                        .build())
-                .build();
-        WebViewClient webViewClient = getWebViewClient(slotResult);
-        EventUrlPayload payload = new EventUrlPayload.Builder()
-                .setEvent(mTestEvent)
-                .build();
-        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
+        WebViewClient webViewClient = getWebViewClient();
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
         Cursor result =
@@ -197,8 +184,9 @@ public class OdpWebViewClientTests {
         int dataColumn = result.getColumnIndex("eventData");
         byte[] data = result.getBlob(dataColumn);
         EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(data));
-        // TODO(b/228200518): Verify that event fields contain expected data.
-        assertEquals(0, eventFields.data().entriesLength());
+        assertEquals(1, eventFields.data().entriesLength());
+        assertEquals("x", eventFields.data().entries(0).key());
+        assertEquals(10, eventFields.data().entries(0).longValue());
     }
 
     @Test
@@ -215,7 +203,8 @@ public class OdpWebViewClientTests {
     @Test
     public void testDefaultInjector() {
         // Assert constructor using default injector succeeds.
-        new OdpWebViewClient(mContext, mContext.getPackageName(), mSlotResult);
+        new OdpWebViewClient(mContext, mContext.getPackageName(), 0,
+                new RequestLogRecord.Builder().build());
 
         // Mock context for default injector tests.
         MockitoSession session = ExtendedMockito.mockitoSession().strictness(
@@ -243,18 +232,19 @@ public class OdpWebViewClientTests {
     }
 
     private WebViewClient getWebViewClient() {
-        return getWebViewClient(mSlotResult);
+        RequestLogRecord logRecord =
+                new RequestLogRecord.Builder().addRows(new ContentValues()).build();
+        return getWebViewClient(QUERY_ID, logRecord);
     }
 
-    private WebViewClient getWebViewClient(SlotResult slotResult) {
-        return new OdpWebViewClient(mContext, mContext.getPackageName(), slotResult,
+    private WebViewClient getWebViewClient(long queryId, RequestLogRecord logRecord) {
+        return new OdpWebViewClient(mContext, mContext.getPackageName(), queryId, logRecord,
                 new TestInjector());
     }
 
-    private PersistableBundle createEventMetricsParameters() {
+    private static PersistableBundle createEventParameters() {
         PersistableBundle data = new PersistableBundle();
-        data.putInt("a", 10);
-        data.putDouble("b", 5.0);
+        data.putLong("x", 10);
         return data;
     }
 

@@ -21,7 +21,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RequestLogRecord;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.view.Display;
@@ -111,14 +111,14 @@ public class DisplayHelper {
 
     /** Creates a webview and displays the provided HTML. */
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
-            @NonNull String html, @NonNull SlotResult slotResult,
-            @NonNull String servicePackageName,
+            @NonNull String html, @NonNull RequestLogRecord logRecord,
+            long queryId, @NonNull String servicePackageName,
             @NonNull IBinder hostToken, int displayId, int width, int height) {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
         try {
             sLogger.d(TAG + ": displayHtml");
             OnDevicePersonalizationExecutors.getHandler().post(() -> {
-                createWebView(html, slotResult, servicePackageName,
+                createWebView(html, logRecord, queryId, servicePackageName,
                         hostToken, displayId, width, height, result);
             });
         } catch (Exception e) {
@@ -128,7 +128,7 @@ public class DisplayHelper {
     }
 
     private void createWebView(
-            @NonNull String html, @NonNull SlotResult slotResult,
+            @NonNull String html, @NonNull RequestLogRecord logRecord, long queryId,
             @NonNull String servicePackageName,
             @NonNull IBinder hostToken, int displayId, int width, int height,
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
@@ -136,7 +136,7 @@ public class DisplayHelper {
             sLogger.d(TAG + ": createWebView() started");
             WebView webView = new WebView(mContext);
             webView.setWebViewClient(
-                    new OdpWebViewClient(mContext, servicePackageName, slotResult));
+                    new OdpWebViewClient(mContext, servicePackageName, queryId, logRecord));
             WebSettings webViewSettings = webView.getSettings();
             // Do not allow using file:// or content:// URLs.
             webViewSettings.setAllowFileAccess(false);

@@ -17,20 +17,21 @@
 package com.android.odpsamplenetwork;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.Bid;
+import android.content.ContentValues;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
 import android.ondevicepersonalization.EventInput;
+import android.ondevicepersonalization.EventLogRecord;
 import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.ImmutableMap;
 import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RequestLogRecord;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -61,7 +62,11 @@ public class SampleHandler implements IsolatedComputationHandler {
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
     public static final double COST_RAISING_FACTOR = 2.0;
-    private static final String BID_PRICE_KEY = "bidprice";
+    private static final String AD_ID_KEY = "adid";
+    private static final String BID_PRICE_KEY = "price";
+    private static final String AUCTION_SCORE_KEY = "score";
+    private static final String CLICK_COST_KEY = "clkcost";
+    private static final String EVENT_TYPE_KEY = "type";
     private static final int BID_PRICE_OFFSET = 0;
     private static final Set<String> sBlockedKeywords = Set.of("cars", "trucks");
 
@@ -171,24 +176,20 @@ public class SampleHandler implements IsolatedComputationHandler {
         return winner;
     }
 
-    private Metrics createMetrics(double price, double score) {
-        return new Metrics.Builder().setDoubleValues(price, score).build();
+    private ContentValues createLogRecord(String adId, double price, double score) {
+        ContentValues result = new ContentValues();
+        result.put(AD_ID_KEY, adId);
+        result.put(BID_PRICE_KEY, price);
+        result.put(AUCTION_SCORE_KEY, score);
+        return result;
     }
 
     private ExecuteOutput buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
-        PersistableBundle eventParams = new PersistableBundle();
-        eventParams.putDouble(BID_PRICE_KEY, ad.mPrice);
+        ContentValues logData = createLogRecord(ad.mId, ad.mPrice, ad.mPrice * 10.0);
         return new ExecuteOutput.Builder()
-                .addSlotResults(
-                    new SlotResult.Builder()
-                        .addRenderedBidKeys(ad.mId)
-                        .addLoggedBids(
-                            new Bid.Builder()
-                                .setKey(ad.mId)
-                                .setMetrics(createMetrics(ad.mPrice, ad.mPrice * 10))
-                                .build())
-                        .build())
+                .setRequestLogRecord(new RequestLogRecord.Builder().addRows(logData).build())
+                .addRenderingDataList(new RenderingData.Builder().addKeys(ad.mId).build())
                 .build();
     }
 
@@ -226,13 +227,14 @@ public class SampleHandler implements IsolatedComputationHandler {
     }
 
     private ListenableFuture<String> getEventUrl(
-            int eventType, String bidId, String landingPage,
-            OnDevicePersonalizationContext odpContext) {
+            int eventType, String landingPage, OnDevicePersonalizationContext odpContext) {
         try {
-            int responseType = landingPage != null
+            int responseType = (landingPage == null || landingPage.isEmpty())
                     ? OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT
                     : OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT;
-            String url = odpContext.getEventUrl(eventType, bidId, responseType, landingPage);
+            PersistableBundle eventParams = new PersistableBundle();
+            eventParams.putInt(EVENT_TYPE_KEY, eventType);
+            String url = odpContext.getEventUrl(eventParams, responseType, landingPage);
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -274,11 +276,11 @@ public class SampleHandler implements IsolatedComputationHandler {
     ) {
         try {
             Log.d(TAG, "handleOnRender() started.");
-            String id = input.getBidKeys().get(0);
+            String id = input.getRenderingData().getKeys().get(0);
             var adFuture = readAd(id, odpContext.getRemoteData());
-            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, id, "", odpContext);
+            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, "", odpContext);
             var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(
-                    ad -> getEventUrl(EVENT_TYPE_CLICK, id, ad.mLandingPage, odpContext),
+                    ad -> getEventUrl(EVENT_TYPE_CLICK, ad.mLandingPage, odpContext),
                     sBackgroundExecutor);
             var unused = FluentFuture.from(
                     Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
@@ -314,20 +316,34 @@ public class SampleHandler implements IsolatedComputationHandler {
             @NonNull Consumer<EventOutput> consumer) {
         try {
             Log.d(TAG, "handleOnEvent() started.");
-            if (input.getEventType() != EVENT_TYPE_CLICK) {
+            PersistableBundle eventParams = input.getParameters();
+            int eventType = eventParams.getInt(EVENT_TYPE_KEY);
+            if (eventType <= 0) {
                 consumer.accept(new EventOutput.Builder().build());
                 return;
             }
-            double bidPrice = 0.0;
-            if (input.getBid() != null
-                    && input.getBid().getMetrics() != null
-                    && input.getBid().getMetrics().getDoubleValues() != null
-                    && input.getBid().getMetrics().getDoubleValues().length > BID_PRICE_OFFSET) {
-                bidPrice = input.getBid().getMetrics().getDoubleValues()[BID_PRICE_OFFSET];
+            ContentValues logData = null;
+            if (eventType == EVENT_TYPE_CLICK) {
+                double bidPrice = 0.0;
+                if (input.getRequestLogRecord() != null
+                        && input.getRequestLogRecord().getRows() != null
+                        && !input.getRequestLogRecord().getRows().isEmpty()) {
+                    ContentValues row = input.getRequestLogRecord().getRows().get(0);
+                    Double data = row.getAsDouble(BID_PRICE_KEY);
+                    if (data != null) {
+                        bidPrice = data.doubleValue();
+                    }
+                }
+                double updatedPrice = bidPrice * COST_RAISING_FACTOR;
+                logData = new ContentValues();
+                logData.put(CLICK_COST_KEY, updatedPrice);
             }
-            double updatedPrice = bidPrice * COST_RAISING_FACTOR;
             EventOutput result = new EventOutput.Builder()
-                    .setMetrics(new Metrics.Builder().setDoubleValues(updatedPrice).build())
+                    .setEventLogRecord(
+                        new EventLogRecord.Builder()
+                            .setRowIndex(0)
+                            .setType(eventType)
+                            .setData(logData).build())
                     .build();
             consumer.accept(result);
         } catch (Exception e) {

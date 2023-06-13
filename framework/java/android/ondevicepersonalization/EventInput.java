@@ -18,6 +18,7 @@ package android.ondevicepersonalization;
 
 import android.annotation.Nullable;
 import android.os.Parcelable;
+import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -28,11 +29,11 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventInput implements Parcelable {
-    /** The type of the event. */
-    private int mEventType = 0;
+    /** The rows that were logged as a result of onExecute. */
+    @Nullable private RequestLogRecord mRequestLogRecord = null;
 
-    /** The {@link Bid} that this event is for. */
-    @Nullable private Bid mBid = null;
+    /** The parameters from the Event URL. */
+    @Nullable private PersistableBundle mParameters = null;
 
 
 
@@ -51,28 +52,28 @@ public final class EventInput implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ EventInput(
-            int eventType,
-            @Nullable Bid bid) {
-        this.mEventType = eventType;
-        this.mBid = bid;
+            @Nullable RequestLogRecord requestLogRecord,
+            @Nullable PersistableBundle parameters) {
+        this.mRequestLogRecord = requestLogRecord;
+        this.mParameters = parameters;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The type of the event.
+     * The rows that were logged as a result of onExecute.
      */
     @DataClass.Generated.Member
-    public int getEventType() {
-        return mEventType;
+    public @Nullable RequestLogRecord getRequestLogRecord() {
+        return mRequestLogRecord;
     }
 
     /**
-     * The {@link Bid} that this event is for.
+     * The parameters from the Event URL.
      */
     @DataClass.Generated.Member
-    public @Nullable Bid getBid() {
-        return mBid;
+    public @Nullable PersistableBundle getParameters() {
+        return mParameters;
     }
 
     @Override
@@ -88,8 +89,8 @@ public final class EventInput implements Parcelable {
         EventInput that = (EventInput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mEventType == that.mEventType
-                && java.util.Objects.equals(mBid, that.mBid);
+                && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord)
+                && java.util.Objects.equals(mParameters, that.mParameters);
     }
 
     @Override
@@ -99,8 +100,8 @@ public final class EventInput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + mEventType;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mBid);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mParameters);
         return _hash;
     }
 
@@ -111,10 +112,11 @@ public final class EventInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mBid != null) flg |= 0x2;
+        if (mRequestLogRecord != null) flg |= 0x1;
+        if (mParameters != null) flg |= 0x2;
         dest.writeByte(flg);
-        dest.writeInt(mEventType);
-        if (mBid != null) dest.writeTypedObject(mBid, flags);
+        if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
+        if (mParameters != null) dest.writeTypedObject(mParameters, flags);
     }
 
     @Override
@@ -129,11 +131,11 @@ public final class EventInput implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        int eventType = in.readInt();
-        Bid bid = (flg & 0x2) == 0 ? null : (Bid) in.readTypedObject(Bid.CREATOR);
+        RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
+        PersistableBundle parameters = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
-        this.mEventType = eventType;
-        this.mBid = bid;
+        this.mRequestLogRecord = requestLogRecord;
+        this.mParameters = parameters;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -159,8 +161,8 @@ public final class EventInput implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private int mEventType;
-        private @Nullable Bid mBid;
+        private @Nullable RequestLogRecord mRequestLogRecord;
+        private @Nullable PersistableBundle mParameters;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -168,24 +170,24 @@ public final class EventInput implements Parcelable {
         }
 
         /**
-         * The type of the event.
+         * The rows that were logged as a result of onExecute.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventType(int value) {
+        public @android.annotation.NonNull Builder setRequestLogRecord(@android.annotation.NonNull RequestLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mEventType = value;
+            mRequestLogRecord = value;
             return this;
         }
 
         /**
-         * The {@link Bid} that this event is for.
+         * The parameters from the Event URL.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setBid(@android.annotation.NonNull Bid value) {
+        public @android.annotation.NonNull Builder setParameters(@android.annotation.NonNull PersistableBundle value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mBid = value;
+            mParameters = value;
             return this;
         }
 
@@ -195,14 +197,14 @@ public final class EventInput implements Parcelable {
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mEventType = 0;
+                mRequestLogRecord = null;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mBid = null;
+                mParameters = null;
             }
             EventInput o = new EventInput(
-                    mEventType,
-                    mBid);
+                    mRequestLogRecord,
+                    mParameters);
             return o;
         }
 
@@ -215,10 +217,10 @@ public final class EventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1681339263640L,
+            time = 1686601825094L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventInput.java",
-            inputSignatures = "private  int mEventType\nprivate @android.annotation.Nullable android.ondevicepersonalization.Bid mBid\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

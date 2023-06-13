@@ -21,8 +21,6 @@ import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
-import java.util.List;
-
 /**
  * The rendering input data for an {@link IsolatedComputationHandler}.
  *
@@ -30,11 +28,17 @@ import java.util.List;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderInput implements Parcelable {
-    /** Properties of the slot to be rendered in. */
-    @Nullable SlotInfo mSlotInfo = null;
+    /** The width of the slot. */
+    private int mWidth = 0;
 
-    /** A List of Bid Keys to be rendered. Keys must be present in REMOTE_DATA. */
-    @Nullable List<String> mBidKeys = null;
+    /** The height of the slot. */
+    private int mHeight = 0;
+
+    /** Index of the slot that this render request is for. */
+    private int mSlotIndex = 0;
+
+    /** The {@link RenderingData} returned by {@link onExecute}. */
+    @Nullable RenderingData mRenderingData = null;
 
 
 
@@ -53,28 +57,48 @@ public final class RenderInput implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ RenderInput(
-            @Nullable SlotInfo slotInfo,
-            @Nullable List<String> bidKeys) {
-        this.mSlotInfo = slotInfo;
-        this.mBidKeys = bidKeys;
+            int width,
+            int height,
+            int slotIndex,
+            @Nullable RenderingData renderingData) {
+        this.mWidth = width;
+        this.mHeight = height;
+        this.mSlotIndex = slotIndex;
+        this.mRenderingData = renderingData;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * Properties of the slot to be rendered in.
+     * The width of the slot.
      */
     @DataClass.Generated.Member
-    public @Nullable SlotInfo getSlotInfo() {
-        return mSlotInfo;
+    public int getWidth() {
+        return mWidth;
     }
 
     /**
-     * A List of Bid Keys to be rendered. Keys must be present in REMOTE_DATA.
+     * The height of the slot.
      */
     @DataClass.Generated.Member
-    public @Nullable List<String> getBidKeys() {
-        return mBidKeys;
+    public int getHeight() {
+        return mHeight;
+    }
+
+    /**
+     * Index of the slot that this render request is for.
+     */
+    @DataClass.Generated.Member
+    public int getSlotIndex() {
+        return mSlotIndex;
+    }
+
+    /**
+     * The {@link RenderingData} returned by {@link onExecute}.
+     */
+    @DataClass.Generated.Member
+    public @Nullable RenderingData getRenderingData() {
+        return mRenderingData;
     }
 
     @Override
@@ -90,8 +114,10 @@ public final class RenderInput implements Parcelable {
         RenderInput that = (RenderInput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mSlotInfo, that.mSlotInfo)
-                && java.util.Objects.equals(mBidKeys, that.mBidKeys);
+                && mWidth == that.mWidth
+                && mHeight == that.mHeight
+                && mSlotIndex == that.mSlotIndex
+                && java.util.Objects.equals(mRenderingData, that.mRenderingData);
     }
 
     @Override
@@ -101,8 +127,10 @@ public final class RenderInput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mSlotInfo);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mBidKeys);
+        _hash = 31 * _hash + mWidth;
+        _hash = 31 * _hash + mHeight;
+        _hash = 31 * _hash + mSlotIndex;
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingData);
         return _hash;
     }
 
@@ -113,11 +141,12 @@ public final class RenderInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mSlotInfo != null) flg |= 0x1;
-        if (mBidKeys != null) flg |= 0x2;
+        if (mRenderingData != null) flg |= 0x8;
         dest.writeByte(flg);
-        if (mSlotInfo != null) dest.writeTypedObject(mSlotInfo, flags);
-        if (mBidKeys != null) dest.writeStringList(mBidKeys);
+        dest.writeInt(mWidth);
+        dest.writeInt(mHeight);
+        dest.writeInt(mSlotIndex);
+        if (mRenderingData != null) dest.writeTypedObject(mRenderingData, flags);
     }
 
     @Override
@@ -132,15 +161,15 @@ public final class RenderInput implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        SlotInfo slotInfo = (flg & 0x1) == 0 ? null : (SlotInfo) in.readTypedObject(SlotInfo.CREATOR);
-        List<String> bidKeys = null;
-        if ((flg & 0x2) != 0) {
-            bidKeys = new java.util.ArrayList<>();
-            in.readStringList(bidKeys);
-        }
+        int width = in.readInt();
+        int height = in.readInt();
+        int slotIndex = in.readInt();
+        RenderingData renderingData = (flg & 0x8) == 0 ? null : (RenderingData) in.readTypedObject(RenderingData.CREATOR);
 
-        this.mSlotInfo = slotInfo;
-        this.mBidKeys = bidKeys;
+        this.mWidth = width;
+        this.mHeight = height;
+        this.mSlotIndex = slotIndex;
+        this.mRenderingData = renderingData;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -166,8 +195,10 @@ public final class RenderInput implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable SlotInfo mSlotInfo;
-        private @Nullable List<String> mBidKeys;
+        private int mWidth;
+        private int mHeight;
+        private int mSlotIndex;
+        private @Nullable RenderingData mRenderingData;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -175,57 +206,76 @@ public final class RenderInput implements Parcelable {
         }
 
         /**
-         * Properties of the slot to be rendered in.
+         * The width of the slot.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setSlotInfo(@android.annotation.NonNull SlotInfo value) {
+        public @android.annotation.NonNull Builder setWidth(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mSlotInfo = value;
+            mWidth = value;
             return this;
         }
 
         /**
-         * A List of Bid Keys to be rendered. Keys must be present in REMOTE_DATA.
+         * The height of the slot.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setBidKeys(@android.annotation.NonNull List<String> value) {
+        public @android.annotation.NonNull Builder setHeight(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mBidKeys = value;
+            mHeight = value;
             return this;
         }
 
-        /** @see #setBidKeys */
+        /**
+         * Index of the slot that this render request is for.
+         */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder addBidKeys(@android.annotation.NonNull String value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
+        public @android.annotation.NonNull Builder setSlotIndex(int value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mSlotIndex = value;
+            return this;
+        }
 
-            if (mBidKeys == null) setBidKeys(new java.util.ArrayList<>());
-            mBidKeys.add(value);
+        /**
+         * The {@link RenderingData} returned by {@link onExecute}.
+         */
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setRenderingData(@android.annotation.NonNull RenderingData value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x8;
+            mRenderingData = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull RenderInput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
+            mBuilderFieldsSet |= 0x10; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mSlotInfo = null;
+                mWidth = 0;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mBidKeys = null;
+                mHeight = 0;
+            }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mSlotIndex = 0;
+            }
+            if ((mBuilderFieldsSet & 0x8) == 0) {
+                mRenderingData = null;
             }
             RenderInput o = new RenderInput(
-                    mSlotInfo,
-                    mBidKeys);
+                    mWidth,
+                    mHeight,
+                    mSlotIndex,
+                    mRenderingData);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
+            if ((mBuilderFieldsSet & 0x10) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -233,10 +283,10 @@ public final class RenderInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1681848000397L,
+            time = 1686615056234L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java",
-            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.SlotInfo mSlotInfo\n @android.annotation.Nullable java.util.List<java.lang.String> mBidKeys\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mSlotIndex\n @android.annotation.Nullable android.ondevicepersonalization.RenderingData mRenderingData\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
