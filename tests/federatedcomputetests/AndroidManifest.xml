@@ -16,7 +16,7 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.federatedcompute.servicetests" >
+          package="com.android.ondevicepersonalization.federatedcomputetests" >
 
     <!-- Used for scheduling connectivity jobs -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
@@ -49,6 +49,6 @@
         </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.federatedcompute.servicetests"
+                     android:targetPackage="com.android.ondevicepersonalization.federatedcomputetests"
                      android:label="Tests of FederatedComputeManagingService"/>
 </manifest>
