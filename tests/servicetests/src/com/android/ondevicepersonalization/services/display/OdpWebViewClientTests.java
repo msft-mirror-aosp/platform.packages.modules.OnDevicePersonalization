@@ -27,9 +27,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.RequestLogRecord;
-import android.ondevicepersonalization.SlotResult;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
@@ -72,13 +70,6 @@ public class OdpWebViewClientTests {
     private static final long QUERY_ID = 1L;
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
-    private final SlotResult mSlotResult = new SlotResult.Builder()
-            .addRenderedBidKeys("bidId")
-            .addLoggedBids(
-                new Bid.Builder()
-                    .setKey("bidId")
-                    .build())
-            .build();
     private final Event mTestEvent = new Event.Builder()
             .setType(EventType.B2D.getValue())
             .setEventData("event".getBytes(StandardCharsets.UTF_8))
