@@ -199,16 +199,12 @@ class OdpWebViewClient extends WebViewClient {
             }
             byte[] data = OnDevicePersonalizationFlatbufferUtils.createEventData(
                     eventData.getData());
-            // TODO(b/228200518): Remove SlotId, SlotPosition and BidId columns.
             Event event = new Event.Builder()
                     .setType(eventData.getType())
                     .setQueryId(mQueryId)
                     .setServicePackageName(mServicePackageName)
                     .setTimeMillis(mInjector.getTimeMillis())
-                    .setSlotIndex(eventData.getRowIndex())
-                    .setSlotId("")
-                    .setSlotPosition(0)
-                    .setBidId("")
+                    .setRowIndex(eventData.getRowIndex())
                     .setEventData(data)
                     .build();
             if (-1 == EventsDao.getInstance(mContext).insertEvent(event)) {
