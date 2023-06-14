@@ -34,6 +34,7 @@ android_test {
         "service-ondevicepersonalization.impl",
     ],
     sdk_version: "module_current",
+    min_sdk_version: "Tiramisu",
     certificate: "platform",
     test_suites: [
         "general-tests",
