@@ -16,7 +16,7 @@
 
 package android.ondevicepersonalization;
 
-import static android.ondevicepersonalization.OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT;
+import static android.ondevicepersonalization.EventUrlProvider.RESPONSE_TYPE_REDIRECT;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -35,10 +35,10 @@ import org.junit.runner.RunWith;
 
 @SmallTest
 @RunWith(AndroidJUnit4.class)
-public class OnDevicePersonalizationContextImplTest {
+public class EventUrlProviderTest {
     static final int EVENT_TYPE_ERROR = 10;
-    private final OnDevicePersonalizationContext mOdpContext =
-            new OnDevicePersonalizationContextImpl(new TestDataService());
+    private final EventUrlProvider mEventUrlProvider =
+            new EventUrlProvider(new TestDataService());
 
     @Test public void testGetEventUrlReturnsResponseFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
@@ -46,7 +46,7 @@ public class OnDevicePersonalizationContextImplTest {
         params.putString("id", "abc");
         assertEquals(
                 "5-abc-2-def",
-                mOdpContext.getEventUrl(params, RESPONSE_TYPE_REDIRECT, "def"));
+                mEventUrlProvider.getEventUrl(params, RESPONSE_TYPE_REDIRECT, "def"));
     }
 
     @Test public void testGetEventUrlThrowsOnError() throws Exception {
@@ -56,7 +56,7 @@ public class OnDevicePersonalizationContextImplTest {
         params.putString("id", "abc");
         assertThrows(
                 OnDevicePersonalizationException.class,
-                () -> mOdpContext.getEventUrl(
+                () -> mEventUrlProvider.getEventUrl(
                         params, RESPONSE_TYPE_REDIRECT, "def"));
     }
 

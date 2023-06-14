@@ -27,7 +27,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -211,7 +211,7 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putInt(Constants.EXTRA_RESPONSE_TYPE,
-                OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT);
+                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT);
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
@@ -246,7 +246,7 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putInt(Constants.EXTRA_RESPONSE_TYPE,
-                OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT);
+                EventUrlProvider.RESPONSE_TYPE_REDIRECT);
         params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
@@ -272,7 +272,7 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putInt(Constants.EXTRA_RESPONSE_TYPE,
-                OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT);
+                EventUrlProvider.RESPONSE_TYPE_REDIRECT);
         assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,

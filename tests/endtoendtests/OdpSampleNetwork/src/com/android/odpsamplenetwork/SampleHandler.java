@@ -23,6 +23,7 @@ import android.ondevicepersonalization.DownloadOutput;
 import android.ondevicepersonalization.EventInput;
 import android.ondevicepersonalization.EventLogRecord;
 import android.ondevicepersonalization.EventOutput;
+import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.ImmutableMap;
@@ -230,11 +231,12 @@ public class SampleHandler implements IsolatedComputationHandler {
             int eventType, String landingPage, OnDevicePersonalizationContext odpContext) {
         try {
             int responseType = (landingPage == null || landingPage.isEmpty())
-                    ? OnDevicePersonalizationContext.RESPONSE_TYPE_NO_CONTENT
-                    : OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT;
+                    ? EventUrlProvider.RESPONSE_TYPE_NO_CONTENT
+                    : EventUrlProvider.RESPONSE_TYPE_REDIRECT;
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, eventType);
-            String url = odpContext.getEventUrl(eventParams, responseType, landingPage);
+            String url = odpContext.getEventUrlProvider().getEventUrl(
+                    eventParams, responseType, landingPage);
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);

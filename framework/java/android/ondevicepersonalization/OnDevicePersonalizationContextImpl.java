@@ -17,17 +17,9 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.ondevicepersonalization.aidl.IDataAccessService;
-import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
-import android.os.Bundle;
-import android.os.PersistableBundle;
-import android.os.RemoteException;
 
 import java.util.Objects;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated
@@ -39,14 +31,15 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
     @NonNull private IDataAccessService mDataAccessService;
     @NonNull private ImmutableMap mRemoteData;
     @NonNull private MutableMap mLocalData;
-
-    private static final long ASYNC_TIMEOUT_MS = 1000;
+    @NonNull private EventUrlProvider mEventUrlProvider;
 
     /** @hide */
     public OnDevicePersonalizationContextImpl(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
         mRemoteData = new RemoteDataImpl(binder);
         mLocalData = new LocalDataImpl(binder);
+        mEventUrlProvider = new EventUrlProvider(binder);
+
     }
 
     @Override @NonNull public ImmutableMap getRemoteData() {
@@ -57,51 +50,7 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
         return mLocalData;
     }
 
-    @Override public String getEventUrl(
-            @NonNull PersistableBundle eventParams,
-            int responseType,
-            @Nullable String destinationUrl) throws OnDevicePersonalizationException {
-        try {
-            BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
-            Bundle params = new Bundle();
-            params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-            params.putInt(Constants.EXTRA_RESPONSE_TYPE, responseType);
-            params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
-            mDataAccessService.onRequest(
-                    Constants.DATA_ACCESS_OP_GET_EVENT_URL,
-                    params,
-                    new IDataAccessServiceCallback.Stub() {
-                        @Override
-                        public void onSuccess(@NonNull Bundle result) {
-                            asyncResult.add(new CallbackResult(result, 0));
-                        }
-                        @Override
-                        public void onError(int errorCode) {
-                            asyncResult.add(new CallbackResult(null, errorCode));
-                        }
-                });
-            CallbackResult callbackResult =
-                    asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            Objects.requireNonNull(callbackResult);
-            if (callbackResult.mErrorCode != 0) {
-                throw new OnDevicePersonalizationException(callbackResult.mErrorCode);
-            }
-            Bundle result = Objects.requireNonNull(callbackResult.mResult);
-            String url = Objects.requireNonNull(result.getString(Constants.EXTRA_RESULT));
-            return url;
-        } catch (InterruptedException | RemoteException e) {
-            throw new OnDevicePersonalizationException(
-                    Constants.STATUS_INTERNAL_ERROR, (Throwable) e);
-        }
-    }
-
-    private static class CallbackResult {
-        final Bundle mResult;
-        final int mErrorCode;
-
-        CallbackResult(Bundle result, int errorCode) {
-            mResult = result;
-            mErrorCode = errorCode;
-        }
+    @Override @NonNull public EventUrlProvider getEventUrlProvider() {
+        return mEventUrlProvider;
     }
 }
