@@ -34,10 +34,12 @@ import java.nio.charset.StandardCharsets;
 
 @RunWith(JUnit4.class)
 public class EventsDaoTest {
+    private static final int EVENT_TYPE_B2D = 1;
+    private static final int EVENT_TYPE_CLICK = 2;
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private EventsDao mDao;
     private Event mTestEvent = new Event.Builder()
-            .setType(EventType.B2D.getValue())
+            .setType(EVENT_TYPE_B2D)
             .setEventData("event".getBytes(StandardCharsets.UTF_8))
             .setServicePackageName("servicePackageName")
             .setQueryId(1L)
@@ -70,7 +72,7 @@ public class EventsDaoTest {
         assertEquals(1, mDao.insertQuery(mTestQuery));
         assertEquals(1, mDao.insertEvent(mTestEvent));
         Event testEvent = new Event.Builder()
-                .setType(EventType.CLICK.getValue())
+                .setType(EVENT_TYPE_CLICK)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
                 .setServicePackageName("servicePackageName")
                 .setQueryId(1L)
