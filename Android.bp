@@ -17,6 +17,15 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
+genrule {
+    name: "statslog-ondevicepersonalization-java-gen",
+    tools: ["stats-log-api-gen"],
+    cmd: "$(location stats-log-api-gen) --java $(out) --module ondevicepersonalization" +
+         " --javaPackage com.android.ondevicepersonalization" +
+         " --javaClass OnDevicePersonalizationStatsLog",
+    out: ["com/android/ondevicepersonalization/OnDevicePersonalizationStatsLog.java"],
+}
+
 java_defaults {
     name: "ondevicepersonalization-java-defaults",
     lint: {
@@ -86,12 +95,14 @@ android_app {
         ":ondevicepersonalization-sources",
         ":chronicle-sources",
         ":ondevicepersonalization-fbs",
+        ":statslog-ondevicepersonalization-java-gen",
     ],
     libs: [
-        "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
+        "framework-ondevicepersonalization.impl",
+        "framework-statsd.stubs.module_lib", // For WW logging
         "kotlin-annotations",
     ],
     static_libs: [
