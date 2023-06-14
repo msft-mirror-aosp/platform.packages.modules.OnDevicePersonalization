@@ -45,7 +45,7 @@ public class Event implements Serializable {
     @NonNull
     private final String mServicePackageName;
 
-    /** {@link EventType} defining the type of event */
+    /** The service assigned type of the event. */
     private final int mType;
 
     /** Time of the event in milliseconds. */
