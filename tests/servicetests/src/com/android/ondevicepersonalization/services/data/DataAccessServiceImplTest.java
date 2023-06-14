@@ -226,6 +226,9 @@ public class DataAccessServiceImplTest {
         assertEquals(1, eventParamsFromUrl.getInt("a"));
         assertEquals("xyz", eventParamsFromUrl.getString("b"));
         assertEquals(5.0, eventParamsFromUrl.getDouble("c"), DELTA);
+        assertEquals(
+                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT,
+                payload.getResponseType());
     }
 
     @Test

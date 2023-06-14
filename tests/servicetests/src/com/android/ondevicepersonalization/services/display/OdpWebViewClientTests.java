@@ -27,6 +27,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.RequestLogRecord;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
@@ -68,7 +69,10 @@ public class OdpWebViewClientTests {
     private static final long QUERY_ID = 1L;
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
-    private final EventUrlPayload mTestEventPayload = new EventUrlPayload(createEventParameters());
+    private final EventUrlPayload mTestEventPayload =
+            new EventUrlPayload(
+                createEventParameters(),
+                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT);
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
             .setServicePackageName("servicePackageName")

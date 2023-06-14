@@ -28,12 +28,19 @@ import java.io.Serializable;
  */
 public class EventUrlPayload implements Serializable {
     @NonNull private final ParcelWrapper<PersistableBundle> mEventParams;
+    private final int mResponseType;
 
-    public EventUrlPayload(@NonNull PersistableBundle params) {
+    public EventUrlPayload(
+            @NonNull PersistableBundle params, int responseType) {
         mEventParams = new ParcelWrapper<>(params);
+        mResponseType = responseType;
     }
 
     @NonNull public PersistableBundle getEventParams() {
         return mEventParams.get(PersistableBundle.CREATOR);
+    }
+
+    public int getResponseType() {
+        return mResponseType;
     }
 }
