@@ -26,9 +26,10 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class EventTest {
+    private static final int EVENT_TYPE = 2;
+
     @Test
     public void testBuilderAndEquals() {
-        int type = EventType.B2D.getValue();
         byte[] eventData = "data".getBytes();
         String servicePackageName = "servicePackageName";
         long queryId = 1;
@@ -36,7 +37,7 @@ public class EventTest {
         long eventId = 1;
         long rowIndex = 1;
         Event event1 = new Event.Builder()
-                .setType(type)
+                .setType(EVENT_TYPE)
                 .setEventData(eventData)
                 .setServicePackageName(servicePackageName)
                 .setQueryId(queryId)
@@ -45,7 +46,7 @@ public class EventTest {
                 .setEventId(eventId)
                 .build();
 
-        assertEquals(event1.getType(), type);
+        assertEquals(event1.getType(), EVENT_TYPE);
         assertArrayEquals(event1.getEventData(), eventData);
         assertEquals(event1.getServicePackageName(), servicePackageName);
         assertEquals(event1.getQueryId(), queryId);
@@ -54,7 +55,7 @@ public class EventTest {
         assertEquals(event1.getEventId(), eventId);
 
         Event event2 = new Event.Builder(
-                eventId, queryId, rowIndex, servicePackageName, type, timeMillis, eventData)
+                eventId, queryId, rowIndex, servicePackageName, EVENT_TYPE, timeMillis, eventData)
                 .build();
         assertEquals(event1, event2);
         assertEquals(event1.hashCode(), event2.hashCode());
@@ -62,7 +63,6 @@ public class EventTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        int type = EventType.B2D.getValue();
         byte[] eventData = "data".getBytes();
         String servicePackageName = "servicePackageName";
         long queryId = 1;
@@ -70,7 +70,7 @@ public class EventTest {
         long eventId = 1;
         long rowIndex = 1;
         Event.Builder builder = new Event.Builder()
-                .setType(type)
+                .setType(EVENT_TYPE)
                 .setEventData(eventData)
                 .setServicePackageName(servicePackageName)
                 .setQueryId(queryId)
