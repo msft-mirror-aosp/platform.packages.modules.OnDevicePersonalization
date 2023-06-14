@@ -21,6 +21,7 @@ import android.annotation.Nullable;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
 
 import java.util.Objects;
@@ -57,15 +58,13 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
     }
 
     @Override public String getEventUrl(
-            int eventType,
-            @NonNull String bidId,
+            @NonNull PersistableBundle eventParams,
             int responseType,
             @Nullable String destinationUrl) throws OnDevicePersonalizationException {
         try {
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
-            params.putInt(Constants.EXTRA_EVENT_TYPE, eventType);
-            params.putString(Constants.EXTRA_BID_ID, bidId);
+            params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
             params.putInt(Constants.EXTRA_RESPONSE_TYPE, responseType);
             params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
             mDataAccessService.onRequest(

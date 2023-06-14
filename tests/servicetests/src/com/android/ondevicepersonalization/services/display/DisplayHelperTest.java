@@ -25,7 +25,7 @@ import android.Manifest;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RequestLogRecord;
 import android.os.PersistableBundle;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
@@ -110,13 +110,12 @@ public class DisplayHelperTest {
 
         DisplayHelper displayHelper = new DisplayHelper(mContext);
         SurfaceView surfaceView = new SurfaceView(mContext);
-        SlotResult slotResult = new SlotResult.Builder()
-                .setSlotKey("slotId").setLoggedBids(new ArrayList<>()).build();
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().build();
         final DisplayManager dm = mContext.getSystemService(DisplayManager.class);
         final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
         final Context windowContext = mContext.createDisplayContext(primaryDisplay);
         ListenableFuture<SurfaceControlViewHost.SurfacePackage> result =
-                displayHelper.displayHtml("html", slotResult, mContext.getPackageName(),
+                displayHelper.displayHtml("html", logRecord, 0, mContext.getPackageName(),
                         surfaceView.getHostToken(), windowContext.getDisplay().getDisplayId(),
                         surfaceView.getWidth(), surfaceView.getHeight());
         // Give 2 minutes to create the webview. Should normally be ~25s.

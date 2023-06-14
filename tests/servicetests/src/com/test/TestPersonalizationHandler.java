@@ -17,19 +17,20 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.Bid;
+import android.content.ContentValues;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
 import android.ondevicepersonalization.EventInput;
+import android.ondevicepersonalization.EventLogRecord;
 import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.Metrics;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RequestLogRecord;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -73,19 +74,15 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
-        Log.d(TAG, "onAppRequest() started.");
+        Log.d(TAG, "onExecute() started.");
+        ContentValues logData = new ContentValues();
+        logData.put("id", "bid1");
+        logData.put("pr", 5.0);
         ExecuteOutput result = new ExecuteOutput.Builder()
-                .addSlotResults(new SlotResult.Builder()
-                        .setSlotKey("slot_id")
-                        .addRenderedBidKeys("bid1")
-                        .addLoggedBids(
-                            new Bid.Builder()
-                                .setKey("bid1")
-                                .setMetrics(new Metrics.Builder()
-                                    .setDoubleValues(5.0, 1.0)
-                                    .build())
-                                .build())
-                        .build())
+                .setRequestLogRecord(new RequestLogRecord.Builder().addRows(logData).build())
+                .addRenderingDataList(
+                    new RenderingData.Builder().addKeys("bid1").build()
+                )
                 .build();
         consumer.accept(result);
     }
@@ -95,10 +92,11 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderOutput> consumer
     ) {
-        Log.d(TAG, "renderContent() started.");
+        Log.d(TAG, "onRender() started.");
         RenderOutput result =
                 new RenderOutput.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidKeys()) + "<p>")
+                .setContent("<p>RenderResult: "
+                    + String.join(",", input.getRenderingData().getKeys()) + "<p>")
                 .build();
         consumer.accept(result);
     }
@@ -108,21 +106,24 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
             @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<EventOutput> consumer
     ) {
+        Log.d(TAG, "onEvent() started.");
         long longValue = 0;
-        double floatValue = 0.0;
-        if (input.getBid() != null && input.getBid().getMetrics() != null) {
-            longValue = input.getBid().getMetrics().getLongValues()[0];
-            floatValue = input.getBid().getMetrics().getDoubleValues()[0];
+        if (input.getParameters() != null) {
+            longValue = input.getParameters().getLong("x");
         }
+        ContentValues logData = new ContentValues();
+        logData.put("x", longValue);
         EventOutput result =
                 new EventOutput.Builder()
-                    .setMetrics(
-                            new Metrics.Builder()
-                                .setLongValues(longValue)
-                                .setDoubleValues(floatValue)
-                                .build())
+                    .setEventLogRecord(
+                        new EventLogRecord.Builder()
+                            .setType(1)
+                            .setRowIndex(0)
+                            .setData(logData)
+                            .build()
+                    )
                     .build();
-        Log.d(TAG, "computeEventMetrics() result: " + result.toString());
+        Log.d(TAG, "onEvent() result: " + result.toString());
         consumer.accept(result);
     }
 

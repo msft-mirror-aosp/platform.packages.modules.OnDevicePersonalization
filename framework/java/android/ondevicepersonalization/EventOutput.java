@@ -22,14 +22,14 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * A list of per-event metrics to be logged in the Events table.
+ * The result of handling a WebView event.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventOutput implements Parcelable {
-    /** The metrics to be logged with this event. */
-    @Nullable Metrics mMetrics = null;
+    /** Additional data to be written to the log, if not null. */
+    @Nullable EventLogRecord mEventLogRecord = null;
 
 
 
@@ -48,18 +48,18 @@ public final class EventOutput implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ EventOutput(
-            @Nullable Metrics metrics) {
-        this.mMetrics = metrics;
+            @Nullable EventLogRecord eventLogRecord) {
+        this.mEventLogRecord = eventLogRecord;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * The metrics to be logged with this event.
+     * Additional data to be written to the log, if not null.
      */
     @DataClass.Generated.Member
-    public @Nullable Metrics getMetrics() {
-        return mMetrics;
+    public @Nullable EventLogRecord getEventLogRecord() {
+        return mEventLogRecord;
     }
 
     @Override
@@ -75,7 +75,7 @@ public final class EventOutput implements Parcelable {
         EventOutput that = (EventOutput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mMetrics, that.mMetrics);
+                && java.util.Objects.equals(mEventLogRecord, that.mEventLogRecord);
     }
 
     @Override
@@ -85,7 +85,7 @@ public final class EventOutput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mMetrics);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mEventLogRecord);
         return _hash;
     }
 
@@ -96,9 +96,9 @@ public final class EventOutput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mMetrics != null) flg |= 0x1;
+        if (mEventLogRecord != null) flg |= 0x1;
         dest.writeByte(flg);
-        if (mMetrics != null) dest.writeTypedObject(mMetrics, flags);
+        if (mEventLogRecord != null) dest.writeTypedObject(mEventLogRecord, flags);
     }
 
     @Override
@@ -113,9 +113,9 @@ public final class EventOutput implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        Metrics metrics = (flg & 0x1) == 0 ? null : (Metrics) in.readTypedObject(Metrics.CREATOR);
+        EventLogRecord eventLogRecord = (flg & 0x1) == 0 ? null : (EventLogRecord) in.readTypedObject(EventLogRecord.CREATOR);
 
-        this.mMetrics = metrics;
+        this.mEventLogRecord = eventLogRecord;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -141,7 +141,7 @@ public final class EventOutput implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable Metrics mMetrics;
+        private @Nullable EventLogRecord mEventLogRecord;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -149,13 +149,13 @@ public final class EventOutput implements Parcelable {
         }
 
         /**
-         * The metrics to be logged with this event.
+         * Additional data to be written to the log, if not null.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setMetrics(@android.annotation.NonNull Metrics value) {
+        public @android.annotation.NonNull Builder setEventLogRecord(@android.annotation.NonNull EventLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mMetrics = value;
+            mEventLogRecord = value;
             return this;
         }
 
@@ -165,10 +165,10 @@ public final class EventOutput implements Parcelable {
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mMetrics = null;
+                mEventLogRecord = null;
             }
             EventOutput o = new EventOutput(
-                    mMetrics);
+                    mEventLogRecord);
             return o;
         }
 
@@ -181,10 +181,10 @@ public final class EventOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1680551346461L,
+            time = 1686601819831L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventOutput.java",
-            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.Metrics mMetrics\nclass EventOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

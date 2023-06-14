@@ -18,6 +18,7 @@ package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.os.PersistableBundle;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated process.
@@ -46,10 +47,9 @@ public interface OnDevicePersonalizationContext {
      */
     @NonNull MutableMap getLocalData();
 
-    /** Return an Event URL for a single bid. */
+    /** Return an Event URL for a single event. */
     @NonNull String getEventUrl(
-            int eventType,
-            @NonNull String bidId,
+            @NonNull PersistableBundle eventParams,
             int responseType,
             @Nullable String destinationUrl) throws OnDevicePersonalizationException;
 }

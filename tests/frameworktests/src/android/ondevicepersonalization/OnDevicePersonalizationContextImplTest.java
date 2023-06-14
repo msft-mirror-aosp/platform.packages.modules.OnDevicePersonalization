@@ -24,6 +24,7 @@ import static org.junit.Assert.assertThrows;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -40,17 +41,23 @@ public class OnDevicePersonalizationContextImplTest {
             new OnDevicePersonalizationContextImpl(new TestDataService());
 
     @Test public void testGetEventUrlReturnsResponseFromService() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("type", 5);
+        params.putString("id", "abc");
         assertEquals(
                 "5-abc-2-def",
-                mOdpContext.getEventUrl(5, "abc", RESPONSE_TYPE_REDIRECT, "def"));
+                mOdpContext.getEventUrl(params, RESPONSE_TYPE_REDIRECT, "def"));
     }
 
     @Test public void testGetEventUrlThrowsOnError() throws Exception {
         // EventType 10 triggers error in the mock service.
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("type", EVENT_TYPE_ERROR);
+        params.putString("id", "abc");
         assertThrows(
                 OnDevicePersonalizationException.class,
                 () -> mOdpContext.getEventUrl(
-                        EVENT_TYPE_ERROR, "abc", RESPONSE_TYPE_REDIRECT, "def"));
+                        params, RESPONSE_TYPE_REDIRECT, "def"));
     }
 
     class TestDataService extends IDataAccessService.Stub {
@@ -60,8 +67,10 @@ public class OnDevicePersonalizationContextImplTest {
                 Bundle params,
                 IDataAccessServiceCallback callback) {
             if (operation == Constants.DATA_ACCESS_OP_GET_EVENT_URL) {
-                int eventType = params.getInt(Constants.EXTRA_EVENT_TYPE);
-                String bidId = params.getString(Constants.EXTRA_BID_ID);
+                PersistableBundle eventParams = params.getParcelable(
+                        Constants.EXTRA_EVENT_PARAMS, PersistableBundle.class);
+                int eventType = eventParams.getInt("type");
+                String id = eventParams.getString("id");
                 int responseType = params.getInt(Constants.EXTRA_RESPONSE_TYPE);
                 String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
                 if (eventType == EVENT_TYPE_ERROR) {
@@ -72,7 +81,7 @@ public class OnDevicePersonalizationContextImplTest {
                     }
                 } else {
                     String url = String.format(
-                            "%d-%s-%d-%s", eventType, bidId, responseType, destinationUrl);
+                            "%d-%s-%d-%s", eventType, id, responseType, destinationUrl);
                     Bundle result = new Bundle();
                     result.putString(Constants.EXTRA_RESULT, url);
                     try {

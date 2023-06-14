@@ -20,12 +20,11 @@ import android.annotation.NonNull;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.ondevicepersonalization.Bid;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.EventInput;
+import android.ondevicepersonalization.EventLogRecord;
 import android.ondevicepersonalization.EventOutput;
-import android.ondevicepersonalization.Metrics;
-import android.ondevicepersonalization.SlotResult;
+import android.ondevicepersonalization.RequestLogRecord;
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -49,7 +48,6 @@ import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.HashMap;
 import java.util.concurrent.Executor;
 
 class OdpWebViewClient extends WebViewClient {
@@ -71,25 +69,30 @@ class OdpWebViewClient extends WebViewClient {
                 context.startActivity(intent);
             }
         }
+
+        long getTimeMillis() {
+            return System.currentTimeMillis();
+        }
     }
 
     @NonNull private final Context mContext;
     @NonNull private final String mServicePackageName;
-    @NonNull private final HashMap<String, Bid> mBidsMap = new HashMap<>();
+    long mQueryId;
+    @NonNull private final RequestLogRecord mLogRecord;
     @NonNull private final Injector mInjector;
 
-    OdpWebViewClient(Context context, String servicePackageName, SlotResult slotResult) {
-        this(context, servicePackageName, slotResult, new Injector());
+    OdpWebViewClient(Context context, String servicePackageName, long queryId,
+            RequestLogRecord logRecord) {
+        this(context, servicePackageName, queryId, logRecord, new Injector());
     }
 
     @VisibleForTesting
-    OdpWebViewClient(Context context, String servicePackageName, SlotResult slotResult,
-            Injector injector) {
+    OdpWebViewClient(Context context, String servicePackageName, long queryId,
+            RequestLogRecord logRecord, Injector injector) {
         mContext = context;
         mServicePackageName = servicePackageName;
-        for (Bid bid: slotResult.getLoggedBids()) {
-            mBidsMap.put(bid.getKey(), bid);
-        }
+        mQueryId = queryId;
+        mLogRecord = logRecord;
         mInjector = injector;
     }
 
@@ -100,6 +103,7 @@ class OdpWebViewClient extends WebViewClient {
             return null;
         }
         String url = request.getUrl().toString();
+        sLogger.d(TAG + ": shouldInterceptRequest: " + url);
         if (EventUrlHelper.isOdpUrl(url)) {
             mInjector.getExecutor().execute(() -> handleEvent(url));
             // TODO(b/242753206): Return an empty response.
@@ -116,6 +120,7 @@ class OdpWebViewClient extends WebViewClient {
         }
         //Decode odp://localhost/ URIs and call Events table API to write an event.
         String url = request.getUrl().toString();
+        sLogger.d(TAG + ": shouldOverrideUrlLoading: " + url);
         if (EventUrlHelper.isOdpUrl(url)) {
             mInjector.getExecutor().execute(() -> handleEvent(url));
             String landingPage = request.getUrl().getQueryParameter(
@@ -135,13 +140,12 @@ class OdpWebViewClient extends WebViewClient {
             sLogger.d(TAG + ": executeEventHandler() called");
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                    mServicePackageName, mContext, true, null);
+                    mServicePackageName, mContext, true);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-            Bid bid = mBidsMap.get(payload.getEvent().getBidId());
             // TODO(b/259950177): Add Query row to input.
             EventInput input = new EventInput.Builder()
-                    .setEventType(payload.getEvent().getType())
-                    .setBid(bid)
+                    .setParameters(payload.getEventParams())
+                    .setRequestLogRecord(mLogRecord)
                     .build();
             serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
             return FluentFuture.from(
@@ -162,9 +166,9 @@ class OdpWebViewClient extends WebViewClient {
 
     }
 
-    ListenableFuture<EventOutput> getEventMetrics(EventUrlPayload payload) {
+    ListenableFuture<EventOutput> getEventOutput(EventUrlPayload payload) {
         try {
-            sLogger.d(TAG + ": getEventMetrics(): Starting isolated process.");
+            sLogger.d(TAG + ": getEventOutput(): Starting isolated process.");
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                     TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
@@ -172,35 +176,40 @@ class OdpWebViewClient extends WebViewClient {
                         mInjector.getExecutor());
 
         } catch (Exception e) {
-            sLogger.e(TAG + ": getEventMetrics() failed", e);
+            sLogger.e(TAG + ": getEventOutput() failed", e);
             return Futures.immediateFailedFuture(e);
         }
     }
 
-    private ListenableFuture<Void> writeEvent(Event event, EventOutput result) {
+    private ListenableFuture<Void> writeEvent(EventOutput result) {
         try {
-            sLogger.d(TAG + ": writeEvent() called. event: " + event.toString() + " metrics: "
-                     + result.toString());
-            Metrics metrics = null;
-            if (result != null) {
-                metrics = result.getMetrics();
+            sLogger.d(TAG + ": writeEvent() called. EventOutput: " + result.toString());
+            if (result == null || result.getEventLogRecord() == null) {
+                return Futures.immediateFuture(null);
             }
-            if (metrics == null) {
-                // Metrics required because eventData column is non-null.
-                metrics = new Metrics.Builder().build();
+            EventLogRecord eventData = result.getEventLogRecord();
+            int rowCount = 0;
+            if (mLogRecord.getRows() != null) {
+                rowCount = mLogRecord.getRows().size();
             }
-            // TODO(b/228200518): Extract log data from EventOutput.
-            byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(null);
-            event = new Event.Builder()
-                    .setType(event.getType())
-                    .setQueryId(event.getQueryId())
-                    .setServicePackageName(event.getServicePackageName())
-                    .setTimeMillis(event.getTimeMillis())
-                    .setSlotId(event.getSlotId())
-                    .setSlotPosition(event.getSlotPosition())
-                    .setSlotIndex(event.getSlotIndex())
-                    .setBidId(event.getBidId())
-                    .setEventData(eventData)
+            if (eventData.getType() <= 0 || eventData.getRowIndex() < 0
+                    || eventData.getRowIndex() >= rowCount) {
+                sLogger.w(TAG + ": rowOffset out of range");
+                return Futures.immediateFuture(null);
+            }
+            byte[] data = OnDevicePersonalizationFlatbufferUtils.createEventData(
+                    eventData.getData());
+            // TODO(b/228200518): Remove SlotId, SlotPosition and BidId columns.
+            Event event = new Event.Builder()
+                    .setType(eventData.getType())
+                    .setQueryId(mQueryId)
+                    .setServicePackageName(mServicePackageName)
+                    .setTimeMillis(mInjector.getTimeMillis())
+                    .setSlotIndex(eventData.getRowIndex())
+                    .setSlotId("")
+                    .setSlotPosition(0)
+                    .setBidId("")
+                    .setEventData(data)
                     .build();
             if (-1 == EventsDao.getInstance(mContext).insertEvent(event)) {
                 sLogger.e(TAG + ": Failed to insert event: " + event);
@@ -216,11 +225,10 @@ class OdpWebViewClient extends WebViewClient {
         try {
             sLogger.d(TAG + ": handleEvent() called");
             EventUrlPayload eventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
-            Event event = eventUrlPayload.getEvent();
 
-            var unused = FluentFuture.from(getEventMetrics(eventUrlPayload))
+            var unused = FluentFuture.from(getEventOutput(eventUrlPayload))
                     .transformAsync(
-                        result -> writeEvent(event, result),
+                        result -> writeEvent(result),
                         mInjector.getExecutor());
 
         } catch (Exception e) {
