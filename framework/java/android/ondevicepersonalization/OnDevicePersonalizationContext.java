@@ -26,15 +26,15 @@ import android.annotation.NonNull;
 public interface OnDevicePersonalizationContext {
     /**
      * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link ImmutableMap} object that provides access to the REMOTE_DATA table.
+     * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table.
      */
-    @NonNull ImmutableMap getRemoteData();
+    @NonNull KeyValueStore getRemoteData();
 
     /**
      * Returns a DAO for the LOCAL_DATA table.
-     * @return A {@link MutableMap} object that provides access to the LOCAL_DATA table.
+     * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
      */
-    @NonNull MutableMap getLocalData();
+    @NonNull MutableKeyValueStore getLocalData();
 
     /** Returns an {@link EventUrlProvider} for the current request. */
     @NonNull EventUrlProvider getEventUrlProvider();

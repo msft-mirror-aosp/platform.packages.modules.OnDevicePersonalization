@@ -26,8 +26,8 @@ import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
-import android.ondevicepersonalization.ImmutableMap;
-import android.ondevicepersonalization.IsolatedComputationHandler;
+import android.ondevicepersonalization.IsolatedComputationCallback;
+import android.ondevicepersonalization.KeyValueStore;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
@@ -58,7 +58,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
-public class SampleHandler implements IsolatedComputationHandler {
+public class SampleHandler implements IsolatedComputationCallback {
     public static final String TAG = "SampleHandler";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
@@ -117,7 +117,7 @@ public class SampleHandler implements IsolatedComputationHandler {
                 () -> handleOnEvent(input, odpContext, consumer));
     }
 
-    private ListenableFuture<List<Ad>> readAds(ImmutableMap remoteData) {
+    private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
         Log.d(TAG, "readAds() called.");
         try {
             ArrayList<Ad> ads = new ArrayList<>();
@@ -200,7 +200,7 @@ public class SampleHandler implements IsolatedComputationHandler {
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         try {
-            ImmutableMap remoteData = odpContext.getRemoteData();
+            KeyValueStore remoteData = odpContext.getRemoteData();
 
             var unused = FluentFuture.from(readAds(remoteData))
                     .transform(
@@ -243,7 +243,7 @@ public class SampleHandler implements IsolatedComputationHandler {
         }
     }
 
-    private ListenableFuture<Ad> readAd(String id, ImmutableMap remoteData) {
+    private ListenableFuture<Ad> readAd(String id, KeyValueStore remoteData) {
         try {
             return Futures.immediateFuture(parseAd(id, remoteData.get(id)));
         } catch (Exception e) {

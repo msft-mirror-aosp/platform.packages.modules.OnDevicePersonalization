@@ -29,8 +29,8 @@ import java.util.Objects;
  */
 public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizationContext {
     @NonNull private IDataAccessService mDataAccessService;
-    @NonNull private ImmutableMap mRemoteData;
-    @NonNull private MutableMap mLocalData;
+    @NonNull private KeyValueStore mRemoteData;
+    @NonNull private MutableKeyValueStore mLocalData;
     @NonNull private EventUrlProvider mEventUrlProvider;
 
     /** @hide */
@@ -42,11 +42,11 @@ public class OnDevicePersonalizationContextImpl implements OnDevicePersonalizati
 
     }
 
-    @Override @NonNull public ImmutableMap getRemoteData() {
+    @Override @NonNull public KeyValueStore getRemoteData() {
         return mRemoteData;
     }
 
-    @Override @NonNull public MutableMap getLocalData() {
+    @Override @NonNull public MutableKeyValueStore getLocalData() {
         return mLocalData;
     }
 

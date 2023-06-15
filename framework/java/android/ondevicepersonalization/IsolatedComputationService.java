@@ -44,7 +44,7 @@ public abstract class IsolatedComputationService extends Service {
     private static final String TAG = "IsolatedComputationService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private IBinder mBinder;
-    @NonNull private final IsolatedComputationHandler mHandler = getHandler();
+    @NonNull private final IsolatedComputationCallback mImplCallback = createCallback();
 
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
@@ -55,9 +55,9 @@ public abstract class IsolatedComputationService extends Service {
     }
 
     /**
-     * Return an instance of {@link IsolatedComputationHandler} that handles client requests.
+     * Return an instance of {@link IsolatedComputationCallback} that handles client requests.
      */
-    @NonNull public abstract IsolatedComputationHandler getHandler();
+    @NonNull public abstract IsolatedComputationCallback createCallback();
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
@@ -65,9 +65,9 @@ public abstract class IsolatedComputationService extends Service {
         @Override public void onRequest(
                 int operationCode,
                 @NonNull Bundle params,
-                @NonNull IIsolatedComputationServiceCallback callback) {
+                @NonNull IIsolatedComputationServiceCallback resultCallback) {
             Objects.requireNonNull(params);
-            Objects.requireNonNull(callback);
+            Objects.requireNonNull(resultCallback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
 
             if (operationCode == Constants.OP_EXECUTE) {
@@ -81,8 +81,8 @@ public abstract class IsolatedComputationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.onExecute(
-                        input, odpContext, new WrappedCallback<ExecuteOutput>(callback));
+                mImplCallback.onExecute(
+                        input, odpContext, new WrappedCallback<ExecuteOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD) {
 
@@ -111,8 +111,9 @@ public abstract class IsolatedComputationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.onDownload(
-                        downloadInput, odpContext, new WrappedCallback<DownloadOutput>(callback));
+                mImplCallback.onDownload(
+                        downloadInput, odpContext,
+                        new WrappedCallback<DownloadOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_RENDER) {
 
@@ -125,8 +126,8 @@ public abstract class IsolatedComputationService extends Service {
                 Objects.requireNonNull(binder);
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.onRender(
-                        input, odpContext, new WrappedCallback<RenderOutput>(callback));
+                mImplCallback.onRender(
+                        input, odpContext, new WrappedCallback<RenderOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_EVENT) {
 
@@ -137,8 +138,8 @@ public abstract class IsolatedComputationService extends Service {
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 OnDevicePersonalizationContext odpContext =
                         new OnDevicePersonalizationContextImpl(binder);
-                mHandler.onEvent(
-                        input, odpContext, new WrappedCallback<EventOutput>(callback));
+                mImplCallback.onEvent(
+                        input, odpContext, new WrappedCallback<EventOutput>(resultCallback));
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);

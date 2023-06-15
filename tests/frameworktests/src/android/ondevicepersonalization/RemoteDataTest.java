@@ -42,7 +42,7 @@ import java.util.Set;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class RemoteDataTest {
-    ImmutableMap mRemoteData = new RemoteDataImpl(
+    KeyValueStore mRemoteData = new RemoteDataImpl(
             IDataAccessService.Stub.asInterface(
                     new RemoteDataService()));
 

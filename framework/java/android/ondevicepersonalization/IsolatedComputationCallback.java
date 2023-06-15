@@ -24,7 +24,7 @@ import java.util.function.Consumer;
  * Interface for services that perform personalized computation using user data.
  * @hide
  */
-public interface IsolatedComputationHandler {
+public interface IsolatedComputationCallback {
 
     /**
      * Handle a request from an app. A {@link IsolatedComputationService} that

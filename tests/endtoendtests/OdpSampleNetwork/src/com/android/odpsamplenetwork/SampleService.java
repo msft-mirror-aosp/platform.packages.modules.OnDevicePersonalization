@@ -17,11 +17,11 @@
 package com.android.odpsamplenetwork;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.IsolatedComputationHandler;
+import android.ondevicepersonalization.IsolatedComputationCallback;
 import android.ondevicepersonalization.IsolatedComputationService;
 
 public class SampleService extends IsolatedComputationService {
-    @NonNull @Override public IsolatedComputationHandler getHandler() {
+    @NonNull @Override public IsolatedComputationCallback createCallback() {
         return new SampleHandler();
     }
 }

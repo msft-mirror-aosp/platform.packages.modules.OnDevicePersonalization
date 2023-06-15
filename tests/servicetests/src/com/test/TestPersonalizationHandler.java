@@ -25,7 +25,7 @@ import android.ondevicepersonalization.EventLogRecord;
 import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
-import android.ondevicepersonalization.IsolatedComputationHandler;
+import android.ondevicepersonalization.IsolatedComputationCallback;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
@@ -41,7 +41,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationHandler {
+public class TestPersonalizationHandler implements IsolatedComputationCallback {
     public final String TAG = "TestPersonalizationHandler";
 
     @Override
