@@ -29,9 +29,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class AppInstallStatus implements Parcelable {
-    /** Package name. */
-    @NonNull String mPackageName;
-
     /** Installed status: installed - true; uninstalled - false. */
     @NonNull boolean mInstalled;
 
@@ -52,24 +49,12 @@ public final class AppInstallStatus implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ AppInstallStatus(
-            @NonNull String packageName,
             @NonNull boolean installed) {
-        this.mPackageName = packageName;
-        AnnotationValidations.validate(
-                NonNull.class, null, mPackageName);
         this.mInstalled = installed;
         AnnotationValidations.validate(
                 NonNull.class, null, mInstalled);
 
         // onConstructed(); // You can define this method to get a callback
-    }
-
-    /**
-     * Package name.
-     */
-    @DataClass.Generated.Member
-    public @NonNull String getPackageName() {
-        return mPackageName;
     }
 
     /**
@@ -93,7 +78,6 @@ public final class AppInstallStatus implements Parcelable {
         AppInstallStatus that = (AppInstallStatus) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mPackageName, that.mPackageName)
                 && mInstalled == that.mInstalled;
     }
 
@@ -104,7 +88,6 @@ public final class AppInstallStatus implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mPackageName);
         _hash = 31 * _hash + Boolean.hashCode(mInstalled);
         return _hash;
     }
@@ -116,9 +99,8 @@ public final class AppInstallStatus implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mInstalled) flg |= 0x2;
+        if (mInstalled) flg |= 0x1;
         dest.writeByte(flg);
-        dest.writeString(mPackageName);
     }
 
     @Override
@@ -133,12 +115,8 @@ public final class AppInstallStatus implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        boolean installed = (flg & 0x2) != 0;
-        String packageName = in.readString();
+        boolean installed = (flg & 0x1) != 0;
 
-        this.mPackageName = packageName;
-        AnnotationValidations.validate(
-                NonNull.class, null, mPackageName);
         this.mInstalled = installed;
         AnnotationValidations.validate(
                 NonNull.class, null, mInstalled);
@@ -167,7 +145,6 @@ public final class AppInstallStatus implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull String mPackageName;
         private @NonNull boolean mInstalled;
 
         private long mBuilderFieldsSet = 0L;
@@ -175,17 +152,11 @@ public final class AppInstallStatus implements Parcelable {
         /**
          * Creates a new Builder.
          *
-         * @param packageName
-         *   Package name.
          * @param installed
          *   Installed status: installed - true; uninstalled - false.
          */
         public Builder(
-                @NonNull String packageName,
                 @NonNull boolean installed) {
-            mPackageName = packageName;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mPackageName);
             mInstalled = installed;
             AnnotationValidations.validate(
                     NonNull.class, null, mInstalled);
@@ -195,23 +166,12 @@ public final class AppInstallStatus implements Parcelable {
         }
 
         /**
-         * Package name.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setPackageName(@NonNull String value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x1;
-            mPackageName = value;
-            return this;
-        }
-
-        /**
          * Installed status: installed - true; uninstalled - false.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setInstalled(@NonNull boolean value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
+            mBuilderFieldsSet |= 0x1;
             mInstalled = value;
             return this;
         }
@@ -219,16 +179,15 @@ public final class AppInstallStatus implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull AppInstallStatus build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
+            mBuilderFieldsSet |= 0x2; // Mark builder used
 
             AppInstallStatus o = new AppInstallStatus(
-                    mPackageName,
                     mInstalled);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
+            if ((mBuilderFieldsSet & 0x2) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -236,10 +195,10 @@ public final class AppInstallStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1676499861915L,
+            time = 1687373838870L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull boolean mInstalled\nclass AppInstallStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull boolean mInstalled\nclass AppInstallStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

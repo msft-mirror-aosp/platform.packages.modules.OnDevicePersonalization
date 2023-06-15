@@ -23,32 +23,15 @@ import com.android.libraries.pcc.chronicle.api.dataTypeDescriptor
 /** User Data DTD. */
 public val USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name =
     "chronicle_dtd.UserData", cls = UserData::class) {
-      "timeSec" to FieldType.Long
-      "timezone" to FieldType.Integer
+      "timestampSec" to FieldType.Long
+      "timezoneUtcOffsetMins" to FieldType.Integer
       "orientation" to FieldType.Integer
-      "availableBytesMB" to FieldType.Integer
-      "batteryPct" to FieldType.Integer
-      "country" to FieldType.Integer
-      "language" to FieldType.Integer
+      "availableStorageMB" to FieldType.Long
+      "batteryPercentage" to FieldType.Integer
       "carrier" to FieldType.Integer
-      "osVersions" to dataTypeDescriptor(name = "chronicle_dtd.OSVersion", cls = OSVersion::class) {
-        "major" to FieldType.Integer
-        "minor" to FieldType.Integer
-        "micro" to FieldType.Integer
-      }
       "connectionType" to FieldType.Integer
-      "connectionSpeedKbps" to FieldType.Integer
+      "connectionSpeedKbps" to FieldType.Long
       "networkMetered" to FieldType.Boolean
-      "deviceMetrics" to dataTypeDescriptor(name = "chronicle_dtd.DeviceMetrics", cls =
-          DeviceMetrics::class) {
-        "make" to FieldType.Integer
-        "model" to FieldType.Integer
-        "screenHeightDp" to FieldType.Integer
-        "screenWidthDp" to FieldType.Integer
-        "xdpi" to FieldType.Float
-        "ydpi" to FieldType.Float
-        "pxRatio" to FieldType.Float
-      }
       "appInstalledHistory" to FieldType.List(dataTypeDescriptor(name =
           "chronicle_dtd.AppInstallStatus", cls = AppInstallStatus::class) {
         "packageName" to FieldType.String

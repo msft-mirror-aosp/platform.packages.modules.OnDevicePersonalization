@@ -162,13 +162,13 @@ public class UserDataCollector {
             initializeUserData(userData);
             return;
         }
-        userData.availableBytesMB = getAvailableBytesMB();
-        userData.batteryPct = getBatteryPct();
+        userData.availableStorageMB = getAvailableStorageMB();
+        userData.batteryPercentage = getBatteryPercentage();
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
         userData.connectionType = getConnectionType();
-        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.networkMetered = isNetworkMetered();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
 
         getOSVersions(userData.osVersions);
@@ -186,13 +186,13 @@ public class UserDataCollector {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
-        userData.availableBytesMB = getAvailableBytesMB();
-        userData.batteryPct = getBatteryPct();
+        userData.availableStorageMB = getAvailableStorageMB();
+        userData.batteryPercentage = getBatteryPercentage();
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
         userData.connectionType = getConnectionType();
-        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.networkMetered = isNetworkMetered();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
 
         getOSVersions(userData.osVersions);
@@ -233,14 +233,14 @@ public class UserDataCollector {
 
     /** Collects available bytes and converts to MB. */
     @VisibleForTesting
-    public int getAvailableBytesMB() {
+    public int getAvailableStorageMB() {
         StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
         return (int) (statFs.getAvailableBytes() / BYTES_IN_MB);
     }
 
     /** Collects the battery percentage of the device. */
     @VisibleForTesting
-    public int getBatteryPct() {
+    public int getBatteryPercentage() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = mContext.registerReceiver(null, ifilter);
 
@@ -441,7 +441,7 @@ public class UserDataCollector {
 
     /** Collects metered status. */
     @VisibleForTesting
-    public boolean getNetworkMeteredStatus() {
+    public boolean isNetworkMetered() {
         if (mNetworkCapabilities == null) {
             return false;
         }
@@ -456,7 +456,7 @@ public class UserDataCollector {
 
     /** Collects connection speed in kbps */
     @VisibleForTesting
-    public int getConnectionSpeedKbps() {
+    public long getConnectionSpeedKbps() {
         if (mNetworkCapabilities == null) {
             return 0;
         }
@@ -861,14 +861,14 @@ public class UserDataCollector {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
-        userData.availableBytesMB = 0;
-        userData.batteryPct = 0;
+        userData.availableStorageMB = 0;
+        userData.batteryPercentage = 0;
         userData.country = Country.UNKNOWN;
         userData.language = Language.UNKNOWN;
         userData.carrier = Carrier.UNKNOWN;
         userData.osVersions = new OSVersion();
         userData.connectionType = RawUserData.ConnectionType.UNKNOWN;
-        userData.networkMeteredStatus = false;
+        userData.networkMetered = false;
         userData.connectionSpeedKbps = 0;
         userData.deviceMetrics = new DeviceMetrics();
         userData.appsInfo.clear();
