@@ -36,7 +36,7 @@ android_app {
     ],
     plugins: ["auto_value_plugin"],
     static_libs: [
-        "federatedcompute-service-proto-lite",
+        "federated-compute-java-proto-lite",
         "guava",
         "modules-utils-preconditions",
         "libprotobuf-java-lite",
