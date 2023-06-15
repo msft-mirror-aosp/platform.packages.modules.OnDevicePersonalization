@@ -41,8 +41,8 @@ public class EventUrlProvider {
     /** Redirect to the provided destination URL. */
     public static final int RESPONSE_TYPE_REDIRECT = 2;
 
-    /** Return a 1x1 blank GIF image. */
-    public static final int RESPONSE_TYPE_1X1_IMAGE = 3;
+    /** Return a 1x1 blank transparent PNG image. */
+    public static final int RESPONSE_TYPE_TRANSPARENT_IMAGE = 3;
 
     private static final long ASYNC_TIMEOUT_MS = 1000;
 

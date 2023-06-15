@@ -324,6 +324,6 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private boolean isValidResponseType(int responseType) {
         return responseType == EventUrlProvider.RESPONSE_TYPE_NO_CONTENT
                 || responseType == EventUrlProvider.RESPONSE_TYPE_REDIRECT
-                || responseType == EventUrlProvider.RESPONSE_TYPE_1X1_IMAGE;
+                || responseType == EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE;
     }
 }
