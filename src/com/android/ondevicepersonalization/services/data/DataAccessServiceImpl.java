@@ -21,7 +21,7 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -193,7 +193,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 if (responseType <= 0) {
                     throw new IllegalArgumentException("Bad responseType");
                 }
-                if (responseType == OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT
+                if (responseType == EventUrlProvider.RESPONSE_TYPE_REDIRECT
                         && (destinationUrl == null || destinationUrl.isEmpty())) {
                     throw new IllegalArgumentException("Missing destinationUrl");
                 }

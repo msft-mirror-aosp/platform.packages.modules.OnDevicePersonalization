@@ -17,8 +17,6 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
-import android.os.PersistableBundle;
 
 /**
  * Container for per-request state and APIs for code that runs in the isolated process.
@@ -26,15 +24,6 @@ import android.os.PersistableBundle;
  * @hide
  */
 public interface OnDevicePersonalizationContext {
-    /** Return a 204 No Content HTTP response. */
-    int RESPONSE_TYPE_NO_CONTENT = 1;
-
-    /** Redirect to the provided destination URL. */
-    int RESPONSE_TYPE_REDIRECT = 2;
-
-    /** Return a 1x1 blank GIF image. */
-    int RESPONSE_TYPE_1X1_IMAGE = 3;
-
     /**
      * Returns a DAO for the REMOTE_DATA table.
      * @return A {@link ImmutableMap} object that provides access to the REMOTE_DATA table.
@@ -47,9 +36,6 @@ public interface OnDevicePersonalizationContext {
      */
     @NonNull MutableMap getLocalData();
 
-    /** Return an Event URL for a single event. */
-    @NonNull String getEventUrl(
-            @NonNull PersistableBundle eventParams,
-            int responseType,
-            @Nullable String destinationUrl) throws OnDevicePersonalizationException;
+    /** Returns an {@link EventUrlProvider} for the current request. */
+    @NonNull EventUrlProvider getEventUrlProvider();
 }
