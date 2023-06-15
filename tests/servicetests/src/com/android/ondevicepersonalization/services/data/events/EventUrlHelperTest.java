@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
 import android.net.Uri;
+import android.ondevicepersonalization.EventUrlProvider;
 import android.os.PersistableBundle;
 
 import org.junit.Test;
@@ -72,6 +73,7 @@ public class EventUrlHelperTest {
         PersistableBundle params = new PersistableBundle();
         params.putInt("x", 1);
         params.putString("y", "abc");
-        return new EventUrlPayload(params);
+        return new EventUrlPayload(
+                params, EventUrlProvider.RESPONSE_TYPE_NO_CONTENT);
     }
 }

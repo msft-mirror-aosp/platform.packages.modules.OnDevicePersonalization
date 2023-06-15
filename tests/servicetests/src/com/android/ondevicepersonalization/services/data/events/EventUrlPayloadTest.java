@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
 
+import android.ondevicepersonalization.EventUrlProvider;
 import android.os.PersistableBundle;
 
 import org.junit.Test;
@@ -30,7 +31,11 @@ public class EventUrlPayloadTest {
     public void testPayload() {
         PersistableBundle params = new PersistableBundle();
         params.putInt("x", 1);
-        EventUrlPayload payload = new EventUrlPayload(params);
+        EventUrlPayload payload = new EventUrlPayload(
+                params, EventUrlProvider.RESPONSE_TYPE_NO_CONTENT);
         assertEquals(1, payload.getEventParams().getInt("x"));
+        assertEquals(
+                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT,
+                payload.getResponseType());
     }
 }

@@ -190,15 +190,15 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         Constants.EXTRA_EVENT_PARAMS, PersistableBundle.class));
                 int responseType = params.getInt(Constants.EXTRA_RESPONSE_TYPE);
                 String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
-                if (responseType <= 0) {
-                    throw new IllegalArgumentException("Bad responseType");
+                if (!isValidResponseType(responseType)) {
+                    throw new IllegalArgumentException("Bad responseType: " + responseType);
                 }
                 if (responseType == EventUrlProvider.RESPONSE_TYPE_REDIRECT
                         && (destinationUrl == null || destinationUrl.isEmpty())) {
                     throw new IllegalArgumentException("Missing destinationUrl");
                 }
                 mInjector.getExecutor().execute(
-                        () -> getEventUrl(eventParams, destinationUrl, callback)
+                        () -> getEventUrl(eventParams, responseType, destinationUrl, callback)
                 );
                 break;
             default:
@@ -280,12 +280,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
 
     private void getEventUrl(
             @NonNull PersistableBundle eventParams,
+            int responseType,
             @Nullable String destinationUrl,
             @NonNull IDataAccessServiceCallback callback) {
         try {
             sLogger.d(TAG, ": getEventUrl() started.");
-
-            EventUrlPayload payload =  new EventUrlPayload(eventParams);
+            EventUrlPayload payload =  new EventUrlPayload(eventParams, responseType);
             String eventUrl;
             if (destinationUrl == null || destinationUrl.isEmpty()) {
                 eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
@@ -319,5 +319,11 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
         }
+    }
+
+    private boolean isValidResponseType(int responseType) {
+        return responseType == EventUrlProvider.RESPONSE_TYPE_NO_CONTENT
+                || responseType == EventUrlProvider.RESPONSE_TYPE_REDIRECT
+                || responseType == EventUrlProvider.RESPONSE_TYPE_1X1_IMAGE;
     }
 }
