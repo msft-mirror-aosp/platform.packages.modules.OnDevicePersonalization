@@ -28,7 +28,6 @@ import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.IsolatedComputationCallback;
 import android.ondevicepersonalization.KeyValueStore;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.RenderingData;
@@ -77,10 +76,17 @@ public class SampleHandler implements IsolatedComputationCallback {
                     createThreadFactory("BG Thread", Process.THREAD_PRIORITY_BACKGROUND,
                             Optional.of(getIoThreadPolicy()))));
 
+    private final KeyValueStore mRemoteData;
+    private final EventUrlProvider mEventUrlProvider;
+
+    SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider) {
+        mRemoteData = remoteData;
+        mEventUrlProvider = eventUrlProvider;
+    }
+
     @Override
     public void onDownload(
             @NonNull DownloadInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<DownloadOutput> consumer) {
         Log.d(TAG, "onDownload() started.");
         DownloadOutput downloadResult =
@@ -92,29 +98,26 @@ public class SampleHandler implements IsolatedComputationCallback {
 
     @Override public void onExecute(
             @NonNull ExecuteInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         Log.d(TAG, "onExecute() started.");
-        sBackgroundExecutor.execute(() -> handleOnExecute(input, odpContext, consumer));
+        sBackgroundExecutor.execute(() -> handleOnExecute(input, consumer));
     }
 
     @Override public void onRender(
             @NonNull RenderInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderOutput> consumer
     ) {
         Log.d(TAG, "onRender() started.");
-        sBackgroundExecutor.execute(() -> handleOnRender(input, odpContext, consumer));
+        sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
     @Override public void onEvent(
             @NonNull EventInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<EventOutput> consumer) {
         Log.d(TAG, "onEvent() started.");
         sBackgroundExecutor.execute(
-                () -> handleOnEvent(input, odpContext, consumer));
+                () -> handleOnEvent(input, consumer));
     }
 
     private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
@@ -196,13 +199,10 @@ public class SampleHandler implements IsolatedComputationCallback {
 
     private void handleOnExecute(
             @NonNull ExecuteInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         try {
-            KeyValueStore remoteData = odpContext.getRemoteData();
-
-            var unused = FluentFuture.from(readAds(remoteData))
+            var unused = FluentFuture.from(readAds(mRemoteData))
                     .transform(
                         ads -> buildResult(runAuction(matchAds(ads, input))),
                         sBackgroundExecutor)
@@ -228,14 +228,14 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     private ListenableFuture<String> getEventUrl(
-            int eventType, String landingPage, OnDevicePersonalizationContext odpContext) {
+            int eventType, String landingPage) {
         try {
             int responseType = (landingPage == null || landingPage.isEmpty())
                     ? EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE
                     : EventUrlProvider.RESPONSE_TYPE_REDIRECT;
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, eventType);
-            String url = odpContext.getEventUrlProvider().getEventUrl(
+            String url = mEventUrlProvider.getEventUrl(
                     eventParams, responseType, landingPage);
             return Futures.immediateFuture(url);
         } catch (Exception e) {
@@ -273,16 +273,15 @@ public class SampleHandler implements IsolatedComputationCallback {
 
     private void handleOnRender(
             @NonNull RenderInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderOutput> consumer
     ) {
         try {
             Log.d(TAG, "handleOnRender() started.");
             String id = input.getRenderingData().getKeys().get(0);
-            var adFuture = readAd(id, odpContext.getRemoteData());
-            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, "", odpContext);
+            var adFuture = readAd(id, mRemoteData);
+            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, "");
             var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(
-                    ad -> getEventUrl(EVENT_TYPE_CLICK, ad.mLandingPage, odpContext),
+                    ad -> getEventUrl(EVENT_TYPE_CLICK, ad.mLandingPage),
                     sBackgroundExecutor);
             var unused = FluentFuture.from(
                     Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
@@ -314,7 +313,6 @@ public class SampleHandler implements IsolatedComputationCallback {
 
     public void handleOnEvent(
             @NonNull EventInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<EventOutput> consumer) {
         try {
             Log.d(TAG, "handleOnEvent() started.");

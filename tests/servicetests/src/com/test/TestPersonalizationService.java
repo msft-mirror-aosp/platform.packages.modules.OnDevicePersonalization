@@ -19,10 +19,11 @@ package com.test;
 import android.annotation.NonNull;
 import android.ondevicepersonalization.IsolatedComputationCallback;
 import android.ondevicepersonalization.IsolatedComputationService;
+import android.ondevicepersonalization.RequestToken;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends IsolatedComputationService {
-    @NonNull @Override public IsolatedComputationCallback createCallback() {
-        return new TestPersonalizationHandler();
+    @NonNull @Override public IsolatedComputationCallback createCallback(RequestToken token) {
+        return new TestPersonalizationHandler(getRemoteData(token));
     }
 }
