@@ -24,8 +24,10 @@ import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.EventInput;
 import android.ondevicepersonalization.EventLogRecord;
 import android.ondevicepersonalization.EventOutput;
+import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.RequestLogRecord;
 import android.os.Bundle;
+import android.util.Base64;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
@@ -48,12 +50,20 @@ import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
+import java.net.HttpURLConnection;
+import java.util.Collections;
 import java.util.concurrent.Executor;
 
 class OdpWebViewClient extends WebViewClient {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OdpWebViewClient";
     public static final String TASK_NAME = "ComputeEventMetrics";
+    private static final String TRANSPARENT_PNG_BASE64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
+            + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
+    private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
 
     @VisibleForTesting
     static class Injector {
@@ -98,15 +108,30 @@ class OdpWebViewClient extends WebViewClient {
 
     @Override public WebResourceResponse shouldInterceptRequest(
         @NonNull WebView webView, @NonNull WebResourceRequest request) {
-        if (webView == null || request == null || request.getUrl() == null) {
-            sLogger.e(TAG + ": Received null webView or Request or Url");
-            return null;
-        }
-        String url = request.getUrl().toString();
-        sLogger.d(TAG + ": shouldInterceptRequest: " + url);
-        if (EventUrlHelper.isOdpUrl(url)) {
-            mInjector.getExecutor().execute(() -> handleEvent(url));
-            // TODO(b/242753206): Return an empty response.
+        try {
+            if (webView == null || request == null || request.getUrl() == null) {
+                sLogger.e(TAG + ": Received null webView or Request or Url");
+                return null;
+            }
+            String url = request.getUrl().toString();
+            sLogger.d(TAG + ": shouldInterceptRequest: " + url);
+            if (EventUrlHelper.isOdpUrl(url)) {
+                EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(url);
+                mInjector.getExecutor().execute(() -> handleEvent(payload));
+                if (payload.getResponseType() == EventUrlProvider.RESPONSE_TYPE_NO_CONTENT) {
+                    return new WebResourceResponse(
+                            null, null, HttpURLConnection.HTTP_NO_CONTENT, "No Content",
+                            Collections.emptyMap(), InputStream.nullInputStream());
+                } else if (payload.getResponseType()
+                        == EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE) {
+                    return new WebResourceResponse(
+                            "image/png", null, HttpURLConnection.HTTP_OK, "OK",
+                            Collections.emptyMap(),
+                            new ByteArrayInputStream(TRANSPARENT_PNG_BYTES));
+                }
+            }
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": shouldInterceptRequest failed.");
         }
         return null;
     }
@@ -114,21 +139,26 @@ class OdpWebViewClient extends WebViewClient {
     @Override
     public boolean shouldOverrideUrlLoading(
             @NonNull WebView webView, @NonNull WebResourceRequest request) {
-        if (webView == null || request == null) {
-            sLogger.e(TAG + ": Received null webView or Request");
-            return true;
-        }
-        //Decode odp://localhost/ URIs and call Events table API to write an event.
-        String url = request.getUrl().toString();
-        sLogger.d(TAG + ": shouldOverrideUrlLoading: " + url);
-        if (EventUrlHelper.isOdpUrl(url)) {
-            mInjector.getExecutor().execute(() -> handleEvent(url));
-            String landingPage = request.getUrl().getQueryParameter(
-                    EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY);
-            mInjector.openUrl(landingPage, webView.getContext());
-        } else {
-            // TODO(b/263180569): Handle any non-odp URLs
-            sLogger.d(TAG + ": Non-odp URL encountered: " + url);
+        try {
+            if (webView == null || request == null) {
+                sLogger.e(TAG + ": Received null webView or Request");
+                return true;
+            }
+            //Decode odp://localhost/ URIs and call Events table API to write an event.
+            String url = request.getUrl().toString();
+            sLogger.d(TAG + ": shouldOverrideUrlLoading: " + url);
+            if (EventUrlHelper.isOdpUrl(url)) {
+                EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(url);
+                mInjector.getExecutor().execute(() -> handleEvent(payload));
+                String landingPage = request.getUrl().getQueryParameter(
+                        EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY);
+                mInjector.openUrl(landingPage, webView.getContext());
+            } else {
+                // TODO(b/263180569): Handle any non-odp URLs
+                sLogger.d(TAG + ": Non-odp URL encountered: " + url);
+            }
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": shouldOverrideUrlLoading failed.");
         }
         // Cancel the current load
         return true;
@@ -217,10 +247,9 @@ class OdpWebViewClient extends WebViewClient {
         }
     }
 
-    private void handleEvent(String url) {
+    private void handleEvent(EventUrlPayload eventUrlPayload) {
         try {
             sLogger.d(TAG + ": handleEvent() called");
-            EventUrlPayload eventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
 
             var unused = FluentFuture.from(getEventOutput(eventUrlPayload))
                     .transformAsync(

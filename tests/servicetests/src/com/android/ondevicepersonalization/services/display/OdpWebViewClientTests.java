@@ -31,6 +31,7 @@ import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.RequestLogRecord;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
@@ -57,6 +58,7 @@ import org.junit.runners.JUnit4;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
+import java.net.HttpURLConnection;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
@@ -119,11 +121,29 @@ public class OdpWebViewClientTests {
     }
 
     @Test
-    public void testValidUrlIntercept() throws Exception {
+    public void testValidUrlWithNoContentIntercept() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
-        assertEquals(null, webViewClient.shouldInterceptRequest(mWebView, webResourceRequest));
+        WebResourceResponse response = webViewClient.shouldInterceptRequest(
+                mWebView, webResourceRequest);
+        assertEquals(HttpURLConnection.HTTP_NO_CONTENT, response.getStatusCode());
+        assertEquals(1,
+                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
+                        null, null, null, null, null).getCount());
+    }
+
+    @Test
+    public void testValidUrlWithTransparentImageIntercept() throws Exception {
+        WebViewClient webViewClient = getWebViewClient();
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(new EventUrlPayload(
+                createEventParameters(),
+                EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE));
+        WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+        WebResourceResponse response = webViewClient.shouldInterceptRequest(
+                mWebView, webResourceRequest);
+        assertEquals(HttpURLConnection.HTTP_OK, response.getStatusCode());
+        assertEquals("image/png", response.getMimeType());
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
