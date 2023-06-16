@@ -30,20 +30,14 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Generates event tracking URLs for a request.
+ * Generates event tracking URLs for a request. The {@link IsolatedComputationService} can
+ * embed these URLs in the HTML output. When the HTML is rendered, ODP will intercept requests
+ * to these URLs, call {@link IsolatedComputationCallback#onEvent}, and log the returned output
+ * in the EVENTS table.
  *
  * @hide
  */
 public class EventUrlProvider {
-    /** Return a 204 No Content HTTP response. */
-    public static final int RESPONSE_TYPE_NO_CONTENT = 1;
-
-    /** Redirect to the provided destination URL. */
-    public static final int RESPONSE_TYPE_REDIRECT = 2;
-
-    /** Return a 1x1 blank transparent PNG image. */
-    public static final int RESPONSE_TYPE_TRANSPARENT_IMAGE = 3;
-
     private static final long ASYNC_TIMEOUT_MS = 1000;
 
     @NonNull private final IDataAccessService mDataAccessService;
@@ -52,17 +46,50 @@ public class EventUrlProvider {
         mDataAccessService = Objects.requireNonNull(binder);
     }
 
-    /** Return an Event URL for a single event. */
-    @NonNull public String getEventUrl(
+    /**
+     * Creates an event tracking URL that returns the provided response. Returns HTTP Status
+     * 200 (OK) if the response data is not empty. Returns HTTP Status 204 (No Content) if the
+     * response data is empty.
+     *
+     * @param eventParams The data to be passed to {@link IsolatedComputationCallback#onEvent}
+     *     when the event occurs.
+     * @param responseData The content to be returned to the WebView when the URL is fetched.
+     * @param mimeType The Mime Type of the URL response.
+     * @return An ODP event URL that can be inserted into a WebView.
+     */
+    @NonNull public String getEventTrackingUrl(
             @NonNull PersistableBundle eventParams,
-            int responseType,
+            @Nullable byte[] responseData,
+            @Nullable String mimeType) throws OnDevicePersonalizationException {
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
+        params.putByteArray(Constants.EXTRA_RESPONSE_DATA, responseData);
+        params.putString(Constants.EXTRA_MIME_TYPE, mimeType);
+        return getUrl(params);
+    }
+
+    /**
+     * Creates an event tracking URL that redirects to the provided destination URL.
+     *
+     * @param eventParams The data to be passed to {@link IsolatedComputationCallback#onEvent}
+     *     when the event occurs
+     * @param destinationUrl The URL to redirect to.
+     * @return An ODP event URL that can be inserted into a WebView.
+     */
+    @NonNull public String getEventTrackingUrlWithRedirect(
+            @NonNull PersistableBundle eventParams,
             @Nullable String destinationUrl) throws OnDevicePersonalizationException {
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
+        params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
+        return getUrl(params);
+    }
+
+    @NonNull private String getUrl(@NonNull Bundle params)
+            throws OnDevicePersonalizationException {
         try {
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
-            Bundle params = new Bundle();
-            params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-            params.putInt(Constants.EXTRA_RESPONSE_TYPE, responseType);
-            params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
+
             mDataAccessService.onRequest(
                     Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                     params,

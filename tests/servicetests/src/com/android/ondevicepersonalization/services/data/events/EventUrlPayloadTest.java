@@ -16,9 +16,9 @@
 
 package com.android.ondevicepersonalization.services.data.events;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
-import android.ondevicepersonalization.EventUrlProvider;
 import android.os.PersistableBundle;
 
 import org.junit.Test;
@@ -27,15 +27,15 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class EventUrlPayloadTest {
+    private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     @Test
     public void testPayload() {
         PersistableBundle params = new PersistableBundle();
         params.putInt("x", 1);
         EventUrlPayload payload = new EventUrlPayload(
-                params, EventUrlProvider.RESPONSE_TYPE_NO_CONTENT);
+                params, RESPONSE_BYTES, "image/gif");
         assertEquals(1, payload.getEventParams().getInt("x"));
-        assertEquals(
-                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT,
-                payload.getResponseType());
+        assertEquals("image/gif", payload.getMimeType());
+        assertArrayEquals(RESPONSE_BYTES, payload.getResponseData());
     }
 }

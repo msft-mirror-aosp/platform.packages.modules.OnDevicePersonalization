@@ -16,8 +16,6 @@
 
 package android.ondevicepersonalization;
 
-import static android.ondevicepersonalization.EventUrlProvider.RESPONSE_TYPE_REDIRECT;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -33,20 +31,41 @@ import androidx.test.filters.SmallTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.nio.charset.StandardCharsets;
+
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class EventUrlProviderTest {
     static final int EVENT_TYPE_ERROR = 10;
     private final EventUrlProvider mEventUrlProvider =
             new EventUrlProvider(new TestDataService());
+    private static final byte[] RESPONSE_BYTES = {'A', 'B'};
+
+    @Test public void testGetEventUrlWithEmptyResponse() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("type", 5);
+        params.putString("id", "abc");
+        assertEquals(
+                "5-abc-null-null-null",
+                mEventUrlProvider.getEventTrackingUrl(params, null, null));
+    }
 
     @Test public void testGetEventUrlReturnsResponseFromService() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putInt("type", 5);
         params.putString("id", "abc");
         assertEquals(
-                "5-abc-2-def",
-                mEventUrlProvider.getEventUrl(params, RESPONSE_TYPE_REDIRECT, "def"));
+                "5-abc-AB-image/gif-null",
+                mEventUrlProvider.getEventTrackingUrl(params, RESPONSE_BYTES, "image/gif"));
+    }
+
+    @Test public void testGetEventUrlWithRedirectReturnsResponseFromService() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("type", 5);
+        params.putString("id", "abc");
+        assertEquals(
+                "5-abc-null-null-def",
+                mEventUrlProvider.getEventTrackingUrlWithRedirect(params, "def"));
     }
 
     @Test public void testGetEventUrlThrowsOnError() throws Exception {
@@ -56,8 +75,8 @@ public class EventUrlProviderTest {
         params.putString("id", "abc");
         assertThrows(
                 OnDevicePersonalizationException.class,
-                () -> mEventUrlProvider.getEventUrl(
-                        params, RESPONSE_TYPE_REDIRECT, "def"));
+                () -> mEventUrlProvider.getEventTrackingUrl(
+                        params, null, null));
     }
 
     class TestDataService extends IDataAccessService.Stub {
@@ -71,7 +90,10 @@ public class EventUrlProviderTest {
                         Constants.EXTRA_EVENT_PARAMS, PersistableBundle.class);
                 int eventType = eventParams.getInt("type");
                 String id = eventParams.getString("id");
-                int responseType = params.getInt(Constants.EXTRA_RESPONSE_TYPE);
+                byte[] responseDataBytes = params.getByteArray(Constants.EXTRA_RESPONSE_DATA);
+                String responseData = (responseDataBytes != null)
+                        ? new String(responseDataBytes, StandardCharsets.UTF_8) : "null";
+                String mimeType = params.getString(Constants.EXTRA_MIME_TYPE);
                 String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
                 if (eventType == EVENT_TYPE_ERROR) {
                     try {
@@ -81,7 +103,8 @@ public class EventUrlProviderTest {
                     }
                 } else {
                     String url = String.format(
-                            "%d-%s-%d-%s", eventType, id, responseType, destinationUrl);
+                            "%d-%s-%s-%s-%s", eventType, id, responseData, mimeType,
+                            destinationUrl);
                     Bundle result = new Bundle();
                     result.putString(Constants.EXTRA_RESULT, url);
                     try {

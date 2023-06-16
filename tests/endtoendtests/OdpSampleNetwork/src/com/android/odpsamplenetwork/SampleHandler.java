@@ -36,6 +36,7 @@ import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
+import android.util.Base64;
 import android.util.JsonReader;
 import android.util.Log;
 
@@ -68,6 +69,10 @@ public class SampleHandler implements IsolatedComputationCallback {
     private static final String CLICK_COST_KEY = "clkcost";
     private static final String EVENT_TYPE_KEY = "type";
     private static final int BID_PRICE_OFFSET = 0;
+    private static final String TRANSPARENT_PNG_BASE64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
+            + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
+    private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
     private static final Set<String> sBlockedKeywords = Set.of("cars", "trucks");
 
     private static final ListeningExecutorService sBackgroundExecutor =
@@ -227,16 +232,25 @@ public class SampleHandler implements IsolatedComputationCallback {
         }
     }
 
-    private ListenableFuture<String> getEventUrl(
-            int eventType, String landingPage) {
+    private ListenableFuture<String> getImpressionTrackingUrl() {
         try {
-            int responseType = (landingPage == null || landingPage.isEmpty())
-                    ? EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE
-                    : EventUrlProvider.RESPONSE_TYPE_REDIRECT;
             PersistableBundle eventParams = new PersistableBundle();
-            eventParams.putInt(EVENT_TYPE_KEY, eventType);
-            String url = mEventUrlProvider.getEventUrl(
-                    eventParams, responseType, landingPage);
+            eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
+            String url = mEventUrlProvider.getEventTrackingUrl(
+                    eventParams, TRANSPARENT_PNG_BYTES, "image/png");
+            return Futures.immediateFuture(url);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private ListenableFuture<String> getClickTrackingUrl(
+            String landingPage) {
+        try {
+            PersistableBundle eventParams = new PersistableBundle();
+            eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
+            String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
+                    eventParams, landingPage);
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -279,9 +293,9 @@ public class SampleHandler implements IsolatedComputationCallback {
             Log.d(TAG, "handleOnRender() started.");
             String id = input.getRenderingData().getKeys().get(0);
             var adFuture = readAd(id, mRemoteData);
-            var impUrlFuture = getEventUrl(EVENT_TYPE_IMPRESSION, "");
+            var impUrlFuture = getImpressionTrackingUrl();
             var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(
-                    ad -> getEventUrl(EVENT_TYPE_CLICK, ad.mLandingPage),
+                    ad -> getClickTrackingUrl(ad.mLandingPage),
                     sBackgroundExecutor);
             var unused = FluentFuture.from(
                     Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
