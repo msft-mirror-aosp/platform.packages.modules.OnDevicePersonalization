@@ -231,7 +231,7 @@ public class SampleHandler implements IsolatedComputationHandler {
             int eventType, String landingPage, OnDevicePersonalizationContext odpContext) {
         try {
             int responseType = (landingPage == null || landingPage.isEmpty())
-                    ? EventUrlProvider.RESPONSE_TYPE_NO_CONTENT
+                    ? EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE
                     : EventUrlProvider.RESPONSE_TYPE_REDIRECT;
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, eventType);
