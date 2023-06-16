@@ -26,7 +26,7 @@ import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.IsolatedComputationCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.KeyValueStore;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.RenderingData;
@@ -43,17 +43,21 @@ import java.util.function.Consumer;
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationHandler implements IsolatedComputationCallback {
     public final String TAG = "TestPersonalizationHandler";
+    private final KeyValueStore mRemoteData;
+
+    TestPersonalizationHandler(KeyValueStore remoteData) {
+        mRemoteData = remoteData;
+    }
 
     @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadOutput> consumer) {
+    public void onDownload(DownloadInput input, Consumer<DownloadOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Data: " + input.getData());
 
             Log.d(TAG, "Existing keyExtra: "
-                    + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
-            Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
+                    + Arrays.toString(mRemoteData.get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
             List<String> keysToRetain =
                     getFilteredKeys(input.getData());
@@ -71,7 +75,6 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
 
     @Override public void onExecute(
             @NonNull ExecuteInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         Log.d(TAG, "onExecute() started.");
@@ -89,7 +92,6 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
 
     @Override public void onRender(
             @NonNull RenderInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderOutput> consumer
     ) {
         Log.d(TAG, "onRender() started.");
@@ -103,7 +105,6 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
 
     public void onEvent(
             @NonNull EventInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<EventOutput> consumer
     ) {
         Log.d(TAG, "onEvent() started.");

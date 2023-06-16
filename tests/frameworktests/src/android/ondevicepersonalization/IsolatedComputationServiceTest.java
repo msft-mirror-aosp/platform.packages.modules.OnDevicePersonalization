@@ -468,7 +468,6 @@ public class IsolatedComputationServiceTest {
     class TestHandler implements IsolatedComputationCallback {
         @Override public void onExecute(
                 ExecuteInput input,
-                OnDevicePersonalizationContext odpContext,
                 Consumer<ExecuteOutput> consumer
         ) {
             mSelectContentCalled = true;
@@ -487,7 +486,6 @@ public class IsolatedComputationServiceTest {
 
         @Override public void onDownload(
                 DownloadInput input,
-                OnDevicePersonalizationContext odpContext,
                 Consumer<DownloadOutput> consumer
         ) {
             mOnDownloadCalled = true;
@@ -496,7 +494,6 @@ public class IsolatedComputationServiceTest {
 
         @Override public void onRender(
                 RenderInput input,
-                OnDevicePersonalizationContext odpContext,
                 Consumer<RenderOutput> consumer
         ) {
             mOnRenderCalled = true;
@@ -511,7 +508,6 @@ public class IsolatedComputationServiceTest {
 
         @Override public void onEvent(
                 EventInput input,
-                OnDevicePersonalizationContext odpContext,
                 Consumer<EventOutput> consumer
         ) {
             mOnEventCalled = true;
@@ -533,7 +529,7 @@ public class IsolatedComputationServiceTest {
     }
 
     class TestService extends IsolatedComputationService {
-        @Override public IsolatedComputationCallback createCallback() {
+        @Override public IsolatedComputationCallback createCallback(RequestToken token) {
             return new TestHandler();
         }
     }

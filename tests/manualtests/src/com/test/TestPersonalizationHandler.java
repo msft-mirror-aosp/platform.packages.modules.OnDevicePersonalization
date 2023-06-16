@@ -19,7 +19,7 @@ package com.test;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
 import android.ondevicepersonalization.IsolatedComputationCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.ondevicepersonalization.KeyValueStore;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -32,15 +32,19 @@ import java.util.function.Consumer;
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationHandler implements IsolatedComputationCallback {
     public final String TAG = "TestIsolatedComputationCallback";
+    private final KeyValueStore mRemoteData;
+
+    TestPersonalizationHandler(KeyValueStore remoteData) {
+        mRemoteData = remoteData;
+    }
 
     @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadOutput> consumer) {
+    public void onDownload(DownloadInput input, Consumer<DownloadOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Existing keyExtra: "
-                    + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
-            Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
+                    + Arrays.toString(mRemoteData.get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
             DownloadOutput result =
                     new DownloadOutput.Builder()

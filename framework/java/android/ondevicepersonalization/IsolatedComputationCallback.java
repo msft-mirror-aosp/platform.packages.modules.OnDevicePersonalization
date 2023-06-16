@@ -31,12 +31,10 @@ public interface IsolatedComputationCallback {
      * processes requests from apps must override this method.
      *
      * @param input App Request Parameters.
-     * @param odpContext The per-request state for this request.
      * @param consumer Callback to be invoked on completion.
      */
     default void onExecute(
             @NonNull ExecuteInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         consumer.accept(null);
@@ -48,12 +46,10 @@ public interface IsolatedComputationCallback {
      * and calls this function after the download is complete.
      *
      * @param input Download handler parameters.
-     * @param odpContext The per-request state for this request.
      * @param consumer Callback to be invoked on completion.
      */
     default void onDownload(
             @NonNull DownloadInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<DownloadOutput> consumer
     ) {
         consumer.accept(null);
@@ -69,7 +65,6 @@ public interface IsolatedComputationCallback {
      */
     default void onRender(
             @NonNull RenderInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderOutput> consumer
     ) {
         consumer.accept(null);
@@ -85,7 +80,6 @@ public interface IsolatedComputationCallback {
     // TODO(b/259950177): Also provide the Query event from the Query table.
     default void onEvent(
             @NonNull EventInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<EventOutput> consumer
     ) {
         consumer.accept(null);

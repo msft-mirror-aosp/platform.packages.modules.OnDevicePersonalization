@@ -17,25 +17,25 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.ondevicepersonalization.aidl.IDataAccessService;
+
+import java.util.Objects;
 
 /**
- * Container for per-request state and APIs for code that runs in the isolated process.
+ * An opaque token that identifies the current request.
  *
  * @hide
  */
-public interface OnDevicePersonalizationContext {
-    /**
-     * Returns a DAO for the REMOTE_DATA table.
-     * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table.
-     */
-    @NonNull KeyValueStore getRemoteData();
+public class RequestToken {
+    @NonNull private IDataAccessService mDataAccessService;
 
-    /**
-     * Returns a DAO for the LOCAL_DATA table.
-     * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
-     */
-    @NonNull MutableKeyValueStore getLocalData();
+    /** @hide */
+    RequestToken(IDataAccessService binder) {
+        mDataAccessService = Objects.requireNonNull(binder);
+    }
 
-    /** Returns an {@link EventUrlProvider} for the current request. */
-    @NonNull EventUrlProvider getEventUrlProvider();
+    /** @hide */
+    IDataAccessService getDataAccessService() {
+        return mDataAccessService;
+    }
 }

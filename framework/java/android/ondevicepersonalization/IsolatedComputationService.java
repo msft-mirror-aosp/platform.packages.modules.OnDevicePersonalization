@@ -44,7 +44,6 @@ public abstract class IsolatedComputationService extends Service {
     private static final String TAG = "IsolatedComputationService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private IBinder mBinder;
-    @NonNull private final IsolatedComputationCallback mImplCallback = createCallback();
 
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
@@ -57,7 +56,28 @@ public abstract class IsolatedComputationService extends Service {
     /**
      * Return an instance of {@link IsolatedComputationCallback} that handles client requests.
      */
-    @NonNull public abstract IsolatedComputationCallback createCallback();
+    @NonNull public abstract IsolatedComputationCallback createCallback(RequestToken requestToken);
+
+    /**
+     * Returns a DAO for the REMOTE_DATA table.
+     * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table.
+     */
+    @NonNull public KeyValueStore getRemoteData(RequestToken requestToken) {
+        return new RemoteDataImpl(requestToken.getDataAccessService());
+    }
+
+    /**
+     * Returns a DAO for the LOCAL_DATA table.
+     * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
+     */
+    @NonNull public MutableKeyValueStore getLocalData(RequestToken requestToken) {
+        return new LocalDataImpl(requestToken.getDataAccessService());
+    }
+
+    /** Returns an {@link EventUrlProvider} for the current request. */
+    @NonNull public EventUrlProvider getEventUrlProvider(RequestToken requestToken) {
+        return new EventUrlProvider(requestToken.getDataAccessService());
+    }
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
@@ -79,10 +99,10 @@ public abstract class IsolatedComputationService extends Service {
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
-                OnDevicePersonalizationContext odpContext =
-                        new OnDevicePersonalizationContextImpl(binder);
-                mImplCallback.onExecute(
-                        input, odpContext, new WrappedCallback<ExecuteOutput>(resultCallback));
+                RequestToken requestToken = new RequestToken(binder);
+                IsolatedComputationCallback implCallback = createCallback(requestToken);
+                implCallback.onExecute(
+                        input, new WrappedCallback<ExecuteOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_DOWNLOAD) {
 
@@ -109,11 +129,10 @@ public abstract class IsolatedComputationService extends Service {
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
-                OnDevicePersonalizationContext odpContext =
-                        new OnDevicePersonalizationContextImpl(binder);
-                mImplCallback.onDownload(
-                        downloadInput, odpContext,
-                        new WrappedCallback<DownloadOutput>(resultCallback));
+                RequestToken requestToken = new RequestToken(binder);
+                IsolatedComputationCallback implCallback = createCallback(requestToken);
+                implCallback.onDownload(
+                        downloadInput, new WrappedCallback<DownloadOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_RENDER) {
 
@@ -124,10 +143,10 @@ public abstract class IsolatedComputationService extends Service {
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
-                OnDevicePersonalizationContext odpContext =
-                        new OnDevicePersonalizationContextImpl(binder);
-                mImplCallback.onRender(
-                        input, odpContext, new WrappedCallback<RenderOutput>(resultCallback));
+                RequestToken requestToken = new RequestToken(binder);
+                IsolatedComputationCallback implCallback = createCallback(requestToken);
+                implCallback.onRender(
+                        input, new WrappedCallback<RenderOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_EVENT) {
 
@@ -136,10 +155,10 @@ public abstract class IsolatedComputationService extends Service {
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
-                OnDevicePersonalizationContext odpContext =
-                        new OnDevicePersonalizationContextImpl(binder);
-                mImplCallback.onEvent(
-                        input, odpContext, new WrappedCallback<EventOutput>(resultCallback));
+                RequestToken requestToken = new RequestToken(binder);
+                IsolatedComputationCallback implCallback = createCallback(requestToken);
+                implCallback.onEvent(
+                        input, new WrappedCallback<EventOutput>(resultCallback));
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
