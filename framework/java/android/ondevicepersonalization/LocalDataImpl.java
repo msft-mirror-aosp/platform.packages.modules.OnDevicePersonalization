@@ -34,7 +34,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /** @hide */
-public class LocalDataImpl implements MutableMap {
+public class LocalDataImpl implements MutableKeyValueStore {
     private static final String TAG = "LocalDataImpl";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     @NonNull

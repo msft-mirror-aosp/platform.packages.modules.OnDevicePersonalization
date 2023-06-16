@@ -18,7 +18,7 @@ package com.test;
 
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
-import android.ondevicepersonalization.IsolatedComputationHandler;
+import android.ondevicepersonalization.IsolatedComputationCallback;
 import android.ondevicepersonalization.OnDevicePersonalizationContext;
 import android.util.Log;
 
@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationHandler {
-    public final String TAG = "TestIsolatedComputationHandler";
+public class TestPersonalizationHandler implements IsolatedComputationCallback {
+    public final String TAG = "TestIsolatedComputationCallback";
 
     @Override
     public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,

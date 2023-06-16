@@ -24,7 +24,7 @@ import android.annotation.NonNull;
  *
  * @hide
  */
-public interface MutableMap extends ImmutableMap {
+public interface MutableKeyValueStore extends KeyValueStore {
     /**
      * Associates the specified value with the specified key in LOCAL_DATA.
      * If LOCAL_DATA previously contained a mapping for the key, the old value is replaced.

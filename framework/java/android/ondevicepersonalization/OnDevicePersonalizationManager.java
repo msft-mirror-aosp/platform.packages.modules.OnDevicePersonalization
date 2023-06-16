@@ -147,14 +147,14 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Executes a {@link IsolatedComputationHandler} in the OnDevicePersonalization sandbox.
+     * Executes a {@link IsolatedComputationCallback} in the OnDevicePersonalization sandbox.
      *
-     * @param handler The {@link ComponentName} of the {@link IsolatedComputationHandler}.
+     * @param handler The {@link ComponentName} of the {@link IsolatedComputationCallback}.
      * @param params a {@link PersistableBundle} passed from the calling app to the handler.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This returns a list of {@link SlotResultHandle} objects, each of which is an
      *     opaque reference to a {@link SlotResult} returned by a
-     *     {@link IsolatedComputationHandler}, or an {@link Exception} on failure. The returned
+     *     {@link IsolatedComputationCallback}, or an {@link Exception} on failure. The returned
      *     {@link SlotResultHandle} objects can be used in a subsequent
      *     {@link requestSurfacePackage} call to display the result in a view.
      */
@@ -206,7 +206,7 @@ public class OnDevicePersonalizationManager {
 
     /**
      * Requests a surface package. The surface package will contain a {@link WebView} with html from
-     * a {@link IsolatedComputationHandler} running in the OnDevicePersonalization sandbox.
+     * a {@link IsolatedComputationCallback} running in the OnDevicePersonalization sandbox.
      *
      * @param slotResultHandle a reference to a {@link SlotResultHandle} returned by a prior call to
      *     {@link execute}.

@@ -34,7 +34,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /** @hide */
-public class RemoteDataImpl implements ImmutableMap {
+public class RemoteDataImpl implements KeyValueStore {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "RemoteDataImpl";
     @NonNull

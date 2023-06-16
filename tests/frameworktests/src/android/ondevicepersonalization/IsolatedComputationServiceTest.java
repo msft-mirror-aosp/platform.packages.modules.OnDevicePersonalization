@@ -465,7 +465,7 @@ public class IsolatedComputationServiceTest {
                 });
     }
 
-    class TestHandler implements IsolatedComputationHandler {
+    class TestHandler implements IsolatedComputationCallback {
         @Override public void onExecute(
                 ExecuteInput input,
                 OnDevicePersonalizationContext odpContext,
@@ -533,7 +533,7 @@ public class IsolatedComputationServiceTest {
     }
 
     class TestService extends IsolatedComputationService {
-        @Override public IsolatedComputationHandler getHandler() {
+        @Override public IsolatedComputationCallback createCallback() {
             return new TestHandler();
         }
     }

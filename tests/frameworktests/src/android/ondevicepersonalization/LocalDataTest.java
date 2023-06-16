@@ -43,7 +43,7 @@ import java.util.Set;
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class LocalDataTest {
-    MutableMap mLocalData;
+    MutableKeyValueStore mLocalData;
 
     @Before
     public void setup() {

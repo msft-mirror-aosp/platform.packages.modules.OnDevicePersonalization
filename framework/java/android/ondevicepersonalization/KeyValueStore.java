@@ -27,7 +27,7 @@ import java.util.Set;
  *
  * @hide
  */
-public interface ImmutableMap {
+public interface KeyValueStore {
     /**
      * Looks up a key in the REMOTE_DATA table.
      *

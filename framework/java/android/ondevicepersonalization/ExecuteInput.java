@@ -25,7 +25,7 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for an {@link IsolatedComputationHandler}.
+ * The input data for {@link IsolatedComputationCallback#onExecute()}.
  *
  * @hide
  */

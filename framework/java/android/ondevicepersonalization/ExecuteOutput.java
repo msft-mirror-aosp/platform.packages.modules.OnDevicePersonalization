@@ -24,8 +24,8 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 import java.util.List;
 
 /**
- * The result returned by an {@link IsolatedComputationHandler} in response to a request from a
- * calling app.
+ * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a request
+ * from a calling app.
  *
  * @hide
  */
