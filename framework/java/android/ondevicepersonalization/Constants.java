@@ -44,7 +44,9 @@ public class Constants {
     public static final String
             EXTRA_LOOKUP_KEYS = "android.ondevicepersonalization.extra.lookup_keys";
     public static final String
-            EXTRA_RESPONSE_TYPE = "android.ondevicepersonalization.extra.response_type";
+            EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
+    public static final String
+            EXTRA_RESPONSE_DATA = "android.ondevicepersonalization.extra.response_data";
     public static final String
             EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
     public static final String

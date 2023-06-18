@@ -27,7 +27,6 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 import android.net.Uri;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -61,6 +60,7 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(JUnit4.class)
 public class DataAccessServiceImplTest {
     private static final double DELTA = 0.001;
+    private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     private long mTimeMillis = 1000;
     private EventUrlPayload mEventUrlPayload;
@@ -210,8 +210,8 @@ public class DataAccessServiceImplTest {
         PersistableBundle eventParams = createEventParams();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
-                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT);
+        params.putByteArray(Constants.EXTRA_RESPONSE_DATA, RESPONSE_BYTES);
+        params.putString(Constants.EXTRA_MIME_TYPE, "image/gif");
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
@@ -226,21 +226,8 @@ public class DataAccessServiceImplTest {
         assertEquals(1, eventParamsFromUrl.getInt("a"));
         assertEquals("xyz", eventParamsFromUrl.getString("b"));
         assertEquals(5.0, eventParamsFromUrl.getDouble("c"), DELTA);
-        assertEquals(
-                EventUrlProvider.RESPONSE_TYPE_NO_CONTENT,
-                payload.getResponseType());
-    }
-
-    @Test
-    public void testGetEventUrlThrowsIfResponseTypeMissing() throws Exception {
-        PersistableBundle eventParams = createEventParams();
-        Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
-        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
-                params,
-                new TestCallback()));
+        assertEquals("image/gif", payload.getMimeType());
+        assertArrayEquals(RESPONSE_BYTES, payload.getResponseData());
     }
 
     @Test
@@ -248,8 +235,6 @@ public class DataAccessServiceImplTest {
         PersistableBundle eventParams = createEventParams();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
-                EventUrlProvider.RESPONSE_TYPE_REDIRECT);
         params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
@@ -267,19 +252,6 @@ public class DataAccessServiceImplTest {
         assertEquals(5.0, eventParamsFromUrl.getDouble("c"), DELTA);
         Uri uri = Uri.parse(eventUrl);
         assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), "http://example.com");
-    }
-
-    @Test
-    public void testGetClickUrlThrowsIfDestinationUrlMissing() throws Exception {
-        PersistableBundle eventParams = createEventParams();
-        Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-        params.putInt(Constants.EXTRA_RESPONSE_TYPE,
-                EventUrlProvider.RESPONSE_TYPE_REDIRECT);
-        assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_EVENT_URL,
-                params,
-                new TestCallback()));
     }
 
     @Test

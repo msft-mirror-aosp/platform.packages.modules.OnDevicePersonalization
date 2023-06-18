@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.services.util.ParcelWrapper;
@@ -28,19 +29,25 @@ import java.io.Serializable;
  */
 public class EventUrlPayload implements Serializable {
     @NonNull private final ParcelWrapper<PersistableBundle> mEventParams;
-    private final int mResponseType;
+    @Nullable private final byte[] mResponseData;
+    @Nullable private final String mMimeType;
 
     public EventUrlPayload(
-            @NonNull PersistableBundle params, int responseType) {
+            @NonNull PersistableBundle params, @Nullable byte[] responseData, String mimeType) {
         mEventParams = new ParcelWrapper<>(params);
-        mResponseType = responseType;
+        mResponseData = responseData;
+        mMimeType = mimeType;
     }
 
     @NonNull public PersistableBundle getEventParams() {
         return mEventParams.get(PersistableBundle.CREATOR);
     }
 
-    public int getResponseType() {
-        return mResponseType;
+    @Nullable public byte[] getResponseData() {
+        return mResponseData;
+    }
+
+    @Nullable public String getMimeType() {
+        return mMimeType;
     }
 }
