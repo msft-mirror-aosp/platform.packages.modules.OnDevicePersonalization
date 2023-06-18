@@ -16,4 +16,4 @@
 
 package android.ondevicepersonalization;
 
-parcelable EventInput;
+parcelable WebViewEventOutput;

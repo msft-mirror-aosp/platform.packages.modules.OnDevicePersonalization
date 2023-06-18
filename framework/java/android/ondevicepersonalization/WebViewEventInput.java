@@ -28,7 +28,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class EventInput implements Parcelable {
+public final class WebViewEventInput implements Parcelable {
     /** The rows that were logged as a result of onExecute. */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
@@ -43,7 +43,7 @@ public final class EventInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -51,7 +51,7 @@ public final class EventInput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ EventInput(
+    /* package-private */ WebViewEventInput(
             @Nullable RequestLogRecord requestLogRecord,
             @Nullable PersistableBundle parameters) {
         this.mRequestLogRecord = requestLogRecord;
@@ -80,13 +80,13 @@ public final class EventInput implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(EventInput other) { ... }
+        // boolean fieldNameEquals(WebViewEventInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        EventInput that = (EventInput) o;
+        WebViewEventInput that = (WebViewEventInput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord)
@@ -126,7 +126,7 @@ public final class EventInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ EventInput(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ WebViewEventInput(@android.annotation.NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -141,21 +141,21 @@ public final class EventInput implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<EventInput> CREATOR
-            = new Parcelable.Creator<EventInput>() {
+    public static final @android.annotation.NonNull Parcelable.Creator<WebViewEventInput> CREATOR
+            = new Parcelable.Creator<WebViewEventInput>() {
         @Override
-        public EventInput[] newArray(int size) {
-            return new EventInput[size];
+        public WebViewEventInput[] newArray(int size) {
+            return new WebViewEventInput[size];
         }
 
         @Override
-        public EventInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new EventInput(in);
+        public WebViewEventInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+            return new WebViewEventInput(in);
         }
     };
 
     /**
-     * A builder for {@link EventInput}
+     * A builder for {@link WebViewEventInput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -192,7 +192,7 @@ public final class EventInput implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull EventInput build() {
+        public @android.annotation.NonNull WebViewEventInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
@@ -202,7 +202,7 @@ public final class EventInput implements Parcelable {
             if ((mBuilderFieldsSet & 0x2) == 0) {
                 mParameters = null;
             }
-            EventInput o = new EventInput(
+            WebViewEventInput o = new WebViewEventInput(
                     mRequestLogRecord,
                     mParameters);
             return o;
@@ -217,10 +217,10 @@ public final class EventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686601825094L,
+            time = 1686948744738L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventInput.java",
-            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventInput.java",
+            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -20,9 +20,7 @@ import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
-import android.ondevicepersonalization.EventInput;
 import android.ondevicepersonalization.EventLogRecord;
-import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
@@ -32,6 +30,8 @@ import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.RenderingData;
 import android.ondevicepersonalization.RequestLogRecord;
+import android.ondevicepersonalization.WebViewEventInput;
+import android.ondevicepersonalization.WebViewEventOutput;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -117,12 +117,12 @@ public class SampleHandler implements IsolatedComputationCallback {
         sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
-    @Override public void onEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer) {
-        Log.d(TAG, "onEvent() started.");
+    @Override public void onWebViewEvent(
+            @NonNull WebViewEventInput input,
+            @NonNull Consumer<WebViewEventOutput> consumer) {
+        Log.d(TAG, "onWebViewEvent() started.");
         sBackgroundExecutor.execute(
-                () -> handleOnEvent(input, consumer));
+                () -> handleOnWebViewEvent(input, consumer));
     }
 
     private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
@@ -325,15 +325,15 @@ public class SampleHandler implements IsolatedComputationCallback {
         }
     }
 
-    public void handleOnEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer) {
+    public void handleOnWebViewEvent(
+            @NonNull WebViewEventInput input,
+            @NonNull Consumer<WebViewEventOutput> consumer) {
         try {
             Log.d(TAG, "handleOnEvent() started.");
             PersistableBundle eventParams = input.getParameters();
             int eventType = eventParams.getInt(EVENT_TYPE_KEY);
             if (eventType <= 0) {
-                consumer.accept(new EventOutput.Builder().build());
+                consumer.accept(new WebViewEventOutput.Builder().build());
                 return;
             }
             ContentValues logData = null;
@@ -352,7 +352,7 @@ public class SampleHandler implements IsolatedComputationCallback {
                 logData = new ContentValues();
                 logData.put(CLICK_COST_KEY, updatedPrice);
             }
-            EventOutput result = new EventOutput.Builder()
+            WebViewEventOutput result = new WebViewEventOutput.Builder()
                     .setEventLogRecord(
                         new EventLogRecord.Builder()
                             .setRowIndex(0)

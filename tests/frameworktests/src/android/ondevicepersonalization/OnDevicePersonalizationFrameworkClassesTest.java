@@ -94,16 +94,16 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the EventInput object serializes correctly.
+     * Tests that the WebViewEventInput object serializes correctly.
      */
     @Test
-    public void testEventInput() {
+    public void testWebViewEventInput() {
         PersistableBundle params = new PersistableBundle();
         params.putInt("x", 3);
         ArrayList<ContentValues> rows = new ArrayList<>();
         rows.add(new ContentValues());
         rows.get(0).put("a", 5);
-        EventInput result = new EventInput.Builder()
+        WebViewEventInput result = new WebViewEventInput.Builder()
                 .setParameters(params)
                 .setRequestLogRecord(
                     new RequestLogRecord.Builder()
@@ -114,7 +114,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        EventInput result2 = EventInput.CREATOR.createFromParcel(parcel);
+        WebViewEventInput result2 = WebViewEventInput.CREATOR.createFromParcel(parcel);
 
         assertEquals(3, result2.getParameters().getInt("x"));
         assertEquals(
@@ -122,13 +122,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the Metrics object serializes correctly.
+     * Tests that the WebViewEventOutput object serializes correctly.
      */
     @Test
-    public void testEventOutput() {
+    public void testWebViewEventOutput() {
         ContentValues data = new ContentValues();
         data.put("a", 3);
-        EventOutput result = new EventOutput.Builder()
+        WebViewEventOutput result = new WebViewEventOutput.Builder()
                 .setEventLogRecord(
                     new EventLogRecord.Builder()
                         .setType(5)
@@ -140,7 +140,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        EventOutput result2 = EventOutput.CREATOR.createFromParcel(parcel);
+        WebViewEventOutput result2 = WebViewEventOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals(5, result2.getEventLogRecord().getType());

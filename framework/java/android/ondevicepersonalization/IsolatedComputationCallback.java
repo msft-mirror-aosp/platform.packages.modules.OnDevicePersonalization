@@ -56,11 +56,10 @@ public interface IsolatedComputationCallback {
     }
 
     /**
-     * Generate HTML for the winning bids that returned as a result of {@link execute}.
+     * Generate HTML for the results that were returned as a result of {@link execute}.
      * The platform will render this HTML in a WebView inside a fenced frame.
      *
      * @param input Parameters for the renderContent request.
-     * @param odpContext The per-request state for this request.
      * @param consumer Callback to be invoked on completion.
      */
     default void onRender(
@@ -71,16 +70,14 @@ public interface IsolatedComputationCallback {
     }
 
     /**
-     * Compute a list of metrics to be logged in the events table with this event.
+     * Generate an event to be logged from an event tracking URL.
      *
-     * @param input The query-time data required to compute the event metrics.
-     * @param odpContext The per-request state for this request.
+     * @param input The parameters needed to compute event data.
      * @param consumer Callback to be invoked on completion.
      */
-    // TODO(b/259950177): Also provide the Query event from the Query table.
-    default void onEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer
+    default void onWebViewEvent(
+            @NonNull WebViewEventInput input,
+            @NonNull Consumer<WebViewEventOutput> consumer
     ) {
         consumer.accept(null);
     }

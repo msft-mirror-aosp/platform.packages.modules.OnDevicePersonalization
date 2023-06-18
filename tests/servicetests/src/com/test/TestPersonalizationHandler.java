@@ -20,9 +20,7 @@ import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.ondevicepersonalization.DownloadInput;
 import android.ondevicepersonalization.DownloadOutput;
-import android.ondevicepersonalization.EventInput;
 import android.ondevicepersonalization.EventLogRecord;
-import android.ondevicepersonalization.EventOutput;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.IsolatedComputationCallback;
@@ -31,6 +29,8 @@ import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
 import android.ondevicepersonalization.RenderingData;
 import android.ondevicepersonalization.RequestLogRecord;
+import android.ondevicepersonalization.WebViewEventInput;
+import android.ondevicepersonalization.WebViewEventOutput;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -103,9 +103,9 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
         consumer.accept(result);
     }
 
-    public void onEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer
+    public void onWebViewEvent(
+            @NonNull WebViewEventInput input,
+            @NonNull Consumer<WebViewEventOutput> consumer
     ) {
         Log.d(TAG, "onEvent() started.");
         long longValue = 0;
@@ -114,8 +114,8 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
         }
         ContentValues logData = new ContentValues();
         logData.put("x", longValue);
-        EventOutput result =
-                new EventOutput.Builder()
+        WebViewEventOutput result =
+                new WebViewEventOutput.Builder()
                     .setEventLogRecord(
                         new EventLogRecord.Builder()
                             .setType(1)

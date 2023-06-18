@@ -148,17 +148,17 @@ public abstract class IsolatedComputationService extends Service {
                 implCallback.onRender(
                         input, new WrappedCallback<RenderOutput>(resultCallback));
 
-            } else if (operationCode == Constants.OP_EVENT) {
+            } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
-                EventInput input = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, EventInput.class));
+                WebViewEventInput input = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, WebViewEventInput.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 RequestToken requestToken = new RequestToken(binder);
                 IsolatedComputationCallback implCallback = createCallback(requestToken);
-                implCallback.onEvent(
-                        input, new WrappedCallback<EventOutput>(resultCallback));
+                implCallback.onWebViewEvent(
+                        input, new WrappedCallback<WebViewEventOutput>(resultCallback));
 
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
