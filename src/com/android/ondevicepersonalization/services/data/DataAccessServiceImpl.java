@@ -21,7 +21,6 @@ import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.EventUrlProvider;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -188,17 +187,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             case Constants.DATA_ACCESS_OP_GET_EVENT_URL:
                 PersistableBundle eventParams = Objects.requireNonNull(params.getParcelable(
                         Constants.EXTRA_EVENT_PARAMS, PersistableBundle.class));
-                int responseType = params.getInt(Constants.EXTRA_RESPONSE_TYPE);
+                byte[] responseData = params.getByteArray(Constants.EXTRA_RESPONSE_DATA);
+                String mimeType = params.getString(Constants.EXTRA_MIME_TYPE);
                 String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
-                if (!isValidResponseType(responseType)) {
-                    throw new IllegalArgumentException("Bad responseType: " + responseType);
-                }
-                if (responseType == EventUrlProvider.RESPONSE_TYPE_REDIRECT
-                        && (destinationUrl == null || destinationUrl.isEmpty())) {
-                    throw new IllegalArgumentException("Missing destinationUrl");
-                }
                 mInjector.getExecutor().execute(
-                        () -> getEventUrl(eventParams, responseType, destinationUrl, callback)
+                        () -> getEventUrl(
+                                eventParams, responseData, mimeType, destinationUrl, callback)
                 );
                 break;
             default:
@@ -280,12 +274,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
 
     private void getEventUrl(
             @NonNull PersistableBundle eventParams,
-            int responseType,
+            @Nullable byte[] responseData,
+            @Nullable String mimeType,
             @Nullable String destinationUrl,
             @NonNull IDataAccessServiceCallback callback) {
         try {
             sLogger.d(TAG, ": getEventUrl() started.");
-            EventUrlPayload payload =  new EventUrlPayload(eventParams, responseType);
+            EventUrlPayload payload =  new EventUrlPayload(eventParams, responseData, mimeType);
             String eventUrl;
             if (destinationUrl == null || destinationUrl.isEmpty()) {
                 eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
@@ -319,11 +314,5 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
         }
-    }
-
-    private boolean isValidResponseType(int responseType) {
-        return responseType == EventUrlProvider.RESPONSE_TYPE_NO_CONTENT
-                || responseType == EventUrlProvider.RESPONSE_TYPE_REDIRECT
-                || responseType == EventUrlProvider.RESPONSE_TYPE_TRANSPARENT_IMAGE;
     }
 }
