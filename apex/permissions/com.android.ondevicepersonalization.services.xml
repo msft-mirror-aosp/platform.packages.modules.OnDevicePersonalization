@@ -18,6 +18,9 @@
 -->
 <permissions>
     <privapp-permissions package="com.android.ondevicepersonalization.services">
+        <permission name="android.permission.ACCESS_BACKGROUND_LOCATION" />
+        <permission name="android.permission.ACCESS_COARSE_LOCATION" />
+        <permission name="android.permission.ACCESS_FINE_LOCATION" />
         <permission name="android.permission.PACKAGE_USAGE_STATS"/>
         <permission name="android.permission.START_ACTIVITIES_FROM_BACKGROUND"/>
     </privapp-permissions>
