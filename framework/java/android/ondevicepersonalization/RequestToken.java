@@ -17,6 +17,7 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 
 import java.util.Objects;
@@ -28,14 +29,23 @@ import java.util.Objects;
  */
 public class RequestToken {
     @NonNull private IDataAccessService mDataAccessService;
+    @Nullable private UserData mUserData;
 
     /** @hide */
-    RequestToken(IDataAccessService binder) {
+    RequestToken(
+            @NonNull IDataAccessService binder,
+            @Nullable UserData userData) {
         mDataAccessService = Objects.requireNonNull(binder);
+        mUserData = userData;
     }
 
     /** @hide */
-    IDataAccessService getDataAccessService() {
+    @NonNull IDataAccessService getDataAccessService() {
         return mDataAccessService;
+    }
+
+    /** @hide */
+    @Nullable UserData getUserData() {
+        return mUserData;
     }
 }
