@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.odpsamplenetwork;
+package com.example.odpsamplenetwork;
 
 import android.annotation.NonNull;
 import android.ondevicepersonalization.IsolatedComputationCallback;

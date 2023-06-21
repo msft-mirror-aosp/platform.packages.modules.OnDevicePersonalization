@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.odpclient;
+package com.example.odpclient;
 
 import android.app.Activity;
 import android.content.ComponentName;
@@ -82,8 +82,8 @@ public class MainActivity extends Activity {
             appParams.putString("keyword", mTextBox.getText().toString());
             mOdpManager.execute(
                     ComponentName.createRelative(
-                        "com.android.odpsamplenetwork",
-                        "com.android.odpsamplenetwork.SampleService"),
+                        "com.example.odpsamplenetwork",
+                        "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
