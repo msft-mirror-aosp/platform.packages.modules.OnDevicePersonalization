@@ -529,7 +529,7 @@ public class IsolatedComputationServiceTest {
     }
 
     class TestService extends IsolatedComputationService {
-        @Override public IsolatedComputationCallback createCallback(RequestToken token) {
+        @Override public IsolatedComputationCallback onRequest(RequestToken token) {
             return new TestHandler();
         }
     }

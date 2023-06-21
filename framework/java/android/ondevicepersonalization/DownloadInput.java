@@ -132,17 +132,6 @@ public final class DownloadInput {
             return this;
         }
 
-        /** @see #setData */
-        @DataClass.Generated.Member
-        public @NonNull Builder addData(@NonNull String key, @NonNull byte[] value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mData == null) setData(new java.util.LinkedHashMap());
-            mData.put(key, value);
-            return this;
-        }
-
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull DownloadInput build() {
             checkNotUsed();
