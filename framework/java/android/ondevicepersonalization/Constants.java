@@ -48,6 +48,8 @@ public class Constants {
     public static final String
             EXTRA_RESPONSE_DATA = "android.ondevicepersonalization.extra.response_data";
     public static final String
+            EXTRA_USER_DATA = "android.ondevicepersonalization.extra.user_data";
+    public static final String
             EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
     public static final String
             EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
