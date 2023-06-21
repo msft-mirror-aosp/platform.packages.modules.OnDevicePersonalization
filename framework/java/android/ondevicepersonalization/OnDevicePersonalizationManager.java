@@ -46,7 +46,6 @@ import java.util.concurrent.TimeUnit;
  * OnDevicePersonalizationManager provides APIs for apps to interact with an
  * {@link IsolatedComputationService} in an isolated process.
  *
- * @hide
  */
 public class OnDevicePersonalizationManager {
     static final String ON_DEVICE_PERSONALIZATION_SERVICE =
@@ -175,7 +174,6 @@ public class OnDevicePersonalizationManager {
      * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
      *     Exception} on failure.
      *
-     * @hide
      */
     public void requestSurfacePackage(
             @NonNull SurfacePackageToken surfacePackageToken,
