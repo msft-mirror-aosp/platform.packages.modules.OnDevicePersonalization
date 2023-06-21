@@ -27,6 +27,7 @@ import android.content.Context;
 
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
@@ -77,6 +78,12 @@ public class UserDataCollectionJobService extends JobService {
     public boolean onStartJob(JobParameters params) {
         // TODO(b/265856477): return false to disable data collection if kid status is enabled.
         sLogger.d(TAG + ": onStartJob()");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
+            jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
+
         mUserDataCollector = UserDataCollector.getInstance(this);
         mUserData = RawUserData.getInstance();
         mFuture = Futures.submit(new Runnable() {
