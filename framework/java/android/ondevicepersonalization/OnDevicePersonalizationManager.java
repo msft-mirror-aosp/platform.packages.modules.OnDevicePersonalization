@@ -106,7 +106,7 @@ public class OnDevicePersonalizationManager {
      * @param params a {@link PersistableBundle} passed from the calling app to the service.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This returns a list of {@link SurfacePackageToken} objects, each of which is
-     *     an opaque reference to a {@link RenderingData} returned by an
+     *     an opaque reference to a {@link RenderingConfig} returned by an
      *     {@link IsolatedComputationService}, or an {@link Exception} on failure. The returned
      *     {@link SurfacePackageToken} objects can be used in a subsequent
      *     {@link requestSurfacePackage} call to display the result in a view. An entry in the

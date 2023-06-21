@@ -48,7 +48,7 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
 
             DownloadOutput result =
                     new DownloadOutput.Builder()
-                            .setKeysToRetain(getFilteredKeys(input.getData()))
+                            .setRetainedKeys(getFilteredKeys(input.getData()))
                             .build();
             consumer.accept(result);
         } catch (Exception e) {

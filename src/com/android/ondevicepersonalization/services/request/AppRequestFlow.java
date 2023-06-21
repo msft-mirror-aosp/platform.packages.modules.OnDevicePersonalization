@@ -23,7 +23,7 @@ import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.ExecuteInput;
 import android.ondevicepersonalization.ExecuteOutput;
 import android.ondevicepersonalization.OnDevicePersonalizationException;
-import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RenderingConfig;
 import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -211,24 +211,24 @@ public class AppRequestFlow {
             sLogger.d(TAG + ": createTokens() started.");
             ExecuteOutput result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<RenderingData> slotResults = result.getRenderingDataList();
-            Objects.requireNonNull(slotResults);
+            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
+            Objects.requireNonNull(renderingConfigs);
 
-            List<String> slotResultTokens = new ArrayList<String>();
+            List<String> tokens = new ArrayList<String>();
             int slotIndex = 0;
-            for (RenderingData slotResult : slotResults) {
-                if (slotResult == null) {
-                    slotResultTokens.add(null);
+            for (RenderingConfig renderingConfig : renderingConfigs) {
+                if (renderingConfig == null) {
+                    tokens.add(null);
                 } else {
                     SlotWrapper wrapper = new SlotWrapper(
-                            result.getRequestLogRecord(), slotIndex, slotResult,
+                            result.getRequestLogRecord(), slotIndex, renderingConfig,
                             mService.getPackageName(), queryId);
-                    slotResultTokens.add(CryptUtils.encrypt(wrapper));
+                    tokens.add(CryptUtils.encrypt(wrapper));
                 }
                 ++slotIndex;
             }
 
-            return Futures.immediateFuture(slotResultTokens);
+            return Futures.immediateFuture(tokens);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }

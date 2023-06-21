@@ -148,7 +148,7 @@ public abstract class IsolatedComputationService extends Service {
 
                 RenderInput input = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, RenderInput.class));
-                Objects.requireNonNull(input.getRenderingData());
+                Objects.requireNonNull(input.getRenderingConfig());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(Objects.requireNonNull(
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));

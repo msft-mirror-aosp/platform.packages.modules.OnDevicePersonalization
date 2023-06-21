@@ -45,8 +45,8 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         row.put("a", 5);
         ExecuteOutput result =
                 new ExecuteOutput.Builder()
-                    .setRequestLogRecord(new RequestLogRecord.Builder().addRows(row).build())
-                    .addRenderingDataList(new RenderingData.Builder().addKeys("abc").build())
+                    .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                    .addRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                     .build();
 
         Parcel parcel = Parcel.obtain();
@@ -56,7 +56,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
 
         assertEquals(
                 5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
-        assertEquals("abc", result2.getRenderingDataList().get(0).getKeys().get(0));
+        assertEquals("abc", result2.getRenderingConfigs().get(0).getKeys().get(0));
     }
 
     /**
@@ -81,7 +81,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     @Test
     public void teetDownloadOutput() {
         DownloadOutput result = new DownloadOutput.Builder()
-                .addKeysToRetain("abc").addKeysToRetain("def").build();
+                .addRetainedKey("abc").addRetainedKey("def").build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
@@ -89,8 +89,8 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         DownloadOutput result2 = DownloadOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
-        assertEquals("abc", result2.getKeysToRetain().get(0));
-        assertEquals("def", result2.getKeysToRetain().get(1));
+        assertEquals("abc", result2.getRetainedKeys().get(0));
+        assertEquals("def", result2.getRetainedKeys().get(1));
     }
 
     /**
@@ -148,10 +148,10 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(3, result2.getEventLogRecord().getData().getAsInteger("a").intValue());
     }
 
-    /** Test for RenderingData class. */
+    /** Test for RenderingConfig class. */
     @Test
-    public void testRenderingData() {
-        RenderingData data = new RenderingData.Builder().addKeys("a").addKeys("b").build();
+    public void testRenderingConfig() {
+        RenderingConfig data = new RenderingConfig.Builder().addKey("a").addKey("b").build();
         assertEquals(2, data.getKeys().size());
         assertEquals("a", data.getKeys().get(0));
         assertEquals("b", data.getKeys().get(1));

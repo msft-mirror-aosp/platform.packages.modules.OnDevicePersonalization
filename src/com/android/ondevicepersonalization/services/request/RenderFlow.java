@@ -21,7 +21,7 @@ import android.content.Context;
 import android.ondevicepersonalization.Constants;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RenderingConfig;
 import android.ondevicepersonalization.RequestLogRecord;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
@@ -169,15 +169,15 @@ public class RenderFlow {
             sLogger.d(TAG + ": renderContentForSlot() started.");
             Objects.requireNonNull(slotWrapper);
             RequestLogRecord logRecord = Objects.requireNonNull(slotWrapper.getLogRecord());
-            RenderingData slotRenderingInfo =
-                    Objects.requireNonNull(slotWrapper.getRenderingData());
+            RenderingConfig renderingConfig =
+                    Objects.requireNonNull(slotWrapper.getRenderingConfig());
             long queryId = slotWrapper.getQueryId();
 
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    loadResult, slotWrapper.getSlotIndex(), slotRenderingInfo),
+                                    loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
@@ -204,15 +204,15 @@ public class RenderFlow {
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
             IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
-            RenderingData slotRenderingInfo) {
+            RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
         RenderInput input =
                 new RenderInput.Builder()
                     .setHeight(mHeight)
                     .setWidth(mWidth)
-                    .setSlotIndex(slotIndex)
-                    .setRenderingData(slotRenderingInfo)
+                    .setRenderingConfigIndex(slotIndex)
+                    .setRenderingConfig(renderingConfig)
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(

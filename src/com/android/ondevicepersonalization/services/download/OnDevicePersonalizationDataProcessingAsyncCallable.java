@@ -193,7 +193,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         List<VendorData> filteredList = new ArrayList<>();
         DownloadOutput downloadResult = pluginResult.getParcelable(
                 Constants.EXTRA_RESULT, DownloadOutput.class);
-        List<String> retainedKeys = downloadResult.getKeysToRetain();
+        List<String> retainedKeys = downloadResult.getRetainedKeys();
         if (retainedKeys == null) {
             // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
             return null;
