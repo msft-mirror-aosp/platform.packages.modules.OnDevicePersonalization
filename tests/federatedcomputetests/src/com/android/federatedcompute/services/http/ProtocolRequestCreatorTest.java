@@ -27,8 +27,9 @@ import static org.junit.Assert.assertThrows;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.android.federatedcompute.proto.ForwardingInfo;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
+
+import com.google.internal.federatedcompute.v1.ForwardingInfo;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;

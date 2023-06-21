@@ -21,8 +21,9 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_
 import static com.android.federatedcompute.services.http.HttpClientUtil.FAKE_API_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
 
-import com.android.federatedcompute.proto.ForwardingInfo;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
+
+import com.google.internal.federatedcompute.v1.ForwardingInfo;
 
 import java.util.HashMap;
 

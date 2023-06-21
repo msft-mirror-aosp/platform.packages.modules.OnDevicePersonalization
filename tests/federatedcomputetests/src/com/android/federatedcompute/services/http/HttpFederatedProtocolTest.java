@@ -32,20 +32,20 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.android.federatedcompute.proto.ByteStreamResource;
-import com.android.federatedcompute.proto.ClientVersion;
-import com.android.federatedcompute.proto.ForwardingInfo;
-import com.android.federatedcompute.proto.RejectionInfo;
-import com.android.federatedcompute.proto.Resource;
-import com.android.federatedcompute.proto.Resource.InlineResource;
-import com.android.federatedcompute.proto.ResourceCapabilities;
-import com.android.federatedcompute.proto.ResourceCompressionFormat;
-import com.android.federatedcompute.proto.StartAggregationDataUploadResponse;
-import com.android.federatedcompute.proto.StartTaskAssignmentRequest;
-import com.android.federatedcompute.proto.StartTaskAssignmentResponse;
-import com.android.federatedcompute.proto.TaskAssignment;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
+import com.google.internal.federatedcompute.v1.ByteStreamResource;
+import com.google.internal.federatedcompute.v1.ClientVersion;
+import com.google.internal.federatedcompute.v1.ForwardingInfo;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
+import com.google.internal.federatedcompute.v1.Resource;
+import com.google.internal.federatedcompute.v1.Resource.InlineResource;
+import com.google.internal.federatedcompute.v1.ResourceCapabilities;
+import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
+import com.google.internal.federatedcompute.v1.StartAggregationDataUploadResponse;
+import com.google.internal.federatedcompute.v1.StartTaskAssignmentRequest;
+import com.google.internal.federatedcompute.v1.StartTaskAssignmentResponse;
+import com.google.internal.federatedcompute.v1.TaskAssignment;
 import com.google.protobuf.ByteString;
 
 import org.junit.Before;
