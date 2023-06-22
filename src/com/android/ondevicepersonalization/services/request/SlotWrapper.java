@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.request;
 
-import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RenderingConfig;
 import android.ondevicepersonalization.RequestLogRecord;
 
 import com.android.ondevicepersonalization.services.util.ParcelWrapper;
@@ -29,15 +29,15 @@ import java.io.Serializable;
 class SlotWrapper implements Serializable {
     private ParcelWrapper<RequestLogRecord> mWrappedLogRecord;
     private int mSlotIndex;
-    private ParcelWrapper<RenderingData> mWrappedRenderingData;
+    private ParcelWrapper<RenderingConfig> mWrappedRenderingConfig;
     private String mServicePackageName;
     private long mQueryId;
 
     SlotWrapper(
-            RequestLogRecord logInfo, int slotIndex, RenderingData slotRenderingInfo,
+            RequestLogRecord logInfo, int slotIndex, RenderingConfig renderingConfig,
             String servicePackageName, long queryId) {
         mWrappedLogRecord = new ParcelWrapper<>(logInfo);
-        mWrappedRenderingData = new ParcelWrapper<>(slotRenderingInfo);
+        mWrappedRenderingConfig = new ParcelWrapper<>(renderingConfig);
         mServicePackageName = servicePackageName;
         mSlotIndex = slotIndex;
         mQueryId = queryId;
@@ -51,8 +51,8 @@ class SlotWrapper implements Serializable {
         return mSlotIndex;
     }
 
-    RenderingData getRenderingData() {
-        return mWrappedRenderingData.get(RenderingData.CREATOR);
+    RenderingConfig getRenderingConfig() {
+        return mWrappedRenderingConfig.get(RenderingConfig.CREATOR);
     }
 
     String getServicePackageName() {

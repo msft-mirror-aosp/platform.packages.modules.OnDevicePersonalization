@@ -35,10 +35,10 @@ public final class RenderInput implements Parcelable {
     private int mHeight = 0;
 
     /** Index of the slot that this render request is for. */
-    private int mSlotIndex = 0;
+    private int mRenderingConfigIndex = 0;
 
-    /** The {@link RenderingData} returned by {@link onExecute}. */
-    @Nullable RenderingData mRenderingData = null;
+    /** A {@link RenderingConfig} returned by {@link onExecute}. */
+    @Nullable RenderingConfig mRenderingConfig = null;
 
 
 
@@ -59,12 +59,12 @@ public final class RenderInput implements Parcelable {
     /* package-private */ RenderInput(
             int width,
             int height,
-            int slotIndex,
-            @Nullable RenderingData renderingData) {
+            int renderingConfigIndex,
+            @Nullable RenderingConfig renderingConfig) {
         this.mWidth = width;
         this.mHeight = height;
-        this.mSlotIndex = slotIndex;
-        this.mRenderingData = renderingData;
+        this.mRenderingConfigIndex = renderingConfigIndex;
+        this.mRenderingConfig = renderingConfig;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -89,16 +89,16 @@ public final class RenderInput implements Parcelable {
      * Index of the slot that this render request is for.
      */
     @DataClass.Generated.Member
-    public int getSlotIndex() {
-        return mSlotIndex;
+    public int getRenderingConfigIndex() {
+        return mRenderingConfigIndex;
     }
 
     /**
-     * The {@link RenderingData} returned by {@link onExecute}.
+     * A {@link RenderingConfig} returned by {@link onExecute}.
      */
     @DataClass.Generated.Member
-    public @Nullable RenderingData getRenderingData() {
-        return mRenderingData;
+    public @Nullable RenderingConfig getRenderingConfig() {
+        return mRenderingConfig;
     }
 
     @Override
@@ -116,8 +116,8 @@ public final class RenderInput implements Parcelable {
         return true
                 && mWidth == that.mWidth
                 && mHeight == that.mHeight
-                && mSlotIndex == that.mSlotIndex
-                && java.util.Objects.equals(mRenderingData, that.mRenderingData);
+                && mRenderingConfigIndex == that.mRenderingConfigIndex
+                && java.util.Objects.equals(mRenderingConfig, that.mRenderingConfig);
     }
 
     @Override
@@ -129,8 +129,8 @@ public final class RenderInput implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + mWidth;
         _hash = 31 * _hash + mHeight;
-        _hash = 31 * _hash + mSlotIndex;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingData);
+        _hash = 31 * _hash + mRenderingConfigIndex;
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingConfig);
         return _hash;
     }
 
@@ -141,12 +141,12 @@ public final class RenderInput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mRenderingData != null) flg |= 0x8;
+        if (mRenderingConfig != null) flg |= 0x8;
         dest.writeByte(flg);
         dest.writeInt(mWidth);
         dest.writeInt(mHeight);
-        dest.writeInt(mSlotIndex);
-        if (mRenderingData != null) dest.writeTypedObject(mRenderingData, flags);
+        dest.writeInt(mRenderingConfigIndex);
+        if (mRenderingConfig != null) dest.writeTypedObject(mRenderingConfig, flags);
     }
 
     @Override
@@ -163,13 +163,13 @@ public final class RenderInput implements Parcelable {
         byte flg = in.readByte();
         int width = in.readInt();
         int height = in.readInt();
-        int slotIndex = in.readInt();
-        RenderingData renderingData = (flg & 0x8) == 0 ? null : (RenderingData) in.readTypedObject(RenderingData.CREATOR);
+        int renderingConfigIndex = in.readInt();
+        RenderingConfig renderingConfig = (flg & 0x8) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);
 
         this.mWidth = width;
         this.mHeight = height;
-        this.mSlotIndex = slotIndex;
-        this.mRenderingData = renderingData;
+        this.mRenderingConfigIndex = renderingConfigIndex;
+        this.mRenderingConfig = renderingConfig;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -197,8 +197,8 @@ public final class RenderInput implements Parcelable {
 
         private int mWidth;
         private int mHeight;
-        private int mSlotIndex;
-        private @Nullable RenderingData mRenderingData;
+        private int mRenderingConfigIndex;
+        private @Nullable RenderingConfig mRenderingConfig;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -231,21 +231,21 @@ public final class RenderInput implements Parcelable {
          * Index of the slot that this render request is for.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setSlotIndex(int value) {
+        public @android.annotation.NonNull Builder setRenderingConfigIndex(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
-            mSlotIndex = value;
+            mRenderingConfigIndex = value;
             return this;
         }
 
         /**
-         * The {@link RenderingData} returned by {@link onExecute}.
+         * A {@link RenderingConfig} returned by {@link onExecute}.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRenderingData(@android.annotation.NonNull RenderingData value) {
+        public @android.annotation.NonNull Builder setRenderingConfig(@android.annotation.NonNull RenderingConfig value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8;
-            mRenderingData = value;
+            mRenderingConfig = value;
             return this;
         }
 
@@ -261,16 +261,16 @@ public final class RenderInput implements Parcelable {
                 mHeight = 0;
             }
             if ((mBuilderFieldsSet & 0x4) == 0) {
-                mSlotIndex = 0;
+                mRenderingConfigIndex = 0;
             }
             if ((mBuilderFieldsSet & 0x8) == 0) {
-                mRenderingData = null;
+                mRenderingConfig = null;
             }
             RenderInput o = new RenderInput(
                     mWidth,
                     mHeight,
-                    mSlotIndex,
-                    mRenderingData);
+                    mRenderingConfigIndex,
+                    mRenderingConfig);
             return o;
         }
 
@@ -283,10 +283,10 @@ public final class RenderInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686615056234L,
+            time = 1687380072610L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java",
-            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mSlotIndex\n @android.annotation.Nullable android.ondevicepersonalization.RenderingData mRenderingData\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -233,7 +233,7 @@ public class OdpWebViewClientTests {
 
     private WebViewClient getWebViewClient() {
         RequestLogRecord logRecord =
-                new RequestLogRecord.Builder().addRows(new ContentValues()).build();
+                new RequestLogRecord.Builder().addRow(new ContentValues()).build();
         return getWebViewClient(QUERY_ID, logRecord);
     }
 

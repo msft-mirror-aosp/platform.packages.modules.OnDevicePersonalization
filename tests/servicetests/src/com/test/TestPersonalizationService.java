@@ -23,7 +23,7 @@ import android.ondevicepersonalization.RequestToken;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationService extends IsolatedComputationService {
-    @NonNull @Override public IsolatedComputationCallback createCallback(RequestToken token) {
+    @NonNull @Override public IsolatedComputationCallback onRequest(RequestToken token) {
         return new TestPersonalizationHandler(getRemoteData(token));
     }
 }

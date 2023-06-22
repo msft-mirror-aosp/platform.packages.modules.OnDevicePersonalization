@@ -16,4 +16,4 @@
 
 package android.ondevicepersonalization;
 
-parcelable RenderingData;
+parcelable RenderingConfig;

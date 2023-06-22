@@ -37,10 +37,11 @@ public final class ExecuteOutput implements Parcelable {
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
-     * A list of {@link RenderingData} objects, one per slot specified in the request from the
+     * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
      * calling app.
      */
-    @Nullable private List<RenderingData> mRenderingDataList = null;
+    @DataClass.PluralOf("renderingConfig")
+    @Nullable private List<RenderingConfig> mRenderingConfigs = null;
 
 
 
@@ -60,9 +61,9 @@ public final class ExecuteOutput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ ExecuteOutput(
             @Nullable RequestLogRecord requestLogRecord,
-            @Nullable List<RenderingData> renderingDataList) {
+            @Nullable List<RenderingConfig> renderingConfigs) {
         this.mRequestLogRecord = requestLogRecord;
-        this.mRenderingDataList = renderingDataList;
+        this.mRenderingConfigs = renderingConfigs;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -76,12 +77,12 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     /**
-     * A list of {@link RenderingData} objects, one per slot specified in the request from the
+     * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
      * calling app.
      */
     @DataClass.Generated.Member
-    public @Nullable List<RenderingData> getRenderingDataList() {
-        return mRenderingDataList;
+    public @Nullable List<RenderingConfig> getRenderingConfigs() {
+        return mRenderingConfigs;
     }
 
     @Override
@@ -98,7 +99,7 @@ public final class ExecuteOutput implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord)
-                && java.util.Objects.equals(mRenderingDataList, that.mRenderingDataList);
+                && java.util.Objects.equals(mRenderingConfigs, that.mRenderingConfigs);
     }
 
     @Override
@@ -109,7 +110,7 @@ public final class ExecuteOutput implements Parcelable {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingDataList);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingConfigs);
         return _hash;
     }
 
@@ -121,10 +122,10 @@ public final class ExecuteOutput implements Parcelable {
 
         byte flg = 0;
         if (mRequestLogRecord != null) flg |= 0x1;
-        if (mRenderingDataList != null) flg |= 0x2;
+        if (mRenderingConfigs != null) flg |= 0x2;
         dest.writeByte(flg);
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
-        if (mRenderingDataList != null) dest.writeParcelableList(mRenderingDataList, flags);
+        if (mRenderingConfigs != null) dest.writeParcelableList(mRenderingConfigs, flags);
     }
 
     @Override
@@ -140,14 +141,14 @@ public final class ExecuteOutput implements Parcelable {
 
         byte flg = in.readByte();
         RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
-        List<RenderingData> renderingDataList = null;
+        List<RenderingConfig> renderingConfigs = null;
         if ((flg & 0x2) != 0) {
-            renderingDataList = new java.util.ArrayList<>();
-            in.readParcelableList(renderingDataList, RenderingData.class.getClassLoader());
+            renderingConfigs = new java.util.ArrayList<>();
+            in.readParcelableList(renderingConfigs, RenderingConfig.class.getClassLoader());
         }
 
         this.mRequestLogRecord = requestLogRecord;
-        this.mRenderingDataList = renderingDataList;
+        this.mRenderingConfigs = renderingConfigs;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -174,7 +175,7 @@ public final class ExecuteOutput implements Parcelable {
     public static final class Builder {
 
         private @Nullable RequestLogRecord mRequestLogRecord;
-        private @Nullable List<RenderingData> mRenderingDataList;
+        private @Nullable List<RenderingConfig> mRenderingConfigs;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -193,25 +194,22 @@ public final class ExecuteOutput implements Parcelable {
         }
 
         /**
-         * A list of {@link RenderingData} objects, one per slot specified in the request from the
+         * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
          * calling app.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRenderingDataList(@android.annotation.NonNull List<RenderingData> value) {
+        public @android.annotation.NonNull Builder setRenderingConfigs(@android.annotation.NonNull List<RenderingConfig> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mRenderingDataList = value;
+            mRenderingConfigs = value;
             return this;
         }
 
-        /** @see #setRenderingDataList */
+        /** @see #setRenderingConfigs */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder addRenderingDataList(@android.annotation.NonNull RenderingData value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mRenderingDataList == null) setRenderingDataList(new java.util.ArrayList<>());
-            mRenderingDataList.add(value);
+        public @android.annotation.NonNull Builder addRenderingConfig(@android.annotation.NonNull RenderingConfig value) {
+            if (mRenderingConfigs == null) setRenderingConfigs(new java.util.ArrayList<>());
+            mRenderingConfigs.add(value);
             return this;
         }
 
@@ -224,11 +222,11 @@ public final class ExecuteOutput implements Parcelable {
                 mRequestLogRecord = null;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mRenderingDataList = null;
+                mRenderingConfigs = null;
             }
             ExecuteOutput o = new ExecuteOutput(
                     mRequestLogRecord,
-                    mRenderingDataList);
+                    mRenderingConfigs);
             return o;
         }
 
@@ -241,10 +239,10 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686691864276L,
+            time = 1687379042570L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable java.util.List<android.ondevicepersonalization.RenderingData> mRenderingDataList\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.Nullable java.util.List<android.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
