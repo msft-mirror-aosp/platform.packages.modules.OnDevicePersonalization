@@ -28,7 +28,7 @@ import android.ondevicepersonalization.IsolatedComputationCallback;
 import android.ondevicepersonalization.KeyValueStore;
 import android.ondevicepersonalization.RenderInput;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RenderingConfig;
 import android.ondevicepersonalization.RequestLogRecord;
 import android.ondevicepersonalization.WebViewEventInput;
 import android.ondevicepersonalization.WebViewEventOutput;
@@ -96,7 +96,7 @@ public class SampleHandler implements IsolatedComputationCallback {
         Log.d(TAG, "onDownload() started.");
         DownloadOutput downloadResult =
                 new DownloadOutput.Builder()
-                        .setKeysToRetain(getFilteredKeys(input.getData()))
+                        .setRetainedKeys(getFilteredKeys(input.getData()))
                         .build();
         consumer.accept(downloadResult);
     }
@@ -197,8 +197,8 @@ public class SampleHandler implements IsolatedComputationCallback {
         Log.d(TAG, "buildResult() called.");
         ContentValues logData = createLogRecord(ad.mId, ad.mPrice, ad.mPrice * 10.0);
         return new ExecuteOutput.Builder()
-                .setRequestLogRecord(new RequestLogRecord.Builder().addRows(logData).build())
-                .addRenderingDataList(new RenderingData.Builder().addKeys(ad.mId).build())
+                .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
+                .addRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
                 .build();
     }
 
@@ -291,7 +291,7 @@ public class SampleHandler implements IsolatedComputationCallback {
     ) {
         try {
             Log.d(TAG, "handleOnRender() started.");
-            String id = input.getRenderingData().getKeys().get(0);
+            String id = input.getRenderingConfig().getKeys().get(0);
             var adFuture = readAd(id, mRemoteData);
             var impUrlFuture = getImpressionTrackingUrl();
             var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(

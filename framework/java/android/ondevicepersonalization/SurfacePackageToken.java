@@ -20,7 +20,7 @@ import android.annotation.NonNull;
 
 /**
  * An opaque reference to content that can be displayed in a {@link SurfaceView}. This maps
- * to a {@link RenderingData} returned by an {@link IsolatedComputationService}.
+ * to a {@link RenderingConfig} returned by an {@link IsolatedComputationService}.
  *
  */
 public class SurfacePackageToken {

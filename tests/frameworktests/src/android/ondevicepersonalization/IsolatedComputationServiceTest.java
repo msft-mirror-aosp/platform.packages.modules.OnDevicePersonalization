@@ -96,7 +96,7 @@ public class IsolatedComputationServiceTest {
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutput.class);
         assertEquals(
                 5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
-        assertEquals("123", result.getRenderingDataList().get(0).getKeys().get(0));
+        assertEquals("123", result.getRenderingConfigs().get(0).getKeys().get(0));
     }
 
     @Test
@@ -206,7 +206,7 @@ public class IsolatedComputationServiceTest {
         assertTrue(mOnDownloadCalled);
         DownloadOutput result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, DownloadOutput.class);
-        assertEquals("12", result.getKeysToRetain().get(0));
+        assertEquals("12", result.getRetainedKeys().get(0));
     }
 
     @Test
@@ -272,10 +272,10 @@ public class IsolatedComputationServiceTest {
     public void testOnRender() throws Exception {
         RenderInput input =
                 new RenderInput.Builder()
-                .setRenderingData(
-                    new RenderingData.Builder()
-                        .addKeys("a")
-                        .addKeys("b")
+                .setRenderingConfig(
+                    new RenderingConfig.Builder()
+                        .addKey("a")
+                        .addKey("b")
                         .build())
                 .build();
         Bundle params = new Bundle();
@@ -294,9 +294,9 @@ public class IsolatedComputationServiceTest {
     public void testOnRenderPropagatesError() throws Exception {
         RenderInput input =
                 new RenderInput.Builder()
-                .setRenderingData(
-                    new RenderingData.Builder()
-                        .addKeys("z")  // Trigger error in service.
+                .setRenderingConfig(
+                    new RenderingConfig.Builder()
+                        .addKey("z")  // Trigger error in service.
                         .build())
                 .build();
         Bundle params = new Bundle();
@@ -337,10 +337,10 @@ public class IsolatedComputationServiceTest {
     public void testOnRenderThrowsIfDataAccessServiceMissing() throws Exception {
         RenderInput input =
                 new RenderInput.Builder()
-                .setRenderingData(
-                    new RenderingData.Builder()
-                        .addKeys("a")
-                        .addKeys("b")
+                .setRenderingConfig(
+                    new RenderingConfig.Builder()
+                        .addKey("a")
+                        .addKey("b")
                         .build())
                 .build();
         Bundle params = new Bundle();
@@ -358,10 +358,10 @@ public class IsolatedComputationServiceTest {
     public void testOnRenderThrowsIfCallbackMissing() throws Exception {
         RenderInput input =
                 new RenderInput.Builder()
-                .setRenderingData(
-                    new RenderingData.Builder()
-                        .addKeys("a")
-                        .addKeys("b")
+                .setRenderingConfig(
+                    new RenderingConfig.Builder()
+                        .addKey("a")
+                        .addKey("b")
                         .build())
                 .build();
         Bundle params = new Bundle();
@@ -478,8 +478,8 @@ public class IsolatedComputationServiceTest {
                 row.put("a", 5);
                 consumer.accept(
                         new ExecuteOutput.Builder()
-                        .setRequestLogRecord(new RequestLogRecord.Builder().addRows(row).build())
-                        .addRenderingDataList(new RenderingData.Builder().addKeys("123").build())
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                        .addRenderingConfig(new RenderingConfig.Builder().addKey("123").build())
                         .build());
             }
         }
@@ -489,7 +489,7 @@ public class IsolatedComputationServiceTest {
                 Consumer<DownloadOutput> consumer
         ) {
             mOnDownloadCalled = true;
-            consumer.accept(new DownloadOutput.Builder().addKeysToRetain("12").build());
+            consumer.accept(new DownloadOutput.Builder().addRetainedKey("12").build());
         }
 
         @Override public void onRender(
@@ -497,8 +497,8 @@ public class IsolatedComputationServiceTest {
                 Consumer<RenderOutput> consumer
         ) {
             mOnRenderCalled = true;
-            if (input.getRenderingData().getKeys().size() >= 1
-                        && input.getRenderingData().getKeys().get(0).equals("z")) {
+            if (input.getRenderingConfig().getKeys().size() >= 1
+                        && input.getRenderingConfig().getKeys().get(0).equals("z")) {
                 consumer.accept(null);
             } else {
                 consumer.accept(
@@ -529,7 +529,7 @@ public class IsolatedComputationServiceTest {
     }
 
     class TestService extends IsolatedComputationService {
-        @Override public IsolatedComputationCallback createCallback(RequestToken token) {
+        @Override public IsolatedComputationCallback onRequest(RequestToken token) {
             return new TestHandler();
         }
     }

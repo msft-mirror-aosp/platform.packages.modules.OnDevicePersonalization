@@ -31,7 +31,8 @@ import java.util.List;
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadOutput implements Parcelable {
     /** The keys to be retained in the REMOTE_DATA table. */
-    @Nullable private List<String> mKeysToRetain = null;
+    @DataClass.PluralOf("retainedKey")
+    @Nullable private List<String> mRetainedKeys = null;
 
 
 
@@ -50,8 +51,8 @@ public final class DownloadOutput implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ DownloadOutput(
-            @Nullable List<String> keysToRetain) {
-        this.mKeysToRetain = keysToRetain;
+            @Nullable List<String> retainedKeys) {
+        this.mRetainedKeys = retainedKeys;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -60,8 +61,8 @@ public final class DownloadOutput implements Parcelable {
      * The keys to be retained in the REMOTE_DATA table.
      */
     @DataClass.Generated.Member
-    public @Nullable List<String> getKeysToRetain() {
-        return mKeysToRetain;
+    public @Nullable List<String> getRetainedKeys() {
+        return mRetainedKeys;
     }
 
     @Override
@@ -77,7 +78,7 @@ public final class DownloadOutput implements Parcelable {
         DownloadOutput that = (DownloadOutput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mKeysToRetain, that.mKeysToRetain);
+                && java.util.Objects.equals(mRetainedKeys, that.mRetainedKeys);
     }
 
     @Override
@@ -87,7 +88,7 @@ public final class DownloadOutput implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mKeysToRetain);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRetainedKeys);
         return _hash;
     }
 
@@ -98,9 +99,9 @@ public final class DownloadOutput implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mKeysToRetain != null) flg |= 0x1;
+        if (mRetainedKeys != null) flg |= 0x1;
         dest.writeByte(flg);
-        if (mKeysToRetain != null) dest.writeStringList(mKeysToRetain);
+        if (mRetainedKeys != null) dest.writeStringList(mRetainedKeys);
     }
 
     @Override
@@ -115,13 +116,13 @@ public final class DownloadOutput implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        List<String> keysToRetain = null;
+        List<String> retainedKeys = null;
         if ((flg & 0x1) != 0) {
-            keysToRetain = new java.util.ArrayList<>();
-            in.readStringList(keysToRetain);
+            retainedKeys = new java.util.ArrayList<>();
+            in.readStringList(retainedKeys);
         }
 
-        this.mKeysToRetain = keysToRetain;
+        this.mRetainedKeys = retainedKeys;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -147,7 +148,7 @@ public final class DownloadOutput implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable List<String> mKeysToRetain;
+        private @Nullable List<String> mRetainedKeys;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -158,21 +159,18 @@ public final class DownloadOutput implements Parcelable {
          * The keys to be retained in the REMOTE_DATA table.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setKeysToRetain(@android.annotation.NonNull List<String> value) {
+        public @android.annotation.NonNull Builder setRetainedKeys(@android.annotation.NonNull List<String> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mKeysToRetain = value;
+            mRetainedKeys = value;
             return this;
         }
 
-        /** @see #setKeysToRetain */
+        /** @see #setRetainedKeys */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder addKeysToRetain(@android.annotation.NonNull String value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mKeysToRetain == null) setKeysToRetain(new java.util.ArrayList<>());
-            mKeysToRetain.add(value);
+        public @android.annotation.NonNull Builder addRetainedKey(@android.annotation.NonNull String value) {
+            if (mRetainedKeys == null) setRetainedKeys(new java.util.ArrayList<>());
+            mRetainedKeys.add(value);
             return this;
         }
 
@@ -182,10 +180,10 @@ public final class DownloadOutput implements Parcelable {
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mKeysToRetain = null;
+                mRetainedKeys = null;
             }
             DownloadOutput o = new DownloadOutput(
-                    mKeysToRetain);
+                    mRetainedKeys);
             return o;
         }
 
@@ -198,10 +196,10 @@ public final class DownloadOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1680551322132L,
+            time = 1687383235351L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadOutput.java",
-            inputSignatures = "private @android.annotation.Nullable java.util.List<java.lang.String> mKeysToRetain\nclass DownloadOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.Nullable java.util.List<java.lang.String> mRetainedKeys\nclass DownloadOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

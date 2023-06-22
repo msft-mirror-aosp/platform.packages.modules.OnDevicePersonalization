@@ -34,6 +34,7 @@ public final class RequestLogRecord implements Parcelable {
     /**
      * A List of rows, each containing a {@link ContentValues}.
      **/
+    @DataClass.PluralOf("row")
     @Nullable List<ContentValues> mRows = null;
 
 
@@ -170,10 +171,7 @@ public final class RequestLogRecord implements Parcelable {
 
         /** @see #setRows */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder addRows(@android.annotation.NonNull ContentValues value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
+        public @android.annotation.NonNull Builder addRow(@android.annotation.NonNull ContentValues value) {
             if (mRows == null) setRows(new java.util.ArrayList<>());
             mRows.add(value);
             return this;
@@ -201,10 +199,10 @@ public final class RequestLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686601864786L,
+            time = 1687383430307L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RequestLogRecord.java",
-            inputSignatures = " @android.annotation.Nullable java.util.List<android.content.ContentValues> mRows\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.Nullable java.util.List<android.content.ContentValues> mRows\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

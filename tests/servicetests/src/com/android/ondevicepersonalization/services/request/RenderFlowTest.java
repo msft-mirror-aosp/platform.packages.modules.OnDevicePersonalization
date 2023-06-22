@@ -22,7 +22,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.ContentValues;
 import android.content.Context;
 import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RenderingData;
+import android.ondevicepersonalization.RenderingConfig;
 import android.ondevicepersonalization.RequestLogRecord;
 import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
@@ -85,9 +85,9 @@ public class RenderFlowTest {
                 injector.getExecutor());
         ContentValues logData = new ContentValues();
         logData.put("x", 1);
-        RequestLogRecord logRecord = new RequestLogRecord.Builder().addRows(logData).build();
-        RenderingData info =
-                new RenderingData.Builder().addKeys("bid1").addKeys("bid2").build();
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().addRow(logData).build();
+        RenderingConfig info =
+                new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
         SlotWrapper data = new SlotWrapper(
                 logRecord, 0, info, mContext.getPackageName(), 0);
         String encrypted = CryptUtils.encrypt(data);
@@ -96,7 +96,7 @@ public class RenderFlowTest {
         assertEquals(data.getSlotIndex(), decrypted.getSlotIndex());
         assertEquals(data.getQueryId(), decrypted.getQueryId());
         assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
-        assertEquals(data.getRenderingData(), decrypted.getRenderingData());
+        assertEquals(data.getRenderingConfig(), decrypted.getRenderingConfig());
     }
 
     class TestInjector extends RenderFlow.Injector {
@@ -107,8 +107,8 @@ public class RenderFlowTest {
         SlotWrapper decryptToken(String token) {
             if (token.equals("token")) {
                 RequestLogRecord logRecord = new RequestLogRecord.Builder().build();
-                RenderingData info =
-                        new RenderingData.Builder().addKeys("bid1").addKeys("bid2").build();
+                RenderingConfig info =
+                        new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
                 SlotWrapper data = new SlotWrapper(
                         logRecord, 0, info, mContext.getPackageName(), 0);
                 return data;
