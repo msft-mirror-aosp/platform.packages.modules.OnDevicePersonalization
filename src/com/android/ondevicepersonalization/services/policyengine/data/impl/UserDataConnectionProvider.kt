@@ -23,6 +23,7 @@ import android.ondevicepersonalization.Location
 import android.ondevicepersonalization.AppInstallStatus
 import android.ondevicepersonalization.AppUsageStatus
 import android.ondevicepersonalization.LocationStatus
+import android.util.ArrayMap
 
 import com.android.ondevicepersonalization.services.data.user.UserDataDao
 import com.android.ondevicepersonalization.services.data.user.RawUserData
@@ -65,31 +66,15 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
             // TODO(b/267013762): more privacy-preserving processing may be needed
             return UserData.Builder()
-                    .setTimeSec(rawUserData.timeMillis / 1000)
-                    .setTimezone(rawUserData.utcOffset)
+                    .setTimestampSec((rawUserData.timeMillis / 1000).toLong())
+                    .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
-                    .setAvailableBytesMB(rawUserData.availableBytesMB)
-                    .setBatteryPct(rawUserData.batteryPct)
-                    .setCountry(rawUserData.country.ordinal)
-                    .setLanguage(rawUserData.language.ordinal)
+                    .setAvailableStorageMB(rawUserData.availableStorageMB)
+                    .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.ordinal)
-                    .setOsVersions(OSVersion.Builder()
-                            .setMajor(rawUserData.osVersions.major)
-                            .setMinor(rawUserData.osVersions.minor)
-                            .setMicro(rawUserData.osVersions.micro)
-                            .build())
                     .setConnectionType(rawUserData.connectionType.ordinal)
-                    .setConnectionSpeedKbps(rawUserData.connectionSpeedKbps)
-                    .setNetworkMetered(rawUserData.networkMeteredStatus)
-                    .setDeviceMetrics(DeviceMetrics.Builder()
-                            .setMake(rawUserData.deviceMetrics.make.ordinal)
-                            .setModel(rawUserData.deviceMetrics.model.ordinal)
-                            .setScreenHeights(rawUserData.deviceMetrics.screenHeight)
-                            .setScreenWidth(rawUserData.deviceMetrics.screenWidth)
-                            .setXdpi(rawUserData.deviceMetrics.xdpi)
-                            .setYdpi(rawUserData.deviceMetrics.ydpi)
-                            .setPxRatio(rawUserData.deviceMetrics.pxRatio)
-                            .build())
+                    .setNetworkConnectionSpeedKbps(rawUserData.connectionSpeedKbps)
+                    .setNetworkMetered(rawUserData.networkMetered)
                     .setCurrentLocation(Location.Builder()
                             .setTimeSec(rawUserData.currentLocation.timeMillis / 1000)
                             .setLatitude(rawUserData.currentLocation.latitude)
@@ -103,13 +88,13 @@ class UserDataConnectionProvider() : ConnectionProvider {
                     .build()
         }
 
-        private fun getAppInstalledHistory(rawUserData: RawUserData): List<AppInstallStatus> {
-            var res = ArrayList<AppInstallStatus>()
+        private fun getAppInstalledHistory(rawUserData: RawUserData): Map<String, AppInstallStatus> {
+            var res = ArrayMap<String, AppInstallStatus>()
             for (appInfo in rawUserData.appsInfo) {
-                res.add(AppInstallStatus.Builder()
-                        .setPackageName(appInfo.packageName)
-                        .setInstalled(appInfo.installed)
-                        .build())
+                res.put(appInfo.packageName,
+                        AppInstallStatus.Builder()
+                            .setInstalled(appInfo.installed)
+                            .build())
             }
             return res
         }
