@@ -16,6 +16,8 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.NonNull;
+
 /**
  * Exception thrown by OnDevicePersonalization APIs.
  *
@@ -28,16 +30,17 @@ public class OnDevicePersonalizationException extends Exception {
         this(errorCode, "");
     }
 
-    public OnDevicePersonalizationException(int errorCode, String errorMessage) {
+    public OnDevicePersonalizationException(int errorCode, @NonNull String errorMessage) {
         super("Error code: " + errorCode + " message: " + errorMessage);
         mErrorCode = errorCode;
     }
 
-    public OnDevicePersonalizationException(int errorCode, Throwable cause) {
+    public OnDevicePersonalizationException(int errorCode, @NonNull Throwable cause) {
         this(errorCode, "", cause);
     }
 
-    public OnDevicePersonalizationException(int errorCode, String errorMessage, Throwable cause) {
+    public OnDevicePersonalizationException(
+            int errorCode, @NonNull String errorMessage, @NonNull Throwable cause) {
         super("Error code: " + errorCode + " message: " + errorMessage, cause);
         mErrorCode = errorCode;
     }

@@ -17,6 +17,7 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -46,23 +47,26 @@ public class LocalDataImpl implements MutableKeyValueStore {
         mDataAccessService = Objects.requireNonNull(binder);
     }
 
-    @Override
+    @Override @Nullable
     public byte[] get(@NonNull String key) throws OnDevicePersonalizationException {
+        Objects.requireNonNull(key);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
         return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP, key, params);
     }
 
-    @Override
+    @Override @Nullable
     public byte[] put(@NonNull String key, byte[] value) throws OnDevicePersonalizationException {
+        Objects.requireNonNull(key);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
         params.putByteArray(Constants.EXTRA_VALUE, value);
         return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT, key, params);
     }
 
-    @Override
+    @Override @Nullable
     public byte[] remove(@NonNull String key) throws OnDevicePersonalizationException {
+        Objects.requireNonNull(key);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
         return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, key, params);
@@ -84,7 +88,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
         return data.get(key);
     }
 
-    @Override
+    @Override @NonNull
     public Set<String> keySet() throws OnDevicePersonalizationException {
         Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 Bundle.EMPTY);
