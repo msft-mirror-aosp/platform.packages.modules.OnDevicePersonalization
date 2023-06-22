@@ -16,12 +16,14 @@
 
 package android.ondevicepersonalization;
 
-import android.annotation.Nullable;
+import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.os.Parcelable;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -35,7 +37,7 @@ public final class RequestLogRecord implements Parcelable {
      * A List of rows, each containing a {@link ContentValues}.
      **/
     @DataClass.PluralOf("row")
-    @Nullable List<ContentValues> mRows = null;
+    @NonNull List<ContentValues> mRows = Collections.emptyList();
 
 
 
@@ -54,8 +56,10 @@ public final class RequestLogRecord implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ RequestLogRecord(
-            @Nullable List<ContentValues> rows) {
+            @NonNull List<ContentValues> rows) {
         this.mRows = rows;
+        AnnotationValidations.validate(
+                NonNull.class, null, mRows);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -64,13 +68,13 @@ public final class RequestLogRecord implements Parcelable {
      * A List of rows, each containing a {@link ContentValues}.
      */
     @DataClass.Generated.Member
-    public @Nullable List<ContentValues> getRows() {
+    public @NonNull List<ContentValues> getRows() {
         return mRows;
     }
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@Nullable Object o) {
+    public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(RequestLogRecord other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -97,14 +101,11 @@ public final class RequestLogRecord implements Parcelable {
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
-        byte flg = 0;
-        if (mRows != null) flg |= 0x1;
-        dest.writeByte(flg);
-        if (mRows != null) dest.writeParcelableList(mRows, flags);
+        dest.writeParcelableList(mRows, flags);
     }
 
     @Override
@@ -114,24 +115,22 @@ public final class RequestLogRecord implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ RequestLogRecord(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ RequestLogRecord(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
-        byte flg = in.readByte();
-        List<ContentValues> rows = null;
-        if ((flg & 0x1) != 0) {
-            rows = new java.util.ArrayList<>();
-            in.readParcelableList(rows, ContentValues.class.getClassLoader());
-        }
+        List<ContentValues> rows = new java.util.ArrayList<>();
+        in.readParcelableList(rows, ContentValues.class.getClassLoader());
 
         this.mRows = rows;
+        AnnotationValidations.validate(
+                NonNull.class, null, mRows);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<RequestLogRecord> CREATOR
+    public static final @NonNull Parcelable.Creator<RequestLogRecord> CREATOR
             = new Parcelable.Creator<RequestLogRecord>() {
         @Override
         public RequestLogRecord[] newArray(int size) {
@@ -139,7 +138,7 @@ public final class RequestLogRecord implements Parcelable {
         }
 
         @Override
-        public RequestLogRecord createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+        public RequestLogRecord createFromParcel(@NonNull android.os.Parcel in) {
             return new RequestLogRecord(in);
         }
     };
@@ -151,7 +150,7 @@ public final class RequestLogRecord implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @Nullable List<ContentValues> mRows;
+        private @NonNull List<ContentValues> mRows;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -162,7 +161,7 @@ public final class RequestLogRecord implements Parcelable {
          * A List of rows, each containing a {@link ContentValues}.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRows(@android.annotation.NonNull List<ContentValues> value) {
+        public @NonNull Builder setRows(@NonNull List<ContentValues> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRows = value;
@@ -171,19 +170,19 @@ public final class RequestLogRecord implements Parcelable {
 
         /** @see #setRows */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder addRow(@android.annotation.NonNull ContentValues value) {
+        public @NonNull Builder addRow(@NonNull ContentValues value) {
             if (mRows == null) setRows(new java.util.ArrayList<>());
             mRows.add(value);
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull RequestLogRecord build() {
+        public @NonNull RequestLogRecord build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mRows = null;
+                mRows = Collections.emptyList();
             }
             RequestLogRecord o = new RequestLogRecord(
                     mRows);
@@ -199,10 +198,10 @@ public final class RequestLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687383430307L,
+            time = 1687414834788L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RequestLogRecord.java",
-            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.Nullable java.util.List<android.content.ContentValues> mRows\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.NonNull java.util.List<android.content.ContentValues> mRows\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

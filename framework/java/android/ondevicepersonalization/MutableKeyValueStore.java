@@ -17,6 +17,7 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 
 /**
  * Data Access Object for the LOCAL_DATA table. The LOCAL_DATA table is a mutable
@@ -34,7 +35,8 @@ public interface MutableKeyValueStore extends KeyValueStore {
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
-    byte[] put(@NonNull String key, @NonNull byte[] value) throws OnDevicePersonalizationException;
+    @Nullable byte[] put(@NonNull String key, @NonNull byte[] value)
+            throws OnDevicePersonalizationException;
 
     /**
      * Removes the mapping for the specified key from LOCAL_DATA if present.
@@ -43,5 +45,5 @@ public interface MutableKeyValueStore extends KeyValueStore {
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
-    byte[] remove(String key) throws OnDevicePersonalizationException;
+    @Nullable byte[] remove(@NonNull String key) throws OnDevicePersonalizationException;
 }

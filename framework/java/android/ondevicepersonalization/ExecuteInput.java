@@ -17,7 +17,6 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 
@@ -35,7 +34,7 @@ public final class ExecuteInput implements Parcelable {
     @NonNull String mAppPackageName;
 
     /** Parameters provided by the app to the {@link IsolatedComputationService}. */
-    @Nullable PersistableBundle mAppParams;
+    @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
 
 
 
@@ -55,11 +54,13 @@ public final class ExecuteInput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ ExecuteInput(
             @NonNull String appPackageName,
-            @Nullable PersistableBundle appParams) {
+            @NonNull PersistableBundle appParams) {
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
         this.mAppParams = appParams;
+        AnnotationValidations.validate(
+                NonNull.class, null, mAppParams);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -76,13 +77,13 @@ public final class ExecuteInput implements Parcelable {
      * Parameters provided by the app to the {@link IsolatedComputationService}.
      */
     @DataClass.Generated.Member
-    public @Nullable PersistableBundle getAppParams() {
+    public @NonNull PersistableBundle getAppParams() {
         return mAppParams;
     }
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@Nullable Object o) {
+    public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(ExecuteInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -115,11 +116,8 @@ public final class ExecuteInput implements Parcelable {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
-        byte flg = 0;
-        if (mAppParams != null) flg |= 0x2;
-        dest.writeByte(flg);
         dest.writeString(mAppPackageName);
-        if (mAppParams != null) dest.writeTypedObject(mAppParams, flags);
+        dest.writeTypedObject(mAppParams, flags);
     }
 
     @Override
@@ -133,14 +131,15 @@ public final class ExecuteInput implements Parcelable {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
-        byte flg = in.readByte();
         String appPackageName = in.readString();
-        PersistableBundle appParams = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        PersistableBundle appParams = (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
         this.mAppParams = appParams;
+        AnnotationValidations.validate(
+                NonNull.class, null, mAppParams);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -167,31 +166,15 @@ public final class ExecuteInput implements Parcelable {
     public static final class Builder {
 
         private @NonNull String mAppPackageName;
-        private @Nullable PersistableBundle mAppParams;
+        private @NonNull PersistableBundle mAppParams;
 
         private long mBuilderFieldsSet = 0L;
 
         /**
          * Creates a new Builder.
+         *
          */
         public Builder() {
-        }
-
-        /**
-         * Creates a new Builder.
-         *
-         * @param appPackageName
-         *   The package name of the calling app.
-         * @param appParams
-         *   Parameters provided by the app to the {@link IsolatedComputationService}.
-         */
-        public Builder(
-                @NonNull String appPackageName,
-                @Nullable PersistableBundle appParams) {
-            mAppPackageName = appPackageName;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mAppPackageName);
-            mAppParams = appParams;
         }
 
         /**
@@ -221,6 +204,9 @@ public final class ExecuteInput implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mAppParams = PersistableBundle.EMPTY;
+            }
             ExecuteInput o = new ExecuteInput(
                     mAppPackageName,
                     mAppParams);
@@ -236,10 +222,10 @@ public final class ExecuteInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1680551305542L,
+            time = 1687415076144L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.Nullable android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

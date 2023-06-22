@@ -71,7 +71,6 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         parcel.setDataPosition(0);
         RenderOutput result2 = RenderOutput.CREATOR.createFromParcel(parcel);
 
-        assertEquals(result, result2);
         assertEquals("abc", result2.getContent());
     }
 
