@@ -16,11 +16,14 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -41,7 +44,7 @@ public final class ExecuteOutput implements Parcelable {
      * calling app.
      */
     @DataClass.PluralOf("renderingConfig")
-    @Nullable private List<RenderingConfig> mRenderingConfigs = null;
+    @NonNull private List<RenderingConfig> mRenderingConfigs = Collections.emptyList();
 
 
 
@@ -61,9 +64,11 @@ public final class ExecuteOutput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ ExecuteOutput(
             @Nullable RequestLogRecord requestLogRecord,
-            @Nullable List<RenderingConfig> renderingConfigs) {
+            @NonNull List<RenderingConfig> renderingConfigs) {
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfigs = renderingConfigs;
+        AnnotationValidations.validate(
+                NonNull.class, null, mRenderingConfigs);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -81,7 +86,7 @@ public final class ExecuteOutput implements Parcelable {
      * calling app.
      */
     @DataClass.Generated.Member
-    public @Nullable List<RenderingConfig> getRenderingConfigs() {
+    public @NonNull List<RenderingConfig> getRenderingConfigs() {
         return mRenderingConfigs;
     }
 
@@ -116,16 +121,15 @@ public final class ExecuteOutput implements Parcelable {
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
         if (mRequestLogRecord != null) flg |= 0x1;
-        if (mRenderingConfigs != null) flg |= 0x2;
         dest.writeByte(flg);
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
-        if (mRenderingConfigs != null) dest.writeParcelableList(mRenderingConfigs, flags);
+        dest.writeParcelableList(mRenderingConfigs, flags);
     }
 
     @Override
@@ -135,26 +139,25 @@ public final class ExecuteOutput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ ExecuteOutput(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ ExecuteOutput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
         RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
-        List<RenderingConfig> renderingConfigs = null;
-        if ((flg & 0x2) != 0) {
-            renderingConfigs = new java.util.ArrayList<>();
-            in.readParcelableList(renderingConfigs, RenderingConfig.class.getClassLoader());
-        }
+        List<RenderingConfig> renderingConfigs = new java.util.ArrayList<>();
+        in.readParcelableList(renderingConfigs, RenderingConfig.class.getClassLoader());
 
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfigs = renderingConfigs;
+        AnnotationValidations.validate(
+                NonNull.class, null, mRenderingConfigs);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<ExecuteOutput> CREATOR
+    public static final @NonNull Parcelable.Creator<ExecuteOutput> CREATOR
             = new Parcelable.Creator<ExecuteOutput>() {
         @Override
         public ExecuteOutput[] newArray(int size) {
@@ -162,7 +165,7 @@ public final class ExecuteOutput implements Parcelable {
         }
 
         @Override
-        public ExecuteOutput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+        public ExecuteOutput createFromParcel(@NonNull android.os.Parcel in) {
             return new ExecuteOutput(in);
         }
     };
@@ -175,7 +178,7 @@ public final class ExecuteOutput implements Parcelable {
     public static final class Builder {
 
         private @Nullable RequestLogRecord mRequestLogRecord;
-        private @Nullable List<RenderingConfig> mRenderingConfigs;
+        private @NonNull List<RenderingConfig> mRenderingConfigs;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -186,7 +189,7 @@ public final class ExecuteOutput implements Parcelable {
          * Data to be written to the log.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRequestLogRecord(@android.annotation.NonNull RequestLogRecord value) {
+        public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRequestLogRecord = value;
@@ -198,7 +201,7 @@ public final class ExecuteOutput implements Parcelable {
          * calling app.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRenderingConfigs(@android.annotation.NonNull List<RenderingConfig> value) {
+        public @NonNull Builder setRenderingConfigs(@NonNull List<RenderingConfig> value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mRenderingConfigs = value;
@@ -207,14 +210,14 @@ public final class ExecuteOutput implements Parcelable {
 
         /** @see #setRenderingConfigs */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder addRenderingConfig(@android.annotation.NonNull RenderingConfig value) {
+        public @NonNull Builder addRenderingConfig(@NonNull RenderingConfig value) {
             if (mRenderingConfigs == null) setRenderingConfigs(new java.util.ArrayList<>());
             mRenderingConfigs.add(value);
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull ExecuteOutput build() {
+        public @NonNull ExecuteOutput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
@@ -222,7 +225,7 @@ public final class ExecuteOutput implements Parcelable {
                 mRequestLogRecord = null;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mRenderingConfigs = null;
+                mRenderingConfigs = Collections.emptyList();
             }
             ExecuteOutput o = new ExecuteOutput(
                     mRequestLogRecord,
@@ -239,10 +242,10 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687379042570L,
+            time = 1687415852618L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.Nullable java.util.List<android.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -17,6 +17,7 @@
 package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.ondevicepersonalization.aidl.IDataAccessService;
 import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
@@ -46,8 +47,9 @@ public class RemoteDataImpl implements KeyValueStore {
         mDataAccessService = Objects.requireNonNull(binder);
     }
 
-    @Override
+    @Override @Nullable
     public byte[] get(@NonNull String key) throws OnDevicePersonalizationException {
+        Objects.requireNonNull(key);
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
@@ -84,7 +86,7 @@ public class RemoteDataImpl implements KeyValueStore {
         }
     }
 
-    @Override
+    @Override @NonNull
     public Set<String> keySet() throws OnDevicePersonalizationException {
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);

@@ -16,10 +16,12 @@
 
 package android.ondevicepersonalization;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
@@ -33,7 +35,7 @@ public final class WebViewEventInput implements Parcelable {
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /** The parameters from the Event URL. */
-    @Nullable private PersistableBundle mParameters = null;
+    @NonNull private PersistableBundle mParameters = PersistableBundle.EMPTY;
 
 
 
@@ -53,9 +55,11 @@ public final class WebViewEventInput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ WebViewEventInput(
             @Nullable RequestLogRecord requestLogRecord,
-            @Nullable PersistableBundle parameters) {
+            @NonNull PersistableBundle parameters) {
         this.mRequestLogRecord = requestLogRecord;
         this.mParameters = parameters;
+        AnnotationValidations.validate(
+                NonNull.class, null, mParameters);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -72,7 +76,7 @@ public final class WebViewEventInput implements Parcelable {
      * The parameters from the Event URL.
      */
     @DataClass.Generated.Member
-    public @Nullable PersistableBundle getParameters() {
+    public @NonNull PersistableBundle getParameters() {
         return mParameters;
     }
 
@@ -107,16 +111,15 @@ public final class WebViewEventInput implements Parcelable {
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
         if (mRequestLogRecord != null) flg |= 0x1;
-        if (mParameters != null) flg |= 0x2;
         dest.writeByte(flg);
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
-        if (mParameters != null) dest.writeTypedObject(mParameters, flags);
+        dest.writeTypedObject(mParameters, flags);
     }
 
     @Override
@@ -126,22 +129,24 @@ public final class WebViewEventInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ WebViewEventInput(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ WebViewEventInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
         RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
-        PersistableBundle parameters = (flg & 0x2) == 0 ? null : (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
+        PersistableBundle parameters = (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
 
         this.mRequestLogRecord = requestLogRecord;
         this.mParameters = parameters;
+        AnnotationValidations.validate(
+                NonNull.class, null, mParameters);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<WebViewEventInput> CREATOR
+    public static final @NonNull Parcelable.Creator<WebViewEventInput> CREATOR
             = new Parcelable.Creator<WebViewEventInput>() {
         @Override
         public WebViewEventInput[] newArray(int size) {
@@ -149,7 +154,7 @@ public final class WebViewEventInput implements Parcelable {
         }
 
         @Override
-        public WebViewEventInput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+        public WebViewEventInput createFromParcel(@NonNull android.os.Parcel in) {
             return new WebViewEventInput(in);
         }
     };
@@ -162,7 +167,7 @@ public final class WebViewEventInput implements Parcelable {
     public static final class Builder {
 
         private @Nullable RequestLogRecord mRequestLogRecord;
-        private @Nullable PersistableBundle mParameters;
+        private @NonNull PersistableBundle mParameters;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -173,7 +178,7 @@ public final class WebViewEventInput implements Parcelable {
          * The rows that were logged as a result of onExecute.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRequestLogRecord(@android.annotation.NonNull RequestLogRecord value) {
+        public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRequestLogRecord = value;
@@ -184,7 +189,7 @@ public final class WebViewEventInput implements Parcelable {
          * The parameters from the Event URL.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setParameters(@android.annotation.NonNull PersistableBundle value) {
+        public @NonNull Builder setParameters(@NonNull PersistableBundle value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mParameters = value;
@@ -192,7 +197,7 @@ public final class WebViewEventInput implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull WebViewEventInput build() {
+        public @NonNull WebViewEventInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
@@ -200,7 +205,7 @@ public final class WebViewEventInput implements Parcelable {
                 mRequestLogRecord = null;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mParameters = null;
+                mParameters = PersistableBundle.EMPTY;
             }
             WebViewEventInput o = new WebViewEventInput(
                     mRequestLogRecord,
@@ -217,10 +222,10 @@ public final class WebViewEventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686948744738L,
+            time = 1687414931805L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventInput.java",
-            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
