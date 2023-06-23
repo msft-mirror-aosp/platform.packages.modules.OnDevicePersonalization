@@ -48,6 +48,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ChronicleManager.instance = null;
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID);

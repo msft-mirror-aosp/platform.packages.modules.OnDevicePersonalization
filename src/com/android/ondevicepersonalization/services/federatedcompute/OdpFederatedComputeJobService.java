@@ -35,6 +35,7 @@ import android.os.OutcomeReceiver;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -80,6 +81,11 @@ public class OdpFederatedComputeJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         sLogger.d(TAG + ": onStartJob()");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
+            jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
         mFuture = Futures.submit(new Runnable() {
             @Override
             public void run() {

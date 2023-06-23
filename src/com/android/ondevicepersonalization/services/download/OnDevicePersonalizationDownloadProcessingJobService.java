@@ -30,6 +30,7 @@ import android.content.pm.PackageManager;
 
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -75,6 +76,12 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
     @Override
     public boolean onStartJob(JobParameters params) {
         sLogger.d(TAG + ": onStartJob()");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
+            jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
+
         mFutures = new ArrayList<>();
         for (PackageInfo packageInfo : this.getPackageManager().getInstalledPackages(
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
