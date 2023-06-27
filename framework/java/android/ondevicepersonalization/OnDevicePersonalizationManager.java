@@ -42,9 +42,16 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 
+// TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
- * OnDevicePersonalizationManager provides APIs for apps to interact with an
- * {@link IsolatedComputationService} in an isolated process.
+ * OnDevicePersonalizationManager provides APIs for apps to load an
+ * {@link IsolatedComputationService} in an isolated process and interact with it.
+ *
+ * An app can request an {@link IsolatedComputationService} to generate content for display
+ * within a {@link SurfaceView} within the app's view hierarchy, and also write persistent results
+ * to on-device storage which can be consumed by Federated Analytics for cross-device statistical
+ * analysis or by Federated Learning for model training. The displayed content and the persistent
+ * output are both not directly accessible by the calling app.
  *
  */
 public class OnDevicePersonalizationManager {
@@ -100,18 +107,26 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Executes a {@link IsolatedComputationService} in the OnDevicePersonalization sandbox.
+     * Executes a {@link IsolatedComputationService} in the OnDevicePersonalization sandbox. The
+     * platform binds to the specified {@link IsolatedComputationService} in an isolated process
+     * and calls {@link IsolatedComputationService#onExecute()} with the caller-provided
+     * parameters. When the {@link IsolatedComputationService} finishes execution, the platform
+     * returns tokens that refer to the results from the service to the caller. These tokens can
+     * be subsequently used to display results in a {@link SurfaceView} within the calling app.
      *
      * @param handler The {@link ComponentName} of the {@link IsolatedComputationService}.
-     * @param params a {@link PersistableBundle} passed from the calling app to the service.
-     * @param executor the {@link Executor} on which to invoke the callback
+     * @param params a {@link PersistableBundle} that is passed from the calling app to the
+     *     {@link IsolatedComputationService}. The expected contents of this parameter are defined
+     *     by the{@link IsolatedComputationService}. The platform does not interpret this parameter.
+     * @param executor the {@link Executor} on which to invoke the callback.
      * @param receiver This returns a list of {@link SurfacePackageToken} objects, each of which is
      *     an opaque reference to a {@link RenderingConfig} returned by an
      *     {@link IsolatedComputationService}, or an {@link Exception} on failure. The returned
      *     {@link SurfacePackageToken} objects can be used in a subsequent
-     *     {@link requestSurfacePackage} call to display the result in a view. An entry in the
-     *     returned list of {@link SurfacePackageToken} objects may be null to indicate that the
-     *     service has no output for that specific surface.
+     *     {@link requestSurfacePackage} call to display the result in a view. The calling app and
+     *     the {@link IsolatedComputationService} must agree on the expected size of this list.
+     *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
+     *     indicate that the service has no output for that specific surface.
      */
     public void execute(
             @NonNull ComponentName handler,
@@ -161,15 +176,18 @@ public class OnDevicePersonalizationManager {
 
     /**
      * Requests a {@link SurfacePackage} to be inserted into a {@link SurfaceView} inside the
-     * calling app. The surface package will contain a {@link WebView} with html from an
-     * {@link IsolatedComputationService} running in the OnDevicePersonalization sandbox.
+     * calling app. The surface package will contain a {@link View} with the content from a result
+     * of a prior call to {@link #execute()} running in the OnDevicePersonalization sandbox.
      *
      * @param surfacePackageToken a reference to a {@link SurfacePackageToken} returned by a prior
      *     call to {@link execute}.
-     * @param hostToken the hostToken of the {@link SurfaceView}.
-     * @param displayId the displayId of the {@link SurfaceView}.
-     * @param width the width of the {@link SurfaceView} in pixels.
-     * @param height the height of the {@link SurfaceView} in pixels.
+     * @param hostToken the hostToken of the {@link SurfaceView}, which is returned by
+     *     {@link SurfaceView#getHostToken()} after the {@link SurfaceView} has been added to the
+     *     view hierarchy.
+     * @param displayId the integer ID of the logical display on which to display the
+     *     {@link SurfacePackage}, returned by {@code Context.getDisplay().getDisplayId()}.
+     * @param width the width of the {@link SurfacePackage} in pixels.
+     * @param height the height of the {@link SurfacePackage} in pixels.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
      *     Exception} on failure.
