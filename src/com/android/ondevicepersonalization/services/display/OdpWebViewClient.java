@@ -17,14 +17,14 @@
 package com.android.ondevicepersonalization.services.display;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.EventLogRecord;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.WebViewEventInput;
+import android.app.ondevicepersonalization.WebViewEventOutput;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.EventLogRecord;
-import android.ondevicepersonalization.RequestLogRecord;
-import android.ondevicepersonalization.WebViewEventInput;
-import android.ondevicepersonalization.WebViewEventOutput;
 import android.os.Bundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;

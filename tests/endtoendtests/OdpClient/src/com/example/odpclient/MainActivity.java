@@ -17,10 +17,10 @@
 package com.example.odpclient;
 
 import android.app.Activity;
+import android.app.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.app.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
-import android.ondevicepersonalization.OnDevicePersonalizationManager;
-import android.ondevicepersonalization.SurfacePackageToken;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;

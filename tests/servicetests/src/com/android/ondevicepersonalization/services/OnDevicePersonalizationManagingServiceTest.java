@@ -21,11 +21,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;

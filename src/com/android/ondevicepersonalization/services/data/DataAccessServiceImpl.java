@@ -18,11 +18,11 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.aidl.IDataAccessService;
+import android.app.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.aidl.IDataAccessService;
-import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
