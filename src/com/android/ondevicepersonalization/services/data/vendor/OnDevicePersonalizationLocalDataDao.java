@@ -96,7 +96,6 @@ public class OnDevicePersonalizationLocalDataDao {
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
-                createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationLocalDataDao(
                         dbHelper, owner, certDigest);
                 sLocalDataDaos.put(tableName, instance);
