@@ -17,9 +17,9 @@
 package com.android.ondevicepersonalization.services;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.aidl.IPrivacyStatusService;
+import android.app.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.content.Context;
-import android.ondevicepersonalization.aidl.IPrivacyStatusService;
-import android.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.os.RemoteException;
 
 

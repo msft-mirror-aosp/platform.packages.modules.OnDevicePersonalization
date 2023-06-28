@@ -16,12 +16,12 @@
 
 package com.android.ondevicepersonalization.services.download;
 
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.DownloadInputParcel;
+import android.app.ondevicepersonalization.DownloadOutput;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.DownloadInputParcel;
-import android.ondevicepersonalization.DownloadOutput;
 import android.os.Bundle;
 import android.util.JsonReader;
 

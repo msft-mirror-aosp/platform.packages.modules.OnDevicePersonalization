@@ -16,8 +16,8 @@
 
 package com.android.ondevicepersonalization.services.request;
 
-import android.ondevicepersonalization.RenderingConfig;
-import android.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
 
 import com.android.ondevicepersonalization.services.util.ParcelWrapper;
 

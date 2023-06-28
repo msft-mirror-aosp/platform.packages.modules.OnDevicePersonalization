@@ -16,13 +16,13 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
-import android.ondevicepersonalization.UserData
-import android.ondevicepersonalization.OSVersion
-import android.ondevicepersonalization.DeviceMetrics
-import android.ondevicepersonalization.Location
-import android.ondevicepersonalization.AppInstallStatus
-import android.ondevicepersonalization.AppUsageStatus
-import android.ondevicepersonalization.LocationStatus
+import android.app.ondevicepersonalization.UserData
+import android.app.ondevicepersonalization.OSVersion
+import android.app.ondevicepersonalization.DeviceMetrics
+import android.app.ondevicepersonalization.Location
+import android.app.ondevicepersonalization.AppInstallStatus
+import android.app.ondevicepersonalization.AppUsageStatus
+import android.app.ondevicepersonalization.LocationStatus
 import android.util.ArrayMap
 
 import com.android.ondevicepersonalization.services.data.user.UserDataDao

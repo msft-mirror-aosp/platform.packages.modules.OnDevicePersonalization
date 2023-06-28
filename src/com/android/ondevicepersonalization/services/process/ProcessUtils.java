@@ -18,9 +18,9 @@ package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.OnDevicePersonalizationException;
 import android.content.Context;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.os.Bundle;
 
 

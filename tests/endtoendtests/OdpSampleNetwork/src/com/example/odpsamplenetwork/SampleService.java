@@ -17,9 +17,9 @@
 package com.example.odpsamplenetwork;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.IsolatedComputationCallback;
-import android.ondevicepersonalization.IsolatedComputationService;
-import android.ondevicepersonalization.RequestToken;
+import android.app.ondevicepersonalization.IsolatedComputationCallback;
+import android.app.ondevicepersonalization.IsolatedComputationService;
+import android.app.ondevicepersonalization.RequestToken;
 
 public class SampleService extends IsolatedComputationService {
     @NonNull @Override public IsolatedComputationCallback onRequest(

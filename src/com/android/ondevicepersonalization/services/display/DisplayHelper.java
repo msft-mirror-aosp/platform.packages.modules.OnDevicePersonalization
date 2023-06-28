@@ -17,11 +17,11 @@
 package com.android.ondevicepersonalization.services.display;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RequestLogRecord;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RequestLogRecord;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.view.Display;

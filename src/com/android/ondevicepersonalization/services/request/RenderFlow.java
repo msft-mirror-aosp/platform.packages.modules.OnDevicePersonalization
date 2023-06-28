@@ -17,13 +17,13 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.RenderInput;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.Context;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.RenderInput;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RenderingConfig;
-import android.ondevicepersonalization.RequestLogRecord;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;

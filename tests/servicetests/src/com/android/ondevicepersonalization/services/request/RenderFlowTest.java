@@ -19,12 +19,12 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ContentValues;
 import android.content.Context;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RenderingConfig;
-import android.ondevicepersonalization.RequestLogRecord;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.view.SurfaceControlViewHost.SurfacePackage;

@@ -22,10 +22,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import android.Manifest;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RequestLogRecord;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.RequestLogRecord;
 import android.os.PersistableBundle;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
