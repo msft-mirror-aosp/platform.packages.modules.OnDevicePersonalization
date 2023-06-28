@@ -26,15 +26,16 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Information needed to render a single Slot.
+ * Information returned by {@link IsolatedComputationCallback#onExecute()} that is used
+ * in a subesequent call to {@link IsolatedComputationCallback#onRender()} to identify the
+ * content to be displayed in a single {@link View}.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderingConfig implements Parcelable {
     /**
-     * A List of keys that identify the content to be rendered.  The Keys must be present in
-     * REMOTE_DATA.
+     * A List of keys in the REMOTE_DATA table that identify the content to be rendered.
      **/
     @DataClass.PluralOf("key")
     @NonNull private List<String> mKeys = Collections.emptyList();
@@ -47,7 +48,7 @@ public final class RenderingConfig implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderingConfig.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderingConfig.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -65,8 +66,7 @@ public final class RenderingConfig implements Parcelable {
     }
 
     /**
-     * A List of keys that identify the content to be rendered.  The Keys must be present in
-     * REMOTE_DATA.
+     * A List of keys in the REMOTE_DATA table that identify the content to be rendered.
      */
     @DataClass.Generated.Member
     public @NonNull List<String> getKeys() {
@@ -159,8 +159,7 @@ public final class RenderingConfig implements Parcelable {
         }
 
         /**
-         * A List of keys that identify the content to be rendered.  The Keys must be present in
-         * REMOTE_DATA.
+         * A List of keys in the REMOTE_DATA table that identify the content to be rendered.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setKeys(@NonNull List<String> value) {
@@ -200,9 +199,9 @@ public final class RenderingConfig implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687414684682L,
+            time = 1687974124881L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderingConfig.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderingConfig.java",
             inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"key\") @android.annotation.NonNull java.util.List<java.lang.String> mKeys\nclass RenderingConfig extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

@@ -23,14 +23,14 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * App installed status for app installed history.
+ * Installation information for an app.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class AppInstallStatus implements Parcelable {
-    /** Installed status: installed - true; uninstalled - false. */
-    @NonNull boolean mInstalled;
+    /** Whether the app is installed. */
+    @NonNull boolean mInstalled = false;
 
 
 
@@ -40,7 +40,7 @@ public final class AppInstallStatus implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/AppInstallStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -58,7 +58,7 @@ public final class AppInstallStatus implements Parcelable {
     }
 
     /**
-     * Installed status: installed - true; uninstalled - false.
+     * Whether the app is installed.
      */
     @DataClass.Generated.Member
     public @NonNull boolean isInstalled() {
@@ -149,24 +149,11 @@ public final class AppInstallStatus implements Parcelable {
 
         private long mBuilderFieldsSet = 0L;
 
-        /**
-         * Creates a new Builder.
-         *
-         * @param installed
-         *   Installed status: installed - true; uninstalled - false.
-         */
-        public Builder(
-                @NonNull boolean installed) {
-            mInstalled = installed;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mInstalled);
-        }
-
         public Builder() {
         }
 
         /**
-         * Installed status: installed - true; uninstalled - false.
+         * Whether the app is installed.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setInstalled(@NonNull boolean value) {
@@ -181,6 +168,9 @@ public final class AppInstallStatus implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mInstalled = false;
+            }
             AppInstallStatus o = new AppInstallStatus(
                     mInstalled);
             return o;
@@ -195,9 +185,9 @@ public final class AppInstallStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687373838870L,
+            time = 1687985960178L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppInstallStatus.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/AppInstallStatus.java",
             inputSignatures = " @android.annotation.NonNull boolean mInstalled\nclass AppInstallStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

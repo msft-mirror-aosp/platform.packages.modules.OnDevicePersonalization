@@ -35,9 +35,15 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
+// TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
- * Base class for services that produce personalized content based on User data. These platform
- * runs the service in an isolated process and manages its access to user data.
+ * Base class for services that run in an
+ * <a href="https://developer.android.com/guide/topics/manifest/service-element#isolated">isolated
+ * process</a> and can produce content to be displayed in a {@link SurfaceView} in a calling app
+ * and write persistent results to on-device storage, which can be consumed by Federated Analytics
+ * for cross-device statistical analysis or by Federated Learning for model training. Client apps
+ * use {@link OnDevicePersonalizationManager} to interact with an
+ * {@link IsolatedComputationService}.
  *
  * @hide
  */
@@ -61,7 +67,11 @@ public abstract class IsolatedComputationService extends Service {
             @NonNull RequestToken requestToken);
 
     /**
-     * Returns a DAO for the REMOTE_DATA table.
+     * Returns a DAO for the REMOTE_DATA table. The REMOTE_DATA table is a read-only key-value
+     * store that contains data that is periodically downloaded from an endpoint declared in the
+     * package manifest of the service.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
      * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table.
      */
     @NonNull public final KeyValueStore getRemoteData(
@@ -70,7 +80,11 @@ public abstract class IsolatedComputationService extends Service {
     }
 
     /**
-     * Returns a DAO for the LOCAL_DATA table.
+     * Returns a DAO for the LOCAL_DATA table. The LOCAL_DATA table is a persistent key-value
+     * store that the service can use to store any data. The contents of this table are visible
+     * only to the service running in an isolated process and cannot be sent outside the device.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
      * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
      */
     @NonNull public final MutableKeyValueStore getLocalData(
@@ -78,13 +92,26 @@ public abstract class IsolatedComputationService extends Service {
         return new LocalDataImpl(requestToken.getDataAccessService());
     }
 
-    /** Returns an {@link EventUrlProvider} for the current request. */
+    /**
+     * Returns an {@link EventUrlProvider} for the current request. The {@link EventUrlProvider}
+     * provides URLs that can be embedded in HTML. When the HTML is rendered in a {@link WebView},
+     * the platform intercepts requests to these URLs and invokes
+     * {@link IsolatedCmputationCallback#onWebViewEvent()}.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
+     * @return An {@link EventUrlProvider} that returns event tracking URLs.
+     */
     @NonNull public final EventUrlProvider getEventUrlProvider(
             @NonNull RequestToken requestToken) {
         return new EventUrlProvider(requestToken.getDataAccessService());
     }
 
-    /** Returns the most recent {@link UserData}.
+    /**
+     * Returns the {@link UserData} for the current request. The {@link UserData} object contains
+     * location and app usage history collected by the platform.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
+     * @return A {@link UserData} object.
      *
      * @hide
      */

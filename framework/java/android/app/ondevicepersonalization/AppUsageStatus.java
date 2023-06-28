@@ -23,17 +23,17 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * App usage status for app usage histogram.
+ * Usage information for an installed app.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class AppUsageStatus implements Parcelable {
-    /** Package name. */
-    @NonNull String mPackageName;
+    /** Package name of the app. */
+    @NonNull String mPackageName = "";
 
     /** Total time spent on the app in the past 30 days in milliseconds. */
-    @NonNull long mTotalTimeUsedInMillis;
+    @NonNull long mTotalTimeUsedInMillis = 0;
 
 
 
@@ -43,7 +43,7 @@ public final class AppUsageStatus implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppUsageStatus.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/AppUsageStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -65,7 +65,7 @@ public final class AppUsageStatus implements Parcelable {
     }
 
     /**
-     * Package name.
+     * Package name of the app.
      */
     @DataClass.Generated.Member
     public @NonNull String getPackageName() {
@@ -169,30 +169,11 @@ public final class AppUsageStatus implements Parcelable {
 
         private long mBuilderFieldsSet = 0L;
 
-        /**
-         * Creates a new Builder.
-         *
-         * @param packageName
-         *   Package name.
-         * @param totalTimeUsedInMillis
-         *   Total time spent on the app in the past 30 days in milliseconds.
-         */
-        public Builder(
-                @NonNull String packageName,
-                @NonNull long totalTimeUsedInMillis) {
-            mPackageName = packageName;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mPackageName);
-            mTotalTimeUsedInMillis = totalTimeUsedInMillis;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mTotalTimeUsedInMillis);
-        }
-
         public Builder() {
         }
 
         /**
-         * Package name.
+         * Package name of the app.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setPackageName(@NonNull String value) {
@@ -218,6 +199,12 @@ public final class AppUsageStatus implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mPackageName = "";
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mTotalTimeUsedInMillis = 0;
+            }
             AppUsageStatus o = new AppUsageStatus(
                     mPackageName,
                     mTotalTimeUsedInMillis);
@@ -233,9 +220,9 @@ public final class AppUsageStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1676499898093L,
+            time = 1687985965464L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/AppUsageStatus.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/AppUsageStatus.java",
             inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull long mTotalTimeUsedInMillis\nclass AppUsageStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

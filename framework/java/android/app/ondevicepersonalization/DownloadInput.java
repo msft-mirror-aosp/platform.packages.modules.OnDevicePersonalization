@@ -22,17 +22,18 @@ import android.annotation.Nullable;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.util.Collections;
 import java.util.Map;
 
 /**
- * The output to be rendered in a slot within a calling app.
+ * The input data for {@link IsolatedComputationCallback#onDownload()}.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadInput {
     /** Map containing downloaded keys and values */
-    @NonNull Map<String, byte[]> mData;
+    @NonNull Map<String, byte[]> mData = Collections.emptyMap();
 
 
 
@@ -42,7 +43,7 @@ public final class DownloadInput {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/DownloadInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -105,20 +106,7 @@ public final class DownloadInput {
 
         private long mBuilderFieldsSet = 0L;
 
-        /** Creates a new Builder. */
-        public Builder() {}
-
-        /**
-         * Creates a new Builder.
-         *
-         * @param data
-         *   Map containing downloaded keys and values
-         */
-        public Builder(
-                @NonNull Map<String,byte[]> data) {
-            mData = data;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mData);
+        public Builder() {
         }
 
         /**
@@ -137,6 +125,9 @@ public final class DownloadInput {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mData = Collections.emptyMap();
+            }
             DownloadInput o = new DownloadInput(
                     mData);
             return o;
@@ -151,9 +142,9 @@ public final class DownloadInput {
     }
 
     @DataClass.Generated(
-            time = 1680551317042L,
+            time = 1687975303734L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadInput.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/DownloadInput.java",
             inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

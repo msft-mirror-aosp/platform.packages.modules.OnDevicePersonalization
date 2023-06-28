@@ -27,7 +27,7 @@ package com.android.ondevicepersonalization.services.policyengine.data
  * If one class is updated, the other one should also be updated to match.
  */
 data class UserData (
-    val timestampSec: Long,
+    val timestampSeconds: Long,
     val timezoneUtcOffsetMins: Int,
     val orientation: Int,
     val availableStorageMB: Long,
@@ -53,7 +53,7 @@ data class AppUsageStatus (
 )
 
 data class Location (
-    val timeSec: Long,
+    val timestampSeconds: Long,
     val latitude: Double,
     val longitude: Double,
     val locationProvider: Int,

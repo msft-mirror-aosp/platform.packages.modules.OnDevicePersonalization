@@ -29,20 +29,31 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class Location implements Parcelable {
+    static final Location EMPTY;
+
+    static {
+        EMPTY = new Builder().build();
+    }
+
     /** Timestamp of when this location is collected. */
-    @NonNull long mTimeSec;
+    @NonNull long mTimestampSeconds = 0;
 
     /** Location latitude with E4 precision. */
-    @NonNull double mLatitude;
+    @NonNull double mLatitude = 0.0;
 
     /** Location longitude with E4 precision. */
-    @NonNull double mLongitude;
+    @NonNull double mLongitude = 0.0;
 
-    /** Location provider. See full list {@link LocationInfo.LocationProvider}. */
-    @NonNull int mLocationProvider;
+    // TODO(b/288280751): Define @IntDef constants for the valid values.
+    /**
+     * Location provider.
+     *
+     * @hide
+     */
+    @NonNull int mLocationProvider = 0;
 
     /** Whether the location source is precise. */
-    @NonNull boolean mPreciseLocation;
+    @NonNull boolean mPreciseLocation = false;
 
 
 
@@ -52,7 +63,7 @@ public final class Location implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Location.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/Location.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -61,14 +72,14 @@ public final class Location implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ Location(
-            @NonNull long timeSec,
+            @NonNull long timestampSeconds,
             @NonNull double latitude,
             @NonNull double longitude,
             @NonNull int locationProvider,
             @NonNull boolean preciseLocation) {
-        this.mTimeSec = timeSec;
+        this.mTimestampSeconds = timestampSeconds;
         AnnotationValidations.validate(
-                NonNull.class, null, mTimeSec);
+                NonNull.class, null, mTimestampSeconds);
         this.mLatitude = latitude;
         AnnotationValidations.validate(
                 NonNull.class, null, mLatitude);
@@ -89,8 +100,8 @@ public final class Location implements Parcelable {
      * Timestamp of when this location is collected.
      */
     @DataClass.Generated.Member
-    public @NonNull long getTimeSec() {
-        return mTimeSec;
+    public @NonNull long getTimestampSeconds() {
+        return mTimestampSeconds;
     }
 
     /**
@@ -110,7 +121,9 @@ public final class Location implements Parcelable {
     }
 
     /**
-     * Location provider. See full list {@link LocationInfo.LocationProvider}.
+     * Location provider.
+     *
+     * @hide
      */
     @DataClass.Generated.Member
     public @NonNull int getLocationProvider() {
@@ -138,7 +151,7 @@ public final class Location implements Parcelable {
         Location that = (Location) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mTimeSec == that.mTimeSec
+                && mTimestampSeconds == that.mTimestampSeconds
                 && mLatitude == that.mLatitude
                 && mLongitude == that.mLongitude
                 && mLocationProvider == that.mLocationProvider
@@ -152,7 +165,7 @@ public final class Location implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + Long.hashCode(mTimeSec);
+        _hash = 31 * _hash + Long.hashCode(mTimestampSeconds);
         _hash = 31 * _hash + Double.hashCode(mLatitude);
         _hash = 31 * _hash + Double.hashCode(mLongitude);
         _hash = 31 * _hash + mLocationProvider;
@@ -169,7 +182,7 @@ public final class Location implements Parcelable {
         byte flg = 0;
         if (mPreciseLocation) flg |= 0x10;
         dest.writeByte(flg);
-        dest.writeLong(mTimeSec);
+        dest.writeLong(mTimestampSeconds);
         dest.writeDouble(mLatitude);
         dest.writeDouble(mLongitude);
         dest.writeInt(mLocationProvider);
@@ -188,14 +201,14 @@ public final class Location implements Parcelable {
 
         byte flg = in.readByte();
         boolean preciseLocation = (flg & 0x10) != 0;
-        long timeSec = in.readLong();
+        long timestampSeconds = in.readLong();
         double latitude = in.readDouble();
         double longitude = in.readDouble();
         int locationProvider = in.readInt();
 
-        this.mTimeSec = timeSec;
+        this.mTimestampSeconds = timestampSeconds;
         AnnotationValidations.validate(
-                NonNull.class, null, mTimeSec);
+                NonNull.class, null, mTimestampSeconds);
         this.mLatitude = latitude;
         AnnotationValidations.validate(
                 NonNull.class, null, mLatitude);
@@ -233,50 +246,13 @@ public final class Location implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull long mTimeSec;
+        private @NonNull long mTimestampSeconds;
         private @NonNull double mLatitude;
         private @NonNull double mLongitude;
         private @NonNull int mLocationProvider;
         private @NonNull boolean mPreciseLocation;
 
         private long mBuilderFieldsSet = 0L;
-
-        /**
-         * Creates a new Builder.
-         *
-         * @param timeSec
-         *   Timestamp of when this location is collected.
-         * @param latitude
-         *   Location latitude with E4 precision.
-         * @param longitude
-         *   Location longitude with E4 precision.
-         * @param locationProvider
-         *   Location provider. See full list {@link LocationInfo.LocationProvider}.
-         * @param preciseLocation
-         *   Whether the location source is precise.
-         */
-        public Builder(
-                @NonNull long timeSec,
-                @NonNull double latitude,
-                @NonNull double longitude,
-                @NonNull int locationProvider,
-                @NonNull boolean preciseLocation) {
-            mTimeSec = timeSec;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mTimeSec);
-            mLatitude = latitude;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mLatitude);
-            mLongitude = longitude;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mLongitude);
-            mLocationProvider = locationProvider;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mLocationProvider);
-            mPreciseLocation = preciseLocation;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mPreciseLocation);
-        }
 
         public Builder() {
         }
@@ -285,10 +261,10 @@ public final class Location implements Parcelable {
          * Timestamp of when this location is collected.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTimeSec(@NonNull long value) {
+        public @NonNull Builder setTimestampSeconds(@NonNull long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mTimeSec = value;
+            mTimestampSeconds = value;
             return this;
         }
 
@@ -315,7 +291,9 @@ public final class Location implements Parcelable {
         }
 
         /**
-         * Location provider. See full list {@link LocationInfo.LocationProvider}.
+         * Location provider.
+         *
+         * @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setLocationProvider(@NonNull int value) {
@@ -341,8 +319,23 @@ public final class Location implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x20; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mTimestampSeconds = 0;
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mLatitude = 0.0;
+            }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mLongitude = 0.0;
+            }
+            if ((mBuilderFieldsSet & 0x8) == 0) {
+                mLocationProvider = 0;
+            }
+            if ((mBuilderFieldsSet & 0x10) == 0) {
+                mPreciseLocation = false;
+            }
             Location o = new Location(
-                    mTimeSec,
+                    mTimestampSeconds,
                     mLatitude,
                     mLongitude,
                     mLocationProvider,
@@ -359,10 +352,10 @@ public final class Location implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1676500006486L,
+            time = 1687985902071L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/Location.java",
-            inputSignatures = " @android.annotation.NonNull long mTimeSec\n @android.annotation.NonNull double mLatitude\n @android.annotation.NonNull double mLongitude\n @android.annotation.NonNull int mLocationProvider\n @android.annotation.NonNull boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/Location.java",
+            inputSignatures = "static final  android.app.ondevicepersonalization.Location EMPTY\n @android.annotation.NonNull long mTimestampSeconds\n @android.annotation.NonNull double mLatitude\n @android.annotation.NonNull double mLongitude\n @android.annotation.NonNull int mLocationProvider\n @android.annotation.NonNull boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
