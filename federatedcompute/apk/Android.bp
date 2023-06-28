@@ -17,6 +17,15 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
+genrule {
+    name: "statslog-federatedcompute-java-gen",
+    tools: ["stats-log-api-gen"],
+    cmd: "$(location stats-log-api-gen) --java $(out) --module ondevicepersonalization" +
+         " --javaPackage com.android.ondevicepersonalization" +
+         " --javaClass FederatedComputeStatsLog",
+    out: ["com/android/federatedcompute/services/FederatedComputeStatsLog.java"],
+}
+
 android_app_certificate {
     name: "com.android.federatedcompute.certificate",
     certificate: "com.android.federatedcompute",
@@ -27,12 +36,14 @@ android_app {
     srcs: [
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
+        ":statslog-federatedcompute-java-gen",
     ],
     libs: [
         "auto_value_annotations",
         "flatbuffers-java",
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
+        "framework-statsd.stubs.module_lib", // For WW logging
     ],
     plugins: ["auto_value_plugin"],
     static_libs: [
