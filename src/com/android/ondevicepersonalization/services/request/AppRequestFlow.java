@@ -22,13 +22,13 @@ import android.app.ondevicepersonalization.ExecuteInput;
 import android.app.ondevicepersonalization.ExecuteOutput;
 import android.app.ondevicepersonalization.OnDevicePersonalizationException;
 import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.UserData;
 import android.app.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
-
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -38,6 +38,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
@@ -183,6 +184,9 @@ public class AppRequestFlow {
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mService.getPackageName(), mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        UserDataAccessor userDataAccessor = new UserDataAccessor();
+        UserData userData = userDataAccessor.getUserData();
+        serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
     }
