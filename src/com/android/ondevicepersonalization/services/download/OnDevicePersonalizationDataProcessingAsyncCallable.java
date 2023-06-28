@@ -42,6 +42,7 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
+import com.google.android.libraries.mobiledatadownload.RemoveFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
@@ -86,7 +87,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
      * Processes the downloaded files for the given package and stores the data into sqlite
      * vendor tables
      */
-    public ListenableFuture<Void> call() {
+    public ListenableFuture<Boolean> call() {
         sLogger.d(TAG + ": Package Name: " + mPackageName);
         MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
         try {
@@ -107,10 +108,16 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             }
             ClientFile clientFile = clientFileGroup.getFile(0);
             Uri androidUri = Uri.parse(clientFile.getFileUri());
-            return processDownloadedJsonFile(androidUri);
+            // Manually remove fileGroup after processing. Any fileGroups not removed here, will
+            // be caught by MDD maintenance based on stale and expiration settings.
+            return FluentFuture.from(processDownloadedJsonFile(androidUri))
+                    .transformAsync(unused -> mdd.removeFileGroup(
+                    RemoveFileGroupRequest.newBuilder().setGroupName(
+                            fileGroupName).build()),
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (PackageManager.NameNotFoundException e) {
             sLogger.d(TAG + ": NameNotFoundException for package: " + mPackageName);
-        } catch (ExecutionException | IOException e) {
+        } catch (ExecutionException e) {
             sLogger.e(TAG + ": Exception for package: " + mPackageName, e);
         } catch (InterruptedException e) {
             sLogger.d(TAG + mPackageName + " was interrupted.");
@@ -118,8 +125,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         return Futures.immediateFuture(null);
     }
 
-    private ListenableFuture<Void> processDownloadedJsonFile(Uri uri) throws IOException,
+    private ListenableFuture<Void> processDownloadedJsonFile(Uri uri) throws
             PackageManager.NameNotFoundException, InterruptedException, ExecutionException {
+        sLogger.d(TAG + ": begin processDownloadJsonFile");
         long syncToken = -1;
         Map<String, VendorData> vendorDataMap = null;
 
@@ -139,6 +147,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 }
                 reader.endObject();
             }
+        } catch (IOException e) {
+            sLogger.d(TAG + mPackageName + " Failed to process downloaded JSON file");
+            return Futures.immediateFuture(null);
         }
 
         if (syncToken == -1 || !validateSyncToken(syncToken)) {
@@ -157,6 +168,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
 
         // If existingToken is greaterThan or equal to the new token, skip as there is no new data.
         if (existingSyncToken >= syncToken) {
+            sLogger.d(TAG + ": syncToken is not newer than existing token.");
             return Futures.immediateFuture(null);
         }
 

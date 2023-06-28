@@ -24,7 +24,6 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.SystemProperties;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -62,6 +61,11 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
 
     private final Context mContext;
 
+    // Immediately delete stale files during maintenance once a newer file has been downloaded.
+    private static final long STALE_LIFETIME_SECS = 0;
+
+    // Set files to expire after 2 days.
+    private static final long EXPIRATION_TIME_SECS = 172800;
     private static final String OVERRIDE_DOWNLOAD_URL_PACKAGE =
             "debug.ondevicepersonalization.override_download_url_package";
     private static final String OVERRIDE_DOWNLOAD_URL =
@@ -94,6 +98,9 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                 DataFileGroup.newBuilder()
                         .setGroupName(groupName)
                         .setOwnerPackage(ownerPackage)
+                        .setStaleLifetimeSecs(STALE_LIFETIME_SECS)
+                        .setExpirationDate(
+                                (System.currentTimeMillis() / 1000) + EXPIRATION_TIME_SECS)
                         .setDownloadConditions(
                                 DownloadConditions.newBuilder().setDeviceNetworkPolicy(
                                         deviceNetworkPolicy));
