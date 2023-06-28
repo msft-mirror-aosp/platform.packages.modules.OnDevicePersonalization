@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.download;
 import android.app.ondevicepersonalization.Constants;
 import android.app.ondevicepersonalization.DownloadInputParcel;
 import android.app.ondevicepersonalization.DownloadOutput;
+import android.app.ondevicepersonalization.UserData;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -36,6 +37,7 @@ import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -246,6 +248,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 .build();
 
         pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
+
+        UserDataAccessor userDataAccessor = new UserDataAccessor();
+        UserData userData = userDataAccessor.getUserData();
+        pluginParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
