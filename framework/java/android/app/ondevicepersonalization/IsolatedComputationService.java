@@ -115,7 +115,7 @@ public abstract class IsolatedComputationService extends Service {
      *
      * @hide
      */
-    @Nullable public UserData getUserData(
+    @Nullable public final UserData getUserData(
             @NonNull RequestToken requestToken) {
         return requestToken.getUserData();
     }
