@@ -42,6 +42,7 @@ public class EventUrlProvider {
 
     @NonNull private final IDataAccessService mDataAccessService;
 
+    /** @hide */
     public EventUrlProvider(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
     }

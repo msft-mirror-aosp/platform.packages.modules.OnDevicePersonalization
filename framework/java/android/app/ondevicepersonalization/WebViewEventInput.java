@@ -25,16 +25,22 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The inputs required for computing event-level metrics to be logged.
+ * The input data for {@link IsolatedComputationCallback#onWebViewEvent()}.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class WebViewEventInput implements Parcelable {
-    /** The rows that were logged as a result of onExecute. */
+    /**
+     * The {@link RequestLogRecord} that was returned as a result of
+     * {@link IsolatedComputationCallback#onExecute()}.
+     */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
-    /** The parameters from the Event URL. */
+    /**
+     * The Event URL parameters that the service passed to
+     * {@link EventUrlProvider#getEventTrackingUrl()}.
+     */
     @NonNull private PersistableBundle mParameters = PersistableBundle.EMPTY;
 
 
@@ -45,7 +51,7 @@ public final class WebViewEventInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/WebViewEventInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -65,7 +71,8 @@ public final class WebViewEventInput implements Parcelable {
     }
 
     /**
-     * The rows that were logged as a result of onExecute.
+     * The {@link RequestLogRecord} that was returned as a result of
+     * {@link IsolatedComputationCallback#onExecute()}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -73,7 +80,8 @@ public final class WebViewEventInput implements Parcelable {
     }
 
     /**
-     * The parameters from the Event URL.
+     * The Event URL parameters that the service passed to
+     * {@link EventUrlProvider#getEventTrackingUrl()}.
      */
     @DataClass.Generated.Member
     public @NonNull PersistableBundle getParameters() {
@@ -175,7 +183,8 @@ public final class WebViewEventInput implements Parcelable {
         }
 
         /**
-         * The rows that were logged as a result of onExecute.
+         * The {@link RequestLogRecord} that was returned as a result of
+         * {@link IsolatedComputationCallback#onExecute()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -186,7 +195,8 @@ public final class WebViewEventInput implements Parcelable {
         }
 
         /**
-         * The parameters from the Event URL.
+         * The Event URL parameters that the service passed to
+         * {@link EventUrlProvider#getEventTrackingUrl()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setParameters(@NonNull PersistableBundle value) {
@@ -222,10 +232,10 @@ public final class WebViewEventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687414931805L,
+            time = 1687975181694L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventInput.java",
-            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/WebViewEventInput.java",
+            inputSignatures = "private @android.annotation.Nullable android.app.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

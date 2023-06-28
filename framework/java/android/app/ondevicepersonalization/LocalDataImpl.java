@@ -43,6 +43,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
 
     private static final long ASYNC_TIMEOUT_MS = 1000;
 
+    /** @hide */
     public LocalDataImpl(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
     }

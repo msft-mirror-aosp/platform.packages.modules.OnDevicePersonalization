@@ -26,13 +26,16 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result of the download post-processing task.
+ * The result returned by {@link IsolatedComputationCallback#onDownload()}.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadOutput implements Parcelable {
-    /** The keys to be retained in the REMOTE_DATA table. */
+    /**
+     * The keys to be retained in the REMOTE_DATA table. Any existing keys that are not
+     * present in this list are removed from the table.
+     */
     @DataClass.PluralOf("retainedKey")
     @NonNull private List<String> mRetainedKeys = Collections.emptyList();
 
@@ -44,7 +47,7 @@ public final class DownloadOutput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadOutput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/DownloadOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -62,7 +65,8 @@ public final class DownloadOutput implements Parcelable {
     }
 
     /**
-     * The keys to be retained in the REMOTE_DATA table.
+     * The keys to be retained in the REMOTE_DATA table. Any existing keys that are not
+     * present in this list are removed from the table.
      */
     @DataClass.Generated.Member
     public @NonNull List<String> getRetainedKeys() {
@@ -155,7 +159,8 @@ public final class DownloadOutput implements Parcelable {
         }
 
         /**
-         * The keys to be retained in the REMOTE_DATA table.
+         * The keys to be retained in the REMOTE_DATA table. Any existing keys that are not
+         * present in this list are removed from the table.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRetainedKeys(@NonNull List<String> value) {
@@ -195,9 +200,9 @@ public final class DownloadOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687415001066L,
+            time = 1687974154596L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadOutput.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/DownloadOutput.java",
             inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.NonNull java.util.List<java.lang.String> mRetainedKeys\nclass DownloadOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

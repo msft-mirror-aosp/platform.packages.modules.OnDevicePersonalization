@@ -27,7 +27,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Contains data that will be written to the log at the end of execution.
+ * Contains data that will be written to the REQUESTS table at the end of a call to
+ * {@link IsolatedComputationCallback#onExecute()}.
  *
  * @hide
  */

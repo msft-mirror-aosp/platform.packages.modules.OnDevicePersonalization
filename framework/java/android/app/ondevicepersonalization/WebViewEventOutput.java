@@ -22,13 +22,17 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The result of handling a WebView event.
+ *  The result returned by {@link IsolatedComputationCallback#onWebViewEvent()}
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class WebViewEventOutput implements Parcelable {
-    /** Additional data to be written to the log, if not null. */
+    /**
+     * An {@link EventLogRecord} to be written to the EVENTS table, if not null. Each
+     * {@link EventLogRecord} is associated with a row in an existing {@link RequestLogRecord} that
+     * has been written to the REQUESTS table.
+     */
     @Nullable EventLogRecord mEventLogRecord = null;
 
 
@@ -39,7 +43,7 @@ public final class WebViewEventOutput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventOutput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/WebViewEventOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -55,7 +59,9 @@ public final class WebViewEventOutput implements Parcelable {
     }
 
     /**
-     * Additional data to be written to the log, if not null.
+     * An {@link EventLogRecord} to be written to the EVENTS table, if not null. Each
+     * {@link EventLogRecord} is associated with a row in an existing {@link RequestLogRecord} that
+     * has been written to the REQUESTS table.
      */
     @DataClass.Generated.Member
     public @Nullable EventLogRecord getEventLogRecord() {
@@ -149,7 +155,9 @@ public final class WebViewEventOutput implements Parcelable {
         }
 
         /**
-         * Additional data to be written to the log, if not null.
+         * An {@link EventLogRecord} to be written to the EVENTS table, if not null. Each
+         * {@link EventLogRecord} is associated with a row in an existing {@link RequestLogRecord} that
+         * has been written to the REQUESTS table.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setEventLogRecord(@android.annotation.NonNull EventLogRecord value) {
@@ -181,10 +189,10 @@ public final class WebViewEventOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686948819983L,
+            time = 1687974722689L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/WebViewEventOutput.java",
-            inputSignatures = " @android.annotation.Nullable android.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass WebViewEventOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/WebViewEventOutput.java",
+            inputSignatures = " @android.annotation.Nullable android.app.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass WebViewEventOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

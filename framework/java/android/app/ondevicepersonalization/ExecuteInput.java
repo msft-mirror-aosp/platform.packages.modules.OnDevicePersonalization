@@ -30,10 +30,15 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteInput implements Parcelable {
-    /** The package name of the calling app. */
-    @NonNull String mAppPackageName;
+    /**
+     * The package name of the calling app.
+     */
+    @NonNull String mAppPackageName = "";
 
-    /** Parameters provided by the app to the {@link IsolatedComputationService}. */
+    /**
+     * The parameters provided by the app to the {@link IsolatedComputationService}. The service
+     * defines the expected keys in this {@link PersistableBundle}.
+     */
     @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
 
 
@@ -44,7 +49,7 @@ public final class ExecuteInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/ExecuteInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -74,7 +79,8 @@ public final class ExecuteInput implements Parcelable {
     }
 
     /**
-     * Parameters provided by the app to the {@link IsolatedComputationService}.
+     * The parameters provided by the app to the {@link IsolatedComputationService}. The service
+     * defines the expected keys in this {@link PersistableBundle}.
      */
     @DataClass.Generated.Member
     public @NonNull PersistableBundle getAppParams() {
@@ -170,10 +176,6 @@ public final class ExecuteInput implements Parcelable {
 
         private long mBuilderFieldsSet = 0L;
 
-        /**
-         * Creates a new Builder.
-         *
-         */
         public Builder() {
         }
 
@@ -189,7 +191,8 @@ public final class ExecuteInput implements Parcelable {
         }
 
         /**
-         * Parameters provided by the app to the {@link IsolatedComputationService}.
+         * The parameters provided by the app to the {@link IsolatedComputationService}. The service
+         * defines the expected keys in this {@link PersistableBundle}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
@@ -204,6 +207,9 @@ public final class ExecuteInput implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mAppPackageName = "";
+            }
             if ((mBuilderFieldsSet & 0x2) == 0) {
                 mAppParams = PersistableBundle.EMPTY;
             }
@@ -222,9 +228,9 @@ public final class ExecuteInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687415076144L,
+            time = 1687975514672L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteInput.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/ExecuteInput.java",
             inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
