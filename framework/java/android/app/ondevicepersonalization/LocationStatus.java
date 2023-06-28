@@ -23,20 +23,20 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * Location status for location histogram.
+ * Location history information.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class LocationStatus implements Parcelable {
     /** Location latitude with E4 precision. */
-    @NonNull double mLatitude;
+    @NonNull double mLatitude = 0.0;
 
     /** Location longitude with E4 precision. */
-    @NonNull double mLongitude;
+    @NonNull double mLongitude = 0.0;
 
     /** Duration in milliseconds for the location is visited in the past 30 days. */
-    @NonNull long mDurationMillis;
+    @NonNull long mDurationMillis = 0;
 
 
 
@@ -46,7 +46,7 @@ public final class LocationStatus implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/LocationStatus.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/LocationStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -192,31 +192,6 @@ public final class LocationStatus implements Parcelable {
 
         private long mBuilderFieldsSet = 0L;
 
-        /**
-         * Creates a new Builder.
-         *
-         * @param latitude
-         *   Location latitude with E4 precision.
-         * @param longitude
-         *   Location longitude with E4 precision.
-         * @param durationMillis
-         *   Duration in milliseconds for the location is visited in the past 30 days.
-         */
-        public Builder(
-                @NonNull double latitude,
-                @NonNull double longitude,
-                @NonNull long durationMillis) {
-            mLatitude = latitude;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mLatitude);
-            mLongitude = longitude;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mLongitude);
-            mDurationMillis = durationMillis;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mDurationMillis);
-        }
-
         public Builder() {
         }
 
@@ -258,6 +233,15 @@ public final class LocationStatus implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mLatitude = 0.0;
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mLongitude = 0.0;
+            }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mDurationMillis = 0;
+            }
             LocationStatus o = new LocationStatus(
                     mLatitude,
                     mLongitude,
@@ -274,9 +258,9 @@ public final class LocationStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1676500042544L,
+            time = 1687985976247L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/LocationStatus.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/LocationStatus.java",
             inputSignatures = " @android.annotation.NonNull double mLatitude\n @android.annotation.NonNull double mLongitude\n @android.annotation.NonNull long mDurationMillis\nclass LocationStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

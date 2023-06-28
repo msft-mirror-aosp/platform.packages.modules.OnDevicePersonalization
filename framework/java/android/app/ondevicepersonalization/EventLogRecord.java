@@ -23,7 +23,8 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * Additional data to be logged that is associated with a pre-existing {@link RequestLogRecord}.
+ * Data to be logged in the EVENTS table that is associated with a pre-existing
+ * {@link RequestLogRecord} that has been written to the REQUESTS table.
  *
  * @hide
  */
@@ -35,7 +36,10 @@ public final class EventLogRecord implements Parcelable {
      **/
     private int mRowIndex = 0;
 
-    /** The type that identifies this payload. Unique for each row. Duplicates are discarded. */
+    /**
+     * The service-assigned type that identifies this payload. Unique for each row. Duplicates are
+     * discarded. Must be >0 and <128.
+     */
     private int mType = 0;
 
     /** Additional data to be logged. */
@@ -49,7 +53,7 @@ public final class EventLogRecord implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventLogRecord.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/EventLogRecord.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -78,7 +82,8 @@ public final class EventLogRecord implements Parcelable {
     }
 
     /**
-     * The type that identifies this payload. Unique for each row. Duplicates are discarded.
+     * The service-assigned type that identifies this payload. Unique for each row. Duplicates are
+     * discarded. Must be >0 and <128.
      */
     @DataClass.Generated.Member
     public int getType() {
@@ -204,7 +209,8 @@ public final class EventLogRecord implements Parcelable {
         }
 
         /**
-         * The type that identifies this payload. Unique for each row. Duplicates are discarded.
+         * The service-assigned type that identifies this payload. Unique for each row. Duplicates are
+         * discarded. Must be >0 and <128.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setType(int value) {
@@ -255,9 +261,9 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1686635852391L,
+            time = 1687977508732L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/EventLogRecord.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/EventLogRecord.java",
             inputSignatures = "private  int mRowIndex\nprivate  int mType\n @android.annotation.Nullable android.content.ContentValues mData\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

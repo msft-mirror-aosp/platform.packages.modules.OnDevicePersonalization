@@ -27,21 +27,23 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a request
- * from a calling app.
+ * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a call to
+ * {@link OnDevicePersonalizationManager#execute()} from a client app.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput implements Parcelable {
     /**
-     * Data to be written to the log.
+     * Persistent data to be written to the REQUESTS table after
+     * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
+     * be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
      * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     * calling app.
+     * calling app. The calling app and the service must agree on the expected size of this list.
      */
     @DataClass.PluralOf("renderingConfig")
     @NonNull private List<RenderingConfig> mRenderingConfigs = Collections.emptyList();
@@ -54,7 +56,7 @@ public final class ExecuteOutput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteOutput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/ExecuteOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -74,7 +76,9 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     /**
-     * Data to be written to the log.
+     * Persistent data to be written to the REQUESTS table after
+     * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
+     * be written.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -83,7 +87,7 @@ public final class ExecuteOutput implements Parcelable {
 
     /**
      * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     * calling app.
+     * calling app. The calling app and the service must agree on the expected size of this list.
      */
     @DataClass.Generated.Member
     public @NonNull List<RenderingConfig> getRenderingConfigs() {
@@ -186,7 +190,9 @@ public final class ExecuteOutput implements Parcelable {
         }
 
         /**
-         * Data to be written to the log.
+         * Persistent data to be written to the REQUESTS table after
+         * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
+         * be written.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -198,7 +204,7 @@ public final class ExecuteOutput implements Parcelable {
 
         /**
          * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-         * calling app.
+         * calling app. The calling app and the service must agree on the expected size of this list.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRenderingConfigs(@NonNull List<RenderingConfig> value) {
@@ -242,10 +248,10 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687415852618L,
+            time = 1687978725871L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/ExecuteOutput.java",
+            inputSignatures = "private @android.annotation.Nullable android.app.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.app.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

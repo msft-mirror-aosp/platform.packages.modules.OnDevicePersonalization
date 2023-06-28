@@ -193,7 +193,7 @@ class UserDataReaderTest : ProcessorNode {
     @Test
     fun testLocation() {
         var location1 = Location.Builder()
-                .setTimeSec(111111)
+                .setTimestampSeconds(111111)
                 .setLatitude(0.1)
                 .setLongitude(0.2)
                 .setLocationProvider(1)
@@ -259,7 +259,7 @@ class UserDataReaderTest : ProcessorNode {
         val appInstalledHistory: Map<String, AppInstallStatus> = mapOf<String, AppInstallStatus>();
         val appUsageHistory: List<AppUsageStatus> = listOf();
         var location = Location.Builder()
-                .setTimeSec(111111)
+                .setTimestampSeconds(111111)
                 .setLatitude(0.1)
                 .setLongitude(0.2)
                 .setLocationProvider(1)
@@ -267,10 +267,10 @@ class UserDataReaderTest : ProcessorNode {
                 .build()
         val locationHistory: List<LocationStatus> = listOf();
         var userData1 = UserData.Builder()
-                .setTimestampSec(111)
+                .setTimestampSeconds(111)
                 .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
-                .setAvailableStorageMB(222)
+                .setAvailableStorageMb(222)
                 .setBatteryPercentage(33)
                 .setCarrier(55)
                 .setConnectionType(2)
@@ -291,10 +291,10 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
-        assertThat(userData.getTimestampSec()).isEqualTo(ref.timeMillis / 1000)
+        assertThat(userData.getTimestampSeconds()).isEqualTo(ref.timeMillis / 1000)
         assertThat(userData.getTimezoneUtcOffsetMins()).isEqualTo(ref.utcOffset)
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
-        assertThat(userData.getAvailableStorageMB()).isEqualTo(ref.availableStorageMB)
+        assertThat(userData.getAvailableStorageMb()).isEqualTo(ref.availableStorageMB)
         assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
         assertThat(userData.getCarrier()).isEqualTo(ref.carrier.ordinal)
 
@@ -304,7 +304,7 @@ class UserDataReaderTest : ProcessorNode {
 
         val currentLocation: Location = userData.getCurrentLocation()
 
-        assertThat(currentLocation.getTimeSec()).isEqualTo(rawUserData.currentLocation.timeMillis / 1000)
+        assertThat(currentLocation.getTimestampSeconds()).isEqualTo(rawUserData.currentLocation.timeMillis / 1000)
         assertThat(currentLocation.getLatitude()).isEqualTo(rawUserData.currentLocation.latitude)
         assertThat(currentLocation.getLongitude()).isEqualTo(rawUserData.currentLocation.longitude)
         assertThat(currentLocation.getLocationProvider()).isEqualTo(rawUserData.currentLocation.provider.ordinal)

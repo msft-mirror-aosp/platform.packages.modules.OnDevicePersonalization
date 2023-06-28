@@ -22,7 +22,7 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The rendering input data for an {@link IsolatedComputationCallback}.
+ * The input data for {@link IsolatedComputationCallback#onRender()}.
  *
  * @hide
  */
@@ -34,7 +34,10 @@ public final class RenderInput implements Parcelable {
     /** The height of the slot. */
     private int mHeight = 0;
 
-    /** Index of the slot that this render request is for. */
+    /**
+     * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
+     * request is for.
+     */
     private int mRenderingConfigIndex = 0;
 
     /** A {@link RenderingConfig} returned by {@link onExecute}. */
@@ -48,7 +51,7 @@ public final class RenderInput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -86,7 +89,8 @@ public final class RenderInput implements Parcelable {
     }
 
     /**
-     * Index of the slot that this render request is for.
+     * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
+     * request is for.
      */
     @DataClass.Generated.Member
     public int getRenderingConfigIndex() {
@@ -228,7 +232,8 @@ public final class RenderInput implements Parcelable {
         }
 
         /**
-         * Index of the slot that this render request is for.
+         * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
+         * request is for.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setRenderingConfigIndex(int value) {
@@ -283,10 +288,10 @@ public final class RenderInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687380072610L,
+            time = 1687974251755L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/RenderInput.java",
-            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderInput.java",
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.app.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

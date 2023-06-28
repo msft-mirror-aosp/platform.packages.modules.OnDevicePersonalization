@@ -43,6 +43,7 @@ public class RemoteDataImpl implements KeyValueStore {
 
     private static final long ASYNC_TIMEOUT_MS = 1000;
 
+    /** @hide */
     public RemoteDataImpl(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
     }
