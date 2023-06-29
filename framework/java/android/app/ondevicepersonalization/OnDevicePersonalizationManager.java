@@ -53,6 +53,7 @@ import java.util.concurrent.TimeUnit;
  * analysis or by Federated Learning for model training. The displayed content and the persistent
  * output are both not directly accessible by the calling app.
  *
+ * @hide
  */
 public class OnDevicePersonalizationManager {
     /** @hide */
