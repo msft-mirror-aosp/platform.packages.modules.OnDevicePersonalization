@@ -46,6 +46,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.setfilters.cuckoofilter.CuckooFilter;
 
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
@@ -149,6 +150,16 @@ public class SampleHandler implements IsolatedComputationCallback {
         }
         if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
             if (ad.mExcludeKeyword.equals(requestKeyword)) {
+                return false;
+            }
+        }
+        if (ad.mTargetKeywordFilter != null) {
+            if (!ad.mTargetKeywordFilter.contains(requestKeyword)) {
+                return false;
+            }
+        }
+        if (ad.mExcludeKeywordFilter != null) {
+            if (ad.mExcludeKeywordFilter.contains(requestKeyword)) {
                 return false;
             }
         }
@@ -423,8 +434,12 @@ public class SampleHandler implements IsolatedComputationCallback {
         final String mLandingPage;
         final String mText;
         final String mTemplateId;
+        final CuckooFilter<String> mTargetKeywordFilter;
+        final CuckooFilter<String> mExcludeKeywordFilter;
         Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage, String text, String templateId) {
+                String landingPage, String text, String templateId,
+                CuckooFilter<String> targetKeywordFilter,
+                CuckooFilter<String> excludeKeywordFilter) {
             mId = id;
             mPrice = price;
             mTargetKeyword = targetKeyword;
@@ -432,6 +447,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             mLandingPage = landingPage;
             mText = text;
             mTemplateId = templateId;
+            mTargetKeywordFilter = targetKeywordFilter;
+            mExcludeKeywordFilter = excludeKeywordFilter;
         }
     }
 
@@ -450,6 +467,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             String landingPage = "";
             String text = "Click Here!";
             String templateId = null;
+            CuckooFilter<String> targetKeywordFilter = null;
+            CuckooFilter<String> excludeKeywordFilter = null;
             while (reader.hasNext()) {
                 String name = reader.nextName();
                 if (name.equals("price")) {
@@ -464,12 +483,18 @@ public class SampleHandler implements IsolatedComputationCallback {
                     text = reader.nextString();
                 } else if (name.equals("template")) {
                     templateId = reader.nextString();
+                } else if (name.equals("keywordFilter")) {
+                    targetKeywordFilter = CuckooFilterUtil.createCuckooFilter(reader.nextString());
+                } else if (name.equals("excludeKeywordFilter")) {
+                    excludeKeywordFilter = CuckooFilterUtil.createCuckooFilter(
+                            reader.nextString());
                 } else {
                     reader.skipValue();
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId);
+            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId,
+                    targetKeywordFilter, excludeKeywordFilter);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;
