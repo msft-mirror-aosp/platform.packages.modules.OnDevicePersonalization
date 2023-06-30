@@ -16,11 +16,14 @@
 
 package android.app.ondevicepersonalization;
 
+import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.os.Parcelable;
 
-import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Most recently known location info.
@@ -36,24 +39,35 @@ public final class Location implements Parcelable {
     }
 
     /** Timestamp of when this location is collected. */
-    @NonNull long mTimestampSeconds = 0;
+    long mTimestampSeconds = 0;
 
     /** Location latitude with E4 precision. */
-    @NonNull double mLatitude = 0.0;
+    double mLatitude = 0.0;
 
     /** Location longitude with E4 precision. */
-    @NonNull double mLongitude = 0.0;
+    double mLongitude = 0.0;
 
-    // TODO(b/288280751): Define @IntDef constants for the valid values.
-    /**
-     * Location provider.
-     *
-     * @hide
-     */
-    @NonNull int mLocationProvider = 0;
+    /** @hide */
+    @IntDef(prefix = {"LOCATION_PROVIDER_TYPE_"}, value = {
+        LOCATION_PROVIDER_TYPE_UNKNOWN,
+        LOCATION_PROVIDER_TYPE_GPS,
+        LOCATION_PROVIDER_TYPE_NETWORK
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface LocationProviderType {}
+
+    /** Location provider unknown. */
+    public static final int LOCATION_PROVIDER_TYPE_UNKNOWN = 0;
+    /** Location provider GPS. */
+    public static final int LOCATION_PROVIDER_TYPE_GPS = 1;
+    /** Location provider network. */
+    public static final int LOCATION_PROVIDER_TYPE_NETWORK = 2;
+
+    /** Location provider. */
+    @LocationProviderType int mLocationProvider = LOCATION_PROVIDER_TYPE_UNKNOWN;
 
     /** Whether the location source is precise. */
-    @NonNull boolean mPreciseLocation = false;
+    boolean mPreciseLocation = false;
 
 
 
@@ -71,27 +85,41 @@ public final class Location implements Parcelable {
 
 
     @DataClass.Generated.Member
+    public static String locationProviderTypeToString(@LocationProviderType int value) {
+        switch (value) {
+            case LOCATION_PROVIDER_TYPE_UNKNOWN:
+                    return "LOCATION_PROVIDER_TYPE_UNKNOWN";
+            case LOCATION_PROVIDER_TYPE_GPS:
+                    return "LOCATION_PROVIDER_TYPE_GPS";
+            case LOCATION_PROVIDER_TYPE_NETWORK:
+                    return "LOCATION_PROVIDER_TYPE_NETWORK";
+            default: return Integer.toHexString(value);
+        }
+    }
+
+    @DataClass.Generated.Member
     /* package-private */ Location(
-            @NonNull long timestampSeconds,
-            @NonNull double latitude,
-            @NonNull double longitude,
-            @NonNull int locationProvider,
-            @NonNull boolean preciseLocation) {
+            long timestampSeconds,
+            double latitude,
+            double longitude,
+            @LocationProviderType int locationProvider,
+            boolean preciseLocation) {
         this.mTimestampSeconds = timestampSeconds;
-        AnnotationValidations.validate(
-                NonNull.class, null, mTimestampSeconds);
         this.mLatitude = latitude;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLatitude);
         this.mLongitude = longitude;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLongitude);
         this.mLocationProvider = locationProvider;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLocationProvider);
+
+        if (!(mLocationProvider == LOCATION_PROVIDER_TYPE_UNKNOWN)
+                && !(mLocationProvider == LOCATION_PROVIDER_TYPE_GPS)
+                && !(mLocationProvider == LOCATION_PROVIDER_TYPE_NETWORK)) {
+            throw new java.lang.IllegalArgumentException(
+                    "locationProvider was " + mLocationProvider + " but must be one of: "
+                            + "LOCATION_PROVIDER_TYPE_UNKNOWN(" + LOCATION_PROVIDER_TYPE_UNKNOWN + "), "
+                            + "LOCATION_PROVIDER_TYPE_GPS(" + LOCATION_PROVIDER_TYPE_GPS + "), "
+                            + "LOCATION_PROVIDER_TYPE_NETWORK(" + LOCATION_PROVIDER_TYPE_NETWORK + ")");
+        }
+
         this.mPreciseLocation = preciseLocation;
-        AnnotationValidations.validate(
-                NonNull.class, null, mPreciseLocation);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -100,7 +128,7 @@ public final class Location implements Parcelable {
      * Timestamp of when this location is collected.
      */
     @DataClass.Generated.Member
-    public @NonNull long getTimestampSeconds() {
+    public long getTimestampSeconds() {
         return mTimestampSeconds;
     }
 
@@ -108,7 +136,7 @@ public final class Location implements Parcelable {
      * Location latitude with E4 precision.
      */
     @DataClass.Generated.Member
-    public @NonNull double getLatitude() {
+    public double getLatitude() {
         return mLatitude;
     }
 
@@ -116,17 +144,15 @@ public final class Location implements Parcelable {
      * Location longitude with E4 precision.
      */
     @DataClass.Generated.Member
-    public @NonNull double getLongitude() {
+    public double getLongitude() {
         return mLongitude;
     }
 
     /**
      * Location provider.
-     *
-     * @hide
      */
     @DataClass.Generated.Member
-    public @NonNull int getLocationProvider() {
+    public @LocationProviderType int getLocationProvider() {
         return mLocationProvider;
     }
 
@@ -134,7 +160,7 @@ public final class Location implements Parcelable {
      * Whether the location source is precise.
      */
     @DataClass.Generated.Member
-    public @NonNull boolean isPreciseLocation() {
+    public boolean isPreciseLocation() {
         return mPreciseLocation;
     }
 
@@ -207,20 +233,21 @@ public final class Location implements Parcelable {
         int locationProvider = in.readInt();
 
         this.mTimestampSeconds = timestampSeconds;
-        AnnotationValidations.validate(
-                NonNull.class, null, mTimestampSeconds);
         this.mLatitude = latitude;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLatitude);
         this.mLongitude = longitude;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLongitude);
         this.mLocationProvider = locationProvider;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLocationProvider);
+
+        if (!(mLocationProvider == LOCATION_PROVIDER_TYPE_UNKNOWN)
+                && !(mLocationProvider == LOCATION_PROVIDER_TYPE_GPS)
+                && !(mLocationProvider == LOCATION_PROVIDER_TYPE_NETWORK)) {
+            throw new java.lang.IllegalArgumentException(
+                    "locationProvider was " + mLocationProvider + " but must be one of: "
+                            + "LOCATION_PROVIDER_TYPE_UNKNOWN(" + LOCATION_PROVIDER_TYPE_UNKNOWN + "), "
+                            + "LOCATION_PROVIDER_TYPE_GPS(" + LOCATION_PROVIDER_TYPE_GPS + "), "
+                            + "LOCATION_PROVIDER_TYPE_NETWORK(" + LOCATION_PROVIDER_TYPE_NETWORK + ")");
+        }
+
         this.mPreciseLocation = preciseLocation;
-        AnnotationValidations.validate(
-                NonNull.class, null, mPreciseLocation);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -246,11 +273,11 @@ public final class Location implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull long mTimestampSeconds;
-        private @NonNull double mLatitude;
-        private @NonNull double mLongitude;
-        private @NonNull int mLocationProvider;
-        private @NonNull boolean mPreciseLocation;
+        private long mTimestampSeconds;
+        private double mLatitude;
+        private double mLongitude;
+        private @LocationProviderType int mLocationProvider;
+        private boolean mPreciseLocation;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -261,7 +288,7 @@ public final class Location implements Parcelable {
          * Timestamp of when this location is collected.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTimestampSeconds(@NonNull long value) {
+        public @NonNull Builder setTimestampSeconds(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mTimestampSeconds = value;
@@ -272,7 +299,7 @@ public final class Location implements Parcelable {
          * Location latitude with E4 precision.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setLatitude(@NonNull double value) {
+        public @NonNull Builder setLatitude(double value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mLatitude = value;
@@ -283,7 +310,7 @@ public final class Location implements Parcelable {
          * Location longitude with E4 precision.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setLongitude(@NonNull double value) {
+        public @NonNull Builder setLongitude(double value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mLongitude = value;
@@ -292,11 +319,9 @@ public final class Location implements Parcelable {
 
         /**
          * Location provider.
-         *
-         * @hide
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setLocationProvider(@NonNull int value) {
+        public @NonNull Builder setLocationProvider(@LocationProviderType int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mLocationProvider = value;
@@ -307,7 +332,7 @@ public final class Location implements Parcelable {
          * Whether the location source is precise.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setPreciseLocation(@NonNull boolean value) {
+        public @NonNull Builder setPreciseLocation(boolean value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10;
             mPreciseLocation = value;
@@ -329,7 +354,7 @@ public final class Location implements Parcelable {
                 mLongitude = 0.0;
             }
             if ((mBuilderFieldsSet & 0x8) == 0) {
-                mLocationProvider = 0;
+                mLocationProvider = LOCATION_PROVIDER_TYPE_UNKNOWN;
             }
             if ((mBuilderFieldsSet & 0x10) == 0) {
                 mPreciseLocation = false;
@@ -352,10 +377,10 @@ public final class Location implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687985902071L,
+            time = 1688111819473L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/Location.java",
-            inputSignatures = "static final  android.app.ondevicepersonalization.Location EMPTY\n @android.annotation.NonNull long mTimestampSeconds\n @android.annotation.NonNull double mLatitude\n @android.annotation.NonNull double mLongitude\n @android.annotation.NonNull int mLocationProvider\n @android.annotation.NonNull boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "static final  android.app.ondevicepersonalization.Location EMPTY\n  long mTimestampSeconds\n  double mLatitude\n  double mLongitude\npublic static final  int LOCATION_PROVIDER_TYPE_UNKNOWN\npublic static final  int LOCATION_PROVIDER_TYPE_GPS\npublic static final  int LOCATION_PROVIDER_TYPE_NETWORK\n @android.app.ondevicepersonalization.Location.LocationProviderType int mLocationProvider\n  boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

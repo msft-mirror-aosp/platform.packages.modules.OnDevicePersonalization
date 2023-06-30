@@ -16,12 +16,15 @@
 
 package android.app.ondevicepersonalization;
 
+import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -52,15 +55,38 @@ public final class UserData implements Parcelable {
 
     @NonNull String mCarrier = "";
 
-    // TODO(b/288280751): Define @IntDef constants for the valid values.
-    /**
-     * Network connection types. See full list {@link RawUserData.ConnectionType}.
-     *
-     * @hide
-     */
-    int mConnectionType = 0;
+    /** @hide */
+    @IntDef(prefix = {"CONNECTION_TYPE_"}, value = {
+        CONNECTION_TYPE_UNKNOWN,
+        CONNECTION_TYPE_ETHERNET,
+        CONNECTION_TYPE_WIFI,
+        CONNECTION_TYPE_CELLULAR_2G,
+        CONNECTION_TYPE_CELLULAR_3G,
+        CONNECTION_TYPE_CELLULAR_4G,
+        CONNECTION_TYPE_CELLULAR_5G
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ConnectionType {}
 
-    /** Connection speed in kbps. */
+    /** Connection type unknown. */
+    public static final int CONNECTION_TYPE_UNKNOWN = 0;
+    /** Connection type ethernet. */
+    public static final int CONNECTION_TYPE_ETHERNET = 1;
+    /** Connection type wifi. */
+    public static final int CONNECTION_TYPE_WIFI = 2;
+    /** Connection type cellular 2G. */
+    public static final int CONNECTION_TYPE_CELLULAR_2G = 3;
+    /** Connection type cellular 3G. */
+    public static final int CONNECTION_TYPE_CELLULAR_3G = 4;
+    /** Connection type cellular 4G. */
+    public static final int CONNECTION_TYPE_CELLULAR_4G = 5;
+    /** Connection type cellular 5G. */
+    public static final int CONNECTION_TYPE_CELLULAR_5G = 6;
+
+    /** Connection types. */
+    @ConnectionType int mConnectionType = 0;
+
+    /** Network connection speed in kbps. */
     long mNetworkConnectionSpeedKbps = 0;
 
     /** Whether the network is metered. False - not metered. True - metered. */
@@ -94,6 +120,27 @@ public final class UserData implements Parcelable {
 
 
     @DataClass.Generated.Member
+    public static String connectionTypeToString(@ConnectionType int value) {
+        switch (value) {
+            case CONNECTION_TYPE_UNKNOWN:
+                    return "CONNECTION_TYPE_UNKNOWN";
+            case CONNECTION_TYPE_ETHERNET:
+                    return "CONNECTION_TYPE_ETHERNET";
+            case CONNECTION_TYPE_WIFI:
+                    return "CONNECTION_TYPE_WIFI";
+            case CONNECTION_TYPE_CELLULAR_2G:
+                    return "CONNECTION_TYPE_CELLULAR_2G";
+            case CONNECTION_TYPE_CELLULAR_3G:
+                    return "CONNECTION_TYPE_CELLULAR_3G";
+            case CONNECTION_TYPE_CELLULAR_4G:
+                    return "CONNECTION_TYPE_CELLULAR_4G";
+            case CONNECTION_TYPE_CELLULAR_5G:
+                    return "CONNECTION_TYPE_CELLULAR_5G";
+            default: return Integer.toHexString(value);
+        }
+    }
+
+    @DataClass.Generated.Member
     /* package-private */ UserData(
             long timestampSeconds,
             int timezoneUtcOffsetMins,
@@ -101,7 +148,7 @@ public final class UserData implements Parcelable {
             long availableStorageMb,
             int batteryPercentage,
             @NonNull String carrier,
-            int connectionType,
+            @ConnectionType int connectionType,
             long networkConnectionSpeedKbps,
             boolean networkMetered,
             @NonNull Map<String,AppInstallStatus> appInstalledHistory,
@@ -117,6 +164,25 @@ public final class UserData implements Parcelable {
         AnnotationValidations.validate(
                 NonNull.class, null, mCarrier);
         this.mConnectionType = connectionType;
+
+        if (!(mConnectionType == CONNECTION_TYPE_UNKNOWN)
+                && !(mConnectionType == CONNECTION_TYPE_ETHERNET)
+                && !(mConnectionType == CONNECTION_TYPE_WIFI)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_2G)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_3G)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_4G)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_5G)) {
+            throw new java.lang.IllegalArgumentException(
+                    "connectionType was " + mConnectionType + " but must be one of: "
+                            + "CONNECTION_TYPE_UNKNOWN(" + CONNECTION_TYPE_UNKNOWN + "), "
+                            + "CONNECTION_TYPE_ETHERNET(" + CONNECTION_TYPE_ETHERNET + "), "
+                            + "CONNECTION_TYPE_WIFI(" + CONNECTION_TYPE_WIFI + "), "
+                            + "CONNECTION_TYPE_CELLULAR_2G(" + CONNECTION_TYPE_CELLULAR_2G + "), "
+                            + "CONNECTION_TYPE_CELLULAR_3G(" + CONNECTION_TYPE_CELLULAR_3G + "), "
+                            + "CONNECTION_TYPE_CELLULAR_4G(" + CONNECTION_TYPE_CELLULAR_4G + "), "
+                            + "CONNECTION_TYPE_CELLULAR_5G(" + CONNECTION_TYPE_CELLULAR_5G + ")");
+        }
+
         this.mNetworkConnectionSpeedKbps = networkConnectionSpeedKbps;
         this.mNetworkMetered = networkMetered;
         this.mAppInstalledHistory = appInstalledHistory;
@@ -181,17 +247,15 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Network connection types. See full list {@link RawUserData.ConnectionType}.
-     *
-     * @hide
+     * Connection types.
      */
     @DataClass.Generated.Member
-    public int getConnectionType() {
+    public @ConnectionType int getConnectionType() {
         return mConnectionType;
     }
 
     /**
-     * Connection speed in kbps.
+     * Network connection speed in kbps.
      */
     @DataClass.Generated.Member
     public long getNetworkConnectionSpeedKbps() {
@@ -350,6 +414,25 @@ public final class UserData implements Parcelable {
         AnnotationValidations.validate(
                 NonNull.class, null, mCarrier);
         this.mConnectionType = connectionType;
+
+        if (!(mConnectionType == CONNECTION_TYPE_UNKNOWN)
+                && !(mConnectionType == CONNECTION_TYPE_ETHERNET)
+                && !(mConnectionType == CONNECTION_TYPE_WIFI)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_2G)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_3G)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_4G)
+                && !(mConnectionType == CONNECTION_TYPE_CELLULAR_5G)) {
+            throw new java.lang.IllegalArgumentException(
+                    "connectionType was " + mConnectionType + " but must be one of: "
+                            + "CONNECTION_TYPE_UNKNOWN(" + CONNECTION_TYPE_UNKNOWN + "), "
+                            + "CONNECTION_TYPE_ETHERNET(" + CONNECTION_TYPE_ETHERNET + "), "
+                            + "CONNECTION_TYPE_WIFI(" + CONNECTION_TYPE_WIFI + "), "
+                            + "CONNECTION_TYPE_CELLULAR_2G(" + CONNECTION_TYPE_CELLULAR_2G + "), "
+                            + "CONNECTION_TYPE_CELLULAR_3G(" + CONNECTION_TYPE_CELLULAR_3G + "), "
+                            + "CONNECTION_TYPE_CELLULAR_4G(" + CONNECTION_TYPE_CELLULAR_4G + "), "
+                            + "CONNECTION_TYPE_CELLULAR_5G(" + CONNECTION_TYPE_CELLULAR_5G + ")");
+        }
+
         this.mNetworkConnectionSpeedKbps = networkConnectionSpeedKbps;
         this.mNetworkMetered = networkMetered;
         this.mAppInstalledHistory = appInstalledHistory;
@@ -395,7 +478,7 @@ public final class UserData implements Parcelable {
         private long mAvailableStorageMb;
         private int mBatteryPercentage;
         private @NonNull String mCarrier;
-        private int mConnectionType;
+        private @ConnectionType int mConnectionType;
         private long mNetworkConnectionSpeedKbps;
         private boolean mNetworkMetered;
         private @NonNull Map<String,AppInstallStatus> mAppInstalledHistory;
@@ -472,12 +555,10 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Network connection types. See full list {@link RawUserData.ConnectionType}.
-         *
-         * @hide
+         * Connection types.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setConnectionType(int value) {
+        public @NonNull Builder setConnectionType(@ConnectionType int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x40;
             mConnectionType = value;
@@ -485,7 +566,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Connection speed in kbps.
+         * Network connection speed in kbps.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setNetworkConnectionSpeedKbps(long value) {
@@ -653,10 +734,10 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1688108382786L,
+            time = 1688154933121L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/UserData.java",
-            inputSignatures = "  long mTimestampSeconds\n  int mTimezoneUtcOffsetMins\n  int mOrientation\n  long mAvailableStorageMb\n  int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n  int mConnectionType\n  long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.app.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.app.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.app.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.app.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "  long mTimestampSeconds\n  int mTimezoneUtcOffsetMins\n  int mOrientation\n  long mAvailableStorageMb\n  int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n @android.app.ondevicepersonalization.UserData.ConnectionType int mConnectionType\n  long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.app.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.app.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.app.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.app.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
