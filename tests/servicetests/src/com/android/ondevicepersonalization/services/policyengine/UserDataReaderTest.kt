@@ -272,7 +272,7 @@ class UserDataReaderTest : ProcessorNode {
                 .setOrientation(1)
                 .setAvailableStorageMb(222)
                 .setBatteryPercentage(33)
-                .setCarrier(55)
+                .setCarrier("AT_T")
                 .setConnectionType(2)
                 .setNetworkConnectionSpeedKbps(666)
                 .setNetworkMetered(true)
@@ -296,7 +296,7 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
         assertThat(userData.getAvailableStorageMb()).isEqualTo(ref.availableStorageMB)
         assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
-        assertThat(userData.getCarrier()).isEqualTo(ref.carrier.ordinal)
+        assertThat(userData.getCarrier()).isEqualTo(ref.carrier.toString())
 
         assertThat(userData.getConnectionType()).isEqualTo(ref.connectionType.ordinal)
         assertThat(userData.getNetworkConnectionSpeedKbps()).isEqualTo(ref.connectionSpeedKbps)

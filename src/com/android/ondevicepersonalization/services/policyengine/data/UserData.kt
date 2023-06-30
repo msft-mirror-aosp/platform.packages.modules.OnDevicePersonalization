@@ -32,7 +32,7 @@ data class UserData (
     val orientation: Int,
     val availableStorageMB: Long,
     val batteryPercentage: Int,
-    val carrier: Int,
+    val carrier: String,
     val connectionType: Int,
     val connectionSpeedKbps: Long,
     val networkMetered: Boolean,
