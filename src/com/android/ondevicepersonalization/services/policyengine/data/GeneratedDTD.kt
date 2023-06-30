@@ -28,7 +28,7 @@ public val USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name
       "orientation" to FieldType.Integer
       "availableStorageMB" to FieldType.Long
       "batteryPercentage" to FieldType.Integer
-      "carrier" to FieldType.Integer
+      "carrier" to FieldType.String
       "connectionType" to FieldType.Integer
       "connectionSpeedKbps" to FieldType.Long
       "networkMetered" to FieldType.Boolean

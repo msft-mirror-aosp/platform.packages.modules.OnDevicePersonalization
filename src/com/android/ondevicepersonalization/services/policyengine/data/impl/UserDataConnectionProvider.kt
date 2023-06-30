@@ -71,7 +71,7 @@ class UserDataConnectionProvider() : ConnectionProvider {
                     .setOrientation(rawUserData.orientation)
                     .setAvailableStorageMb(rawUserData.availableStorageMB)
                     .setBatteryPercentage(rawUserData.batteryPercentage)
-                    .setCarrier(rawUserData.carrier.ordinal)
+                    .setCarrier(rawUserData.carrier.toString())
                     .setConnectionType(rawUserData.connectionType.ordinal)
                     .setNetworkConnectionSpeedKbps(rawUserData.connectionSpeedKbps)
                     .setNetworkMetered(rawUserData.networkMetered)
