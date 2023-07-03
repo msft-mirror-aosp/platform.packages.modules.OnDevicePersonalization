@@ -1,1 +1,13 @@
 // Signature format: 2.0
+package android.app.ondevicepersonalization {
+
+  public class OnDevicePersonalizationManager {
+    method public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.util.List<android.app.ondevicepersonalization.SurfacePackageToken>,java.lang.Exception>);
+    method public void requestSurfacePackage(@NonNull android.app.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
+  }
+
+  public class SurfacePackageToken {
+  }
+
+}
+

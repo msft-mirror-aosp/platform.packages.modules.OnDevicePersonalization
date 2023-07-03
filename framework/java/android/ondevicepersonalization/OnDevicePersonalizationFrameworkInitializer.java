@@ -16,12 +16,18 @@
 
 package android.ondevicepersonalization;
 
-import static android.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
-import static android.ondevicepersonalization.OnDevicePersonalizationPrivacyStatusManager.ON_DEVICE_PERSONALIZATION_PRIVACY_STATUS_SERVICE;
+import static android.app.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
+import static android.app.ondevicepersonalization.OnDevicePersonalizationPrivacyStatusManager.ON_DEVICE_PERSONALIZATION_PRIVACY_STATUS_SERVICE;
+import static android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
 
 import android.annotation.SystemApi;
 import android.app.SystemServiceRegistry;
+import android.app.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.app.ondevicepersonalization.OnDevicePersonalizationPrivacyStatusManager;
+import android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
 import android.content.Context;
+
+import com.android.modules.utils.build.SdkLevel;
 
 /**
  * Class holding initialization code for the OnDevicePersonalization module.
@@ -49,5 +55,12 @@ public class OnDevicePersonalizationFrameworkInitializer {
                 ON_DEVICE_PERSONALIZATION_PRIVACY_STATUS_SERVICE,
                 OnDevicePersonalizationPrivacyStatusManager.class,
                 (c) -> new OnDevicePersonalizationPrivacyStatusManager(c));
+
+        if (SdkLevel.isAtLeastU()) {
+            SystemServiceRegistry.registerStaticService(
+                    ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE,
+                    OnDevicePersonalizationSystemServiceManager.class,
+                    (s) -> new OnDevicePersonalizationSystemServiceManager(s));
+        }
     }
 }
