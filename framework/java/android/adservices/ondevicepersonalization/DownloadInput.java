@@ -28,7 +28,6 @@ import java.util.Map;
 /**
  * The input data for {@link IsolatedWorker#onDownload()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadInput {
@@ -97,6 +96,8 @@ public final class DownloadInput {
 
     /**
      * A builder for {@link DownloadInput}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member

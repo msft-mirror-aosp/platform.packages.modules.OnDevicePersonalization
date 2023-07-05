@@ -35,7 +35,6 @@ import java.util.concurrent.BlockingQueue;
  * requests to these URLs, call {@link IsolatedWorker#onWebViewEvent}, and log the returned
  * output in the EVENTS table.
  *
- * @hide
  */
 public class EventUrlProvider {
     private static final long ASYNC_TIMEOUT_MS = 1000;

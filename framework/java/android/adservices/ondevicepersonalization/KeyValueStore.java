@@ -22,15 +22,14 @@ import android.annotation.Nullable;
 import java.util.Set;
 
 /**
- * Data Access Object for the REMOTE_DATA table. The REMOTE_DATA table is a immutable
- * data store that contains data that has been downloaded by the ODP platform from
- * the vendor endpoint that is declared in the package manifest.
+ * An interface to a read-only key-value store.
  *
- * @hide
+ * Used as a Data Access Object for the REMOTE_DATA table {@link IsolatedService#getRemoteData}.
+ *
  */
 public interface KeyValueStore {
     /**
-     * Looks up a key in the REMOTE_DATA table.
+     * Looks up a key in a read-only store. @see IsolatedService#getRemoteData
      *
      * @param key The key to look up.
      * @return the value to which the specified key is mapped,
@@ -41,7 +40,6 @@ public interface KeyValueStore {
     /**
      * Returns a Set view of the keys contained in the REMOTE_DATA table.
      *
-     * @return a Set view of the keys contained in the REMOTE_DATA table.
      */
     @NonNull Set<String> keySet();
 }
