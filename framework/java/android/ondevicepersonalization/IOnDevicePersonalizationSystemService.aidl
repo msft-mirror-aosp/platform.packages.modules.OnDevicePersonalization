@@ -14,11 +14,15 @@
  * limitations under the License.
  */
 
-package android.app.ondevicepersonalization;
+package android.ondevicepersonalization;
 
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.os.Bundle;
 
 /** @hide */
-oneway interface IOnDevicePersonalizationSystemServiceCallback {
-    void onResult(in Bundle result);
+interface IOnDevicePersonalizationSystemService {
+    void onRequest(
+            in Bundle params,
+            in IOnDevicePersonalizationSystemServiceCallback callback
+    );
 }
