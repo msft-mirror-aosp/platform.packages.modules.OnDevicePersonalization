@@ -85,7 +85,7 @@ public final class Location implements Parcelable {
 
 
     @DataClass.Generated.Member
-    public static String locationProviderTypeToString(@LocationProviderType int value) {
+    @NonNull public static String locationProviderTypeToString(@LocationProviderType int value) {
         switch (value) {
             case LOCATION_PROVIDER_TYPE_UNKNOWN:
                     return "LOCATION_PROVIDER_TYPE_UNKNOWN";
