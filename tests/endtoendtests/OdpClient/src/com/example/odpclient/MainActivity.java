@@ -16,9 +16,9 @@
 
 package com.example.odpclient;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.app.Activity;
-import android.app.ondevicepersonalization.OnDevicePersonalizationManager;
-import android.app.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
