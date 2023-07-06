@@ -120,7 +120,7 @@ public final class UserData implements Parcelable {
 
 
     @DataClass.Generated.Member
-    public static String connectionTypeToString(@ConnectionType int value) {
+    @NonNull public static String connectionTypeToString(@ConnectionType int value) {
         switch (value) {
             case CONNECTION_TYPE_UNKNOWN:
                     return "CONNECTION_TYPE_UNKNOWN";
@@ -598,17 +598,6 @@ public final class UserData implements Parcelable {
             return this;
         }
 
-        /** @see #setAppInstalledHistory */
-        @DataClass.Generated.Member
-        public @NonNull Builder addAppInstalledHistory(@NonNull String key, @NonNull AppInstallStatus value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mAppInstalledHistory == null) setAppInstalledHistory(new java.util.LinkedHashMap());
-            mAppInstalledHistory.put(key, value);
-            return this;
-        }
-
         /**
          * The app usage history in the last 30 days, sorted by total time spent.
          */
@@ -617,17 +606,6 @@ public final class UserData implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x400;
             mAppUsageHistory = value;
-            return this;
-        }
-
-        /** @see #setAppUsageHistory */
-        @DataClass.Generated.Member
-        public @NonNull Builder addAppUsageHistory(@NonNull AppUsageStatus value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mAppUsageHistory == null) setAppUsageHistory(new java.util.ArrayList<>());
-            mAppUsageHistory.add(value);
             return this;
         }
 
@@ -650,17 +628,6 @@ public final class UserData implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1000;
             mLocationHistory = value;
-            return this;
-        }
-
-        /** @see #setLocationHistory */
-        @DataClass.Generated.Member
-        public @NonNull Builder addLocationHistory(@NonNull LocationStatus value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mLocationHistory == null) setLocationHistory(new java.util.ArrayList<>());
-            mLocationHistory.add(value);
             return this;
         }
 
