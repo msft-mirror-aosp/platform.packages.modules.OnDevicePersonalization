@@ -16,29 +16,30 @@
 
 package com.android.ondevicepersonalization.services.download.mdd;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
-import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
+import com.google.android.libraries.mobiledatadownload.AddFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
+import com.google.android.libraries.mobiledatadownload.GetFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFile;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
+import com.google.mobiledatadownload.DownloadConfigProto;
 
 import org.junit.After;
 import org.junit.Before;
@@ -46,10 +47,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFileGroupPopulatorTest {
     private static final String BASE_URL =
-            "https://www.gstatic.com/ondevicepersonalization/testing/test_data1.json";
+            "android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private String mPackageName;
@@ -59,8 +63,9 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     @Before
     public void setup() throws Exception {
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
-        mMdd = MobileDataDownloadFactory.getMdd(mContext, new LocalFileDownloader(mFileStorage,
-                OnDevicePersonalizationExecutors.getBackgroundExecutor(), mContext));
+        // Use direct executor to keep all work sequential for the tests
+        ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
+        mMdd = MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
         mPackageName = mContext.getPackageName();
         mPopulator = new OnDevicePersonalizationFileGroupPopulator(mContext);
         RemoveFileGroupsByFilterRequest request =
@@ -92,37 +97,92 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     }
 
     @Test
+    public void cleanupOldFileGroup() throws Exception {
+        addTestFileGroup("groupToBeRemoved");
+        GetFileGroupsByFilterRequest request =
+                GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
+        List<ClientFileGroup> clientFileGroups = mMdd.getFileGroupsByFilter(request).get();
+        assertEquals(1, clientFileGroups.size());
+        assertEquals("groupToBeRemoved", clientFileGroups.get(0).getGroupName());
+
+        mPopulator.refreshFileGroups(mMdd).get();
+        request = GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
+        clientFileGroups = mMdd.getFileGroupsByFilter(request).get();
+        assertEquals(1, clientFileGroups.size());
+        assertEquals(OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                mPackageName, mContext), clientFileGroups.get(0).getGroupName());
+    }
+
+    @Test
     public void testCreateDownloadUrlNoSyncToken() throws Exception {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
         String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
-                packageInfo, mContext);
+                mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(BASE_URL));
     }
 
     @Test
-    public void testCreateDownloadUrl() throws Exception {
+    public void testCreateDownloadUrlOverrideManifest() throws Exception {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url_package "
+                        + mPackageName);
+        String overrideUrl = "https://google.com";
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url " + overrideUrl);
+        String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
+                mPackageName, mContext);
+        assertTrue(downloadUrl.startsWith(overrideUrl));
+    }
+
+    @Test
+    public void testCreateDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
         assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName)).updateOrInsertSyncToken(
-                timestamp));
+                        PackageUtils.getCertDigest(mContext, mPackageName))
+                .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
+                        timestamp));
 
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mPackageName, PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        String downloadUrl = OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(
-                packageInfo, mContext);
+        String downloadUrl =
+                OnDevicePersonalizationFileGroupPopulator.createDownloadUrl(mPackageName, mContext);
         assertTrue(downloadUrl.startsWith(BASE_URL));
         assertTrue(downloadUrl.contains(String.valueOf(timestamp)));
     }
 
+    private void addTestFileGroup(String groupName) throws Exception {
+        String ownerPackage = mContext.getPackageName();
+        String fileId = groupName;
+        int byteSize = 0;
+        String checksum = "";
+        DownloadConfigProto.DataFile.ChecksumType checksumType =
+                DownloadConfigProto.DataFile.ChecksumType.NONE;
+        String downloadUrl = "http://google.com/";
+        DownloadConfigProto.DownloadConditions.DeviceNetworkPolicy
+                deviceNetworkPolicy =
+                DownloadConfigProto.DownloadConditions.DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
+        DownloadConfigProto.DataFileGroup dataFileGroup =
+                OnDevicePersonalizationFileGroupPopulator.createDataFileGroup(
+                groupName,
+                ownerPackage,
+                new String[]{fileId},
+                new int[]{byteSize},
+                new String[]{checksum},
+                new DownloadConfigProto.DataFile.ChecksumType[]{checksumType},
+                new String[]{downloadUrl},
+                deviceNetworkPolicy);
+        mMdd.addFileGroup(
+                AddFileGroupRequest.newBuilder().setDataFileGroup(
+                        dataFileGroup).build()).get();
+    }
+
     @After
-    public void cleanup() throws Exception {
+    public void cleanup() {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url_package \"\"");
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_download_url \"\"");
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
-        OnDevicePersonalizationVendorDataDao.clearInstance(mPackageName,
-                PackageUtils.getCertDigest(mContext, mPackageName));
     }
 }
