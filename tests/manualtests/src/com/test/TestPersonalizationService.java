@@ -17,89 +17,13 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.PersonalizationService;
-import android.os.OutcomeReceiver;
-import android.os.ParcelFileDescriptor;
-import android.util.JsonReader;
-import android.util.Log;
-
-import com.google.common.util.concurrent.MoreExecutors;
-
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.function.Consumer;
+import android.app.ondevicepersonalization.IsolatedComputationCallback;
+import android.app.ondevicepersonalization.IsolatedComputationService;
+import android.app.ondevicepersonalization.RequestToken;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationService extends PersonalizationService {
-    public final String TAG = "TestPersonalizationService";
-
-    @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadResult> consumer) {
-        Log.d(TAG, "Starting filterData.");
-        List<String> lookupKeys = new ArrayList<>();
-        lookupKeys.add("keyExtra");
-        odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
-                new OutcomeReceiver<Map<String, byte[]>, Exception>() {
-                    @Override
-                    public void onResult(@NonNull Map<String, byte[]> result) {
-                        Log.d(TAG, "OutcomeReceiver onResult: " + result);
-                        // Get the keys to keep from the downloaded data
-                        DownloadResult downloadResult =
-                                new DownloadResult.Builder()
-                                .setKeysToRetain(getFilteredKeys(input.getParcelFileDescriptor()))
-                                .build();
-                        consumer.accept(downloadResult);
-                    }
-
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
-                        consumer.accept(null);
-                    }
-                });
-    }
-
-    private List<String> getFilteredKeys(ParcelFileDescriptor fd) {
-        List<String> filteredKeys = new ArrayList<String>();
-        // Add all keys from the file into the list
-        try (InputStream in =
-                     new ParcelFileDescriptor.AutoCloseInputStream(fd)) {
-            try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
-                reader.beginObject();
-                while (reader.hasNext()) {
-                    String name = reader.nextName();
-                    if (name.equals("contents")) {
-                        reader.beginArray();
-                        while (reader.hasNext()) {
-                            reader.beginObject();
-                            while (reader.hasNext()) {
-                                String elementName = reader.nextName();
-                                if (elementName.equals("key")) {
-                                    filteredKeys.add(reader.nextString());
-                                } else {
-                                    reader.skipValue();
-                                }
-                            }
-                            reader.endObject();
-                        }
-                        reader.endArray();
-                    } else {
-                        reader.skipValue();
-                    }
-                }
-                reader.endObject();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Failed to parse downloaded data from fd");
-        }
-        // Just keep the first 2 keys for the test.
-        return filteredKeys.subList(0, 2);
+public class TestPersonalizationService extends IsolatedComputationService {
+    @NonNull @Override public IsolatedComputationCallback onRequest(RequestToken token) {
+        return new TestPersonalizationHandler(getRemoteData(token));
     }
 }

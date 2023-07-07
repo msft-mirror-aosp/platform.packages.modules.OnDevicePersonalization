@@ -35,6 +35,8 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationLocalDataDaoTest {
@@ -54,8 +56,8 @@ public class OnDevicePersonalizationLocalDataDaoTest {
     }
 
     @Test
-    public void testInsertAndRead() {
-        mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(),
+    public void testBasicDaoOperations() {
+        mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                 System.currentTimeMillis());
 
         byte[] data = new byte[10];
@@ -64,6 +66,26 @@ public class OnDevicePersonalizationLocalDataDaoTest {
         assertTrue(insertResult);
         assertArrayEquals(data, mLocalDao.readSingleLocalDataRow("key"));
         assertEquals(null, mLocalDao.readSingleLocalDataRow("nonExistentKey"));
+        assertFalse(mLocalDao.deleteLocalDataRow("nonExistentKey"));
+        assertTrue(mLocalDao.deleteLocalDataRow("key"));
+        assertEquals(null, mLocalDao.readSingleLocalDataRow("key"));
+    }
+
+    @Test
+    public void testReadAllLocalDataKeys() {
+        mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
+                System.currentTimeMillis());
+
+        byte[] data = new byte[10];
+        LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
+        mLocalDao.updateOrInsertLocalData(localData);
+        localData = new LocalData.Builder().setKey("key2").setData(data).build();
+        mLocalDao.updateOrInsertLocalData(localData);
+        Set<String> keys = mLocalDao.readAllLocalDataKeys();
+        Set<String> expectedKeys = new HashSet<>();
+        expectedKeys.add("key");
+        expectedKeys.add("key2");
+        assertEquals(expectedKeys, keys);
     }
 
     @Test

@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -34,8 +35,10 @@ import org.junit.runners.JUnit4;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationVendorDataDaoTest {
@@ -56,6 +59,34 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         addTestData(timestamp);
         long timestampFromDB = mDao.getSyncToken();
         assertEquals(timestamp, timestampFromDB);
+
+        Cursor cursor = mDao.readAllVendorData();
+        assertEquals(2, cursor.getCount());
+        cursor.close();
+
+        List<VendorData> dataList = new ArrayList<>();
+        dataList.add(new VendorData.Builder().setKey("key3").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("key4").setData(new byte[10]).build());
+
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key2");
+        retainedKeys.add("key3");
+        retainedKeys.add("key4");
+        assertTrue(mDao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
+                timestamp));
+        cursor = mDao.readAllVendorData();
+        assertEquals(3, cursor.getCount());
+        cursor.close();
+    }
+
+    @Test
+    public void testGetAllVendorKeys() {
+        addTestData(System.currentTimeMillis());
+        Set<String> keys = mDao.readAllVendorDataKeys();
+        Set<String> expectedKeys = new HashSet<>();
+        expectedKeys.add("key");
+        expectedKeys.add("key2");
+        assertEquals(expectedKeys, keys);
     }
 
     @Test
@@ -122,7 +153,11 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
         dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        assertTrue(mDao.batchUpdateOrInsertVendorDataTransaction(dataList,
+
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key");
+        retainedKeys.add("key2");
+        assertTrue(mDao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
                 timestamp));
     }
 }

@@ -22,21 +22,26 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Dao used to manage access to vendor data tables
  */
 public class OnDevicePersonalizationVendorDataDao {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationVendorDataDao";
     private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata_";
 
@@ -138,7 +143,7 @@ public class OnDevicePersonalizationVendorDataDao {
                 result.add(new AbstractMap.SimpleImmutableEntry<>(owner, cert));
             }
         } catch (Exception e) {
-            Log.e(TAG, "Failed to get Vendors", e);
+            sLogger.e(TAG + ": Failed to get Vendors", e);
         } finally {
             cursor.close();
         }
@@ -168,7 +173,7 @@ public class OnDevicePersonalizationVendorDataDao {
 
             db.setTransactionSuccessful();
         } catch (Exception e) {
-            Log.e(TAG, "Failed to delete vendorData for: " + owner, e);
+            sLogger.e(TAG + ": Failed to delete vendorData for: " + owner, e);
             return false;
         } finally {
             db.endTransaction();
@@ -182,7 +187,7 @@ public class OnDevicePersonalizationVendorDataDao {
             db.execSQL(VendorDataContract.VendorDataEntry.getCreateTableIfNotExistsStatement(
                     tableName));
         } catch (SQLException e) {
-            Log.e(TAG, "Failed to create table: " + tableName, e);
+            sLogger.e(TAG + ": Failed to create table: " + tableName, e);
             return false;
         }
         return true;
@@ -206,7 +211,7 @@ public class OnDevicePersonalizationVendorDataDao {
                     /* orderBy= */ null
             );
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read vendor data rows", e);
+            sLogger.e(TAG + ": Failed to read vendor data rows", e);
         }
         return null;
     }
@@ -232,25 +237,59 @@ public class OnDevicePersonalizationVendorDataDao {
                     /* orderBy= */ null
             )) {
                 if (cursor.getCount() < 1) {
-                    Log.d(TAG, "Failed to find requested key: " + key);
+                    sLogger.d(TAG + ": Failed to find requested key: " + key);
                     return null;
                 }
                 cursor.moveToNext();
                 return cursor.getBlob(0);
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read vendor data row", e);
+            sLogger.e(TAG + ": Failed to read vendor data row", e);
         }
         return null;
     }
 
     /**
-     * Batch updates and/or inserts a list of vendor data and a corresponding syncToken.
+     * Reads all keys in the vendor data table
+     *
+     * @return Set of keys in the vendor data table.
+     */
+    public Set<String> readAllVendorDataKeys() {
+        Set<String> keyset = new HashSet<>();
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {VendorDataContract.VendorDataEntry.KEY};
+            try (Cursor cursor = db.query(
+                    mTableName,
+                    projection,
+                    /* selection= */ null,
+                    /* selectionArgs= */ null,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    /* orderBy= */ null
+            )) {
+                while (cursor.moveToNext()) {
+                    String key = cursor.getString(
+                            cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.KEY));
+                    keyset.add(key);
+                }
+                cursor.close();
+                return keyset;
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read all vendor data keys", e);
+        }
+        return keyset;
+    }
+
+    /**
+     * Batch updates and/or inserts a list of vendor data and a corresponding syncToken and
+     * deletes unretained keys.
      *
      * @return true if the transaction is successful. False otherwise.
      */
     public boolean batchUpdateOrInsertVendorDataTransaction(List<VendorData> vendorDataList,
-            long syncToken) {
+            List<String> retainedKeys, long syncToken) {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         try {
             db.beginTransactionNonExclusive();
@@ -260,6 +299,9 @@ public class OnDevicePersonalizationVendorDataDao {
             if (!OnDevicePersonalizationLocalDataDao.createTableIfNotExists(
                     OnDevicePersonalizationLocalDataDao.getTableName(mOwner, mCertDigest),
                     mDbHelper)) {
+                return false;
+            }
+            if (!deleteUnretainedRows(retainedKeys)) {
                 return false;
             }
             for (VendorData vendorData : vendorDataList) {
@@ -278,6 +320,21 @@ public class OnDevicePersonalizationVendorDataDao {
         return true;
     }
 
+    private boolean deleteUnretainedRows(List<String> retainedKeys) {
+        try {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            String retainedKeysString = retainedKeys.stream().map(s -> "'" + s + "'").collect(
+                    Collectors.joining(",", "(", ")"));
+            String whereClause = VendorDataContract.VendorDataEntry.KEY + " NOT IN "
+                    + retainedKeysString;
+            return db.delete(mTableName, whereClause,
+                    null) != -1;
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to delete unretained rows", e);
+        }
+        return false;
+    }
+
     /**
      * Updates the given vendor data row, adds it if it doesn't already exist.
      *
@@ -292,7 +349,7 @@ public class OnDevicePersonalizationVendorDataDao {
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert buyer data", e);
+            sLogger.e(TAG + ": Failed to update or insert buyer data", e);
         }
         return false;
     }
@@ -312,7 +369,7 @@ public class OnDevicePersonalizationVendorDataDao {
             return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
                     null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert syncToken", e);
+            sLogger.e(TAG + ": Failed to update or insert syncToken", e);
         }
         return false;
     }
@@ -343,7 +400,7 @@ public class OnDevicePersonalizationVendorDataDao {
                         VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN));
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert syncToken", e);
+            sLogger.e(TAG + ": Failed to update or insert syncToken", e);
         } finally {
             cursor.close();
         }

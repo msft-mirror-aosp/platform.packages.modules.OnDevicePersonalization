@@ -21,10 +21,12 @@ import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.net.Uri;
-import android.util.Log;
+
 
 import androidx.annotation.NonNull;
 
+import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
 import com.google.android.downloader.AndroidDownloaderLogger;
@@ -51,6 +53,7 @@ import java.util.concurrent.Executor;
  * A OnDevicePersonalization custom {@link FileDownloader}
  */
 public class OnDevicePersonalizationFileDownloader implements FileDownloader {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationFileDownloader";
 
     /** Downloader Connection Timeout in Milliseconds. */
@@ -137,22 +140,23 @@ public class OnDevicePersonalizationFileDownloader implements FileDownloader {
     public ListenableFuture<Void> startDownloading(DownloadRequest downloadRequest) {
         Uri fileUri = downloadRequest.fileUri();
         String urlToDownload = downloadRequest.urlToDownload();
-        Log.d(TAG, "startDownloading; fileUri: " + fileUri + "; urlToDownload: " + urlToDownload);
+        sLogger.d(TAG + ": startDownloading; fileUri: " + fileUri
+                + "; urlToDownload: " + urlToDownload);
 
         Uri uriToDownload = Uri.parse(urlToDownload);
         if (uriToDownload == null || fileUri == null) {
-            Log.e(TAG, ": Invalid urlToDownload " + urlToDownload);
+            sLogger.e(TAG + ": : Invalid urlToDownload " + urlToDownload);
             return immediateFailedFuture(new IllegalArgumentException("Invalid urlToDownload"));
         }
 
         // Check for debug enabled package and download url.
         if (OnDevicePersonalizationLocalFileDownloader.isLocalOdpUri(uriToDownload)) {
-            Log.d(TAG, "Handling debug download url: " + urlToDownload);
+            sLogger.d(TAG + ": Handling debug download url: " + urlToDownload);
             return mLocalFileDownloader.startDownloading(downloadRequest);
         }
 
         if (!urlToDownload.startsWith("https")) {
-            Log.e(TAG, "File url is not secure: " + urlToDownload);
+            sLogger.e(TAG + ": File url is not secure: " + urlToDownload);
             return immediateFailedFuture(
                     DownloadException.builder()
                             .setDownloadResultCode(
@@ -164,7 +168,8 @@ public class OnDevicePersonalizationFileDownloader implements FileDownloader {
     }
 
     // Connectivity constraints will be checked by JobScheduler/WorkManager instead.
-    private static class NoOpConnectivityHandler implements ConnectivityHandler {
+    @VisibleForTesting
+    static class NoOpConnectivityHandler implements ConnectivityHandler {
         @Override
         public ListenableFuture<Void> checkConnectivity(DownloadConstraints constraints) {
             return Futures.immediateVoidFuture();

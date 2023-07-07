@@ -21,15 +21,17 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 /**
  * Dao used to manage access to Events and Queries tables
  */
 public class EventsDao {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "EventsDao";
 
     private static EventsDao sSingleton;
@@ -71,28 +73,25 @@ public class EventsDao {
     /**
      * Inserts the Event into the Events table.
      *
-     * @return true if the insert succeeded, false otherwise
+     * @return The row id of the newly inserted row if successful, -1 otherwise
      */
-    public boolean insertEvent(@NonNull Event event) {
+    public long insertEvent(@NonNull Event event) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(EventsContract.EventsEntry.QUERY_ID, event.getQueryId());
-            values.put(EventsContract.EventsEntry.SLOT_INDEX, event.getSlotIndex());
+            values.put(EventsContract.EventsEntry.ROW_INDEX, event.getRowIndex());
             values.put(EventsContract.EventsEntry.TIME_MILLIS, event.getTimeMillis());
-            values.put(EventsContract.EventsEntry.SLOT_ID, event.getSlotId());
-            values.put(EventsContract.EventsEntry.BID_ID, event.getBidId());
             values.put(EventsContract.EventsEntry.SERVICE_PACKAGE_NAME,
                     event.getServicePackageName());
-            values.put(EventsContract.EventsEntry.SLOT_POSITION, event.getSlotPosition());
             values.put(EventsContract.EventsEntry.TYPE, event.getType());
             values.put(EventsContract.EventsEntry.EVENT_DATA, event.getEventData());
             return db.insert(EventsContract.EventsEntry.TABLE_NAME, null,
-                    values) != -1;
+                    values);
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert event", e);
+            sLogger.e(TAG + ": Failed to insert event", e);
         }
-        return false;
+        return -1;
     }
 
     /**
@@ -111,7 +110,7 @@ public class EventsDao {
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert query", e);
+            sLogger.e(TAG + ": Failed to insert query", e);
         }
         return -1;
     }

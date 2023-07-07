@@ -1,17 +1,17 @@
 {
-  "syncToken": 1662134400,
+  "syncToken": 1662138000,
   "contents": [
-    { "key": "key1",
-      "fp": "fp1",
-      "data": "dGVzdGRhdGEx"
+    { "key": "ad1",
+      "data": "{ \"price\": 10.0, \"landingPage\": \"http://google.com\", \"text\": \"Google\" }"
     },
-    { "key": "key2",
-      "fp": "fp2",
-      "data": "dGVzdGRhdGEy"
+    { "key": "ad2",
+      "data": "{ \"keywordFilter\": \"AAAAAAAAABUAAAAFAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAwDAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"price\": 20.0, \"landingPage\": \"http://android.com\", \"text\": \"Android\", \"template\": \"template1\" }"
     },
-    { "key": "key3",
-      "fp": "fp3",
-      "data": "dGVzdGRhdGEy"
+    { "key": "ad3",
+      "data": "{ \"excludeKeywordFilter\": \"AAAAAAAAABUAAAAFAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACUDgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"price\": 15.0, \"landingPage\": \"http://nest.com\", \"text\": \"Nest\" }"
+    },
+    { "key": "template1",
+      "data": "<img src=\"$impressionUrl\">\n<a href=\"$clickUrl\">${adText}!</a>"
     }
   ]
 }

@@ -28,10 +28,11 @@
 
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
         <option name="hidden-api-checks" value="false" />
-        <option name="package" value="com.android.federatedcompute.servicetests"/>
+        <option name="package" value="com.android.ondevicepersonalization.federatedcomputetests"/>
     </test>
 
     <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
         <option name="mainline-module-package-name" value="com.google.android.ondevicepersonalization" />
     </object>
+    <option name="config-descriptor:metadata" key="mainline-param" value="com.google.android.ondevicepersonalization.apex" />
 </configuration>

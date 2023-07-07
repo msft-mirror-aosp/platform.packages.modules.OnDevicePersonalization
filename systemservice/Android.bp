@@ -32,12 +32,15 @@ filegroup {
 java_sdk_library {
     name: "service-ondevicepersonalization",
     srcs: [":service-ondevicepersonalization-sources"],
-    min_sdk_version: "Tiramisu",
+    min_sdk_version: "UpsideDownCake",
     defaults: ["framework-system-server-module-defaults"],
     libs: [
         "framework-ondevicepersonalization.impl",
     ],
     visibility: [
+        "//packages/modules/OnDevicePersonalization/tests:__subpackages__",
+    ],
+    impl_library_visibility: [
         "//packages/modules/OnDevicePersonalization/tests:__subpackages__",
     ],
     permitted_packages: [

@@ -22,9 +22,10 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.net.Uri;
-import android.util.Log;
+import android.os.SystemProperties;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -32,10 +33,14 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.AddFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.FileGroupPopulator;
+import com.google.android.libraries.mobiledatadownload.GetFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
+import com.google.android.libraries.mobiledatadownload.RemoveFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures;
+import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.mobiledatadownload.ClientConfigProto;
 import com.google.mobiledatadownload.DownloadConfigProto.DataFile;
 import com.google.mobiledatadownload.DownloadConfigProto.DataFile.ChecksumType;
 import com.google.mobiledatadownload.DownloadConfigProto.DataFileGroup;
@@ -43,15 +48,28 @@ import com.google.mobiledatadownload.DownloadConfigProto.DownloadConditions;
 import com.google.mobiledatadownload.DownloadConfigProto.DownloadConditions.DeviceNetworkPolicy;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * FileGroupPopulator to add FileGroups for ODP onboarded packages
  */
 public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopulator {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationFileGroupPopulator";
 
     private final Context mContext;
+
+    // Immediately delete stale files during maintenance once a newer file has been downloaded.
+    private static final long STALE_LIFETIME_SECS = 0;
+
+    // Set files to expire after 2 days.
+    private static final long EXPIRATION_TIME_SECS = 172800;
+    private static final String OVERRIDE_DOWNLOAD_URL_PACKAGE =
+            "debug.ondevicepersonalization.override_download_url_package";
+    private static final String OVERRIDE_DOWNLOAD_URL =
+            "debug.ondevicepersonalization.override_download_url";
 
     public OnDevicePersonalizationFileGroupPopulator(Context context) {
         this.mContext = context;
@@ -80,6 +98,9 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                 DataFileGroup.newBuilder()
                         .setGroupName(groupName)
                         .setOwnerPackage(ownerPackage)
+                        .setStaleLifetimeSecs(STALE_LIFETIME_SECS)
+                        .setExpirationDate(
+                                (System.currentTimeMillis() / 1000) + EXPIRATION_TIME_SECS)
                         .setDownloadConditions(
                                 DownloadConditions.newBuilder().setDeviceNetworkPolicy(
                                         deviceNetworkPolicy));
@@ -123,18 +144,32 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
             PackageManager.NameNotFoundException {
         String baseURL = AppManifestConfigHelper.getDownloadUrlFromOdpSettings(
                 context, packageName);
-        if (baseURL == null) {
-            throw new IllegalArgumentException("Failed to retrieve base download URL");
-        }
-        Uri uri = Uri.parse(baseURL);
-        // Handle odp debug URLs
-        if (OnDevicePersonalizationLocalFileDownloader.isLocalOdpUri(uri)
-                && PackageUtils.isPackageDebuggable(context, packageName)) {
-            return uri.toString();
+
+        // Check for override manifest url property, if package is debuggable
+        if (PackageUtils.isPackageDebuggable(context, packageName)) {
+            if (SystemProperties.get(OVERRIDE_DOWNLOAD_URL_PACKAGE, "").equals(packageName)) {
+                String overrideManifestUrl = SystemProperties.get(OVERRIDE_DOWNLOAD_URL, "");
+                if (!overrideManifestUrl.isEmpty()) {
+                    sLogger.d(TAG + ": Overriding baseURL for package "
+                            + packageName + " to " + overrideManifestUrl);
+                    baseURL = overrideManifestUrl;
+                }
+            }
         }
 
+        if (baseURL == null || baseURL.isEmpty()) {
+            throw new IllegalArgumentException("Failed to retrieve base download URL");
+        }
+
+        Uri uri = Uri.parse(baseURL);
+
         // Enforce URI scheme
-        if (!baseURL.startsWith("https")) {
+        if (OnDevicePersonalizationLocalFileDownloader.isLocalOdpUri(uri)) {
+            if (!PackageUtils.isPackageDebuggable(context, packageName)) {
+                throw new IllegalArgumentException("Local urls are only valid "
+                        + "for debuggable packages: " + baseURL);
+            }
+        } else if (!baseURL.startsWith("https")) {
             throw new IllegalArgumentException("File url is not secure: " + baseURL);
         }
 
@@ -144,7 +179,8 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     /**
      * Adds query parameters to the download URL.
      */
-    public static String addDownloadUrlQueryParameters(Uri uri, String packageName, Context context)
+    private static String addDownloadUrlQueryParameters(Uri uri, String packageName,
+            Context context)
             throws PackageManager.NameNotFoundException {
         long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
                 PackageUtils.getCertDigest(context, packageName)).getSyncToken();
@@ -158,51 +194,71 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
 
     @Override
     public ListenableFuture<Void> refreshFileGroups(MobileDataDownload mobileDataDownload) {
-        List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
-        for (PackageInfo packageInfo : mContext.getPackageManager().getInstalledPackages(
-                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    mContext, packageInfo.packageName)) {
-                try {
-                    String groupName = createPackageFileGroupName(packageInfo.packageName,
-                            mContext);
-                    String ownerPackage = mContext.getPackageName();
-                    String fileId = groupName;
-                    int byteSize = 0;
-                    String checksum = "";
-                    ChecksumType checksumType = ChecksumType.NONE;
-                    String downloadUrl = createDownloadUrl(packageInfo.packageName, mContext);
-                    DeviceNetworkPolicy deviceNetworkPolicy =
-                            DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
-                    DataFileGroup dataFileGroup = createDataFileGroup(
-                            groupName,
-                            ownerPackage,
-                            new String[]{fileId},
-                            new int[]{byteSize},
-                            new String[]{checksum},
-                            new ChecksumType[]{checksumType},
-                            new String[]{downloadUrl},
-                            deviceNetworkPolicy);
-                    mFutures.add(mobileDataDownload.addFileGroup(
-                            AddFileGroupRequest.newBuilder().setDataFileGroup(
-                                    dataFileGroup).build()));
-                } catch (Exception e) {
-                    Log.e(TAG, "Failed to create file group for " + packageInfo.packageName, e);
-                }
-            }
-        }
-
-        return PropagatedFutures.transform(
-                Futures.successfulAsList(mFutures),
-                result -> {
-                    if (result.contains(null)) {
-                        Log.d(TAG, "Failed to add a file group");
-                    } else {
-                        Log.d(TAG, "Successfully added all file groups");
+        GetFileGroupsByFilterRequest request =
+                GetFileGroupsByFilterRequest.newBuilder().setIncludeAllGroups(true).build();
+        return FluentFuture.from(mobileDataDownload.getFileGroupsByFilter(request))
+                .transformAsync(fileGroupList -> {
+                    Set<String> fileGroupsToRemove = new HashSet<>();
+                    for (ClientConfigProto.ClientFileGroup fileGroup : fileGroupList) {
+                        fileGroupsToRemove.add(fileGroup.getGroupName());
                     }
-                    return null;
-                },
-                OnDevicePersonalizationExecutors.getBackgroundExecutor()
-        );
+                    List<ListenableFuture<Boolean>> mFutures = new ArrayList<>();
+                    for (PackageInfo packageInfo : mContext.getPackageManager()
+                            .getInstalledPackages(
+                                    PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
+                        if (AppManifestConfigHelper.manifestContainsOdpSettings(
+                                mContext, packageInfo.packageName)) {
+                            try {
+                                String groupName = createPackageFileGroupName(
+                                        packageInfo.packageName,
+                                        mContext);
+                                fileGroupsToRemove.remove(groupName);
+                                String ownerPackage = mContext.getPackageName();
+                                String fileId = groupName;
+                                int byteSize = 0;
+                                String checksum = "";
+                                ChecksumType checksumType = ChecksumType.NONE;
+                                String downloadUrl = createDownloadUrl(packageInfo.packageName,
+                                        mContext);
+                                DeviceNetworkPolicy deviceNetworkPolicy =
+                                        DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
+                                DataFileGroup dataFileGroup = createDataFileGroup(
+                                        groupName,
+                                        ownerPackage,
+                                        new String[]{fileId},
+                                        new int[]{byteSize},
+                                        new String[]{checksum},
+                                        new ChecksumType[]{checksumType},
+                                        new String[]{downloadUrl},
+                                        deviceNetworkPolicy);
+                                mFutures.add(mobileDataDownload.addFileGroup(
+                                        AddFileGroupRequest.newBuilder().setDataFileGroup(
+                                                dataFileGroup).build()));
+                            } catch (Exception e) {
+                                sLogger.e(TAG + ": Failed to create file group for "
+                                        + packageInfo.packageName, e);
+                            }
+                        }
+                    }
+
+                    for (String group : fileGroupsToRemove) {
+                        sLogger.d(TAG + ": Removing file group: " + group);
+                        mFutures.add(mobileDataDownload.removeFileGroup(
+                                RemoveFileGroupRequest.newBuilder().setGroupName(group).build()));
+                    }
+
+                    return PropagatedFutures.transform(
+                            Futures.successfulAsList(mFutures),
+                            result -> {
+                                if (result.contains(null)) {
+                                    sLogger.d(TAG + ": Failed to add or remove a file group");
+                                } else {
+                                    sLogger.d(TAG + ": Successfully updated all file groups");
+                                }
+                                return null;
+                            },
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                    );
+                }, OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 }

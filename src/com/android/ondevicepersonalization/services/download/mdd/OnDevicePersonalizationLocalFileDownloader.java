@@ -21,7 +21,9 @@ import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import com.google.android.libraries.mobiledatadownload.DownloadException;
 import com.google.android.libraries.mobiledatadownload.downloader.DownloadRequest;
@@ -35,6 +37,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Set;
 import java.util.concurrent.Executor;
 
 /**
@@ -45,13 +48,14 @@ import java.util.concurrent.Executor;
  */
 public final class OnDevicePersonalizationLocalFileDownloader implements FileDownloader {
 
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationLocalFileDownloader";
 
     /**
      * The uri to download should be formatted as an android.resource uri:
      * android.resource://<package_name>/<resource_type>/<resource_name>
      */
-    private static final String DEBUG_SCHEME = "android.resource";
+    private static final Set<String> sDebugSchemes = Set.of("android.resource", "file");
 
     private final Executor mExecutor;
     private final SynchronousFileStorage mFileStorage;
@@ -72,7 +76,7 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
      */
     public static boolean isLocalOdpUri(Uri uri) {
         String scheme = uri.getScheme();
-        if (scheme != null && scheme.equals(DEBUG_SCHEME)) {
+        if (scheme != null && sDebugSchemes.contains(scheme)) {
             return true;
         }
         return false;
@@ -91,7 +95,12 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
         Uri fileUri = downloadRequest.fileUri();
         String urlToDownload = downloadRequest.urlToDownload();
         Uri uriToDownload = Uri.parse(urlToDownload);
-        Log.d(TAG, "Starting local download for url: " + urlToDownload);
+        // Strip away the query params for local download.
+        uriToDownload = new Uri.Builder()
+                .scheme(uriToDownload.getScheme())
+                .authority(uriToDownload.getAuthority())
+                .path(uriToDownload.getPath()).build();
+        sLogger.d(TAG + ": Starting local download for url: " + urlToDownload);
 
         try {
             Opener<OutputStream> writeStreamOpener = WriteStreamOpener.create();
@@ -100,10 +109,10 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
                 InputStream in = mContext.getContentResolver().openInputStream(uriToDownload);
                 writtenBytes = ByteStreams.copy(in, out);
             }
-            Log.d(TAG,
-                    "File URI " + fileUri + " download complete, writtenBytes: %d" + writtenBytes);
+            sLogger.d(TAG + "File URI " + fileUri
+                    + " download complete, writtenBytes: %d" + writtenBytes);
         } catch (Exception e) {
-            Log.e(TAG, "%s: startDownloading got exception", e);
+            sLogger.e(TAG + ": %s: startDownloading got exception", e);
             return immediateFailedFuture(
                     DownloadException.builder()
                             .setDownloadResultCode(

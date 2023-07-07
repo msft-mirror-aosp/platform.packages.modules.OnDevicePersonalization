@@ -39,10 +39,14 @@ android_test {
         "kotlinx-coroutines-android",
         "ondevicepersonalization-protos",
     ],
+    sdk_version: "module_current",
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
+    certificate: "platform",
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
     ],
+    manifest: "AndroidManifest.xml",
+    test_config: "AndroidTest.xml",
 }

@@ -17,103 +17,119 @@
 package com.android.ondevicepersonalization.services.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
-import android.ondevicepersonalization.Metrics;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentResult;
-import android.ondevicepersonalization.SlotResult;
+import android.content.ContentValues;
 
-import com.android.ondevicepersonalization.services.fbs.Bid;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
+import com.android.ondevicepersonalization.services.fbs.QueryData;
 import com.android.ondevicepersonalization.services.fbs.QueryFields;
-import com.android.ondevicepersonalization.services.fbs.Slot;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFlatbufferUtilsTests {
-
     private static final double DELTA = 0.001;
 
     @Test
     public void testCreateEventData() {
-        Metrics metrics = new Metrics.Builder().setIntValues(1, 2).setFloatValues(1, 2).build();
-        byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(metrics);
-
+        ContentValues data = new ContentValues();
+        data.put("a", 1);
+        data.put("b", 2.0);
+        data.put("c", "abc");
+        byte[] blob = new byte[2];
+        blob[0] = 1;
+        blob[1] = 2;
+        data.put("d", blob);
+        byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(data);
         EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(eventData));
-        assertEquals(2, eventFields.metrics().intValuesLength());
-        assertEquals(1, eventFields.metrics().intValues(0));
-        assertEquals(2, eventFields.metrics().intValues(1));
-        assertEquals(2, eventFields.metrics().floatValuesLength());
-        assertEquals(1, eventFields.metrics().floatValues(0), DELTA);
-        assertEquals(2, eventFields.metrics().floatValues(1), DELTA);
+        assertEquals(4, eventFields.data().entriesLength());
+        for (int i = 0; i < 4; ++i) {
+            boolean found = false;
+            if ("a".equals(eventFields.data().entries(i).key())) {
+                found = true;
+                assertEquals(
+                        OnDevicePersonalizationFlatbufferUtils.DATA_TYPE_INT,
+                        eventFields.data().entries(i).type());
+                assertEquals(
+                        1, eventFields.data().entries(i).intValue());
+            } else if ("b".equals(eventFields.data().entries(i).key())) {
+                found = true;
+                assertEquals(
+                        OnDevicePersonalizationFlatbufferUtils.DATA_TYPE_DOUBLE,
+                        eventFields.data().entries(i).type());
+                assertEquals(
+                        2.0, eventFields.data().entries(i).doubleValue(), DELTA);
+            } else if ("c".equals(eventFields.data().entries(i).key())) {
+                found = true;
+                assertEquals(
+                        OnDevicePersonalizationFlatbufferUtils.DATA_TYPE_STRING,
+                        eventFields.data().entries(i).type());
+                assertTrue(
+                        "abc".equals(eventFields.data().entries(i).stringValue()));
+            } else if ("d".equals(eventFields.data().entries(i).key())) {
+                found = true;
+                assertEquals(
+                        OnDevicePersonalizationFlatbufferUtils.DATA_TYPE_BLOB,
+                        eventFields.data().entries(i).type());
+                assertEquals(
+                        2, eventFields.data().entries(i).blobValueLength());
+                assertEquals(
+                        1, eventFields.data().entries(i).blobValue(0));
+                assertEquals(
+                        2, eventFields.data().entries(i).blobValue(1));
+            }
+            assertTrue(found);
+        }
     }
 
     @Test
-    public void testCreateEventDataNullMetrics() {
+    public void testCreateEventDataNullInput() {
         byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(null);
 
         EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(eventData));
-        assertEquals(null, eventFields.metrics());
+        assertEquals(0, eventFields.data().entriesLength());
     }
 
     @Test
-    public void testCreateQueryDataNullSlotResults() {
-        SelectContentResult selectContentResult = new SelectContentResult.Builder().setSlotResults(
-                null).build();
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                selectContentResult);
+    public void testCreateQueryDataNullInput() {
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                null, null, null);
 
-        QueryFields queryFields = QueryFields.getRootAsQueryFields(ByteBuffer.wrap(queryData));
-        assertEquals(0, queryFields.slotsLength());
+        QueryData queryData = QueryData.getRootAsQueryData(ByteBuffer.wrap(queryDataBytes));
+        assertEquals(1, queryData.queryFieldsLength());
+        QueryFields queryFields = queryData.queryFields(0);
+        assertEquals(null, queryFields.owner().packageName());
+        assertEquals(null, queryFields.owner().certDigest());
+        assertEquals(0, queryFields.rowsLength());
     }
 
     @Test
     public void testCreateQueryData() {
-        SelectContentResult selectContentResult = new SelectContentResult.Builder()
-                .addSlotResults(
-                        new SlotResult.Builder()
-                                .setSlotId("abc")
-                                .addWinningBids(
-                                        new ScoredBid.Builder()
-                                                .setBidId("bid1")
-                                                .setPrice(5.0)
-                                                .setScore(1.0)
-                                                .setMetrics(new Metrics.Builder()
-                                                        .setIntValues(11).build())
-                                                .build())
-                                .addRejectedBids(
-                                        new ScoredBid.Builder()
-                                                .setBidId("bid2")
-                                                .setPrice(1.0)
-                                                .setScore(0.1)
-                                                .build())
-                                .build())
-                .build();
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                selectContentResult);
+        ArrayList<ContentValues> rows = new ArrayList<>();
+        ContentValues row = new ContentValues();
+        row.put("a", 1);
+        rows.add(row);
+        row = new ContentValues();
+        row.put("b", 2);
+        rows.add(row);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                "com.example.test", "AABBCCDD", rows);
 
-        QueryFields queryFields = QueryFields.getRootAsQueryFields(ByteBuffer.wrap(queryData));
-        assertEquals(1, queryFields.slotsLength());
-        Slot slot = queryFields.slots(0);
-        assertEquals("abc", slot.id());
-        assertEquals(1, slot.winningBidsLength());
-        Bid winningBid = slot.winningBids(0);
-        assertEquals("bid1", winningBid.id());
-        assertEquals(5.0, winningBid.price(), DELTA);
-        assertEquals(1.0, winningBid.score(), DELTA);
-        assertEquals(11, winningBid.metrics().intValues(0));
-        assertEquals(0, winningBid.metrics().floatValuesLength());
-
-        assertEquals(1, slot.rejectedBidsLength());
-        Bid rejectedBid = slot.rejectedBids(0);
-        assertEquals("bid2", rejectedBid.id());
-        assertEquals(1.0, rejectedBid.price(), DELTA);
-        assertEquals(0.1, rejectedBid.score(), DELTA);
-        assertEquals(null, rejectedBid.metrics());
+        QueryData queryData = QueryData.getRootAsQueryData(ByteBuffer.wrap(queryDataBytes));
+        assertEquals(1, queryData.queryFieldsLength());
+        QueryFields queryFields = queryData.queryFields(0);
+        assertEquals("com.example.test", queryFields.owner().packageName());
+        assertEquals("AABBCCDD", queryFields.owner().certDigest());
+        assertEquals(2, queryFields.rowsLength());
+        assertEquals("a", queryFields.rows(0).entries(0).key());
+        assertEquals(1, queryFields.rows(0).entries(0).intValue());
+        assertEquals("b", queryFields.rows(1).entries(0).key());
+        assertEquals(2, queryFields.rows(1).entries(0).intValue());
     }
 }

@@ -15,15 +15,16 @@
  */
 package com.android.server.ondevicepersonalization;
 
-import static android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
+import static android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
 
-import android.app.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.app.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.content.Context;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.server.SystemService;
 
 /**
@@ -33,7 +34,8 @@ public class OnDevicePersonalizationSystemService
         extends IOnDevicePersonalizationSystemService.Stub {
     private static final String TAG = "OnDevicePersonalizationSystemService";
 
-    private OnDevicePersonalizationSystemService(Context context) {
+    @VisibleForTesting
+    OnDevicePersonalizationSystemService(Context context) {
     }
 
     @Override public void onRequest(

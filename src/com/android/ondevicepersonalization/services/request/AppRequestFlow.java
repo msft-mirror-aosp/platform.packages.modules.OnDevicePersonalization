@@ -17,32 +17,31 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.ExecuteInput;
+import android.app.ondevicepersonalization.ExecuteOutput;
+import android.app.ondevicepersonalization.OnDevicePersonalizationException;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.UserData;
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.content.ComponentName;
 import android.content.Context;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.OnDevicePersonalizationManager;
-import android.ondevicepersonalization.RenderContentInput;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentInput;
-import android.ondevicepersonalization.SelectContentResult;
-import android.ondevicepersonalization.SlotInfo;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
-import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
-import android.util.Log;
-import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
-import com.android.ondevicepersonalization.services.display.DisplayHelper;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
@@ -60,66 +59,50 @@ import java.util.Objects;
  * Handles a surface package request from an app or SDK.
  */
 public class AppRequestFlow {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppRequestFlow";
     private static final String TASK_NAME = "AppRequest";
     @NonNull
     private final String mCallingPackageName;
     @NonNull
-    private final String mServicePackageName;
+    private final ComponentName mService;
     @NonNull
-    private final Bundle mParams;
+    private final PersistableBundle mParams;
     @NonNull
-    private final IRequestSurfacePackageCallback mCallback;
-    @NonNull
-    private final ListeningExecutorService mExecutorService;
+    private final IExecuteCallback mCallback;
     @NonNull
     private final Context mContext;
     @NonNull
-    private final DisplayHelper mDisplayHelper;
-    @NonNull
-    private final List<SurfaceInfo> mSurfaceInfos;
-    @NonNull
     private String mServiceClassName;
+
+    @NonNull
+    private final ListeningExecutorService mExecutorService;
+
     public AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
-            @NonNull IBinder hostToken,
-            int displayId,
-            int width,
-            int height,
-            @NonNull Bundle params,
-            @NonNull IRequestSurfacePackageCallback callback,
-            @NonNull ListeningExecutorService executorService,
+            @NonNull ComponentName service,
+            @NonNull PersistableBundle params,
+            @NonNull IExecuteCallback callback,
             @NonNull Context context) {
-        this(callingPackageName, servicePackageName, hostToken, displayId, width, height, params,
-                callback, executorService, context, new DisplayHelper(context));
+        this(callingPackageName, service, params,
+                callback, context, OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
+
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
-            @NonNull IBinder hostToken,
-            int displayId,
-            int width,
-            int height,
-            @NonNull Bundle params,
-            @NonNull IRequestSurfacePackageCallback callback,
-            @NonNull ListeningExecutorService executorService,
+            @NonNull ComponentName service,
+            @NonNull PersistableBundle params,
+            @NonNull IExecuteCallback callback,
             @NonNull Context context,
-            @NonNull DisplayHelper displayHelper) {
+            @NonNull ListeningExecutorService executorService) {
+        sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
-        mServicePackageName = Objects.requireNonNull(servicePackageName);
-        SurfaceInfo surfaceInfo = new SurfaceInfo(
-                Objects.requireNonNull(hostToken), displayId, width, height);
-        mSurfaceInfos = new ArrayList<SurfaceInfo>();
-        mSurfaceInfos.add(surfaceInfo);
-        // TODO(b/228200518): Support multiple slots.
+        mService = Objects.requireNonNull(service);
         mParams = Objects.requireNonNull(params);
         mCallback = Objects.requireNonNull(callback);
-        mExecutorService = Objects.requireNonNull(executorService);
         mContext = Objects.requireNonNull(context);
-        mDisplayHelper = Objects.requireNonNull(displayHelper);
-
+        mExecutorService = Objects.requireNonNull(executorService);
     }
 
     /** Runs the request processing flow. */
@@ -129,12 +112,21 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            mServiceClassName = Objects.requireNonNull(
-                    AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                            mContext, mServicePackageName));
-            ListenableFuture<SelectContentResult> resultFuture = FluentFuture.from(
+            AppManifestConfig config = Objects.requireNonNull(
+                    AppManifestConfigHelper.getAppManifestConfig(
+                        mContext, mService.getPackageName()));
+            if (!mService.getClassName().equals(config.getServiceName())) {
+                // TODO(b/228200518): Define a new error code and map it to a specific
+                // exception type in the client API.
+                throw new OnDevicePersonalizationException(
+                    Constants.STATUS_INTERNAL_ERROR,
+                    "Name not found: " + mService.getClassName()
+                    + " expected: " + config.getServiceName());
+            }
+            mServiceClassName = Objects.requireNonNull(config.getServiceName());
+            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, mServicePackageName, mContext))
+                                    TASK_NAME, mService.getPackageName(), mContext))
                     .transformAsync(
                             result -> executeAppRequest(result),
                             mExecutorService
@@ -142,7 +134,7 @@ public class AppRequestFlow {
                     .transform(
                             result -> {
                                 return result.getParcelable(
-                                        Constants.EXTRA_RESULT, SelectContentResult.class);
+                                        Constants.EXTRA_RESULT, ExecuteOutput.class);
                             },
                             mExecutorService
                     );
@@ -150,74 +142,62 @@ public class AppRequestFlow {
             ListenableFuture<Long> queryIdFuture = FluentFuture.from(resultFuture)
                     .transformAsync(input -> logQuery(input), mExecutorService);
 
-            ListenableFuture<List<SurfacePackage>> surfacePackagesFuture =
+            ListenableFuture<List<String>> slotResultTokensFuture =
                     Futures.whenAllSucceed(resultFuture, queryIdFuture)
-                            .callAsync(new AsyncCallable<List<SurfacePackage>>() {
+                            .callAsync(new AsyncCallable<List<String>>() {
                                 @Override
-                                public ListenableFuture<List<SurfacePackage>> call() {
-                                    try {
-                                        return renderContent(Futures.getDone(resultFuture),
-                                                Futures.getDone(queryIdFuture));
-                                    } catch (Exception e) {
-                                        return Futures.immediateFailedFuture(e);
-                                    }
+                                public ListenableFuture<List<String>> call() {
+                                    return createTokens(resultFuture, queryIdFuture);
                                 }
                             }, mExecutorService);
 
             Futures.addCallback(
-                    surfacePackagesFuture,
-                    new FutureCallback<List<SurfacePackage>>() {
+                    slotResultTokensFuture,
+                    new FutureCallback<List<String>>() {
                         @Override
-                        public void onSuccess(List<SurfacePackage> surfacePackages) {
-                            sendDisplayResult(surfacePackages);
+                        public void onSuccess(List<String> slotResultTokens) {
+                            sendResult(slotResultTokens);
                         }
 
                         @Override
                         public void onFailure(Throwable t) {
-                            Log.w(TAG, "Request failed.", t);
+                            sLogger.w(TAG + ": Request failed.", t);
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
                     },
                     mExecutorService);
         } catch (Exception e) {
-            Log.e(TAG, "Could not process request.", e);
+            sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
     }
 
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
-        Log.d(TAG, "executeAppRequest() started.");
+        sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        ArrayList<SlotInfo> slotInfos = new ArrayList<>();
-        for (SurfaceInfo surfaceInfo : mSurfaceInfos) {
-            slotInfos.add(
-                    new SlotInfo.Builder()
-                            .setWidth(surfaceInfo.mWidth)
-                            .setHeight(surfaceInfo.mHeight)
-                            .build());
-        }
-        PersistableBundle appParams = mParams.getParcelable(
-                OnDevicePersonalizationManager.EXTRA_APP_PARAMS, PersistableBundle.class);
-        SelectContentInput input =
-                new SelectContentInput.Builder()
+        ExecuteInput input =
+                new ExecuteInput.Builder()
                         .setAppPackageName(mCallingPackageName)
-                        .setSlotInfos(slotInfos)
-                        .setAppParams(appParams)
+                        .setAppParams(mParams)
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mCallingPackageName, mServicePackageName, mContext, true, null);
+                mService.getPackageName(), mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        UserDataAccessor userDataAccessor = new UserDataAccessor();
+        UserData userData = userDataAccessor.getUserData();
+        serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
+                isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
     }
 
-    private ListenableFuture<Long> logQuery(SelectContentResult result) {
-        Log.d(TAG, "logQuery() started.");
-        // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(result);
+    private ListenableFuture<Long> logQuery(ExecuteOutput result) {
+        sLogger.d(TAG + ": logQuery() started.");
+        // TODO(b/228200518): Extract log data from ExecuteOutput.
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                mService.getPackageName(), null, result.getRequestLogRecord().getRows());
         Query query = new Query.Builder()
-                .setServicePackageName(mServicePackageName)
+                .setServicePackageName(mService.getPackageName())
                 .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
@@ -228,96 +208,46 @@ public class AppRequestFlow {
         return Futures.immediateFuture(queryId);
     }
 
-    private ListenableFuture<List<SurfacePackage>> renderContent(
-            SelectContentResult selectContentResult,
-            long queryId) {
-        Log.d(TAG, "renderContent() started.");
-        List<SlotResult> slotResults = selectContentResult.getSlotResults();
-        if (slotResults == null) {
-            Log.w(TAG, "Missing input: SelectContentResult.slotResults is null.");
-            return Futures.immediateFuture(null);
-        }
-
-        List<ListenableFuture<SurfacePackage>> surfacePackageFutures =
-                new ArrayList<ListenableFuture<SurfacePackage>>();
-        for (int i = 0; i < Math.min(mSurfaceInfos.size(), slotResults.size()); ++i) {
-            SurfaceInfo surfaceInfo = mSurfaceInfos.get(i);
-            SlotResult slotResult = slotResults.get(i);
-            surfacePackageFutures.add(renderContentForSlot(surfaceInfo, slotResult, queryId));
-        }
-
-        return Futures.allAsList(surfacePackageFutures);
-    }
-
-    private ListenableFuture<SurfacePackage> renderContentForSlot(
-            SurfaceInfo surfaceInfo, SlotResult slotResult, long queryId
-    ) {
-        Log.d(TAG, "renderContentForSlot() started.");
-        if (surfaceInfo == null || slotResult == null) {
-            return Futures.immediateFuture(null);
-        }
-        SlotInfo slotInfo =
-                new SlotInfo.Builder()
-                        .setHeight(surfaceInfo.mHeight)
-                        .setWidth(surfaceInfo.mWidth).build();
-        List<String> bidIds = new ArrayList<String>();
-        for (ScoredBid bid : slotResult.getWinningBids()) {
-            bidIds.add(bid.getBidId());
-        }
-
-        // TODO(b/228200518) Support multiple bidders.
-        return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                        TASK_NAME, mServicePackageName, mContext))
-                .transformAsync(
-                        loadResult -> executeRenderContentRequest(
-                                loadResult, slotInfo, slotResult, queryId, bidIds),
-                        mExecutorService)
-                .transform(result -> {
-                    return result.getParcelable(
-                            Constants.EXTRA_RESULT, RenderContentResult.class);
-                }, mExecutorService)
-                .transform(result -> mDisplayHelper.generateHtml(result), mExecutorService)
-                .transformAsync(
-                        result -> mDisplayHelper.displayHtml(
-                                result,
-                                surfaceInfo.mHostToken,
-                                surfaceInfo.mDisplayId,
-                                surfaceInfo.mWidth,
-                                surfaceInfo.mHeight),
-                        mExecutorService);
-    }
-
-    private ListenableFuture<Bundle> executeRenderContentRequest(
-            IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, SlotResult slotResult,
-            long queryId, List<String> bidIds) {
-        Log.d(TAG, "executeRenderContentRequest() started.");
-        Bundle serviceParams = new Bundle();
-        RenderContentInput input =
-                new RenderContentInput.Builder().setSlotInfo(slotInfo).setBidIds(bidIds).build();
-        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mCallingPackageName, mServicePackageName, mContext, false,
-                new DataAccessServiceImpl.EventUrlQueryData(
-                    queryId, slotResult.getSlotId(), bidIds));
-        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        // TODO(b/228200518): Create event handling URLs.
-        return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER_CONTENT,
-                serviceParams);
-    }
-
-    private void sendDisplayResult(List<SurfacePackage> surfacePackages) {
+    private ListenableFuture<List<String>> createTokens(
+            ListenableFuture<ExecuteOutput> resultFuture,
+            ListenableFuture<Long> queryIdFuture) {
         try {
-            if (surfacePackages != null && surfacePackages.size() > 0) {
-                // TODO(b/228200518): Support multiple slots.
-                SurfacePackage surfacePackage = surfacePackages.get(0);
-                mCallback.onSuccess(surfacePackage);
+            sLogger.d(TAG + ": createTokens() started.");
+            ExecuteOutput result = Futures.getDone(resultFuture);
+            long queryId = Futures.getDone(queryIdFuture);
+            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
+            Objects.requireNonNull(renderingConfigs);
+
+            List<String> tokens = new ArrayList<String>();
+            int slotIndex = 0;
+            for (RenderingConfig renderingConfig : renderingConfigs) {
+                if (renderingConfig == null) {
+                    tokens.add(null);
+                } else {
+                    SlotWrapper wrapper = new SlotWrapper(
+                            result.getRequestLogRecord(), slotIndex, renderingConfig,
+                            mService.getPackageName(), queryId);
+                    tokens.add(CryptUtils.encrypt(wrapper));
+                }
+                ++slotIndex;
+            }
+
+            return Futures.immediateFuture(tokens);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private void sendResult(List<String> slotResultTokens) {
+        try {
+            if (slotResultTokens != null && slotResultTokens.size() > 0) {
+                mCallback.onSuccess(slotResultTokens);
             } else {
-                Log.w(TAG, "surfacePackages is null or empty");
+                sLogger.w(TAG + ": slotResultTokens is null or empty");
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
             }
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 
@@ -325,22 +255,7 @@ public class AppRequestFlow {
         try {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
-        }
-    }
-
-    static class SurfaceInfo {
-        @NonNull
-        public final IBinder mHostToken;
-        public final int mDisplayId;
-        public final int mWidth;
-        public final int mHeight;
-
-        SurfaceInfo(IBinder hostToken, int displayId, int width, int height) {
-            mHostToken = hostToken;
-            mDisplayId = displayId;
-            mWidth = width;
-            mHeight = height;
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 }

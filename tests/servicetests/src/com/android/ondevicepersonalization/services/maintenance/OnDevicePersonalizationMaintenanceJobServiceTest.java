@@ -35,6 +35,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
@@ -68,12 +69,17 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
         dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
-        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList,
+        List<String> retainedKeys = new ArrayList<>();
+        retainedKeys.add("key");
+        retainedKeys.add("key2");
+        assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
                 timestamp));
     }
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);
         mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext,
@@ -96,6 +102,20 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
 
+            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestKillSwitchEnabled() {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        try {
+            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
             boolean result = mSpyService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));
