@@ -26,7 +26,6 @@ android_test {
     ],
     libs: [
         "android.test.base",
-        "android.test.mock.stubs",
         "android.test.runner",
         "auto_value_annotations",
         "framework-annotations-lib",
@@ -37,6 +36,8 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "federated-compute-java-proto-lite",
+        "flatbuffers-java",
         "mockito-target-extended-minus-junit4",
         "modules-utils-build",
         "modules-utils-preconditions",

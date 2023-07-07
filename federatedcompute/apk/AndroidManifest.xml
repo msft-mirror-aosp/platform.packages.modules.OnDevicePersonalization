@@ -34,7 +34,7 @@
         </service>
         <!-- The JobService runs in main process, so when JobScheduler wakes up, it allows us to
              decide not to start training without incurring overhead. -->
-        <service android:name="com.android.federatedcompute.services.training.TrainingJobService"
+        <service android:name="com.android.federatedcompute.services.training.FederatedJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>

@@ -30,11 +30,14 @@ android_test_helper_app {
         "androidx.annotation_annotation",
         "androidx.concurrent_concurrent-futures",
         "androidx.core_core",
+        "cuckoofilter",
         "guava",
     ],
     resource_dirs: [
         "res",
     ],
+    target_sdk_version: "current",
+    min_sdk_version: "Tiramisu",
     manifest: "AndroidManifest.xml",
     certificate: "platform",
 }

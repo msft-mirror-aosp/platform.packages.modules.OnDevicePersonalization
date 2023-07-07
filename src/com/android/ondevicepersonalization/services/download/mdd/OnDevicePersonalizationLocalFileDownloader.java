@@ -21,7 +21,9 @@ import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
 
 import android.content.Context;
 import android.net.Uri;
-import android.util.Log;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import com.google.android.libraries.mobiledatadownload.DownloadException;
 import com.google.android.libraries.mobiledatadownload.downloader.DownloadRequest;
@@ -46,6 +48,7 @@ import java.util.concurrent.Executor;
  */
 public final class OnDevicePersonalizationLocalFileDownloader implements FileDownloader {
 
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationLocalFileDownloader";
 
     /**
@@ -92,7 +95,12 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
         Uri fileUri = downloadRequest.fileUri();
         String urlToDownload = downloadRequest.urlToDownload();
         Uri uriToDownload = Uri.parse(urlToDownload);
-        Log.d(TAG, "Starting local download for url: " + urlToDownload);
+        // Strip away the query params for local download.
+        uriToDownload = new Uri.Builder()
+                .scheme(uriToDownload.getScheme())
+                .authority(uriToDownload.getAuthority())
+                .path(uriToDownload.getPath()).build();
+        sLogger.d(TAG + ": Starting local download for url: " + urlToDownload);
 
         try {
             Opener<OutputStream> writeStreamOpener = WriteStreamOpener.create();
@@ -101,10 +109,10 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
                 InputStream in = mContext.getContentResolver().openInputStream(uriToDownload);
                 writtenBytes = ByteStreams.copy(in, out);
             }
-            Log.d(TAG,
-                    "File URI " + fileUri + " download complete, writtenBytes: %d" + writtenBytes);
+            sLogger.d(TAG + "File URI " + fileUri
+                    + " download complete, writtenBytes: %d" + writtenBytes);
         } catch (Exception e) {
-            Log.e(TAG, "%s: startDownloading got exception", e);
+            sLogger.e(TAG + ": %s: startDownloading got exception", e);
             return immediateFailedFuture(
                     DownloadException.builder()
                             .setDownloadResultCode(
