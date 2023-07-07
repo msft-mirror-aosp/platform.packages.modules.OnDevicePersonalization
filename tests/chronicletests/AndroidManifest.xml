@@ -18,7 +18,8 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.android.libraries.pcc.chronicle.test" >
 
-    <application android:label="OdpChronicleTests">
+    <application android:label="OdpChronicleTests"
+                 android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"

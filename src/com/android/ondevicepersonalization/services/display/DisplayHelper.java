@@ -17,20 +17,20 @@
 package com.android.ondevicepersonalization.services.display;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RequestLogRecord;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
 import android.os.IBinder;
 import android.os.PersistableBundle;
-import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.display.velocity.VelocityEngineFactory;
@@ -50,6 +50,7 @@ import java.nio.charset.StandardCharsets;
 
 /** Helper class to display personalized content. */
 public class DisplayHelper {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "DisplayHelper";
     @NonNull private final Context mContext;
 
@@ -110,14 +111,14 @@ public class DisplayHelper {
 
     /** Creates a webview and displays the provided HTML. */
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
-            @NonNull String html, @NonNull SlotResult slotResult,
-            @NonNull String servicePackageName,
+            @NonNull String html, @NonNull RequestLogRecord logRecord,
+            long queryId, @NonNull String servicePackageName,
             @NonNull IBinder hostToken, int displayId, int width, int height) {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
         try {
-            Log.d(TAG, "displayHtml");
+            sLogger.d(TAG + ": displayHtml");
             OnDevicePersonalizationExecutors.getHandler().post(() -> {
-                createWebView(html, slotResult, servicePackageName,
+                createWebView(html, logRecord, queryId, servicePackageName,
                         hostToken, displayId, width, height, result);
             });
         } catch (Exception e) {
@@ -127,15 +128,15 @@ public class DisplayHelper {
     }
 
     private void createWebView(
-            @NonNull String html, @NonNull SlotResult slotResult,
+            @NonNull String html, @NonNull RequestLogRecord logRecord, long queryId,
             @NonNull String servicePackageName,
             @NonNull IBinder hostToken, int displayId, int width, int height,
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
         try {
-            Log.d(TAG, "createWebView() started");
+            sLogger.d(TAG + ": createWebView() started");
             WebView webView = new WebView(mContext);
             webView.setWebViewClient(
-                    new OdpWebViewClient(mContext, servicePackageName, slotResult));
+                    new OdpWebViewClient(mContext, servicePackageName, queryId, logRecord));
             WebSettings webViewSettings = webView.getSettings();
             // Do not allow using file:// or content:// URLs.
             webViewSettings.setAllowFileAccess(false);
@@ -146,10 +147,10 @@ public class DisplayHelper {
             SurfaceControlViewHost host = new SurfaceControlViewHost(mContext, display, hostToken);
             host.setView(webView, width, height);
             SurfacePackage surfacePackage = host.getSurfacePackage();
-            Log.d(TAG, "createWebView success: " + surfacePackage);
+            sLogger.d(TAG + ": createWebView success: " + surfacePackage);
             resultFuture.set(surfacePackage);
         } catch (Exception e) {
-            Log.d(TAG, "createWebView failed", e);
+            sLogger.d(TAG + ": createWebView failed", e);
             resultFuture.setException(e);
         }
     }
