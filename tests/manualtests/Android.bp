@@ -39,6 +39,7 @@ android_test {
         "kotlin-test",
         "kotlinx-coroutines-android",
         "mobile_data_downloader_lib",
+        "modules-utils-build",
         "ondevicepersonalization-protos",
         "ondevicepersonalization-plugin-lib",
         "apache-velocity-engine-core",

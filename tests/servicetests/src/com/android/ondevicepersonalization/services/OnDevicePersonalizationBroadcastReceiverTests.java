@@ -48,6 +48,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ChronicleManager.instance = null;
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID);
@@ -57,6 +58,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
         jobScheduler.cancel(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID);
+        jobScheduler.cancel(OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID);
     }
 
     @Test
@@ -78,6 +80,8 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) != null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID) != null);
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) != null);
         // MDD tasks
@@ -104,6 +108,8 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) == null);
+        assertTrue(jobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID) == null);
         assertTrue(jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) == null);
         // MDD tasks
