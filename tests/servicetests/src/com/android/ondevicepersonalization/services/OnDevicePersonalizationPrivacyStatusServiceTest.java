@@ -23,10 +23,10 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
-import android.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.os.IBinder;
 
 import androidx.test.core.app.ApplicationProvider;

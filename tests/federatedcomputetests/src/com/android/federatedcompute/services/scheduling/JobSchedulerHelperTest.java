@@ -50,7 +50,7 @@ import org.mockito.junit.MockitoJUnitRunner;
 public class JobSchedulerHelperTest {
     private static final String PACKAGE_NAME = "foo.federatedcompute";
     private static final String TRAINING_JOB_SERVICE =
-            "com.android.federatedcompute.services.training.TrainingJobService";
+            "com.android.federatedcompute.services.training.FederatedJobService";
     private static final String POPULATION_NAME = "population";
     private static final int JOB_ID = 10281993;
     private static final long CURRENT_TIME_MILLIS = 80000;

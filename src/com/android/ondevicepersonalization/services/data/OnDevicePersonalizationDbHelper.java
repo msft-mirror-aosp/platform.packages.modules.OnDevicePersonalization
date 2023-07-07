@@ -19,9 +19,10 @@ package com.android.ondevicepersonalization.services.data;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
@@ -32,6 +33,7 @@ import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsCo
  */
 public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
 
     private static final int DATABASE_VERSION = 1;
@@ -88,7 +90,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
-        Log.d(TAG, "DB upgrade from " + oldVersion + " to " + newVersion);
+        sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
         throw new UnsupportedOperationException(
                 "Database upgrade for OnDevicePersonalization is unsupported");
     }
