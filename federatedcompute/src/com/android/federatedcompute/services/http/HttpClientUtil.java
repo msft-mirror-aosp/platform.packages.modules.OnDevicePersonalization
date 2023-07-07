@@ -47,12 +47,12 @@ public final class HttpClientUtil {
     }
 
     /** Compresses the input data using Gzip. */
-    public static ByteString compressWithGzip(ByteString uncompressedData) {
-        try (ByteString.Output outputStream = ByteString.newOutput(uncompressedData.size());
+    public static byte[] compressWithGzip(byte[] uncompressedData) {
+        try (ByteString.Output outputStream = ByteString.newOutput(uncompressedData.length);
                 GZIPOutputStream gzipOutputStream = new GZIPOutputStream(outputStream)) {
-            gzipOutputStream.write(uncompressedData.toByteArray());
+            gzipOutputStream.write(uncompressedData);
             gzipOutputStream.finish();
-            return outputStream.toByteString();
+            return outputStream.toByteString().toByteArray();
         } catch (IOException e) {
             Log.e(TAG, "Failed to compress using Gzip");
             throw new IllegalArgumentException("Failed to compress using Gzip", e);

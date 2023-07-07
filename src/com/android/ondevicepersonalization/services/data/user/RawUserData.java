@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import android.content.res.Configuration;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +30,7 @@ import java.util.List;
 public final class RawUserData {
 
     private static RawUserData sUserData = null;
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserData";
 
     // The current system time in milliseconds.
@@ -40,10 +43,10 @@ public final class RawUserData {
     public int orientation = Configuration.ORIENTATION_PORTRAIT;
 
     // Available bytes in MB.
-    public int availableBytesMB = 0;
+    public long availableStorageMB = 0;
 
     // Battery percentage.
-    public int batteryPct = 0;
+    public int batteryPercentage = 0;
 
     // The 3-letter ISO-3166 country code
     public Country country = Country.UNKNOWN;
@@ -72,10 +75,10 @@ public final class RawUserData {
     public ConnectionType connectionType = ConnectionType.UNKNOWN;
 
     // Status if network is metered. False - not metered. True - metered.
-    public boolean networkMeteredStatus = false;
+    public boolean networkMetered = false;
 
     // Connection speed in kbps.
-    public int connectionSpeedKbps = 0;
+    public long connectionSpeedKbps = 0;
 
     // Device metrics values.
     public DeviceMetrics deviceMetrics = new DeviceMetrics();

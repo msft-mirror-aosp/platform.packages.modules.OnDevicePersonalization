@@ -36,7 +36,7 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
-        "federatedcompute-service-proto-lite",
+        "federated-compute-java-proto-lite",
         "flatbuffers-java",
         "mockito-target-extended-minus-junit4",
         "modules-utils-build",

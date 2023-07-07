@@ -24,14 +24,13 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.aidl.IDataAccessService;
+import android.app.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.content.Context;
 import android.net.Uri;
-import android.ondevicepersonalization.Bid;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IDataAccessService;
-import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -60,6 +59,8 @@ import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
 public class DataAccessServiceImplTest {
+    private static final double DELTA = 0.001;
+    private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     private long mTimeMillis = 1000;
     private EventUrlPayload mEventUrlPayload;
@@ -71,7 +72,8 @@ public class DataAccessServiceImplTest {
     private boolean mOnErrorCalled = false;
     private OnDevicePersonalizationLocalDataDao mLocalDao;
     private OnDevicePersonalizationVendorDataDao mVendorDao;
-
+    private DataAccessServiceImpl mServiceImpl;
+    private IDataAccessService mServiceProxy;
 
     @Before
     public void setup() throws Exception {
@@ -85,6 +87,12 @@ public class DataAccessServiceImplTest {
                 mApplicationContext.getPackageName(),
                 PackageUtils.getCertDigest(mApplicationContext,
                         mApplicationContext.getPackageName()));
+
+        mServiceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext,
+                true, mInjector);
+
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
     }
 
     @Test
@@ -92,11 +100,7 @@ public class DataAccessServiceImplTest {
         addTestData();
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"key"});
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP,
                 params,
                 new TestCallback());
@@ -113,11 +117,7 @@ public class DataAccessServiceImplTest {
         addTestData();
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
                 params,
                 new TestCallback());
@@ -133,11 +133,7 @@ public class DataAccessServiceImplTest {
     public void testRemoteDataKeyset() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET,
                 params,
                 new TestCallback());
@@ -155,11 +151,7 @@ public class DataAccessServiceImplTest {
     public void testLocalDataKeyset() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 params,
                 new TestCallback());
@@ -180,11 +172,7 @@ public class DataAccessServiceImplTest {
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
         byte[] arr = new byte[100];
         params.putByteArray(Constants.EXTRA_VALUE, arr);
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
                 params,
                 new TestCallback());
@@ -203,11 +191,7 @@ public class DataAccessServiceImplTest {
         addTestData();
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback());
@@ -223,26 +207,12 @@ public class DataAccessServiceImplTest {
 
     @Test
     public void testGetEventUrl() throws Exception {
+        PersistableBundle eventParams = createEventParams();
         Bundle params = new Bundle();
-        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
-        params.putString(Constants.EXTRA_BID_ID, "bid5");
-        ArrayList<String> bidKeys = new ArrayList<String>();
-        SlotResult slotResult =
-                new SlotResult.Builder()
-                    .setSlotKey("slot1")
-                    .addRenderedBidKeys("bid5")
-                    .addLoggedBids(
-                        new Bid.Builder()
-                            .setKey("bid5")
-                            .build())
-                    .build();
-        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
-                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
+        params.putByteArray(Constants.EXTRA_RESPONSE_DATA, RESPONSE_BYTES);
+        params.putString(Constants.EXTRA_MIME_TYPE, "image/gif");
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback());
@@ -252,38 +222,21 @@ public class DataAccessServiceImplTest {
         assertNotEquals(null, eventUrl);
         EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
         assertNotEquals(null, payload);
-        assertEquals(4, payload.getEvent().getType());
-        assertEquals(1357, payload.getEvent().getQueryId());
-        assertEquals(1000, payload.getEvent().getTimeMillis());
-        assertEquals("slot1", payload.getEvent().getSlotId());
-        assertEquals(mApplicationContext.getPackageName(),
-                payload.getEvent().getServicePackageName());
-        assertEquals("bid5", payload.getEvent().getBidId());
+        PersistableBundle eventParamsFromUrl = payload.getEventParams();
+        assertEquals(1, eventParamsFromUrl.getInt("a"));
+        assertEquals("xyz", eventParamsFromUrl.getString("b"));
+        assertEquals(5.0, eventParamsFromUrl.getDouble("c"), DELTA);
+        assertEquals("image/gif", payload.getMimeType());
+        assertArrayEquals(RESPONSE_BYTES, payload.getResponseData());
     }
 
     @Test
     public void testGetClickUrl() throws Exception {
+        PersistableBundle eventParams = createEventParams();
         Bundle params = new Bundle();
-        params.putInt(Constants.EXTRA_EVENT_TYPE, 4);
-        params.putString(Constants.EXTRA_BID_ID, "bid5");
+        params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putString(Constants.EXTRA_DESTINATION_URL, "http://example.com");
-        ArrayList<String> bidKeys = new ArrayList<String>();
-        SlotResult slotResult =
-                new SlotResult.Builder()
-                    .setSlotKey("slot1")
-                    .addRenderedBidKeys("bid5")
-                    .addLoggedBids(
-                        new Bid.Builder()
-                            .setKey("bid5")
-                            .build())
-                    .build();
-        DataAccessServiceImpl.EventUrlQueryData eventUrlData =
-                new DataAccessServiceImpl.EventUrlQueryData(1357, slotResult);
-        var serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                true, eventUrlData, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
-        serviceProxy.onRequest(
+        mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_GET_EVENT_URL,
                 params,
                 new TestCallback());
@@ -293,39 +246,35 @@ public class DataAccessServiceImplTest {
         assertNotEquals(null, eventUrl);
         EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
         assertNotEquals(null, payload);
-        assertEquals(4, payload.getEvent().getType());
-        assertEquals(1357, payload.getEvent().getQueryId());
-        assertEquals(1000, payload.getEvent().getTimeMillis());
-        assertEquals("slot1", payload.getEvent().getSlotId());
-        assertEquals(mApplicationContext.getPackageName(),
-                payload.getEvent().getServicePackageName());
-        assertEquals("bid5", payload.getEvent().getBidId());
+        PersistableBundle eventParamsFromUrl = payload.getEventParams();
+        assertEquals(1, eventParamsFromUrl.getInt("a"));
+        assertEquals("xyz", eventParamsFromUrl.getString("b"));
+        assertEquals(5.0, eventParamsFromUrl.getDouble("c"), DELTA);
         Uri uri = Uri.parse(eventUrl);
         assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), "http://example.com");
     }
 
     @Test
     public void testLocalDataThrowsNotIncluded() {
-        DataAccessServiceImpl serviceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
-                false, null, mInjector);
-        IDataAccessService serviceProxy = IDataAccessService.Stub.asInterface(serviceImpl);
+        mServiceImpl = new DataAccessServiceImpl(
+            mApplicationContext.getPackageName(), mApplicationContext, false, mInjector);
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
         params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
                 params,
                 new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 params,
                 new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
                 params,
                 new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> serviceProxy.onRequest(
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback()));
@@ -394,5 +343,13 @@ public class DataAccessServiceImplTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+    }
+
+    private PersistableBundle createEventParams() {
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("a", 1);
+        params.putString("b", "xyz");
+        params.putDouble("c", 5.0);
+        return params;
     }
 }
