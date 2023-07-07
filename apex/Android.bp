@@ -75,6 +75,14 @@ bootclasspath_fragment {
     },
 }
 
+systemserverclasspath_fragment {
+    name: "com.android.ondevicepersonalization-systemserverclasspath-fragment",
+    contents: [
+        "service-ondevicepersonalization",
+    ],
+    apex_available: ["com.android.ondevicepersonalization"],
+}
+
 apex {
     name: "com.android.ondevicepersonalization",
     manifest: "manifest.json",
@@ -82,6 +90,7 @@ apex {
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
     key: "com.android.ondevicepersonalization.key",
     bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
+    systemserverclasspath_fragments: ["com.android.ondevicepersonalization-systemserverclasspath-fragment"],
     defaults: ["t-launched-apex-module"],
     prebuilts: ["current_sdkinfo"],
 }
