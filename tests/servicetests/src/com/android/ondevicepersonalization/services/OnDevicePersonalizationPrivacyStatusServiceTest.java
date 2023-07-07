@@ -23,12 +23,14 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
-import android.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.os.IBinder;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.rule.ServiceTestRule;
 
 import com.android.ondevicepersonalization.services.data.user.PrivacySignal;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
@@ -38,14 +40,18 @@ import com.android.ondevicepersonalization.services.data.user.UserDataDao;
 import org.junit.After;
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationPrivacyStatusServiceTest {
+    @Rule
+    public final ServiceTestRule serviceRule = new ServiceTestRule();
     private Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationPrivacyStatusServiceDelegate mBinder;
     private PrivacySignal mPrivacySignal;
@@ -157,6 +163,14 @@ public class OnDevicePersonalizationPrivacyStatusServiceTest {
         assertNotNull(newLocationCursor);
         assertEquals(appUsageCount, newAppUsageCursor.getCount());
         assertEquals(locationCount, newLocationCursor.getCount());
+    }
+
+    @Test
+    public void testWithBoundService() throws TimeoutException {
+        Intent serviceIntent = new Intent(mContext,
+                OnDevicePersonalizationPrivacyStatusServiceImpl.class);
+        IBinder binder = serviceRule.bindService(serviceIntent);
+        assertTrue(binder instanceof OnDevicePersonalizationPrivacyStatusServiceDelegate);
     }
 
     @After

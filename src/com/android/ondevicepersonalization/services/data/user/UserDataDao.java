@@ -21,9 +21,10 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.util.Calendar;
@@ -31,6 +32,7 @@ import java.util.List;
 
 /** DAO for accessing to vendor data tables. */
 public class UserDataDao {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataDao";
 
     private static UserDataDao sUserDataDao;
@@ -92,7 +94,7 @@ public class UserDataDao {
             return db.insertWithOnConflict(UserDataTables.LocationHistory.TABLE_NAME, null, values,
                     SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert location history data", e);
+            sLogger.e(TAG + ": Failed to insert location history data", e);
             return false;
         }
     }
@@ -114,7 +116,7 @@ public class UserDataDao {
             return db.insertWithOnConflict(UserDataTables.AppUsageHistory.TABLE_NAME, null, values,
                     SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to insert app usage history data", e);
+            sLogger.e(TAG + ": Failed to insert app usage history data", e);
             return false;
         }
     }
@@ -149,7 +151,7 @@ public class UserDataDao {
      */
     public Cursor readAppUsageInLastXDays(int dayCount) {
         if (dayCount > TTL_IN_MEMORY_DAYS) {
-            Log.e(TAG, "Illegal attempt to read " + dayCount + " rows, which is more than "
+            sLogger.e(TAG + ": Illegal attempt to read " + dayCount + " rows, which is more than "
                     + TTL_IN_MEMORY_DAYS + " days");
             return null;
         }
@@ -175,7 +177,7 @@ public class UserDataDao {
                     orderBy
             );
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read " + UserDataTables.AppUsageHistory.TABLE_NAME
+            sLogger.e(TAG + ": Failed to read " + UserDataTables.AppUsageHistory.TABLE_NAME
                     + " in the last " + dayCount + " days" , e);
         }
         return null;
@@ -187,7 +189,7 @@ public class UserDataDao {
      */
     public Cursor readLocationInLastXDays(int dayCount) {
         if (dayCount > TTL_IN_MEMORY_DAYS) {
-            Log.e(TAG, "Illegal attempt to read " + dayCount + " rows, which is more than "
+            sLogger.e(TAG + ": Illegal attempt to read " + dayCount + " rows, which is more than "
                     + TTL_IN_MEMORY_DAYS + " days");
             return null;
         }
@@ -214,7 +216,7 @@ public class UserDataDao {
                     orderBy
             );
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read " + UserDataTables.LocationHistory.TABLE_NAME
+            sLogger.e(TAG + ": Failed to read " + UserDataTables.LocationHistory.TABLE_NAME
                     + " in the last " + dayCount + " days" , e);
         }
         return null;

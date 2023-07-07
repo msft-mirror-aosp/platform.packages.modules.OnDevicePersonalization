@@ -16,20 +16,24 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.ContentValues;
 import android.content.Context;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
+import com.android.ondevicepersonalization.services.util.CryptUtils;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -74,19 +78,39 @@ public class RenderFlowTest {
         assertTrue(mGeneratedHtml.contains("bid1"));
     }
 
+    @Test
+    public void testDefaultInjector() throws Exception {
+        RenderFlow.Injector injector = new RenderFlow.Injector();
+        assertEquals(OnDevicePersonalizationExecutors.getBackgroundExecutor(),
+                injector.getExecutor());
+        ContentValues logData = new ContentValues();
+        logData.put("x", 1);
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().addRow(logData).build();
+        RenderingConfig info =
+                new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
+        SlotWrapper data = new SlotWrapper(
+                logRecord, 0, info, mContext.getPackageName(), 0);
+        String encrypted = CryptUtils.encrypt(data);
+        SlotWrapper decrypted = injector.decryptToken(encrypted);
+        assertEquals(data.getLogRecord(), decrypted.getLogRecord());
+        assertEquals(data.getSlotIndex(), decrypted.getSlotIndex());
+        assertEquals(data.getQueryId(), decrypted.getQueryId());
+        assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
+        assertEquals(data.getRenderingConfig(), decrypted.getRenderingConfig());
+    }
+
     class TestInjector extends RenderFlow.Injector {
         ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
         }
 
-        SlotRenderingData decryptToken(String token) {
+        SlotWrapper decryptToken(String token) {
             if (token.equals("token")) {
-                SlotResult slotResult =
-                        new SlotResult.Builder()
-                        .addWinningBids(new ScoredBid.Builder().setBidId("bid1").build())
-                        .build();
-                SlotRenderingData data = new SlotRenderingData(
-                        slotResult, mContext.getPackageName(), 0);
+                RequestLogRecord logRecord = new RequestLogRecord.Builder().build();
+                RenderingConfig info =
+                        new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
+                SlotWrapper data = new SlotWrapper(
+                        logRecord, 0, info, mContext.getPackageName(), 0);
                 return data;
             } else {
                 return null;
@@ -99,14 +123,14 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderContentResult renderContentResult) {
+        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;
         }
 
         @Override public ListenableFuture<SurfacePackage> displayHtml(
-                String html, SlotResult slotResult, String servicePackageName,
+                String html, RequestLogRecord logRecord, long queryId, String servicePackageName,
                 IBinder hostToken, int displayId, int width, int height) {
             mGeneratedHtml = html;
             mDisplayHtmlCalled = true;

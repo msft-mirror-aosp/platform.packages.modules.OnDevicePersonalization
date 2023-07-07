@@ -16,8 +16,10 @@
 
 package com.android.ondevicepersonalization.services.data.events;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertThrows;
+
+import android.os.PersistableBundle;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -25,78 +27,15 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class EventUrlPayloadTest {
+    private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     @Test
-    public void testBuilderAndEquals() {
-        int type = EventType.B2D.getValue();
-        byte[] eventData = "data".getBytes();
-        String bidId = "bidId";
-        String servicePackageName = "servicePackageName";
-        String slotId = "slotId";
-        int slotPosition = 1;
-        long queryId = 1;
-        long timeMillis = 1;
-        long eventId = 1;
-        long slotIndex = 1;
-        Event event = new Event.Builder()
-                .setType(type)
-                .setEventData(eventData)
-                .setBidId(bidId)
-                .setServicePackageName(servicePackageName)
-                .setSlotId(slotId)
-                .setSlotPosition(slotPosition)
-                .setQueryId(queryId)
-                .setTimeMillis(timeMillis)
-                .setSlotIndex(slotIndex)
-                .setEventId(eventId)
-                .build();
-
-        boolean eventMetricsRequires = true;
-
-        EventUrlPayload eventUrlPayload1 = new EventUrlPayload.Builder()
-                .setEvent(event)
-                .setEventMetricsRequired(eventMetricsRequires)
-                .build();
-
-        assertEquals(eventUrlPayload1.getEvent(), event);
-        assertEquals(eventUrlPayload1.isEventMetricsRequired(), eventMetricsRequires);
-
-        EventUrlPayload eventUrlPayload2 = new EventUrlPayload.Builder(
-                event).setEventMetricsRequired(eventMetricsRequires).build();
-        assertEquals(eventUrlPayload1, eventUrlPayload2);
-        assertEquals(eventUrlPayload1.hashCode(), eventUrlPayload2.hashCode());
-    }
-
-    @Test
-    public void testBuildTwiceThrows() {
-        int type = EventType.B2D.getValue();
-        byte[] eventData = "data".getBytes();
-        String bidId = "bidId";
-        String servicePackageName = "servicePackageName";
-        String slotId = "slotId";
-        int slotPosition = 1;
-        long queryId = 1;
-        long timeMillis = 1;
-        long eventId = 1;
-        long slotIndex = 1;
-        Event event = new Event.Builder()
-                .setType(type)
-                .setEventData(eventData)
-                .setBidId(bidId)
-                .setServicePackageName(servicePackageName)
-                .setSlotId(slotId)
-                .setSlotPosition(slotPosition)
-                .setQueryId(queryId)
-                .setTimeMillis(timeMillis)
-                .setSlotIndex(slotIndex)
-                .setEventId(eventId)
-                .build();
-
-        boolean eventMetricsRequires = true;
-
-        EventUrlPayload.Builder builder = new EventUrlPayload.Builder()
-                .setEvent(event)
-                .setEventMetricsRequired(eventMetricsRequires);
-        builder.build();
-        assertThrows(IllegalStateException.class, () -> builder.build());
+    public void testPayload() {
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("x", 1);
+        EventUrlPayload payload = new EventUrlPayload(
+                params, RESPONSE_BYTES, "image/gif");
+        assertEquals(1, payload.getEventParams().getInt("x"));
+        assertEquals("image/gif", payload.getMimeType());
+        assertArrayEquals(RESPONSE_BYTES, payload.getResponseData());
     }
 }

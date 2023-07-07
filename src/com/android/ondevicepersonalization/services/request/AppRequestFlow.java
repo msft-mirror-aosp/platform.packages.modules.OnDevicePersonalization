@@ -17,23 +17,28 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.ExecuteInput;
+import android.app.ondevicepersonalization.ExecuteOutput;
+import android.app.ondevicepersonalization.OnDevicePersonalizationException;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.UserData;
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.content.ComponentName;
 import android.content.Context;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.SelectContentInput;
-import android.ondevicepersonalization.SelectContentResult;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
-import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
@@ -54,12 +59,13 @@ import java.util.Objects;
  * Handles a surface package request from an app or SDK.
  */
 public class AppRequestFlow {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppRequestFlow";
     private static final String TASK_NAME = "AppRequest";
     @NonNull
     private final String mCallingPackageName;
     @NonNull
-    private final String mServicePackageName;
+    private final ComponentName mService;
     @NonNull
     private final PersistableBundle mParams;
     @NonNull
@@ -74,25 +80,25 @@ public class AppRequestFlow {
 
     public AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context) {
-        this(callingPackageName, servicePackageName, params,
+        this(callingPackageName, service, params,
                 callback, context, OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 
     @VisibleForTesting
     AppRequestFlow(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             @NonNull ListeningExecutorService executorService) {
-        Log.d(TAG, "AppRequestFlow created.");
+        sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
-        mServicePackageName = Objects.requireNonNull(servicePackageName);
+        mService = Objects.requireNonNull(service);
         mParams = Objects.requireNonNull(params);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
@@ -106,12 +112,21 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            mServiceClassName = Objects.requireNonNull(
-                    AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                            mContext, mServicePackageName));
-            ListenableFuture<SelectContentResult> resultFuture = FluentFuture.from(
+            AppManifestConfig config = Objects.requireNonNull(
+                    AppManifestConfigHelper.getAppManifestConfig(
+                        mContext, mService.getPackageName()));
+            if (!mService.getClassName().equals(config.getServiceName())) {
+                // TODO(b/228200518): Define a new error code and map it to a specific
+                // exception type in the client API.
+                throw new OnDevicePersonalizationException(
+                    Constants.STATUS_INTERNAL_ERROR,
+                    "Name not found: " + mService.getClassName()
+                    + " expected: " + config.getServiceName());
+            }
+            mServiceClassName = Objects.requireNonNull(config.getServiceName());
+            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, mServicePackageName, mContext))
+                                    TASK_NAME, mService.getPackageName(), mContext))
                     .transformAsync(
                             result -> executeAppRequest(result),
                             mExecutorService
@@ -119,7 +134,7 @@ public class AppRequestFlow {
                     .transform(
                             result -> {
                                 return result.getParcelable(
-                                        Constants.EXTRA_RESULT, SelectContentResult.class);
+                                        Constants.EXTRA_RESULT, ExecuteOutput.class);
                             },
                             mExecutorService
                     );
@@ -146,39 +161,43 @@ public class AppRequestFlow {
 
                         @Override
                         public void onFailure(Throwable t) {
-                            Log.w(TAG, "Request failed.", t);
+                            sLogger.w(TAG + ": Request failed.", t);
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
                     },
                     mExecutorService);
         } catch (Exception e) {
-            Log.e(TAG, "Could not process request.", e);
+            sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
     }
 
     private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
-        Log.d(TAG, "executeAppRequest() started.");
+        sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        SelectContentInput input =
-                new SelectContentInput.Builder()
+        ExecuteInput input =
+                new ExecuteInput.Builder()
                         .setAppPackageName(mCallingPackageName)
                         .setAppParams(mParams)
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mServicePackageName, mContext, true, null);
+                mService.getPackageName(), mContext, true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        UserDataAccessor userDataAccessor = new UserDataAccessor();
+        UserData userData = userDataAccessor.getUserData();
+        serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_SELECT_CONTENT, serviceParams);
+                isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
     }
 
-    private ListenableFuture<Long> logQuery(SelectContentResult result) {
-        Log.d(TAG, "logQuery() started.");
-        // TODO(b/228200518): Validate that slotIds and bidIds are present in REMOTE_DATA.
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(result);
+    private ListenableFuture<Long> logQuery(ExecuteOutput result) {
+        sLogger.d(TAG + ": logQuery() started.");
+        // TODO(b/228200518): Extract log data from ExecuteOutput.
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                mService.getPackageName(), null, result.getRequestLogRecord().getRows());
         Query query = new Query.Builder()
-                .setServicePackageName(mServicePackageName)
+                .setServicePackageName(mService.getPackageName())
                 .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
@@ -190,27 +209,30 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<List<String>> createTokens(
-            ListenableFuture<SelectContentResult> selectContentResultFuture,
+            ListenableFuture<ExecuteOutput> resultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
-            Log.d(TAG, "createTokens() started.");
-            SelectContentResult selectContentResult = Futures.getDone(selectContentResultFuture);
+            sLogger.d(TAG + ": createTokens() started.");
+            ExecuteOutput result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<SlotResult> slotResults = selectContentResult.getSlotResults();
-            Objects.requireNonNull(slotResults);
+            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
+            Objects.requireNonNull(renderingConfigs);
 
-            List<String> slotResultTokens = new ArrayList<String>();
-            for (SlotResult slotResult : slotResults) {
-                if (slotResult == null) {
-                    slotResultTokens.add(null);
+            List<String> tokens = new ArrayList<String>();
+            int slotIndex = 0;
+            for (RenderingConfig renderingConfig : renderingConfigs) {
+                if (renderingConfig == null) {
+                    tokens.add(null);
                 } else {
-                    SlotRenderingData wrapper = new SlotRenderingData(
-                            slotResult, mServicePackageName, queryId);
-                    slotResultTokens.add(CryptUtils.encrypt(wrapper));
+                    SlotWrapper wrapper = new SlotWrapper(
+                            result.getRequestLogRecord(), slotIndex, renderingConfig,
+                            mService.getPackageName(), queryId);
+                    tokens.add(CryptUtils.encrypt(wrapper));
                 }
+                ++slotIndex;
             }
 
-            return Futures.immediateFuture(slotResultTokens);
+            return Futures.immediateFuture(tokens);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -221,11 +243,11 @@ public class AppRequestFlow {
             if (slotResultTokens != null && slotResultTokens.size() > 0) {
                 mCallback.onSuccess(slotResultTokens);
             } else {
-                Log.w(TAG, "slotResultTokens is null or empty");
+                sLogger.w(TAG + ": slotResultTokens is null or empty");
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
             }
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 
@@ -233,7 +255,7 @@ public class AppRequestFlow {
         try {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 }

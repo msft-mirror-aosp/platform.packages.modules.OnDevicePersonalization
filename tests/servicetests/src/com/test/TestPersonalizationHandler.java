@@ -17,116 +17,114 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadResult;
-import android.ondevicepersonalization.EventMetricsInput;
-import android.ondevicepersonalization.EventMetricsResult;
-import android.ondevicepersonalization.Metrics;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.PersonalizationHandler;
-import android.ondevicepersonalization.RenderContentInput;
-import android.ondevicepersonalization.RenderContentResult;
-import android.ondevicepersonalization.ScoredBid;
-import android.ondevicepersonalization.SelectContentInput;
-import android.ondevicepersonalization.SelectContentResult;
-import android.ondevicepersonalization.SlotResult;
-import android.os.OutcomeReceiver;
+import android.app.ondevicepersonalization.DownloadInput;
+import android.app.ondevicepersonalization.DownloadOutput;
+import android.app.ondevicepersonalization.EventLogRecord;
+import android.app.ondevicepersonalization.ExecuteInput;
+import android.app.ondevicepersonalization.ExecuteOutput;
+import android.app.ondevicepersonalization.IsolatedComputationCallback;
+import android.app.ondevicepersonalization.KeyValueStore;
+import android.app.ondevicepersonalization.RenderInput;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.WebViewEventInput;
+import android.app.ondevicepersonalization.WebViewEventOutput;
+import android.content.ContentValues;
 import android.util.Log;
 
-import com.google.common.util.concurrent.MoreExecutors;
-
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements PersonalizationHandler {
+public class TestPersonalizationHandler implements IsolatedComputationCallback {
     public final String TAG = "TestPersonalizationHandler";
+    private final KeyValueStore mRemoteData;
+
+    TestPersonalizationHandler(KeyValueStore remoteData) {
+        mRemoteData = remoteData;
+    }
 
     @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadResult> consumer) {
-        Log.d(TAG, "Starting filterData.");
-        Log.d(TAG, "Data: " + input.getData());
+    public void onDownload(DownloadInput input, Consumer<DownloadOutput> consumer) {
+        try {
+            Log.d(TAG, "Starting filterData.");
+            Log.d(TAG, "Data: " + input.getData());
 
-        List<String> lookupKeys = new ArrayList<>();
-        lookupKeys.add("keyExtra");
-        odpContext.getRemoteData().lookup(lookupKeys, MoreExecutors.directExecutor(),
-                new OutcomeReceiver<Map<String, byte[]>, Exception>() {
-                    @Override
-                    public void onResult(@NonNull Map<String, byte[]> result) {
-                        Log.d(TAG, "OutcomeReceiver onResult: " + result);
-                        List<String> keysToRetain =
-                                getFilteredKeys(input.getData());
-                        keysToRetain.add("keyExtra");
-                        // Get the keys to keep from the downloaded data
-                        DownloadResult downloadResult =
-                                new DownloadResult.Builder()
-                                .setKeysToRetain(keysToRetain)
-                                .build();
-                        consumer.accept(downloadResult);
-                    }
+            Log.d(TAG, "Existing keyExtra: "
+                    + Arrays.toString(mRemoteData.get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
-                    @Override
-                    public void onError(Exception e) {
-                        Log.e(TAG, "OutcomeReceiver onError.", e);
-                        consumer.accept(null);
-                    }
-                });
-    }
-
-    @Override public void selectContent(
-            @NonNull SelectContentInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<SelectContentResult> consumer
-    ) {
-        Log.d(TAG, "onAppRequest() started.");
-        SelectContentResult result = new SelectContentResult.Builder()
-                .addSlotResults(new SlotResult.Builder()
-                        .setSlotId("slot_id")
-                        .addWinningBids(
-                            new ScoredBid.Builder()
-                            .setBidId("bid1").setPrice(5.0).setScore(1.0).build())
-                        .build())
-                .build();
-        consumer.accept(result);
-    }
-
-    @Override public void renderContent(
-            @NonNull RenderContentInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<RenderContentResult> consumer
-    ) {
-        Log.d(TAG, "renderContent() started.");
-        RenderContentResult result =
-                new RenderContentResult.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidIds()) + "<p>")
-                .build();
-        consumer.accept(result);
-    }
-
-    public void computeEventMetrics(
-            @NonNull EventMetricsInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<EventMetricsResult> consumer
-    ) {
-        int intValue = 0;
-        double floatValue = 0.0;
-        if (input.getEventParams() != null) {
-            intValue = input.getEventParams().getInt("a");
-            floatValue = input.getEventParams().getDouble("b");
+            List<String> keysToRetain =
+                    getFilteredKeys(input.getData());
+            keysToRetain.add("keyExtra");
+            // Get the keys to keep from the downloaded data
+            DownloadOutput result =
+                    new DownloadOutput.Builder()
+                            .setRetainedKeys(keysToRetain)
+                            .build();
+            consumer.accept(result);
+        } catch (Exception e) {
+            Log.e(TAG, "Error occurred in onDownload", e);
         }
-        EventMetricsResult result =
-                new EventMetricsResult.Builder()
-                    .setMetrics(
-                            new Metrics.Builder()
-                                .setLongValues(intValue)
-                                .setDoubleValues(floatValue)
-                                .build())
+    }
+
+    @Override public void onExecute(
+            @NonNull ExecuteInput input,
+            @NonNull Consumer<ExecuteOutput> consumer
+    ) {
+        Log.d(TAG, "onExecute() started.");
+        ContentValues logData = new ContentValues();
+        logData.put("id", "bid1");
+        logData.put("pr", 5.0);
+        ExecuteOutput result = new ExecuteOutput.Builder()
+                .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
+                .addRenderingConfig(
+                    new RenderingConfig.Builder().addKey("bid1").build()
+                )
+                .build();
+        consumer.accept(result);
+    }
+
+    @Override public void onRender(
+            @NonNull RenderInput input,
+            @NonNull Consumer<RenderOutput> consumer
+    ) {
+        Log.d(TAG, "onRender() started.");
+        RenderOutput result =
+                new RenderOutput.Builder()
+                .setContent("<p>RenderResult: "
+                    + String.join(",", input.getRenderingConfig().getKeys()) + "<p>")
+                .build();
+        consumer.accept(result);
+    }
+
+    public void onWebViewEvent(
+            @NonNull WebViewEventInput input,
+            @NonNull Consumer<WebViewEventOutput> consumer
+    ) {
+        Log.d(TAG, "onEvent() started.");
+        long longValue = 0;
+        if (input.getParameters() != null) {
+            longValue = input.getParameters().getLong("x");
+        }
+        ContentValues logData = new ContentValues();
+        logData.put("x", longValue);
+        WebViewEventOutput result =
+                new WebViewEventOutput.Builder()
+                    .setEventLogRecord(
+                        new EventLogRecord.Builder()
+                            .setType(1)
+                            .setRowIndex(0)
+                            .setData(logData)
+                            .build()
+                    )
                     .build();
-        Log.d(TAG, "computeEventMetrics() result: " + result.toString());
+        Log.d(TAG, "onEvent() result: " + result.toString());
         consumer.accept(result);
     }
 

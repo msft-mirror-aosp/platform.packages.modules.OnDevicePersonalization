@@ -17,32 +17,40 @@
 package com.android.ondevicepersonalization.services;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.ComponentName;
 import android.content.Context;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.Intent;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.view.SurfaceControlViewHost;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.rule.ServiceTestRule;
 
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationManagingServiceTest {
+    @Rule
+    public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationManagingServiceDelegate mService;
     private boolean mAppRequestFlowStarted = false;
@@ -50,6 +58,8 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
         mService = new OnDevicePersonalizationManagingServiceDelegate(
                 mContext, new TestInjector());
     }
@@ -59,13 +69,34 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
+    public void testEnabledGlobalKillSwitchOnExecute() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        try {
+            var callback = new ExecuteCallback();
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                    mService.execute(
+                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                        PersistableBundle.EMPTY,
+                        callback
+                    ));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
+    }
+
+    @Test
     public void testExecuteInvokesAppRequestFlow() throws Exception {
         var callback = new ExecuteCallback();
         mService.execute(
-                        mContext.getPackageName(),
-                        mContext.getPackageName(),
-                        PersistableBundle.EMPTY,
-                        callback);
+                mContext.getPackageName(),
+                new ComponentName(
+                    mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                PersistableBundle.EMPTY,
+                callback);
         assertTrue(mAppRequestFlowStarted);
     }
 
@@ -77,7 +108,9 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.execute(
                         "abc",
-                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(),
+                            "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         callback));
     }
@@ -90,13 +123,15 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.execute(
                         null,
-                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(),
+                            "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         callback));
     }
 
     @Test
-    public void testExecuteThrowsIfServicePackageMissing() throws Exception {
+    public void testExecuteThrowsIfSHandlerMissing() throws Exception {
         var callback = new ExecuteCallback();
         assertThrows(
                 NullPointerException.class,
@@ -115,9 +150,31 @@ public class OnDevicePersonalizationManagingServiceTest {
                 () ->
                     mService.execute(
                         mContext.getPackageName(),
-                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         null));
+    }
+
+    @Test
+    public void testEnabledGlobalKillSwitchOnRequestSurfacePackage() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        try {
+            var callback = new RequestSurfacePackageCallback();
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                    mService.requestSurfacePackage(
+                        "resultToken",
+                        new Binder(),
+                        0,
+                        100,
+                        50,
+                        callback
+                    ));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
     }
 
     @Test
@@ -222,15 +279,49 @@ public class OnDevicePersonalizationManagingServiceTest {
                         null));
     }
 
+    @Test
+    public void testDefaultInjector() {
+        var executeCallback = new ExecuteCallback();
+        var renderCallback = new RequestSurfacePackageCallback();
+        OnDevicePersonalizationManagingServiceDelegate.Injector injector =
+                new OnDevicePersonalizationManagingServiceDelegate.Injector();
+
+        assertNotNull(injector.getAppRequestFlow(
+                mContext.getPackageName(),
+                new ComponentName(
+                    mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                PersistableBundle.EMPTY,
+                executeCallback,
+                mContext));
+
+        assertNotNull(injector.getRenderFlow(
+                "resultToken",
+                new Binder(),
+                0,
+                100,
+                50,
+                renderCallback,
+                mContext
+        ));
+    }
+
+    @Test
+    public void testWithBoundService() throws TimeoutException {
+        Intent serviceIntent = new Intent(mContext,
+                OnDevicePersonalizationManagingServiceImpl.class);
+        IBinder binder = serviceRule.bindService(serviceIntent);
+        assertTrue(binder instanceof OnDevicePersonalizationManagingServiceDelegate);
+    }
+
     class TestInjector extends OnDevicePersonalizationManagingServiceDelegate.Injector {
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
-                String servicePackageName,
+                ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
                 Context context) {
             return new AppRequestFlow(
-                    callingPackageName, servicePackageName, params, callback, context) {
+                    callingPackageName, handler, params, callback, context) {
                 @Override public void run() {
                     mAppRequestFlowStarted = true;
                 }
