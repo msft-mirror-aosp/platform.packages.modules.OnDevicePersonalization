@@ -58,7 +58,6 @@ public class HttpClient {
 
     /** Perform HTTP requests based on given information. */
     @NonNull
-    @VisibleForTesting
     public FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
             throws IOException {
         if (request.getUri() == null || request.getHttpMethod() == null) {
@@ -92,11 +91,11 @@ public class HttpClient {
                 }
             }
 
-            if (request.getBody() != null && !request.getBody().isEmpty()) {
+            if (request.getBody() != null && request.getBody().length > 0) {
                 urlConnection.setDoOutput(true);
                 try (BufferedOutputStream out =
                         new BufferedOutputStream(urlConnection.getOutputStream())) {
-                    request.getBody().writeTo(out);
+                    out.write(request.getBody());
                 }
             }
 
