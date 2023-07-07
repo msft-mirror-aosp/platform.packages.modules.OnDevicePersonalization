@@ -19,15 +19,21 @@ package com.android.ondevicepersonalization.services.data;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.events.EventsContract;
+import com.android.ondevicepersonalization.services.data.events.QueriesContract;
+import com.android.ondevicepersonalization.services.data.user.UserDataTables;
+import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 /**
  * Helper to manage the OnDevicePersonalization database.
  */
 public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
 
     private static final int DATABASE_VERSION = 1;
@@ -65,11 +71,33 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     }
 
     @Override
-    public void onCreate(SQLiteDatabase db) { }
+    public void onCreate(SQLiteDatabase db) {
+        db.execSQL(VendorSettingsContract.VendorSettingsEntry.CREATE_TABLE_STATEMENT);
+
+        // Queries and events tables.
+        db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+
+        // User data tables and indexes.
+        db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
+        db.execSQL(UserDataTables.LocationHistory.CREATE_INDEXES_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TABLE_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_STARTING_TIME_SEC_INDEX_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_ENDING_TIME_SEC_INDEX_STATEMENT);
+        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TOTAL_TIME_USED_SEC_INDEX_STATEMENT);
+    }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
-        Log.d(TAG, "DB upgrade from " + oldVersion + " to " + newVersion);
+        sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
+        throw new UnsupportedOperationException(
+                "Database upgrade for OnDevicePersonalization is unsupported");
+    }
+
+    @Override
+    public void onConfigure(SQLiteDatabase db) {
+        db.setForeignKeyConstraintsEnabled(true);
+        db.enableWriteAheadLogging();
     }
 }
