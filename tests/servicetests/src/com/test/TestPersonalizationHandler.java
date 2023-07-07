@@ -17,19 +17,20 @@
 package com.test;
 
 import android.annotation.NonNull;
-import android.ondevicepersonalization.Bid;
-import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadOutput;
-import android.ondevicepersonalization.EventInput;
-import android.ondevicepersonalization.EventOutput;
-import android.ondevicepersonalization.ExecuteInput;
-import android.ondevicepersonalization.ExecuteOutput;
-import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.Metrics;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.RenderInput;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
+import android.app.ondevicepersonalization.DownloadInput;
+import android.app.ondevicepersonalization.DownloadOutput;
+import android.app.ondevicepersonalization.EventLogRecord;
+import android.app.ondevicepersonalization.ExecuteInput;
+import android.app.ondevicepersonalization.ExecuteOutput;
+import android.app.ondevicepersonalization.IsolatedComputationCallback;
+import android.app.ondevicepersonalization.KeyValueStore;
+import android.app.ondevicepersonalization.RenderInput;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.WebViewEventInput;
+import android.app.ondevicepersonalization.WebViewEventOutput;
+import android.content.ContentValues;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -40,19 +41,23 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationHandler {
+public class TestPersonalizationHandler implements IsolatedComputationCallback {
     public final String TAG = "TestPersonalizationHandler";
+    private final KeyValueStore mRemoteData;
+
+    TestPersonalizationHandler(KeyValueStore remoteData) {
+        mRemoteData = remoteData;
+    }
 
     @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadOutput> consumer) {
+    public void onDownload(DownloadInput input, Consumer<DownloadOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Data: " + input.getData());
 
             Log.d(TAG, "Existing keyExtra: "
-                    + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
-            Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
+                    + Arrays.toString(mRemoteData.get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
             List<String> keysToRetain =
                     getFilteredKeys(input.getData());
@@ -60,7 +65,7 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
             // Get the keys to keep from the downloaded data
             DownloadOutput result =
                     new DownloadOutput.Builder()
-                            .setKeysToRetain(keysToRetain)
+                            .setRetainedKeys(keysToRetain)
                             .build();
             consumer.accept(result);
         } catch (Exception e) {
@@ -70,59 +75,56 @@ public class TestPersonalizationHandler implements IsolatedComputationHandler {
 
     @Override public void onExecute(
             @NonNull ExecuteInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
-        Log.d(TAG, "onAppRequest() started.");
+        Log.d(TAG, "onExecute() started.");
+        ContentValues logData = new ContentValues();
+        logData.put("id", "bid1");
+        logData.put("pr", 5.0);
         ExecuteOutput result = new ExecuteOutput.Builder()
-                .addSlotResults(new SlotResult.Builder()
-                        .setSlotKey("slot_id")
-                        .addRenderedBidKeys("bid1")
-                        .addLoggedBids(
-                            new Bid.Builder()
-                                .setKey("bid1")
-                                .setMetrics(new Metrics.Builder()
-                                    .setDoubleValues(5.0, 1.0)
-                                    .build())
-                                .build())
-                        .build())
+                .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
+                .addRenderingConfig(
+                    new RenderingConfig.Builder().addKey("bid1").build()
+                )
                 .build();
         consumer.accept(result);
     }
 
     @Override public void onRender(
             @NonNull RenderInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
             @NonNull Consumer<RenderOutput> consumer
     ) {
-        Log.d(TAG, "renderContent() started.");
+        Log.d(TAG, "onRender() started.");
         RenderOutput result =
                 new RenderOutput.Builder()
-                .setContent("<p>RenderResult: " + String.join(",", input.getBidKeys()) + "<p>")
+                .setContent("<p>RenderResult: "
+                    + String.join(",", input.getRenderingConfig().getKeys()) + "<p>")
                 .build();
         consumer.accept(result);
     }
 
-    public void onEvent(
-            @NonNull EventInput input,
-            @NonNull OnDevicePersonalizationContext odpContext,
-            @NonNull Consumer<EventOutput> consumer
+    public void onWebViewEvent(
+            @NonNull WebViewEventInput input,
+            @NonNull Consumer<WebViewEventOutput> consumer
     ) {
+        Log.d(TAG, "onEvent() started.");
         long longValue = 0;
-        double floatValue = 0.0;
-        if (input.getBid() != null && input.getBid().getMetrics() != null) {
-            longValue = input.getBid().getMetrics().getLongValues()[0];
-            floatValue = input.getBid().getMetrics().getDoubleValues()[0];
+        if (input.getParameters() != null) {
+            longValue = input.getParameters().getLong("x");
         }
-        EventOutput result =
-                new EventOutput.Builder()
-                    .setMetrics(
-                            new Metrics.Builder()
-                                .setLongValues(longValue)
-                                .setDoubleValues(floatValue)
-                                .build())
+        ContentValues logData = new ContentValues();
+        logData.put("x", longValue);
+        WebViewEventOutput result =
+                new WebViewEventOutput.Builder()
+                    .setEventLogRecord(
+                        new EventLogRecord.Builder()
+                            .setType(1)
+                            .setRowIndex(0)
+                            .setData(logData)
+                            .build()
+                    )
                     .build();
-        Log.d(TAG, "computeEventMetrics() result: " + result.toString());
+        Log.d(TAG, "onEvent() result: " + result.toString());
         consumer.accept(result);
     }
 
