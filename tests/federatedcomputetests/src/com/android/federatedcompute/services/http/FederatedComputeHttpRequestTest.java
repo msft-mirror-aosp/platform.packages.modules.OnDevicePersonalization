@@ -23,8 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
-import com.google.protobuf.ByteString;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -33,6 +31,8 @@ import java.util.HashMap;
 
 @RunWith(JUnit4.class)
 public final class FederatedComputeHttpRequestTest {
+    private static final byte[] PAYLOAD = "non_empty_request_body".getBytes();
+
     @Test
     public void testCreateRequestInvalidUri_fails() throws Exception {
         assertThrows(
@@ -42,7 +42,7 @@ public final class FederatedComputeHttpRequestTest {
                                 "http://invalid.com",
                                 HttpMethod.GET,
                                 new HashMap<>(),
-                                ByteString.copyFromUtf8("payload"),
+                                PAYLOAD,
                                 /* useCompression= */ false));
     }
 
@@ -55,7 +55,7 @@ public final class FederatedComputeHttpRequestTest {
                                 "https://valid.com",
                                 HttpMethod.GET,
                                 new HashMap<>(),
-                                ByteString.copyFromUtf8("non_empty_request_body"),
+                                PAYLOAD,
                                 /* useCompression= */ false));
     }
 
@@ -70,7 +70,7 @@ public final class FederatedComputeHttpRequestTest {
                                 "https://valid.com",
                                 HttpMethod.POST,
                                 headers,
-                                ByteString.copyFromUtf8("non_empty_request_body"),
+                                PAYLOAD,
                                 /* useCompression= */ false));
     }
 
@@ -82,12 +82,12 @@ public final class FederatedComputeHttpRequestTest {
                         expectedUri,
                         HttpMethod.GET,
                         new HashMap<>(),
-                        ByteString.EMPTY,
+                        HttpClientUtil.EMPTY_BODY,
                         /* useCompression= */ false);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.GET);
-        assertThat(request.getBody()).isEqualTo(ByteString.EMPTY);
+        assertThat(request.getBody()).isEqualTo(HttpClientUtil.EMPTY_BODY);
         assertTrue(request.getExtraHeaders().isEmpty());
     }
 
@@ -102,7 +102,7 @@ public final class FederatedComputeHttpRequestTest {
                         expectedUri,
                         HttpMethod.GET,
                         expectedHeaders,
-                        ByteString.EMPTY,
+                        HttpClientUtil.EMPTY_BODY,
                         /* useCompression= */ false);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
@@ -118,37 +118,35 @@ public final class FederatedComputeHttpRequestTest {
                         expectedUri,
                         HttpMethod.POST,
                         new HashMap<>(),
-                        ByteString.EMPTY,
+                        HttpClientUtil.EMPTY_BODY,
                         /* useCompression= */ false);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
         assertTrue(request.getExtraHeaders().isEmpty());
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
-        assertThat(request.getBody()).isEqualTo(ByteString.EMPTY);
+        assertThat(request.getBody()).isEqualTo(HttpClientUtil.EMPTY_BODY);
     }
 
     @Test
     public void createPostRequestWithBody_valid() throws Exception {
         String expectedUri = "https://valid.com";
-        ByteString expectedBody = ByteString.copyFromUtf8("non_empty_request_body");
 
         FederatedComputeHttpRequest request =
                 FederatedComputeHttpRequest.create(
                         expectedUri,
                         HttpMethod.POST,
                         new HashMap<>(),
-                        expectedBody,
+                        PAYLOAD,
                         /* useCompression= */ false);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
-        assertThat(request.getBody()).isEqualTo(expectedBody);
+        assertThat(request.getBody()).isEqualTo(PAYLOAD);
     }
 
     @Test
     public void createPostRequestWithBodyHeader_valid() throws Exception {
         String expectedUri = "https://valid.com";
-        ByteString expectedBody = ByteString.copyFromUtf8("non_empty_request_body");
         HashMap<String, String> expectedHeaders = new HashMap<>();
         expectedHeaders.put("Foo", "Bar");
 
@@ -157,31 +155,30 @@ public final class FederatedComputeHttpRequestTest {
                         expectedUri,
                         HttpMethod.POST,
                         expectedHeaders,
-                        expectedBody,
+                        PAYLOAD,
                         /* useCompression= */ false);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
-        assertThat(request.getBody()).isEqualTo(expectedBody);
+        assertThat(request.getBody()).isEqualTo(PAYLOAD);
         assertThat(request.getExtraHeaders()).isEqualTo(expectedHeaders);
     }
 
     @Test
     public void createPostRequestWithCompression_valid() throws Exception {
         String expectedUri = "https://valid.com";
-        ByteString expectedBody = ByteString.copyFromUtf8("non_empty_request_body");
 
         FederatedComputeHttpRequest request =
                 FederatedComputeHttpRequest.create(
                         expectedUri,
                         HttpMethod.POST,
                         new HashMap<>(),
-                        expectedBody,
+                        PAYLOAD,
                         /* useCompression= */ true);
 
         assertThat(request.getUri()).isEqualTo(expectedUri);
         assertThat(request.getHttpMethod()).isEqualTo(HttpMethod.POST);
-        assertThat(request.getBody()).isEqualTo(HttpClientUtil.compressWithGzip(expectedBody));
+        assertThat(request.getBody()).isEqualTo(HttpClientUtil.compressWithGzip(PAYLOAD));
         HashMap<String, String> expectedHeaders = new HashMap<>();
         expectedHeaders.put(HttpClientUtil.CONTENT_ENCODING_HDR, HttpClientUtil.GZIP_ENCODING_HDR);
         expectedHeaders.put(HttpClientUtil.CONTENT_LENGTH_HDR, String.valueOf(42));

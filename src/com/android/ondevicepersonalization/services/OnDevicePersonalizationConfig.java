@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services;
 
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
+import com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
 /**
@@ -58,4 +59,10 @@ public class OnDevicePersonalizationConfig {
     /** Job ID for User Data Collection Task
      * ({@link UserDataCollectionJobService}) */
     public static final int USER_DATA_COLLECTION_ID = 1006;
+
+    /** Job ID for Maintenance Task
+     * ({@link OdpFederatedComputeJobService}) */
+    public static final int FEDERATED_COMPUTE_TASK_JOB_ID = 1007;
+
+    public static final String ODP_POPULATION_NAME = "odp";
 }
