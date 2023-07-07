@@ -401,40 +401,45 @@ public class UserDataCollector {
     /** Collects connection type. */
     @VisibleForTesting
     public RawUserData.ConnectionType getConnectionType() {
-        if (mNetworkCapabilities == null) {
-            return RawUserData.ConnectionType.UNKNOWN;
-        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            switch (mTelephonyManager.getDataNetworkType()) {
-                case TelephonyManager.NETWORK_TYPE_1xRTT:
-                case TelephonyManager.NETWORK_TYPE_CDMA:
-                case TelephonyManager.NETWORK_TYPE_EDGE:
-                case TelephonyManager.NETWORK_TYPE_GPRS:
-                case TelephonyManager.NETWORK_TYPE_GSM:
-                case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return RawUserData.ConnectionType.CELLULAR_2G;
-                case TelephonyManager.NETWORK_TYPE_EHRPD:
-                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                case TelephonyManager.NETWORK_TYPE_HSDPA:
-                case TelephonyManager.NETWORK_TYPE_HSPA:
-                case TelephonyManager.NETWORK_TYPE_HSPAP:
-                case TelephonyManager.NETWORK_TYPE_HSUPA:
-                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
-                case TelephonyManager.NETWORK_TYPE_UMTS:
-                    return RawUserData.ConnectionType.CELLULAR_3G;
-                case TelephonyManager.NETWORK_TYPE_LTE:
-                case TelephonyManager.NETWORK_TYPE_IWLAN:
-                    return RawUserData.ConnectionType.CELLULAR_4G;
-                case TelephonyManager.NETWORK_TYPE_NR:
-                    return RawUserData.ConnectionType.CELLULAR_5G;
-                default:
-                    return RawUserData.ConnectionType.UNKNOWN;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            if (mNetworkCapabilities == null) {
+                return RawUserData.ConnectionType.UNKNOWN;
+            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                switch (mTelephonyManager.getDataNetworkType()) {
+                    case TelephonyManager.NETWORK_TYPE_1xRTT:
+                    case TelephonyManager.NETWORK_TYPE_CDMA:
+                    case TelephonyManager.NETWORK_TYPE_EDGE:
+                    case TelephonyManager.NETWORK_TYPE_GPRS:
+                    case TelephonyManager.NETWORK_TYPE_GSM:
+                    case TelephonyManager.NETWORK_TYPE_IDEN:
+                        return RawUserData.ConnectionType.CELLULAR_2G;
+                    case TelephonyManager.NETWORK_TYPE_EHRPD:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                    case TelephonyManager.NETWORK_TYPE_HSDPA:
+                    case TelephonyManager.NETWORK_TYPE_HSPA:
+                    case TelephonyManager.NETWORK_TYPE_HSPAP:
+                    case TelephonyManager.NETWORK_TYPE_HSUPA:
+                    case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+                    case TelephonyManager.NETWORK_TYPE_UMTS:
+                        return RawUserData.ConnectionType.CELLULAR_3G;
+                    case TelephonyManager.NETWORK_TYPE_LTE:
+                    case TelephonyManager.NETWORK_TYPE_IWLAN:
+                        return RawUserData.ConnectionType.CELLULAR_4G;
+                    case TelephonyManager.NETWORK_TYPE_NR:
+                        return RawUserData.ConnectionType.CELLULAR_5G;
+                    default:
+                        return RawUserData.ConnectionType.UNKNOWN;
+                }
+            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                return RawUserData.ConnectionType.WIFI;
+            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                return RawUserData.ConnectionType.ETHERNET;
             }
-        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            return RawUserData.ConnectionType.WIFI;
-        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-            return RawUserData.ConnectionType.ETHERNET;
+        } catch (Exception e) {
+            sLogger.e(TAG + ": getConnectionType() failed.", e);
         }
         return RawUserData.ConnectionType.UNKNOWN;
     }
@@ -466,19 +471,24 @@ public class UserDataCollector {
     /** Collects current device's static metrics. */
     @VisibleForTesting
     public void getDeviceMetrics(DeviceMetrics deviceMetrics) {
-        if (deviceMetrics == null) {
-            return;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            if (deviceMetrics == null) {
+                return;
+            }
+            deviceMetrics.make = getDeviceMake();
+            deviceMetrics.model = getDeviceModel();
+            deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
+            deviceMetrics.screenWidth = mContext.getResources().getConfiguration().screenWidthDp;
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            WindowManager wm = mContext.getSystemService(WindowManager.class);
+            wm.getDefaultDisplay().getMetrics(displayMetrics);
+            deviceMetrics.xdpi = displayMetrics.xdpi;
+            deviceMetrics.ydpi = displayMetrics.ydpi;
+            deviceMetrics.pxRatio = displayMetrics.density;
+        } catch (Exception e) {
+            sLogger.e(TAG + ": getDeviceMetrics() failed.", e);
         }
-        deviceMetrics.make = getDeviceMake();
-        deviceMetrics.model = getDeviceModel();
-        deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
-        deviceMetrics.screenWidth = mContext.getResources().getConfiguration().screenWidthDp;
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        WindowManager wm = mContext.getSystemService(WindowManager.class);
-        wm.getDefaultDisplay().getMetrics(displayMetrics);
-        deviceMetrics.xdpi = displayMetrics.xdpi;
-        deviceMetrics.ydpi = displayMetrics.ydpi;
-        deviceMetrics.pxRatio = displayMetrics.density;
     }
 
     /**
@@ -739,12 +749,19 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getLastknownLocation(@NonNull HashMap<LocationInfo, Long> locationHistory,
             @NonNull LocationInfo locationInfo) {
-        Location location = mLocationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER);
-        if (location != null) {
-            if (!setLocationInfo(location, locationInfo)) {
-                return;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            Location location = mLocationManager.getLastKnownLocation(
+                    LocationManager.FUSED_PROVIDER);
+            if (location != null) {
+                if (!setLocationInfo(location, locationInfo)) {
+                    return;
+                }
+                updateLocationHistogram(locationHistory, locationInfo);
             }
-            updateLocationHistogram(locationHistory, locationInfo);
+        } catch (Exception e) {
+            // TODO(b/290256559): Fix permissions issue.
+            sLogger.e(TAG + ": getLastKnownLocation() failed.", e);
         }
     }
 
@@ -752,23 +769,28 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getCurrentLocation(@NonNull HashMap<LocationInfo, Long> locationHistory,
             @NonNull LocationInfo locationInfo) {
-        String currentProvider = LocationManager.GPS_PROVIDER;
-        if (mLocationManager.getProvider(currentProvider) == null) {
-            currentProvider = LocationManager.FUSED_PROVIDER;
-        }
-        mLocationManager.getCurrentLocation(
-                currentProvider,
-                null,
-                mContext.getMainExecutor(),
-                location -> {
-                    if (location != null) {
-                        if (!setLocationInfo(location, locationInfo)) {
-                            return;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            String currentProvider = LocationManager.GPS_PROVIDER;
+            if (mLocationManager.getProvider(currentProvider) == null) {
+                currentProvider = LocationManager.FUSED_PROVIDER;
+            }
+            mLocationManager.getCurrentLocation(
+                    currentProvider,
+                    null,
+                    mContext.getMainExecutor(),
+                    location -> {
+                        if (location != null) {
+                            if (!setLocationInfo(location, locationInfo)) {
+                                return;
+                            }
+                            updateLocationHistogram(locationHistory, locationInfo);
                         }
-                        updateLocationHistogram(locationHistory, locationInfo);
                     }
-                }
-        );
+            );
+        } catch (Exception e) {
+            sLogger.e(TAG + ": getCurrentLocation() failed.", e);
+        }
     }
 
     /**
