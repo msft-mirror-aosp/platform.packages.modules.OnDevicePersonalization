@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data
 
-import android.ondevicepersonalization.UserData
+import android.app.ondevicepersonalization.UserData
 
 import com.android.libraries.pcc.chronicle.api.ReadConnection
 

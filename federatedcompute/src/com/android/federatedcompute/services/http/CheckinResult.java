@@ -16,26 +16,23 @@
 
 package com.android.federatedcompute.services.http;
 
-import com.google.protobuf.ByteString;
-
 /**
  * The result after client calls TaskAssignemnt API. It includes init checkpoint data and plan data.
  */
 public class CheckinResult {
-    private ByteString mCheckpointData;
-    private ByteString mPlanData;
+    private byte[] mCheckpointData;
+    private byte[] mPlanData;
 
-    public CheckinResult(ByteString mCheckpointData, ByteString mPlanData) {
-
-        this.mCheckpointData = mCheckpointData;
-        this.mPlanData = mPlanData;
+    public CheckinResult(byte[] checkpointData, byte[] planData) {
+        this.mCheckpointData = checkpointData;
+        this.mPlanData = planData;
     }
 
-    public ByteString getCheckpointData() {
+    public byte[] getCheckpointData() {
         return mCheckpointData;
     }
 
-    public ByteString getPlanData() {
+    public byte[] getPlanData() {
         return mPlanData;
     }
 }
