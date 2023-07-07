@@ -21,6 +21,7 @@ import static java.util.concurrent.TimeUnit.MILLISECONDS;
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.ondevicepersonalization.OnDevicePersonalizationException;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -30,7 +31,6 @@ import android.content.pm.ServiceInfo;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
-import android.ondevicepersonalization.OnDevicePersonalizationException;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
@@ -48,7 +48,7 @@ import java.util.concurrent.Executor;
  *
  * @hide
  */
-final class FederatedComputeManager {
+public final class FederatedComputeManager {
     private static final String TAG = "FederatedComputeManager";
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
