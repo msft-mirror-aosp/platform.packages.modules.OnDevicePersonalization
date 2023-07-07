@@ -15,11 +15,11 @@
  */
 package com.android.server.ondevicepersonalization;
 
-import static android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
+import static android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
 
-import android.app.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.app.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.content.Context;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.util.Log;

@@ -50,6 +50,7 @@ android_test {
         "apache-velocity-engine-core",
         "flatbuffers-java",
         "owasp-java-encoder",
+        "compatibility-device-util-axt",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",

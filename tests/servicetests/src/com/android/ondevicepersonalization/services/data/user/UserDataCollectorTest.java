@@ -63,13 +63,13 @@ public class UserDataCollectorTest {
         assertNotNull(mUserData.utcOffset);
         assertEquals(mUserData.utcOffset, mCollector.getUtcOffset());
 
-        assertTrue(mUserData.availableBytesMB > 0);
-        assertTrue(mUserData.batteryPct > 0);
+        assertTrue(mUserData.availableStorageMB > 0);
+        assertTrue(mUserData.batteryPercentage > 0);
         assertEquals(mUserData.country, mCollector.getCountry());
         assertEquals(mUserData.language, mCollector.getLanguage());
         assertEquals(mUserData.carrier, mCollector.getCarrier());
         assertEquals(mUserData.connectionType, mCollector.getConnectionType());
-        assertEquals(mUserData.networkMeteredStatus, mCollector.getNetworkMeteredStatus());
+        assertEquals(mUserData.networkMetered, mCollector.isNetworkMetered());
 
         OSVersion osVersions = new OSVersion();
         mCollector.getOSVersions(osVersions);
