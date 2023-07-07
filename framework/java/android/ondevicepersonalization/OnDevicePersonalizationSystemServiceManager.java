@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package android.app.ondevicepersonalization;
+package android.ondevicepersonalization;
 
 import android.annotation.NonNull;
 import android.os.IBinder;

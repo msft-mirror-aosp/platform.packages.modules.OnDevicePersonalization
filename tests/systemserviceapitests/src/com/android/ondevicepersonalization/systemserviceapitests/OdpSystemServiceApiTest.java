@@ -20,10 +20,10 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.app.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.app.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
 import android.content.Context;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
+import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
 import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
