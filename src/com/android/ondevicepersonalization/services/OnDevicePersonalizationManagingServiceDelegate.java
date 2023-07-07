@@ -17,12 +17,12 @@
 package com.android.ondevicepersonalization.services;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.app.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
-import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -88,6 +88,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback) {
+        long origId = Binder.clearCallingIdentity();
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+        Binder.restoreCallingIdentity(origId);
+
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
@@ -115,6 +121,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int width,
             int height,
             @NonNull IRequestSurfacePackageCallback callback) {
+        long origId = Binder.clearCallingIdentity();
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+        Binder.restoreCallingIdentity(origId);
+
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
         Objects.requireNonNull(callback);

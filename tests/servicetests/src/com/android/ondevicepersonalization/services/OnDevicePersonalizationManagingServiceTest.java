@@ -21,11 +21,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -58,12 +58,34 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
         mService = new OnDevicePersonalizationManagingServiceDelegate(
                 mContext, new TestInjector());
     }
     @Test
     public void testVersion() throws Exception {
         assertEquals(mService.getVersion(), "1.0");
+    }
+
+    @Test
+    public void testEnabledGlobalKillSwitchOnExecute() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        try {
+            var callback = new ExecuteCallback();
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                    mService.execute(
+                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                        PersistableBundle.EMPTY,
+                        callback
+                    ));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
     }
 
     @Test
@@ -132,6 +154,27 @@ public class OnDevicePersonalizationManagingServiceTest {
                             mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
                         null));
+    }
+
+    @Test
+    public void testEnabledGlobalKillSwitchOnRequestSurfacePackage() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        try {
+            var callback = new RequestSurfacePackageCallback();
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                    mService.requestSurfacePackage(
+                        "resultToken",
+                        new Binder(),
+                        0,
+                        100,
+                        50,
+                        callback
+                    ));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
     }
 
     @Test

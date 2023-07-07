@@ -30,10 +30,9 @@ import java.io.StringReader;
 public class AppManifestConfigParserTests {
     private static final String sXml =
             "<on-device-personalization>"
-            + "  <handler name=\"com.example.TestHandler\" >"
-            + "    <service name=\"com.example.TestService\" />"
+            + "  <service name=\"com.example.TestService\" >"
             + "    <download-settings url=\"http://example.com/get\" />"
-            + "  </handler>"
+            + "  </service>"
             + "</on-device-personalization>";
 
 
@@ -44,7 +43,6 @@ public class AppManifestConfigParserTests {
 
         xpp.setInput(new StringReader(sXml));
         AppManifestConfig config = AppManifestConfigParser.getConfig(xpp);
-        assertEquals("com.example.TestHandler", config.getHandlerName());
         assertEquals("com.example.TestService", config.getServiceName());
         assertEquals("http://example.com/get", config.getDownloadUrl());
     }

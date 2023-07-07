@@ -54,7 +54,6 @@ public class AppManifestConfigTests {
                 AppManifestConfigHelper.getAppManifestConfig(mContext, mContext.getPackageName());
         assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
         assertEquals("com.test.TestPersonalizationService", config.getServiceName());
-        assertEquals("com.test.TestPersonalizationHandler", config.getHandlerName());
     }
 
     @Test

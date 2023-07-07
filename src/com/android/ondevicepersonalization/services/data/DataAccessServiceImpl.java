@@ -18,21 +18,19 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.aidl.IDataAccessService;
+import android.app.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.Bid;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IDataAccessService;
-import android.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.os.RemoteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
@@ -51,21 +49,8 @@ import java.util.Objects;
  * can use to request data from the managing service.
  */
 public class DataAccessServiceImpl extends IDataAccessService.Stub {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "DataAccessServiceImpl";
-
-    /** Parameters needed for generating event URLs. */
-    public static class EventUrlQueryData {
-        final long mQueryId;
-        final String mSlotId;
-        final HashMap<String, Bid> mBids = new HashMap<String, Bid>();
-        public EventUrlQueryData(long queryId, SlotResult slotResult) {
-            mQueryId = queryId;
-            mSlotId = slotResult.getSlotKey();
-            for (Bid bid : slotResult.getLoggedBids()) {
-                mBids.put(bid.getKey(), bid);
-            }
-        }
-    }
 
     @VisibleForTesting
     static class Injector {
@@ -97,16 +82,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
     @Nullable private final OnDevicePersonalizationLocalDataDao mLocalDataDao;
     private final boolean mIncludeLocalData;
-    @Nullable private final EventUrlQueryData mEventUrlQueryData;
     @NonNull private final Injector mInjector;
 
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
-            boolean includeUserData,
-            @Nullable EventUrlQueryData eventUrlQueryData) {
-        this(servicePackageName, applicationContext, includeUserData,
-                eventUrlQueryData, new Injector());
+            boolean includeLocalData) {
+        this(servicePackageName, applicationContext, includeLocalData,
+                new Injector());
     }
 
     @VisibleForTesting
@@ -114,11 +97,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeLocalData,
-            @Nullable EventUrlQueryData eventUrlQueryData,
             @NonNull Injector injector) {
-        mApplicationContext = Objects.requireNonNull(applicationContext);
-        mServicePackageName = Objects.requireNonNull(servicePackageName);
-        mInjector = Objects.requireNonNull(injector);
+        mApplicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
+        mServicePackageName = Objects.requireNonNull(servicePackageName, "servicePackageName");
+        mInjector = Objects.requireNonNull(injector, "injector");
         try {
             mVendorDataDao = mInjector.getVendorDataDao(
                     mApplicationContext, servicePackageName,
@@ -131,7 +113,6 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             } else {
                 mLocalDataDao = null;
             }
-            mEventUrlQueryData = eventUrlQueryData;
         } catch (PackageManager.NameNotFoundException nnfe) {
             throw new IllegalArgumentException("Package: " + servicePackageName
                     + " does not exist.", nnfe);
@@ -145,7 +126,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull Bundle params,
             @NonNull IDataAccessServiceCallback callback
     ) {
-        Log.d(TAG, "onRequest: op=" + operation + " params: " + params.toString());
+        sLogger.d(TAG + ": onRequest: op=" + operation + " params: " + params.toString());
         switch (operation) {
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
                 String[] lookupKeys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
@@ -204,27 +185,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> localDataDelete(deleteKey[0], callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_EVENT_URL:
-                if (mEventUrlQueryData == null) {
-                    throw new IllegalArgumentException("EventUrl not available.");
-                }
-                int eventType = params.getInt(Constants.EXTRA_EVENT_TYPE);
-                String bidId = params.getString(Constants.EXTRA_BID_ID);
-                int responseType = params.getInt(Constants.EXTRA_RESPONSE_TYPE);
+                PersistableBundle eventParams = Objects.requireNonNull(params.getParcelable(
+                        Constants.EXTRA_EVENT_PARAMS, PersistableBundle.class));
+                byte[] responseData = params.getByteArray(Constants.EXTRA_RESPONSE_DATA);
+                String mimeType = params.getString(Constants.EXTRA_MIME_TYPE);
                 String destinationUrl = params.getString(Constants.EXTRA_DESTINATION_URL);
-                if (eventType == 0 || bidId == null || bidId.isEmpty() || responseType == 0) {
-                    throw new IllegalArgumentException(String.format(
-                            "Missing parameters. eventType: %d bidId: [%s] responseType: %d",
-                            eventType, bidId, responseType));
-                }
-                if (responseType == OnDevicePersonalizationContext.RESPONSE_TYPE_REDIRECT
-                        && (destinationUrl == null || destinationUrl.isEmpty())) {
-                    throw new IllegalArgumentException("Missing destinationUrl");
-                }
-                if (!mEventUrlQueryData.mBids.containsKey(bidId)) {
-                    throw new IllegalArgumentException("Invalid bidId");
-                }
                 mInjector.getExecutor().execute(
-                        () -> getEventUrl(eventType, bidId, destinationUrl, callback)
+                        () -> getEventUrl(
+                                eventParams, responseData, mimeType, destinationUrl, callback)
                 );
                 break;
             default:
@@ -305,23 +273,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     }
 
     private void getEventUrl(
-            int eventType, @NonNull String bidId, @Nullable String destinationUrl,
+            @NonNull PersistableBundle eventParams,
+            @Nullable byte[] responseData,
+            @Nullable String mimeType,
+            @Nullable String destinationUrl,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            Log.d(TAG, "getEventUrl() started.");
-            Event event = new Event.Builder()
-                    .setType(eventType)
-                    .setQueryId(mEventUrlQueryData.mQueryId)
-                    .setServicePackageName(mServicePackageName)
-                    .setTimeMillis(mInjector.getTimeMillis())
-                    .setSlotId(mEventUrlQueryData.mSlotId)
-                    .setSlotPosition(0)  // TODO(b/268718770): Add slot position.
-                    .setSlotIndex(0) // TODO(b/268718770): Add slot index.
-                    .setBidId(bidId).build();
-
-            EventUrlPayload payload =  new EventUrlPayload.Builder()
-                    .setEvent(event)
-                    .build();
+            sLogger.d(TAG, ": getEventUrl() started.");
+            EventUrlPayload payload =  new EventUrlPayload(eventParams, responseData, mimeType);
             String eventUrl;
             if (destinationUrl == null || destinationUrl.isEmpty()) {
                 eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
@@ -331,10 +290,10 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             }
             Bundle result = new Bundle();
             result.putString(Constants.EXTRA_RESULT, eventUrl);
-            Log.d(TAG, "getEventUrl() success. Url: " + eventUrl);
+            sLogger.d(TAG + ": getEventUrl() success. Url: " + eventUrl);
             sendResult(result, callback);
         } catch (Exception e) {
-            Log.d(TAG, "getEventUrl() failed.", e);
+            sLogger.d(TAG + ": getEventUrl() failed.", e);
             sendError(callback);
         }
     }
@@ -345,7 +304,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             callback.onSuccess(result);
         } catch (RemoteException e) {
-            Log.e(TAG, "Callback error", e);
+            sLogger.e(TAG + ": Callback error", e);
         }
     }
 
@@ -353,7 +312,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             callback.onError(Constants.STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
-            Log.e(TAG, "Callback error", e);
+            sLogger.e(TAG + ": Callback error", e);
         }
     }
 }

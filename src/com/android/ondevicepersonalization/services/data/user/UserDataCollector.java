@@ -37,12 +37,12 @@ import android.os.Environment;
 import android.os.StatFs;
 import android.telephony.TelephonyManager;
 import android.util.DisplayMetrics;
-import android.util.Log;
 import android.view.WindowManager;
 
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.LocationInfo.LocationProvider;
 
 import com.google.common.base.Strings;
@@ -70,22 +70,33 @@ public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
     private static UserDataCollector sUserDataCollector = null;
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataCollector";
 
-    @NonNull private final Context mContext;
-    @NonNull private Locale mLocale;
-    @NonNull private final TelephonyManager mTelephonyManager;
-    @NonNull private final NetworkCapabilities mNetworkCapabilities;
-    @NonNull private final LocationManager mLocationManager;
-    @NonNull private final UserDataDao mUserDataDao;
+    @NonNull
+    private final Context mContext;
+    @NonNull
+    private Locale mLocale;
+    @NonNull
+    private final TelephonyManager mTelephonyManager;
+    @NonNull
+    private final NetworkCapabilities mNetworkCapabilities;
+    @NonNull
+    private final LocationManager mLocationManager;
+    @NonNull
+    private final UserDataDao mUserDataDao;
     // Metadata to keep track of the latest ending timestamp of app usage collection.
-    @NonNull private long mLastTimeMillisAppUsageCollected;
+    @NonNull
+    private long mLastTimeMillisAppUsageCollected;
     // Metadata to track the expired app usage entries, which are to be evicted.
-    @NonNull private Deque<AppUsageEntry> mAllowedAppUsageEntries;
+    @NonNull
+    private Deque<AppUsageEntry> mAllowedAppUsageEntries;
     // Metadata to track the expired location entries, which are to be evicted.
-    @NonNull private Deque<LocationInfo> mAllowedLocationEntries;
+    @NonNull
+    private Deque<LocationInfo> mAllowedLocationEntries;
     // Metadata to track whether UserData has been initialized.
-    @NonNull private boolean mInitialized;
+    @NonNull
+    private boolean mInitialized;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
@@ -109,7 +120,7 @@ public class UserDataCollector {
         synchronized (UserDataCollector.class) {
             if (sUserDataCollector == null) {
                 sUserDataCollector = new UserDataCollector(
-                    context, UserDataDao.getInstance(context));
+                        context, UserDataDao.getInstance(context));
             }
             return sUserDataCollector;
         }
@@ -118,7 +129,7 @@ public class UserDataCollector {
     /**
      * Returns an instance of the UserDataCollector given a context. This is used
      * for testing only.
-    */
+     */
     @VisibleForTesting
     public static UserDataCollector getInstanceForTest(Context context) {
         synchronized (UserDataCollector.class) {
@@ -151,13 +162,13 @@ public class UserDataCollector {
             initializeUserData(userData);
             return;
         }
-        userData.availableBytesMB = getAvailableBytesMB();
-        userData.batteryPct = getBatteryPct();
+        userData.availableStorageMB = getAvailableStorageMB();
+        userData.batteryPercentage = getBatteryPercentage();
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
         userData.connectionType = getConnectionType();
-        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.networkMetered = isNetworkMetered();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
 
         getOSVersions(userData.osVersions);
@@ -170,18 +181,18 @@ public class UserDataCollector {
     /**
      * Collects in-memory user data signals and stores in a UserData object
      * for the schedule of {@link UserDataCollectionJobService}
-    */
+     */
     private void initializeUserData(@NonNull RawUserData userData) {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
-        userData.availableBytesMB = getAvailableBytesMB();
-        userData.batteryPct = getBatteryPct();
+        userData.availableStorageMB = getAvailableStorageMB();
+        userData.batteryPercentage = getBatteryPercentage();
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
         userData.connectionType = getConnectionType();
-        userData.networkMeteredStatus = getNetworkMeteredStatus();
+        userData.networkMetered = isNetworkMetered();
         userData.connectionSpeedKbps = getConnectionSpeedKbps();
 
         getOSVersions(userData.osVersions);
@@ -222,14 +233,14 @@ public class UserDataCollector {
 
     /** Collects available bytes and converts to MB. */
     @VisibleForTesting
-    public int getAvailableBytesMB() {
+    public int getAvailableStorageMB() {
         StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
         return (int) (statFs.getAvailableBytes() / BYTES_IN_MB);
     }
 
     /** Collects the battery percentage of the device. */
     @VisibleForTesting
-    public int getBatteryPct() {
+    public int getBatteryPercentage() {
         IntentFilter ifilter = new IntentFilter(Intent.ACTION_BATTERY_CHANGED);
         Intent batteryStatus = mContext.registerReceiver(null, ifilter);
 
@@ -252,7 +263,7 @@ public class UserDataCollector {
             try {
                 country = Country.valueOf(countryCode);
             } catch (IllegalArgumentException iae) {
-                Log.e(TAG, "Country code cannot match to a country.", iae);
+                sLogger.e(TAG + ": Country code cannot match to a country.", iae);
                 return country;
             }
             return country;
@@ -270,7 +281,7 @@ public class UserDataCollector {
             try {
                 language = Language.valueOf(langCode.toUpperCase(Locale.US));
             } catch (IllegalArgumentException iae) {
-                Log.e(TAG, "Language code cannot match to a language.", iae);
+                sLogger.e(TAG + ": Language code cannot match to a language.", iae);
                 return language;
             }
             return language;
@@ -372,11 +383,13 @@ public class UserDataCollector {
                     micro = Integer.parseInt(versions[2]);
                 } else {
                     // An irregular release like "UpsideDownCake"
-                    Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe1);
+                    sLogger.e(TAG + ": OS release string cannot be matched to a regular version.",
+                            nfe1);
                 }
             } catch (NumberFormatException nfe2) {
                 // An irrgular release like "QKQ1.200830.002"
-                Log.e(TAG, "OS release string cannot be matched to a regular version.", nfe2);
+                sLogger.e(TAG + ": OS release string cannot be matched to a regular version.",
+                        nfe2);
             }
         } finally {
             osVersions.major = major;
@@ -388,47 +401,52 @@ public class UserDataCollector {
     /** Collects connection type. */
     @VisibleForTesting
     public RawUserData.ConnectionType getConnectionType() {
-        if (mNetworkCapabilities == null) {
-            return RawUserData.ConnectionType.UNKNOWN;
-        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-            switch (mTelephonyManager.getDataNetworkType()) {
-                case TelephonyManager.NETWORK_TYPE_1xRTT:
-                case TelephonyManager.NETWORK_TYPE_CDMA:
-                case TelephonyManager.NETWORK_TYPE_EDGE:
-                case TelephonyManager.NETWORK_TYPE_GPRS:
-                case TelephonyManager.NETWORK_TYPE_GSM:
-                case TelephonyManager.NETWORK_TYPE_IDEN:
-                    return RawUserData.ConnectionType.CELLULAR_2G;
-                case TelephonyManager.NETWORK_TYPE_EHRPD:
-                case TelephonyManager.NETWORK_TYPE_EVDO_0:
-                case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                case TelephonyManager.NETWORK_TYPE_HSDPA:
-                case TelephonyManager.NETWORK_TYPE_HSPA:
-                case TelephonyManager.NETWORK_TYPE_HSPAP:
-                case TelephonyManager.NETWORK_TYPE_HSUPA:
-                case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
-                case TelephonyManager.NETWORK_TYPE_UMTS:
-                    return RawUserData.ConnectionType.CELLULAR_3G;
-                case TelephonyManager.NETWORK_TYPE_LTE:
-                case TelephonyManager.NETWORK_TYPE_IWLAN:
-                    return RawUserData.ConnectionType.CELLULAR_4G;
-                case TelephonyManager.NETWORK_TYPE_NR:
-                    return RawUserData.ConnectionType.CELLULAR_5G;
-                default:
-                    return RawUserData.ConnectionType.UNKNOWN;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            if (mNetworkCapabilities == null) {
+                return RawUserData.ConnectionType.UNKNOWN;
+            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                switch (mTelephonyManager.getDataNetworkType()) {
+                    case TelephonyManager.NETWORK_TYPE_1xRTT:
+                    case TelephonyManager.NETWORK_TYPE_CDMA:
+                    case TelephonyManager.NETWORK_TYPE_EDGE:
+                    case TelephonyManager.NETWORK_TYPE_GPRS:
+                    case TelephonyManager.NETWORK_TYPE_GSM:
+                    case TelephonyManager.NETWORK_TYPE_IDEN:
+                        return RawUserData.ConnectionType.CELLULAR_2G;
+                    case TelephonyManager.NETWORK_TYPE_EHRPD:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_0:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_A:
+                    case TelephonyManager.NETWORK_TYPE_EVDO_B:
+                    case TelephonyManager.NETWORK_TYPE_HSDPA:
+                    case TelephonyManager.NETWORK_TYPE_HSPA:
+                    case TelephonyManager.NETWORK_TYPE_HSPAP:
+                    case TelephonyManager.NETWORK_TYPE_HSUPA:
+                    case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
+                    case TelephonyManager.NETWORK_TYPE_UMTS:
+                        return RawUserData.ConnectionType.CELLULAR_3G;
+                    case TelephonyManager.NETWORK_TYPE_LTE:
+                    case TelephonyManager.NETWORK_TYPE_IWLAN:
+                        return RawUserData.ConnectionType.CELLULAR_4G;
+                    case TelephonyManager.NETWORK_TYPE_NR:
+                        return RawUserData.ConnectionType.CELLULAR_5G;
+                    default:
+                        return RawUserData.ConnectionType.UNKNOWN;
+                }
+            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
+                return RawUserData.ConnectionType.WIFI;
+            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                return RawUserData.ConnectionType.ETHERNET;
             }
-        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-            return RawUserData.ConnectionType.WIFI;
-        } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-            return RawUserData.ConnectionType.ETHERNET;
+        } catch (Exception e) {
+            sLogger.e(TAG + ": getConnectionType() failed.", e);
         }
         return RawUserData.ConnectionType.UNKNOWN;
     }
 
     /** Collects metered status. */
     @VisibleForTesting
-    public boolean getNetworkMeteredStatus() {
+    public boolean isNetworkMetered() {
         if (mNetworkCapabilities == null) {
             return false;
         }
@@ -443,7 +461,7 @@ public class UserDataCollector {
 
     /** Collects connection speed in kbps */
     @VisibleForTesting
-    public int getConnectionSpeedKbps() {
+    public long getConnectionSpeedKbps() {
         if (mNetworkCapabilities == null) {
             return 0;
         }
@@ -453,19 +471,24 @@ public class UserDataCollector {
     /** Collects current device's static metrics. */
     @VisibleForTesting
     public void getDeviceMetrics(DeviceMetrics deviceMetrics) {
-        if (deviceMetrics == null) {
-            return;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            if (deviceMetrics == null) {
+                return;
+            }
+            deviceMetrics.make = getDeviceMake();
+            deviceMetrics.model = getDeviceModel();
+            deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
+            deviceMetrics.screenWidth = mContext.getResources().getConfiguration().screenWidthDp;
+            DisplayMetrics displayMetrics = new DisplayMetrics();
+            WindowManager wm = mContext.getSystemService(WindowManager.class);
+            wm.getDefaultDisplay().getMetrics(displayMetrics);
+            deviceMetrics.xdpi = displayMetrics.xdpi;
+            deviceMetrics.ydpi = displayMetrics.ydpi;
+            deviceMetrics.pxRatio = displayMetrics.density;
+        } catch (Exception e) {
+            sLogger.e(TAG + ": getDeviceMetrics() failed.", e);
         }
-        deviceMetrics.make = getDeviceMake();
-        deviceMetrics.model = getDeviceModel();
-        deviceMetrics.screenHeight = mContext.getResources().getConfiguration().screenHeightDp;
-        deviceMetrics.screenWidth = mContext.getResources().getConfiguration().screenWidthDp;
-        DisplayMetrics displayMetrics = new DisplayMetrics();
-        WindowManager wm = mContext.getSystemService(WindowManager.class);
-        wm.getDefaultDisplay().getMetrics(displayMetrics);
-        deviceMetrics.xdpi = displayMetrics.xdpi;
-        deviceMetrics.ydpi = displayMetrics.ydpi;
-        deviceMetrics.pxRatio = displayMetrics.density;
     }
 
     /**
@@ -481,7 +504,8 @@ public class UserDataCollector {
             // handle corner cases for irregularly formatted string.
             make = getMakeFromSpecialString(manufacturer);
             if (make == Make.UNKNOWN) {
-                Log.e(TAG, "Manufacturer string cannot match to an available make type.", iae);
+                sLogger.e(TAG + ": Manufacturer string cannot match to an available make type.",
+                        iae);
             }
             return make;
         }
@@ -500,7 +524,7 @@ public class UserDataCollector {
             // handle corner cases for irregularly formatted string.
             model = getModelFromSpecialString(deviceModel);
             if (model == Model.UNKNOWN) {
-                Log.e(TAG, "Model string cannot match to an available make type.", iae);
+                sLogger.e(TAG + ": Model string cannot match to an available make type.", iae);
             }
             return model;
         }
@@ -643,7 +667,7 @@ public class UserDataCollector {
      * Get 24-hour app usage stats from [yesterday's midnight] to [tonight's midnight],
      * write them to database, and update the [appUsageHistory] histogram.
      * Skip the current collection cycle if yesterday's stats has been collected.
-    */
+     */
     @VisibleForTesting
     public void getAppUsageStats(HashMap<String, Long> appUsageHistory) {
         Calendar cal = Calendar.getInstance();
@@ -667,7 +691,7 @@ public class UserDataCollector {
                 UsageStatsManager.INTERVAL_BEST, startTimeMillis, endTimeMillis);
 
         List<AppUsageEntry> appUsageEntries = new ArrayList<>();
-        for (UsageStats stats: statsList) {
+        for (UsageStats stats : statsList) {
             if (stats.getTotalTimeVisible() == 0) {
                 continue;
             }
@@ -695,7 +719,7 @@ public class UserDataCollector {
      */
     private void updateAppUsageHistogram(HashMap<String, Long> appUsageHistory,
             List<AppUsageEntry> entries) {
-        for (AppUsageEntry entry: entries) {
+        for (AppUsageEntry entry : entries) {
             mAllowedAppUsageEntries.add(entry);
             appUsageHistory.put(entry.packageName, appUsageHistory.getOrDefault(
                     entry.packageName, 0L) + entry.totalTimeUsedMillis);
@@ -725,12 +749,19 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getLastknownLocation(@NonNull HashMap<LocationInfo, Long> locationHistory,
             @NonNull LocationInfo locationInfo) {
-        Location location = mLocationManager.getLastKnownLocation(LocationManager.FUSED_PROVIDER);
-        if (location != null) {
-            if (!setLocationInfo(location, locationInfo)) {
-                return;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            Location location = mLocationManager.getLastKnownLocation(
+                    LocationManager.FUSED_PROVIDER);
+            if (location != null) {
+                if (!setLocationInfo(location, locationInfo)) {
+                    return;
+                }
+                updateLocationHistogram(locationHistory, locationInfo);
             }
-            updateLocationHistogram(locationHistory, locationInfo);
+        } catch (Exception e) {
+            // TODO(b/290256559): Fix permissions issue.
+            sLogger.e(TAG + ": getLastKnownLocation() failed.", e);
         }
     }
 
@@ -738,35 +769,41 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getCurrentLocation(@NonNull HashMap<LocationInfo, Long> locationHistory,
             @NonNull LocationInfo locationInfo) {
-        String currentProvider = LocationManager.GPS_PROVIDER;
-        if (mLocationManager.getProvider(currentProvider) == null) {
-            currentProvider = LocationManager.FUSED_PROVIDER;
-        }
-        mLocationManager.getCurrentLocation(
-                currentProvider,
-                null,
-                mContext.getMainExecutor(),
-                location -> {
-                    if (location != null) {
-                        if (!setLocationInfo(location, locationInfo)) {
-                            return;
+        try {
+            // TODO(b/290256559): Fix permissions issue.
+            String currentProvider = LocationManager.GPS_PROVIDER;
+            if (mLocationManager.getProvider(currentProvider) == null) {
+                currentProvider = LocationManager.FUSED_PROVIDER;
+            }
+            mLocationManager.getCurrentLocation(
+                    currentProvider,
+                    null,
+                    mContext.getMainExecutor(),
+                    location -> {
+                        if (location != null) {
+                            if (!setLocationInfo(location, locationInfo)) {
+                                return;
+                            }
+                            updateLocationHistogram(locationHistory, locationInfo);
                         }
-                        updateLocationHistogram(locationHistory, locationInfo);
                     }
-                }
-        );
+            );
+        } catch (Exception e) {
+            sLogger.e(TAG + ": getCurrentLocation() failed.", e);
+        }
     }
 
     /**
      * Persist collected location info and populate the in-memory current location.
      * The method should succeed or fail as a transaction to avoid discrepancies between
      * database and memory.
+     *
      * @return true if location info collection is successful, false otherwise.
      */
     private boolean setLocationInfo(Location location, LocationInfo locationInfo) {
         long timeMillis = getTimeMillis() - location.getElapsedRealtimeAgeMillis();
-        double truncatedLatitude = Math.round(location.getLatitude() *  10000.0) / 10000.0;
-        double truncatedLongitude = Math.round(location.getLongitude() *  10000.0) / 10000.0;
+        double truncatedLatitude = Math.round(location.getLatitude() * 10000.0) / 10000.0;
+        double truncatedLongitude = Math.round(location.getLongitude() * 10000.0) / 10000.0;
         LocationInfo.LocationProvider locationProvider = LocationProvider.UNKNOWN;
         boolean isPrecise = false;
 
@@ -817,7 +854,7 @@ public class UserDataCollector {
                 && mAllowedLocationEntries.peekFirst().timeMillis < thresholdTimeMillis) {
             LocationInfo evictedLocation = mAllowedLocationEntries.removeFirst();
             if (!mAllowedLocationEntries.isEmpty()) {
-                long evictedDuration =  mAllowedLocationEntries.peekFirst().timeMillis
+                long evictedDuration = mAllowedLocationEntries.peekFirst().timeMillis
                         - evictedLocation.timeMillis;
                 if (locationHistory.containsKey(evictedLocation)) {
                     long updatedDuration = locationHistory.get(evictedLocation) - evictedDuration;
@@ -846,14 +883,14 @@ public class UserDataCollector {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
-        userData.availableBytesMB = 0;
-        userData.batteryPct = 0;
+        userData.availableStorageMB = 0;
+        userData.batteryPercentage = 0;
         userData.country = Country.UNKNOWN;
         userData.language = Language.UNKNOWN;
         userData.carrier = Carrier.UNKNOWN;
         userData.osVersions = new OSVersion();
         userData.connectionType = RawUserData.ConnectionType.UNKNOWN;
-        userData.networkMeteredStatus = false;
+        userData.networkMetered = false;
         userData.connectionSpeedKbps = 0;
         userData.deviceMetrics = new DeviceMetrics();
         userData.appsInfo.clear();
@@ -894,7 +931,7 @@ public class UserDataCollector {
                         UserDataTables.AppUsageHistory.STARTING_TIME_SEC));
                 long endTimeMillis = cursor.getLong(cursor.getColumnIndex(
                         UserDataTables.AppUsageHistory.ENDING_TIME_SEC));
-                long totalTimeUsedMillis =  cursor.getLong(cursor.getColumnIndex(
+                long totalTimeUsedMillis = cursor.getLong(cursor.getColumnIndex(
                         UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC));
                 mAllowedAppUsageEntries.add(new AppUsageEntry(packageName,
                         startTimeMillis, endTimeMillis, totalTimeUsedMillis));
@@ -953,7 +990,7 @@ public class UserDataCollector {
             LocationInfo nextLocation = iterator.next();
             final long duration = nextLocation.timeMillis - currentLocation.timeMillis;
             if (duration < 0) {
-                Log.v(TAG, "LocationInfo entries are retrieved with wrong order.");
+                sLogger.v(TAG + ": LocationInfo entries are retrieved with wrong order.");
             }
             locationHistory.put(currentLocation,
                     locationHistory.getOrDefault(currentLocation, 0L) + duration);

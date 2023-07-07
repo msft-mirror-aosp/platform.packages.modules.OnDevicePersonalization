@@ -23,9 +23,10 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.util.HashMap;
@@ -37,6 +38,7 @@ import java.util.Set;
  * Dao used to manage access to local data tables
  */
 public class OnDevicePersonalizationLocalDataDao {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationLocalDataDao";
     private static final String LOCAL_DATA_TABLE_NAME_PREFIX = "localdata_";
 
@@ -94,7 +96,6 @@ public class OnDevicePersonalizationLocalDataDao {
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
-                createTableIfNotExists(tableName, dbHelper);
                 instance = new OnDevicePersonalizationLocalDataDao(
                         dbHelper, owner, certDigest);
                 sLocalDataDaos.put(tableName, instance);
@@ -116,7 +117,7 @@ public class OnDevicePersonalizationLocalDataDao {
             db.execSQL(LocalDataContract.LocalDataEntry.getCreateTableIfNotExistsStatement(
                     tableName));
         } catch (SQLException e) {
-            Log.e(TAG, "Failed to create table: " + tableName, e);
+            sLogger.e(TAG + ": Failed to create table: " + tableName, e);
             return false;
         }
         return true;
@@ -151,14 +152,14 @@ public class OnDevicePersonalizationLocalDataDao {
                     /* orderBy= */ null
             )) {
                 if (cursor.getCount() < 1) {
-                    Log.d(TAG, "Failed to find requested key: " + key);
+                    sLogger.d(TAG + ": Failed to find requested key: " + key);
                     return null;
                 }
                 cursor.moveToNext();
                 return cursor.getBlob(0);
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read local data row", e);
+            sLogger.e(TAG + ": Failed to read local data row", e);
         }
         return null;
     }
@@ -177,7 +178,7 @@ public class OnDevicePersonalizationLocalDataDao {
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to update or insert local data", e);
+            sLogger.e(TAG + ": Failed to update or insert local data", e);
         }
         return false;
     }
@@ -195,7 +196,7 @@ public class OnDevicePersonalizationLocalDataDao {
             String[] selectionArgs = { key };
             return db.delete(mTableName, whereClause, selectionArgs) == 1;
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to delete row from local data", e);
+            sLogger.e(TAG + ": Failed to delete row from local data", e);
         }
         return false;
     }
@@ -228,7 +229,7 @@ public class OnDevicePersonalizationLocalDataDao {
                 return keyset;
             }
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to read all vendor data keys", e);
+            sLogger.e(TAG + ": Failed to read all vendor data keys", e);
         }
         return keyset;
     }

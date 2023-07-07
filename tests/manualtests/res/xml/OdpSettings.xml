@@ -17,9 +17,8 @@
 
 <!-- Odp Settings, in XML resource -->
 <on-device-personalization>
-  <handler name="com.test.TestPersonalizationHandler">
-    <service name="com.test.TestPersonalizationService" />
+  <service name="com.test.TestPersonalizationService" >
     <download-settings url="https://www.gstatic.com/ondevicepersonalization/testing/test_data1.json" />
-  </handler>
+  </service>
 </on-device-personalization>
 

@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.manifest;
 
-import android.util.Log;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -25,9 +27,9 @@ import java.io.IOException;
 
 /** Parser and validator for OnDevicePersonalization app manifest configs. */
 public class AppManifestConfigParser {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppManifestConfigParser";
     private static final String TAG_ON_DEVICE_PERSONALIZATION_CONFIG = "on-device-personalization";
-    private static final String TAG_HANDLER = "handler";
     private static final String TAG_DOWNLOAD_SETTINGS = "download-settings";
     private static final String TAG_SERVICE = "service";
     private static final String ATTR_DOWNLOAD_URL = "url";
@@ -45,7 +47,6 @@ public class AppManifestConfigParser {
             XmlPullParserException {
         String downloadUrl = null;
         String serviceName = null;
-        String handlerName = null;
 
         while (parser.getEventType() != XmlPullParser.START_TAG) {
             parser.next();
@@ -55,8 +56,8 @@ public class AppManifestConfigParser {
         while (parser.getEventType() != XmlPullParser.START_TAG) {
             parser.next();
         }
-        parser.require(XmlPullParser.START_TAG, null, TAG_HANDLER);
-        handlerName = parser.getAttributeValue(null, ATTR_NAME);
+        parser.require(XmlPullParser.START_TAG, null, TAG_SERVICE);
+        serviceName = parser.getAttributeValue(null, ATTR_NAME);
         parser.next();
 
         // Walk through the config to parse required values.
@@ -69,15 +70,12 @@ public class AppManifestConfigParser {
                 case TAG_DOWNLOAD_SETTINGS:
                     downloadUrl = parser.getAttributeValue(null, ATTR_DOWNLOAD_URL);
                     break;
-                case TAG_SERVICE:
-                    serviceName = parser.getAttributeValue(null, ATTR_NAME);
-                    break;
                 default:
-                    Log.i(TAG, "Unknown tag: " + parser.getName());
+                    sLogger.i(TAG + ": Unknown tag: " + parser.getName());
             }
             parser.next();
         }
 
-        return new AppManifestConfig(downloadUrl, serviceName, handlerName);
+        return new AppManifestConfig(downloadUrl, serviceName);
     }
 }

@@ -19,9 +19,9 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.app.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.Context;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
 import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -71,7 +71,7 @@ public class AppRequestFlowTest {
     public void testRunAppRequestFlow() throws Exception {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 PersistableBundle.EMPTY,
                 new TestCallback(), mContext, MoreExecutors.newDirectExecutorService());
         appRequestFlow.run();
