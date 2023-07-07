@@ -16,25 +16,38 @@
 
 package com.android.ondevicepersonalization.services.util;
 
-import android.ondevicepersonalization.ExecuteOutput;
-import android.ondevicepersonalization.SlotResult;
+import android.content.ContentValues;
 
-import com.android.ondevicepersonalization.services.fbs.Bid;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
-import com.android.ondevicepersonalization.services.fbs.Metrics;
+import com.android.ondevicepersonalization.services.fbs.KeyValue;
+import com.android.ondevicepersonalization.services.fbs.KeyValueList;
 import com.android.ondevicepersonalization.services.fbs.Owner;
 import com.android.ondevicepersonalization.services.fbs.QueryData;
 import com.android.ondevicepersonalization.services.fbs.QueryFields;
-import com.android.ondevicepersonalization.services.fbs.Slot;
 
+import com.google.common.primitives.Ints;
 import com.google.flatbuffers.FlatBufferBuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * Util class to support creation of OnDevicePersonalization flatbuffers
  */
 public class OnDevicePersonalizationFlatbufferUtils {
+    private static final String TAG = "OnDevicePersonalizationFlatbufferUtils";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    public static final byte DATA_TYPE_BYTE = 1;
+    public static final byte DATA_TYPE_SHORT = 2;
+    public static final byte DATA_TYPE_INT = 3;
+    public static final byte DATA_TYPE_LONG = 4;
+    public static final byte DATA_TYPE_FLOAT = 5;
+    public static final byte DATA_TYPE_DOUBLE = 6;
+    public static final byte DATA_TYPE_STRING = 7;
+    public static final byte DATA_TYPE_BLOB = 8;
+    public static final byte DATA_TYPE_BOOL = 9;
+
     private OnDevicePersonalizationFlatbufferUtils() {
     }
 
@@ -42,57 +55,114 @@ public class OnDevicePersonalizationFlatbufferUtils {
      * Creates a byte array representing the QueryData as a flatbuffer
      */
     public static byte[] createQueryData(
-            String servicePackageName, String certDigest, ExecuteOutput executeOutput) {
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-        int ownerOffset = createOwner(builder, servicePackageName, certDigest);
-        int slotsOffset = 0;
-        if (executeOutput.getSlotResults() != null) {
-            // Create slots vector
-            List<SlotResult> slotResults = executeOutput.getSlotResults();
-            int[] slots = new int[slotResults.size()];
-            for (int i = 0; i < slotResults.size(); i++) {
-                SlotResult slotResult = slotResults.get(i);
-                int slotKeyOffset = builder.createString(slotResult.getSlotKey());
-
-                int bidsOffset = 0;
-                if (slotResult.getLoggedBids() != null) {
-                    bidsOffset = createBidVector(builder, slotResult.getLoggedBids());
+            String servicePackageName, String certDigest, List<ContentValues> rows) {
+        try {
+            sLogger.d(TAG + ": createQueryData started.");
+            FlatBufferBuilder builder = new FlatBufferBuilder();
+            int ownerOffset = createOwner(builder, servicePackageName, certDigest);
+            int rowsOffset = 0;
+            if (rows != null && !rows.isEmpty()) {
+                int[] rowOffsets = new int[rows.size()];
+                for (int i = 0; i < rows.size(); i++) {
+                    ContentValues row = rows.get(i);
+                    rowOffsets[i] = createKeyValueList(builder, row);
                 }
-
-                Slot.startSlot(builder);
-                Slot.addKey(builder, slotKeyOffset);
-                Slot.addBids(builder, bidsOffset);
-                slots[i] = Slot.endSlot(builder);
+                rowsOffset = QueryFields.createRowsVector(builder, rowOffsets);
             }
-            slotsOffset = QueryFields.createSlotsVector(builder, slots);
+            QueryFields.startQueryFields(builder);
+            QueryFields.addOwner(builder, ownerOffset);
+            QueryFields.addRows(builder, rowsOffset);
+            int[] queryFieldsOffset = new int[1];
+            queryFieldsOffset[0] = QueryFields.endQueryFields(builder);
+            int queryFieldsListOffset = QueryData.createQueryFieldsVector(
+                    builder, queryFieldsOffset);
+            QueryData.startQueryData(builder);
+            QueryData.addQueryFields(builder, queryFieldsListOffset);
+            int queryDataOffset = QueryData.endQueryData(builder);
+            builder.finish(queryDataOffset);
+            return builder.sizedByteArray();
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": createQueryData failed.");
+            return new byte[0];
         }
-        QueryFields.startQueryFields(builder);
-        QueryFields.addOwner(builder, ownerOffset);
-        QueryFields.addSlots(builder, slotsOffset);
-        int[] queryFieldsOffset = new int[1];
-        queryFieldsOffset[0] = QueryFields.endQueryFields(builder);
-        int queryFieldsListOffset = QueryData.createQueryFieldsVector(builder, queryFieldsOffset);
-        QueryData.startQueryData(builder);
-        QueryData.addQueryFields(builder, queryFieldsListOffset);
-        int queryDataOffset = QueryData.endQueryData(builder);
-        builder.finish(queryDataOffset);
-        return builder.sizedByteArray();
     }
 
     /**
      * Creates a byte array representing the EventData as a flatbuffer
      */
-    public static byte[] createEventData(android.ondevicepersonalization.Metrics metrics) {
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-        int metricsOffset = 0;
-        if (metrics != null) {
-            metricsOffset = createMetrics(builder, metrics);
+    public static byte[] createEventData(ContentValues data) {
+        try {
+            sLogger.d(TAG + ": createEventData started.");
+            FlatBufferBuilder builder = new FlatBufferBuilder();
+            int dataOffset = createKeyValueList(builder, data);
+            EventFields.startEventFields(builder);
+            EventFields.addData(builder, dataOffset);
+            int eventFieldsOffset = EventFields.endEventFields(builder);
+            builder.finish(eventFieldsOffset);
+            return builder.sizedByteArray();
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": createEventData failed.");
+            return new byte[0];
         }
-        EventFields.startEventFields(builder);
-        EventFields.addMetrics(builder, metricsOffset);
-        int eventFieldsOffset = EventFields.endEventFields(builder);
-        builder.finish(eventFieldsOffset);
-        return builder.sizedByteArray();
+    }
+
+    private static int createKeyValueList(
+            FlatBufferBuilder builder, ContentValues data) {
+        int entriesOffset = 0;
+        if (data != null) {
+            ArrayList<Integer> entryOffsets = new ArrayList<>();
+            for (var entry : data.valueSet()) {
+                if (entry.getKey() != null && entry.getValue() != null) {
+                    entryOffsets.add(
+                            createKeyValueEntry(builder, entry.getKey(), entry.getValue()));
+                }
+            }
+            entriesOffset = KeyValueList.createEntriesVector(builder, Ints.toArray(entryOffsets));
+        }
+        KeyValueList.startKeyValueList(builder);
+        KeyValueList.addEntries(builder, entriesOffset);
+        return KeyValueList.endKeyValueList(builder);
+    }
+
+    private static int createKeyValueEntry(FlatBufferBuilder builder, String key, Object value) {
+        int valueOffset = 0;
+        if (value instanceof String) {
+            valueOffset = builder.createString((String) value);
+        } else if (value instanceof byte[]) {
+            valueOffset = builder.createByteVector((byte[]) value);
+        }
+        int keyOffset = builder.createString(key);
+        KeyValue.startKeyValue(builder);
+        KeyValue.addKey(builder, keyOffset);
+        if (value instanceof Byte) {
+            KeyValue.addType(builder, DATA_TYPE_BYTE);
+            KeyValue.addByteValue(builder, ((Byte) value).byteValue());
+        } else if (value instanceof Short) {
+            KeyValue.addType(builder, DATA_TYPE_SHORT);
+            KeyValue.addShortValue(builder, ((Short) value).shortValue());
+        } else if (value instanceof Integer) {
+            KeyValue.addType(builder, DATA_TYPE_INT);
+            KeyValue.addIntValue(builder, ((Integer) value).intValue());
+        } else if (value instanceof Long) {
+            KeyValue.addType(builder, DATA_TYPE_LONG);
+            KeyValue.addLongValue(builder, ((Long) value).longValue());
+        } else if (value instanceof Float) {
+            KeyValue.addType(builder, DATA_TYPE_FLOAT);
+            KeyValue.addFloatValue(builder, ((Float) value).floatValue());
+        } else if (value instanceof Double) {
+            KeyValue.addType(builder, DATA_TYPE_DOUBLE);
+            KeyValue.addDoubleValue(builder, ((Double) value).doubleValue());
+        } else if (value instanceof String) {
+            KeyValue.addType(builder, DATA_TYPE_STRING);
+            KeyValue.addStringValue(builder, valueOffset);
+        } else if (value instanceof byte[]) {
+            KeyValue.addType(builder, DATA_TYPE_BLOB);
+            KeyValue.addBlobValue(builder, valueOffset);
+        } else if (value instanceof Boolean) {
+            KeyValue.addType(builder, DATA_TYPE_BOOL);
+            KeyValue.addBoolValue(builder, ((Boolean) value).booleanValue());
+        }
+        return KeyValue.endKeyValue(builder);
     }
 
     private static int createOwner(
@@ -112,46 +182,5 @@ public class OnDevicePersonalizationFlatbufferUtils {
         Owner.addCertDigest(builder, certDigestOffset);
         return Owner.endOwner(builder);
     }
-
-    private static int createBidVector(
-            FlatBufferBuilder builder,
-            List<android.ondevicepersonalization.Bid> bids) {
-        int[] loggedBids = new int[bids.size()];
-        for (int i = 0; i < bids.size(); i++) {
-            android.ondevicepersonalization.Bid bid = bids.get(i);
-            int bidKeyOffset = builder.createString(bid.getKey());
-            int metricsOffset = 0;
-            if (bid.getMetrics() != null) {
-                metricsOffset = createMetrics(builder, bid.getMetrics());
-            }
-            Bid.startBid(builder);
-            Bid.addKey(builder, bidKeyOffset);
-            Bid.addMetrics(builder, metricsOffset);
-            loggedBids[i] = Bid.endBid(builder);
-        }
-        return Slot.createBidsVector(builder, loggedBids);
-    }
-
-    private static int createMetrics(FlatBufferBuilder builder,
-            android.ondevicepersonalization.Metrics metrics) {
-        int intValuesOffset = 0;
-        if (metrics.getLongValues() != null) {
-            intValuesOffset = Metrics.createLongValuesVector(builder, metrics.getLongValues());
-        }
-        int floatValuesOffset = 0;
-        if (metrics.getDoubleValues() != null) {
-            floatValuesOffset = Metrics.createDoubleValuesVector(
-                    builder, metrics.getDoubleValues());
-        }
-        int booleanValuesOffset = 0;
-        if (metrics.getBooleanValues() != null) {
-            booleanValuesOffset = Metrics.createBooleanValuesVector(
-                    builder, metrics.getBooleanValues());
-        }
-        Metrics.startMetrics(builder);
-        Metrics.addLongValues(builder, intValuesOffset);
-        Metrics.addDoubleValues(builder, floatValuesOffset);
-        Metrics.addBooleanValues(builder, booleanValuesOffset);
-        return Metrics.endMetrics(builder);
-    }
 }
+

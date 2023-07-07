@@ -36,6 +36,7 @@ import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.google.common.collect.Iterables;
 import com.google.flatbuffers.FlatBufferBuilder;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -57,14 +58,21 @@ public final class FederatedTrainingTaskTest {
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
 
     private SQLiteDatabase mDatabase;
+    private FederatedTrainingTaskDbHelper mDbHelper;
 
     @Before
     public void setUp() {
         Context context = ApplicationProvider.getApplicationContext();
-        FederatedTrainingTaskDbHelper dbHelper =
-                FederatedTrainingTaskDbHelper.getInstanceForTest(context);
-        mDatabase = dbHelper.getWritableDatabase();
-        dbHelper.resetDatabase(mDatabase);
+        mDbHelper = FederatedTrainingTaskDbHelper.getInstanceForTest(context);
+        mDatabase = mDbHelper.getWritableDatabase();
+        mDbHelper.resetDatabase(mDatabase);
+    }
+
+    @After
+    public void tearDown() {
+        mDbHelper.getWritableDatabase().close();
+        mDbHelper.getReadableDatabase().close();
+        mDbHelper.close();
     }
 
     @Test

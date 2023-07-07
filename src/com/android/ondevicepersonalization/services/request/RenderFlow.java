@@ -17,20 +17,20 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.annotation.NonNull;
+import android.app.ondevicepersonalization.Constants;
+import android.app.ondevicepersonalization.RenderInput;
+import android.app.ondevicepersonalization.RenderOutput;
+import android.app.ondevicepersonalization.RenderingConfig;
+import android.app.ondevicepersonalization.RequestLogRecord;
+import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.Context;
-import android.ondevicepersonalization.Constants;
-import android.ondevicepersonalization.RenderInput;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotInfo;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
@@ -45,13 +45,13 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
-import java.util.List;
 import java.util.Objects;
 
 /**
  * Handles a surface package request from an app or SDK.
  */
 public class RenderFlow {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "RenderFlow";
     private static final String TASK_NAME = "Render";
 
@@ -61,8 +61,8 @@ public class RenderFlow {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
 
-        SlotRenderingData decryptToken(String slotResultToken) throws Exception {
-            return (SlotRenderingData) CryptUtils.decrypt(slotResultToken);
+        SlotWrapper decryptToken(String slotResultToken) throws Exception {
+            return (SlotWrapper) CryptUtils.decrypt(slotResultToken);
         }
     }
 
@@ -111,7 +111,7 @@ public class RenderFlow {
             @NonNull Context context,
             @NonNull Injector injector,
             @NonNull DisplayHelper displayHelper) {
-        Log.d(TAG, "RenderFlow created.");
+        sLogger.d(TAG + ": RenderFlow created.");
         mSlotResultToken = Objects.requireNonNull(slotResultToken);
         mHostToken = Objects.requireNonNull(hostToken);
         mDisplayId = displayId;
@@ -130,15 +130,16 @@ public class RenderFlow {
 
     private void processRequest() {
         try {
-            SlotRenderingData slotRenderingData = mInjector.decryptToken(mSlotResultToken);
+            SlotWrapper slotWrapper = Objects.requireNonNull(
+                    mInjector.decryptToken(mSlotResultToken));
             mServicePackageName = Objects.requireNonNull(
-                    slotRenderingData.getServicePackageName());
+                    slotWrapper.getServicePackageName());
             mServiceClassName = Objects.requireNonNull(
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                         mContext, mServicePackageName));
 
             ListenableFuture<SurfacePackage> surfacePackageFuture =
-                    renderContentForSlot(slotRenderingData);
+                    renderContentForSlot(slotWrapper);
 
             Futures.addCallback(
                     surfacePackageFuture,
@@ -150,40 +151,33 @@ public class RenderFlow {
 
                         @Override
                         public void onFailure(Throwable t) {
-                            Log.w(TAG, "Request failed.", t);
+                            sLogger.w(TAG + ": Request failed.", t);
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
                     },
                     mInjector.getExecutor());
         } catch (Exception e) {
-            Log.e(TAG, "Could not process request.", e);
+            sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
     }
 
     private ListenableFuture<SurfacePackage> renderContentForSlot(
-            SlotRenderingData slotRenderingData
+            @NonNull SlotWrapper slotWrapper
     ) {
         try {
-            Log.d(TAG, "renderContentForSlot() started.");
-            Objects.requireNonNull(slotRenderingData);
-            SlotResult slotResult = slotRenderingData.getSlotResult();
-            Objects.requireNonNull(slotResult);
-            long queryId = slotRenderingData.getQueryId();
-            SlotInfo slotInfo =
-                    new SlotInfo.Builder()
-                            .setHeight(mHeight)
-                            .setWidth(mWidth).build();
-            List<String> bidKeys = slotResult.getRenderedBidKeys();
-            if (bidKeys == null || bidKeys.isEmpty()) {
-                return Futures.immediateFailedFuture(new IllegalArgumentException("No bids"));
-            }
+            sLogger.d(TAG + ": renderContentForSlot() started.");
+            Objects.requireNonNull(slotWrapper);
+            RequestLogRecord logRecord = Objects.requireNonNull(slotWrapper.getLogRecord());
+            RenderingConfig renderingConfig =
+                    Objects.requireNonNull(slotWrapper.getRenderingConfig());
+            long queryId = slotWrapper.getQueryId();
 
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    loadResult, slotInfo, slotResult, queryId, bidKeys),
+                                    loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
@@ -195,7 +189,8 @@ public class RenderFlow {
                     .transformAsync(
                             result -> mDisplayHelper.displayHtml(
                                     result,
-                                    slotResult,
+                                    logRecord,
+                                    queryId,
                                     mServicePackageName,
                                     mHostToken,
                                     mDisplayId,
@@ -208,19 +203,23 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
-            IsolatedServiceInfo isolatedServiceInfo, SlotInfo slotInfo, SlotResult slotResult,
-            long queryId, List<String> bidKeys) {
-        Log.d(TAG, "executeRenderContentRequest() started.");
+            IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
+            RenderingConfig renderingConfig) {
+        sLogger.d(TAG + "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
         RenderInput input =
-                new RenderInput.Builder().setSlotInfo(slotInfo).setBidKeys(bidKeys).build();
+                new RenderInput.Builder()
+                    .setHeight(mHeight)
+                    .setWidth(mWidth)
+                    .setRenderingConfigIndex(slotIndex)
+                    .setRenderingConfig(renderingConfig)
+                    .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mServicePackageName, mContext, false,
-                new DataAccessServiceImpl.EventUrlQueryData(queryId, slotResult));
+                mServicePackageName, mContext, false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER_CONTENT,
+                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,
                 serviceParams);
     }
 
@@ -229,11 +228,11 @@ public class RenderFlow {
             if (surfacePackage != null) {
                 mCallback.onSuccess(surfacePackage);
             } else {
-                Log.w(TAG, "surfacePackages is null or empty");
+                sLogger.w(TAG + ": surfacePackages is null or empty");
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
             }
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 
@@ -241,7 +240,7 @@ public class RenderFlow {
         try {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
-            Log.w(TAG, "Callback error", e);
+            sLogger.w(TAG + ": Callback error", e);
         }
     }
 }
