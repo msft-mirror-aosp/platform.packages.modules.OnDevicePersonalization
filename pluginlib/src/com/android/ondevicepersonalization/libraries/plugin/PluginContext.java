@@ -20,7 +20,7 @@ import org.checkerframework.checker.nullness.qual.Nullable;
 
 /**
  * Interface for generic context object passed to the {@link Plugin} implementation, provided by the
- * {@link PluginContextProvider}.
+ * {@link PluginHost}.
  */
 public interface PluginContext {
     /**

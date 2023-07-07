@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.manifest;
 
-import android.content.res.XmlResourceParser;
+
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import org.xmlpull.v1.XmlPullParser;
 import org.xmlpull.v1.XmlPullParserException;
@@ -25,10 +27,13 @@ import java.io.IOException;
 
 /** Parser and validator for OnDevicePersonalization app manifest configs. */
 public class AppManifestConfigParser {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "AppManifestConfigParser";
     private static final String TAG_ON_DEVICE_PERSONALIZATION_CONFIG = "on-device-personalization";
     private static final String TAG_DOWNLOAD_SETTINGS = "download-settings";
+    private static final String TAG_SERVICE = "service";
     private static final String ATTR_DOWNLOAD_URL = "url";
-    private static final String ATTR_DOWNLOAD_HANDLER = "handler";
+    private static final String ATTR_NAME = "name";
 
     private AppManifestConfigParser() {
     }
@@ -38,38 +43,39 @@ public class AppManifestConfigParser {
      *
      * @param parser the XmlParser representing the OnDevicePersonalization app manifest config
      */
-    public static AppManifestConfig getConfig(XmlResourceParser parser) throws IOException,
+    public static AppManifestConfig getConfig(XmlPullParser parser) throws IOException,
             XmlPullParserException {
         String downloadUrl = null;
-        String downloadHandler = null;
+        String serviceName = null;
 
-        // The first next goes to START_DOCUMENT, so we need another next to go to START_TAG.
-        parser.next();
-        parser.next();
+        while (parser.getEventType() != XmlPullParser.START_TAG) {
+            parser.next();
+        }
         parser.require(XmlPullParser.START_TAG, null, TAG_ON_DEVICE_PERSONALIZATION_CONFIG);
+        parser.next();
+        while (parser.getEventType() != XmlPullParser.START_TAG) {
+            parser.next();
+        }
+        parser.require(XmlPullParser.START_TAG, null, TAG_SERVICE);
+        serviceName = parser.getAttributeValue(null, ATTR_NAME);
         parser.next();
 
         // Walk through the config to parse required values.
-        while (parser.getEventType() != XmlResourceParser.END_DOCUMENT) {
-            if (parser.getEventType() != XmlResourceParser.START_TAG) {
+        while (parser.getEventType() != XmlPullParser.END_DOCUMENT) {
+            if (parser.getEventType() != XmlPullParser.START_TAG) {
                 parser.next();
                 continue;
             }
             switch (parser.getName()) {
                 case TAG_DOWNLOAD_SETTINGS:
                     downloadUrl = parser.getAttributeValue(null, ATTR_DOWNLOAD_URL);
-                    downloadHandler = parser.getAttributeValue(null, ATTR_DOWNLOAD_HANDLER);
                     break;
                 default:
-                    // TODO(b/241941021) Determine correct exception to throw
-                    throw new IllegalArgumentException(
-                            "Unknown tag: "
-                                    + parser.getName()
-                                    + " [Tags and attributes are case sensitive]");
+                    sLogger.i(TAG + ": Unknown tag: " + parser.getName());
             }
             parser.next();
         }
 
-        return new AppManifestConfig(downloadUrl, downloadHandler);
+        return new AppManifestConfig(downloadUrl, serviceName);
     }
 }

@@ -27,26 +27,70 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
+    <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
-    <!-- Allows the app to find all packages onboarded to ODP -->
+    <!-- Required for the app to find all packages onboarded to ODP -->
     <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
 
-    <!-- Used for persisting scheduled jobs -->
+    <!-- Required for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
-    <application android:forceQueryable="true">
+    <!-- Required for reading device configs -->
+    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
+
+    <application android:name=".OnDevicePersonalizationApplication"
+                 android:forceQueryable="true">
         <service android:name=".OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
-        <service android:name=".download.OnDevicePersonalizationDownloadProcessingWorker"
+        <service android:name=".OnDevicePersonalizationPrivacyStatusServiceImpl" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.OnDevicePersonalizationPrivacyStatusService" />
+            </intent-filter>
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.download.mdd.MddJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
+                 android:isolatedProcess="true" android:exported="false" >
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
+                 android:enabled="true" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.federatedcompute.EXAMPLE_STORE" />
+                <data android:scheme="app" />
+            </intent-filter>
+        </service>
+        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpResultHandlingService"
+                 android:enabled="true" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
+                <data android:scheme="app" />
+            </intent-filter>
+        </service>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
-        <receiver android:name=".download.OnDevicePersonalizationStartDownloadServiceReceiver"
+        <receiver android:name=".OnDevicePersonalizationBroadcastReceiver"
+                  android:enabled="true"
                   android:exported="false">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />

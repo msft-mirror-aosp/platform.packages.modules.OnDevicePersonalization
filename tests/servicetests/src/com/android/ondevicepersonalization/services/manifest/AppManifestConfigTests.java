@@ -16,14 +16,12 @@
 
 package com.android.ondevicepersonalization.services.manifest;
 
-import static android.content.pm.PackageManager.GET_META_DATA;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
-import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -34,37 +32,33 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class AppManifestConfigTests {
+    private static final String BASE_DOWNLOAD_URL =
+            "android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1";
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Test
     public void testManifestContainsOdpSettings() throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertTrue(AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo));
+        assertTrue(AppManifestConfigHelper.manifestContainsOdpSettings(
+                mContext, mContext.getPackageName()));
     }
 
     @Test
     public void testManifestContainsOdpSettingsFalse() throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        packageInfo.packageName = "nonExistentName";
-        assertFalse(AppManifestConfigHelper.manifestContainsOdpSettings(mContext, packageInfo));
+        assertFalse(AppManifestConfigHelper.manifestContainsOdpSettings(
+                mContext, "nonExistentName"));
     }
 
     @Test
-    public void testGetDownloadUrlFromOdpSettings() throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertEquals("https://test.com/get",
-                AppManifestConfigHelper.getDownloadUrlFromOdpSettings(mContext, packageInfo));
+    public void testGetConfigParamsFromOdpSettings() throws PackageManager.NameNotFoundException {
+        AppManifestConfig config =
+                AppManifestConfigHelper.getAppManifestConfig(mContext, mContext.getPackageName());
+        assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
+        assertEquals("com.test.TestPersonalizationService", config.getServiceName());
     }
 
     @Test
-    public void testGetDownloadHandlerFromOdpSettings()
-            throws PackageManager.NameNotFoundException {
-        PackageInfo packageInfo = mContext.getPackageManager().getPackageInfo(
-                mContext.getPackageName(), PackageManager.PackageInfoFlags.of(GET_META_DATA));
-        assertEquals("com.test.DownloadHandler",
-                AppManifestConfigHelper.getDownloadHandlerFromOdpSettings(mContext, packageInfo));
+    public void testAppManifestConfigBadPackage() {
+        assertThrows(IllegalArgumentException.class,
+                () -> AppManifestConfigHelper.getAppManifestConfig(mContext, "badPackageName"));
     }
 }
