@@ -33,6 +33,8 @@ android_test_helper_app {
     resource_dirs: [
         "res",
     ],
+    target_sdk_version: "current",
+    min_sdk_version: "Tiramisu",
     manifest: "AndroidManifest.xml",
     certificate: "platform",
 }
