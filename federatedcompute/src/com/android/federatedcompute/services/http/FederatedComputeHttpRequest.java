@@ -22,8 +22,6 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENC
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
-import com.google.protobuf.ByteString;
-
 import java.util.HashMap;
 
 /** Class to hold FederatedCompute http request. */
@@ -35,13 +33,10 @@ public final class FederatedComputeHttpRequest {
     private String mUri;
     private HttpMethod mHttpMethod;
     private HashMap<String, String> mExtraHeaders;
-    private ByteString mBody;
+    private byte[] mBody;
 
     private FederatedComputeHttpRequest(
-            String uri,
-            HttpMethod httpMethod,
-            HashMap<String, String> extraHeaders,
-            ByteString body) {
+            String uri, HttpMethod httpMethod, HashMap<String, String> extraHeaders, byte[] body) {
         this.mUri = uri;
         this.mHttpMethod = httpMethod;
         this.mExtraHeaders = extraHeaders;
@@ -53,7 +48,7 @@ public final class FederatedComputeHttpRequest {
             String uri,
             HttpMethod httpMethod,
             HashMap<String, String> extraHeaders,
-            ByteString body,
+            byte[] body,
             boolean useCompression) {
         if (!uri.startsWith(HTTPS_SCHEMA) && !uri.startsWith(LOCAL_HOST_URI)) {
             throw new IllegalArgumentException("Non-HTTPS URIs are not supported: " + uri);
@@ -65,12 +60,12 @@ public final class FederatedComputeHttpRequest {
         if (extraHeaders.containsKey(CONTENT_LENGTH_HDR)) {
             throw new IllegalArgumentException("Content-Length header should not be provided!");
         }
-        if (!body.isEmpty()) {
+        if (body.length > 0) {
             if (httpMethod != HttpMethod.POST) {
                 throw new IllegalArgumentException(
                         "Request method does not allow request mBody: " + httpMethod);
             }
-            extraHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(body.size()));
+            extraHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(body.length));
         }
 
         return new FederatedComputeHttpRequest(uri, httpMethod, extraHeaders, body);
@@ -80,7 +75,7 @@ public final class FederatedComputeHttpRequest {
         return mUri;
     }
 
-    public ByteString getBody() {
+    public byte[] getBody() {
         return mBody;
     }
 
