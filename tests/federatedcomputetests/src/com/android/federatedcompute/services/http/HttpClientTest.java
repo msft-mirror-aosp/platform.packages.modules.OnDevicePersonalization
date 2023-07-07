@@ -30,8 +30,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
-import com.google.protobuf.ByteString;
-
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -64,7 +62,7 @@ public final class HttpClientTest {
                         "https://google.com",
                         HttpMethod.POST,
                         new HashMap<>(),
-                        ByteString.EMPTY,
+                        HttpClientUtil.EMPTY_BODY,
                         false);
         doThrow(new IOException()).when(mHttpClient).setup(ArgumentMatchers.any());
 
@@ -78,7 +76,7 @@ public final class HttpClientTest {
                         "https://google.com",
                         HttpMethod.GET,
                         new HashMap<>(),
-                        ByteString.EMPTY,
+                        HttpClientUtil.EMPTY_BODY,
                         false);
         String successMessage = "Success!";
         InputStream mockStream = new ByteArrayInputStream(successMessage.getBytes(UTF_8));
@@ -106,7 +104,7 @@ public final class HttpClientTest {
                         "https://google.com",
                         HttpMethod.GET,
                         new HashMap<>(),
-                        ByteString.EMPTY,
+                        HttpClientUtil.EMPTY_BODY,
                         false);
         InputStream mockStream = new ByteArrayInputStream(failureMessage.getBytes(UTF_8));
         when(mMockHttpURLConnection.getErrorStream()).thenReturn(mockStream);
@@ -130,7 +128,7 @@ public final class HttpClientTest {
                         "https://google.com",
                         HttpMethod.POST,
                         new HashMap<>(),
-                        ByteString.copyFromUtf8("payload"),
+                        "payload".getBytes(UTF_8),
                         false);
         Map<String, List<String>> mockHeaders = new HashMap<>();
         mockHeaders.put("Header1", Arrays.asList("Value1"));
