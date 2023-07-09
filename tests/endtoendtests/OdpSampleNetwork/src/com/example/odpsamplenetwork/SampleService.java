@@ -24,6 +24,7 @@ import android.app.ondevicepersonalization.RequestToken;
 public class SampleService extends IsolatedComputationService {
     @NonNull @Override public IsolatedComputationCallback onRequest(
             RequestToken requestToken) {
-        return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken));
+        return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
+                getUserData(requestToken));
     }
 }
