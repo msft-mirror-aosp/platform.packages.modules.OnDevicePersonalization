@@ -16,8 +16,8 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.example.odpplaceholder2" >
+          package="com.example.odptargetingapp1" >
     <application
-        android:label="ODP Placeholder 2">
+        android:label="ODP Targeting App 1">
     </application>
 </manifest>
