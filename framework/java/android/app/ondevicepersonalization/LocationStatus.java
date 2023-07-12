@@ -25,7 +25,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * Location history information.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class LocationStatus implements Parcelable {

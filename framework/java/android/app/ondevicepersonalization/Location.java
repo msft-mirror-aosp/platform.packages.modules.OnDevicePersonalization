@@ -28,7 +28,6 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Most recently known location info.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class Location implements Parcelable {

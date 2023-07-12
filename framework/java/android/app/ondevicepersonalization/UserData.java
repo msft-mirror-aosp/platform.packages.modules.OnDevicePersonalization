@@ -32,7 +32,6 @@ import java.util.Map;
 /**
  * User data provided by the platform to an {@link IsolatedComputationService}.
  *
- * @hide
  */
 // This class should be updated with the Kotlin mirror
 // {@link com.android.ondevicepersonalization.services.policyengine.data.UserData}.

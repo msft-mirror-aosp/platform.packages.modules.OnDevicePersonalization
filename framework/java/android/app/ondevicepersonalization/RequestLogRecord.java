@@ -30,7 +30,6 @@ import java.util.List;
  * Contains data that will be written to the REQUESTS table at the end of a call to
  * {@link IsolatedComputationCallback#onExecute()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RequestLogRecord implements Parcelable {

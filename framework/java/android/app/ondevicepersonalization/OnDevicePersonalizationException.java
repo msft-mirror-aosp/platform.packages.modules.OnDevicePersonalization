@@ -21,7 +21,6 @@ import android.annotation.NonNull;
 /**
  * Exception thrown by OnDevicePersonalization APIs.
  *
- * @hide
  */
 public class OnDevicePersonalizationException extends Exception {
     private final int mErrorCode;
