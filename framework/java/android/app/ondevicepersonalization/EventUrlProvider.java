@@ -35,7 +35,6 @@ import java.util.concurrent.TimeUnit;
  * to these URLs, call {@link IsolatedComputationCallback#onEvent}, and log the returned output
  * in the EVENTS table.
  *
- * @hide
  */
 public class EventUrlProvider {
     private static final long ASYNC_TIMEOUT_MS = 1000;
