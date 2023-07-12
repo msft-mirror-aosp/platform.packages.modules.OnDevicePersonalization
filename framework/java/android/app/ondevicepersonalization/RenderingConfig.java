@@ -30,7 +30,6 @@ import java.util.List;
  * in a subesequent call to {@link IsolatedComputationCallback#onRender()} to identify the
  * content to be displayed in a single {@link View}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderingConfig implements Parcelable {

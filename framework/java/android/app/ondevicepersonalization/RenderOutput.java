@@ -28,7 +28,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a
  * {@link OnDevicePersonalizationManager#requestSurfacePackage()} request from a calling app.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderOutput implements Parcelable {
