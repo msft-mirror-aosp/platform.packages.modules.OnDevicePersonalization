@@ -24,7 +24,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedComputationCallback#onRender()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderInput implements Parcelable {

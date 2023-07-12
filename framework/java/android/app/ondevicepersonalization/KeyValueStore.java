@@ -26,7 +26,6 @@ import java.util.Set;
  * data store that contains data that has been downloaded by the ODP platform from
  * the vendor endpoint that is declared in the package manifest.
  *
- * @hide
  */
 public interface KeyValueStore {
     /**
