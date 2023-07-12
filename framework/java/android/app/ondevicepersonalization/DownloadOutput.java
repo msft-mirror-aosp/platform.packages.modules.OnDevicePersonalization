@@ -28,7 +28,6 @@ import java.util.List;
 /**
  * The result returned by {@link IsolatedComputationCallback#onDownload()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadOutput implements Parcelable {

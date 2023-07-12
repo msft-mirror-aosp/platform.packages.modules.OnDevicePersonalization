@@ -25,7 +25,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * Installation information for an app.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class AppInstallStatus implements Parcelable {

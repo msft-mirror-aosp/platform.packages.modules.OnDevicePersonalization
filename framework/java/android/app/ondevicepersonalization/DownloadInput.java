@@ -28,7 +28,6 @@ import java.util.Map;
 /**
  * The input data for {@link IsolatedComputationCallback#onDownload()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadInput {

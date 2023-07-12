@@ -23,7 +23,6 @@ import android.annotation.Nullable;
  * Data Access Object for the LOCAL_DATA table. The LOCAL_DATA table is a mutable
  * data store that contains data that has been stored locally by the vendor.
  *
- * @hide
  */
 public interface MutableKeyValueStore extends KeyValueStore {
     /**
