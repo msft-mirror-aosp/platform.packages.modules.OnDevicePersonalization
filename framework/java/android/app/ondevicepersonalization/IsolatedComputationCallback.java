@@ -23,7 +23,6 @@ import java.util.function.Consumer;
 /**
  * Interface with methods that need to be implemented to handle requests to an
  * {@link IsolatedComputationService}.
- * @hide
  */
 public interface IsolatedComputationCallback {
 
