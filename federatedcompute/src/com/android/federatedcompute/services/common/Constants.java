@@ -24,5 +24,19 @@ public class Constants {
     public static final String EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN =
             "android.federatedcompute.example_iterator_resumption_token";
 
+    public static final String EXTRA_EXAMPLE_STORE_ITERATOR_BINDER =
+            "android.federatedcompute.example_store_iterator_binder";
+    public static final String EXTRA_RESULT_HANDLING_SERVICE_BINDER =
+            "android.federatedcompute.result_handling_service_binder";
+    public static final String EXTRA_INPUT_CHECKPOINT_FD =
+            "android.federatedcompute.input_checkpoint_fd";
+    public static final String EXTRA_OUTPUT_CHECKPOINT_FD =
+            "android.federatedcompute.output_checkpoint_fd";
+    public static final String EXTRA_POPULATION_NAME = "android.federatedcompute.population_name";
+    public static final String EXTRA_FL_RUNNER_RESULT = "android.federatedcompute.fl_runner_result";
+    public static final String EXTRA_JOB_ID = "android.federatedcompute.job_id";
+    public static final String EXTRA_EXAMPLE_SELECTOR = "android.federatedcompute.example_selector";
+    public static final String EXTRA_CLIENT_ONLY_PLAN = "android.federatedcompute.client_only_plan";
+
     private Constants() {}
 }
