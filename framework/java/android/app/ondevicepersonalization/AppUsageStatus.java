@@ -25,7 +25,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * Usage information for an installed app.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class AppUsageStatus implements Parcelable {

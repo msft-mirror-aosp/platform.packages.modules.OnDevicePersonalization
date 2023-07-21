@@ -26,7 +26,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * Data to be logged in the EVENTS table that is associated with a pre-existing
  * {@link RequestLogRecord} that has been written to the REQUESTS table.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventLogRecord implements Parcelable {

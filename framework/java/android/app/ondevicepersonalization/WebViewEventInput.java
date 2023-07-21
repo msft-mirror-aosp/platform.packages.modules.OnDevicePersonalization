@@ -27,7 +27,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedComputationCallback#onWebViewEvent()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class WebViewEventInput implements Parcelable {

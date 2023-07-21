@@ -45,7 +45,6 @@ import java.util.function.Consumer;
  * use {@link OnDevicePersonalizationManager} to interact with an
  * {@link IsolatedComputationService}.
  *
- * @hide
  */
 public abstract class IsolatedComputationService extends Service {
     private static final String TAG = "IsolatedComputationService";
@@ -113,7 +112,6 @@ public abstract class IsolatedComputationService extends Service {
      * @param requestToken an opaque token that identifies the current request to the service.
      * @return A {@link UserData} object.
      *
-     * @hide
      */
     @Nullable public final UserData getUserData(
             @NonNull RequestToken requestToken) {
