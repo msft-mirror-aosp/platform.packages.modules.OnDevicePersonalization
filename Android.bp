@@ -101,6 +101,7 @@ android_app {
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
+        "framework-location.stubs.module_lib",
         "framework-ondevicepersonalization.impl",
         "framework-statsd.stubs.module_lib", // For WW logging
         "kotlin-annotations",
