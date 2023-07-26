@@ -16,20 +16,17 @@
 
 package com.android.federatedcompute.services.examplestore;
 
+import android.federatedcompute.aidl.IExampleStoreIterator;
+
 import com.android.federatedcompute.services.common.ErrorStatusException;
 
-import java.io.Closeable;
+import com.google.internal.federated.plan.ExampleSelector;
 
-/** The interface of ExampleIterator. */
-public interface ExampleIterator extends Closeable {
+/** Interface used to provide a reference to the IExampleStoreIterator. */
+public interface ExampleStoreIteratorProvider {
 
-    /** Called to check if next example is available. */
-    boolean hasNext() throws InterruptedException, ErrorStatusException;
-
-    /** Called when federated computation job needs another example. */
-    byte[] next() throws InterruptedException, ErrorStatusException;
-
-    /** Called when it is done using this iterator instance. */
-    @Override
-    void close();
+    /** Returns the selected ExampleStoreIterator. */
+    IExampleStoreIterator getExampleStoreIterator(
+            String packageName, ExampleSelector exampleSelector)
+            throws InterruptedException, ErrorStatusException;
 }
