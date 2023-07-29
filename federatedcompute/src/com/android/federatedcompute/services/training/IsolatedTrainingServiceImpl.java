@@ -20,6 +20,7 @@ import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IResultHandlingService;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -89,10 +90,14 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         }
         String populationName =
                 Objects.requireNonNull(params.getString(Constants.EXTRA_POPULATION_NAME));
-        String inputCheckpointFd =
-                Objects.requireNonNull(params.getString(Constants.EXTRA_INPUT_CHECKPOINT_FD));
-        String outputCheckpointFd =
-                Objects.requireNonNull(params.getString(Constants.EXTRA_OUTPUT_CHECKPOINT_FD));
+        ParcelFileDescriptor inputCheckpointFd =
+                Objects.requireNonNull(
+                        params.getParcelable(
+                                Constants.EXTRA_INPUT_CHECKPOINT_FD, ParcelFileDescriptor.class));
+        ParcelFileDescriptor outputCheckpointFd =
+                Objects.requireNonNull(
+                        params.getParcelable(
+                                Constants.EXTRA_OUTPUT_CHECKPOINT_FD, ParcelFileDescriptor.class));
         int jobId = params.getInt(Constants.EXTRA_JOB_ID);
         byte[] clientPlanBytes =
                 Objects.requireNonNull(params.getByteArray(Constants.EXTRA_CLIENT_ONLY_PLAN));
@@ -109,8 +114,8 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                 mComputationRunner.runTaskWithNativeRunner(
                                         jobId,
                                         populationName,
-                                        inputCheckpointFd,
-                                        outputCheckpointFd,
+                                        getFileDescriptorForTensorflow(inputCheckpointFd),
+                                        getFileDescriptorForTensorflow(outputCheckpointFd),
                                         clientPlan,
                                         exampleSelector,
                                         recorder,
@@ -138,6 +143,12 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                     }
                 },
                 FederatedComputeExecutors.getLightweightExecutor());
+    }
+
+    // We implement a customized tensorflow filesystem which support file descriptor for read and
+    // write. The file format is "fd:///${fd_number}".
+    private String getFileDescriptorForTensorflow(ParcelFileDescriptor parcelFileDescriptor) {
+        return "fd:///" + parcelFileDescriptor.getFd();
     }
 
     private void sendResult(FLRunnerResult result, ITrainingResultCallback callback) {
