@@ -50,6 +50,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.setfilters.cuckoofilter.CuckooFilter;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -155,13 +156,21 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     private boolean isMatch(Ad ad, String requestKeyword) {
-        if (ad.mTargetKeyword != null && !ad.mTargetKeyword.isEmpty()) {
-            if (!ad.mTargetKeyword.equals(requestKeyword)) {
+        if (ad.mTargetKeywords != null && !ad.mTargetKeywords.isEmpty()) {
+            if (!ad.mTargetKeywords.contains(requestKeyword)) {
                 return false;
             }
         }
-        if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
-            if (ad.mExcludeKeyword.equals(requestKeyword)) {
+        if (ad.mTargetApps != null && !ad.mTargetApps.isEmpty()) {
+            if (!isInstalledAppFound(ad.mTargetApps)) {
+                return false;
+            }
+        }
+        if (ad.mExcludes != null && !ad.mExcludes.isEmpty()) {
+            if (ad.mExcludes.contains(requestKeyword)) {
+                return false;
+            }
+            if (isInstalledAppFound(ad.mExcludes)) {
                 return false;
             }
         }
@@ -423,8 +432,33 @@ public class SampleHandler implements IsolatedComputationCallback {
         return false;
     }
 
+    boolean isInstalledAppFound(List<String> apps) {
+        if (mUserData == null) {
+            Log.i(TAG, "No userdata.");
+            return false;
+        }
+
+        if (mUserData.getAppInstalledHistory() == null
+                || mUserData.getAppInstalledHistory().isEmpty()) {
+            Log.i(TAG, "No installed apps.");
+            return false;
+        }
+
+        if (apps == null || apps.isEmpty()) {
+            return false;
+        }
+
+        for (String app: mUserData.getAppInstalledHistory().keySet()) {
+            if (apps.contains(app)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     boolean isBlockedAd(Ad ad) {
-        return isInstalledAppFound(ad.mExcludeFilter);
+        return isInstalledAppFound(ad.mExcludeFilter) || isInstalledAppFound(ad.mExcludes);
     }
 
     private List<String> getFilteredKeys(Map<String, byte[]> data) {
@@ -475,23 +509,25 @@ public class SampleHandler implements IsolatedComputationCallback {
     static class Ad {
         final String mId;
         final double mPrice;
-        final String mTargetKeyword;
-        final String mExcludeKeyword;
+        final List<String> mTargetKeywords;
+        final List<String> mTargetApps;
+        final List<String> mExcludes;
         final String mLandingPage;
         final String mText;
         final String mTemplateId;
         final CuckooFilter<String> mTargetKeywordFilter;
         final CuckooFilter<String> mTargetAppFilter;
         final CuckooFilter<String> mExcludeFilter;
-        Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage, String text, String templateId,
+        Ad(String id, double price, List<String> targetKeywords, List<String> targetApps,
+                List<String> excludes, String landingPage, String text, String templateId,
                 CuckooFilter<String> targetKeywordFilter,
                 CuckooFilter<String> targetAppFilter,
                 CuckooFilter<String> excludeFilter) {
             mId = id;
             mPrice = price;
-            mTargetKeyword = targetKeyword;
-            mExcludeKeyword = excludeKeyword;
+            mTargetKeywords = targetKeywords;
+            mTargetApps = targetApps;
+            mExcludes = excludes;
             mLandingPage = landingPage;
             mText = text;
             mTemplateId = templateId;
@@ -499,6 +535,17 @@ public class SampleHandler implements IsolatedComputationCallback {
             mTargetAppFilter = targetAppFilter;
             mExcludeFilter = excludeFilter;
         }
+    }
+
+    private static void readJsonArray(JsonReader reader, List<String> values) throws IOException {
+        reader.beginArray();
+        while (reader.hasNext()) {
+            String value = reader.nextString();
+            if (value != null && !value.isEmpty()) {
+                values.add(value);
+            }
+        }
+        reader.endArray();
     }
 
     Ad parseAd(String id, byte[] data) {
@@ -511,8 +558,9 @@ public class SampleHandler implements IsolatedComputationCallback {
         try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
             reader.beginObject();
             double price = 0.0;
-            String targetKeyword = "";
-            String excludeKeyword = "";
+            ArrayList<String> targetKeywords = new ArrayList<>();
+            ArrayList<String> targetApps = new ArrayList<>();
+            ArrayList<String> excludes = new ArrayList<>();
             String landingPage = "";
             String text = "Click Here!";
             String templateId = null;
@@ -523,10 +571,12 @@ public class SampleHandler implements IsolatedComputationCallback {
                 String name = reader.nextName();
                 if (name.equals("price")) {
                     price = reader.nextDouble();
-                } else if (name.equals("keyword")) {
-                    targetKeyword = reader.nextString();
-                } else if (name.equals("excludekeyword")) {
-                    excludeKeyword = reader.nextString();
+                } else if (name.equals("keywords")) {
+                    readJsonArray(reader, targetKeywords);
+                } else if (name.equals("apps")) {
+                    readJsonArray(reader, targetApps);
+                } else if (name.equals("excludes")) {
+                    readJsonArray(reader, excludes);
                 } else if (name.equals("landingPage")) {
                     landingPage = reader.nextString();
                 } else if (name.equals("text")) {
@@ -544,8 +594,8 @@ public class SampleHandler implements IsolatedComputationCallback {
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId,
-                    targetKeywordFilter, targetAppFilter, excludeFilter);
+            return new Ad(id, price, targetKeywords, targetApps, excludes, landingPage, text,
+                    templateId, targetKeywordFilter, targetAppFilter, excludeFilter);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;
