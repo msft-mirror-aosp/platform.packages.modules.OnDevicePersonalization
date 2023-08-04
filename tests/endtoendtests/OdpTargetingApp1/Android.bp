@@ -17,7 +17,7 @@ package {
 }
 
 android_test_helper_app {
-    name: "OdpPlaceholder2",
+    name: "OdpTargetingApp1",
     defaults: ["platform_app_defaults"],
     platform_apis: true,
     target_sdk_version: "current",
