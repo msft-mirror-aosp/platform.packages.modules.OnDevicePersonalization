@@ -118,6 +118,8 @@ android_app {
         "apache-velocity-engine-core",
         "owasp-java-encoder",
     ],
+    privileged: true,
+    privapp_allowlist: ":privapp_allowlist_com.android.ondevicepersonalization.services.xml",
     sdk_version: "module_current",
     min_sdk_version: "33",
     updatable: true,
