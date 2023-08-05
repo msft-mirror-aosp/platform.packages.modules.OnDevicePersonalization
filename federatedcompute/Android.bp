@@ -46,6 +46,7 @@ filegroup {
     name: "federatedcompute-sources",
     srcs: [
         "src/**/*.java",
+        "src/**/*.aidl",
     ],
     path: "src",
     visibility: [

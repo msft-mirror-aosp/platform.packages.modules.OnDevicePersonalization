@@ -34,6 +34,7 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.view.SurfaceControlViewHost;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.ArrayList;
@@ -248,8 +249,12 @@ public class OnDevicePersonalizationManager {
             }
 
             intent.setComponent(serviceComponent);
+            int bindFlags = Context.BIND_AUTO_CREATE;
+            if (SdkLevel.isAtLeastU()) {
+                bindFlags |= Context.BIND_ALLOW_ACTIVITY_STARTS;
+            }
             boolean r = mContext.bindService(
-                    intent, Context.BIND_AUTO_CREATE, executor, mConnection);
+                    intent, bindFlags, executor, mConnection);
             if (!r) {
                 return;
             }
