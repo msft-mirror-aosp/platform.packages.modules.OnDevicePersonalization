@@ -16,11 +16,11 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.aidl.IDataAccessService;
-import android.app.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Bundle;

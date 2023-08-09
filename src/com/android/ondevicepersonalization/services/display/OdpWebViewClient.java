@@ -16,13 +16,13 @@
 
 package com.android.ondevicepersonalization.services.display;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.WebViewEventInput;
+import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.EventLogRecord;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.UserData;
-import android.app.ondevicepersonalization.WebViewEventInput;
-import android.app.ondevicepersonalization.WebViewEventOutput;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
