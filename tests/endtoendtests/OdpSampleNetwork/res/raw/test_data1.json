@@ -2,13 +2,7 @@
   "syncToken": 1662138000,
   "contents": [
     { "key": "ad1",
-      "data": "{ \"price\": 10.0, \"landingPage\": \"http://google.com\", \"text\": \"Google\" }"
-    },
-    { "key": "ad2",
-      "data": "{ \"appFilter\": \"AAAAAAAAABUAAAAFAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABQLAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"price\": 20.0, \"landingPage\": \"http://android.com\", \"text\": \"Android\", \"template\": \"template1\" }"
-    },
-    { "key": "ad3",
-      "data": "{ \"excludeFilter\": \"AAAAAAAAABUAAAAFAAAACgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACYAwAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=\", \"price\": 15.0, \"landingPage\": \"http://nest.com\", \"text\": \"Nest\" }"
+      "data": "{ \"price\": 10.0, \"landingPage\": \"http://google.com\", \"text\": \"Google\", \"template\": \"template1\" }"
     },
     { "key": "template1",
       "data": "<img src=\"$impressionUrl\">\n<a href=\"$clickUrl\">${adText}!</a>"
