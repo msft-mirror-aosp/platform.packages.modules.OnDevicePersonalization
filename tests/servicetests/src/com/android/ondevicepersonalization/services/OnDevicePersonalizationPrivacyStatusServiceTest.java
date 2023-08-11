@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;

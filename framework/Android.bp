@@ -58,7 +58,7 @@ java_sdk_library {
         "ondevicepersonalization-java-defaults",
     ],
     permitted_packages: [
-        "android.app.ondevicepersonalization",
+        "android.adservices.ondevicepersonalization",
         "android.ondevicepersonalization",
         "com.android.ondevicepersonalization.internal",
         "android.federatedcompute",
