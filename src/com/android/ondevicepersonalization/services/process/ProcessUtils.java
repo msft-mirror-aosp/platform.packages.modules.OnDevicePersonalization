@@ -16,10 +16,10 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.OnDevicePersonalizationException;
 import android.content.Context;
 import android.os.Bundle;
 
