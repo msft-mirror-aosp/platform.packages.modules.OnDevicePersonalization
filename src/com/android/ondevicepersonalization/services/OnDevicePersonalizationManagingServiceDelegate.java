@@ -16,10 +16,10 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.aidl.IExecuteCallback;
-import android.app.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;

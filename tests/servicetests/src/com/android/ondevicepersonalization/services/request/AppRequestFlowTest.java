@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.PersistableBundle;
