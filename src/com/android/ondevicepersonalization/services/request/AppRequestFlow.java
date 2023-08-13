@@ -16,14 +16,14 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.OnDevicePersonalizationException;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.UserData;
-import android.app.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
