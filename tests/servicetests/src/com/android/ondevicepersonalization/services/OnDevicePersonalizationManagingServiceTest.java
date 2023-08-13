@@ -21,8 +21,8 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.aidl.IExecuteCallback;
-import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
