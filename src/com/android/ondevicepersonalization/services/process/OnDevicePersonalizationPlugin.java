@@ -16,11 +16,11 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import android.adservices.ondevicepersonalization.IsolatedComputationService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.ondevicepersonalization.IsolatedComputationService;
-import android.app.ondevicepersonalization.aidl.IIsolatedComputationService;
-import android.app.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 

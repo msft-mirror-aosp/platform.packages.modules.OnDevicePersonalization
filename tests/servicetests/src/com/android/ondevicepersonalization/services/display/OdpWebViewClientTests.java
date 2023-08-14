@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import android.app.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;

@@ -20,50 +20,34 @@ import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ER
 
 import static com.google.common.truth.Truth.assertThat;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
-import static org.mockito.Mockito.when;
-
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
 import android.federatedcompute.common.ExampleConsumption;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.RemoteException;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
-import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.TrainingResult;
-import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
-import com.android.federatedcompute.services.data.fbs.SchedulingReason;
-import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.training.ResultCallbackHelper.CallbackResult;
 
 import com.google.common.collect.ImmutableList;
 import com.google.flatbuffers.FlatBufferBuilder;
 
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.junit.runners.JUnit4;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(JUnit4.class)
 public final class ResultCallbackHelperTest {
     private static final byte[] SELECTION_CRITERIA = new byte[] {10, 0, 1};
-    private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
     private static final int JOB_ID = 123;
-    private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
-    private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
-
+    private final CountDownLatch mLatch = new CountDownLatch(1);
     private static final ImmutableList<ExampleConsumption> EXAMPLE_CONSUMPTIONS =
             ImmutableList.of(
                     new ExampleConsumption.Builder()
@@ -72,52 +56,25 @@ public final class ResultCallbackHelperTest {
                             .setSelectionCriteria(SELECTION_CRITERIA)
                             .build());
 
-    private static final FederatedTrainingTask TRAINING_TASK =
-            FederatedTrainingTask.builder()
-                    .appPackageName(PACKAGE_NAME)
-                    .jobId(JOB_ID)
-                    .populationName(POPULATION_NAME)
-                    .intervalOptions(INTERVAL_OPTIONS)
-                    .constraints(TRAINING_CONSTRAINTS)
-                    .creationTime(123L)
-                    .lastScheduledTime(123L)
-                    .earliestNextRunTime(123L)
-                    .schedulingReason(SCHEDULING_REASON)
-                    .build();
-    private final CountDownLatch mLatch = new CountDownLatch(1);
-
-    private ResultCallbackHelper mHelper;
-    @Mock private Flags mFlags;
-    @Mock private ResultHandlingServiceProvider mResultHandlingServiceProvider;
-
-    @Before
-    public void setUp() {
-        MockitoAnnotations.initMocks(this);
-        when(mFlags.getResultHandlingBindServiceTimeoutSecs()).thenReturn(20L);
-        when(mFlags.getResultHandlingServiceCallbackTimeoutSecs()).thenReturn(20L);
-        when(mResultHandlingServiceProvider.bindService(any())).thenReturn(true);
-        doNothing().when(mResultHandlingServiceProvider).unbindService();
-        mHelper =
-                new ResultCallbackHelper(
-                        EXAMPLE_CONSUMPTIONS, mResultHandlingServiceProvider, mFlags);
-    }
-
     @Test
     public void testHandleResult_success() throws Exception {
-        when(mResultHandlingServiceProvider.getResultHandlingService())
-                .thenReturn(new TestResultHandlingService());
+        ResultCallbackHelper helper =
+                new ResultCallbackHelper(EXAMPLE_CONSUMPTIONS, new TestResultHandlingService());
 
-        CallbackResult result = mHelper.callHandleResult(TRAINING_TASK, TrainingResult.SUCCESS);
+        CallbackResult result =
+                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
 
         assertThat(result).isEqualTo(CallbackResult.SUCCESS);
     }
 
     @Test
     public void testHandleResult_remoteException() throws Exception {
-        when(mResultHandlingServiceProvider.getResultHandlingService())
-                .thenReturn(new ResultHandlingServiceWithRemoteException());
+        ResultCallbackHelper helper =
+                new ResultCallbackHelper(
+                        EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithRemoteException());
 
-        CallbackResult result = mHelper.callHandleResult(TRAINING_TASK, TrainingResult.SUCCESS);
+        CallbackResult result =
+                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
@@ -137,16 +94,18 @@ public final class ResultCallbackHelperTest {
 
     @Test
     public void testHandleResult_timeoutException() throws Exception {
-        when(mFlags.getResultHandlingBindServiceTimeoutSecs()).thenReturn(1L);
-        when(mResultHandlingServiceProvider.getResultHandlingService())
-                .thenReturn(new ResultHandlingServiceWithTimeoutException());
+        ResultCallbackHelper helper =
+                new ResultCallbackHelper(
+                        EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithTimeoutException(), 20);
 
-        CallbackResult result = mHelper.callHandleResult(TRAINING_TASK, TrainingResult.SUCCESS);
+        CallbackResult result =
+                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
 
     class ResultHandlingServiceWithTimeoutException extends IResultHandlingService.Stub {
+
         @Override
         public void handleResult(
                 TrainingOptions trainingOptions,
@@ -163,10 +122,12 @@ public final class ResultCallbackHelperTest {
 
     @Test
     public void testHandleResult_interruptedException() throws Exception {
-        when(mResultHandlingServiceProvider.getResultHandlingService())
-                .thenReturn(new ResultHandlingServiceWithInterruptedException());
+        ResultCallbackHelper helper =
+                new ResultCallbackHelper(
+                        EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithInterruptedException());
 
-        CallbackResult result = mHelper.callHandleResult(TRAINING_TASK, TrainingResult.SUCCESS);
+        CallbackResult result =
+                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
@@ -187,11 +148,11 @@ public final class ResultCallbackHelperTest {
 
     @Test
     public void testHandleResult_failed() throws Exception {
-        when(mFlags.getResultHandlingBindServiceTimeoutSecs()).thenReturn(1L);
-        when(mResultHandlingServiceProvider.getResultHandlingService())
-                .thenReturn(new ResultHandlingServiceWithFail());
+        ResultCallbackHelper helper =
+                new ResultCallbackHelper(EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithFail());
 
-        CallbackResult result = mHelper.callHandleResult(TRAINING_TASK, TrainingResult.SUCCESS);
+        CallbackResult result =
+                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
@@ -227,12 +188,6 @@ public final class ResultCallbackHelperTest {
         builder.finish(
                 TrainingIntervalOptions.createTrainingIntervalOptions(
                         builder, SchedulingMode.ONE_TIME, 0));
-        return builder.sizedByteArray();
-    }
-
-    private static byte[] createDefaultTrainingConstraints() {
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-        builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
         return builder.sizedByteArray();
     }
 }

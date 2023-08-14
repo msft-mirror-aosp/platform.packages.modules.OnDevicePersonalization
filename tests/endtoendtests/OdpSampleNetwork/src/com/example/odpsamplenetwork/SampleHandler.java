@@ -16,21 +16,23 @@
 
 package com.example.odpsamplenetwork;
 
+import android.adservices.ondevicepersonalization.AppInstallStatus;
+import android.adservices.ondevicepersonalization.DownloadInput;
+import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventUrlProvider;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.IsolatedComputationCallback;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.WebViewEventInput;
+import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.DownloadInput;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.EventLogRecord;
-import android.app.ondevicepersonalization.EventUrlProvider;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.KeyValueStore;
-import android.app.ondevicepersonalization.RenderInput;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.WebViewEventInput;
-import android.app.ondevicepersonalization.WebViewEventOutput;
 import android.content.ContentValues;
 import android.os.PersistableBundle;
 import android.os.Process;
@@ -48,19 +50,19 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.setfilters.cuckoofilter.CuckooFilter;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
 public class SampleHandler implements IsolatedComputationCallback {
-    public static final String TAG = "SampleHandler";
+    public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
     public static final double COST_RAISING_FACTOR = 2.0;
@@ -74,7 +76,6 @@ public class SampleHandler implements IsolatedComputationCallback {
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
             + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
-    private static final Set<String> sBlockedKeywords = Set.of("cars", "trucks");
 
     private static final ListeningExecutorService sBackgroundExecutor =
             MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(
@@ -84,10 +85,22 @@ public class SampleHandler implements IsolatedComputationCallback {
 
     private final KeyValueStore mRemoteData;
     private final EventUrlProvider mEventUrlProvider;
+    private final UserData mUserData;
 
-    SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider) {
+    SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider,
+            UserData userData) {
         mRemoteData = remoteData;
         mEventUrlProvider = eventUrlProvider;
+        mUserData = userData;
+        if (mRemoteData == null) {
+            Log.e(TAG, "RemoteData missing");
+        }
+        if (mEventUrlProvider == null) {
+            Log.e(TAG, "EventUrlProvider missing");
+        }
+        if (mUserData == null) {
+            Log.e(TAG, "UserData missing");
+        }
     }
 
     @Override
@@ -143,13 +156,21 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     private boolean isMatch(Ad ad, String requestKeyword) {
-        if (ad.mTargetKeyword != null && !ad.mTargetKeyword.isEmpty()) {
-            if (!ad.mTargetKeyword.equals(requestKeyword)) {
+        if (ad.mTargetKeywords != null && !ad.mTargetKeywords.isEmpty()) {
+            if (!ad.mTargetKeywords.contains(requestKeyword)) {
                 return false;
             }
         }
-        if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
-            if (ad.mExcludeKeyword.equals(requestKeyword)) {
+        if (ad.mTargetApps != null && !ad.mTargetApps.isEmpty()) {
+            if (!isInstalledAppFound(ad.mTargetApps)) {
+                return false;
+            }
+        }
+        if (ad.mExcludes != null && !ad.mExcludes.isEmpty()) {
+            if (ad.mExcludes.contains(requestKeyword)) {
+                return false;
+            }
+            if (isInstalledAppFound(ad.mExcludes)) {
                 return false;
             }
         }
@@ -158,8 +179,16 @@ public class SampleHandler implements IsolatedComputationCallback {
                 return false;
             }
         }
-        if (ad.mExcludeKeywordFilter != null) {
-            if (ad.mExcludeKeywordFilter.contains(requestKeyword)) {
+        if (ad.mExcludeFilter != null) {
+            if (ad.mExcludeFilter.contains(requestKeyword)) {
+                return false;
+            }
+            if (isInstalledAppFound(ad.mExcludeFilter)) {
+                return false;
+            }
+        }
+        if (ad.mTargetAppFilter != null) {
+            if (!isInstalledAppFound(ad.mTargetAppFilter)) {
                 return false;
             }
         }
@@ -377,8 +406,59 @@ public class SampleHandler implements IsolatedComputationCallback {
         }
     }
 
+    boolean isInstalledAppFound(CuckooFilter<String> filter) {
+        if (mUserData == null) {
+            Log.i(TAG, "No userdata.");
+            return false;
+        }
+
+        if (mUserData.getAppInstalledHistory() == null
+                || mUserData.getAppInstalledHistory().isEmpty()) {
+            Log.i(TAG, "No installed apps.");
+            return false;
+        }
+
+        if (filter == null) {
+            return false;
+        }
+
+        for (String app: mUserData.getAppInstalledHistory().keySet()) {
+            AppInstallStatus value = mUserData.getAppInstalledHistory().get(app);
+            if (value != null && value.isInstalled() && filter.contains(app)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    boolean isInstalledAppFound(List<String> apps) {
+        if (mUserData == null) {
+            Log.i(TAG, "No userdata.");
+            return false;
+        }
+
+        if (mUserData.getAppInstalledHistory() == null
+                || mUserData.getAppInstalledHistory().isEmpty()) {
+            Log.i(TAG, "No installed apps.");
+            return false;
+        }
+
+        if (apps == null || apps.isEmpty()) {
+            return false;
+        }
+
+        for (String app: mUserData.getAppInstalledHistory().keySet()) {
+            if (apps.contains(app)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     boolean isBlockedAd(Ad ad) {
-        return ad.mTargetKeyword != null && sBlockedKeywords.contains(ad.mTargetKeyword);
+        return isInstalledAppFound(ad.mExcludeFilter) || isInstalledAppFound(ad.mExcludes);
     }
 
     private List<String> getFilteredKeys(Map<String, byte[]> data) {
@@ -429,27 +509,43 @@ public class SampleHandler implements IsolatedComputationCallback {
     static class Ad {
         final String mId;
         final double mPrice;
-        final String mTargetKeyword;
-        final String mExcludeKeyword;
+        final List<String> mTargetKeywords;
+        final List<String> mTargetApps;
+        final List<String> mExcludes;
         final String mLandingPage;
         final String mText;
         final String mTemplateId;
         final CuckooFilter<String> mTargetKeywordFilter;
-        final CuckooFilter<String> mExcludeKeywordFilter;
-        Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage, String text, String templateId,
+        final CuckooFilter<String> mTargetAppFilter;
+        final CuckooFilter<String> mExcludeFilter;
+        Ad(String id, double price, List<String> targetKeywords, List<String> targetApps,
+                List<String> excludes, String landingPage, String text, String templateId,
                 CuckooFilter<String> targetKeywordFilter,
-                CuckooFilter<String> excludeKeywordFilter) {
+                CuckooFilter<String> targetAppFilter,
+                CuckooFilter<String> excludeFilter) {
             mId = id;
             mPrice = price;
-            mTargetKeyword = targetKeyword;
-            mExcludeKeyword = excludeKeyword;
+            mTargetKeywords = targetKeywords;
+            mTargetApps = targetApps;
+            mExcludes = excludes;
             mLandingPage = landingPage;
             mText = text;
             mTemplateId = templateId;
             mTargetKeywordFilter = targetKeywordFilter;
-            mExcludeKeywordFilter = excludeKeywordFilter;
+            mTargetAppFilter = targetAppFilter;
+            mExcludeFilter = excludeFilter;
         }
+    }
+
+    private static void readJsonArray(JsonReader reader, List<String> values) throws IOException {
+        reader.beginArray();
+        while (reader.hasNext()) {
+            String value = reader.nextString();
+            if (value != null && !value.isEmpty()) {
+                values.add(value);
+            }
+        }
+        reader.endArray();
     }
 
     Ad parseAd(String id, byte[] data) {
@@ -462,21 +558,25 @@ public class SampleHandler implements IsolatedComputationCallback {
         try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
             reader.beginObject();
             double price = 0.0;
-            String targetKeyword = "";
-            String excludeKeyword = "";
+            ArrayList<String> targetKeywords = new ArrayList<>();
+            ArrayList<String> targetApps = new ArrayList<>();
+            ArrayList<String> excludes = new ArrayList<>();
             String landingPage = "";
             String text = "Click Here!";
             String templateId = null;
             CuckooFilter<String> targetKeywordFilter = null;
-            CuckooFilter<String> excludeKeywordFilter = null;
+            CuckooFilter<String> targetAppFilter = null;
+            CuckooFilter<String> excludeFilter = null;
             while (reader.hasNext()) {
                 String name = reader.nextName();
                 if (name.equals("price")) {
                     price = reader.nextDouble();
-                } else if (name.equals("keyword")) {
-                    targetKeyword = reader.nextString();
-                } else if (name.equals("excludekeyword")) {
-                    excludeKeyword = reader.nextString();
+                } else if (name.equals("keywords")) {
+                    readJsonArray(reader, targetKeywords);
+                } else if (name.equals("apps")) {
+                    readJsonArray(reader, targetApps);
+                } else if (name.equals("excludes")) {
+                    readJsonArray(reader, excludes);
                 } else if (name.equals("landingPage")) {
                     landingPage = reader.nextString();
                 } else if (name.equals("text")) {
@@ -485,16 +585,17 @@ public class SampleHandler implements IsolatedComputationCallback {
                     templateId = reader.nextString();
                 } else if (name.equals("keywordFilter")) {
                     targetKeywordFilter = CuckooFilterUtil.createCuckooFilter(reader.nextString());
-                } else if (name.equals("excludeKeywordFilter")) {
-                    excludeKeywordFilter = CuckooFilterUtil.createCuckooFilter(
-                            reader.nextString());
+                } else if (name.equals("appFilter")) {
+                    targetAppFilter = CuckooFilterUtil.createCuckooFilter(reader.nextString());
+                } else if (name.equals("excludeFilter")) {
+                    excludeFilter = CuckooFilterUtil.createCuckooFilter(reader.nextString());
                 } else {
                     reader.skipValue();
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId,
-                    targetKeywordFilter, excludeKeywordFilter);
+            return new Ad(id, price, targetKeywords, targetApps, excludes, landingPage, text,
+                    templateId, targetKeywordFilter, targetAppFilter, excludeFilter);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;

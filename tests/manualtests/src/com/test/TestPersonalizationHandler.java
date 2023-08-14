@@ -16,10 +16,10 @@
 
 package com.test;
 
-import android.app.ondevicepersonalization.DownloadInput;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.DownloadInput;
+import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.IsolatedComputationCallback;
+import android.adservices.ondevicepersonalization.KeyValueStore;
 import android.util.Log;
 
 import java.util.ArrayList;
