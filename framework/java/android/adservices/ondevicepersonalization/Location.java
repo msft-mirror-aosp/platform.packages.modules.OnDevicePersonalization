@@ -47,15 +47,6 @@ public final class Location implements Parcelable {
     /** Location longitude with E4 precision. */
     double mLongitude = 0.0;
 
-    /** @hide */
-    @IntDef(prefix = {"LOCATION_PROVIDER_TYPE_"}, value = {
-        LOCATION_PROVIDER_TYPE_UNKNOWN,
-        LOCATION_PROVIDER_TYPE_GPS,
-        LOCATION_PROVIDER_TYPE_NETWORK
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface LocationProviderType {}
-
     /** Location provider unknown. */
     public static final int LOCATION_PROVIDER_TYPE_UNKNOWN = 0;
     /** Location provider GPS. */
@@ -77,12 +68,21 @@ public final class Location implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/Location.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/Location.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
     //@formatter:off
 
+    /** @hide */
+    @IntDef(prefix = "LOCATION_PROVIDER_TYPE_", value = {
+        LOCATION_PROVIDER_TYPE_UNKNOWN,
+        LOCATION_PROVIDER_TYPE_GPS,
+        LOCATION_PROVIDER_TYPE_NETWORK
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    @DataClass.Generated.Member
+    public @interface LocationProviderType {}
 
     @DataClass.Generated.Member
     @NonNull public static String locationProviderTypeToString(@LocationProviderType int value) {
@@ -377,9 +377,9 @@ public final class Location implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1688111819473L,
+            time = 1692119557892L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/Location.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/Location.java",
             inputSignatures = "static final  android.adservices.ondevicepersonalization.Location EMPTY\n  long mTimestampSeconds\n  double mLatitude\n  double mLongitude\npublic static final  int LOCATION_PROVIDER_TYPE_UNKNOWN\npublic static final  int LOCATION_PROVIDER_TYPE_GPS\npublic static final  int LOCATION_PROVIDER_TYPE_NETWORK\n @android.adservices.ondevicepersonalization.Location.LocationProviderType int mLocationProvider\n  boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

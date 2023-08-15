@@ -32,11 +32,11 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 public class DownloadInputParcel implements Parcelable {
     /** List of downloaded keys */
     @Nullable
-    StringParceledListSlice mDownloadedKeys;
+    StringParceledListSlice mDownloadedKeys = null;
 
     /** List of downloaded values */
     @Nullable
-    ByteArrayParceledListSlice mDownloadedValues;
+    ByteArrayParceledListSlice mDownloadedValues = null;
 
 
 
@@ -46,7 +46,7 @@ public class DownloadInputParcel implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadInputParcel.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInputParcel.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -173,21 +173,6 @@ public class DownloadInputParcel implements Parcelable {
         }
 
         /**
-         * Creates a new Builder.
-         *
-         * @param downloadedKeys
-         *   List of downloaded keys
-         * @param downloadedValues
-         *   List of downloaded values
-         */
-        public Builder(
-                @Nullable StringParceledListSlice downloadedKeys,
-                @Nullable ByteArrayParceledListSlice downloadedValues) {
-            mDownloadedKeys = downloadedKeys;
-            mDownloadedValues = downloadedValues;
-        }
-
-        /**
          * List of downloaded keys
          */
         @DataClass.Generated.Member
@@ -214,6 +199,12 @@ public class DownloadInputParcel implements Parcelable {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mDownloadedKeys = null;
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mDownloadedValues = null;
+            }
             DownloadInputParcel o = new DownloadInputParcel(
                     mDownloadedKeys,
                     mDownloadedValues);
@@ -229,9 +220,9 @@ public class DownloadInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1678905403334L,
+            time = 1692121838009L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DownloadInputParcel.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInputParcel.java",
             inputSignatures = " @android.annotation.Nullable com.android.modules.utils.StringParceledListSlice mDownloadedKeys\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mDownloadedValues\nclass DownloadInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
