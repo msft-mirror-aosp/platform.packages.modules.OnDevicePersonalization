@@ -53,7 +53,7 @@ public final class RenderOutput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderOutput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -262,9 +262,9 @@ public final class RenderOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687974326672L,
+            time = 1692118415895L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderOutput.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutput.java",
             inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nprivate @android.annotation.NonNull android.os.PersistableBundle mTemplateParams\nprivate @android.annotation.Nullable java.lang.String mTemplateId\nclass RenderOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

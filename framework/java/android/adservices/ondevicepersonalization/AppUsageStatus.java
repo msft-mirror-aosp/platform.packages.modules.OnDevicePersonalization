@@ -43,7 +43,7 @@ public final class AppUsageStatus implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/AppUsageStatus.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppUsageStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -220,9 +220,9 @@ public final class AppUsageStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687985965464L,
+            time = 1692118318612L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/AppUsageStatus.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppUsageStatus.java",
             inputSignatures = " @android.annotation.NonNull java.lang.String mPackageName\n @android.annotation.NonNull long mTotalTimeUsedInMillis\nclass AppUsageStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

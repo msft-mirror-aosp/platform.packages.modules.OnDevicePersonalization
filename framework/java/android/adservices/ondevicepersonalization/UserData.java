@@ -55,19 +55,6 @@ public final class UserData implements Parcelable {
 
     @NonNull String mCarrier = "";
 
-    /** @hide */
-    @IntDef(prefix = {"CONNECTION_TYPE_"}, value = {
-        CONNECTION_TYPE_UNKNOWN,
-        CONNECTION_TYPE_ETHERNET,
-        CONNECTION_TYPE_WIFI,
-        CONNECTION_TYPE_CELLULAR_2G,
-        CONNECTION_TYPE_CELLULAR_3G,
-        CONNECTION_TYPE_CELLULAR_4G,
-        CONNECTION_TYPE_CELLULAR_5G
-    })
-    @Retention(RetentionPolicy.SOURCE)
-    public @interface ConnectionType {}
-
     /** Connection type unknown. */
     public static final int CONNECTION_TYPE_UNKNOWN = 0;
     /** Connection type ethernet. */
@@ -112,12 +99,25 @@ public final class UserData implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/UserData.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
     //@formatter:off
 
+    /** @hide */
+    @IntDef(prefix = "CONNECTION_TYPE_", value = {
+        CONNECTION_TYPE_UNKNOWN,
+        CONNECTION_TYPE_ETHERNET,
+        CONNECTION_TYPE_WIFI,
+        CONNECTION_TYPE_CELLULAR_2G,
+        CONNECTION_TYPE_CELLULAR_3G,
+        CONNECTION_TYPE_CELLULAR_4G,
+        CONNECTION_TYPE_CELLULAR_5G
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    @DataClass.Generated.Member
+    public @interface ConnectionType {}
 
     @DataClass.Generated.Member
     @NonNull public static String connectionTypeToString(@ConnectionType int value) {
@@ -701,9 +701,9 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1688154933121L,
+            time = 1692119635998L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/UserData.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
             inputSignatures = "  long mTimestampSeconds\n  int mTimezoneUtcOffsetMins\n  int mOrientation\n  long mAvailableStorageMb\n  int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n @android.adservices.ondevicepersonalization.UserData.ConnectionType int mConnectionType\n  long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
