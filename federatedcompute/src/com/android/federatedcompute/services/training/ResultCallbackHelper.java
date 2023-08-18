@@ -144,7 +144,7 @@ public class ResultCallbackHelper {
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalBytes));
         TrainingOptions.Builder trainingOptionsBuilder = new TrainingOptions.Builder();
-        trainingOptionsBuilder.setJobSchedulerJobId(jobId).setPopulationName(populationName);
+        trainingOptionsBuilder.setPopulationName(populationName);
         if (intervalOptions != null) {
             TrainingInterval interval =
                     new TrainingInterval.Builder()

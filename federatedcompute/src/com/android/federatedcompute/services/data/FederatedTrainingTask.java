@@ -39,7 +39,9 @@ import java.util.List;
 public abstract class FederatedTrainingTask {
     private static final String TAG = "FederatedTrainingTask";
 
-    /** @return client app package name */
+    /**
+     * @return client app package name
+     */
     public abstract String appPackageName();
 
     /**
@@ -47,8 +49,16 @@ public abstract class FederatedTrainingTask {
      */
     public abstract int jobId();
 
-    /** @return the population name to uniquely identify the training job by. */
+    /**
+     * @return the population name to uniquely identify the training job by.
+     */
     public abstract String populationName();
+
+    /**
+     * @return the remote federated compute server address that federated client need contact when
+     *     job starts.
+     */
+    public abstract String serverAddress();
 
     /**
      * @return the byte array of training interval including scheduling mode and minimum latency.
@@ -58,7 +68,9 @@ public abstract class FederatedTrainingTask {
     @SuppressWarnings("mutable")
     public abstract byte[] intervalOptions();
 
-    /** @return the training interval including scheduling mode and minimum latency. */
+    /**
+     * @return the training interval including scheduling mode and minimum latency.
+     */
     @Nullable
     public final TrainingIntervalOptions getTrainingIntervalOptions() {
         if (intervalOptions() == null) {
@@ -68,21 +80,38 @@ public abstract class FederatedTrainingTask {
                 ByteBuffer.wrap(intervalOptions()));
     }
 
-    /** @return the time the task was originally created. */
+    /**
+     * @return the context data that clients pass when schedule the job.
+     */
+    @Nullable
+    @SuppressWarnings("mutable")
+    public abstract byte[] contextData();
+
+    /**
+     * @return the time the task was originally created.
+     */
     public abstract Long creationTime();
 
-    /** @return the time the task was last scheduled. */
+    /**
+     * @return the time the task was last scheduled.
+     */
     public abstract Long lastScheduledTime();
 
-    /** @return the start time of the task's last run. */
+    /**
+     * @return the start time of the task's last run.
+     */
     @Nullable
     public abstract Long lastRunStartTime();
 
-    /** @return the end time of the task's last run. */
+    /**
+     * @return the end time of the task's last run.
+     */
     @Nullable
     public abstract Long lastRunEndTime();
 
-    /** @return the earliest time to run the task by. */
+    /**
+     * @return the earliest time to run the task by.
+     */
     public abstract Long earliestNextRunTime();
 
     /**
@@ -92,12 +121,16 @@ public abstract class FederatedTrainingTask {
     @SuppressWarnings("mutable")
     public abstract byte[] constraints();
 
-    /** @return the training constraints that should apply to this task. */
+    /**
+     * @return the training constraints that should apply to this task.
+     */
     public final TrainingConstraints getTrainingConstraints() {
         return TrainingConstraints.getRootAsTrainingConstraints(ByteBuffer.wrap(constraints()));
     }
 
-    /** @return the reason to schedule the task. */
+    /**
+     * @return the reason to schedule the task.
+     */
     public abstract int schedulingReason();
 
     /** Builder for {@link FederatedTrainingTask} */
@@ -112,9 +145,16 @@ public abstract class FederatedTrainingTask {
         /** Set population name which uniquely identify the job. */
         public abstract Builder populationName(String populationName);
 
+        /** Set remote federated compute server address. */
+        public abstract Builder serverAddress(String serverAddress);
+
         /** Set the training interval including scheduling mode and minimum latency. */
         @SuppressWarnings("mutable")
         public abstract Builder intervalOptions(@Nullable byte[] intervalOptions);
+
+        /** Set the context data that clients pass when schedule job. */
+        @SuppressWarnings("mutable")
+        public abstract Builder contextData(@Nullable byte[] contextData);
 
         /** Set the time the task was originally created. */
         public abstract Builder creationTime(Long creationTime);
@@ -143,10 +183,14 @@ public abstract class FederatedTrainingTask {
         public abstract FederatedTrainingTask build();
     }
 
-    /** @return a builder of federated training task. */
+    /**
+     * @return a builder of federated training task.
+     */
     public abstract Builder toBuilder();
 
-    /** @return a generic builder. */
+    /**
+     * @return a generic builder.
+     */
     @NonNull
     public static Builder builder() {
         return new AutoValue_FederatedTrainingTask.Builder();
@@ -158,8 +202,13 @@ public abstract class FederatedTrainingTask {
         values.put(FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID, jobId());
 
         values.put(FederatedTrainingTaskColumns.POPULATION_NAME, populationName());
+        values.put(FederatedTrainingTaskColumns.SERVER_ADDRESS, serverAddress());
         if (intervalOptions() != null) {
             values.put(FederatedTrainingTaskColumns.INTERVAL_OPTIONS, intervalOptions());
+        }
+
+        if (contextData() != null) {
+            values.put(FederatedTrainingTaskColumns.CONTEXT_DATA, contextData());
         }
 
         values.put(FederatedTrainingTaskColumns.CREATION_TIME, creationTime());
@@ -189,7 +238,9 @@ public abstract class FederatedTrainingTask {
             FederatedTrainingTaskColumns.APP_PACKAGE_NAME,
             FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID,
             FederatedTrainingTaskColumns.POPULATION_NAME,
+            FederatedTrainingTaskColumns.SERVER_ADDRESS,
             FederatedTrainingTaskColumns.INTERVAL_OPTIONS,
+            FederatedTrainingTaskColumns.CONTEXT_DATA,
             FederatedTrainingTaskColumns.CREATION_TIME,
             FederatedTrainingTaskColumns.LAST_SCHEDULED_TIME,
             FederatedTrainingTaskColumns.LAST_RUN_START_TIME,
@@ -231,6 +282,11 @@ public abstract class FederatedTrainingTask {
                                                 cursor.getColumnIndexOrThrow(
                                                         FederatedTrainingTaskColumns
                                                                 .POPULATION_NAME)))
+                                .serverAddress(
+                                        cursor.getString(
+                                                cursor.getColumnIndexOrThrow(
+                                                        FederatedTrainingTaskColumns
+                                                                .SERVER_ADDRESS)))
                                 .creationTime(
                                         cursor.getLong(
                                                 cursor.getColumnIndexOrThrow(
@@ -269,6 +325,13 @@ public abstract class FederatedTrainingTask {
                                         FederatedTrainingTaskColumns.INTERVAL_OPTIONS));
                 if (intervalOptions != null) {
                     trainingTaskBuilder.intervalOptions(intervalOptions);
+                }
+                byte[] contextData =
+                        cursor.getBlob(
+                                cursor.getColumnIndexOrThrow(
+                                        FederatedTrainingTaskColumns.CONTEXT_DATA));
+                if (contextData != null) {
+                    trainingTaskBuilder.contextData(contextData);
                 }
                 byte[] constraints =
                         cursor.getBlob(
