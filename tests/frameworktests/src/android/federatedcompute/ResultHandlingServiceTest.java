@@ -50,7 +50,6 @@ public final class ResultHandlingServiceTest {
     private static final TrainingOptions TRAINING_OPTIONS =
             new TrainingOptions.Builder()
                     .setPopulationName(TEST_POPULATION)
-                    .setJobSchedulerJobId(JOB_ID)
                     .setTrainingInterval(
                             new TrainingInterval.Builder()
                                     .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)

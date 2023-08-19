@@ -46,7 +46,7 @@ public final class OSVersion implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OSVersion.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/OSVersion.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -274,9 +274,9 @@ public final class OSVersion implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1676500093560L,
+            time = 1692118390970L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/OSVersion.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/OSVersion.java",
             inputSignatures = " @android.annotation.NonNull int mMajor\n @android.annotation.NonNull int mMinor\n @android.annotation.NonNull int mMicro\nclass OSVersion extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
