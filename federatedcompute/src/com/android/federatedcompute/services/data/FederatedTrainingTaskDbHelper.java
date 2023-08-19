@@ -45,7 +45,11 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
                     + " INTEGER, "
                     + FederatedTrainingTaskColumns.POPULATION_NAME
                     + " TEXT NOT NULL,"
+                    + FederatedTrainingTaskColumns.SERVER_ADDRESS
+                    + " TEXT NOT NULL,"
                     + FederatedTrainingTaskColumns.INTERVAL_OPTIONS
+                    + " BLOB, "
+                    + FederatedTrainingTaskColumns.CONTEXT_DATA
                     + " BLOB, "
                     + FederatedTrainingTaskColumns.CREATION_TIME
                     + " INTEGER, "

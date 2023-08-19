@@ -49,6 +49,7 @@ import org.mockito.MockitoAnnotations;
 public final class FederatedComputeWorkerTest {
     private static final int JOB_ID = 1234;
     private static final String POPULATION_NAME = "barPopulation";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final long CREATION_TIME_MS = 10000L;
     private static final long TASK_EARLIEST_NEXT_RUN_TIME_MS = 1234567L;
     private static final String PACKAGE_NAME = "com.android.federatedcompute.services.training";
@@ -63,6 +64,7 @@ public final class FederatedComputeWorkerTest {
                     .lastScheduledTime(TASK_EARLIEST_NEXT_RUN_TIME_MS)
                     .populationName(POPULATION_NAME)
                     .jobId(JOB_ID)
+                    .serverAddress(SERVER_ADDRESS)
                     .intervalOptions(INTERVAL_OPTIONS)
                     .constraints(DEFAULT_TRAINING_CONSTRAINTS)
                     .earliestNextRunTime(TASK_EARLIEST_NEXT_RUN_TIME_MS)

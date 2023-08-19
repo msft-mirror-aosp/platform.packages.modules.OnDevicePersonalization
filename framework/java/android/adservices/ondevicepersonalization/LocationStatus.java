@@ -46,7 +46,7 @@ public final class LocationStatus implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/LocationStatus.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/LocationStatus.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -258,9 +258,9 @@ public final class LocationStatus implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687985976247L,
+            time = 1692118385361L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/LocationStatus.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/LocationStatus.java",
             inputSignatures = " @android.annotation.NonNull double mLatitude\n @android.annotation.NonNull double mLongitude\n @android.annotation.NonNull long mDurationMillis\nclass LocationStatus extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

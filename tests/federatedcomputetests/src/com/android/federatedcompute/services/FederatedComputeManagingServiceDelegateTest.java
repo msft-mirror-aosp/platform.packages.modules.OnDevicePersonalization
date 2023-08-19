@@ -16,48 +16,95 @@
 
 package com.android.federatedcompute.services;
 
+import static org.junit.Assert.assertThrows;
+
+import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.common.TrainingOptions;
-import android.os.IBinder;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.core.app.ApplicationProvider;
 
-import org.junit.Assert;
+import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
-@RunWith(AndroidJUnit4.class)
+import java.util.concurrent.CountDownLatch;
+
+@RunWith(JUnit4.class)
 public final class FederatedComputeManagingServiceDelegateTest {
     private FederatedComputeManagingServiceDelegate mFcpService;
+    private Context mContext;
+    @Mock FederatedComputeJobManager mMockJobManager;
 
     @Before
     public void setUp() {
-        mFcpService = new FederatedComputeManagingServiceDelegate();
+        MockitoAnnotations.initMocks(this);
+
+        mContext = ApplicationProvider.getApplicationContext();
+        mFcpService = new FederatedComputeManagingServiceDelegate(mContext, new TestInjector());
     }
 
     @Test
-    public void testSchedule() throws Exception {
+    public void testScheduleMissingPackageName_throwsException() throws Exception {
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder()
-                        .setJobSchedulerJobId(123)
-                        .setPopulationName("fake-population")
-                        .build();
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        mFcpService.scheduleFederatedCompute(
+                                null, trainingOptions, new FederatedComputeCallback()));
+    }
+
+    @Test
+    public void testScheduleMissingCallback_throwsException() throws Exception {
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        mFcpService.scheduleFederatedCompute(
+                                mContext.getPackageName(), trainingOptions, null));
+    }
+
+    @Test
+    public void testSchedule_returnsSuccess() throws Exception {
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
         mFcpService.scheduleFederatedCompute(
-                trainingOptions,
-                new IFederatedComputeCallback() {
-                    @Override
-                    public void onSuccess() {}
+                mContext.getPackageName(), trainingOptions, new FederatedComputeCallback());
+    }
 
-                    @Override
-                    public void onFailure(int errorCode) {
-                        Assert.fail();
-                    }
+    static class FederatedComputeCallback extends IFederatedComputeCallback.Stub {
+        public boolean mError = false;
+        public int mErrorCode = 0;
+        private CountDownLatch mLatch = new CountDownLatch(1);
 
-                    @Override
-                    public IBinder asBinder() {
-                        return null;
-                    }
-                });
+        @Override
+        public void onSuccess() {
+            mLatch.countDown();
+        }
+
+        @Override
+        public void onFailure(int errorCode) {
+            mError = true;
+            mErrorCode = errorCode;
+            mLatch.countDown();
+        }
+
+        public void await() throws Exception {
+            mLatch.await();
+        }
+    }
+
+    class TestInjector extends FederatedComputeManagingServiceDelegate.Injector {
+        FederatedComputeJobManager getJobManager(Context mContext) {
+            return mMockJobManager;
+        }
     }
 }

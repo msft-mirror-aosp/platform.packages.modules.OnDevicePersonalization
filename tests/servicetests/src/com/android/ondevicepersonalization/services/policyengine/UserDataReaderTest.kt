@@ -267,7 +267,6 @@ class UserDataReaderTest : ProcessorNode {
                 .build()
         val locationHistory: List<LocationStatus> = listOf();
         var userData1 = UserData.Builder()
-                .setTimestampSeconds(111)
                 .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
                 .setAvailableStorageMb(222)
@@ -291,7 +290,6 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
-        assertThat(userData.getTimestampSeconds()).isEqualTo(ref.timeMillis / 1000)
         assertThat(userData.getTimezoneUtcOffsetMins()).isEqualTo(ref.utcOffset)
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
         assertThat(userData.getAvailableStorageMb()).isEqualTo(ref.availableStorageMB)

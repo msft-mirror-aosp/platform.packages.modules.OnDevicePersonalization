@@ -101,7 +101,9 @@ public final class FederatedComputeManager {
                         }
                     };
             service.scheduleFederatedCompute(
-                    request.getTrainingOptions(), federatedComputeCallback);
+                    mContext.getPackageName(),
+                    request.getTrainingOptions(),
+                    federatedComputeCallback);
         } catch (RemoteException e) {
             Log.e(TAG, "Remote Exception", e);
             executor.execute(() -> callback.onError(e));
