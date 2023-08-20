@@ -30,7 +30,7 @@ public class FederatedComputeManagingServiceImpl extends Service {
     public void onCreate() {
         super.onCreate();
         if (mFcpServiceDelegate == null) {
-            mFcpServiceDelegate = new FederatedComputeManagingServiceDelegate();
+            mFcpServiceDelegate = new FederatedComputeManagingServiceDelegate(this);
         }
     }
 

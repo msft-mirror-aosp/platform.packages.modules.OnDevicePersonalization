@@ -16,25 +16,58 @@
 
 package com.android.federatedcompute.services;
 
+import android.annotation.NonNull;
+import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.TrainingOptions;
-import android.os.RemoteException;
-import android.util.Log;
+
+import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
+
+import com.google.common.annotations.VisibleForTesting;
+
+import java.util.Objects;
 
 /** Implementation of {@link IFederatedComputeService}. */
 public class FederatedComputeManagingServiceDelegate extends IFederatedComputeService.Stub {
     private static final String TAG = "FcpServiceDelegate";
+    @NonNull private final Context mContext;
 
-    public FederatedComputeManagingServiceDelegate() {}
+    @VisibleForTesting
+    static class Injector {
+        FederatedComputeJobManager getJobManager(Context context) {
+            return FederatedComputeJobManager.getInstance(context);
+        }
+    }
+
+    @NonNull private final Injector mInjector;
+
+    public FederatedComputeManagingServiceDelegate(@NonNull Context context) {
+        this(context, new Injector());
+    }
+
+    @VisibleForTesting
+    public FederatedComputeManagingServiceDelegate(
+            @NonNull Context context, @NonNull Injector injector) {
+        mContext = Objects.requireNonNull(context);
+        mInjector = Objects.requireNonNull(injector);
+    }
 
     @Override
     public void scheduleFederatedCompute(
-            TrainingOptions trainingOptions, IFederatedComputeCallback callback) {
-        try {
-            callback.onSuccess();
-        } catch (RemoteException e) {
-            Log.e(TAG, "Unable to send results to the callback", e);
-        }
+            String callingPackageName,
+            TrainingOptions trainingOptions,
+            IFederatedComputeCallback callback) {
+        Objects.requireNonNull(callingPackageName);
+        Objects.requireNonNull(callback);
+
+        FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
+        FederatedComputeExecutors.getBackgroundExecutor()
+                .execute(
+                        () -> {
+                            jobManager.onTrainerStartCalled(
+                                    callingPackageName, trainingOptions, callback);
+                        });
     }
 }
