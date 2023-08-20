@@ -66,7 +66,6 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
             // TODO(b/267013762): more privacy-preserving processing may be needed
             return UserData.Builder()
-                    .setTimestampSeconds((rawUserData.timeMillis / 1000).toLong())
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
                     .setAvailableStorageMb(rawUserData.availableStorageMB)
