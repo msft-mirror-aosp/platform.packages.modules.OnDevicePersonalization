@@ -48,7 +48,7 @@ public final class RenderingConfig implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderingConfig.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderingConfig.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -199,9 +199,9 @@ public final class RenderingConfig implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1687974124881L,
+            time = 1692118399909L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/RenderingConfig.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderingConfig.java",
             inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"key\") @android.annotation.NonNull java.util.List<java.lang.String> mKeys\nclass RenderingConfig extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

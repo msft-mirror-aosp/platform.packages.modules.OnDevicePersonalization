@@ -49,8 +49,7 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OdpResultHandlingServiceTests {
-    @Rule
-    public final ServiceTestRule serviceRule = new ServiceTestRule();
+    @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
 
@@ -62,15 +61,17 @@ public class OdpResultHandlingServiceTests {
         Intent mIntent = new Intent();
         mIntent.setAction(RESULT_HANDLING_SERVICE_ACTION).setPackage(mContext.getPackageName());
         mIntent.setData(
-                new Uri.Builder().scheme("app").authority(mContext.getPackageName())
-                        .path("collection").build());
+                new Uri.Builder()
+                        .scheme("app")
+                        .authority(mContext.getPackageName())
+                        .path("collection")
+                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
 
         TrainingOptions trainingOptions =
                 new TrainingOptions.Builder()
                         .setPopulationName("population")
-                        .setJobSchedulerJobId(1)
                         .setTrainingInterval(
                                 new TrainingInterval.Builder()
                                         .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
@@ -81,14 +82,11 @@ public class OdpResultHandlingServiceTests {
                         new ExampleConsumption.Builder()
                                 .setCollectionName("collection")
                                 .setExampleCount(100)
-                                .setSelectionCriteria(new byte[]{10, 0, 1})
+                                .setSelectionCriteria(new byte[] {10, 0, 1})
                                 .build());
 
-        ((IResultHandlingService.Stub) binder).handleResult(
-                trainingOptions,
-                true,
-                exampleConsumptions,
-                new TestCallback());
+        ((IResultHandlingService.Stub) binder)
+                .handleResult(trainingOptions, true, exampleConsumptions, new TestCallback());
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mCallbackOnSuccessCalled);
         assertFalse(mCallbackOnFailureCalled);
