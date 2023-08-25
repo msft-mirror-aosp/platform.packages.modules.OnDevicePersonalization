@@ -23,6 +23,7 @@ import android.app.job.JobService;
 import android.util.Log;
 
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FlagsFactory;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -36,6 +37,11 @@ public class FederatedJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         Log.d(TAG, "FederatedJobService.onStartJob");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            Log.d(TAG, "GlobalKillSwitch enabled, finishing job.");
+            jobFinished(params, /* wantsReschedule= */ false);
+            return true;
+        }
         mRunCompleteFuture =
                 Futures.submit(
                         () ->
