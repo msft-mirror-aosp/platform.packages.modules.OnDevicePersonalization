@@ -16,14 +16,15 @@
 
 package com.example.odpsamplenetwork;
 
+import android.adservices.ondevicepersonalization.IsolatedComputationCallback;
+import android.adservices.ondevicepersonalization.IsolatedComputationService;
+import android.adservices.ondevicepersonalization.RequestToken;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.IsolatedComputationService;
-import android.app.ondevicepersonalization.RequestToken;
 
 public class SampleService extends IsolatedComputationService {
     @NonNull @Override public IsolatedComputationCallback onRequest(
             RequestToken requestToken) {
-        return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken));
+        return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
+                getUserData(requestToken));
     }
 }

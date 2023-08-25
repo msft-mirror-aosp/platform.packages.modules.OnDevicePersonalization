@@ -52,6 +52,7 @@ public class JobSchedulerHelperTest {
     private static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.FederatedJobService";
     private static final String POPULATION_NAME = "population";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 10281993;
     private static final long CURRENT_TIME_MILLIS = 80000;
     private static final long NEXT_RUNTIME_MILLSECONDS = 100000;
@@ -71,6 +72,7 @@ public class JobSchedulerHelperTest {
                     .lastScheduledTime(CURRENT_TIME_MILLIS)
                     .schedulingReason(SCHEDULING_REASON)
                     .jobId(JOB_ID)
+                    .serverAddress(SERVER_ADDRESS)
                     .earliestNextRunTime(NEXT_RUNTIME_MILLSECONDS)
                     .constraints(TRAINING_CONSTRAINTS)
                     .build();

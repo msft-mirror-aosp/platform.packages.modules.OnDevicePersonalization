@@ -26,13 +26,13 @@ import org.junit.Test
 
 import android.util.Log
 
-import android.app.ondevicepersonalization.AppInstallStatus
-import android.app.ondevicepersonalization.AppUsageStatus
-import android.app.ondevicepersonalization.DeviceMetrics
-import android.app.ondevicepersonalization.OSVersion
-import android.app.ondevicepersonalization.Location
-import android.app.ondevicepersonalization.LocationStatus
-import android.app.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.AppInstallStatus
+import android.adservices.ondevicepersonalization.AppUsageStatus
+import android.adservices.ondevicepersonalization.DeviceMetrics
+import android.adservices.ondevicepersonalization.OSVersion
+import android.adservices.ondevicepersonalization.Location
+import android.adservices.ondevicepersonalization.LocationStatus
+import android.adservices.ondevicepersonalization.UserData
 import android.os.Parcel
 import android.util.ArrayMap
 
@@ -267,7 +267,6 @@ class UserDataReaderTest : ProcessorNode {
                 .build()
         val locationHistory: List<LocationStatus> = listOf();
         var userData1 = UserData.Builder()
-                .setTimestampSeconds(111)
                 .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
                 .setAvailableStorageMb(222)
@@ -291,7 +290,6 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
-        assertThat(userData.getTimestampSeconds()).isEqualTo(ref.timeMillis / 1000)
         assertThat(userData.getTimezoneUtcOffsetMins()).isEqualTo(ref.utcOffset)
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
         assertThat(userData.getAvailableStorageMb()).isEqualTo(ref.availableStorageMB)

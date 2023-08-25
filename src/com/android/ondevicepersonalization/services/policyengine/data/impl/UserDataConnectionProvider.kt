@@ -16,13 +16,13 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
-import android.app.ondevicepersonalization.UserData
-import android.app.ondevicepersonalization.OSVersion
-import android.app.ondevicepersonalization.DeviceMetrics
-import android.app.ondevicepersonalization.Location
-import android.app.ondevicepersonalization.AppInstallStatus
-import android.app.ondevicepersonalization.AppUsageStatus
-import android.app.ondevicepersonalization.LocationStatus
+import android.adservices.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.OSVersion
+import android.adservices.ondevicepersonalization.DeviceMetrics
+import android.adservices.ondevicepersonalization.Location
+import android.adservices.ondevicepersonalization.AppInstallStatus
+import android.adservices.ondevicepersonalization.AppUsageStatus
+import android.adservices.ondevicepersonalization.LocationStatus
 import android.util.ArrayMap
 
 import com.android.ondevicepersonalization.services.data.user.UserDataDao
@@ -66,7 +66,6 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
             // TODO(b/267013762): more privacy-preserving processing may be needed
             return UserData.Builder()
-                    .setTimestampSeconds((rawUserData.timeMillis / 1000).toLong())
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
                     .setAvailableStorageMb(rawUserData.availableStorageMB)
