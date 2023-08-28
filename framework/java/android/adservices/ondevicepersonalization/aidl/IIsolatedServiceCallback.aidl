@@ -19,7 +19,7 @@ package android.adservices.ondevicepersonalization.aidl;
 import android.os.Bundle;
 
 /** @hide */
-oneway interface IIsolatedComputationServiceCallback {
+oneway interface IIsolatedServiceCallback {
     void onSuccess(in Bundle result);
     void onError(int errorCode);
 }

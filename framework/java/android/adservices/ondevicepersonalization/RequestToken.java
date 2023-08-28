@@ -24,7 +24,7 @@ import java.util.Objects;
 
 /**
  * An opaque token that identifies the current request to an
- * {@link IsolatedComputationService}. This token must be passed as a parameter to all service
+ * {@link IsolatedService}. This token must be passed as a parameter to all service
  * methods that depend on per-request state.
  *
  * @hide

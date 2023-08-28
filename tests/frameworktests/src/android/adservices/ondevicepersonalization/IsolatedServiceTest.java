@@ -22,8 +22,8 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationService;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -43,14 +43,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 /**
- * Unit Tests of IsolatedComputationService class.
+ * Unit Tests of IsolatedService class.
  */
 @SmallTest
 @RunWith(AndroidJUnit4.class)
-public class IsolatedComputationServiceTest {
+public class IsolatedServiceTest {
     private static final String EVENT_TYPE_KEY = "event_type";
     private final TestService mTestService = new TestService();
-    private IIsolatedComputationService mBinder;
+    private IIsolatedService mBinder;
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private boolean mSelectContentCalled;
     private boolean mOnDownloadCalled;
@@ -62,7 +62,7 @@ public class IsolatedComputationServiceTest {
     @Before
     public void setUp() {
         mTestService.onCreate();
-        mBinder = IIsolatedComputationService.Stub.asInterface(mTestService.onBind(null));
+        mBinder = IIsolatedService.Stub.asInterface(mTestService.onBind(null));
     }
 
     @Test
@@ -465,7 +465,7 @@ public class IsolatedComputationServiceTest {
                 });
     }
 
-    class TestHandler implements IsolatedComputationCallback {
+    class TestHandler implements IsolatedWorker {
         @Override public void onExecute(
                 ExecuteInput input,
                 Consumer<ExecuteOutput> consumer
@@ -528,8 +528,8 @@ public class IsolatedComputationServiceTest {
         }
     }
 
-    class TestService extends IsolatedComputationService {
-        @Override public IsolatedComputationCallback onRequest(RequestToken token) {
+    class TestService extends IsolatedService {
+        @Override public IsolatedWorker onRequest(RequestToken token) {
             return new TestHandler();
         }
     }
@@ -543,7 +543,7 @@ public class IsolatedComputationServiceTest {
         ) {}
     }
 
-    class TestServiceCallback extends IIsolatedComputationServiceCallback.Stub {
+    class TestServiceCallback extends IIsolatedServiceCallback.Stub {
         @Override public void onSuccess(Bundle result) {
             mCallbackResult = result;
             mLatch.countDown();
