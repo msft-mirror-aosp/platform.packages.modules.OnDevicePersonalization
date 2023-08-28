@@ -85,13 +85,13 @@ public final class UserData implements Parcelable {
     /** The history of installed/uninstalled packages. */
     @NonNull Map<String, AppInstallStatus> mAppInstalledHistory = Collections.emptyMap();
 
-    /** The app usage history in the last 30 days, sorted by total time spent. */
+    /** The app usage history in the last 30 days, sorted by total time spent. @hide */
     @NonNull List<AppUsageStatus> mAppUsageHistory = Collections.emptyList();
 
-    /** The most recently known location. */
+    /** The most recently known location. @hide */
     @NonNull Location mCurrentLocation = Location.EMPTY;
 
-    /** The location history in last 30 days, sorted by the stay duration. */
+    /** The location history in last 30 days, sorted by the stay duration. @hide */
     @NonNull List<LocationStatus> mLocationHistory = Collections.emptyList();
 
 
@@ -288,7 +288,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * The app usage history in the last 30 days, sorted by total time spent.
+     * The app usage history in the last 30 days, sorted by total time spent. @hide
      */
     @DataClass.Generated.Member
     public @NonNull List<AppUsageStatus> getAppUsageHistory() {
@@ -296,7 +296,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * The most recently known location.
+     * The most recently known location. @hide
      */
     @DataClass.Generated.Member
     public @NonNull Location getCurrentLocation() {
@@ -304,7 +304,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * The location history in last 30 days, sorted by the stay duration.
+     * The location history in last 30 days, sorted by the stay duration. @hide
      */
     @DataClass.Generated.Member
     public @NonNull List<LocationStatus> getLocationHistory() {
@@ -606,7 +606,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * The app usage history in the last 30 days, sorted by total time spent.
+         * The app usage history in the last 30 days, sorted by total time spent. @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setAppUsageHistory(@NonNull List<AppUsageStatus> value) {
@@ -617,7 +617,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * The most recently known location.
+         * The most recently known location. @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setCurrentLocation(@NonNull Location value) {
@@ -628,7 +628,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * The location history in last 30 days, sorted by the stay duration.
+         * The location history in last 30 days, sorted by the stay duration. @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setLocationHistory(@NonNull List<LocationStatus> value) {
@@ -704,7 +704,7 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1693255760062L,
+            time = 1693264646696L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
             inputSignatures = "  int mTimezoneUtcOffsetMins\n  int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n @android.adservices.ondevicepersonalization.UserData.ConnectionType int mConnectionType\n @android.annotation.IntRange long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
