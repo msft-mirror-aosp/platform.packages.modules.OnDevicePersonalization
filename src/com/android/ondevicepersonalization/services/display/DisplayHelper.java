@@ -16,9 +16,9 @@
 
 package com.android.ondevicepersonalization.services.display;
 
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RequestLogRecord;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.hardware.display.DisplayManager;

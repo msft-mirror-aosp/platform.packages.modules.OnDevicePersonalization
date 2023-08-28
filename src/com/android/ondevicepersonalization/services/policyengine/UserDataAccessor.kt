@@ -18,7 +18,7 @@ package com.android.ondevicepersonalization.services.policyengine
 
 import android.util.Log
 
-import android.app.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.UserData
 
 import com.android.libraries.pcc.chronicle.util.MutableTypedMap
 import com.android.libraries.pcc.chronicle.util.TypedMap
