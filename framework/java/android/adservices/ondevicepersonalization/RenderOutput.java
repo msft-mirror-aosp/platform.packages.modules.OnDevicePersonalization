@@ -25,7 +25,7 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a
+ * The result returned by {@link IsolatedWorker#onExecute()} in response to a
  * {@link OnDevicePersonalizationManager#requestSurfacePackage()} request from a calling app.
  *
  * @hide

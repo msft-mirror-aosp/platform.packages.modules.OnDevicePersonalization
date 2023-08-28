@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * User data provided by the platform to an {@link IsolatedComputationService}.
+ * User data provided by the platform to an {@link IsolatedService}.
  *
  * @hide
  */

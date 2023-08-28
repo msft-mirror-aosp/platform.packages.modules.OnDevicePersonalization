@@ -17,8 +17,8 @@
 package android.adservices.ondevicepersonalization;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationService;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.Service;
@@ -43,12 +43,12 @@ import java.util.function.Consumer;
  * and write persistent results to on-device storage, which can be consumed by Federated Analytics
  * for cross-device statistical analysis or by Federated Learning for model training. Client apps
  * use {@link OnDevicePersonalizationManager} to interact with an
- * {@link IsolatedComputationService}.
+ * {@link IsolatedService}.
  *
  * @hide
  */
-public abstract class IsolatedComputationService extends Service {
-    private static final String TAG = "IsolatedComputationService";
+public abstract class IsolatedService extends Service {
+    private static final String TAG = "IsolatedService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private IBinder mBinder;
 
@@ -61,9 +61,9 @@ public abstract class IsolatedComputationService extends Service {
     }
 
     /**
-     * Return an instance of {@link IsolatedComputationCallback} that handles client requests.
+     * Return an instance of {@link IsolatedWorker} that handles client requests.
      */
-    @NonNull public abstract IsolatedComputationCallback onRequest(
+    @NonNull public abstract IsolatedWorker onRequest(
             @NonNull RequestToken requestToken);
 
     /**
@@ -122,11 +122,11 @@ public abstract class IsolatedComputationService extends Service {
 
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
-    class ServiceBinder extends IIsolatedComputationService.Stub {
+    class ServiceBinder extends IIsolatedService.Stub {
         @Override public void onRequest(
                 int operationCode,
                 @NonNull Bundle params,
-                @NonNull IIsolatedComputationServiceCallback resultCallback) {
+                @NonNull IIsolatedServiceCallback resultCallback) {
             Objects.requireNonNull(params);
             Objects.requireNonNull(resultCallback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
@@ -143,8 +143,8 @@ public abstract class IsolatedComputationService extends Service {
                 UserData userData = params.getParcelable(
                         Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, userData);
-                IsolatedComputationCallback implCallback =
-                        IsolatedComputationService.this.onRequest(requestToken);
+                IsolatedWorker implCallback =
+                        IsolatedService.this.onRequest(requestToken);
                 implCallback.onExecute(
                         input, new WrappedCallback<ExecuteOutput>(resultCallback));
 
@@ -176,8 +176,8 @@ public abstract class IsolatedComputationService extends Service {
                 UserData userData = params.getParcelable(
                         Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, userData);
-                IsolatedComputationCallback implCallback =
-                        IsolatedComputationService.this.onRequest(requestToken);
+                IsolatedWorker implCallback =
+                        IsolatedService.this.onRequest(requestToken);
                 implCallback.onDownload(
                         downloadInput, new WrappedCallback<DownloadOutput>(resultCallback));
 
@@ -191,8 +191,8 @@ public abstract class IsolatedComputationService extends Service {
                             params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
                 RequestToken requestToken = new RequestToken(binder, null);
-                IsolatedComputationCallback implCallback =
-                        IsolatedComputationService.this.onRequest(requestToken);
+                IsolatedWorker implCallback =
+                        IsolatedService.this.onRequest(requestToken);
                 implCallback.onRender(
                         input, new WrappedCallback<RenderOutput>(resultCallback));
 
@@ -206,8 +206,8 @@ public abstract class IsolatedComputationService extends Service {
                 UserData userData = params.getParcelable(
                         Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, userData);
-                IsolatedComputationCallback implCallback =
-                        IsolatedComputationService.this.onRequest(requestToken);
+                IsolatedWorker implCallback =
+                        IsolatedService.this.onRequest(requestToken);
                 implCallback.onWebViewEvent(
                         input, new WrappedCallback<WebViewEventOutput>(resultCallback));
 
@@ -218,8 +218,8 @@ public abstract class IsolatedComputationService extends Service {
     }
 
     private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
-        @NonNull private final IIsolatedComputationServiceCallback mCallback;
-        WrappedCallback(IIsolatedComputationServiceCallback callback) {
+        @NonNull private final IIsolatedServiceCallback mCallback;
+        WrappedCallback(IIsolatedServiceCallback callback) {
             mCallback = Objects.requireNonNull(callback);
         }
 

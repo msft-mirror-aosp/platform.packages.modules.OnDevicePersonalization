@@ -18,7 +18,7 @@ package com.test;
 
 import android.adservices.ondevicepersonalization.DownloadInput;
 import android.adservices.ondevicepersonalization.DownloadOutput;
-import android.adservices.ondevicepersonalization.IsolatedComputationCallback;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
 import android.util.Log;
 
@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationCallback {
-    public final String TAG = "TestIsolatedComputationCallback";
+public class TestPersonalizationHandler implements IsolatedWorker {
+    public final String TAG = "TestIsolatedWorker";
     private final KeyValueStore mRemoteData;
 
     TestPersonalizationHandler(KeyValueStore remoteData) {
