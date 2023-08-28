@@ -49,8 +49,8 @@ public final class UserData implements Parcelable {
      */
     int mOrientation = 0;
 
-    /** The available space on device in MB. */
-    @IntRange(from = 0) long mAvailableStorageMb = 0;
+    /** The available space on device in bytes. */
+    @IntRange(from = 0) long mAvailableStorageBytes = 0;
 
     /** Battery percentage. */
     @IntRange(from = 0, to = 100) int mBatteryPercentage = 0;
@@ -148,7 +148,7 @@ public final class UserData implements Parcelable {
     /* package-private */ UserData(
             int timezoneUtcOffsetMins,
             int orientation,
-            @IntRange(from = 0) long availableStorageMb,
+            @IntRange(from = 0) long availableStorageBytes,
             @IntRange(from = 0, to = 100) int batteryPercentage,
             @NonNull String carrier,
             @ConnectionType int connectionType,
@@ -160,9 +160,9 @@ public final class UserData implements Parcelable {
             @NonNull List<LocationStatus> locationHistory) {
         this.mTimezoneUtcOffsetMins = timezoneUtcOffsetMins;
         this.mOrientation = orientation;
-        this.mAvailableStorageMb = availableStorageMb;
+        this.mAvailableStorageBytes = availableStorageBytes;
         AnnotationValidations.validate(
-                IntRange.class, null, mAvailableStorageMb,
+                IntRange.class, null, mAvailableStorageBytes,
                 "from", 0);
         this.mBatteryPercentage = batteryPercentage;
         AnnotationValidations.validate(
@@ -232,11 +232,11 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * The available space on device in MB.
+     * The available space on device in bytes.
      */
     @DataClass.Generated.Member
-    public @IntRange(from = 0) long getAvailableStorageMb() {
-        return mAvailableStorageMb;
+    public @IntRange(from = 0) long getAvailableStorageBytes() {
+        return mAvailableStorageBytes;
     }
 
     /**
@@ -326,7 +326,7 @@ public final class UserData implements Parcelable {
         return true
                 && mTimezoneUtcOffsetMins == that.mTimezoneUtcOffsetMins
                 && mOrientation == that.mOrientation
-                && mAvailableStorageMb == that.mAvailableStorageMb
+                && mAvailableStorageBytes == that.mAvailableStorageBytes
                 && mBatteryPercentage == that.mBatteryPercentage
                 && java.util.Objects.equals(mCarrier, that.mCarrier)
                 && mConnectionType == that.mConnectionType
@@ -347,7 +347,7 @@ public final class UserData implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + mTimezoneUtcOffsetMins;
         _hash = 31 * _hash + mOrientation;
-        _hash = 31 * _hash + Long.hashCode(mAvailableStorageMb);
+        _hash = 31 * _hash + Long.hashCode(mAvailableStorageBytes);
         _hash = 31 * _hash + mBatteryPercentage;
         _hash = 31 * _hash + java.util.Objects.hashCode(mCarrier);
         _hash = 31 * _hash + mConnectionType;
@@ -371,7 +371,7 @@ public final class UserData implements Parcelable {
         dest.writeInt(flg);
         dest.writeInt(mTimezoneUtcOffsetMins);
         dest.writeInt(mOrientation);
-        dest.writeLong(mAvailableStorageMb);
+        dest.writeLong(mAvailableStorageBytes);
         dest.writeInt(mBatteryPercentage);
         dest.writeString(mCarrier);
         dest.writeInt(mConnectionType);
@@ -397,7 +397,7 @@ public final class UserData implements Parcelable {
         boolean networkMetered = (flg & 0x80) != 0;
         int timezoneUtcOffsetMins = in.readInt();
         int orientation = in.readInt();
-        long availableStorageMb = in.readLong();
+        long availableStorageBytes = in.readLong();
         int batteryPercentage = in.readInt();
         String carrier = in.readString();
         int connectionType = in.readInt();
@@ -412,9 +412,9 @@ public final class UserData implements Parcelable {
 
         this.mTimezoneUtcOffsetMins = timezoneUtcOffsetMins;
         this.mOrientation = orientation;
-        this.mAvailableStorageMb = availableStorageMb;
+        this.mAvailableStorageBytes = availableStorageBytes;
         AnnotationValidations.validate(
-                IntRange.class, null, mAvailableStorageMb,
+                IntRange.class, null, mAvailableStorageBytes,
                 "from", 0);
         this.mBatteryPercentage = batteryPercentage;
         AnnotationValidations.validate(
@@ -488,7 +488,7 @@ public final class UserData implements Parcelable {
 
         private int mTimezoneUtcOffsetMins;
         private int mOrientation;
-        private @IntRange(from = 0) long mAvailableStorageMb;
+        private @IntRange(from = 0) long mAvailableStorageBytes;
         private @IntRange(from = 0, to = 100) int mBatteryPercentage;
         private @NonNull String mCarrier;
         private @ConnectionType int mConnectionType;
@@ -529,13 +529,13 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * The available space on device in MB.
+         * The available space on device in bytes.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setAvailableStorageMb(@IntRange(from = 0) long value) {
+        public @NonNull Builder setAvailableStorageBytes(@IntRange(from = 0) long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
-            mAvailableStorageMb = value;
+            mAvailableStorageBytes = value;
             return this;
         }
 
@@ -650,7 +650,7 @@ public final class UserData implements Parcelable {
                 mOrientation = 0;
             }
             if ((mBuilderFieldsSet & 0x4) == 0) {
-                mAvailableStorageMb = 0;
+                mAvailableStorageBytes = 0;
             }
             if ((mBuilderFieldsSet & 0x8) == 0) {
                 mBatteryPercentage = 0;
@@ -682,7 +682,7 @@ public final class UserData implements Parcelable {
             UserData o = new UserData(
                     mTimezoneUtcOffsetMins,
                     mOrientation,
-                    mAvailableStorageMb,
+                    mAvailableStorageBytes,
                     mBatteryPercentage,
                     mCarrier,
                     mConnectionType,
@@ -704,10 +704,10 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1693253900672L,
+            time = 1693255760062L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
-            inputSignatures = "  int mTimezoneUtcOffsetMins\n  int mOrientation\n @android.annotation.IntRange long mAvailableStorageMb\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n @android.adservices.ondevicepersonalization.UserData.ConnectionType int mConnectionType\n @android.annotation.IntRange long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "  int mTimezoneUtcOffsetMins\n  int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n @android.adservices.ondevicepersonalization.UserData.ConnectionType int mConnectionType\n @android.annotation.IntRange long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInstallStatus> mAppInstalledHistory\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

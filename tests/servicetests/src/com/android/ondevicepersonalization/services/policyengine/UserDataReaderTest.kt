@@ -269,7 +269,7 @@ class UserDataReaderTest : ProcessorNode {
         var userData1 = UserData.Builder()
                 .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
-                .setAvailableStorageMb(222)
+                .setAvailableStorageBytes(222)
                 .setBatteryPercentage(33)
                 .setCarrier("AT_T")
                 .setConnectionType(2)
@@ -292,7 +292,7 @@ class UserDataReaderTest : ProcessorNode {
     private fun verifyData(userData: UserData, ref: RawUserData) {
         assertThat(userData.getTimezoneUtcOffsetMins()).isEqualTo(ref.utcOffset)
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
-        assertThat(userData.getAvailableStorageMb()).isEqualTo(ref.availableStorageMB)
+        assertThat(userData.getAvailableStorageBytes()).isEqualTo(ref.availableStorageBytes)
         assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
         assertThat(userData.getCarrier()).isEqualTo(ref.carrier.toString())
 
