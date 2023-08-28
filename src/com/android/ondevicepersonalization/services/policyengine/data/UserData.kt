@@ -35,13 +35,13 @@ data class UserData (
     val connectionType: Int,
     val connectionSpeedKbps: Long,
     val networkMetered: Boolean,
-    val appInstalledHistory: List<AppInstallStatus>,
+    val appInstallInfo: List<AppInstallInfo>,
     val appUsageHistory: List<AppUsageStatus>,
     val currentLocation: Location,
     val locationHistory: List<LocationStatus>,
 )
 
-data class AppInstallStatus (
+data class AppInstallInfo (
     val packageName: String,
     val installed: Boolean
 )
