@@ -21,8 +21,10 @@ import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.TrainingOptions;
+import android.os.Binder;
 
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -59,6 +61,14 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
             String callingPackageName,
             TrainingOptions trainingOptions,
             IFederatedComputeCallback callback) {
+        // Use FederatedCompute instead of caller permission to read experiment flags. It requires
+        // READ_DEVICE_CONFIG permission.
+        long origId = Binder.clearCallingIdentity();
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+        Binder.restoreCallingIdentity(origId);
+
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(callback);
 
