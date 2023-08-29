@@ -68,7 +68,7 @@ class UserDataConnectionProvider() : ConnectionProvider {
             return UserData.Builder()
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
-                    .setAvailableStorageMb(rawUserData.availableStorageMB)
+                    .setAvailableStorageBytes(rawUserData.availableStorageBytes)
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
                     .setConnectionType(rawUserData.connectionType.ordinal)
