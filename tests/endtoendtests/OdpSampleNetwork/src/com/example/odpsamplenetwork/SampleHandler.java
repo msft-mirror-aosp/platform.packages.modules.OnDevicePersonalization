@@ -16,7 +16,7 @@
 
 package com.example.odpsamplenetwork;
 
-import android.adservices.ondevicepersonalization.AppInstallStatus;
+import android.adservices.ondevicepersonalization.AppInstallInfo;
 import android.adservices.ondevicepersonalization.DownloadInput;
 import android.adservices.ondevicepersonalization.DownloadOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
@@ -412,8 +412,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInstallInfo() == null
+                || mUserData.getAppInstallInfo().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -422,8 +422,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
-            AppInstallStatus value = mUserData.getAppInstalledHistory().get(app);
+        for (String app: mUserData.getAppInstallInfo().keySet()) {
+            AppInstallInfo value = mUserData.getAppInstallInfo().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -438,8 +438,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInstallInfo() == null
+                || mUserData.getAppInstallInfo().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -448,7 +448,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
+        for (String app: mUserData.getAppInstallInfo().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }
