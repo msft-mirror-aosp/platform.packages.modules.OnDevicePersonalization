@@ -25,7 +25,7 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedComputationCallback#onWebViewEvent()}.
+ * The input data for {@link IsolatedWorker#onWebViewEvent()}.
  *
  * @hide
  */
@@ -33,7 +33,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 public final class WebViewEventInput implements Parcelable {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedComputationCallback#onExecute()}.
+     * {@link IsolatedWorker#onExecute()}.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
@@ -72,7 +72,7 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedComputationCallback#onExecute()}.
+     * {@link IsolatedWorker#onExecute()}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -184,7 +184,7 @@ public final class WebViewEventInput implements Parcelable {
 
         /**
          * The {@link RequestLogRecord} that was returned as a result of
-         * {@link IsolatedComputationCallback#onExecute()}.
+         * {@link IsolatedWorker#onExecute()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {

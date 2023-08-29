@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * The input data for {@link IsolatedComputationCallback#onDownload()}.
+ * The input data for {@link IsolatedWorker#onDownload()}.
  *
  * @hide
  */

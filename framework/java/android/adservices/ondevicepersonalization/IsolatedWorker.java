@@ -22,13 +22,13 @@ import java.util.function.Consumer;
 
 /**
  * Interface with methods that need to be implemented to handle requests to an
- * {@link IsolatedComputationService}.
+ * {@link IsolatedService}.
  * @hide
  */
-public interface IsolatedComputationCallback {
+public interface IsolatedWorker {
 
     /**
-     * Handle a request from an app. A {@link IsolatedComputationService} that
+     * Handle a request from an app. A {@link IsolatedService} that
      * processes requests from apps must override this method.
      *
      * @param input App Request Parameters.
@@ -43,7 +43,7 @@ public interface IsolatedComputationCallback {
 
     /**
      * Handle a completed download. The platform downloads content using the
-     * parameters defined in the package manifest of the {@link IsolatedComputationService}
+     * parameters defined in the package manifest of the {@link IsolatedService}
      * and calls this function after the download is complete.
      *
      * @param input Download handler parameters.
