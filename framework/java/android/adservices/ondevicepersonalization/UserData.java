@@ -109,6 +109,7 @@ public final class UserData implements Parcelable {
     //@formatter:off
 
 
+    /** @hide */
     @IntDef(prefix = "CONNECTION_TYPE_", value = {
         CONNECTION_TYPE_UNKNOWN,
         CONNECTION_TYPE_ETHERNET,
@@ -123,7 +124,7 @@ public final class UserData implements Parcelable {
     public @interface ConnectionType {}
 
     @DataClass.Generated.Member
-    public static String connectionTypeToString(@ConnectionType int value) {
+    @NonNull public static String connectionTypeToString(@ConnectionType int value) {
         switch (value) {
             case CONNECTION_TYPE_UNKNOWN:
                     return "CONNECTION_TYPE_UNKNOWN";
