@@ -24,38 +24,28 @@ import static org.junit.Assert.assertThrows;
 
 import android.os.Parcel;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /** Tests for {@link TrainingOptions} */
-@RunWith(AndroidJUnit4.class)
+@RunWith(JUnit4.class)
 public final class TrainingOptionsTest {
-    private String mTestPopulation;
-    private int mTestJobId;
-    private TrainingInterval mOneOffInterval;
-
-    @Before
-    public void setUp() {
-        mTestPopulation = "population";
-        mTestJobId = 10086;
-        mOneOffInterval =
-                new TrainingInterval.Builder().setSchedulingMode(SCHEDULING_MODE_ONE_TIME).build();
-    }
+    private static final String POPULATION_NAME = "population";
+    private static final String SERVER_ADDRESS = "https://adtech.uri/";
+    private static final TrainingInterval TRAINING_INTERVAL =
+            new TrainingInterval.Builder().setSchedulingMode(SCHEDULING_MODE_ONE_TIME).build();
 
     @Test
     public void testFederatedTask() {
         TrainingOptions options =
                 new TrainingOptions.Builder()
-                        .setPopulationName(mTestPopulation)
-                        .setJobSchedulerJobId(mTestJobId)
-                        .setTrainingInterval(mOneOffInterval)
+                        .setPopulationName(POPULATION_NAME)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .setTrainingInterval(TRAINING_INTERVAL)
                         .build();
-        assertThat(options.getPopulationName()).isEqualTo(mTestPopulation);
-        assertThat(options.getJobSchedulerJobId()).isEqualTo(mTestJobId);
-        assertThat(options.getTrainingInterval()).isEqualTo(mOneOffInterval);
+        assertThat(options.getPopulationName()).isEqualTo(POPULATION_NAME);
+        assertThat(options.getTrainingInterval()).isEqualTo(TRAINING_INTERVAL);
     }
 
     @Test
@@ -65,8 +55,7 @@ public final class TrainingOptionsTest {
                 () ->
                         new TrainingOptions.Builder()
                                 .setPopulationName(null)
-                                .setJobSchedulerJobId(mTestJobId)
-                                .setTrainingInterval(mOneOffInterval)
+                                .setTrainingInterval(TRAINING_INTERVAL)
                                 .build());
     }
 
@@ -77,40 +66,62 @@ public final class TrainingOptionsTest {
                 () ->
                         new TrainingOptions.Builder()
                                 .setPopulationName("")
-                                .setJobSchedulerJobId(mTestJobId)
-                                .setTrainingInterval(mOneOffInterval)
+                                .setTrainingInterval(TRAINING_INTERVAL)
                                 .build());
     }
 
     @Test
-    public void testJobIdCannotBeZero() {
-        assertThrows(
-                IllegalArgumentException.class,
-                () ->
-                        new TrainingOptions.Builder()
-                                .setPopulationName(mTestPopulation)
-                                .setJobSchedulerJobId(0)
-                                .setTrainingInterval(mOneOffInterval)
-                                .build());
+    public void testNullServerAddressIsAllowed() {
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME)
+                        .setServerAddress(null)
+                        .build();
+
+        assertThat(options.getServerAddress()).isNull();
+    }
+
+    @Test
+    public void testEmptyServerAddressIsAllowed() {
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME)
+                        .setServerAddress("")
+                        .build();
+
+        assertThat(options.getServerAddress()).isEmpty();
     }
 
     @Test
     public void testNullTrainingIntervalIsAllowed() {
         TrainingOptions options =
                 new TrainingOptions.Builder()
-                        .setPopulationName(mTestPopulation)
-                        .setJobSchedulerJobId(mTestJobId)
+                        .setPopulationName(POPULATION_NAME)
+                        .setServerAddress(SERVER_ADDRESS)
                         .setTrainingInterval(null)
                         .build();
         assertThat(options.getTrainingInterval()).isNull();
     }
 
     @Test
+    public void testNullContextDataIsAllowed() {
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .setTrainingInterval(null)
+                        .setContextData(null)
+                        .build();
+
+        assertThat(options.getContextData()).isNull();
+    }
+
+    @Test
     public void testParcelValidInterval() {
         TrainingOptions options =
                 new TrainingOptions.Builder()
-                        .setPopulationName(mTestPopulation)
-                        .setJobSchedulerJobId(mTestJobId)
+                        .setPopulationName(POPULATION_NAME)
+                        .setServerAddress(SERVER_ADDRESS)
                         .setTrainingInterval(null)
                         .build();
 

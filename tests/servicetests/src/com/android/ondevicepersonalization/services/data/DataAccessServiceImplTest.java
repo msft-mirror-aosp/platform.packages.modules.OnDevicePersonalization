@@ -24,9 +24,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.aidl.IDataAccessService;
-import android.app.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
