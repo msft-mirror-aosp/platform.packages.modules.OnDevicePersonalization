@@ -1008,9 +1008,9 @@ public final class FederatedComputeJobManagerTest {
         assertWithMessage("requireDeviceIdle")
                 .that(pendingJob.isRequireDeviceIdle())
                 .isEqualTo(expectedJobInfo.isRequireDeviceIdle());
-        assertWithMessage("requireCharging")
-                .that(pendingJob.isRequireCharging())
-                .isEqualTo(expectedJobInfo.isRequireCharging());
+        assertWithMessage("requireBatteryNotLow")
+                .that(pendingJob.isRequireBatteryNotLow())
+                .isEqualTo(expectedJobInfo.isRequireBatteryNotLow());
         assertWithMessage("minLatencyMillis")
                 .that(pendingJob.getMinLatencyMillis())
                 .isEqualTo(expectedJobInfo.getMinLatencyMillis());
@@ -1034,7 +1034,7 @@ public final class FederatedComputeJobManagerTest {
                         .setRequiresDeviceIdle(true)
                         // the latency should be capped.
                         .setMinimumLatency(minLatencyMillis)
-                        .setRequiresCharging(true);
+                        .setRequiresBatteryNotLow(true);
         jobInfo.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED);
 
         return jobInfo.build();

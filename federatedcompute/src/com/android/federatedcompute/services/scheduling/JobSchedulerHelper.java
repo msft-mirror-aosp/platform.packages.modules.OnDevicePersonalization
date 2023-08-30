@@ -84,7 +84,8 @@ public class JobSchedulerHelper {
 
         JobInfo.Builder jobInfo = new JobInfo.Builder(task.jobId(), jobComponent);
         jobInfo.setRequiresDeviceIdle(task.getTrainingConstraints().requiresSchedulerIdle())
-                .setRequiresCharging(task.getTrainingConstraints().requiresSchedulerCharging())
+                .setRequiresBatteryNotLow(
+                        task.getTrainingConstraints().requiresSchedulerBatteryNotLow())
                 .setMinimumLatency(task.earliestNextRunTime() - nowMillis)
                 .setPersisted(true);
 
