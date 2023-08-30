@@ -26,7 +26,7 @@ import org.junit.Test
 
 import android.util.Log
 
-import android.adservices.ondevicepersonalization.AppInstallStatus
+import android.adservices.ondevicepersonalization.AppInstallInfo
 import android.adservices.ondevicepersonalization.AppUsageStatus
 import android.adservices.ondevicepersonalization.DeviceMetrics
 import android.adservices.ondevicepersonalization.OSVersion
@@ -142,14 +142,14 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     @Test
-    fun testAppInstallStatus() {
-        var appInstallStatus1 = AppInstallStatus.Builder()
+    fun testAppInstallInfo() {
+        var appInstallStatus1 = AppInstallInfo.Builder()
                 .setInstalled(true)
                 .build()
         var parcel = Parcel.obtain()
         appInstallStatus1.writeToParcel(parcel, 0)
         parcel.setDataPosition(0);
-        var appInstallStatus2 = AppInstallStatus.CREATOR.createFromParcel(parcel)
+        var appInstallStatus2 = AppInstallInfo.CREATOR.createFromParcel(parcel)
         assertThat(appInstallStatus1).isEqualTo(appInstallStatus2)
         assertThat(appInstallStatus1.hashCode()).isEqualTo(appInstallStatus2.hashCode())
         assertThat(appInstallStatus1.describeContents()).isEqualTo(0)
@@ -256,7 +256,7 @@ class UserDataReaderTest : ProcessorNode {
                 .setYdpi(0.2f)
                 .setPxRatio(0.5f)
                 .build()
-        val appInstalledHistory: Map<String, AppInstallStatus> = mapOf<String, AppInstallStatus>();
+        val appInstalledHistory: Map<String, AppInstallInfo> = mapOf<String, AppInstallInfo>();
         val appUsageHistory: List<AppUsageStatus> = listOf();
         var location = Location.Builder()
                 .setTimestampSeconds(111111)
@@ -269,13 +269,13 @@ class UserDataReaderTest : ProcessorNode {
         var userData1 = UserData.Builder()
                 .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
-                .setAvailableStorageMb(222)
+                .setAvailableStorageBytes(222)
                 .setBatteryPercentage(33)
                 .setCarrier("AT_T")
                 .setConnectionType(2)
                 .setNetworkConnectionSpeedKbps(666)
                 .setNetworkMetered(true)
-                .setAppInstalledHistory(appInstalledHistory)
+                .setAppInstallInfo(appInstalledHistory)
                 .setAppUsageHistory(appUsageHistory)
                 .setCurrentLocation(location)
                 .setLocationHistory(locationHistory)
@@ -292,7 +292,7 @@ class UserDataReaderTest : ProcessorNode {
     private fun verifyData(userData: UserData, ref: RawUserData) {
         assertThat(userData.getTimezoneUtcOffsetMins()).isEqualTo(ref.utcOffset)
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
-        assertThat(userData.getAvailableStorageMb()).isEqualTo(ref.availableStorageMB)
+        assertThat(userData.getAvailableStorageBytes()).isEqualTo(ref.availableStorageBytes)
         assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
         assertThat(userData.getCarrier()).isEqualTo(ref.carrier.toString())
 
@@ -308,7 +308,7 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(currentLocation.getLocationProvider()).isEqualTo(rawUserData.currentLocation.provider.ordinal)
         assertThat(currentLocation.isPreciseLocation()).isEqualTo(rawUserData.currentLocation.isPreciseLocation)
 
-        assertThat(userData.getAppInstalledHistory().size).isEqualTo(rawUserData.appsInfo.size)
+        assertThat(userData.getAppInstallInfo().size).isEqualTo(rawUserData.appsInfo.size)
         assertThat(userData.getAppUsageHistory().size).isEqualTo(rawUserData.appUsageHistory.size)
         assertThat(userData.getLocationHistory().size).isEqualTo(rawUserData.locationHistory.size)
     }
