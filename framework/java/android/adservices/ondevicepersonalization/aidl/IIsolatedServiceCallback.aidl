@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization;
+package android.adservices.ondevicepersonalization.aidl;
 
-parcelable AppInstallStatus;
+import android.os.Bundle;
+
+/** @hide */
+oneway interface IIsolatedServiceCallback {
+    void onSuccess(in Bundle result);
+    void onError(int errorCode);
+}

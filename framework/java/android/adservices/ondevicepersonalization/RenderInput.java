@@ -22,7 +22,7 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedComputationCallback#onRender()}.
+ * The input data for {@link IsolatedWorker#onRender()}.
  *
  * @hide
  */

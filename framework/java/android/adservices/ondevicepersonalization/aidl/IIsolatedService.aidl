@@ -16,10 +16,14 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
+import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.os.Bundle;
 
 /** @hide */
-oneway interface IIsolatedComputationServiceCallback {
-    void onSuccess(in Bundle result);
-    void onError(int errorCode);
+interface IIsolatedService {
+    void onRequest(
+            in int operationCode,
+            in Bundle params,
+            in IIsolatedServiceCallback callback
+    );
 }

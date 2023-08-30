@@ -14,16 +14,6 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization.aidl;
+package android.adservices.ondevicepersonalization;
 
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
-import android.os.Bundle;
-
-/** @hide */
-interface IIsolatedComputationService {
-    void onRequest(
-            in int operationCode,
-            in Bundle params,
-            in IIsolatedComputationServiceCallback callback
-    );
-}
+parcelable AppInstallInfo;
