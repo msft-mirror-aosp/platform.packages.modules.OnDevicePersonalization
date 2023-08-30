@@ -52,7 +52,7 @@ class DataIngressPolicy {
                 "connectionType" {rawUsage(UsageType.ANY)}
                 "connectionSpeedKbps" {rawUsage(UsageType.ANY)}
                 "networkMetered" {rawUsage(UsageType.ANY)}
-                "appInstalledHistory" {
+                "appInstallInfo" {
                     "packageName" {rawUsage(UsageType.ANY)}
                     "installed" {rawUsage(UsageType.ANY)}
                 }
