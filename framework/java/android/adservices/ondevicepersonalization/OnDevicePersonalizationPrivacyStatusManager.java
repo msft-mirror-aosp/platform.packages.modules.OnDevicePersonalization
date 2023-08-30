@@ -16,11 +16,14 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
+
 import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusService;
 import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.RequiresPermission;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -90,6 +93,7 @@ public class OnDevicePersonalizationPrivacyStatusManager {
      * @param receiver This either returns true on success or {@link Exception} on failure.
      * @hide
      */
+    @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
     public void setKidStatus(boolean isKidStatusEnabled,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Boolean, Exception> receiver) {
