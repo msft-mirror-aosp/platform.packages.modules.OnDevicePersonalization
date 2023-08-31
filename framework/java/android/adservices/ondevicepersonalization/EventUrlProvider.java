@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -58,7 +59,7 @@ public class EventUrlProvider {
      * @param mimeType The Mime Type of the URL response.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public String getEventTrackingUrl(
+    @NonNull public Uri getEventTrackingUrl(
             @NonNull PersistableBundle eventParams,
             @Nullable byte[] responseData,
             @Nullable String mimeType) throws OnDevicePersonalizationException {
@@ -70,14 +71,15 @@ public class EventUrlProvider {
     }
 
     /**
-     * Creates an event tracking URL that redirects to the provided destination URL.
+     * Creates an event tracking URL that redirects to the provided destination URL when it is
+     * clicked in an ODP webview.
      *
      * @param eventParams The data to be passed to {@link IsolatedWorker#onEvent}
      *     when the event occurs
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public String getEventTrackingUrlWithRedirect(
+    @NonNull public Uri getEventTrackingUrlWithRedirect(
             @NonNull PersistableBundle eventParams,
             @Nullable String destinationUrl) throws OnDevicePersonalizationException {
         Bundle params = new Bundle();
@@ -86,7 +88,7 @@ public class EventUrlProvider {
         return getUrl(params);
     }
 
-    @NonNull private String getUrl(@NonNull Bundle params)
+    @NonNull private Uri getUrl(@NonNull Bundle params)
             throws OnDevicePersonalizationException {
         try {
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
@@ -111,7 +113,8 @@ public class EventUrlProvider {
                 throw new OnDevicePersonalizationException(callbackResult.mErrorCode);
             }
             Bundle result = Objects.requireNonNull(callbackResult.mResult);
-            String url = Objects.requireNonNull(result.getString(Constants.EXTRA_RESULT));
+            Uri url = Objects.requireNonNull(
+                    result.getParcelable(Constants.EXTRA_RESULT, Uri.class));
             return url;
         } catch (InterruptedException | RemoteException e) {
             throw new OnDevicePersonalizationException(
