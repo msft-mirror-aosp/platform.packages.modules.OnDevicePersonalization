@@ -27,6 +27,9 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Dao used to manage access to Events and Queries tables
  */
@@ -38,7 +41,7 @@ public class EventsDao {
 
     private final OnDevicePersonalizationDbHelper mDbHelper;
 
-    public EventsDao(@NonNull OnDevicePersonalizationDbHelper dbHelper) {
+    private EventsDao(@NonNull OnDevicePersonalizationDbHelper dbHelper) {
         this.mDbHelper = dbHelper;
     }
 
@@ -176,5 +179,178 @@ public class EventsDao {
             sLogger.e(TAG + ": Failed to read eventState", e);
         }
         return null;
+    }
+
+    /**
+     * Queries the events and queries table to return all new rows from given ids for the given
+     * package
+     *
+     * @param servicePackageName Name of the package to read rows for
+     * @param fromEventId        EventId to find all new rows from
+     * @param fromQueryId        QueryId to find all new rows from
+     * @return List of JoinedEvents.
+     */
+    public List<JoinedEvent> readAllNewRowsForPackage(String servicePackageName,
+            long fromEventId, long fromQueryId) {
+        // Query on the joined query & event table
+        String joinedSelection = EventsContract.EventsEntry.EVENT_ID + " > ?"
+                + " AND " + EventsContract.EventsEntry.TABLE_NAME + "."
+                + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + " = ?";
+        String[] joinedSelectionArgs = {String.valueOf(fromEventId), servicePackageName};
+        List<JoinedEvent> joinedEventList = readJoinedTableRows(joinedSelection,
+                joinedSelectionArgs);
+
+        // Query on the queries table
+        String queriesSelection = QueriesContract.QueriesEntry.QUERY_ID + " > ?"
+                + " AND " + QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME + " = ?";
+        String[] queriesSelectionArgs = {String.valueOf(fromQueryId), servicePackageName};
+        List<Query> queryList = readQueryRows(queriesSelection, queriesSelectionArgs);
+        for (Query query : queryList) {
+            joinedEventList.add(new JoinedEvent.Builder()
+                    .setQueryId(query.getQueryId())
+                    .setQueryData(query.getQueryData())
+                    .setQueryTimeMillis(query.getTimeMillis())
+                    .setServicePackageName(query.getServicePackageName())
+                    .build());
+        }
+        return joinedEventList;
+    }
+
+    /**
+     * Queries the events and queries table to return all new rows from given ids for all packages
+     *
+     * @param fromEventId EventId to find all new rows from
+     * @param fromQueryId QueryId to find all new rows from
+     * @return List of JoinedEvents.
+     */
+    public List<JoinedEvent> readAllNewRows(long fromEventId, long fromQueryId) {
+        // Query on the joined query & event table
+        String joinedSelection = EventsContract.EventsEntry.EVENT_ID + " > ?";
+        String[] joinedSelectionArgs = {String.valueOf(fromEventId)};
+        List<JoinedEvent> joinedEventList = readJoinedTableRows(joinedSelection,
+                joinedSelectionArgs);
+
+        // Query on the queries table
+        String queriesSelection = QueriesContract.QueriesEntry.QUERY_ID + " > ?";
+        String[] queriesSelectionArgs = {String.valueOf(fromQueryId)};
+        List<Query> queryList = readQueryRows(queriesSelection, queriesSelectionArgs);
+        for (Query query : queryList) {
+            joinedEventList.add(new JoinedEvent.Builder()
+                    .setQueryId(query.getQueryId())
+                    .setQueryData(query.getQueryData())
+                    .setQueryTimeMillis(query.getTimeMillis())
+                    .setServicePackageName(query.getServicePackageName())
+                    .build());
+        }
+        return joinedEventList;
+    }
+
+    private List<Query> readQueryRows(String selection, String[] selectionArgs) {
+        List<Query> queries = new ArrayList<>();
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        String orderBy = QueriesContract.QueriesEntry.QUERY_ID;
+        try (Cursor cursor = db.query(
+                QueriesContract.QueriesEntry.TABLE_NAME,
+                /* projection= */ null,
+                selection,
+                selectionArgs,
+                /* groupBy= */ null,
+                /* having= */ null,
+                orderBy
+        )) {
+            while (cursor.moveToNext()) {
+                long queryId = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_ID));
+                byte[] queryData = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
+                long timeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.TIME_MILLIS));
+                String servicePackageName = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME));
+                queries.add(new Query.Builder()
+                        .setQueryId(queryId)
+                        .setQueryData(queryData)
+                        .setTimeMillis(timeMillis)
+                        .setServicePackageName(servicePackageName)
+                        .build()
+                );
+            }
+        } catch (IllegalArgumentException e) {
+            sLogger.e(e, TAG + ": Failed parse resulting query");
+            return new ArrayList<>();
+        }
+        return queries;
+    }
+
+    private List<JoinedEvent> readJoinedTableRows(String selection, String[] selectionArgs) {
+        List<JoinedEvent> joinedEventList = new ArrayList<>();
+
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+
+        String eventTimeMillisCol = "eventTimeMillis";
+        String queryTimeMillisCol = "queryTimeMillis";
+        String select = "SELECT "
+                + EventsContract.EventsEntry.EVENT_ID + ","
+                + EventsContract.EventsEntry.ROW_INDEX + ","
+                + EventsContract.EventsEntry.TYPE + ","
+                + EventsContract.EventsEntry.TABLE_NAME + "."
+                + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + ","
+                + EventsContract.EventsEntry.EVENT_DATA + ","
+                + EventsContract.EventsEntry.TABLE_NAME + "."
+                + EventsContract.EventsEntry.TIME_MILLIS + " AS " + eventTimeMillisCol + ","
+                + EventsContract.EventsEntry.TABLE_NAME + "."
+                + EventsContract.EventsEntry.QUERY_ID + ","
+                + QueriesContract.QueriesEntry.QUERY_DATA + ","
+                + QueriesContract.QueriesEntry.TABLE_NAME + "."
+                + QueriesContract.QueriesEntry.TIME_MILLIS + " AS " + queryTimeMillisCol;
+        String from = " FROM " + EventsContract.EventsEntry.TABLE_NAME
+                + " INNER JOIN " + QueriesContract.QueriesEntry.TABLE_NAME
+                + " ON "
+                + QueriesContract.QueriesEntry.TABLE_NAME + "."
+                + QueriesContract.QueriesEntry.QUERY_ID + " = "
+                + EventsContract.EventsEntry.TABLE_NAME + "." + EventsContract.EventsEntry.QUERY_ID;
+        String where = " WHERE " + selection;
+        String orderBy = " ORDER BY " + EventsContract.EventsEntry.EVENT_ID;
+        String query = select + from + where + orderBy;
+        try (Cursor cursor = db.rawQuery(query, selectionArgs)) {
+            while (cursor.moveToNext()) {
+                long eventId = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_ID));
+                long rowIndex = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.ROW_INDEX));
+                int type = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.TYPE));
+                String servicePackageName = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                EventsContract.EventsEntry.SERVICE_PACKAGE_NAME));
+                byte[] eventData = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_DATA));
+                long eventTimeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(eventTimeMillisCol));
+                long queryId = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_ID));
+                byte[] queryData = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
+                long queryTimeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(queryTimeMillisCol));
+                joinedEventList.add(new JoinedEvent.Builder()
+                        .setEventId(eventId)
+                        .setRowIndex(rowIndex)
+                        .setType(type)
+                        .setEventData(eventData)
+                        .setEventTimeMillis(eventTimeMillis)
+                        .setQueryId(queryId)
+                        .setQueryData(queryData)
+                        .setQueryTimeMillis(queryTimeMillis)
+                        .setServicePackageName(servicePackageName)
+                        .build()
+                );
+            }
+        } catch (IllegalArgumentException e) {
+            sLogger.e(e, TAG + ": Failed parse resulting query of join statement");
+            return new ArrayList<>();
+        }
+        return joinedEventList;
     }
 }
