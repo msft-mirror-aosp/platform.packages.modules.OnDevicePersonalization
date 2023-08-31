@@ -17,6 +17,8 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 
@@ -36,21 +38,29 @@ import java.nio.charset.StandardCharsets;
 public class EventsDaoTest {
     private static final int EVENT_TYPE_B2D = 1;
     private static final int EVENT_TYPE_CLICK = 2;
+    private static final String TASK_IDENTIFIER = "taskIdentifier";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private EventsDao mDao;
-    private Event mTestEvent = new Event.Builder()
+    private final Event mTestEvent = new Event.Builder()
             .setType(EVENT_TYPE_B2D)
             .setEventData("event".getBytes(StandardCharsets.UTF_8))
-            .setServicePackageName("servicePackageName")
+            .setServicePackageName(mContext.getPackageName())
             .setQueryId(1L)
             .setTimeMillis(1L)
             .setRowIndex(0)
             .build();
 
-    private Query mTestQuery = new Query.Builder()
+    private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setServicePackageName("servicePackageName")
+            .setServicePackageName(mContext.getPackageName())
             .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+            .build();
+
+    private final EventState mEventState = new EventState.Builder()
+            .setTaskIdentifier(TASK_IDENTIFIER)
+            .setServicePackageName(mContext.getPackageName())
+            .setQueryId(1L)
+            .setEventId(1L)
             .build();
 
     @Before
@@ -74,13 +84,34 @@ public class EventsDaoTest {
         Event testEvent = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName("servicePackageName")
+                .setServicePackageName(mContext.getPackageName())
                 .setQueryId(1L)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
                 .build();
         assertEquals(2, mDao.insertEvent(testEvent));
     }
+
+    @Test
+    public void testInsertAndReadEventState() {
+        assertTrue(mDao.updateOrInsertEventState(mEventState));
+        assertEquals(mEventState, mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+        EventState testEventState = new EventState.Builder()
+                .setTaskIdentifier(TASK_IDENTIFIER)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(5L)
+                .setEventId(7L)
+                .build();
+        assertTrue(mDao.updateOrInsertEventState(testEventState));
+        assertEquals(testEventState,
+                mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+    }
+
+    @Test
+    public void testReadEventStateNoEventState() {
+        assertNull(mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+    }
+
 
     @Test
     public void testInsertEventFKError() {

@@ -16,23 +16,23 @@
 
 package com.example.odpsamplenetwork;
 
+import android.adservices.ondevicepersonalization.AppInstallInfo;
+import android.adservices.ondevicepersonalization.DownloadInput;
+import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventUrlProvider;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.WebViewEventInput;
+import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.AppInstallStatus;
-import android.app.ondevicepersonalization.DownloadInput;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.EventLogRecord;
-import android.app.ondevicepersonalization.EventUrlProvider;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.KeyValueStore;
-import android.app.ondevicepersonalization.RenderInput;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.UserData;
-import android.app.ondevicepersonalization.WebViewEventInput;
-import android.app.ondevicepersonalization.WebViewEventOutput;
 import android.content.ContentValues;
 import android.os.PersistableBundle;
 import android.os.Process;
@@ -61,7 +61,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
-public class SampleHandler implements IsolatedComputationCallback {
+public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
@@ -412,8 +412,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInstallInfo() == null
+                || mUserData.getAppInstallInfo().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -422,8 +422,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
-            AppInstallStatus value = mUserData.getAppInstalledHistory().get(app);
+        for (String app: mUserData.getAppInstallInfo().keySet()) {
+            AppInstallInfo value = mUserData.getAppInstallInfo().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -438,8 +438,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInstallInfo() == null
+                || mUserData.getAppInstallInfo().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -448,7 +448,7 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
+        for (String app: mUserData.getAppInstallInfo().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }
