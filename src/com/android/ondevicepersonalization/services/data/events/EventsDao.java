@@ -353,4 +353,57 @@ public class EventsDao {
         }
         return joinedEventList;
     }
+
+    /**
+     * Deletes all eventStates for the given packageName
+     *
+     * @return true if the delete executed successfully, false otherwise.
+     */
+    public boolean deleteEventState(String packageName) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            String selection = EventStateContract.EventStateEntry.SERVICE_PACKAGE_NAME + " = ?";
+            String[] selectionArgs = {packageName};
+            db.delete(EventStateContract.EventStateEntry.TABLE_NAME, selection,
+                    selectionArgs);
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": Failed to delete eventState for: " + packageName);
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Deletes all events and queries older than the given timestamp
+     *
+     * @return true if the delete executed successfully, false otherwise.
+     */
+    public boolean deleteEventsAndQueries(long timestamp) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            // Delete from events table first to satisfy FK requirements.
+            String eventsSelection = EventsContract.EventsEntry.TIME_MILLIS + " < ?";
+            String[] eventsSelectionArgs = {String.valueOf(timestamp)};
+            db.delete(EventsContract.EventsEntry.TABLE_NAME, eventsSelection,
+                    eventsSelectionArgs);
+
+            // Delete from queries table older than timestamp AND have no events left.
+            String queriesSelection = QueriesContract.QueriesEntry.TIME_MILLIS + " < ?"
+                    + " AND " + QueriesContract.QueriesEntry.QUERY_ID
+                    + " NOT IN (SELECT " + EventsContract.EventsEntry.QUERY_ID
+                    + " FROM " + EventsContract.EventsEntry.TABLE_NAME + ")";
+            String[] queriesSelectionArgs = {String.valueOf(timestamp)};
+            db.delete(QueriesContract.QueriesEntry.TABLE_NAME, queriesSelection,
+                    queriesSelectionArgs);
+
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": Failed to delete events and queries older than: " + timestamp);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
 }
