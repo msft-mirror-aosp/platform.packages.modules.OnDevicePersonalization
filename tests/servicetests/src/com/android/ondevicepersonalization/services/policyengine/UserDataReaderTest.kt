@@ -242,20 +242,6 @@ class UserDataReaderTest : ProcessorNode {
 
     @Test
     fun testUserData() {
-        var oSVersion = OSVersion.Builder()
-                .setMajor(111)
-                .setMinor(222)
-                .setMicro(333)
-                .build()
-        var deviceMetrics = DeviceMetrics.Builder()
-                .setMake(111)
-                .setModel(222)
-                .setScreenHeights(333)
-                .setScreenWidth(444)
-                .setXdpi(0.1f)
-                .setYdpi(0.2f)
-                .setPxRatio(0.5f)
-                .build()
         val appInstalledHistory: Map<String, AppInstallInfo> = mapOf<String, AppInstallInfo>();
         val appUsageHistory: List<AppUsageStatus> = listOf();
         var location = Location.Builder()
