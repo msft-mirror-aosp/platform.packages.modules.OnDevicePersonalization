@@ -23,6 +23,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
@@ -77,6 +78,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         // Queries and events tables.
         db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
 
         // User data tables and indexes.
         db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
