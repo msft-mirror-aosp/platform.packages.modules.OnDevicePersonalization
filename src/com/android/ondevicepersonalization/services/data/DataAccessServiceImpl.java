@@ -23,6 +23,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -281,7 +282,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             sLogger.d(TAG, ": getEventUrl() started.");
             EventUrlPayload payload =  new EventUrlPayload(eventParams, responseData, mimeType);
-            String eventUrl;
+            Uri eventUrl;
             if (destinationUrl == null || destinationUrl.isEmpty()) {
                 eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
             } else {
@@ -289,8 +290,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         payload, destinationUrl);
             }
             Bundle result = new Bundle();
-            result.putString(Constants.EXTRA_RESULT, eventUrl);
-            sLogger.d(TAG + ": getEventUrl() success. Url: " + eventUrl);
+            result.putParcelable(Constants.EXTRA_RESULT, eventUrl);
+            sLogger.d(TAG + ": getEventUrl() success. Url: " + eventUrl.toString());
             sendResult(result, callback);
         } catch (Exception e) {
             sLogger.d(TAG + ": getEventUrl() failed.", e);
