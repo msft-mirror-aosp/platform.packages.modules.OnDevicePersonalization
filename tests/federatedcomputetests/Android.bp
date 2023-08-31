@@ -30,6 +30,7 @@ android_test {
         "auto_value_annotations",
         "framework-annotations-lib",
         "framework-ondevicepersonalization.impl",
+        "framework-configinfrastructure", // For PH flags
         "truth-prebuilt",
     ],
     static_libs: [

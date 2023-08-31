@@ -18,6 +18,16 @@ package com.android.federatedcompute.services.common;
 
 /** FederatedCompute feature flags interface. This Flags interface hold the default values */
 public interface Flags {
+    /**
+     * Global FederatedCompute APK Kill Switch. This overrides all other killswitches under
+     * federatedcompute APK. The default value is false which means FederatedCompute is enabled.
+     * This flag is used for emergency turning off.
+     */
+    boolean FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH = true;
+
+    default boolean getGlobalKillSwitch() {
+        return FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
+    }
 
     /** Flags for {@link FederatedComputeJobManager}. */
     long DEFAULT_SCHEDULING_PERIOD_SECS = 60 * 5; // 5 minutes
@@ -117,13 +127,6 @@ public interface Flags {
 
     default int getThermalStatusToThrottle() {
         return THERMAL_STATUS_TO_THROTTLE;
-    }
-
-    /** When false, the min battery level constraint will be ignored during training. */
-    boolean ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK = false;
-
-    default boolean getEnableTrainingMinBatteryLevelCheck() {
-        return ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK;
     }
 
     /** The minimum duration between two training condition checks in milliseconds. */
