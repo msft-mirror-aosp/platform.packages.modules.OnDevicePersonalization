@@ -107,6 +107,67 @@ public class EventsDaoTest {
     }
 
     @Test
+    public void testDeleteEventState() {
+        mDao.updateOrInsertEventState(mEventState);
+        EventState testEventState = new EventState.Builder()
+                .setTaskIdentifier(TASK_IDENTIFIER)
+                .setServicePackageName("packageA")
+                .setQueryId(5L)
+                .setEventId(7L)
+                .build();
+        mDao.updateOrInsertEventState(testEventState);
+        mDao.deleteEventState(mContext.getPackageName());
+        assertEquals(testEventState,
+                mDao.getEventState(TASK_IDENTIFIER, "packageA"));
+        assertNull(mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+
+        mDao.deleteEventState("packageA");
+        assertNull(mDao.getEventState(TASK_IDENTIFIER, "packageA"));
+    }
+
+    @Test
+    public void testDeleteEventsAndQueries() {
+        mDao.insertQuery(mTestQuery);
+        mDao.insertEvent(mTestEvent);
+        long queryId2 = mDao.insertQuery(mTestQuery);
+        Event testEvent = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId2)
+                .setTimeMillis(3L)
+                .setRowIndex(0)
+                .build();
+        long eventId2 = mDao.insertEvent(testEvent);
+
+        Query testQuery = new Query.Builder()
+                .setTimeMillis(5L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId3 = mDao.insertQuery(testQuery);
+
+        // Delete query1 event1. Assert query2 and event2 still exist.
+        mDao.deleteEventsAndQueries(2);
+        List<JoinedEvent> joinedEventList = mDao.readAllNewRows(0, 0);
+        assertEquals(3, joinedEventList.size());
+        assertEquals(createExpectedJoinedEvent(testEvent, mTestQuery, eventId2, queryId2),
+                joinedEventList.get(0));
+        assertEquals(createExpectedJoinedEvent(null, mTestQuery, 0, queryId2),
+                joinedEventList.get(1));
+        assertEquals(createExpectedJoinedEvent(null, testQuery, 0, queryId3),
+                joinedEventList.get(2));
+
+        // Delete query2 event2. Assert query3 still exist.
+        mDao.deleteEventsAndQueries(4);
+        joinedEventList = mDao.readAllNewRows(0, 0);
+        assertEquals(1, joinedEventList.size());
+        assertEquals(createExpectedJoinedEvent(null, testQuery, 0, queryId3),
+                joinedEventList.get(0));
+    }
+
+
+    @Test
     public void testReadAllNewRowsEmptyTable() {
         List<JoinedEvent> joinedEventList = mDao.readAllNewRows(0, 0);
         assertTrue(joinedEventList.isEmpty());
