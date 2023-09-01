@@ -58,28 +58,28 @@ public final class UserData implements Parcelable {
     /** The name of the carrier. */
     @NonNull String mCarrier = "";
 
-    /** Connection type unknown. */
+    /** Connection type unknown. @hide */
     public static final int CONNECTION_TYPE_UNKNOWN = 0;
-    /** Connection type ethernet. */
+    /** Connection type ethernet. @hide */
     public static final int CONNECTION_TYPE_ETHERNET = 1;
-    /** Connection type wifi. */
+    /** Connection type wifi. @hide */
     public static final int CONNECTION_TYPE_WIFI = 2;
-    /** Connection type cellular 2G. */
+    /** Connection type cellular 2G. @hide */
     public static final int CONNECTION_TYPE_CELLULAR_2G = 3;
-    /** Connection type cellular 3G. */
+    /** Connection type cellular 3G. @hide */
     public static final int CONNECTION_TYPE_CELLULAR_3G = 4;
-    /** Connection type cellular 4G. */
+    /** Connection type cellular 4G. @hide */
     public static final int CONNECTION_TYPE_CELLULAR_4G = 5;
-    /** Connection type cellular 5G. */
+    /** Connection type cellular 5G. @hide */
     public static final int CONNECTION_TYPE_CELLULAR_5G = 6;
 
-    /** Connection types. */
+    /** Connection types. @hide */
     @ConnectionType int mConnectionType = 0;
 
-    /** Network connection speed in kbps. 0 if no network connection is present. */
+    /** Network connection speed in kbps. 0 if no network connection is present. @hide */
     @IntRange(from = 0) long mNetworkConnectionSpeedKbps = 0;
 
-    /** Whether the network is metered. False - not metered. True - metered. */
+    /** Whether the network is metered. False - not metered. True - metered. @hide */
     boolean mNetworkMetered = false;
 
     /** The history of installed/uninstalled packages. */
@@ -123,6 +123,7 @@ public final class UserData implements Parcelable {
     @DataClass.Generated.Member
     public @interface ConnectionType {}
 
+    /** @hide */
     @DataClass.Generated.Member
     @NonNull public static String connectionTypeToString(@ConnectionType int value) {
         switch (value) {
@@ -256,7 +257,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Connection types.
+     * Connection types. @hide
      */
     @DataClass.Generated.Member
     public @ConnectionType int getConnectionType() {
@@ -264,7 +265,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Network connection speed in kbps. 0 if no network connection is present.
+     * Network connection speed in kbps. 0 if no network connection is present. @hide
      */
     @DataClass.Generated.Member
     public @IntRange(from = 0) long getNetworkConnectionSpeedKbps() {
@@ -272,7 +273,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Whether the network is metered. False - not metered. True - metered.
+     * Whether the network is metered. False - not metered. True - metered. @hide
      */
     @DataClass.Generated.Member
     public boolean isNetworkMetered() {
@@ -562,7 +563,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Connection types.
+         * Connection types. @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setConnectionType(@ConnectionType int value) {
@@ -573,7 +574,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Network connection speed in kbps. 0 if no network connection is present.
+         * Network connection speed in kbps. 0 if no network connection is present. @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setNetworkConnectionSpeedKbps(@IntRange(from = 0) long value) {
@@ -584,7 +585,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Whether the network is metered. False - not metered. True - metered.
+         * Whether the network is metered. False - not metered. True - metered. @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setNetworkMetered(boolean value) {
@@ -704,7 +705,7 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1693265050035L,
+            time = 1693528589621L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
             inputSignatures = "  int mTimezoneUtcOffsetMins\n  int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n @android.adservices.ondevicepersonalization.UserData.ConnectionType int mConnectionType\n @android.annotation.IntRange long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInstallInfo> mAppInstallInfo\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
