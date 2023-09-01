@@ -43,6 +43,7 @@ android_app {
         "flatbuffers-java",
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
+        "framework-configinfrastructure", // For PH flags
         "framework-statsd.stubs.module_lib", // For WW logging
     ],
     plugins: ["auto_value_plugin"],
