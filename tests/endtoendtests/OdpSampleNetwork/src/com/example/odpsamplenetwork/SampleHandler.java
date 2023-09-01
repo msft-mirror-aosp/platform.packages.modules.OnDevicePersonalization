@@ -16,7 +16,7 @@
 
 package com.example.odpsamplenetwork;
 
-import android.adservices.ondevicepersonalization.AppInstallStatus;
+import android.adservices.ondevicepersonalization.AppInstallInfo;
 import android.adservices.ondevicepersonalization.DownloadInput;
 import android.adservices.ondevicepersonalization.DownloadOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
@@ -277,7 +277,7 @@ public class SampleHandler implements IsolatedWorker {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
             String url = mEventUrlProvider.getEventTrackingUrl(
-                    eventParams, TRANSPARENT_PNG_BYTES, "image/png");
+                    eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -290,7 +290,7 @@ public class SampleHandler implements IsolatedWorker {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
             String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage);
+                    eventParams, landingPage).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -412,8 +412,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInstallInfo() == null
+                || mUserData.getAppInstallInfo().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -422,8 +422,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
-            AppInstallStatus value = mUserData.getAppInstalledHistory().get(app);
+        for (String app: mUserData.getAppInstallInfo().keySet()) {
+            AppInstallInfo value = mUserData.getAppInstallInfo().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -438,8 +438,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInstallInfo() == null
+                || mUserData.getAppInstallInfo().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -448,7 +448,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
+        for (String app: mUserData.getAppInstallInfo().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }

@@ -46,8 +46,8 @@ public class BatteryInfo {
         }
     }
 
-    /** Checks if battery level and device charging state is sufficient to continute training. */
-    public boolean batteryOkForTraining(boolean requiresCharging) {
+    /** Checks if battery level is sufficient to continute training. */
+    public boolean batteryOkForTraining(boolean requireBatteryNotLow) {
         Intent stickyIntent =
                 mContext.registerReceiver(
                         null,
@@ -60,19 +60,12 @@ public class BatteryInfo {
 
         // Check if battery level is sufficient.
         float minBatteryLevel = mFlags.getTrainingMinBatteryLevel() / 100.0f;
-        if (mFlags.getEnableTrainingMinBatteryLevelCheck() && level < minBatteryLevel) {
+        if (requireBatteryNotLow && level < minBatteryLevel) {
             Log.i(
                     TAG,
                     String.format(
                             "Battery level insufficient (%f < %f), skipping training.",
                             level, minBatteryLevel));
-            return false;
-        }
-        if (!requiresCharging) {
-            return true;
-        }
-        if (status == BatteryManager.BATTERY_STATUS_DISCHARGING) {
-            Log.i(TAG, "Battery discharging, skipping training.");
             return false;
         }
         return true;
