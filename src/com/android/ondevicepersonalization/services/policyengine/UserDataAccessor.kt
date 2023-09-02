@@ -44,7 +44,7 @@ import com.android.ondevicepersonalization.services.data.user.RawUserData
 class UserDataAccessor : ProcessorNode {
     private val sLogger: LoggerFactory.Logger = LoggerFactory.getLogger();
     private val TAG: String = "UserDataAccessor";
-    private lateinit var policyContext: MutableTypedMap
+    private var policyContext: MutableTypedMap
     private val rawUserData: RawUserData = RawUserData.getInstance()
 
     override val requiredConnectionTypes = setOf(UserDataReader::class.java)
@@ -74,7 +74,7 @@ class UserDataAccessor : ProcessorNode {
             val userData: UserData? = userDataReader?.readUserData()
             return userData
         } catch (e: ChronicleError) {
-            sLogger.e(TAG + ": Expect success but connection failed with: ", e)
+            sLogger.e(e, TAG + ": Expect success but connection failed with: ")
             return null
         }
     }

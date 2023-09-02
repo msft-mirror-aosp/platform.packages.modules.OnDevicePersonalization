@@ -74,12 +74,13 @@ public class MddJobService extends JobService {
                     @Override
                     public void onSuccess(Void result) {
                         sLogger.d(TAG + ": MddJobService.MddHandleTask succeeded!");
-                        OnDevicePersonalizationDownloadProcessingJobService.schedule(context);
+                        // Attempt to process any data downloaded
+                        if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
+                            OnDevicePersonalizationDownloadProcessingJobService.schedule(context);
+                        }
                         // Tell the JobScheduler that the job has completed and does not needs to be
                         // rescheduled.
-                        if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
-                            jobFinished(params, /* wantsReschedule = */ false);
-                        }
+                        jobFinished(params, /* wantsReschedule = */ false);
                     }
 
                     @Override
@@ -99,7 +100,7 @@ public class MddJobService extends JobService {
     public boolean onStopJob(JobParameters params) {
         // Attempt to process any data downloaded before the worker was stopped.
         if (WIFI_CHARGING_PERIODIC_TASK.equals(mMddTaskTag)) {
-            jobFinished(params, /* wantsReschedule = */ false);
+            OnDevicePersonalizationDownloadProcessingJobService.schedule(this);
         }
         // Reschedule the job since it ended before finishing
         return true;

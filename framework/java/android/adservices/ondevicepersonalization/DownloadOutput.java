@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedComputationCallback#onDownload()}.
+ * The result returned by {@link IsolatedWorker#onDownload()}.
  *
  * @hide
  */
