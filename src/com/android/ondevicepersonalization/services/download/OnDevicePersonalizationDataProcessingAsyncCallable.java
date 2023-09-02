@@ -16,10 +16,10 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.DownloadInputParcel;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.DownloadInputParcel;
+import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.UserData;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;

@@ -25,6 +25,7 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"/>
+    <uses-permission android:name="android.permission.MODIFY_ONDEVICEPERSONALIZATION_STATE"/>
 
     <!-- Required for reading and writing device configs -->
 

@@ -27,22 +27,21 @@ package com.android.ondevicepersonalization.services.policyengine.data
  * If one class is updated, the other one should also be updated to match.
  */
 data class UserData (
-    val timestampSeconds: Long,
     val timezoneUtcOffsetMins: Int,
     val orientation: Int,
-    val availableStorageMB: Long,
+    val availableStorageBytes: Long,
     val batteryPercentage: Int,
     val carrier: String,
     val connectionType: Int,
     val connectionSpeedKbps: Long,
     val networkMetered: Boolean,
-    val appInstalledHistory: List<AppInstallStatus>,
+    val appInstallInfo: List<AppInstallInfo>,
     val appUsageHistory: List<AppUsageStatus>,
     val currentLocation: Location,
     val locationHistory: List<LocationStatus>,
 )
 
-data class AppInstallStatus (
+data class AppInstallInfo (
     val packageName: String,
     val installed: Boolean
 )

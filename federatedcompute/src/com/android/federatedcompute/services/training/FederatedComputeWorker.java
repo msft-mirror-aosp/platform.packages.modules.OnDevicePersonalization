@@ -23,13 +23,13 @@ import android.util.Log;
 
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.PhFlags;
-import com.android.federatedcompute.services.common.TaskRetry;
 import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.scheduling.SchedulingUtil;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import javax.annotation.concurrent.GuardedBy;
 

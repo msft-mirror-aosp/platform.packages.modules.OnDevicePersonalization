@@ -29,6 +29,7 @@ import com.android.ondevicepersonalization.services.fbs.QueryFields;
 import com.google.common.primitives.Ints;
 import com.google.flatbuffers.FlatBufferBuilder;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -36,8 +37,6 @@ import java.util.List;
  * Util class to support creation of OnDevicePersonalization flatbuffers
  */
 public class OnDevicePersonalizationFlatbufferUtils {
-    private static final String TAG = "OnDevicePersonalizationFlatbufferUtils";
-    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     public static final byte DATA_TYPE_BYTE = 1;
     public static final byte DATA_TYPE_SHORT = 2;
     public static final byte DATA_TYPE_INT = 3;
@@ -47,6 +46,8 @@ public class OnDevicePersonalizationFlatbufferUtils {
     public static final byte DATA_TYPE_STRING = 7;
     public static final byte DATA_TYPE_BLOB = 8;
     public static final byte DATA_TYPE_BOOL = 9;
+    private static final String TAG = "OnDevicePersonalizationFlatbufferUtils";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
 
     private OnDevicePersonalizationFlatbufferUtils() {
     }
@@ -104,6 +105,78 @@ public class OnDevicePersonalizationFlatbufferUtils {
             sLogger.e(e, TAG + ": createEventData failed.");
             return new byte[0];
         }
+    }
+
+    /**
+     * Retrieves all KeyValueLists in a QueryField flatbuffer as a List of ContentValues objects.
+     */
+    public static List<ContentValues> getContentValuesFromQueryData(byte[] queryData) {
+        List<ContentValues> contentValuesList = new ArrayList<>();
+        QueryFields queryFields = QueryData.getRootAsQueryData(
+                ByteBuffer.wrap(queryData)).queryFields(0);
+        for (int i = 0; i < queryFields.rowsLength(); i++) {
+            contentValuesList.add(getContentValuesFromKeyValueList(queryFields.rows(i)));
+        }
+        return contentValuesList;
+    }
+
+
+    /**
+     * Retrieves the KeyValueList in a QueryField flatbuffer at the specified index as a
+     * ContentValues object.
+     */
+    public static ContentValues getContentValuesRowFromQueryData(byte[] queryData, int rowIndex) {
+        QueryFields queryFields = QueryData.getRootAsQueryData(
+                ByteBuffer.wrap(queryData)).queryFields(0);
+        return getContentValuesFromKeyValueList(queryFields.rows(rowIndex));
+    }
+
+    /**
+     * Retrieves the KeyValueList in an EventData flatbuffer as a ContentValues object.
+     */
+    public static ContentValues getContentValuesFromEventData(byte[] eventData) {
+        EventFields eventFields = EventFields.getRootAsEventFields(ByteBuffer.wrap(eventData));
+        return getContentValuesFromKeyValueList(eventFields.data());
+    }
+
+    private static ContentValues getContentValuesFromKeyValueList(KeyValueList list) {
+        ContentValues data = new ContentValues();
+        for (int i = 0; i < list.entriesLength(); i++) {
+            KeyValue kv = list.entries(i);
+            switch (kv.type()) {
+                case DATA_TYPE_BYTE:
+                    data.put(kv.key(), kv.byteValue());
+                    break;
+                case DATA_TYPE_SHORT:
+                    data.put(kv.key(), kv.shortValue());
+                    break;
+                case DATA_TYPE_INT:
+                    data.put(kv.key(), kv.intValue());
+                    break;
+                case DATA_TYPE_LONG:
+                    data.put(kv.key(), kv.longValue());
+                    break;
+                case DATA_TYPE_FLOAT:
+                    data.put(kv.key(), kv.floatValue());
+                    break;
+                case DATA_TYPE_DOUBLE:
+                    data.put(kv.key(), kv.doubleValue());
+                    break;
+                case DATA_TYPE_STRING:
+                    data.put(kv.key(), kv.stringValue());
+                    break;
+                case DATA_TYPE_BLOB:
+                    ByteBuffer buf = kv.blobValueAsByteBuffer();
+                    byte[] arr = new byte[buf.remaining()];
+                    buf.get(arr);
+                    data.put(kv.key(), arr);
+                    break;
+                case DATA_TYPE_BOOL:
+                    data.put(kv.key(), kv.boolValue());
+                    break;
+            }
+        }
+        return data;
     }
 
     private static int createKeyValueList(

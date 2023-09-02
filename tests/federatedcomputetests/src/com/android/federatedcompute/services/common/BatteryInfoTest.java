@@ -49,84 +49,31 @@ public final class BatteryInfoTest {
 
     @Test
     public void batteryOkForTraining_returnOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(true);
-        Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
-        intent.putExtra(BatteryManager.EXTRA_LEVEL, 60);
-        intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
-        intent.putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING);
-        when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
-
-        assertTrue(mBatteryInfo.batteryOkForTraining(true));
-    }
-
-    @Test
-    public void batteryOkForTraining_unknownStatus_returnOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(true);
-        Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
-        intent.putExtra(BatteryManager.EXTRA_LEVEL, 60);
-        intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
-        intent.putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN);
-        when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
-
-        assertTrue(mBatteryInfo.batteryOkForTraining(true));
-    }
-
-    @Test
-    public void batteryOkForTraining_noStatus_returnOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(true);
         Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
         intent.putExtra(BatteryManager.EXTRA_LEVEL, 60);
         intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
         when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
 
         assertTrue(mBatteryInfo.batteryOkForTraining(true));
-    }
-
-    @Test
-    public void batteryOkForTraining_discharge_returnNotOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(true);
-        Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
-        intent.putExtra(BatteryManager.EXTRA_LEVEL, 60);
-        intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
-        intent.putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING);
-        when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
-
-        assertFalse(mBatteryInfo.batteryOkForTraining(true));
     }
 
     @Test
     public void batteryOkForTraining_batteryLevelTooLow_returnNotOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(true);
         Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
         intent.putExtra(BatteryManager.EXTRA_LEVEL, 10);
         intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
-        intent.putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING);
         when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
 
         assertFalse(mBatteryInfo.batteryOkForTraining(true));
     }
 
     @Test
-    public void batteryOkForTraining_disableDischargeCheck_returnOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(true);
-        Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
-        intent.putExtra(BatteryManager.EXTRA_LEVEL, 60);
-        intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
-        intent.putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_DISCHARGING);
-        when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
-
-        assertTrue(mBatteryInfo.batteryOkForTraining(false));
-    }
-
-    @Test
-    public void batteryOkForTraining_disableBatteryLevelCheck_returnOk() {
-        when(mFlags.getEnableTrainingMinBatteryLevelCheck()).thenReturn(false);
+    public void batteryOkForTraining_disableBatteryLevelNotLowCheck_returnOk() {
         Intent intent = new Intent(Intent.ACTION_BATTERY_CHANGED);
         intent.putExtra(BatteryManager.EXTRA_LEVEL, 10);
         intent.putExtra(BatteryManager.EXTRA_SCALE, 100);
-        intent.putExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_CHARGING);
         when(mContext.registerReceiver(any(), any(), anyInt())).thenReturn(intent);
 
-        assertTrue(mBatteryInfo.batteryOkForTraining(true));
+        assertTrue(mBatteryInfo.batteryOkForTraining(false));
     }
 }

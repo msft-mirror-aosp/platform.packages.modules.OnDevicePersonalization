@@ -24,9 +24,9 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.aidl.IDataAccessService;
-import android.app.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
@@ -218,7 +218,7 @@ public class DataAccessServiceImplTest {
                 new TestCallback());
         mLatch.await();
         assertNotEquals(null, mResult);
-        String eventUrl = mResult.getString(Constants.EXTRA_RESULT);
+        String eventUrl = mResult.getParcelable(Constants.EXTRA_RESULT, Uri.class).toString();
         assertNotEquals(null, eventUrl);
         EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
         assertNotEquals(null, payload);
@@ -242,7 +242,7 @@ public class DataAccessServiceImplTest {
                 new TestCallback());
         mLatch.await();
         assertNotEquals(null, mResult);
-        String eventUrl = mResult.getString(Constants.EXTRA_RESULT);
+        String eventUrl = mResult.getParcelable(Constants.EXTRA_RESULT, Uri.class).toString();
         assertNotEquals(null, eventUrl);
         EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
         assertNotEquals(null, payload);
