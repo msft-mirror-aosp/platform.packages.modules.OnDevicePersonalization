@@ -277,7 +277,7 @@ public class SampleHandler implements IsolatedWorker {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
             String url = mEventUrlProvider.getEventTrackingUrl(
-                    eventParams, TRANSPARENT_PNG_BYTES, "image/png");
+                    eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -290,7 +290,7 @@ public class SampleHandler implements IsolatedWorker {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
             String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage);
+                    eventParams, landingPage).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
