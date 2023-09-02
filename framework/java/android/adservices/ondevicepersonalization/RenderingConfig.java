@@ -26,8 +26,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Information returned by {@link IsolatedComputationCallback#onExecute()} that is used
- * in a subesequent call to {@link IsolatedComputationCallback#onRender()} to identify the
+ * Information returned by {@link IsolatedWorker#onExecute()} that is used
+ * in a subesequent call to {@link IsolatedWorker#onRender()} to identify the
  * content to be displayed in a single {@link View}.
  *
  * @hide
