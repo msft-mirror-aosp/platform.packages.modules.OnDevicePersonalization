@@ -25,6 +25,8 @@
     <!-- Used for scheduling connectivity jobs -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+     <!-- Required for reading device configs -->
+    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
     <application>
         <service android:name=".FederatedComputeServiceImpl" android:exported="true" >

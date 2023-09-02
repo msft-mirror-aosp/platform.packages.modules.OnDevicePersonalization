@@ -116,9 +116,9 @@ public class TrainingConditionsChecker {
             }
         }
         EnumSet<Condition> conditions = EnumSet.noneOf(Condition.class);
-        boolean requiresCharging = trainingConstraints.requiresSchedulerCharging();
+        boolean requireBatteryNotLow = trainingConstraints.requiresSchedulerBatteryNotLow();
 
-        if (!mBatteryInfo.batteryOkForTraining(requiresCharging)) {
+        if (!mBatteryInfo.batteryOkForTraining(requireBatteryNotLow)) {
             conditions.add(Condition.BATTERY_NOT_OK);
         }
 

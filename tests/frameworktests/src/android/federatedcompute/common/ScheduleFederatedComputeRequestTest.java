@@ -30,7 +30,6 @@ import org.junit.runner.RunWith;
 @RunWith(AndroidJUnit4.class)
 public final class ScheduleFederatedComputeRequestTest {
     private static final String POPULATION_NAME = "population";
-    private static final int JOB_ID = 1234;
 
     @Test
     public void buildScheduleFederatedComputeRequest_success() {
@@ -39,7 +38,6 @@ public final class ScheduleFederatedComputeRequestTest {
                         .setTrainingOptions(
                                 new TrainingOptions.Builder()
                                         .setPopulationName(POPULATION_NAME)
-                                        .setJobSchedulerJobId(JOB_ID)
                                         .setTrainingInterval(
                                                 new TrainingInterval.Builder()
                                                         .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
@@ -47,7 +45,6 @@ public final class ScheduleFederatedComputeRequestTest {
                                         .build())
                         .build();
 
-        assertThat(request.getTrainingOptions().getJobSchedulerJobId()).isEqualTo(JOB_ID);
         assertThat(request.getTrainingOptions().getPopulationName()).isEqualTo(POPULATION_NAME);
     }
 
@@ -58,7 +55,6 @@ public final class ScheduleFederatedComputeRequestTest {
                         .setTrainingOptions(
                                 new TrainingOptions.Builder()
                                         .setPopulationName(POPULATION_NAME)
-                                        .setJobSchedulerJobId(JOB_ID)
                                         .setTrainingInterval(
                                                 new TrainingInterval.Builder()
                                                         .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
@@ -70,7 +66,6 @@ public final class ScheduleFederatedComputeRequestTest {
                         .setTrainingOptions(
                                 new TrainingOptions.Builder()
                                         .setPopulationName(POPULATION_NAME)
-                                        .setJobSchedulerJobId(JOB_ID)
                                         .setTrainingInterval(
                                                 new TrainingInterval.Builder()
                                                         .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)

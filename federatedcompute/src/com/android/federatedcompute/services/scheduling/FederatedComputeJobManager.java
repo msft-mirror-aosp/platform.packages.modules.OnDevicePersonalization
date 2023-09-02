@@ -35,7 +35,6 @@ import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlags;
-import com.android.federatedcompute.services.common.TaskRetry;
 import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
@@ -43,9 +42,11 @@ import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.internal.util.Preconditions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -59,6 +60,7 @@ public class FederatedComputeJobManager {
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
     private static FederatedComputeJobManager sSingletonInstance;
+    private final FederatedJobIdGenerator mJobIdGenerator;
     private Clock mClock;
     private final Flags mFlags;
 
@@ -66,11 +68,13 @@ public class FederatedComputeJobManager {
     FederatedComputeJobManager(
             @NonNull Context context,
             FederatedTrainingTaskDao federatedTrainingTaskDao,
+            FederatedJobIdGenerator jobIdGenerator,
             JobSchedulerHelper jobSchedulerHelper,
             @NonNull Clock clock,
             Flags flag) {
         this.mContext = context;
         this.mFederatedTrainingTaskDao = federatedTrainingTaskDao;
+        this.mJobIdGenerator = jobIdGenerator;
         this.mJobSchedulerHelper = jobSchedulerHelper;
         this.mClock = clock;
         this.mFlags = flag;
@@ -86,6 +90,7 @@ public class FederatedComputeJobManager {
                         new FederatedComputeJobManager(
                                 mContext,
                                 FederatedTrainingTaskDao.getInstance(mContext),
+                                FederatedJobIdGenerator.getInstance(),
                                 new JobSchedulerHelper(clock),
                                 clock,
                                 PhFlags.getInstance());
@@ -93,35 +98,40 @@ public class FederatedComputeJobManager {
             return sSingletonInstance;
         }
     }
+
     /**
      * Called when a client indicates via the client API that a task with the given parameters
      * should be scheduled.
      */
     public synchronized void onTrainerStartCalled(
-            TrainingOptions trainingOptions, IFederatedComputeCallback callback) {
+            String callingPackageName,
+            TrainingOptions trainingOptions,
+            IFederatedComputeCallback callback) {
         FederatedTrainingTask existingTask =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(
                         trainingOptions.getPopulationName());
         Set<FederatedTrainingTask> trainingTasksToCancel = new HashSet<>();
-        // If another task with same jobId exists, we only need to delete it and don't need cancel
-        // the task because we will overwrite it anyway.
-        mFederatedTrainingTaskDao.findAndRemoveTaskByJobId(trainingOptions.getJobSchedulerJobId());
+        String populationName = trainingOptions.getPopulationName();
         long nowMs = mClock.currentTimeMillis();
-        int jobId = trainingOptions.getJobSchedulerJobId();
         boolean shouldSchedule = false;
         FederatedTrainingTask newTask;
         byte[] newTrainingConstraint = buildTrainingConstraints();
 
         if (existingTask == null) {
+            int jobId = mJobIdGenerator.generateJobId(this.mContext, populationName);
+            // Federated server address is required to provide when first time schedule the
+            // job.
+            Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
             FederatedTrainingTask.Builder newTaskBuilder =
                     FederatedTrainingTask.builder()
-                            .appPackageName(mContext.getPackageName())
+                            .appPackageName(callingPackageName)
                             .jobId(jobId)
                             .creationTime(nowMs)
                             .lastScheduledTime(nowMs)
                             .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                             .constraints(newTrainingConstraint)
                             .populationName(trainingOptions.getPopulationName())
+                            .serverAddress(trainingOptions.getServerAddress())
                             .earliestNextRunTime(
                                     SchedulingUtil.getEarliestRuntimeForInitialSchedule(
                                             nowMs, 0, trainingOptions, mFlags));
@@ -132,14 +142,15 @@ public class FederatedComputeJobManager {
             newTask = newTaskBuilder.build();
             shouldSchedule = true;
         } else {
+            // If another task with same jobId exists, we only need to delete it and don't need
+            // cancel the task because we will overwrite it anyway.
+            mFederatedTrainingTaskDao.findAndRemoveTaskByJobId(existingTask.jobId());
             // If a task does exist already then update only those fields that should be
-            // updated: job ID, population name, constraints, last scheduled time, BUT maintain
-            // other important fields like the earliest next run time unless the population or job
-            // ID has changed. This ensures that repeated calls to onTrainerStart do not keep
-            // postponing the job's next runtime.
+            // updated: population name, constraints, last scheduled time, BUT maintain
+            // other important fields like job id, the earliest next run time. This ensures that
+            // repeated calls to onTrainerStart do not keep postponing the job's next runtime.
             FederatedTrainingTask.Builder newTaskBuilder =
                     existingTask.toBuilder()
-                            .jobId(jobId)
                             .constraints(buildTrainingConstraints())
                             .lastScheduledTime(nowMs);
             if (detectKeyParametersChanged(trainingOptions, existingTask, trainingTasksToCancel)) {
@@ -185,6 +196,10 @@ public class FederatedComputeJobManager {
                     shouldSchedule
                             ? SchedulingReason.SCHEDULING_REASON_NEW_TASK
                             : existingTask.schedulingReason());
+            if (trainingOptions.getServerAddress() != null
+                    && !trainingOptions.getServerAddress().isEmpty()) {
+                newTaskBuilder.serverAddress(trainingOptions.getServerAddress());
+            }
             newTask = newTaskBuilder.build();
         }
 
@@ -300,9 +315,18 @@ public class FederatedComputeJobManager {
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);
     }
 
+    /** We enforce device idle, battery not low and unmetered network training constraints. */
     private static byte[] buildTrainingConstraints() {
         FlatBufferBuilder builder = new FlatBufferBuilder();
-        builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
+        builder.finish(
+                TrainingConstraints.createTrainingConstraints(
+                        builder,
+                        /** requiresSchedulerIdle= */
+                        true,
+                        /** requiresSchedulerBatteryNotLow= */
+                        true,
+                        /** requiresSchedulerUnmeteredNetwork= */
+                        true));
         return builder.sizedByteArray();
     }
 
@@ -328,18 +352,6 @@ public class FederatedComputeJobManager {
             TrainingOptions newTaskOptions,
             FederatedTrainingTask existingTask,
             Set<FederatedTrainingTask> trainingTasksToCancel) {
-        // Check if the task previously had a different JobScheduler job ID. If it did then
-        // cancel that job for that old ID so it's not left hanging.
-        boolean jobIdChanged = existingTask.jobId() != newTaskOptions.getJobSchedulerJobId();
-        if (jobIdChanged) {
-            Log.i(
-                    TAG,
-                    String.format(
-                            "JobScheduler job id changed from %d to %d",
-                            existingTask.jobId(), newTaskOptions.getJobSchedulerJobId()));
-            trainingTasksToCancel.add(existingTask);
-        }
-
         // Check if the task previously had a different population name.
         boolean populationChanged =
                 !existingTask.populationName().equals(newTaskOptions.getPopulationName());
@@ -360,7 +372,7 @@ public class FederatedComputeJobManager {
                             existingTask.getTrainingIntervalOptions(),
                             newTaskOptions.getTrainingInterval()));
         }
-        return jobIdChanged || populationChanged || trainingIntervalChanged;
+        return populationChanged || trainingIntervalChanged;
     }
 
     private static boolean trainingIntervalChanged(
