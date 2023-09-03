@@ -24,6 +24,7 @@ import android.federatedcompute.common.TrainingOptions;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 
 import org.junit.Before;
@@ -42,8 +43,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
     @Mock FederatedComputeJobManager mMockJobManager;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
 
         mContext = ApplicationProvider.getApplicationContext();
         mFcpService = new FederatedComputeManagingServiceDelegate(mContext, new TestInjector());
@@ -78,6 +81,24 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 new TrainingOptions.Builder().setPopulationName("fake-population").build();
         mFcpService.scheduleFederatedCompute(
                 mContext.getPackageName(), trainingOptions, new FederatedComputeCallback());
+    }
+
+    @Test
+    public void testScheduleEnabledGlobalKillSwitch_throwsException() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mFcpService.scheduleFederatedCompute(
+                                    mContext.getPackageName(),
+                                    trainingOptions,
+                                    new FederatedComputeCallback()));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
     }
 
     static class FederatedComputeCallback extends IFederatedComputeCallback.Stub {

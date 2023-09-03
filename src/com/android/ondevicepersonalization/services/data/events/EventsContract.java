@@ -42,7 +42,7 @@ public class EventsContract {
         /** Name of the service package or this event */
         public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
 
-        /** {@link EventType} defining the type of event */
+        /** Integer enum defining the type of event */
         public static final String TYPE = "type";
 
         /** Time of the event in milliseconds. */

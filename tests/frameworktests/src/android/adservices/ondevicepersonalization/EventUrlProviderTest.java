@@ -21,6 +21,7 @@ import static org.junit.Assert.assertThrows;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -46,8 +47,8 @@ public class EventUrlProviderTest {
         params.putInt("type", 5);
         params.putString("id", "abc");
         assertEquals(
-                "5-abc-null-null-null",
-                mEventUrlProvider.getEventTrackingUrl(params, null, null));
+                "odp://5-abc-null-null-null",
+                mEventUrlProvider.getEventTrackingUrl(params, null, null).toString());
     }
 
     @Test public void testGetEventUrlReturnsResponseFromService() throws Exception {
@@ -55,8 +56,9 @@ public class EventUrlProviderTest {
         params.putInt("type", 5);
         params.putString("id", "abc");
         assertEquals(
-                "5-abc-AB-image/gif-null",
-                mEventUrlProvider.getEventTrackingUrl(params, RESPONSE_BYTES, "image/gif"));
+                "odp://5-abc-AB-image/gif-null",
+                mEventUrlProvider.getEventTrackingUrl(
+                        params, RESPONSE_BYTES, "image/gif").toString());
     }
 
     @Test public void testGetEventUrlWithRedirectReturnsResponseFromService() throws Exception {
@@ -64,8 +66,8 @@ public class EventUrlProviderTest {
         params.putInt("type", 5);
         params.putString("id", "abc");
         assertEquals(
-                "5-abc-null-null-def",
-                mEventUrlProvider.getEventTrackingUrlWithRedirect(params, "def"));
+                "odp://5-abc-null-null-def",
+                mEventUrlProvider.getEventTrackingUrlWithRedirect(params, "def").toString());
     }
 
     @Test public void testGetEventUrlThrowsOnError() throws Exception {
@@ -103,10 +105,10 @@ public class EventUrlProviderTest {
                     }
                 } else {
                     String url = String.format(
-                            "%d-%s-%s-%s-%s", eventType, id, responseData, mimeType,
+                            "odp://%d-%s-%s-%s-%s", eventType, id, responseData, mimeType,
                             destinationUrl);
                     Bundle result = new Bundle();
-                    result.putString(Constants.EXTRA_RESULT, url);
+                    result.putParcelable(Constants.EXTRA_RESULT, Uri.parse(url));
                     try {
                         callback.onSuccess(result);
                     } catch (RemoteException e) {

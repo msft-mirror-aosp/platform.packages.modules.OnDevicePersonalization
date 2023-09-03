@@ -16,13 +16,13 @@
 
 package com.example.odpsamplenetwork;
 
-import android.adservices.ondevicepersonalization.IsolatedComputationCallback;
-import android.adservices.ondevicepersonalization.IsolatedComputationService;
+import android.adservices.ondevicepersonalization.IsolatedService;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.RequestToken;
 import android.annotation.NonNull;
 
-public class SampleService extends IsolatedComputationService {
-    @NonNull @Override public IsolatedComputationCallback onRequest(
+public class SampleService extends IsolatedService {
+    @NonNull @Override public IsolatedWorker onRequest(
             RequestToken requestToken) {
         return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
                 getUserData(requestToken));

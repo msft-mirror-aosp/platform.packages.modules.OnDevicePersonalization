@@ -129,13 +129,6 @@ public interface Flags {
         return THERMAL_STATUS_TO_THROTTLE;
     }
 
-    /** When false, the min battery level constraint will be ignored during training. */
-    boolean ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK = false;
-
-    default boolean getEnableTrainingMinBatteryLevelCheck() {
-        return ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK;
-    }
-
     /** The minimum duration between two training condition checks in milliseconds. */
     long TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS = 1000;
 
