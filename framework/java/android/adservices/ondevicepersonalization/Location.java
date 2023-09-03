@@ -16,10 +16,12 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.FloatRange;
 import android.annotation.IntDef;
 import android.annotation.NonNull;
 import android.os.Parcelable;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 import java.lang.annotation.Retention;
@@ -42,10 +44,10 @@ public final class Location implements Parcelable {
     long mTimestampSeconds = 0;
 
     /** Location latitude with E4 precision. */
-    double mLatitude = 0.0;
+    @FloatRange(from = -90.0, to = 90.0) double mLatitude = 0.0;
 
     /** Location longitude with E4 precision. */
-    double mLongitude = 0.0;
+    @FloatRange(from = -180.0, to = 180.0) double mLongitude = 0.0;
 
     /** Location provider unknown. */
     public static final int LOCATION_PROVIDER_TYPE_UNKNOWN = 0;
@@ -100,13 +102,21 @@ public final class Location implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ Location(
             long timestampSeconds,
-            double latitude,
-            double longitude,
+            @FloatRange(from = -90.0, to = 90.0) double latitude,
+            @FloatRange(from = -180.0, to = 180.0) double longitude,
             @LocationProviderType int locationProvider,
             boolean preciseLocation) {
         this.mTimestampSeconds = timestampSeconds;
         this.mLatitude = latitude;
+        AnnotationValidations.validate(
+                FloatRange.class, null, mLatitude,
+                "from", -90.0,
+                "to", 90.0);
         this.mLongitude = longitude;
+        AnnotationValidations.validate(
+                FloatRange.class, null, mLongitude,
+                "from", -180.0,
+                "to", 180.0);
         this.mLocationProvider = locationProvider;
 
         if (!(mLocationProvider == LOCATION_PROVIDER_TYPE_UNKNOWN)
@@ -136,7 +146,7 @@ public final class Location implements Parcelable {
      * Location latitude with E4 precision.
      */
     @DataClass.Generated.Member
-    public double getLatitude() {
+    public @FloatRange(from = -90.0, to = 90.0) double getLatitude() {
         return mLatitude;
     }
 
@@ -144,7 +154,7 @@ public final class Location implements Parcelable {
      * Location longitude with E4 precision.
      */
     @DataClass.Generated.Member
-    public double getLongitude() {
+    public @FloatRange(from = -180.0, to = 180.0) double getLongitude() {
         return mLongitude;
     }
 
@@ -234,7 +244,15 @@ public final class Location implements Parcelable {
 
         this.mTimestampSeconds = timestampSeconds;
         this.mLatitude = latitude;
+        AnnotationValidations.validate(
+                FloatRange.class, null, mLatitude,
+                "from", -90.0,
+                "to", 90.0);
         this.mLongitude = longitude;
+        AnnotationValidations.validate(
+                FloatRange.class, null, mLongitude,
+                "from", -180.0,
+                "to", 180.0);
         this.mLocationProvider = locationProvider;
 
         if (!(mLocationProvider == LOCATION_PROVIDER_TYPE_UNKNOWN)
@@ -274,8 +292,8 @@ public final class Location implements Parcelable {
     public static final class Builder {
 
         private long mTimestampSeconds;
-        private double mLatitude;
-        private double mLongitude;
+        private @FloatRange(from = -90.0, to = 90.0) double mLatitude;
+        private @FloatRange(from = -180.0, to = 180.0) double mLongitude;
         private @LocationProviderType int mLocationProvider;
         private boolean mPreciseLocation;
 
@@ -299,7 +317,7 @@ public final class Location implements Parcelable {
          * Location latitude with E4 precision.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setLatitude(double value) {
+        public @NonNull Builder setLatitude(@FloatRange(from = -90.0, to = 90.0) double value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mLatitude = value;
@@ -310,7 +328,7 @@ public final class Location implements Parcelable {
          * Location longitude with E4 precision.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setLongitude(double value) {
+        public @NonNull Builder setLongitude(@FloatRange(from = -180.0, to = 180.0) double value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mLongitude = value;
@@ -377,10 +395,10 @@ public final class Location implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692119557892L,
+            time = 1693257176723L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/Location.java",
-            inputSignatures = "static final  android.adservices.ondevicepersonalization.Location EMPTY\n  long mTimestampSeconds\n  double mLatitude\n  double mLongitude\npublic static final  int LOCATION_PROVIDER_TYPE_UNKNOWN\npublic static final  int LOCATION_PROVIDER_TYPE_GPS\npublic static final  int LOCATION_PROVIDER_TYPE_NETWORK\n @android.adservices.ondevicepersonalization.Location.LocationProviderType int mLocationProvider\n  boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "static final  android.adservices.ondevicepersonalization.Location EMPTY\n  long mTimestampSeconds\n @android.annotation.FloatRange double mLatitude\n @android.annotation.FloatRange double mLongitude\npublic static final  int LOCATION_PROVIDER_TYPE_UNKNOWN\npublic static final  int LOCATION_PROVIDER_TYPE_GPS\npublic static final  int LOCATION_PROVIDER_TYPE_NETWORK\n @android.adservices.ondevicepersonalization.Location.LocationProviderType int mLocationProvider\n  boolean mPreciseLocation\nclass Location extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

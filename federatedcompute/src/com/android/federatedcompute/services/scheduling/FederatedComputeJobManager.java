@@ -315,9 +315,18 @@ public class FederatedComputeJobManager {
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);
     }
 
+    /** We enforce device idle, battery not low and unmetered network training constraints. */
     private static byte[] buildTrainingConstraints() {
         FlatBufferBuilder builder = new FlatBufferBuilder();
-        builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
+        builder.finish(
+                TrainingConstraints.createTrainingConstraints(
+                        builder,
+                        /** requiresSchedulerIdle= */
+                        true,
+                        /** requiresSchedulerBatteryNotLow= */
+                        true,
+                        /** requiresSchedulerUnmeteredNetwork= */
+                        true));
         return builder.sizedByteArray();
     }
 
