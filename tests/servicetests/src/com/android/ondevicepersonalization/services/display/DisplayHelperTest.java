@@ -22,8 +22,8 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import android.Manifest;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
 import android.os.PersistableBundle;

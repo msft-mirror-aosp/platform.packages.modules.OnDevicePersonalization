@@ -42,8 +42,8 @@ public final class RawUserData {
     // The device orientation.
     public int orientation = Configuration.ORIENTATION_PORTRAIT;
 
-    // Available bytes in MB.
-    public long availableStorageMB = 0;
+    // Available storage in bytes.
+    public long availableStorageBytes = 0;
 
     // Battery percentage.
     public int batteryPercentage = 0;

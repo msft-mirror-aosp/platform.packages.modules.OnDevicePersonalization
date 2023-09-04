@@ -16,8 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.app.Service;
-import android.app.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.content.Intent;
 import android.os.IBinder;
 
