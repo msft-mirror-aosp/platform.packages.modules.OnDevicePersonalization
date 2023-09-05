@@ -28,7 +28,6 @@ import android.os.RemoteException;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
  * Generates event tracking URLs for a request. The service can embed these URLs within the
@@ -53,7 +52,7 @@ public class EventUrlProvider {
      * 200 (OK) if the response data is not empty. Returns HTTP Status 204 (No Content) if the
      * response data is empty.
      *
-     * @param eventParams The data to be passed to {@link IsolatedWorker#onEvent}
+     * @param eventParams The data to be passed to {@link IsolatedWorker#onWebViewEvent}
      *     when the event occurs.
      * @param responseData The content to be returned to the WebView when the URL is fetched.
      * @param mimeType The Mime Type of the URL response.
@@ -62,7 +61,7 @@ public class EventUrlProvider {
     @NonNull public Uri getEventTrackingUrl(
             @NonNull PersistableBundle eventParams,
             @Nullable byte[] responseData,
-            @Nullable String mimeType) throws OnDevicePersonalizationException {
+            @Nullable String mimeType) {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putByteArray(Constants.EXTRA_RESPONSE_DATA, responseData);
@@ -81,15 +80,14 @@ public class EventUrlProvider {
      */
     @NonNull public Uri getEventTrackingUrlWithRedirect(
             @NonNull PersistableBundle eventParams,
-            @Nullable String destinationUrl) throws OnDevicePersonalizationException {
+            @Nullable String destinationUrl) {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
         return getUrl(params);
     }
 
-    @NonNull private Uri getUrl(@NonNull Bundle params)
-            throws OnDevicePersonalizationException {
+    @NonNull private Uri getUrl(@NonNull Bundle params) {
         try {
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
 
@@ -106,19 +104,17 @@ public class EventUrlProvider {
                             asyncResult.add(new CallbackResult(null, errorCode));
                         }
                 });
-            CallbackResult callbackResult =
-                    asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            CallbackResult callbackResult = asyncResult.take();
             Objects.requireNonNull(callbackResult);
             if (callbackResult.mErrorCode != 0) {
-                throw new OnDevicePersonalizationException(callbackResult.mErrorCode);
+                throw new IllegalStateException("Error: " + callbackResult.mErrorCode);
             }
             Bundle result = Objects.requireNonNull(callbackResult.mResult);
             Uri url = Objects.requireNonNull(
                     result.getParcelable(Constants.EXTRA_RESULT, Uri.class));
             return url;
         } catch (InterruptedException | RemoteException e) {
-            throw new OnDevicePersonalizationException(
-                    Constants.STATUS_INTERNAL_ERROR, (Throwable) e);
+            throw new RuntimeException(e);
         }
     }
 
