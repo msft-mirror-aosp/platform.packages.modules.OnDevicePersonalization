@@ -21,6 +21,8 @@
     package="com.android.ondevicepersonalization.services"
     android:versionCode="1"
     android:versionName="T-initial">
+    <uses-sdk android:minSdkVersion="33"/>
+
     <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
@@ -37,6 +39,8 @@
 
     <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
+
+    <permission android:name="android.permission.MODIFY_ONDEVICEPERSONALIZATION_STATE" />
 
     <application android:name=".OnDevicePersonalizationApplication"
                  android:forceQueryable="true">

@@ -25,6 +25,8 @@
     <!-- Used for scheduling connectivity jobs -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
+     <!-- Required for reading device configs -->
+    <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
     <application>
         <service android:name=".FederatedComputeServiceImpl" android:exported="true" >
@@ -37,6 +39,9 @@
         <service android:name="com.android.federatedcompute.services.training.FederatedJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
+                 android:isolatedProcess="true" android:exported="false" >
         </service>
     </application>
 </manifest>

@@ -26,6 +26,9 @@ import android.database.sqlite.SQLiteDatabase;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.data.events.EventStateContract;
+import com.android.ondevicepersonalization.services.data.events.EventsContract;
+import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
@@ -50,6 +53,9 @@ public class OnDevicePersonalizationDbHelperTest {
     public void testOnCreate() {
         mDbHelper.onCreate(mDb);
         assertTrue(hasEntity(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, "table"));
+        assertTrue(hasEntity(QueriesContract.QueriesEntry.TABLE_NAME, "table"));
+        assertTrue(hasEntity(EventsContract.EventsEntry.TABLE_NAME, "table"));
+        assertTrue(hasEntity(EventStateContract.EventStateEntry.TABLE_NAME, "table"));
         assertTrue(hasEntity(UserDataTables.LocationHistory.TABLE_NAME, "table"));
         assertTrue(hasEntity(UserDataTables.LocationHistory.INDEX_NAME, "index"));
         assertTrue(hasEntity(UserDataTables.AppUsageHistory.TABLE_NAME, "table"));

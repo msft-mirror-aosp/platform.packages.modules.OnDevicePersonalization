@@ -119,7 +119,7 @@ android_app {
         "owasp-java-encoder",
     ],
     sdk_version: "module_current",
-    min_sdk_version: "Tiramisu",
+    min_sdk_version: "33",
     updatable: true,
     certificate: "platform",
     apex_available: ["com.android.ondevicepersonalization"],

@@ -16,12 +16,15 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
+
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
+import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusService;
+import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.aidl.IPrivacyStatusService;
-import android.app.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
+import android.annotation.RequiresPermission;
 import android.content.Context;
 import android.os.RemoteException;
-
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.PrivacySignal;
@@ -47,10 +50,13 @@ public class OnDevicePersonalizationPrivacyStatusServiceDelegate
     }
 
     @Override
+    @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
     public void setKidStatus(boolean kidStatusEnabled,
             @NonNull IPrivacyStatusServiceCallback callback) {
         Objects.requireNonNull(callback);
-        // TODO(b/272823829): Verify caller's permission
+        // Verify caller's permission
+        OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
+                MODIFY_ONDEVICEPERSONALIZATION_STATE);
         // TODO(b/270468742): Call system server for U+ devices
         sBackgroundExecutor.execute(
                 () -> {
