@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import android.content.ContentValues;
@@ -102,52 +103,57 @@ public class JoinedTableDaoTest {
 
         JoinedTableDao joinedTableDao = new JoinedTableDao(columnSchemaList, 0, 0, mContext);
         try (Cursor cursor = joinedTableDao.rawQuery(
-                "SELECT * FROM " + JoinedTableDao.TABLE_NAME + " ORDER BY "
-                        + JoinedTableDao.EVENT_TIME_MILLIS_COL)) {
-            // Assert two rows for the two joined events
-            assertEquals(2, cursor.getCount());
-            cursor.moveToNext();
-            String servicePackageName = cursor.getString(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
-            int type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
-            long eventTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
-            long queryTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.QUERY_TIME_MILLIS_COL));
-            int eventCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("eventCol1"));
-            String eventCol2 = cursor.getString(cursor.getColumnIndexOrThrow("eventCol2"));
-            int queryCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("queryCol1"));
-            assertThrows(IllegalArgumentException.class,
-                    () -> cursor.getColumnIndexOrThrow("eventCol3"));
-            assertEquals(mContext.getPackageName(), servicePackageName);
-            assertEquals(EVENT_TYPE_B2D, type);
-            assertEquals(1L, eventTimeMillis);
-            assertEquals(1L, queryTimeMillis);
-            assertEquals(100, eventCol1);
-            assertEquals("helloWorld", eventCol2);
-            assertEquals(1, queryCol1);
-
-            cursor.moveToNext();
-            servicePackageName = cursor.getString(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
-            type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
-            eventTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
-            queryTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.QUERY_TIME_MILLIS_COL));
-            eventCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("eventCol1"));
-            eventCol2 = cursor.getString(cursor.getColumnIndexOrThrow("eventCol2"));
-            queryCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("queryCol1"));
-            assertThrows(IllegalArgumentException.class,
-                    () -> cursor.getColumnIndexOrThrow("eventCol3"));
-            assertEquals(mContext.getPackageName(), servicePackageName);
-            assertEquals(EVENT_TYPE_CLICK, type);
-            assertEquals(2L, eventTimeMillis);
-            assertEquals(1L, queryTimeMillis);
-            assertEquals(50, eventCol1);
-            assertEquals("helloEarth", eventCol2);
-            assertEquals(2, queryCol1);
-
+                "SELECT * FROM " + JoinedTableDao.TABLE_NAME + " ORDER BY ROWID")) {
+            // Assert two rows for the two joined events. two rows for the query.
+            assertEquals(4, cursor.getCount());
+            for (int i = 0; i < 4; i++) {
+                cursor.moveToNext();
+                String servicePackageName = cursor.getString(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
+                int type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
+                long eventTimeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
+                long queryTimeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.QUERY_TIME_MILLIS_COL));
+                int eventCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("eventCol1"));
+                String eventCol2 = cursor.getString(cursor.getColumnIndexOrThrow("eventCol2"));
+                int queryCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("queryCol1"));
+                assertThrows(IllegalArgumentException.class,
+                        () -> cursor.getColumnIndexOrThrow("eventCol3"));
+                if (i == 0) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(EVENT_TYPE_B2D, type);
+                    assertEquals(1L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(100, eventCol1);
+                    assertEquals("helloWorld", eventCol2);
+                    assertEquals(1, queryCol1);
+                } else if (i == 1) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(EVENT_TYPE_CLICK, type);
+                    assertEquals(2L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(50, eventCol1);
+                    assertEquals("helloEarth", eventCol2);
+                    assertEquals(2, queryCol1);
+                } else if (i == 2) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(0L, type);
+                    assertEquals(0L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(0, eventCol1);
+                    assertNull(eventCol2);
+                    assertEquals(1, queryCol1);
+                } else if (i == 3) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(0L, type);
+                    assertEquals(0L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(0, eventCol1);
+                    assertNull(eventCol2);
+                    assertEquals(2, queryCol1);
+                }
+            }
         }
     }
 

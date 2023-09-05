@@ -149,16 +149,31 @@ public class JoinedTableDao {
         try {
             db.beginTransactionNonExclusive();
             for (JoinedEvent joinedEvent : joinedEventList) {
-                ContentValues insertValues = new ContentValues();
                 if (joinedEvent.getEventId() == 0) {
-                    // TODO(298225729) Process Query-only rows
+                    // Process Query-only rows
+                    if (joinedEvent.getQueryData() != null) {
+                        List<ContentValues> queryFieldRows =
+                                OnDevicePersonalizationFlatbufferUtils
+                                        .getContentValuesFromQueryData(
+                                                joinedEvent.getQueryData());
+                        for (ContentValues queryRow : queryFieldRows) {
+                            ContentValues insertValues = new ContentValues();
+                            insertValues.putAll(extractValidColumns(queryRow));
+                            insertValues.putAll(addProvidedColumns(joinedEvent));
+                            long insertResult = db.insert(TABLE_NAME, null, insertValues);
+                            if (insertResult == -1) {
+                                throw new IllegalStateException("Failed to insert row into SQL DB");
+                            }
+                        }
+                    }
                 } else {
+                    ContentValues insertValues = new ContentValues();
                     // Add eventData columns
                     if (joinedEvent.getEventData() != null) {
                         ContentValues eventData =
                                 OnDevicePersonalizationFlatbufferUtils
                                         .getContentValuesFromEventData(
-                                        joinedEvent.getEventData());
+                                                joinedEvent.getEventData());
                         insertValues.putAll(extractValidColumns(eventData));
                     }
                     // Add queryData columns
@@ -166,23 +181,12 @@ public class JoinedTableDao {
                         ContentValues queryData =
                                 OnDevicePersonalizationFlatbufferUtils
                                         .getContentValuesRowFromQueryData(
-                                        joinedEvent.getQueryData(), joinedEvent.getRowIndex());
+                                                joinedEvent.getQueryData(),
+                                                joinedEvent.getRowIndex());
                         insertValues.putAll(extractValidColumns(queryData));
                     }
                     // Add ODP provided columns
-                    if (mColumns.containsKey(SERVICE_PACKAGE_NAME_COL)) {
-                        insertValues.put(SERVICE_PACKAGE_NAME_COL,
-                                joinedEvent.getServicePackageName());
-                    }
-                    if (mColumns.containsKey(TYPE_COL)) {
-                        insertValues.put(TYPE_COL, joinedEvent.getType());
-                    }
-                    if (mColumns.containsKey(EVENT_TIME_MILLIS_COL)) {
-                        insertValues.put(EVENT_TIME_MILLIS_COL, joinedEvent.getEventTimeMillis());
-                    }
-                    if (mColumns.containsKey(QUERY_TIME_MILLIS_COL)) {
-                        insertValues.put(QUERY_TIME_MILLIS_COL, joinedEvent.getQueryTimeMillis());
-                    }
+                    insertValues.putAll(addProvidedColumns(joinedEvent));
                     long insertResult = db.insert(TABLE_NAME, null, insertValues);
                     if (insertResult == -1) {
                         throw new IllegalStateException("Failed to insert row into SQL DB");
@@ -193,6 +197,24 @@ public class JoinedTableDao {
         } finally {
             db.endTransaction();
         }
+    }
+
+    private ContentValues addProvidedColumns(JoinedEvent joinedEvent) {
+        ContentValues result = new ContentValues();
+        if (mColumns.containsKey(SERVICE_PACKAGE_NAME_COL)) {
+            result.put(SERVICE_PACKAGE_NAME_COL,
+                    joinedEvent.getServicePackageName());
+        }
+        if (mColumns.containsKey(TYPE_COL)) {
+            result.put(TYPE_COL, joinedEvent.getType());
+        }
+        if (mColumns.containsKey(EVENT_TIME_MILLIS_COL)) {
+            result.put(EVENT_TIME_MILLIS_COL, joinedEvent.getEventTimeMillis());
+        }
+        if (mColumns.containsKey(QUERY_TIME_MILLIS_COL)) {
+            result.put(QUERY_TIME_MILLIS_COL, joinedEvent.getQueryTimeMillis());
+        }
+        return result;
     }
 
     private ContentValues extractValidColumns(ContentValues data) {
