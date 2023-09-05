@@ -31,10 +31,10 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Generates event tracking URLs for a request. The {@link IsolatedService} can
- * embed these URLs in the HTML output. When the HTML is rendered, ODP will intercept requests
- * to these URLs, call {@link IsolatedWorker#onEvent}, and log the returned output
- * in the EVENTS table.
+ * Generates event tracking URLs for a request. The service can embed these URLs within the
+ * HTML output as needed. When the HTML is rendered within an ODP WebView, ODP will intercept
+ * requests to these URLs, call {@link IsolatedWorker#onWebViewEvent}, and log the returned
+ * output in the EVENTS table.
  *
  * @hide
  */
