@@ -168,8 +168,7 @@ public class OnDevicePersonalizationManager {
 
                 @Override
                 public void onError(int errorCode) {
-                    executor.execute(() -> receiver.onError(
-                            new OnDevicePersonalizationException(errorCode)));
+                    executor.execute(() -> receiver.onError(createException(errorCode)));
                 }
             };
 
@@ -197,8 +196,8 @@ public class OnDevicePersonalizationManager {
      * @param height the height of the {@link SurfacePackage} in pixels.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
-     *     Exception} on failure.
-     *
+     *     Exception} on failure. Returns an {@link OnDevicePersonalizationException} if execution
+     *     fails.
      */
     public void requestSurfacePackage(
             @NonNull SurfacePackageToken surfacePackageToken,
@@ -224,8 +223,7 @@ public class OnDevicePersonalizationManager {
 
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(
-                                    new OnDevicePersonalizationException(errorCode)));
+                            executor.execute(() -> receiver.onError(createException(errorCode)));
                         }
                     };
 
@@ -289,5 +287,16 @@ public class OnDevicePersonalizationManager {
         }
         sLogger.e(TAG + ": Didn't find any matching ondevicepersonalization service.");
         return null;
+    }
+
+    private Exception createException(int errorCode) {
+        if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
+            return new PackageManager.NameNotFoundException();
+        } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
+            return new OnDevicePersonalizationException(
+                    OnDevicePersonalizationException.ERROR_SERVICE_FAILED);
+        } else {
+            return new IllegalStateException("Error: " + errorCode);
+        }
     }
 }

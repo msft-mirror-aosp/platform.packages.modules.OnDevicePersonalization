@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /** @hide */
 public class LocalDataImpl implements MutableKeyValueStore {
@@ -41,15 +40,13 @@ public class LocalDataImpl implements MutableKeyValueStore {
     @NonNull
     IDataAccessService mDataAccessService;
 
-    private static final long ASYNC_TIMEOUT_MS = 1000;
-
     /** @hide */
     public LocalDataImpl(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
     }
 
     @Override @Nullable
-    public byte[] get(@NonNull String key) throws OnDevicePersonalizationException {
+    public byte[] get(@NonNull String key) {
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
@@ -57,7 +54,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
     }
 
     @Override @Nullable
-    public byte[] put(@NonNull String key, byte[] value) throws OnDevicePersonalizationException {
+    public byte[] put(@NonNull String key, byte[] value) {
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
@@ -66,48 +63,38 @@ public class LocalDataImpl implements MutableKeyValueStore {
     }
 
     @Override @Nullable
-    public byte[] remove(@NonNull String key) throws OnDevicePersonalizationException {
+    public byte[] remove(@NonNull String key) {
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
         return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, key, params);
     }
 
-    private byte[] handleLookupRequest(int op, String key, Bundle params)
-            throws OnDevicePersonalizationException {
+    private byte[] handleLookupRequest(int op, String key, Bundle params) {
         Bundle result = handleAsyncRequest(op, params);
-        if (null == result) {
-            sLogger.e(TAG + ": Timed out waiting for result of lookup for op: " + op);
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
-        }
         HashMap<String, byte[]> data = result.getSerializable(
                 Constants.EXTRA_RESULT, HashMap.class);
         if (null == data) {
             sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
         }
         return data.get(key);
     }
 
     @Override @NonNull
-    public Set<String> keySet() throws OnDevicePersonalizationException {
+    public Set<String> keySet() {
         Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET,
                 Bundle.EMPTY);
-        if (null == result) {
-            sLogger.e(TAG + ": Timed out waiting for result of keySet");
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
-        }
         HashSet<String> resultSet =
                 result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
         if (null == resultSet) {
             sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
         }
         return resultSet;
     }
 
-    private Bundle handleAsyncRequest(int op, Bundle params)
-            throws OnDevicePersonalizationException {
+    private Bundle handleAsyncRequest(int op, Bundle params) {
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             mDataAccessService.onRequest(
@@ -116,7 +103,11 @@ public class LocalDataImpl implements MutableKeyValueStore {
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            asyncResult.add(result);
+                            if (result != null) {
+                                asyncResult.add(result);
+                            } else {
+                                asyncResult.add(Bundle.EMPTY);
+                            }
                         }
 
                         @Override
@@ -124,10 +115,10 @@ public class LocalDataImpl implements MutableKeyValueStore {
                             asyncResult.add(Bundle.EMPTY);
                         }
                     });
-            return asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            return asyncResult.take();
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve result from localData", e);
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+            throw new RuntimeException(e);
         }
     }
 }
