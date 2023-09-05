@@ -219,28 +219,46 @@ public class JoinedTableDao {
 
     private ContentValues extractValidColumns(ContentValues data) {
         ContentValues result = new ContentValues();
-        // TODO(298225729): Validate that value types match expected column type.
         for (String key : data.keySet()) {
             if (mColumns.containsKey(key)) {
                 Object value = data.get(key);
+                int sqlType = mColumns.get(key).getType();
                 if (value instanceof Byte) {
-                    result.put(key, (Byte) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_INTEGER) {
+                        result.put(key, (Byte) value);
+                    }
                 } else if (value instanceof Short) {
-                    result.put(key, (Short) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_INTEGER) {
+                        result.put(key, (Short) value);
+                    }
                 } else if (value instanceof Integer) {
-                    result.put(key, (Integer) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_INTEGER) {
+                        result.put(key, (Integer) value);
+                    }
                 } else if (value instanceof Long) {
-                    result.put(key, (Long) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_INTEGER) {
+                        result.put(key, (Long) value);
+                    }
                 } else if (value instanceof Float) {
-                    result.put(key, (Float) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_REAL) {
+                        result.put(key, (Float) value);
+                    }
                 } else if (value instanceof Double) {
-                    result.put(key, (Double) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_REAL) {
+                        result.put(key, (Double) value);
+                    }
                 } else if (value instanceof String) {
-                    result.put(key, (String) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_TEXT) {
+                        result.put(key, (String) value);
+                    }
                 } else if (value instanceof byte[]) {
-                    result.put(key, (byte[]) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_BLOB) {
+                        result.put(key, (byte[]) value);
+                    }
                 } else if (value instanceof Boolean) {
-                    result.put(key, (Boolean) value);
+                    if (sqlType == ColumnSchema.SQL_DATA_TYPE_INTEGER) {
+                        result.put(key, (Boolean) value);
+                    }
                 }
             }
         }
