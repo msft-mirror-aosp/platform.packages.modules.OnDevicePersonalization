@@ -317,7 +317,7 @@ public class EventsDao {
             while (cursor.moveToNext()) {
                 long eventId = cursor.getLong(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_ID));
-                long rowIndex = cursor.getLong(
+                int rowIndex = cursor.getInt(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.ROW_INDEX));
                 int type = cursor.getInt(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.TYPE));
