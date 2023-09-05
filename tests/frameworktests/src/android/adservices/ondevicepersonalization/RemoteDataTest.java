@@ -56,11 +56,11 @@ public class RemoteDataTest {
     @Test
     public void testLookupError() {
         // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mRemoteData.get("z"));
+        assertThrows(IllegalStateException.class, () -> mRemoteData.get("z"));
     }
 
     @Test
-    public void testKeysetSuccess() throws OnDevicePersonalizationException {
+    public void testKeysetSuccess() {
         Set<String> expectedResult = new HashSet<>();
         expectedResult.add("a");
         expectedResult.add("b");
