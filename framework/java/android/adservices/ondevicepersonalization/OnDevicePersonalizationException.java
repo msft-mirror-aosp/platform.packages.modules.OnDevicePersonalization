@@ -45,6 +45,7 @@ public class OnDevicePersonalizationException extends Exception {
         mErrorCode = errorCode;
     }
 
+    /** Returns the error code for this exception. */
     public int getErrorCode() {
         return mErrorCode;
     }
