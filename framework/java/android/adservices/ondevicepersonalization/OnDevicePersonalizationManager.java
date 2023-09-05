@@ -130,7 +130,10 @@ public class OnDevicePersonalizationManager {
      *     {@link requestSurfacePackage} call to display the result in a view. The calling app and
      *     the {@link IsolatedService} must agree on the expected size of this list.
      *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
-     *     indicate that the service has no output for that specific surface.
+     *     indicate that the service has no output for that specific surface. Returns a
+     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler does not
+     *     exist or is not a valid {@link IsolatedService}. Returns an
+     *     {@link OnDevicePersonalizationException} if execution fails.
      */
     public void execute(
             @NonNull ComponentName handler,
