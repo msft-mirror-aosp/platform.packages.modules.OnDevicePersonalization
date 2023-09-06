@@ -23,12 +23,12 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * Installation information for an app.
+ * Information about apps.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class AppInstallInfo implements Parcelable {
+public final class AppInfo implements Parcelable {
     /** Whether the app is installed. */
     @NonNull boolean mInstalled = false;
 
@@ -40,7 +40,7 @@ public final class AppInstallInfo implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppInstallInfo.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppInfo.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -48,7 +48,7 @@ public final class AppInstallInfo implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ AppInstallInfo(
+    /* package-private */ AppInfo(
             @NonNull boolean installed) {
         this.mInstalled = installed;
         AnnotationValidations.validate(
@@ -69,13 +69,13 @@ public final class AppInstallInfo implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(AppInstallInfo other) { ... }
+        // boolean fieldNameEquals(AppInfo other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        AppInstallInfo that = (AppInstallInfo) o;
+        AppInfo that = (AppInfo) o;
         //noinspection PointlessBooleanExpression
         return true
                 && mInstalled == that.mInstalled;
@@ -110,7 +110,7 @@ public final class AppInstallInfo implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ AppInstallInfo(@NonNull android.os.Parcel in) {
+    /* package-private */ AppInfo(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -125,21 +125,21 @@ public final class AppInstallInfo implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<AppInstallInfo> CREATOR
-            = new Parcelable.Creator<AppInstallInfo>() {
+    public static final @NonNull Parcelable.Creator<AppInfo> CREATOR
+            = new Parcelable.Creator<AppInfo>() {
         @Override
-        public AppInstallInfo[] newArray(int size) {
-            return new AppInstallInfo[size];
+        public AppInfo[] newArray(int size) {
+            return new AppInfo[size];
         }
 
         @Override
-        public AppInstallInfo createFromParcel(@NonNull android.os.Parcel in) {
-            return new AppInstallInfo(in);
+        public AppInfo createFromParcel(@NonNull android.os.Parcel in) {
+            return new AppInfo(in);
         }
     };
 
     /**
-     * A builder for {@link AppInstallInfo}
+     * A builder for {@link AppInfo}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -164,14 +164,14 @@ public final class AppInstallInfo implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull AppInstallInfo build() {
+        public @NonNull AppInfo build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mInstalled = false;
             }
-            AppInstallInfo o = new AppInstallInfo(
+            AppInfo o = new AppInfo(
                     mInstalled);
             return o;
         }
@@ -185,10 +185,10 @@ public final class AppInstallInfo implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1693265003084L,
+            time = 1694022624774L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppInstallInfo.java",
-            inputSignatures = " @android.annotation.NonNull boolean mInstalled\nclass AppInstallInfo extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppInfo.java",
+            inputSignatures = " @android.annotation.NonNull boolean mInstalled\nclass AppInfo extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
