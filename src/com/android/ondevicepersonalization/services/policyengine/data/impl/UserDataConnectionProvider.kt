@@ -16,13 +16,13 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
-import android.app.ondevicepersonalization.UserData
-import android.app.ondevicepersonalization.OSVersion
-import android.app.ondevicepersonalization.DeviceMetrics
-import android.app.ondevicepersonalization.Location
-import android.app.ondevicepersonalization.AppInstallStatus
-import android.app.ondevicepersonalization.AppUsageStatus
-import android.app.ondevicepersonalization.LocationStatus
+import android.adservices.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.OSVersion
+import android.adservices.ondevicepersonalization.DeviceMetrics
+import android.adservices.ondevicepersonalization.Location
+import android.adservices.ondevicepersonalization.AppInfo
+import android.adservices.ondevicepersonalization.AppUsageStatus
+import android.adservices.ondevicepersonalization.LocationStatus
 import android.util.ArrayMap
 
 import com.android.ondevicepersonalization.services.data.user.UserDataDao
@@ -66,10 +66,9 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
             // TODO(b/267013762): more privacy-preserving processing may be needed
             return UserData.Builder()
-                    .setTimestampSeconds((rawUserData.timeMillis / 1000).toLong())
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
-                    .setAvailableStorageMb(rawUserData.availableStorageMB)
+                    .setAvailableStorageBytes(rawUserData.availableStorageBytes)
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
                     .setConnectionType(rawUserData.connectionType.ordinal)
@@ -82,17 +81,17 @@ class UserDataConnectionProvider() : ConnectionProvider {
                             .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
                             .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
                             .build())
-                    .setAppInstalledHistory(getAppInstalledHistory(rawUserData))
+                    .setAppInfo(getAppInfo(rawUserData))
                     .setAppUsageHistory(getAppUsageHistory(rawUserData))
                     .setLocationHistory(getLocationHistory(rawUserData))
                     .build()
         }
 
-        private fun getAppInstalledHistory(rawUserData: RawUserData): Map<String, AppInstallStatus> {
-            var res = ArrayMap<String, AppInstallStatus>()
+        private fun getAppInfo(rawUserData: RawUserData): Map<String, AppInfo> {
+            var res = ArrayMap<String, AppInfo>()
             for (appInfo in rawUserData.appsInfo) {
                 res.put(appInfo.packageName,
-                        AppInstallStatus.Builder()
+                        AppInfo.Builder()
                             .setInstalled(appInfo.installed)
                             .build())
             }

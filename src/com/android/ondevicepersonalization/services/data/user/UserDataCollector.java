@@ -69,7 +69,7 @@ import java.util.TimeZone;
 public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
-    private static UserDataCollector sUserDataCollector = null;
+    private static volatile UserDataCollector sUserDataCollector = null;
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataCollector";
 
@@ -99,7 +99,7 @@ public class UserDataCollector {
     private boolean mInitialized;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
-        mContext = context;
+        mContext = context.getApplicationContext();
 
         mLocale = Locale.getDefault();
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
@@ -117,13 +117,15 @@ public class UserDataCollector {
 
     /** Returns an instance of UserDataCollector. */
     public static UserDataCollector getInstance(Context context) {
-        synchronized (UserDataCollector.class) {
-            if (sUserDataCollector == null) {
-                sUserDataCollector = new UserDataCollector(
-                        context, UserDataDao.getInstance(context));
+        if (sUserDataCollector == null) {
+            synchronized (UserDataCollector.class) {
+                if (sUserDataCollector == null) {
+                    sUserDataCollector = new UserDataCollector(
+                            context, UserDataDao.getInstance(context));
+                }
             }
-            return sUserDataCollector;
         }
+        return sUserDataCollector;
     }
 
     /**
@@ -162,7 +164,7 @@ public class UserDataCollector {
             initializeUserData(userData);
             return;
         }
-        userData.availableStorageMB = getAvailableStorageMB();
+        userData.availableStorageBytes = getAvailableStorageBytes();
         userData.batteryPercentage = getBatteryPercentage();
         userData.country = getCountry();
         userData.language = getLanguage();
@@ -186,7 +188,7 @@ public class UserDataCollector {
         userData.timeMillis = getTimeMillis();
         userData.utcOffset = getUtcOffset();
         userData.orientation = getOrientation();
-        userData.availableStorageMB = getAvailableStorageMB();
+        userData.availableStorageBytes = getAvailableStorageBytes();
         userData.batteryPercentage = getBatteryPercentage();
         userData.country = getCountry();
         userData.language = getLanguage();
@@ -233,9 +235,9 @@ public class UserDataCollector {
 
     /** Collects available bytes and converts to MB. */
     @VisibleForTesting
-    public int getAvailableStorageMB() {
+    public long getAvailableStorageBytes() {
         StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
-        return (int) (statFs.getAvailableBytes() / BYTES_IN_MB);
+        return statFs.getAvailableBytes();
     }
 
     /** Collects the battery percentage of the device. */
@@ -883,7 +885,7 @@ public class UserDataCollector {
         userData.timeMillis = 0;
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
-        userData.availableStorageMB = 0;
+        userData.availableStorageBytes = 0;
         userData.batteryPercentage = 0;
         userData.country = Country.UNKNOWN;
         userData.language = Language.UNKNOWN;

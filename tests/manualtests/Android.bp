@@ -27,6 +27,9 @@ android_test {
     libs: [
         "android.test.base",
         "android.test.runner",
+        "framework-annotations-lib",
+        "framework-configinfrastructure",
+        "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
         "truth-prebuilt",
         "framework-ondevicepersonalization.impl",
@@ -47,9 +50,12 @@ android_test {
         "modules-utils-list-slice",
         "owasp-java-encoder",
     ],
+    sdk_version: "module_current",
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
     test_suites: [
         "general-tests",
     ],
+    manifest: "AndroidManifest.xml",
+    test_config: "AndroidTest.xml",
 }

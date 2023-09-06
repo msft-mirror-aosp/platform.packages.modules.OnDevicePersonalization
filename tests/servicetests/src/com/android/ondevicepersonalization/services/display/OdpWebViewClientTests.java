@@ -24,7 +24,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import android.app.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -110,7 +110,7 @@ public class OdpWebViewClientTests {
     @Test
     public void testValidUrlOverride() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
-        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
         assertEquals(1,
@@ -121,7 +121,7 @@ public class OdpWebViewClientTests {
     @Test
     public void testValidUrlWithNoContentIntercept() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
-        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
@@ -135,7 +135,7 @@ public class OdpWebViewClientTests {
     public void testValidUrlWithResponseDataIntercept() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(new EventUrlPayload(
-                createEventParameters(), RESPONSE_BYTES, "image/gif"));
+                createEventParameters(), RESPONSE_BYTES, "image/gif")).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
@@ -150,7 +150,8 @@ public class OdpWebViewClientTests {
     @Test
     public void testValidUrlWithRedirect() throws Exception {
         String landingPage = "https://www.google.com";
-        String odpUrl = EventUrlHelper.getEncryptedClickTrackingUrl(mTestEventPayload, landingPage);
+        String odpUrl = EventUrlHelper.getEncryptedClickTrackingUrl(
+                mTestEventPayload, landingPage).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -172,7 +173,7 @@ public class OdpWebViewClientTests {
     @Test
     public void testValidUrlWithEventMetrics() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
-        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload);
+        String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
         Cursor result =
