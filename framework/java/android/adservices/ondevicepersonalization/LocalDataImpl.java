@@ -118,7 +118,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
             return asyncResult.take();
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve result from localData", e);
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 }

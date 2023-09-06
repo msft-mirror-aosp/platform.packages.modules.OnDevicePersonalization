@@ -39,6 +39,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -141,6 +142,11 @@ public class OnDevicePersonalizationManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<List<SurfacePackageToken>, Exception> receiver
     ) {
+        Objects.requireNonNull(handler);
+        Objects.requireNonNull(params);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+
         try {
             bindService(executor);
 
@@ -175,8 +181,9 @@ public class OnDevicePersonalizationManager {
             mService.execute(
                     mContext.getPackageName(), handler, params, callbackWrapper);
 
-        } catch (Exception e) {
-            receiver.onError(e);
+        } catch (InterruptedException
+                | RemoteException e) {
+            receiver.onError(new IllegalStateException(e));
         }
     }
 
@@ -208,6 +215,10 @@ public class OnDevicePersonalizationManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<SurfaceControlViewHost.SurfacePackage, Exception> receiver
     ) {
+        Objects.requireNonNull(surfacePackageToken);
+        Objects.requireNonNull(hostToken);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
         try {
             bindService(executor);
 
@@ -232,9 +243,8 @@ public class OnDevicePersonalizationManager {
                     width, height, callbackWrapper);
 
         } catch (InterruptedException
-                | NullPointerException
                 | RemoteException e) {
-            receiver.onError(e);
+            receiver.onError(new IllegalStateException(e));
         }
     }
 
