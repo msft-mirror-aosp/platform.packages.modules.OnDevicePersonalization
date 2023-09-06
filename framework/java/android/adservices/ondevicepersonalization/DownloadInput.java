@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * The input data for {@link IsolatedComputationCallback#onDownload()}.
+ * The input data for {@link IsolatedWorker#onDownload()}.
  *
  * @hide
  */
@@ -43,7 +43,7 @@ public final class DownloadInput {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/DownloadInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -142,9 +142,9 @@ public final class DownloadInput {
     }
 
     @DataClass.Generated(
-            time = 1687975303734L,
+            time = 1692119978934L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/app/ondevicepersonalization/DownloadInput.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInput.java",
             inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

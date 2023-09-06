@@ -46,9 +46,9 @@ import java.util.concurrent.TimeUnit;
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
  * OnDevicePersonalizationManager provides APIs for apps to load an
- * {@link IsolatedComputationService} in an isolated process and interact with it.
+ * {@link IsolatedService} in an isolated process and interact with it.
  *
- * An app can request an {@link IsolatedComputationService} to generate content for display
+ * An app can request an {@link IsolatedService} to generate content for display
  * within a {@link SurfaceView} within the app's view hierarchy, and also write persistent results
  * to on-device storage which can be consumed by Federated Analytics for cross-device statistical
  * analysis or by Federated Learning for model training. The displayed content and the persistent
@@ -111,26 +111,29 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Executes a {@link IsolatedComputationService} in the OnDevicePersonalization sandbox. The
-     * platform binds to the specified {@link IsolatedComputationService} in an isolated process
-     * and calls {@link IsolatedComputationService#onExecute()} with the caller-provided
-     * parameters. When the {@link IsolatedComputationService} finishes execution, the platform
+     * Executes a {@link IsolatedService} in the OnDevicePersonalization sandbox. The
+     * platform binds to the specified {@link IsolatedService} in an isolated process
+     * and calls {@link IsolatedService#onExecute()} with the caller-provided
+     * parameters. When the {@link IsolatedService} finishes execution, the platform
      * returns tokens that refer to the results from the service to the caller. These tokens can
      * be subsequently used to display results in a {@link SurfaceView} within the calling app.
      *
-     * @param handler The {@link ComponentName} of the {@link IsolatedComputationService}.
+     * @param handler The {@link ComponentName} of the {@link IsolatedService}.
      * @param params a {@link PersistableBundle} that is passed from the calling app to the
-     *     {@link IsolatedComputationService}. The expected contents of this parameter are defined
-     *     by the{@link IsolatedComputationService}. The platform does not interpret this parameter.
+     *     {@link IsolatedService}. The expected contents of this parameter are defined
+     *     by the{@link IsolatedService}. The platform does not interpret this parameter.
      * @param executor the {@link Executor} on which to invoke the callback.
      * @param receiver This returns a list of {@link SurfacePackageToken} objects, each of which is
      *     an opaque reference to a {@link RenderingConfig} returned by an
-     *     {@link IsolatedComputationService}, or an {@link Exception} on failure. The returned
+     *     {@link IsolatedService}, or an {@link Exception} on failure. The returned
      *     {@link SurfacePackageToken} objects can be used in a subsequent
      *     {@link requestSurfacePackage} call to display the result in a view. The calling app and
-     *     the {@link IsolatedComputationService} must agree on the expected size of this list.
+     *     the {@link IsolatedService} must agree on the expected size of this list.
      *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
-     *     indicate that the service has no output for that specific surface.
+     *     indicate that the service has no output for that specific surface. Returns a
+     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler does not
+     *     exist or is not a valid {@link IsolatedService}. Returns an
+     *     {@link OnDevicePersonalizationException} if execution fails.
      */
     public void execute(
             @NonNull ComponentName handler,
@@ -165,8 +168,7 @@ public class OnDevicePersonalizationManager {
 
                 @Override
                 public void onError(int errorCode) {
-                    executor.execute(() -> receiver.onError(
-                            new OnDevicePersonalizationException(errorCode)));
+                    executor.execute(() -> receiver.onError(createException(errorCode)));
                 }
             };
 
@@ -194,8 +196,8 @@ public class OnDevicePersonalizationManager {
      * @param height the height of the {@link SurfacePackage} in pixels.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
-     *     Exception} on failure.
-     *
+     *     Exception} on failure. Returns an {@link OnDevicePersonalizationException} if execution
+     *     fails.
      */
     public void requestSurfacePackage(
             @NonNull SurfacePackageToken surfacePackageToken,
@@ -221,8 +223,7 @@ public class OnDevicePersonalizationManager {
 
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(
-                                    new OnDevicePersonalizationException(errorCode)));
+                            executor.execute(() -> receiver.onError(createException(errorCode)));
                         }
                     };
 
@@ -286,5 +287,16 @@ public class OnDevicePersonalizationManager {
         }
         sLogger.e(TAG + ": Didn't find any matching ondevicepersonalization service.");
         return null;
+    }
+
+    private Exception createException(int errorCode) {
+        if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
+            return new PackageManager.NameNotFoundException();
+        } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
+            return new OnDevicePersonalizationException(
+                    OnDevicePersonalizationException.ERROR_SERVICE_FAILED);
+        } else {
+            return new IllegalStateException("Error: " + errorCode);
+        }
     }
 }

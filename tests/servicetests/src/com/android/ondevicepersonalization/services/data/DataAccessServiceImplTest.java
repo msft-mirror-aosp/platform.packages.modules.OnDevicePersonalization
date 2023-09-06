@@ -218,7 +218,7 @@ public class DataAccessServiceImplTest {
                 new TestCallback());
         mLatch.await();
         assertNotEquals(null, mResult);
-        String eventUrl = mResult.getString(Constants.EXTRA_RESULT);
+        String eventUrl = mResult.getParcelable(Constants.EXTRA_RESULT, Uri.class).toString();
         assertNotEquals(null, eventUrl);
         EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
         assertNotEquals(null, payload);
@@ -242,7 +242,7 @@ public class DataAccessServiceImplTest {
                 new TestCallback());
         mLatch.await();
         assertNotEquals(null, mResult);
-        String eventUrl = mResult.getString(Constants.EXTRA_RESULT);
+        String eventUrl = mResult.getParcelable(Constants.EXTRA_RESULT, Uri.class).toString();
         assertNotEquals(null, eventUrl);
         EventUrlPayload payload = EventUrlHelper.getEventFromOdpEventUrl(eventUrl);
         assertNotEquals(null, payload);

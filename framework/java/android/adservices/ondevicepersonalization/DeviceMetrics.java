@@ -58,7 +58,7 @@ public final class DeviceMetrics implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DeviceMetrics.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DeviceMetrics.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -438,9 +438,9 @@ public final class DeviceMetrics implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1676499956776L,
+            time = 1692118326919L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/ondevicepersonalization/DeviceMetrics.java",
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DeviceMetrics.java",
             inputSignatures = " @android.annotation.NonNull int mMake\n @android.annotation.NonNull int mModel\n @android.annotation.NonNull int mScreenHeights\n @android.annotation.NonNull int mScreenWidth\n @android.annotation.NonNull float mXdpi\n @android.annotation.NonNull float mYdpi\n @android.annotation.NonNull float mPxRatio\nclass DeviceMetrics extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}

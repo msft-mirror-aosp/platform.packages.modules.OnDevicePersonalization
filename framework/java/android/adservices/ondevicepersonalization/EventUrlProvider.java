@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -27,13 +28,12 @@ import android.os.RemoteException;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /**
- * Generates event tracking URLs for a request. The {@link IsolatedComputationService} can
- * embed these URLs in the HTML output. When the HTML is rendered, ODP will intercept requests
- * to these URLs, call {@link IsolatedComputationCallback#onEvent}, and log the returned output
- * in the EVENTS table.
+ * Generates event tracking URLs for a request. The service can embed these URLs within the
+ * HTML output as needed. When the HTML is rendered within an ODP WebView, ODP will intercept
+ * requests to these URLs, call {@link IsolatedWorker#onWebViewEvent}, and log the returned
+ * output in the EVENTS table.
  *
  * @hide
  */
@@ -52,16 +52,16 @@ public class EventUrlProvider {
      * 200 (OK) if the response data is not empty. Returns HTTP Status 204 (No Content) if the
      * response data is empty.
      *
-     * @param eventParams The data to be passed to {@link IsolatedComputationCallback#onEvent}
+     * @param eventParams The data to be passed to {@link IsolatedWorker#onWebViewEvent}
      *     when the event occurs.
      * @param responseData The content to be returned to the WebView when the URL is fetched.
      * @param mimeType The Mime Type of the URL response.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public String getEventTrackingUrl(
+    @NonNull public Uri getEventTrackingUrl(
             @NonNull PersistableBundle eventParams,
             @Nullable byte[] responseData,
-            @Nullable String mimeType) throws OnDevicePersonalizationException {
+            @Nullable String mimeType) {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putByteArray(Constants.EXTRA_RESPONSE_DATA, responseData);
@@ -70,24 +70,24 @@ public class EventUrlProvider {
     }
 
     /**
-     * Creates an event tracking URL that redirects to the provided destination URL.
+     * Creates an event tracking URL that redirects to the provided destination URL when it is
+     * clicked in an ODP webview.
      *
-     * @param eventParams The data to be passed to {@link IsolatedComputationCallback#onEvent}
+     * @param eventParams The data to be passed to {@link IsolatedWorker#onEvent}
      *     when the event occurs
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public String getEventTrackingUrlWithRedirect(
+    @NonNull public Uri getEventTrackingUrlWithRedirect(
             @NonNull PersistableBundle eventParams,
-            @Nullable String destinationUrl) throws OnDevicePersonalizationException {
+            @Nullable String destinationUrl) {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
         params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
         return getUrl(params);
     }
 
-    @NonNull private String getUrl(@NonNull Bundle params)
-            throws OnDevicePersonalizationException {
+    @NonNull private Uri getUrl(@NonNull Bundle params) {
         try {
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
 
@@ -104,18 +104,17 @@ public class EventUrlProvider {
                             asyncResult.add(new CallbackResult(null, errorCode));
                         }
                 });
-            CallbackResult callbackResult =
-                    asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+            CallbackResult callbackResult = asyncResult.take();
             Objects.requireNonNull(callbackResult);
             if (callbackResult.mErrorCode != 0) {
-                throw new OnDevicePersonalizationException(callbackResult.mErrorCode);
+                throw new IllegalStateException("Error: " + callbackResult.mErrorCode);
             }
             Bundle result = Objects.requireNonNull(callbackResult.mResult);
-            String url = Objects.requireNonNull(result.getString(Constants.EXTRA_RESULT));
+            Uri url = Objects.requireNonNull(
+                    result.getParcelable(Constants.EXTRA_RESULT, Uri.class));
             return url;
         } catch (InterruptedException | RemoteException e) {
-            throw new OnDevicePersonalizationException(
-                    Constants.STATUS_INTERNAL_ERROR, (Throwable) e);
+            throw new RuntimeException(e);
         }
     }
 
