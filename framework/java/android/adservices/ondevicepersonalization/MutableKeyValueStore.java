@@ -35,8 +35,7 @@ public interface MutableKeyValueStore extends KeyValueStore {
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
-    @Nullable byte[] put(@NonNull String key, @NonNull byte[] value)
-            throws OnDevicePersonalizationException;
+    @Nullable byte[] put(@NonNull String key, @NonNull byte[] value);
 
     /**
      * Removes the mapping for the specified key from LOCAL_DATA if present.
@@ -45,5 +44,5 @@ public interface MutableKeyValueStore extends KeyValueStore {
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
-    @Nullable byte[] remove(@NonNull String key) throws OnDevicePersonalizationException;
+    @Nullable byte[] remove(@NonNull String key);
 }
