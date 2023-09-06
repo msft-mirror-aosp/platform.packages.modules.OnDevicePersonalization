@@ -32,7 +32,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.TimeUnit;
 
 /** @hide */
 public class RemoteDataImpl implements KeyValueStore {
@@ -41,15 +40,13 @@ public class RemoteDataImpl implements KeyValueStore {
     @NonNull
     IDataAccessService mDataAccessService;
 
-    private static final long ASYNC_TIMEOUT_MS = 1000;
-
     /** @hide */
     public RemoteDataImpl(@NonNull IDataAccessService binder) {
         mDataAccessService = Objects.requireNonNull(binder);
     }
 
     @Override @Nullable
-    public byte[] get(@NonNull String key) throws OnDevicePersonalizationException {
+    public byte[] get(@NonNull String key) {
         Objects.requireNonNull(key);
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
@@ -61,7 +58,11 @@ public class RemoteDataImpl implements KeyValueStore {
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            asyncResult.add(result);
+                            if (result != null) {
+                                asyncResult.add(result);
+                            } else {
+                                asyncResult.add(Bundle.EMPTY);
+                            }
                         }
 
                         @Override
@@ -69,26 +70,22 @@ public class RemoteDataImpl implements KeyValueStore {
                             asyncResult.add(Bundle.EMPTY);
                         }
                     });
-            Bundle result = asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            if (null == result) {
-                sLogger.e(TAG + ": Timed out waiting for result of remoteData lookup");
-                throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
-            }
+            Bundle result = asyncResult.take();
             HashMap<String, byte[]> data = result.getSerializable(
                             Constants.EXTRA_RESULT, HashMap.class);
             if (null == data) {
                 sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-                throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+                throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
             }
             return data.get(key);
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve key from remoteData", e);
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+            throw new RuntimeException(e);
         }
     }
 
     @Override @NonNull
-    public Set<String> keySet() throws OnDevicePersonalizationException {
+    public Set<String> keySet() {
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             mDataAccessService.onRequest(
@@ -97,7 +94,11 @@ public class RemoteDataImpl implements KeyValueStore {
                     new IDataAccessServiceCallback.Stub() {
                         @Override
                         public void onSuccess(@NonNull Bundle result) {
-                            asyncResult.add(result);
+                            if (result != null) {
+                                asyncResult.add(result);
+                            } else {
+                                asyncResult.add(Bundle.EMPTY);
+                            }
                         }
 
                         @Override
@@ -105,21 +106,17 @@ public class RemoteDataImpl implements KeyValueStore {
                             asyncResult.add(Bundle.EMPTY);
                         }
                     });
-            Bundle result = asyncResult.poll(ASYNC_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-            if (null == result) {
-                sLogger.e(TAG + ": Timed out waiting for result of remoteData keySet");
-                throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
-            }
+            Bundle result = asyncResult.take();
             HashSet<String> resultSet =
                     result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
             if (null == resultSet) {
                 sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-                throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+                throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
             }
             return resultSet;
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve keySet from remoteData", e);
-            throw new OnDevicePersonalizationException(Constants.STATUS_INTERNAL_ERROR);
+            throw new RuntimeException(e);
         }
     }
 }

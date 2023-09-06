@@ -24,6 +24,8 @@ import android.annotation.NonNull;
  * @hide
  */
 public class OnDevicePersonalizationException extends Exception {
+    public static final int ERROR_SERVICE_FAILED = 1;
+
     private final int mErrorCode;
 
     public OnDevicePersonalizationException(int errorCode) {
