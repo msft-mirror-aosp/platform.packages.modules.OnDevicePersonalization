@@ -62,17 +62,11 @@ public class LocalDataTest {
     @Test
     public void testLookupError() {
         // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mLocalData.get("z"));
+        assertThrows(IllegalStateException.class, () -> mLocalData.get("z"));
     }
 
     @Test
-    public void testLookupTimeout() {
-        // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mLocalData.get("timeout"));
-    }
-
-    @Test
-    public void testKeysetSuccess() throws OnDevicePersonalizationException {
+    public void testKeysetSuccess() {
         Set<String> expectedResult = new HashSet<>();
         expectedResult.add("a");
         expectedResult.add("b");
@@ -91,14 +85,7 @@ public class LocalDataTest {
     @Test
     public void testPutError() {
         // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mLocalData.put("z",
-                new byte[10]));
-    }
-
-    @Test
-    public void testPutTimeout() {
-        // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mLocalData.put("timeout",
+        assertThrows(IllegalStateException.class, () -> mLocalData.put("z",
                 new byte[10]));
     }
 
@@ -112,15 +99,8 @@ public class LocalDataTest {
     @Test
     public void testRemoveError() {
         // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mLocalData.remove("z"));
+        assertThrows(IllegalStateException.class, () -> mLocalData.remove("z"));
     }
-
-    @Test
-    public void testRemoveTimeout() {
-        // Triggers an expected error in the mock service.
-        assertThrows(OnDevicePersonalizationException.class, () -> mLocalData.remove("timeout"));
-    }
-
 
     public static class LocalDataService extends IDataAccessService.Stub {
         HashMap<String, byte[]> mContents = new HashMap<String, byte[]>();
@@ -157,16 +137,6 @@ public class LocalDataTest {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
                 } catch (RemoteException e) {
                     // Ignored.
-                }
-                return;
-            }
-
-            if (keys.length == 1 && keys[0].equals("timeout")) {
-                // Force timeout by sleeping.
-                try {
-                    Thread.sleep(2000);
-                } catch (Exception e) {
-                    // Ignored
                 }
                 return;
             }
