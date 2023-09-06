@@ -69,7 +69,7 @@ import java.util.TimeZone;
 public class UserDataCollector {
     public static final int BYTES_IN_MB = 1048576;
 
-    private static UserDataCollector sUserDataCollector = null;
+    private static volatile UserDataCollector sUserDataCollector = null;
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataCollector";
 
@@ -99,7 +99,7 @@ public class UserDataCollector {
     private boolean mInitialized;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
-        mContext = context;
+        mContext = context.getApplicationContext();
 
         mLocale = Locale.getDefault();
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
@@ -117,13 +117,15 @@ public class UserDataCollector {
 
     /** Returns an instance of UserDataCollector. */
     public static UserDataCollector getInstance(Context context) {
-        synchronized (UserDataCollector.class) {
-            if (sUserDataCollector == null) {
-                sUserDataCollector = new UserDataCollector(
-                        context, UserDataDao.getInstance(context));
+        if (sUserDataCollector == null) {
+            synchronized (UserDataCollector.class) {
+                if (sUserDataCollector == null) {
+                    sUserDataCollector = new UserDataCollector(
+                            context, UserDataDao.getInstance(context));
+                }
             }
-            return sUserDataCollector;
         }
+        return sUserDataCollector;
     }
 
     /**
