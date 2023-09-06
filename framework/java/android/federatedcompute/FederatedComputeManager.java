@@ -34,8 +34,8 @@ import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.internal.annotations.GuardedBy;
 
 import java.util.List;
@@ -105,7 +105,7 @@ public final class FederatedComputeManager {
                     request.getTrainingOptions(),
                     federatedComputeCallback);
         } catch (RemoteException e) {
-            Log.e(TAG, "Remote Exception", e);
+            LogUtil.e(TAG, "Remote Exception", e);
             executor.execute(() -> callback.onError(e));
         }
     }
@@ -119,7 +119,7 @@ public final class FederatedComputeManager {
                 Intent intent = new Intent(FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME);
                 ComponentName serviceComponent = resolveService(intent);
                 if (serviceComponent == null) {
-                    Log.e(TAG, "Invalid component for federatedcompute service");
+                    LogUtil.e(TAG, "Invalid component for federatedcompute service");
                     throw new IllegalStateException(
                             "Invalid component for federatedcompute service");
                 }
@@ -134,10 +134,10 @@ public final class FederatedComputeManager {
                     mServiceConnection = null;
                     throw new IllegalStateException("Unable to bind to the service");
                 } else {
-                    Log.i(TAG, "bindService() succeeded...");
+                    LogUtil.i(TAG, "bindService() succeeded...");
                 }
             } else {
-                Log.i(TAG, "bindService() already pending...");
+                LogUtil.i(TAG, "bindService() already pending...");
             }
             try {
                 mConnectionCountDownLatch.await(BINDER_CONNECTION_TIMEOUT_MS, MILLISECONDS);
@@ -162,28 +162,28 @@ public final class FederatedComputeManager {
     private ComponentName resolveService(@NonNull Intent intent) {
         List<ResolveInfo> services = mContext.getPackageManager().queryIntentServices(intent, 0);
         if (services == null || services.isEmpty()) {
-            Log.e(TAG, "Failed to find federatedcompute service");
+            LogUtil.e(TAG, "Failed to find federatedcompute service");
             return null;
         }
 
         for (int i = 0; i < services.size(); i++) {
             ServiceInfo serviceInfo = services.get(i).serviceInfo;
             if (serviceInfo == null) {
-                Log.e(TAG, "Failed to find serviceInfo for federatedcompute service.");
+                LogUtil.e(TAG, "Failed to find serviceInfo for federatedcompute service.");
                 return null;
             }
             // There should only be one matching service inside the given package.
             // If there's more than one, return the first one found.
             return new ComponentName(serviceInfo.packageName, serviceInfo.name);
         }
-        Log.e(TAG, "Didn't find any matching federatedcompute service.");
+        LogUtil.e(TAG, "Didn't find any matching federatedcompute service.");
         return null;
     }
 
     public void unbindFromService() {
         synchronized (mLock) {
             if (mServiceConnection != null) {
-                Log.i(TAG, "unbinding...");
+                LogUtil.i(TAG, "unbinding...");
                 mContext.unbindService(mServiceConnection);
             }
             mServiceConnection = null;
@@ -194,7 +194,7 @@ public final class FederatedComputeManager {
     private class FederatedComputeServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            Log.d(TAG, "onServiceConnected");
+            LogUtil.d(TAG, "onServiceConnected");
             synchronized (mLock) {
                 mFcpService = IFederatedComputeService.Stub.asInterface(service);
             }
@@ -203,21 +203,21 @@ public final class FederatedComputeManager {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            Log.d(TAG, "onServiceDisconnected");
+            LogUtil.d(TAG, "onServiceDisconnected");
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }
 
         @Override
         public void onBindingDied(ComponentName name) {
-            Log.e(TAG, "onBindingDied");
+            LogUtil.e(TAG, "onBindingDied");
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }
 
         @Override
         public void onNullBinding(ComponentName name) {
-            Log.e(TAG, "onNullBinding shouldn't happen.");
+            LogUtil.e(TAG, "onNullBinding shouldn't happen.");
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }

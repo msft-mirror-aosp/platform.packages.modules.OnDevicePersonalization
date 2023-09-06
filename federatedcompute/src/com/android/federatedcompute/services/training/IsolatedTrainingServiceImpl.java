@@ -22,8 +22,8 @@ import android.federatedcompute.aidl.IResultHandlingService;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
@@ -48,7 +48,7 @@ import javax.annotation.Nonnull;
 
 /** The implementation of {@link IsolatedTrainingService}. */
 public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
-    private static final String TAG = "IsolatedTrainingServiceImpl";
+    private static final String TAG = IsolatedTrainingServiceImpl.class.getSimpleName();
     private final AtomicBoolean mInterruptFlag = new AtomicBoolean(false);
 
     @VisibleForTesting
@@ -134,7 +134,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to runTaskWithNativeRunner", t);
+                        LogUtil.e(TAG, "Failed to runTaskWithNativeRunner", t);
                         FLRunnerResult result =
                                 FLRunnerResult.newBuilder()
                                         .setContributionResult(ContributionResult.FAIL)
@@ -157,7 +157,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         try {
             callback.onResult(bundle);
         } catch (RemoteException e) {
-            Log.w(TAG + ": Callback failed ", e);
+            LogUtil.w(TAG, ": Callback failed ", e);
         }
     }
 

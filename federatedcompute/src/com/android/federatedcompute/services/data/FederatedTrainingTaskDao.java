@@ -24,8 +24,8 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,7 +36,7 @@ import java.util.List;
 /** DAO for accessing training task table. */
 public class FederatedTrainingTaskDao {
 
-    private static final String TAG = "FederatedTrainingTaskDao";
+    private static final String TAG = FederatedTrainingTaskDao.class.getSimpleName();
 
     private final SQLiteOpenHelper mDbHelper;
     private static FederatedTrainingTaskDao sSingletonInstance;
@@ -167,7 +167,7 @@ public class FederatedTrainingTaskDao {
         try {
             return mDbHelper.getWritableDatabase();
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to open the database.", e);
+            LogUtil.e(TAG, "Failed to open the database.", e);
         }
         return null;
     }
