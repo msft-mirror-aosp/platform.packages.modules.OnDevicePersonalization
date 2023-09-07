@@ -15,13 +15,13 @@
 -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.android.ondevicepersonalization.cts">
+    package="com.android.ondevicepersonalization.cts.e2e">
 
-    <application android:label="CtsOnDevicePersonalizationTests">
+    <application android:label="CtsOnDevicePersonalizationE2ETests">
         <uses-library android:name="android.test.runner" />
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.ondevicepersonalization.cts"
+                     android:targetPackage="com.android.ondevicepersonalization.cts.e2e"
                      android:label="OnDevicePersonalizationManager CTS Tests">
     </instrumentation>
 

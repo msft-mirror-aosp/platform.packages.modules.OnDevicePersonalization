@@ -20,7 +20,7 @@ package {
 }
 
 android_test {
-    name: "CtsOnDevicePersonalizationTests",
+    name: "CtsOnDevicePersonalizationE2ETests",
     srcs: ["src/**/*.java"],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
@@ -36,6 +36,9 @@ android_test {
         "android.test.base",
         "android.test.runner",
         "truth-prebuilt",
+    ],
+    data: [
+        ":OdpTestingSampleService",
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
