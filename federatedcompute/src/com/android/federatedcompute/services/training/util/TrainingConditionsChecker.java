@@ -19,8 +19,8 @@ package com.android.federatedcompute.services.training.util;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.os.PowerManager;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.BatteryInfo;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
@@ -37,7 +37,7 @@ import java.util.concurrent.atomic.AtomicLong;
  * Utilities for checking that the device is currently in an acceptable state for training models.
  */
 public class TrainingConditionsChecker {
-    private static final String TAG = "TrainingCondChecker";
+    private static final String TAG = TrainingConditionsChecker.class.getSimpleName();
     private final BatteryInfo mBatteryInfo;
     private final PowerManager mPowerManager;
     private final Clock mClock;
@@ -89,7 +89,7 @@ public class TrainingConditionsChecker {
         if (mPowerManager == null) {
             // If the device does not expose a PowerManager service, then we can't determine
             // idleness, and then we err on the side of caution and return false.
-            Log.w(TAG, "PowerManager is not available when do background training");
+            LogUtil.w(TAG, "PowerManager is not available when do background training");
             return false;
         }
         return mPowerManager.getCurrentThermalStatus() < mFlags.getThermalStatusToThrottle();
@@ -105,11 +105,11 @@ public class TrainingConditionsChecker {
         // Throttling is enabled.
         if (mThrottlePeriodMillis > 0) {
             if (nowMillis - mLastConditionCheckTimeMillis.get() < mThrottlePeriodMillis) {
-                Log.i(
+                LogUtil.i(
                         TAG,
-                        String.format(
-                                "training condition check is throttled %d %d",
-                                nowMillis, mLastConditionCheckTimeMillis.get()));
+                        "training condition check is throttled %d %d",
+                        nowMillis,
+                        mLastConditionCheckTimeMillis.get());
                 return EnumSet.noneOf(Condition.class);
             } else {
                 mLastConditionCheckTimeMillis.set(nowMillis);

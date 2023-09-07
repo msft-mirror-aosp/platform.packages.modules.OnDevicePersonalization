@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
-import android.util.Log;
+import com.android.federatedcompute.internal.util.LogUtil;
 
 import com.google.protobuf.ByteString;
 
@@ -25,7 +25,7 @@ import java.util.zip.GZIPOutputStream;
 
 /** Utility class containing http related variable e.g. headers, method. */
 public final class HttpClientUtil {
-    private static final String TAG = "HttpClientUtil";
+    private static final String TAG = HttpClientUtil.class.getSimpleName();
     public static final String IDENTITY_ENCODING_HDR = "identity";
     public static final String CONTENT_ENCODING_HDR = "Content-Encoding";
     public static final String CONTENT_LENGTH_HDR = "Content-Length";
@@ -54,7 +54,7 @@ public final class HttpClientUtil {
             gzipOutputStream.finish();
             return outputStream.toByteString().toByteArray();
         } catch (IOException e) {
-            Log.e(TAG, "Failed to compress using Gzip");
+            LogUtil.e(TAG, "Failed to compress using Gzip");
             throw new IllegalArgumentException("Failed to compress using Gzip", e);
         }
     }

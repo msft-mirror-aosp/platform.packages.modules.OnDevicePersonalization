@@ -21,15 +21,15 @@ import static com.android.federatedcompute.services.data.FederatedTraningTaskCon
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 import com.android.internal.annotations.VisibleForTesting;
 
 /** Helper to manage FederatedTrainingTask database. */
 public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
 
-    private static final String TAG = "FederatedTrainingTaskDbHelper";
+    private static final String TAG = FederatedTrainingTaskDbHelper.class.getSimpleName();
 
     private static final int DATABASE_VERSION = 1;
     private static final String DATABASE_NAME = "trainingtasks.db";
@@ -105,7 +105,7 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
-        Log.d(TAG, "DB upgrade from " + oldVersion + " to " + newVersion);
+        LogUtil.d(TAG, "DB upgrade from %d to %d", oldVersion, newVersion);
     }
 
     @VisibleForTesting
