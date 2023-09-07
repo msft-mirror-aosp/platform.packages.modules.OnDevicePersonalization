@@ -19,7 +19,6 @@ package com.android.ondevicepersonalization.services.request;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -32,6 +31,7 @@ import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -118,7 +118,7 @@ public class AppRequestFlow {
             if (!mService.getClassName().equals(config.getServiceName())) {
                 // TODO(b/228200518): Define a new error code and map it to a specific
                 // exception type in the client API.
-                throw new OnDevicePersonalizationException(
+                throw new OdpServiceException(
                     Constants.STATUS_INTERNAL_ERROR,
                     "Name not found: " + mService.getClassName()
                     + " expected: " + config.getServiceName());
