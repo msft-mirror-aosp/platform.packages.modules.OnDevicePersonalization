@@ -31,7 +31,6 @@ import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -112,16 +111,20 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            AppManifestConfig config = Objects.requireNonNull(
-                    AppManifestConfigHelper.getAppManifestConfig(
+            AppManifestConfig config = null;
+            try {
+                config = Objects.requireNonNull(
+                        AppManifestConfigHelper.getAppManifestConfig(
                         mContext, mService.getPackageName()));
+            } catch (Exception e) {
+                sLogger.d(TAG + ": Failed to read manifest.", e);
+                sendErrorResult(Constants.STATUS_NAME_NOT_FOUND);
+                return;
+            }
             if (!mService.getClassName().equals(config.getServiceName())) {
-                // TODO(b/228200518): Define a new error code and map it to a specific
-                // exception type in the client API.
-                throw new OdpServiceException(
-                    Constants.STATUS_INTERNAL_ERROR,
-                    "Name not found: " + mService.getClassName()
-                    + " expected: " + config.getServiceName());
+                sLogger.d(TAG + "service class not found");
+                sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
+                return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
