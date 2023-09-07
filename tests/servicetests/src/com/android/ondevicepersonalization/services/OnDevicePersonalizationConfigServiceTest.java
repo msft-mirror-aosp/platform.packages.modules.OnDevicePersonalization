@@ -23,7 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -32,10 +32,10 @@ import android.os.IBinder;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
-import com.android.ondevicepersonalization.services.data.user.PrivacySignal;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
 import com.android.ondevicepersonalization.services.data.user.UserDataDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import org.junit.After;
 import org.junit.Assert;
@@ -49,54 +49,55 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
-public class OnDevicePersonalizationPrivacyStatusServiceTest {
+public class OnDevicePersonalizationConfigServiceTest {
     @Rule
     public final ServiceTestRule serviceRule = new ServiceTestRule();
     private Context mContext = ApplicationProvider.getApplicationContext();
-    private OnDevicePersonalizationPrivacyStatusServiceDelegate mBinder;
-    private PrivacySignal mPrivacySignal;
+    private OnDevicePersonalizationConfigServiceDelegate mBinder;
+    private UserPrivacyStatus mUserPrivacyStatus;
     private RawUserData mUserData;
     private UserDataCollector mUserDataCollector;
     private UserDataDao mUserDataDao;
 
     @Before
     public void setup() throws Exception {
-        mBinder = new OnDevicePersonalizationPrivacyStatusServiceDelegate(mContext);
-        mPrivacySignal = PrivacySignal.getInstance();
+        mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
+        mUserPrivacyStatus = UserPrivacyStatus.getInstance();
         mUserData = RawUserData.getInstance();
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserDataDao = UserDataDao.getInstanceForTest(mContext);
     }
 
     @Test
-    public void testSetKidStatusChanged() throws Exception {
-        assertTrue(mPrivacySignal.isKidStatusEnabled());
+    public void testSetPersonalizationStatusChanged() throws Exception {
+        assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
 
         populateUserData();
         assertNotEquals(0, mUserData.timeMillis);
         assertTrue(mUserDataCollector.isInitialized());
 
         CountDownLatch latch = new CountDownLatch(1);
-        mBinder.setKidStatus(false, new IPrivacyStatusServiceCallback() {
-            @Override
-            public void onSuccess() {
-                latch.countDown();
-            }
+        mBinder.setPersonalizationStatus(true,
+                new IOnDevicePersonalizationConfigServiceCallback() {
+                    @Override
+                    public void onSuccess() {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void onFailure(int errorCode) {
-                Assert.fail();
-            }
+                    @Override
+                    public void onFailure(int errorCode) {
+                        Assert.fail();
+                    }
 
-            @Override
-            public IBinder asBinder() {
-                return null;
-            }
-        });
+                    @Override
+                    public IBinder asBinder() {
+                        return null;
+                    }
+                });
 
         latch.await();
 
-        assertFalse(mPrivacySignal.isKidStatusEnabled());
+        assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
 
         assertEquals(0, mUserData.timeMillis);
         assertFalse(mUserDataCollector.isInitialized());
@@ -110,15 +111,15 @@ public class OnDevicePersonalizationPrivacyStatusServiceTest {
     }
 
     @Test
-    public void testSetKidStatusIfCallbackMissing() throws Exception {
+    public void testSetPersonalizationStatusIfCallbackMissing() throws Exception {
         assertThrows(NullPointerException.class, () -> {
-            mBinder.setKidStatus(false, null);
+            mBinder.setPersonalizationStatus(true, null);
         });
     }
 
     @Test
-    public void testSetKidStatusNoOps() throws Exception {
-        mPrivacySignal.setKidStatusEnabled(false);
+    public void testSetPersonalizationStatusNoOps() throws Exception {
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
 
         populateUserData();
         assertNotEquals(0, mUserData.timeMillis);
@@ -134,26 +135,27 @@ public class OnDevicePersonalizationPrivacyStatusServiceTest {
         assertTrue(locationCount > 0);
 
         CountDownLatch latch = new CountDownLatch(1);
-        mBinder.setKidStatus(false, new IPrivacyStatusServiceCallback() {
-            @Override
-            public void onSuccess() {
-                latch.countDown();
-            }
+        mBinder.setPersonalizationStatus(true,
+                new IOnDevicePersonalizationConfigServiceCallback() {
+                    @Override
+                    public void onSuccess() {
+                        latch.countDown();
+                    }
 
-            @Override
-            public void onFailure(int errorCode) {
-                Assert.fail();
-            }
+                    @Override
+                    public void onFailure(int errorCode) {
+                        Assert.fail();
+                    }
 
-            @Override
-            public IBinder asBinder() {
-                return null;
-            }
-        });
+                    @Override
+                    public IBinder asBinder() {
+                        return null;
+                    }
+                });
 
         latch.await();
 
-        assertFalse(mPrivacySignal.isKidStatusEnabled());
+        assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
         // Adult data should not be roll-back'ed
         assertEquals(timeMillis, mUserData.timeMillis);
         assertTrue(mUserDataCollector.isInitialized());
@@ -168,14 +170,14 @@ public class OnDevicePersonalizationPrivacyStatusServiceTest {
     @Test
     public void testWithBoundService() throws TimeoutException {
         Intent serviceIntent = new Intent(mContext,
-                OnDevicePersonalizationPrivacyStatusServiceImpl.class);
+                OnDevicePersonalizationConfigServiceImpl.class);
         IBinder binder = serviceRule.bindService(serviceIntent);
-        assertTrue(binder instanceof OnDevicePersonalizationPrivacyStatusServiceDelegate);
+        assertTrue(binder instanceof OnDevicePersonalizationConfigServiceDelegate);
     }
 
     @After
     public void tearDown() throws Exception {
-        mPrivacySignal.setKidStatusEnabled(true);
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserDataCollector.clearUserData(mUserData);
         mUserDataCollector.clearMetadata();
         mUserDataCollector.clearDatabase();

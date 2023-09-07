@@ -57,6 +57,7 @@ import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -282,7 +283,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             if (name.equals("key")) {
                 key = reader.nextString();
             } else if (name.equals("data")) {
-                data = reader.nextString().getBytes();
+                data = reader.nextString().getBytes(StandardCharsets.UTF_8);
             } else {
                 reader.skipValue();
             }

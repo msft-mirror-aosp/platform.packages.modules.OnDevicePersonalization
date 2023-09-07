@@ -76,7 +76,7 @@ public class EventUrlProviderTest {
         params.putInt("type", EVENT_TYPE_ERROR);
         params.putString("id", "abc");
         assertThrows(
-                OnDevicePersonalizationException.class,
+                IllegalStateException.class,
                 () -> mEventUrlProvider.getEventTrackingUrl(
                         params, null, null));
     }

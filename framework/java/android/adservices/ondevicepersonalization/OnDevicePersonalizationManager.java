@@ -39,6 +39,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -130,7 +131,10 @@ public class OnDevicePersonalizationManager {
      *     {@link requestSurfacePackage} call to display the result in a view. The calling app and
      *     the {@link IsolatedService} must agree on the expected size of this list.
      *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
-     *     indicate that the service has no output for that specific surface.
+     *     indicate that the service has no output for that specific surface. Returns a
+     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler does not
+     *     exist or is not a valid {@link IsolatedService}. Returns an
+     *     {@link OnDevicePersonalizationException} if execution fails.
      */
     public void execute(
             @NonNull ComponentName handler,
@@ -138,6 +142,11 @@ public class OnDevicePersonalizationManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<List<SurfacePackageToken>, Exception> receiver
     ) {
+        Objects.requireNonNull(handler);
+        Objects.requireNonNull(params);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+
         try {
             bindService(executor);
 
@@ -165,16 +174,16 @@ public class OnDevicePersonalizationManager {
 
                 @Override
                 public void onError(int errorCode) {
-                    executor.execute(() -> receiver.onError(
-                            new OnDevicePersonalizationException(errorCode)));
+                    executor.execute(() -> receiver.onError(createException(errorCode)));
                 }
             };
 
             mService.execute(
                     mContext.getPackageName(), handler, params, callbackWrapper);
 
-        } catch (Exception e) {
-            receiver.onError(e);
+        } catch (InterruptedException
+                | RemoteException e) {
+            receiver.onError(new IllegalStateException(e));
         }
     }
 
@@ -194,8 +203,8 @@ public class OnDevicePersonalizationManager {
      * @param height the height of the {@link SurfacePackage} in pixels.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
-     *     Exception} on failure.
-     *
+     *     Exception} on failure. Returns an {@link OnDevicePersonalizationException} if execution
+     *     fails.
      */
     public void requestSurfacePackage(
             @NonNull SurfacePackageToken surfacePackageToken,
@@ -206,6 +215,10 @@ public class OnDevicePersonalizationManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<SurfaceControlViewHost.SurfacePackage, Exception> receiver
     ) {
+        Objects.requireNonNull(surfacePackageToken);
+        Objects.requireNonNull(hostToken);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
         try {
             bindService(executor);
 
@@ -221,8 +234,7 @@ public class OnDevicePersonalizationManager {
 
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(
-                                    new OnDevicePersonalizationException(errorCode)));
+                            executor.execute(() -> receiver.onError(createException(errorCode)));
                         }
                     };
 
@@ -231,9 +243,8 @@ public class OnDevicePersonalizationManager {
                     width, height, callbackWrapper);
 
         } catch (InterruptedException
-                | NullPointerException
                 | RemoteException e) {
-            receiver.onError(e);
+            receiver.onError(new IllegalStateException(e));
         }
     }
 
@@ -286,5 +297,16 @@ public class OnDevicePersonalizationManager {
         }
         sLogger.e(TAG + ": Didn't find any matching ondevicepersonalization service.");
         return null;
+    }
+
+    private Exception createException(int errorCode) {
+        if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
+            return new PackageManager.NameNotFoundException();
+        } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
+            return new OnDevicePersonalizationException(
+                    OnDevicePersonalizationException.ERROR_SERVICE_FAILED);
+        } else {
+            return new IllegalStateException("Error: " + errorCode);
+        }
     }
 }
