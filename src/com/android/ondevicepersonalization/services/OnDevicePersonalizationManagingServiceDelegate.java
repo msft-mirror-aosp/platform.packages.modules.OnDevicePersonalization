@@ -100,6 +100,15 @@ public class OnDevicePersonalizationManagingServiceDelegate
         Objects.requireNonNull(handler.getClassName());
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
+        if (callingPackageName.isEmpty()) {
+            throw new IllegalArgumentException("missing app package name");
+        }
+        if (handler.getPackageName().isEmpty()) {
+            throw new IllegalArgumentException("missing service package name");
+        }
+        if (handler.getClassName().isEmpty()) {
+            throw new IllegalArgumentException("missing service class name");
+        }
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
