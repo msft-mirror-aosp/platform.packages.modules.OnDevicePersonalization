@@ -25,6 +25,13 @@
         <option name="test-file-name" value="OdpTestingSampleService.apk"/>
     </target_preparer>
 
+    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
+        <option name="run-command" value="device_config set_sync_disabled_for_tests persistent" />
+        <option name="run-command" value="device_config put on_device_personalization global_kill_switch false" />
+        <option name="teardown-command" value="device_config delete on_device_personalization global_kill_switch" />
+        <option name="teardown-command" value="device_config set_sync_disabled_for_tests none" />
+    </target_preparer>
+
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
         <option name="hidden-api-checks" value="false" /> <!-- Allow hidden API uses -->
         <option name="package" value="com.android.ondevicepersonalization.cts.e2e"/>
