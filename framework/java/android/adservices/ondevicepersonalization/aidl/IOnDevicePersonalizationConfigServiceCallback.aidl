@@ -16,14 +16,15 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
-import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
+import android.os.Bundle;
 
 /**
-  * OnDevicePersonalization service that modifies
-  * user's privacy status by GMS Core only.
+  * Callback from a OnDevicePersonalizationConfigService.
   * @hide
   */
-interface IPrivacyStatusService {
+oneway interface IOnDevicePersonalizationConfigServiceCallback {
 
-    void setKidStatus(in boolean kidStatusEnabled, in IPrivacyStatusServiceCallback callback);
+    void onSuccess();
+
+    void onFailure(int errorCode);
 }
