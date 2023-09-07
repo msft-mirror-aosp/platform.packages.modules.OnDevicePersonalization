@@ -112,7 +112,7 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Executes a {@link IsolatedService} in the OnDevicePersonalization sandbox. The
+     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
      * and calls {@link IsolatedService#onExecute()} with the caller-provided
      * parameters. When the {@link IsolatedService} finishes execution, the platform
@@ -132,9 +132,10 @@ public class OnDevicePersonalizationManager {
      *     the {@link IsolatedService} must agree on the expected size of this list.
      *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
      *     indicate that the service has no output for that specific surface. Returns a
-     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler does not
-     *     exist or is not a valid {@link IsolatedService}. Returns an
-     *     {@link OnDevicePersonalizationException} if execution fails.
+     *     {@link android.content.pm.PackageManager.NameNotFoundException} if the handler package
+     *     is not installed or does not have a valid ODP manifest. Returns
+     *     {@link ClassNotFoundException} if the handler class is not found. Returns an
+     *     {@link OnDevicePersonalizationException} if execution of the handler fails.
      */
     public void execute(
             @NonNull ComponentName handler,
@@ -302,6 +303,8 @@ public class OnDevicePersonalizationManager {
     private Exception createException(int errorCode) {
         if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
             return new PackageManager.NameNotFoundException();
+        } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
+            return new ClassNotFoundException();
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_SERVICE_FAILED);
