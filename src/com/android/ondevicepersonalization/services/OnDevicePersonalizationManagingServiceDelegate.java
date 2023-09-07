@@ -88,11 +88,9 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback) {
-        long origId = Binder.clearCallingIdentity();
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+        if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
-        Binder.restoreCallingIdentity(origId);
 
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
@@ -130,11 +128,9 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int width,
             int height,
             @NonNull IRequestSurfacePackageCallback callback) {
-        long origId = Binder.clearCallingIdentity();
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+        if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
-        Binder.restoreCallingIdentity(origId);
 
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
@@ -162,6 +158,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
         flow.run();
     }
 
+    private boolean getGlobalKillSwitch() {
+        long origId = Binder.clearCallingIdentity();
+        boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
+        Binder.restoreCallingIdentity(origId);
+        return globalKillSwitch;
+    }
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();
