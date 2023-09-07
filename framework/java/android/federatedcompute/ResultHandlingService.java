@@ -26,7 +26,8 @@ import android.federatedcompute.common.ExampleConsumption;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.IBinder;
 import android.os.RemoteException;
-import android.util.Log;
+
+import com.android.federatedcompute.internal.util.LogUtil;
 
 import java.util.List;
 import java.util.function.Consumer;
@@ -101,7 +102,8 @@ public abstract class ResultHandlingService extends Service {
                 }
                 mInternalCallback.onFailure(status);
             } catch (RemoteException e) {
-                Log.w(TAG, "An error occurred when trying to communicate with FederatedCompute.");
+                LogUtil.w(
+                        TAG, "An error occurred when trying to communicate with FederatedCompute.");
             }
         }
     }
