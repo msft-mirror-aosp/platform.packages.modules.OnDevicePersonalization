@@ -20,7 +20,8 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.util.Log;
+
+import com.android.federatedcompute.internal.util.LogUtil;
 
 import com.google.common.annotations.VisibleForTesting;
 
@@ -40,7 +41,7 @@ import java.util.concurrent.TimeUnit;
  * The HTTP client to be used by the FederatedCompute to communicate with remote federated servers.
  */
 public class HttpClient {
-    private static final String TAG = "HttpClient";
+    private static final String TAG = HttpClient.class.getSimpleName();
     private static final int NETWORK_CONNECT_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final int NETWORK_READ_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(30);
 
@@ -61,7 +62,7 @@ public class HttpClient {
     public FederatedComputeHttpResponse performRequest(FederatedComputeHttpRequest request)
             throws IOException {
         if (request.getUri() == null || request.getHttpMethod() == null) {
-            Log.e(TAG, "Endpoint or http method is empty");
+            LogUtil.e(TAG, "Endpoint or http method is empty");
             throw new IllegalArgumentException("Endpoint or http method is empty");
         }
 
@@ -69,7 +70,7 @@ public class HttpClient {
         try {
             url = new URL(request.getUri());
         } catch (MalformedURLException e) {
-            Log.e(TAG, "Malformed registration target URL", e);
+            LogUtil.e(TAG, "Malformed registration target URL", e);
             throw new IllegalArgumentException("Malformed registration target URL", e);
         }
 
@@ -77,7 +78,7 @@ public class HttpClient {
         try {
             urlConnection = (HttpURLConnection) setup(url);
         } catch (IOException e) {
-            Log.e(TAG, "Failed to open target URL", e);
+            LogUtil.e(TAG, "Failed to open target URL", e);
             throw new IllegalArgumentException("Failed to open target URL", e);
         }
 
@@ -120,7 +121,7 @@ public class HttpClient {
                         .build();
             }
         } catch (IOException e) {
-            Log.e(TAG, "Failed to get registration response", e);
+            LogUtil.e(TAG, "Failed to get registration response", e);
             throw new IOException("Failed to get registration response", e);
         } finally {
             if (urlConnection != null) {

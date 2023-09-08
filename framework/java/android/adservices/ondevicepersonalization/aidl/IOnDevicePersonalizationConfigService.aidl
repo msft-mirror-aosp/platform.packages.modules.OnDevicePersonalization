@@ -16,15 +16,15 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
-import android.os.Bundle;
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 
 /**
-  * Callback from a OdpPrivacyStatusService.
+  * OnDevicePersonalization service that modifies
+  * ODP's enablement status by GMS Core only.
   * @hide
   */
-oneway interface IPrivacyStatusServiceCallback {
+interface IOnDevicePersonalizationConfigService {
 
-    void onSuccess();
-
-    void onFailure(int errorCode);
+    void setPersonalizationStatus(in boolean statusEnabled,
+            in IOnDevicePersonalizationConfigServiceCallback callback);
 }
