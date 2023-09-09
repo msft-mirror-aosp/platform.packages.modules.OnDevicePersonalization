@@ -23,6 +23,10 @@
     {
       // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationSystemServiceImplTests.
       "name": "OnDevicePersonalizationSystemServiceImplTests[com.google.android.ondevicepersonalization.apex]"
+    },
+    {
+      // Install com.google.android.ondevicepersonalization.apex and run OnDevicePersonalizationSystemServiceImplTests.
+      "name": "CtsOnDevicePersonalizationE2ETests[com.google.android.ondevicepersonalization.apex]"
     }
   ],
   "presubmit": [
@@ -43,6 +47,9 @@
     },
     {
       "name": "OnDevicePersonalizationSystemServiceImplTests"
+    },
+    {
+      "name": "CtsOnDevicePersonalizationE2ETests"
     }
   ]
 }

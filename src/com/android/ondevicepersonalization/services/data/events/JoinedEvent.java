@@ -37,7 +37,7 @@ public class JoinedEvent {
     private final long mQueryId;
 
     /** Index of the associated entry in the request log for this event. */
-    private final long mRowIndex;
+    private final int mRowIndex;
 
     /** Name of the service package for this event */
     @NonNull
@@ -79,7 +79,7 @@ public class JoinedEvent {
     /* package-private */ JoinedEvent(
             long eventId,
             long queryId,
-            long rowIndex,
+            int rowIndex,
             @NonNull String servicePackageName,
             int type,
             long eventTimeMillis,
@@ -121,7 +121,7 @@ public class JoinedEvent {
      * Index of the associated entry in the request log for this event.
      */
     @DataClass.Generated.Member
-    public long getRowIndex() {
+    public int getRowIndex() {
         return mRowIndex;
     }
 
@@ -206,7 +206,7 @@ public class JoinedEvent {
         int _hash = 1;
         _hash = 31 * _hash + Long.hashCode(mEventId);
         _hash = 31 * _hash + Long.hashCode(mQueryId);
-        _hash = 31 * _hash + Long.hashCode(mRowIndex);
+        _hash = 31 * _hash + mRowIndex;
         _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
         _hash = 31 * _hash + mType;
         _hash = 31 * _hash + Long.hashCode(mEventTimeMillis);
@@ -225,7 +225,7 @@ public class JoinedEvent {
 
         private long mEventId;
         private long mQueryId;
-        private long mRowIndex;
+        private int mRowIndex;
         private @NonNull String mServicePackageName;
         private int mType;
         private long mEventTimeMillis;
@@ -263,7 +263,7 @@ public class JoinedEvent {
         public Builder(
                 long eventId,
                 long queryId,
-                long rowIndex,
+                int rowIndex,
                 @NonNull String servicePackageName,
                 int type,
                 long eventTimeMillis,
@@ -309,7 +309,7 @@ public class JoinedEvent {
          * Index of the associated entry in the request log for this event.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRowIndex(long value) {
+        public @NonNull Builder setRowIndex(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mRowIndex = value;
@@ -409,10 +409,10 @@ public class JoinedEvent {
     }
 
     @DataClass.Generated(
-            time = 1693354428802L,
+            time = 1693520269776L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/JoinedEvent.java",
-            inputSignatures = "private final  long mEventId\nprivate final  long mQueryId\nprivate final  long mRowIndex\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final  int mType\nprivate final  long mEventTimeMillis\nprivate final @android.annotation.Nullable byte[] mEventData\nprivate final  long mQueryTimeMillis\nprivate final @android.annotation.Nullable byte[] mQueryData\nclass JoinedEvent extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final  long mEventId\nprivate final  long mQueryId\nprivate final  int mRowIndex\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final  int mType\nprivate final  long mEventTimeMillis\nprivate final @android.annotation.Nullable byte[] mEventData\nprivate final  long mQueryTimeMillis\nprivate final @android.annotation.Nullable byte[] mQueryData\nclass JoinedEvent extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

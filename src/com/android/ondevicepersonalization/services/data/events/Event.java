@@ -39,7 +39,7 @@ public class Event implements Serializable {
     private final long mQueryId;
 
     /** Index of the associated entry in the request log for this event. */
-    private final long mRowIndex;
+    private final int mRowIndex;
 
     /** Name of the service package for this event */
     @NonNull
@@ -74,7 +74,7 @@ public class Event implements Serializable {
     /* package-private */ Event(
             long eventId,
             long queryId,
-            long rowIndex,
+            int rowIndex,
             @NonNull String servicePackageName,
             int type,
             long timeMillis,
@@ -112,7 +112,7 @@ public class Event implements Serializable {
      * Index of the associated entry in the request log for this event.
      */
     @DataClass.Generated.Member
-    public long getRowIndex() {
+    public int getRowIndex() {
         return mRowIndex;
     }
 
@@ -125,7 +125,7 @@ public class Event implements Serializable {
     }
 
     /**
-     * {@link EventType} defining the type of event
+     * The service assigned type of the event.
      */
     @DataClass.Generated.Member
     public int getType() {
@@ -179,7 +179,7 @@ public class Event implements Serializable {
         int _hash = 1;
         _hash = 31 * _hash + Long.hashCode(mEventId);
         _hash = 31 * _hash + Long.hashCode(mQueryId);
-        _hash = 31 * _hash + Long.hashCode(mRowIndex);
+        _hash = 31 * _hash + mRowIndex;
         _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
         _hash = 31 * _hash + mType;
         _hash = 31 * _hash + Long.hashCode(mTimeMillis);
@@ -196,7 +196,7 @@ public class Event implements Serializable {
 
         private long mEventId;
         private long mQueryId;
-        private long mRowIndex;
+        private int mRowIndex;
         private @NonNull String mServicePackageName;
         private int mType;
         private long mTimeMillis;
@@ -219,7 +219,7 @@ public class Event implements Serializable {
          * @param servicePackageName
          *   Name of the service package for this event
          * @param type
-         *   {@link EventType} defining the type of event
+         *   The service assigned type of the event.
          * @param timeMillis
          *   Time of the event in milliseconds.
          * @param eventData
@@ -228,7 +228,7 @@ public class Event implements Serializable {
         public Builder(
                 long eventId,
                 long queryId,
-                long rowIndex,
+                int rowIndex,
                 @NonNull String servicePackageName,
                 int type,
                 long timeMillis,
@@ -270,7 +270,7 @@ public class Event implements Serializable {
          * Index of the associated entry in the request log for this event.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRowIndex(long value) {
+        public @NonNull Builder setRowIndex(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mRowIndex = value;
@@ -289,7 +289,7 @@ public class Event implements Serializable {
         }
 
         /**
-         * {@link EventType} defining the type of event
+         * The service assigned type of the event.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setType(int value) {
@@ -346,10 +346,10 @@ public class Event implements Serializable {
     }
 
     @DataClass.Generated(
-            time = 1686610284923L,
+            time = 1693520125987L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Event.java",
-            inputSignatures = "private final  long mEventId\nprivate final  long mQueryId\nprivate final  long mRowIndex\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final  int mType\nprivate final  long mTimeMillis\nprivate final @android.annotation.Nullable byte[] mEventData\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final  long mEventId\nprivate final  long mQueryId\nprivate final  int mRowIndex\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final  int mType\nprivate final  long mTimeMillis\nprivate final @android.annotation.Nullable byte[] mEventData\nclass Event extends java.lang.Object implements [java.io.Serializable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -19,40 +19,41 @@ package com.android.ondevicepersonalization.services;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
-import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusService;
-import android.adservices.ondevicepersonalization.aidl.IPrivacyStatusServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.content.Context;
 import android.os.RemoteException;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.data.user.PrivacySignal;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
 /**
- * ODP service that modifies and persists user's privacy status.
+ * ODP service that modifies and persists ODP enablement status
  */
-public class OnDevicePersonalizationPrivacyStatusServiceDelegate
-        extends IPrivacyStatusService.Stub {
+public class OnDevicePersonalizationConfigServiceDelegate
+        extends IOnDevicePersonalizationConfigService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "OnDevicePersonalizationPrivacyStatusServiceDelegate";
+    private static final String TAG = "OnDevicePersonalizationConfigServiceDelegate";
     private final Context mContext;
     private static final Executor sBackgroundExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
 
-    public OnDevicePersonalizationPrivacyStatusServiceDelegate(Context context) {
+    public OnDevicePersonalizationConfigServiceDelegate(Context context) {
         mContext = context;
     }
 
     @Override
     @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
-    public void setKidStatus(boolean kidStatusEnabled,
-            @NonNull IPrivacyStatusServiceCallback callback) {
+    public void setPersonalizationStatus(boolean statusEnabled,
+                                     @NonNull IOnDevicePersonalizationConfigServiceCallback
+                                             callback) {
         Objects.requireNonNull(callback);
         // Verify caller's permission
         OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
@@ -61,15 +62,15 @@ public class OnDevicePersonalizationPrivacyStatusServiceDelegate
         sBackgroundExecutor.execute(
                 () -> {
                     try {
-                        PrivacySignal privacySignal = PrivacySignal.getInstance();
+                        UserPrivacyStatus userPrivacyStatus = UserPrivacyStatus.getInstance();
 
-                        if (kidStatusEnabled == privacySignal.isKidStatusEnabled()) {
+                        if (statusEnabled == userPrivacyStatus.isPersonalizationStatusEnabled()) {
                             callback.onSuccess();
                             return;
                         }
 
-                        privacySignal.setKidStatusEnabled(kidStatusEnabled);
-                        // Rollback all user data if kid status changes
+                        userPrivacyStatus.setPersonalizationStatusEnabled(statusEnabled);
+                        // Rollback all user data if personalization status changes
                         RawUserData userData = RawUserData.getInstance();
                         UserDataCollector userDataCollector =
                                 UserDataCollector.getInstance(mContext);
