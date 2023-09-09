@@ -20,8 +20,8 @@ import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
 
@@ -31,14 +31,14 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 /** Main service for the scheduled federated computation jobs. */
 public class FederatedJobService extends JobService {
-    private static final String TAG = "FederatedJobService";
+    private static final String TAG = FederatedJobService.class.getSimpleName();
     private ListenableFuture<Boolean> mRunCompleteFuture;
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        Log.d(TAG, "FederatedJobService.onStartJob");
+        LogUtil.d(TAG, "FederatedJobService.onStartJob");
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-            Log.d(TAG, "GlobalKillSwitch enabled, finishing job.");
+            LogUtil.d(TAG, "GlobalKillSwitch enabled, finishing job.");
             jobFinished(params, /* wantsReschedule= */ false);
             return true;
         }
@@ -54,13 +54,13 @@ public class FederatedJobService extends JobService {
                 new FutureCallback<Boolean>() {
                     @Override
                     public void onSuccess(Boolean result) {
-                        Log.d(TAG, "federated computation job is done!");
+                        LogUtil.d(TAG, "federated computation job is done!");
                         jobFinished(params, /* wantsReschedule= */ false);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to handle computation job: " + params.getJobId());
+                        LogUtil.e(TAG, "Failed to handle computation job: %d", params.getJobId());
                         jobFinished(params, /* wantsReschedule= */ false);
                     }
                 },

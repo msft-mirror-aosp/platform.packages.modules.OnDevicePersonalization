@@ -36,12 +36,12 @@ public interface KeyValueStore {
      * @return the value to which the specified key is mapped,
      * or null if there contains no mapping for the key.
      */
-    @Nullable byte[] get(@NonNull String key) throws OnDevicePersonalizationException;
+    @Nullable byte[] get(@NonNull String key);
 
     /**
      * Returns a Set view of the keys contained in the REMOTE_DATA table.
      *
      * @return a Set view of the keys contained in the REMOTE_DATA table.
      */
-    @NonNull Set<String> keySet() throws OnDevicePersonalizationException;
+    @NonNull Set<String> keySet();
 }

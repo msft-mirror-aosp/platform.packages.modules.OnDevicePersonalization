@@ -116,7 +116,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
-    public void testExecuteThrowsIfAppPackageNameMissing() throws Exception {
+    public void testExecuteThrowsIfAppPackageNameNull() throws Exception {
         var callback = new ExecuteCallback();
         assertThrows(
                 NullPointerException.class,
@@ -131,7 +131,22 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
-    public void testExecuteThrowsIfSHandlerMissing() throws Exception {
+    public void testExecuteThrowsIfAppPackageNameMissing() throws Exception {
+        var callback = new ExecuteCallback();
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                    mService.execute(
+                        "",
+                        new ComponentName(
+                            mContext.getPackageName(),
+                            "com.test.TestPersonalizationHandler"),
+                        PersistableBundle.EMPTY,
+                        callback));
+    }
+
+    @Test
+    public void testExecuteThrowsIfHandlerMissing() throws Exception {
         var callback = new ExecuteCallback();
         assertThrows(
                 NullPointerException.class,
@@ -139,6 +154,32 @@ public class OnDevicePersonalizationManagingServiceTest {
                     mService.execute(
                         mContext.getPackageName(),
                         null,
+                        PersistableBundle.EMPTY,
+                        callback));
+    }
+
+    @Test
+    public void testExecuteThrowsIfServicePackageMissing() throws Exception {
+        var callback = new ExecuteCallback();
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                    mService.execute(
+                        mContext.getPackageName(),
+                        new ComponentName("", "ServiceClass"),
+                        PersistableBundle.EMPTY,
+                        callback));
+    }
+
+    @Test
+    public void testExecuteThrowsIfServiceClassMissing() throws Exception {
+        var callback = new ExecuteCallback();
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                    mService.execute(
+                        mContext.getPackageName(),
+                        new ComponentName("com.test.TestPackage", ""),
                         PersistableBundle.EMPTY,
                         callback));
     }

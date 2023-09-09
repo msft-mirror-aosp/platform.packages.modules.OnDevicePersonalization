@@ -35,7 +35,7 @@ public class EventTest {
         long queryId = 1;
         long timeMillis = 1;
         long eventId = 1;
-        long rowIndex = 1;
+        int rowIndex = 1;
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE)
                 .setEventData(eventData)
@@ -68,7 +68,7 @@ public class EventTest {
         long queryId = 1;
         long timeMillis = 1;
         long eventId = 1;
-        long rowIndex = 1;
+        int rowIndex = 1;
         Event.Builder builder = new Event.Builder()
                 .setType(EVENT_TYPE)
                 .setEventData(eventData)

@@ -17,7 +17,6 @@
 package com.android.ondevicepersonalization.services.process;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
@@ -33,6 +32,7 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 import com.android.ondevicepersonalization.libraries.plugin.PluginInfo;
 import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
@@ -109,7 +109,7 @@ public class ProcessUtils {
                             completer.set(new IsolatedServiceInfo(pluginController));
                         }
                         @Override public void onFailure(FailureType failure) {
-                            completer.setException(new OnDevicePersonalizationException(
+                            completer.setException(new OdpServiceException(
                                     Constants.STATUS_INTERNAL_ERROR,
                                     String.format("loadPlugin failed. %s", failure.toString())));
                         }
@@ -133,7 +133,7 @@ public class ProcessUtils {
                             completer.set(bundle);
                         }
                         @Override public void onFailure(FailureType failure) {
-                            completer.setException(new OnDevicePersonalizationException(
+                            completer.setException(new OdpServiceException(
                                     Constants.STATUS_INTERNAL_ERROR,
                                     String.format("executePlugin failed: %s", failure.toString())));
                         }

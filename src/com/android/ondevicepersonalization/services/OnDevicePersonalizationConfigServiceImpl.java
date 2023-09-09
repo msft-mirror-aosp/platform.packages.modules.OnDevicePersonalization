@@ -23,14 +23,14 @@ import android.os.IBinder;
 /**
  * ODP service that modifies and persists user's privacy status.
  */
-public class OnDevicePersonalizationPrivacyStatusServiceImpl extends Service {
+public class OnDevicePersonalizationConfigServiceImpl extends Service {
 
     /** Binder interface. */
-    private OnDevicePersonalizationPrivacyStatusServiceDelegate mBinder;
+    private OnDevicePersonalizationConfigServiceDelegate mBinder;
 
     @Override
     public void onCreate() {
-        mBinder = new OnDevicePersonalizationPrivacyStatusServiceDelegate(this);
+        mBinder = new OnDevicePersonalizationConfigServiceDelegate(this);
     }
 
     @Override
