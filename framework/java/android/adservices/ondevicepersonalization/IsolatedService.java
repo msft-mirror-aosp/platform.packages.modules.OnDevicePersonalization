@@ -37,12 +37,13 @@ import java.util.function.Consumer;
 
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
- * Base class for services that run in an
+ * Base class for services that are started by ODP on a call to
+ * {@link OnDevicePersonalizationManager#execute} and run in an
  * <a href="https://developer.android.com/guide/topics/manifest/service-element#isolated">isolated
- * process</a> and can produce content to be displayed in a {@link SurfaceView} in a calling app
- * and write persistent results to on-device storage, which can be consumed by Federated Analytics
- * for cross-device statistical analysis or by Federated Learning for model training. Client apps
- * use {@link OnDevicePersonalizationManager} to interact with an
+ * process</a>. The service can produce content to be displayed in a {@link SurfaceView} in a
+ * calling app and write persistent results to on-device storage, which can be consumed by
+ * Federated Analytics for cross-device statistical analysis or by Federated Learning for model
+ * training. Client apps use {@link OnDevicePersonalizationManager} to interact with an
  * {@link IsolatedService}.
  *
  * @hide
@@ -61,7 +62,7 @@ public abstract class IsolatedService extends Service {
     }
 
     /**
-     * Return an instance of {@link IsolatedWorker} that handles client requests.
+     * Return an instance of an {@link IsolatedWorker} that handles client requests.
      */
     @NonNull public abstract IsolatedWorker onRequest(
             @NonNull RequestToken requestToken);

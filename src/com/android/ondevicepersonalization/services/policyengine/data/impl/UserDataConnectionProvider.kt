@@ -20,7 +20,7 @@ import android.adservices.ondevicepersonalization.UserData
 import android.adservices.ondevicepersonalization.OSVersion
 import android.adservices.ondevicepersonalization.DeviceMetrics
 import android.adservices.ondevicepersonalization.Location
-import android.adservices.ondevicepersonalization.AppInstallInfo
+import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.AppUsageStatus
 import android.adservices.ondevicepersonalization.LocationStatus
 import android.util.ArrayMap
@@ -81,17 +81,17 @@ class UserDataConnectionProvider() : ConnectionProvider {
                             .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
                             .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
                             .build())
-                    .setAppInstallInfo(getAppInstallInfo(rawUserData))
+                    .setAppInfo(getAppInfo(rawUserData))
                     .setAppUsageHistory(getAppUsageHistory(rawUserData))
                     .setLocationHistory(getLocationHistory(rawUserData))
                     .build()
         }
 
-        private fun getAppInstallInfo(rawUserData: RawUserData): Map<String, AppInstallInfo> {
-            var res = ArrayMap<String, AppInstallInfo>()
+        private fun getAppInfo(rawUserData: RawUserData): Map<String, AppInfo> {
+            var res = ArrayMap<String, AppInfo>()
             for (appInfo in rawUserData.appsInfo) {
                 res.put(appInfo.packageName,
-                        AppInstallInfo.Builder()
+                        AppInfo.Builder()
                             .setInstalled(appInfo.installed)
                             .build())
             }

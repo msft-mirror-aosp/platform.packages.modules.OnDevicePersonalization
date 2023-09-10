@@ -23,8 +23,7 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.FAKE_API
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.OCTET_STREAM;
 
-import android.util.Log;
-
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
@@ -52,7 +51,7 @@ import java.util.List;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
-    public static final String TAG = "HttpFederatedProtocol";
+    public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
 
     private final String mClientVersion;
     private final String mPopulationName;
@@ -184,7 +183,7 @@ public final class HttpFederatedProtocol {
     private ListenableFuture<TaskAssignment> getTaskAssignment(
             FederatedComputeHttpResponse httpResponse) {
         if (httpResponse.getStatusCode() != HTTP_OK_STATUS) {
-            Log.e(TAG, "start task assignment failed: " + httpResponse.getStatusCode());
+            LogUtil.e(TAG, "start task assignment failed: %d", httpResponse.getStatusCode());
             throw new IllegalStateException(
                     "start task assignment failed: " + httpResponse.getStatusCode());
         }
@@ -196,7 +195,7 @@ public final class HttpFederatedProtocol {
         } catch (InvalidProtocolBufferException e) {
             throw new IllegalStateException("Could not parse StartTaskAssignmentResponse proto", e);
         }
-        Log.i(TAG, "start task assignment response: " + taskAssignmentResponse);
+        LogUtil.i(TAG, "start task assignment response: %s", taskAssignmentResponse);
         if (taskAssignmentResponse.hasRejectionInfo()) {
             throw new IllegalStateException("Device rejected by server.");
         }
@@ -270,7 +269,7 @@ public final class HttpFederatedProtocol {
     private Void processStartDataUploadResponse(FederatedComputeHttpResponse httpResponse) {
         StartAggregationDataUploadResponse startDataUploadResponse;
         if (httpResponse.getStatusCode() != HTTP_OK_STATUS) {
-            Log.e(TAG, "start data upload failed: " + httpResponse.getStatusCode());
+            LogUtil.e(TAG, "start data upload failed: %d", httpResponse.getStatusCode());
             throw new IllegalStateException(
                     "start data upload failed: " + httpResponse.getStatusCode());
         }

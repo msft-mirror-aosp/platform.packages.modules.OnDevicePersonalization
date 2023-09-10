@@ -71,6 +71,7 @@ bootclasspath_fragment {
             "android.ondevicepersonalization",
             "com.android.ondevicepersonalization.internal",
             "android.federatedcompute",
+            "com.android.federatedcompute.internal",
         ],
     },
 }
