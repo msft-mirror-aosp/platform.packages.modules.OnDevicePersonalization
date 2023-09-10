@@ -25,7 +25,8 @@ package android.adservices.ondevicepersonalization;
 public class Constants {
     public static final int STATUS_INTERNAL_ERROR = 100;
     public static final int STATUS_NAME_NOT_FOUND = 101;
-    public static final int STATUS_SERVICE_FAILED = 102;
+    public static final int STATUS_CLASS_NOT_FOUND = 102;
+    public static final int STATUS_SERVICE_FAILED = 103;
 
     // Operations implemented by personalization services.
     public static final int OP_EXECUTE = 1;

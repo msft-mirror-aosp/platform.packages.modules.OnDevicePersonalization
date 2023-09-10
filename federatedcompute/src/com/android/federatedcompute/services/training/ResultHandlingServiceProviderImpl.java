@@ -23,8 +23,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.federatedcompute.aidl.IResultHandlingService;
 import android.os.IBinder;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -38,7 +38,7 @@ import java.util.concurrent.TimeoutException;
 
 /** Implementation of the ResultHandlingServiceProvider interface. */
 public final class ResultHandlingServiceProviderImpl implements ResultHandlingServiceProvider {
-    private static final String TAG = "ResultHandlingServiceProviderImpl";
+    private static final String TAG = ResultHandlingServiceProviderImpl.class.getSimpleName();
     private static final Executor SINGLE_THREAD_EXECUTOR = Executors.newSingleThreadExecutor();
     private final Context mContext;
     private IResultHandlingService mResultHandlingService;
@@ -57,7 +57,7 @@ public final class ResultHandlingServiceProviderImpl implements ResultHandlingSe
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
                     if (service == null) {
-                        Log.e(TAG, "onServiceConnected() received null binder");
+                        LogUtil.e(TAG, "onServiceConnected() received null binder");
                         return;
                     }
                     mResultHandlingServiceFuture.set(
@@ -68,7 +68,7 @@ public final class ResultHandlingServiceProviderImpl implements ResultHandlingSe
                 @Override
                 public void onServiceDisconnected(ComponentName name) {
                     reset();
-                    Log.d(TAG, "Connection unexpectedly disconnected");
+                    LogUtil.d(TAG, "Connection unexpectedly disconnected");
                 }
             };
 
@@ -82,7 +82,7 @@ public final class ResultHandlingServiceProviderImpl implements ResultHandlingSe
     public boolean bindService(Intent intent) {
         if (!mContext.bindService(
                 intent, Context.BIND_AUTO_CREATE, SINGLE_THREAD_EXECUTOR, mServiceConnection)) {
-            Log.e(TAG, "Unable to bind to ResultHandlingService intent: " + intent);
+            LogUtil.e(TAG, "Unable to bind to ResultHandlingService intent: %s", intent);
             return false;
         }
         try {
@@ -99,7 +99,7 @@ public final class ResultHandlingServiceProviderImpl implements ResultHandlingSe
         } catch (ExecutionException e) {
             throw new UncheckedExecutionException(e);
         } catch (InterruptedException e) {
-            Log.e(TAG, "ResultHandlingService interrupted", e);
+            LogUtil.e(TAG, "ResultHandlingService interrupted", e);
             unbindService();
             return false;
         }

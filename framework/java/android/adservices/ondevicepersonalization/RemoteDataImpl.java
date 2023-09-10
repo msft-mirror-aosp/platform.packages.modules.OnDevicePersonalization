@@ -80,7 +80,7 @@ public class RemoteDataImpl implements KeyValueStore {
             return data.get(key);
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve key from remoteData", e);
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 
@@ -116,7 +116,7 @@ public class RemoteDataImpl implements KeyValueStore {
             return resultSet;
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve keySet from remoteData", e);
-            throw new RuntimeException(e);
+            throw new IllegalStateException(e);
         }
     }
 }
