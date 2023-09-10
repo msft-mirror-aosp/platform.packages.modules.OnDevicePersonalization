@@ -23,8 +23,8 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.federatedcompute.aidl.IExampleStoreService;
 import android.os.IBinder;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -38,7 +38,7 @@ import java.util.concurrent.TimeoutException;
 
 /** Implementation of the ExampleStoreServiceProvider interface. */
 public final class ExampleStoreServiceProviderImpl implements ExampleStoreServiceProvider {
-    private static final String TAG = "ExampleStoreServiceProviderImpl";
+    private static final String TAG = ExampleStoreServiceProviderImpl.class.getSimpleName();
     private static final Executor SINGLE_THREAD_EXECUTOR = Executors.newSingleThreadExecutor();
     private final Context mContext;
     private IExampleStoreService mExampleStoreService;
@@ -57,7 +57,7 @@ public final class ExampleStoreServiceProviderImpl implements ExampleStoreServic
                 @Override
                 public void onServiceConnected(ComponentName name, IBinder service) {
                     if (service == null) {
-                        Log.e(TAG, "onServiceConnected() received null binder");
+                        LogUtil.e(TAG, "onServiceConnected() received null binder");
                         return;
                     }
                     mExampleStoreServiceFuture.set(IExampleStoreService.Stub.asInterface(service));
@@ -67,7 +67,7 @@ public final class ExampleStoreServiceProviderImpl implements ExampleStoreServic
                 @Override
                 public void onServiceDisconnected(ComponentName name) {
                     reset();
-                    Log.d(TAG, "Connection unexpectedly disconnected");
+                    LogUtil.d(TAG, "Connection unexpectedly disconnected");
                 }
             };
 
@@ -81,7 +81,7 @@ public final class ExampleStoreServiceProviderImpl implements ExampleStoreServic
     public boolean bindService(Intent intent) {
         if (!mContext.bindService(
                 intent, Context.BIND_AUTO_CREATE, SINGLE_THREAD_EXECUTOR, mServiceConnection)) {
-            Log.e(TAG, "Unable to bind to ExampleStoreService intent: " + intent);
+            LogUtil.e(TAG, "Unable to bind to ExampleStoreService intent: ", intent);
             return false;
         }
         try {
@@ -97,7 +97,7 @@ public final class ExampleStoreServiceProviderImpl implements ExampleStoreServic
         } catch (ExecutionException e) {
             throw new UncheckedExecutionException(e);
         } catch (InterruptedException e) {
-            Log.e(TAG, "ExampleStoreService interrupted", e);
+            LogUtil.e(TAG, "ExampleStoreService interrupted", e);
             unbindService();
             return false;
         }

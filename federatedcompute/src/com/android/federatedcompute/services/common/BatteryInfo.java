@@ -20,11 +20,12 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.BatteryManager;
-import android.util.Log;
+
+import com.android.federatedcompute.internal.util.LogUtil;
 
 /** Checks the battery status of the device. */
 public class BatteryInfo {
-    private static final String TAG = "BatteryInfo";
+    private static final String TAG = BatteryInfo.class.getSimpleName();
     private final Context mContext;
     private final Flags mFlags;
 
@@ -41,7 +42,7 @@ public class BatteryInfo {
         if (level != -1 && scale > 0) {
             return level / (float) scale;
         } else {
-            Log.e(TAG, "Bad Battery Changed intent: batteryLevel=" + level + ", scale=" + scale);
+            LogUtil.e(TAG, "Bad Battery Changed intent: batteryLevel= %d, scale=%d", level, scale);
             return -1;
         }
     }
@@ -61,11 +62,11 @@ public class BatteryInfo {
         // Check if battery level is sufficient.
         float minBatteryLevel = mFlags.getTrainingMinBatteryLevel() / 100.0f;
         if (requireBatteryNotLow && level < minBatteryLevel) {
-            Log.i(
+            LogUtil.i(
                     TAG,
-                    String.format(
-                            "Battery level insufficient (%f < %f), skipping training.",
-                            level, minBatteryLevel));
+                    "Battery level insufficient (%f < %f), skipping training.",
+                    level,
+                    minBatteryLevel);
             return false;
         }
         return true;
