@@ -16,7 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
-import android.annotation.NonNull;
+import android.annotation.IntDef;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Exception thrown by OnDevicePersonalization APIs.
@@ -26,29 +29,22 @@ import android.annotation.NonNull;
 public class OnDevicePersonalizationException extends Exception {
     public static final int ERROR_SERVICE_FAILED = 1;
 
-    private final int mErrorCode;
+    /** @hide */
+    @IntDef(prefix = "ERROR_", value = {
+            ERROR_SERVICE_FAILED
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ErrorCode {}
 
-    public OnDevicePersonalizationException(int errorCode) {
-        this(errorCode, "");
-    }
+    private final @ErrorCode int mErrorCode;
 
-    public OnDevicePersonalizationException(int errorCode, @NonNull String errorMessage) {
-        super("Error code: " + errorCode + " message: " + errorMessage);
-        mErrorCode = errorCode;
-    }
-
-    public OnDevicePersonalizationException(int errorCode, @NonNull Throwable cause) {
-        this(errorCode, "", cause);
-    }
-
-    public OnDevicePersonalizationException(
-            int errorCode, @NonNull String errorMessage, @NonNull Throwable cause) {
-        super("Error code: " + errorCode + " message: " + errorMessage, cause);
+    /** @hide */
+    public OnDevicePersonalizationException(@ErrorCode int errorCode) {
         mErrorCode = errorCode;
     }
 
     /** Returns the error code for this exception. */
-    public int getErrorCode() {
+    public @ErrorCode int getErrorCode() {
         return mErrorCode;
     }
 }

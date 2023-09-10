@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,17 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization;
+package android.adservices.ondevicepersonalization.aidl;
 
-parcelable AppInstallInfo;
+import android.os.Bundle;
+
+/**
+  * Callback from a OnDevicePersonalizationConfigService.
+  * @hide
+  */
+oneway interface IOnDevicePersonalizationConfigServiceCallback {
+
+    void onSuccess();
+
+    void onFailure(int errorCode);
+}
