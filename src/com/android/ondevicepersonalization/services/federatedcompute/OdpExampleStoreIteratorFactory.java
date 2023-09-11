@@ -31,7 +31,7 @@ public class OdpExampleStoreIteratorFactory {
 
     private final ListeningExecutorService mExecutor;
     private final EventsDao mEventsDao;
-    private static OdpExampleStoreIteratorFactory sSingleton;
+    private static volatile OdpExampleStoreIteratorFactory sSingleton;
 
     private OdpExampleStoreIteratorFactory(
             @NonNull Context context,
@@ -44,13 +44,15 @@ public class OdpExampleStoreIteratorFactory {
      * Returns an instance of OdpExampleStoreIteratorFactory
      */
     public static OdpExampleStoreIteratorFactory getInstance(Context context) {
-        synchronized (OdpExampleStoreIteratorFactory.class) {
-            if (null == sSingleton) {
-                sSingleton = new OdpExampleStoreIteratorFactory(context,
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        if (null == sSingleton) {
+            synchronized (OdpExampleStoreIteratorFactory.class) {
+                if (null == sSingleton) {
+                    sSingleton = new OdpExampleStoreIteratorFactory(context.getApplicationContext(),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                }
             }
-            return sSingleton;
         }
+        return sSingleton;
     }
 
     /**
