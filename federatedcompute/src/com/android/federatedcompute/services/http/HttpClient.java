@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBlockingExecutor;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 
 import android.annotation.NonNull;
@@ -24,6 +25,8 @@ import android.annotation.Nullable;
 import com.android.federatedcompute.internal.util.LogUtil;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -55,6 +58,17 @@ public class HttpClient {
         urlConnection.setConnectTimeout(NETWORK_CONNECT_TIMEOUT_MS);
         urlConnection.setReadTimeout(NETWORK_READ_TIMEOUT_MS);
         return urlConnection;
+    }
+
+    /** Perform HTTP requests based on given information asynchronously. */
+    @NonNull
+    public ListenableFuture<FederatedComputeHttpResponse> performRequestAsync(
+            FederatedComputeHttpRequest request) {
+        try {
+            return getBlockingExecutor().submit(() -> performRequest(request));
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     /** Perform HTTP requests based on given information. */
@@ -101,7 +115,7 @@ public class HttpClient {
             }
 
             int responseCode = urlConnection.getResponseCode();
-            if (responseCode == HTTP_OK_STATUS) {
+            if (HTTP_OK_STATUS.contains(responseCode)) {
                 return new FederatedComputeHttpResponse.Builder()
                         .setPayload(
                                 getByteArray(
@@ -134,8 +148,8 @@ public class HttpClient {
         if (contentLength == 0) {
             return HttpClientUtil.EMPTY_BODY;
         }
-
         try {
+            // TODO(b/297952090): evaluate the large file download.
             byte[] buffer = new byte[HttpClientUtil.DEFAULT_BUFFER_SIZE];
             ByteArrayOutputStream out = new ByteArrayOutputStream();
             int bytesRead;
