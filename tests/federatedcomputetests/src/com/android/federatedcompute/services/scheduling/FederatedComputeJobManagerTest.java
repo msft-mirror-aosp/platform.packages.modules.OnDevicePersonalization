@@ -989,6 +989,37 @@ public final class FederatedComputeJobManagerTest {
                 buildExpectedJobInfo(JOB_ID1, serverDefinedIntervalMillis));
     }
 
+    @Test
+    public void testOnTrainerStopCalled_withoutOnTrainerStartCalled() throws Exception {
+        // Should not fail, even if onTrainerStartCalled was never called.
+        mJobManager.onTrainerStopCalled(
+                CALLING_PACKAGE_NAME, POPULATION_NAME1, new TestFederatedComputeCallback());
+
+        // No task should exist, nor should a job have been scheduled.
+        assertThat(mSuccess).isTrue();
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
+    @Test
+    public void testOnTrainerStopCalled_afterOnTrainerStartCalled() throws Exception {
+        // After a cycle of onTrainerStartCalled -> onTrainerStopCalled there should be no pending
+        // jobs.
+        long nowMillis = 1000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStartCalled(
+                CALLING_PACKAGE_NAME, OPTIONS1, new TestFederatedComputeCallback());
+
+        nowMillis = 2000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStopCalled(
+                CALLING_PACKAGE_NAME, POPULATION_NAME1, new TestFederatedComputeCallback());
+
+        // No task should exist, nor should a job be scheduled anymore
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
     /**
      * Helper for checking that two JobInfos match, since JobInfos unfortunately can't be compared
      * directly.

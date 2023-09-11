@@ -241,6 +241,27 @@ public class FederatedComputeJobManager {
         sendSuccess(callback);
     }
 
+    /**
+     * Called when a client indicates via the client API that a task with the given parameters
+     * should be canceled.
+     */
+    public synchronized void onTrainerStopCalled(
+            String callingPackageName, String populationName, IFederatedComputeCallback callback) {
+        FederatedTrainingTask taskToCancel =
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(populationName);
+        // If no matching task exists then there's nothing for us to do. This is not an error
+        // case though.
+        if (taskToCancel == null) {
+            LogUtil.i(TAG, "No matching task exists when cancel the job %s", populationName);
+            sendSuccess(callback);
+            return;
+        }
+
+        LogUtil.i(TAG, " onTrainerStopCalled cancel the task %d", taskToCancel.jobId());
+        mJobSchedulerHelper.cancelTask(mContext, taskToCancel);
+        sendSuccess(callback);
+    }
+
     /** Called when a training task identified by {@code jobId} starts running. */
     @Nullable
     public synchronized FederatedTrainingTask onTrainingStarted(int jobId) {
