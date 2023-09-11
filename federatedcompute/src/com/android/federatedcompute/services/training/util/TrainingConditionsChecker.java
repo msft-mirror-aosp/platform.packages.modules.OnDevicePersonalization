@@ -45,7 +45,7 @@ public class TrainingConditionsChecker {
     private final long mThrottlePeriodMillis;
     private final AtomicLong mLastConditionCheckTimeMillis;
 
-    private static TrainingConditionsChecker sSingletonInstance;
+    private static volatile TrainingConditionsChecker sSingletonInstance;
 
     /**
      * Result of the training condition check. We rely on JobScheduler for unmetered network and
@@ -71,18 +71,20 @@ public class TrainingConditionsChecker {
 
     /** Gets an instance of {@link TrainingConditionsChecker}. */
     public static TrainingConditionsChecker getInstance(Context context) {
-        synchronized (TrainingConditionsChecker.class) {
-            if (sSingletonInstance == null) {
-                Flags flags = PhFlags.getInstance();
-                sSingletonInstance =
-                        new TrainingConditionsChecker(
-                                new BatteryInfo(context, flags),
-                                context.getSystemService(PowerManager.class),
-                                flags,
-                                MonotonicClock.getInstance());
+        if (sSingletonInstance == null) {
+            synchronized (TrainingConditionsChecker.class) {
+                if (sSingletonInstance == null) {
+                    Flags flags = PhFlags.getInstance();
+                    sSingletonInstance =
+                            new TrainingConditionsChecker(
+                                    new BatteryInfo(context.getApplicationContext(), flags),
+                                    context.getSystemService(PowerManager.class),
+                                    flags,
+                                    MonotonicClock.getInstance());
+                }
             }
-            return sSingletonInstance;
         }
+        return sSingletonInstance;
     }
 
     private boolean deviceThermalsOkForTraining() {

@@ -66,7 +66,7 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.SCHEDULING_REASON
                     + " INTEGER )";
 
-    private static FederatedTrainingTaskDbHelper sInstance = null;
+    private static volatile FederatedTrainingTaskDbHelper sInstance = null;
 
     private FederatedTrainingTaskDbHelper(Context context, String dbName) {
         super(context, dbName, null, DATABASE_VERSION);
@@ -74,12 +74,15 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
 
     /** Returns an instance of the FederatedTrainingTaskDbHelper given a context. */
     public static FederatedTrainingTaskDbHelper getInstance(Context context) {
-        synchronized (FederatedTrainingTaskDbHelper.class) {
-            if (sInstance == null) {
-                sInstance = new FederatedTrainingTaskDbHelper(context, DATABASE_NAME);
+        if (sInstance == null) {
+            synchronized (FederatedTrainingTaskDbHelper.class) {
+                if (sInstance == null) {
+                    sInstance = new FederatedTrainingTaskDbHelper(
+                            context.getApplicationContext(), DATABASE_NAME);
+                }
             }
-            return sInstance;
         }
+        return sInstance;
     }
 
     /**

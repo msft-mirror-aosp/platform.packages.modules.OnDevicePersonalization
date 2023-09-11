@@ -39,7 +39,7 @@ public class FederatedTrainingTaskDao {
     private static final String TAG = FederatedTrainingTaskDao.class.getSimpleName();
 
     private final SQLiteOpenHelper mDbHelper;
-    private static FederatedTrainingTaskDao sSingletonInstance;
+    private static volatile FederatedTrainingTaskDao sSingletonInstance;
 
     private FederatedTrainingTaskDao(SQLiteOpenHelper dbHelper) {
         this.mDbHelper = dbHelper;
@@ -48,14 +48,16 @@ public class FederatedTrainingTaskDao {
     /** Returns an instance of the FederatedTrainingTaskDao given a context. */
     @NonNull
     public static FederatedTrainingTaskDao getInstance(Context context) {
-        synchronized (FederatedTrainingTaskDao.class) {
-            if (sSingletonInstance == null) {
-                sSingletonInstance =
-                        new FederatedTrainingTaskDao(
-                                FederatedTrainingTaskDbHelper.getInstance(context));
+        if (sSingletonInstance == null) {
+            synchronized (FederatedTrainingTaskDao.class) {
+                if (sSingletonInstance == null) {
+                    sSingletonInstance =
+                            new FederatedTrainingTaskDao(
+                                    FederatedTrainingTaskDbHelper.getInstance(context));
+                }
             }
-            return sSingletonInstance;
         }
+        return sSingletonInstance;
     }
 
     /** It's only public to unit test. */
