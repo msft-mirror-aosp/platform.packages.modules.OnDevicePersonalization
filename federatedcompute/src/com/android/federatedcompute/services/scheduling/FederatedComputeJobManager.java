@@ -59,7 +59,7 @@ public class FederatedComputeJobManager {
     @NonNull private final Context mContext;
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
-    private static FederatedComputeJobManager sSingletonInstance;
+    private static volatile FederatedComputeJobManager sSingletonInstance;
     private final FederatedJobIdGenerator mJobIdGenerator;
     private Clock mClock;
     private final Flags mFlags;
@@ -83,20 +83,22 @@ public class FederatedComputeJobManager {
     /** Returns an instance of FederatedComputeJobManager given a context. */
     @NonNull
     public static FederatedComputeJobManager getInstance(@NonNull Context mContext) {
-        synchronized (FederatedComputeJobManager.class) {
-            if (sSingletonInstance == null) {
-                Clock clock = MonotonicClock.getInstance();
-                sSingletonInstance =
-                        new FederatedComputeJobManager(
-                                mContext,
-                                FederatedTrainingTaskDao.getInstance(mContext),
-                                FederatedJobIdGenerator.getInstance(),
-                                new JobSchedulerHelper(clock),
-                                clock,
-                                PhFlags.getInstance());
+        if (sSingletonInstance == null) {
+            synchronized (FederatedComputeJobManager.class) {
+                if (sSingletonInstance == null) {
+                    Clock clock = MonotonicClock.getInstance();
+                    sSingletonInstance =
+                            new FederatedComputeJobManager(
+                                    mContext.getApplicationContext(),
+                                    FederatedTrainingTaskDao.getInstance(mContext),
+                                    FederatedJobIdGenerator.getInstance(),
+                                    new JobSchedulerHelper(clock),
+                                    clock,
+                                    PhFlags.getInstance());
+                }
             }
-            return sSingletonInstance;
         }
+        return sSingletonInstance;
     }
 
     /**

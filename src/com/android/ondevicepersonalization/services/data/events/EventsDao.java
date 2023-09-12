@@ -37,7 +37,7 @@ public class EventsDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "EventsDao";
 
-    private static EventsDao sSingleton;
+    private static volatile EventsDao sSingleton;
 
     private final OnDevicePersonalizationDbHelper mDbHelper;
 
@@ -47,14 +47,16 @@ public class EventsDao {
 
     /** Returns an instance of the EventsDao given a context. */
     public static EventsDao getInstance(@NonNull Context context) {
-        synchronized (EventsDao.class) {
-            if (sSingleton == null) {
-                OnDevicePersonalizationDbHelper dbHelper =
-                        OnDevicePersonalizationDbHelper.getInstance(context);
-                sSingleton = new EventsDao(dbHelper);
+        if (sSingleton == null) {
+            synchronized (EventsDao.class) {
+                if (sSingleton == null) {
+                    OnDevicePersonalizationDbHelper dbHelper =
+                            OnDevicePersonalizationDbHelper.getInstance(context);
+                    sSingleton = new EventsDao(dbHelper);
+                }
             }
-            return sSingleton;
         }
+        return sSingleton;
     }
 
     /**
