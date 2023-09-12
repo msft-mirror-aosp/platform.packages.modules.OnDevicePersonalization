@@ -58,7 +58,7 @@ public class EventUrlProvider {
      * @param mimeType The Mime Type of the URL response.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public Uri getEventTrackingUrl(
+    @NonNull public Uri createEventTrackingUrlWithResponse(
             @NonNull PersistableBundle eventParams,
             @Nullable byte[] responseData,
             @Nullable String mimeType) {
@@ -78,12 +78,12 @@ public class EventUrlProvider {
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public Uri getEventTrackingUrlWithRedirect(
+    @NonNull public Uri createEventTrackingUrlWithRedirect(
             @NonNull PersistableBundle eventParams,
-            @Nullable String destinationUrl) {
+            @Nullable Uri destinationUrl) {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-        params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
+        params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl.toString());
         return getUrl(params);
     }
 
