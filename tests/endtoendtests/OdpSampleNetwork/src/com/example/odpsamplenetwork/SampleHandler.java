@@ -34,6 +34,7 @@ import android.adservices.ondevicepersonalization.WebViewEventInput;
 import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -276,7 +277,7 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
-            String url = mEventUrlProvider.getEventTrackingUrl(
+            String url = mEventUrlProvider.createEventTrackingUrlWithResponse(
                     eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
@@ -289,8 +290,8 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
-            String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage).toString();
+            String url = mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                    eventParams, Uri.parse(landingPage)).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);

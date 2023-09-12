@@ -39,7 +39,7 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * The Event URL parameters that the service passed to
-     * {@link EventUrlProvider#getEventTrackingUrl()}.
+     * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
      */
     @NonNull private PersistableBundle mParameters = PersistableBundle.EMPTY;
 
@@ -81,7 +81,7 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * The Event URL parameters that the service passed to
-     * {@link EventUrlProvider#getEventTrackingUrl()}.
+     * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
      */
     @DataClass.Generated.Member
     public @NonNull PersistableBundle getParameters() {
@@ -196,7 +196,7 @@ public final class WebViewEventInput implements Parcelable {
 
         /**
          * The Event URL parameters that the service passed to
-         * {@link EventUrlProvider#getEventTrackingUrl()}.
+         * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setParameters(@NonNull PersistableBundle value) {
