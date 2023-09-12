@@ -134,7 +134,7 @@ public class OdpFederatedComputeJobService extends JobService {
                     new ScheduleFederatedComputeRequest.Builder()
                             .setTrainingOptions(trainingOptions)
                             .build();
-            FCManager.scheduleFederatedCompute(
+            FCManager.schedule(
                     request,
                     OnDevicePersonalizationExecutors.getBackgroundExecutor(),
                     new OutcomeReceiver<Object, Exception>() {
