@@ -59,9 +59,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
         assertThrows(
                 NullPointerException.class,
-                () ->
-                        mFcpService.scheduleFederatedCompute(
-                                null, trainingOptions, new FederatedComputeCallback()));
+                () -> mFcpService.schedule(null, trainingOptions, new FederatedComputeCallback()));
     }
 
     @Test
@@ -70,16 +68,14 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 new TrainingOptions.Builder().setPopulationName("fake-population").build();
         assertThrows(
                 NullPointerException.class,
-                () ->
-                        mFcpService.scheduleFederatedCompute(
-                                mContext.getPackageName(), trainingOptions, null));
+                () -> mFcpService.schedule(mContext.getPackageName(), trainingOptions, null));
     }
 
     @Test
     public void testSchedule_returnsSuccess() throws Exception {
         TrainingOptions trainingOptions =
                 new TrainingOptions.Builder().setPopulationName("fake-population").build();
-        mFcpService.scheduleFederatedCompute(
+        mFcpService.schedule(
                 mContext.getPackageName(), trainingOptions, new FederatedComputeCallback());
     }
 
@@ -92,9 +88,45 @@ public final class FederatedComputeManagingServiceDelegateTest {
             assertThrows(
                     IllegalStateException.class,
                     () ->
-                            mFcpService.scheduleFederatedCompute(
+                            mFcpService.schedule(
                                     mContext.getPackageName(),
                                     trainingOptions,
+                                    new FederatedComputeCallback()));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
+    }
+
+    @Test
+    public void testCancelMissingPackageName_throwsException() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> mFcpService.cancel(null, "fake-population", new FederatedComputeCallback()));
+    }
+
+    @Test
+    public void testCancelMissingCallback_throwsException() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> mFcpService.cancel(mContext.getPackageName(), "fake-population", null));
+    }
+
+    @Test
+    public void testCancel_returnsSuccess() throws Exception {
+        mFcpService.cancel(
+                mContext.getPackageName(), "fake-population", new FederatedComputeCallback());
+    }
+
+    @Test
+    public void testCancelEnabledGlobalKillSwitch_throwsException() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mFcpService.cancel(
+                                    mContext.getPackageName(),
+                                    "fake-population",
                                     new FederatedComputeCallback()));
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
