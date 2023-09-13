@@ -22,7 +22,6 @@ import android.annotation.NonNull;
  * An opaque reference to content that can be displayed in a {@link SurfaceView}. This maps
  * to a {@link RenderingConfig} returned by an {@link IsolatedService}.
  *
- * @hide
  */
 public class SurfacePackageToken {
     @NonNull private final String mTokenString;

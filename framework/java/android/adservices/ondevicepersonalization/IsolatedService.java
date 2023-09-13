@@ -46,33 +46,63 @@ import java.util.function.Consumer;
  * training. Client apps use {@link OnDevicePersonalizationManager} to interact with an
  * {@link IsolatedService}.
  *
- * @hide
  */
 public abstract class IsolatedService extends Service {
     private static final String TAG = "IsolatedService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private IBinder mBinder;
 
+    /**
+     * Creates a binder for an {@link IsolatedService}.
+     */
     @Override public void onCreate() {
         mBinder = new ServiceBinder();
     }
 
+    /**
+     * Handles binding to the {@link IsolatedService}.
+     *
+     * @param intent The Intent that was used to bind to this service,
+     * as given to {@link android.content.Context#bindService
+     * Context.bindService}.  Note that any extras that were included with
+     * the Intent at that point will <em>not</em> be seen here.
+     */
     @Override @Nullable public IBinder onBind(@NonNull Intent intent) {
         return mBinder;
     }
 
     /**
      * Return an instance of an {@link IsolatedWorker} that handles client requests.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service
+     *     that must be passed to service methods that depend on per-request state.
      */
     @NonNull public abstract IsolatedWorker onRequest(
             @NonNull RequestToken requestToken);
 
     /**
-     * Returns a DAO for the REMOTE_DATA table. The REMOTE_DATA table is a read-only key-value
-     * store that contains data that is periodically downloaded from an endpoint declared in the
-     * package manifest of the service.
+     * Returns a Data Access Object for the REMOTE_DATA table. The REMOTE_DATA table is a
+     * read-only key-value store that contains data that is periodically downloaded from an
+     * endpoint declared in the <download> tag in the ODP manifest of the service, as shown in the
+     * following example.
+     *
+     * <pre
+     * {@code
+     * <!-- Contents of res/xml/OdpSettings.xml -->
+     * <on-device-personalization>
+     * <!-- Name of the service subclass -->
+     * <service "com.example.odpsample.SampleService">
+     *   <!-- If this tag is present, ODP will periodically poll this URL and
+     *    download content to populate REMOTE_DATA. Adopters that do not need to
+     *    download content from their servers can skip this tag. -->
+     *   <download-settings url="https://example.com/get" />
+     * </service>
+     * </on-device-personalization>
+     * }
+     * </pre>
      *
      * @param requestToken an opaque token that identifies the current request to the service.
+     *     @see #onRequest
      * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table.
      */
     @NonNull public final KeyValueStore getRemoteData(
@@ -81,11 +111,13 @@ public abstract class IsolatedService extends Service {
     }
 
     /**
-     * Returns a DAO for the LOCAL_DATA table. The LOCAL_DATA table is a persistent key-value
-     * store that the service can use to store any data. The contents of this table are visible
-     * only to the service running in an isolated process and cannot be sent outside the device.
+     * Returns a Data Access Object for the LOCAL_DATA table. The LOCAL_DATA table is a persistent
+     * key-value store that the service can use to store any data. The contents of this table are
+     * visible only to the service running in an isolated process and cannot be sent outside the
+     * device.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
+     *     @see #onRequest
      * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
      */
     @NonNull public final MutableKeyValueStore getLocalData(
@@ -100,6 +132,7 @@ public abstract class IsolatedService extends Service {
      * {@link IsolatedCmputationCallback#onWebViewEvent()}.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
+     *     @see #onRequest
      * @return An {@link EventUrlProvider} that returns event tracking URLs.
      */
     @NonNull public final EventUrlProvider getEventUrlProvider(
@@ -108,13 +141,12 @@ public abstract class IsolatedService extends Service {
     }
 
     /**
-     * Returns the {@link UserData} for the current request. The {@link UserData} object contains
-     * location and app usage history collected by the platform.
+     * Returns the platform-provided {@link UserData} for the current request.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
+     *     @see #onRequest
      * @return A {@link UserData} object.
      *
-     * @hide
      */
     @Nullable public final UserData getUserData(
             @NonNull RequestToken requestToken) {

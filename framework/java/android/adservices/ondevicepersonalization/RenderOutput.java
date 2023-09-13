@@ -28,20 +28,25 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The result returned by {@link IsolatedWorker#onExecute()} in response to a
  * {@link OnDevicePersonalizationManager#requestSurfacePackage()} request from a calling app.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderOutput implements Parcelable {
-    /** The HTML content to be rendered in a webview. */
+    /**
+     * The HTML content to be rendered in a webview. If this is null, the ODP service
+     * generates HTML from the data in {@link getTemplateId()} ad {@link getTemplateParams}
+     * as described below.
+     */
     @Nullable private String mContent = null;
 
     /**
-     * Template ID to retrieve from REMOTE_DATA for rendering.
+     * A key in the REMOTE_DATA {@link IsolatedService#getRemoteData} table that points to
+     * an <a href="velocity.apache.org">Apache Velocity</a> template. This is ignored if
+     * {@link getContent()} is null.
      */
     @Nullable private String mTemplateId = null;
 
     /**
-     * Parameters for template rendering.
+     * The parameters to be populated in the template from {@link getTemplateId()}.
      */
     @NonNull private PersistableBundle mTemplateParams = PersistableBundle.EMPTY;
 
@@ -77,7 +82,9 @@ public final class RenderOutput implements Parcelable {
     }
 
     /**
-     * The HTML content to be rendered in a webview.
+     * The HTML content to be rendered in a webview. If this is null, the ODP service
+     * generates HTML from the data in {@link getTemplateId()} ad {@link getTemplateParams}
+     * as described below.
      */
     @DataClass.Generated.Member
     public @Nullable String getContent() {
@@ -85,7 +92,9 @@ public final class RenderOutput implements Parcelable {
     }
 
     /**
-     * Template ID to retrieve from REMOTE_DATA for rendering.
+     * A key in the REMOTE_DATA {@link IsolatedService#getRemoteData} table that points to
+     * an <a href="velocity.apache.org">Apache Velocity</a> template. This is ignored if
+     * {@link getContent()} is null.
      */
     @DataClass.Generated.Member
     public @Nullable String getTemplateId() {
@@ -93,7 +102,7 @@ public final class RenderOutput implements Parcelable {
     }
 
     /**
-     * Parameters for template rendering.
+     * The parameters to be populated in the template from {@link getTemplateId()}.
      */
     @DataClass.Generated.Member
     public @NonNull PersistableBundle getTemplateParams() {
@@ -202,7 +211,9 @@ public final class RenderOutput implements Parcelable {
         }
 
         /**
-         * The HTML content to be rendered in a webview.
+         * The HTML content to be rendered in a webview. If this is null, the ODP service
+         * generates HTML from the data in {@link getTemplateId()} ad {@link getTemplateParams}
+         * as described below.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setContent(@NonNull String value) {
@@ -213,7 +224,9 @@ public final class RenderOutput implements Parcelable {
         }
 
         /**
-         * Template ID to retrieve from REMOTE_DATA for rendering.
+         * A key in the REMOTE_DATA {@link IsolatedService#getRemoteData} table that points to
+         * an <a href="velocity.apache.org">Apache Velocity</a> template. This is ignored if
+         * {@link getContent()} is null.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setTemplateId(@NonNull String value) {
@@ -224,7 +237,7 @@ public final class RenderOutput implements Parcelable {
         }
 
         /**
-         * Parameters for template rendering.
+         * The parameters to be populated in the template from {@link getTemplateId()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setTemplateParams(@NonNull PersistableBundle value) {
@@ -264,7 +277,7 @@ public final class RenderOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1693934635836L,
+            time = 1694537313690L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutput.java",
             inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nprivate @android.annotation.Nullable java.lang.String mTemplateId\nprivate @android.annotation.NonNull android.os.PersistableBundle mTemplateParams\nclass RenderOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
