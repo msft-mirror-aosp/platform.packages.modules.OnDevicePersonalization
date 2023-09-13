@@ -25,7 +25,6 @@ import java.util.function.Consumer;
  * {@link IsolatedService}. An instance of {@link IsolatedWorker} is created on each request
  * to an {@link IsolatedService} and one of its methods below is called.
  *
- * @hide
  */
 public interface IsolatedWorker {
 
@@ -74,8 +73,9 @@ public interface IsolatedWorker {
     }
 
     /**
-     * Handles an event triggered by a request to a platform-provided tracking URL that was
-     * embedded in the HTML output returned by {@link #onRender()}.
+     * Handles an event triggered by a request to a platform-provided tracking URL
+     * {@link EventUrlProvider} that was embedded in the HTML output returned by
+     * {@link #onRender()}.
      *
      * @param input The parameters needed to compute event data.
      * @param consumer Callback to be invoked on completion.

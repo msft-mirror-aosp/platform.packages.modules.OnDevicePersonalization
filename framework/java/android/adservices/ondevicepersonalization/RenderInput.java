@@ -24,7 +24,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedWorker#onRender()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderInput implements Parcelable {
@@ -194,6 +193,8 @@ public final class RenderInput implements Parcelable {
 
     /**
      * A builder for {@link RenderInput}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
