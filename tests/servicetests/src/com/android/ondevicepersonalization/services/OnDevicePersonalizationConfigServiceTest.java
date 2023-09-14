@@ -67,6 +67,7 @@ public class OnDevicePersonalizationConfigServiceTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.enableOnDevicePersonalizationApis();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
         when(mContext.checkCallingOrSelfPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_GRANTED);
         mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
@@ -89,6 +90,15 @@ public class OnDevicePersonalizationConfigServiceTest {
         } finally {
             PhFlagsTestUtil.enableOnDevicePersonalizationApis();
         }
+    }
+
+    @Test
+    public void testSetPersonalizationStatusNoCallingPermission() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                        .thenReturn(PackageManager.PERMISSION_DENIED);
+        assertThrows(SecurityException.class, () -> {
+            mBinder.setPersonalizationStatus(true, null);
+        });
     }
 
     @Test

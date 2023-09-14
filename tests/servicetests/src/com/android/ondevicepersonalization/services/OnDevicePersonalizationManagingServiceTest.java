@@ -35,6 +35,7 @@ import android.view.SurfaceControlViewHost;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 
@@ -56,11 +57,13 @@ public class OnDevicePersonalizationManagingServiceTest {
     private OnDevicePersonalizationManagingServiceDelegate mService;
     private boolean mAppRequestFlowStarted = false;
     private boolean mRenderFlowStarted = false;
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mService = new OnDevicePersonalizationManagingServiceDelegate(
                 mContext, new TestInjector());
     }

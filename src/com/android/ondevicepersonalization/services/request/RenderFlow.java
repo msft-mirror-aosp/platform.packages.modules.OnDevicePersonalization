@@ -35,6 +35,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
@@ -155,6 +156,11 @@ public class RenderFlow {
 
     private void processRequest() {
         try {
+            if (!isPersonalizationStatusEnabled()) {
+                sLogger.d(TAG + ": Personalization is disabled.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+                return;
+            }
             SlotWrapper slotWrapper = Objects.requireNonNull(
                     mInjector.decryptToken(mSlotResultToken));
             mServicePackageName = Objects.requireNonNull(
@@ -330,5 +336,10 @@ public class RenderFlow {
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
+
+    private boolean isPersonalizationStatusEnabled() {
+        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
+        return privacyStatus.isPersonalizationStatusEnabled();
     }
 }

@@ -31,9 +31,16 @@ public class OnDevicePersonalizationException extends Exception {
      */
     public static final int ERROR_ISOLATED_SERVICE_FAILED = 1;
 
+    /**
+     * Personalization is disabled.
+     * @hide
+     */
+    public static final int ERROR_PERSONALIZATION_DISABLED = 2;
+
     /** @hide */
     @IntDef(prefix = "ERROR_", value = {
-            ERROR_ISOLATED_SERVICE_FAILED
+            ERROR_ISOLATED_SERVICE_FAILED,
+            ERROR_PERSONALIZATION_DISABLED
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ErrorCode {}

@@ -27,7 +27,7 @@ public class Constants {
     public static final int STATUS_NAME_NOT_FOUND = 101;
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
-
+    public static final int STATUS_PERSONALIZATION_DISABLED = 104;
     // Operations implemented by personalization services.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;

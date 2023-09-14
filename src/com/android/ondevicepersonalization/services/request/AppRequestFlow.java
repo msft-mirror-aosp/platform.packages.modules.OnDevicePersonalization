@@ -41,6 +41,7 @@ import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -149,6 +150,11 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
+            if (!isPersonalizationStatusEnabled()) {
+                sLogger.d(TAG + ": Personalization is disabled.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+                return;
+            }
             AppManifestConfig config = null;
             try {
                 config = Objects.requireNonNull(
@@ -402,6 +408,11 @@ public class AppRequestFlow {
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
+
+    private boolean isPersonalizationStatusEnabled() {
+        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
+        return privacyStatus.isPersonalizationStatusEnabled();
     }
 }
 

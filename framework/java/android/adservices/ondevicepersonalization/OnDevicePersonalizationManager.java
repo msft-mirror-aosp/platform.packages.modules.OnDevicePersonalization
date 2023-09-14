@@ -318,6 +318,9 @@ public class OnDevicePersonalizationManager {
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
+            return new OnDevicePersonalizationException(
+                    OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED);
         } else {
             return new IllegalStateException("Error: " + errorCode);
         }
