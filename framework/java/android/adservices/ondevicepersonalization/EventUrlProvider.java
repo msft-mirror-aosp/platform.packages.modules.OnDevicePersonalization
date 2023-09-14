@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.WorkerThread;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -57,6 +58,7 @@ public class EventUrlProvider {
      * @param mimeType The Mime Type of the URL response.
      * @return An ODP event URL that can be inserted into a WebView.
      */
+    @WorkerThread
     @NonNull public Uri createEventTrackingUrlWithResponse(
             @NonNull PersistableBundle eventParams,
             @Nullable byte[] responseData,
@@ -77,6 +79,7 @@ public class EventUrlProvider {
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.
      */
+    @WorkerThread
     @NonNull public Uri createEventTrackingUrlWithRedirect(
             @NonNull PersistableBundle eventParams,
             @Nullable Uri destinationUrl) {
