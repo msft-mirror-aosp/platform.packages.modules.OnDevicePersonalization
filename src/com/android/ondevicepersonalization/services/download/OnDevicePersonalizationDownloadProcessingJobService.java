@@ -85,7 +85,7 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
                         OnDevicePersonalizationExecutors.getBackgroundExecutor()));
             }
         }
-        Futures.whenAllComplete(mFutures).call(() -> {
+        var unused = Futures.whenAllComplete(mFutures).call(() -> {
             jobFinished(params, /* wantsReschedule */ false);
             return null;
         }, OnDevicePersonalizationExecutors.getLightweightExecutor());
