@@ -30,7 +30,6 @@ import java.util.List;
  * The result returned by {@link IsolatedWorker#onExecute()} in response to a call to
  * {@link OnDevicePersonalizationManager#execute()} from a client app.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput implements Parcelable {

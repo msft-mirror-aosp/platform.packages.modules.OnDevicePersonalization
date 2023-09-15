@@ -99,7 +99,7 @@ public class UserDataCollector {
     private boolean mInitialized;
 
     private UserDataCollector(Context context, UserDataDao userDataDao) {
-        mContext = context.getApplicationContext();
+        mContext = context;
 
         mLocale = Locale.getDefault();
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
@@ -121,7 +121,8 @@ public class UserDataCollector {
             synchronized (UserDataCollector.class) {
                 if (sUserDataCollector == null) {
                     sUserDataCollector = new UserDataCollector(
-                            context, UserDataDao.getInstance(context));
+                            context.getApplicationContext(),
+                            UserDataDao.getInstance(context.getApplicationContext()));
                 }
             }
         }

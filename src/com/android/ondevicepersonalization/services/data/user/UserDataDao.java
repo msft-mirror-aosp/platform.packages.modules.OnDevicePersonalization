@@ -35,7 +35,7 @@ public class UserDataDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataDao";
 
-    private static UserDataDao sUserDataDao;
+    private static volatile UserDataDao sUserDataDao;
     private final OnDevicePersonalizationDbHelper mDbHelper;
     public static final int TTL_IN_MEMORY_DAYS = 30;
 
@@ -50,13 +50,16 @@ public class UserDataDao {
      * @return Instance of UserDataDao for accessing the requested package's table.
      */
     public static UserDataDao getInstance(Context context) {
-        synchronized (UserDataDao.class) {
-            if (sUserDataDao == null) {
-                sUserDataDao = new UserDataDao(
-                    OnDevicePersonalizationDbHelper.getInstance(context));
+        if (sUserDataDao == null) {
+            synchronized (UserDataDao.class) {
+                if (sUserDataDao == null) {
+                    sUserDataDao = new UserDataDao(
+                            OnDevicePersonalizationDbHelper.getInstance(
+                                    context.getApplicationContext()));
+                }
             }
-            return sUserDataDao;
         }
+        return sUserDataDao;
     }
 
     /**
