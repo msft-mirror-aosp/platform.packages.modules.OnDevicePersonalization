@@ -30,7 +30,7 @@ import java.util.List;
  *
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class DownloadOutput implements Parcelable {
+public final class DownloadCompletedOutput implements Parcelable {
     /**
      * The keys to be retained in the REMOTE_DATA table. Any existing keys that are not
      * present in this list are removed from the table.
@@ -46,7 +46,7 @@ public final class DownloadOutput implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadOutput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -54,7 +54,7 @@ public final class DownloadOutput implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ DownloadOutput(
+    /* package-private */ DownloadCompletedOutput(
             @NonNull List<String> retainedKeys) {
         this.mRetainedKeys = retainedKeys;
         AnnotationValidations.validate(
@@ -76,13 +76,13 @@ public final class DownloadOutput implements Parcelable {
     @DataClass.Generated.Member
     public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(DownloadOutput other) { ... }
+        // boolean fieldNameEquals(DownloadCompletedOutput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        DownloadOutput that = (DownloadOutput) o;
+        DownloadCompletedOutput that = (DownloadCompletedOutput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mRetainedKeys, that.mRetainedKeys);
@@ -115,7 +115,7 @@ public final class DownloadOutput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ DownloadOutput(@NonNull android.os.Parcel in) {
+    /* package-private */ DownloadCompletedOutput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -130,21 +130,21 @@ public final class DownloadOutput implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<DownloadOutput> CREATOR
-            = new Parcelable.Creator<DownloadOutput>() {
+    public static final @NonNull Parcelable.Creator<DownloadCompletedOutput> CREATOR
+            = new Parcelable.Creator<DownloadCompletedOutput>() {
         @Override
-        public DownloadOutput[] newArray(int size) {
-            return new DownloadOutput[size];
+        public DownloadCompletedOutput[] newArray(int size) {
+            return new DownloadCompletedOutput[size];
         }
 
         @Override
-        public DownloadOutput createFromParcel(@NonNull android.os.Parcel in) {
-            return new DownloadOutput(in);
+        public DownloadCompletedOutput createFromParcel(@NonNull android.os.Parcel in) {
+            return new DownloadCompletedOutput(in);
         }
     };
 
     /**
-     * A builder for {@link DownloadOutput}
+     * A builder for {@link DownloadCompletedOutput}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -178,14 +178,14 @@ public final class DownloadOutput implements Parcelable {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull DownloadOutput build() {
+        public @NonNull DownloadCompletedOutput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRetainedKeys = Collections.emptyList();
             }
-            DownloadOutput o = new DownloadOutput(
+            DownloadCompletedOutput o = new DownloadCompletedOutput(
                     mRetainedKeys);
             return o;
         }
@@ -199,10 +199,10 @@ public final class DownloadOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118344685L,
+            time = 1694646057660L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadOutput.java",
-            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.NonNull java.util.List<java.lang.String> mRetainedKeys\nclass DownloadOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedOutput.java",
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.NonNull java.util.List<java.lang.String> mRetainedKeys\nclass DownloadCompletedOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

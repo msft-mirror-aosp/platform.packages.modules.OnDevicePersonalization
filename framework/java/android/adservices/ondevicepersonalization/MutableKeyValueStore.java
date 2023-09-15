@@ -18,6 +18,7 @@ package android.adservices.ondevicepersonalization;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.WorkerThread;
 
 /**
  * An interface to a read-write key-value store.
@@ -35,6 +36,7 @@ public interface MutableKeyValueStore extends KeyValueStore {
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
+    @WorkerThread
     @Nullable byte[] put(@NonNull String key, @NonNull byte[] value);
 
     /**
@@ -44,5 +46,6 @@ public interface MutableKeyValueStore extends KeyValueStore {
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
+    @WorkerThread
     @Nullable byte[] remove(@NonNull String key);
 }

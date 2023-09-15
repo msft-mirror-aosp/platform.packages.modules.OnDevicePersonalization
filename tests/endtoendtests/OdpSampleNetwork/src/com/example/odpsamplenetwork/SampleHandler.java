@@ -17,8 +17,8 @@
 package com.example.odpsamplenetwork;
 
 import android.adservices.ondevicepersonalization.AppInfo;
-import android.adservices.ondevicepersonalization.DownloadInput;
-import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
@@ -105,12 +105,12 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     @Override
-    public void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            @NonNull DownloadCompletedInput input,
+            @NonNull Consumer<DownloadCompletedOutput> consumer) {
         Log.d(TAG, "onDownload() started.");
-        DownloadOutput downloadResult =
-                new DownloadOutput.Builder()
+        DownloadCompletedOutput downloadResult =
+                new DownloadCompletedOutput.Builder()
                         .setRetainedKeys(getFilteredKeys(input.getData()))
                         .build();
         consumer.accept(downloadResult);
@@ -413,7 +413,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInfo() == null || mUserData.getAppInfo().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -422,8 +422,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInfo().keySet()) {
-            AppInfo value = mUserData.getAppInfo().get(app);
+        for (String app: mUserData.getAppInfos().keySet()) {
+            AppInfo value = mUserData.getAppInfos().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -438,7 +438,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInfo() == null || mUserData.getAppInfo().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -447,7 +447,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInfo().keySet()) {
+        for (String app: mUserData.getAppInfos().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }
