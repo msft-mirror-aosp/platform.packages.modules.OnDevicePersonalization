@@ -261,7 +261,7 @@ class UserDataReaderTest : ProcessorNode {
                 .setConnectionType(2)
                 .setNetworkConnectionSpeedKbps(666)
                 .setNetworkMetered(true)
-                .setAppInfo(appInstalledHistory)
+                .setAppInfos(appInstalledHistory)
                 .setAppUsageHistory(appUsageHistory)
                 .setCurrentLocation(location)
                 .setLocationHistory(locationHistory)
@@ -294,7 +294,7 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(currentLocation.getLocationProvider()).isEqualTo(rawUserData.currentLocation.provider.ordinal)
         assertThat(currentLocation.isPreciseLocation()).isEqualTo(rawUserData.currentLocation.isPreciseLocation)
 
-        assertThat(userData.getAppInfo().size).isEqualTo(rawUserData.appsInfo.size)
+        assertThat(userData.getAppInfos().size).isEqualTo(rawUserData.appsInfo.size)
         assertThat(userData.getAppUsageHistory().size).isEqualTo(rawUserData.appUsageHistory.size)
         assertThat(userData.getLocationHistory().size).isEqualTo(rawUserData.locationHistory.size)
     }

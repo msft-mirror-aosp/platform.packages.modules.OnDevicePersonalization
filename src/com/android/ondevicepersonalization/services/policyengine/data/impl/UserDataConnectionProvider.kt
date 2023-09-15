@@ -81,13 +81,13 @@ class UserDataConnectionProvider() : ConnectionProvider {
                             .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
                             .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
                             .build())
-                    .setAppInfo(getAppInfo(rawUserData))
+                    .setAppInfos(getAppInfos(rawUserData))
                     .setAppUsageHistory(getAppUsageHistory(rawUserData))
                     .setLocationHistory(getLocationHistory(rawUserData))
                     .build()
         }
 
-        private fun getAppInfo(rawUserData: RawUserData): Map<String, AppInfo> {
+        private fun getAppInfos(rawUserData: RawUserData): Map<String, AppInfo> {
             var res = ArrayMap<String, AppInfo>()
             for (appInfo in rawUserData.appsInfo) {
                 res.put(appInfo.packageName,
