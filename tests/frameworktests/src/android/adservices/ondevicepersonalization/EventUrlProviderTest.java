@@ -48,7 +48,8 @@ public class EventUrlProviderTest {
         params.putString("id", "abc");
         assertEquals(
                 "odp://5-abc-null-null-null",
-                mEventUrlProvider.getEventTrackingUrl(params, null, null).toString());
+                mEventUrlProvider.createEventTrackingUrlWithResponse(
+                        params, null, null).toString());
     }
 
     @Test public void testGetEventUrlReturnsResponseFromService() throws Exception {
@@ -57,7 +58,7 @@ public class EventUrlProviderTest {
         params.putString("id", "abc");
         assertEquals(
                 "odp://5-abc-AB-image/gif-null",
-                mEventUrlProvider.getEventTrackingUrl(
+                mEventUrlProvider.createEventTrackingUrlWithResponse(
                         params, RESPONSE_BYTES, "image/gif").toString());
     }
 
@@ -66,8 +67,10 @@ public class EventUrlProviderTest {
         params.putInt("type", 5);
         params.putString("id", "abc");
         assertEquals(
-                "odp://5-abc-null-null-def",
-                mEventUrlProvider.getEventTrackingUrlWithRedirect(params, "def").toString());
+                "odp://5-abc-null-null-http://def",
+                mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                        params, Uri.parse("http://def"))
+                .toString());
     }
 
     @Test public void testGetEventUrlThrowsOnError() throws Exception {
@@ -77,7 +80,7 @@ public class EventUrlProviderTest {
         params.putString("id", "abc");
         assertThrows(
                 IllegalStateException.class,
-                () -> mEventUrlProvider.getEventTrackingUrl(
+                () -> mEventUrlProvider.createEventTrackingUrlWithResponse(
                         params, null, null));
     }
 

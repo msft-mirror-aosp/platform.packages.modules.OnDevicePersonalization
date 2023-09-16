@@ -28,10 +28,9 @@ import java.util.Map;
 /**
  * The input data for {@link IsolatedWorker#onDownload()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class DownloadInput {
+public final class DownloadCompletedInput {
     /** Map containing downloaded keys and values */
     @NonNull Map<String, byte[]> mData = Collections.emptyMap();
 
@@ -43,7 +42,7 @@ public final class DownloadInput {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -51,7 +50,7 @@ public final class DownloadInput {
 
 
     @DataClass.Generated.Member
-    /* package-private */ DownloadInput(
+    /* package-private */ DownloadCompletedInput(
             @NonNull Map<String,byte[]> data) {
         this.mData = data;
         AnnotationValidations.validate(
@@ -72,13 +71,13 @@ public final class DownloadInput {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(DownloadInput other) { ... }
+        // boolean fieldNameEquals(DownloadCompletedInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        DownloadInput that = (DownloadInput) o;
+        DownloadCompletedInput that = (DownloadCompletedInput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mData, that.mData);
@@ -96,7 +95,9 @@ public final class DownloadInput {
     }
 
     /**
-     * A builder for {@link DownloadInput}
+     * A builder for {@link DownloadCompletedInput}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -120,15 +121,26 @@ public final class DownloadInput {
             return this;
         }
 
+        /** @see #setData */
+        @DataClass.Generated.Member
+        public @NonNull Builder addData(@NonNull String key, @NonNull byte[] value) {
+            // You can refine this method's name by providing item's singular name, e.g.:
+            // @DataClass.PluralOf("item")) mItems = ...
+
+            if (mData == null) setData(new java.util.LinkedHashMap());
+            mData.put(key, value);
+            return this;
+        }
+
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull DownloadInput build() {
+        public @NonNull DownloadCompletedInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mData = Collections.emptyMap();
             }
-            DownloadInput o = new DownloadInput(
+            DownloadCompletedInput o = new DownloadCompletedInput(
                     mData);
             return o;
         }
@@ -142,10 +154,10 @@ public final class DownloadInput {
     }
 
     @DataClass.Generated(
-            time = 1692119978934L,
+            time = 1694646050485L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInput.java",
-            inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedInput.java",
+            inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadCompletedInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

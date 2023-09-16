@@ -27,7 +27,6 @@ import java.util.Objects;
  * {@link IsolatedService}. This token must be passed as a parameter to all service
  * methods that depend on per-request state.
  *
- * @hide
  */
 public class RequestToken {
     @NonNull private IDataAccessService mDataAccessService;
