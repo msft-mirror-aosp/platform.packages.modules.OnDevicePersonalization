@@ -32,7 +32,7 @@ public val USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name
       "connectionType" to FieldType.Integer
       "connectionSpeedKbps" to FieldType.Long
       "networkMetered" to FieldType.Boolean
-      "appInfo" to FieldType.List(dataTypeDescriptor(name =
+      "appInfos" to FieldType.List(dataTypeDescriptor(name =
           "chronicle_dtd.AppInfo", cls = AppInfo::class) {
         "packageName" to FieldType.String
         "installed" to FieldType.Boolean

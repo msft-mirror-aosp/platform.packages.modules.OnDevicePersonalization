@@ -8,22 +8,22 @@ package android.adservices.ondevicepersonalization {
     field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.AppInfo> CREATOR;
   }
 
-  public final class DownloadInput {
+  public final class DownloadCompletedInput {
     method @NonNull public java.util.Map<java.lang.String,byte[]> getData();
   }
 
-  public final class DownloadOutput implements android.os.Parcelable {
+  public final class DownloadCompletedOutput implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public java.util.List<java.lang.String> getRetainedKeys();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.DownloadOutput> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.DownloadCompletedOutput> CREATOR;
   }
 
-  public static final class DownloadOutput.Builder {
-    ctor public DownloadOutput.Builder();
-    method @NonNull public android.adservices.ondevicepersonalization.DownloadOutput.Builder addRetainedKey(@NonNull String);
-    method @NonNull public android.adservices.ondevicepersonalization.DownloadOutput build();
-    method @NonNull public android.adservices.ondevicepersonalization.DownloadOutput.Builder setRetainedKeys(@NonNull java.util.List<java.lang.String>);
+  public static final class DownloadCompletedOutput.Builder {
+    ctor public DownloadCompletedOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder addRetainedKey(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder setRetainedKeys(@NonNull java.util.List<java.lang.String>);
   }
 
   public final class EventLogRecord implements android.os.Parcelable {
@@ -44,8 +44,8 @@ package android.adservices.ondevicepersonalization {
   }
 
   public class EventUrlProvider {
-    method @NonNull public android.net.Uri createEventTrackingUrlWithRedirect(@NonNull android.os.PersistableBundle, @Nullable android.net.Uri);
-    method @NonNull public android.net.Uri createEventTrackingUrlWithResponse(@NonNull android.os.PersistableBundle, @Nullable byte[], @Nullable String);
+    method @NonNull @WorkerThread public android.net.Uri createEventTrackingUrlWithRedirect(@NonNull android.os.PersistableBundle, @Nullable android.net.Uri);
+    method @NonNull @WorkerThread public android.net.Uri createEventTrackingUrlWithResponse(@NonNull android.os.PersistableBundle, @Nullable byte[], @Nullable String);
   }
 
   public final class ExecuteInput implements android.os.Parcelable {
@@ -83,20 +83,20 @@ package android.adservices.ondevicepersonalization {
   }
 
   public interface IsolatedWorker {
-    method public default void onDownload(@NonNull android.adservices.ondevicepersonalization.DownloadInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.DownloadOutput>);
+    method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.DownloadCompletedOutput>);
     method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
     method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
     method public default void onWebViewEvent(@NonNull android.adservices.ondevicepersonalization.WebViewEventInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.WebViewEventOutput>);
   }
 
   public interface KeyValueStore {
-    method @Nullable public byte[] get(@NonNull String);
-    method @NonNull public java.util.Set<java.lang.String> keySet();
+    method @Nullable @WorkerThread public byte[] get(@NonNull String);
+    method @NonNull @WorkerThread public java.util.Set<java.lang.String> keySet();
   }
 
   public interface MutableKeyValueStore extends android.adservices.ondevicepersonalization.KeyValueStore {
-    method @Nullable public byte[] put(@NonNull String, @NonNull byte[]);
-    method @Nullable public byte[] remove(@NonNull String);
+    method @Nullable @WorkerThread public byte[] put(@NonNull String, @NonNull byte[]);
+    method @Nullable @WorkerThread public byte[] remove(@NonNull String);
   }
 
   public class OnDevicePersonalizationException extends java.lang.Exception {
@@ -172,7 +172,7 @@ package android.adservices.ondevicepersonalization {
 
   public final class UserData implements android.os.Parcelable {
     method public int describeContents();
-    method @NonNull public java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> getAppInfo();
+    method @NonNull public java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> getAppInfos();
     method @IntRange(from=0) public long getAvailableStorageBytes();
     method @IntRange(from=0, to=100) public int getBatteryPercentage();
     method @NonNull public String getCarrier();
