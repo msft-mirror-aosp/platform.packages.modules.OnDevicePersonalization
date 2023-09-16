@@ -17,8 +17,8 @@
 package com.example.odpsamplenetwork;
 
 import android.adservices.ondevicepersonalization.AppInfo;
-import android.adservices.ondevicepersonalization.DownloadInput;
-import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
@@ -34,6 +34,7 @@ import android.adservices.ondevicepersonalization.WebViewEventInput;
 import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -104,12 +105,12 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     @Override
-    public void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            @NonNull DownloadCompletedInput input,
+            @NonNull Consumer<DownloadCompletedOutput> consumer) {
         Log.d(TAG, "onDownload() started.");
-        DownloadOutput downloadResult =
-                new DownloadOutput.Builder()
+        DownloadCompletedOutput downloadResult =
+                new DownloadCompletedOutput.Builder()
                         .setRetainedKeys(getFilteredKeys(input.getData()))
                         .build();
         consumer.accept(downloadResult);
@@ -276,7 +277,7 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
-            String url = mEventUrlProvider.getEventTrackingUrl(
+            String url = mEventUrlProvider.createEventTrackingUrlWithResponse(
                     eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
@@ -289,8 +290,8 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
-            String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage).toString();
+            String url = mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                    eventParams, Uri.parse(landingPage)).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -412,7 +413,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInfo() == null || mUserData.getAppInfo().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -421,8 +422,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInfo().keySet()) {
-            AppInfo value = mUserData.getAppInfo().get(app);
+        for (String app: mUserData.getAppInfos().keySet()) {
+            AppInfo value = mUserData.getAppInfos().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -437,7 +438,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInfo() == null || mUserData.getAppInfo().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -446,7 +447,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInfo().keySet()) {
+        for (String app: mUserData.getAppInfos().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }

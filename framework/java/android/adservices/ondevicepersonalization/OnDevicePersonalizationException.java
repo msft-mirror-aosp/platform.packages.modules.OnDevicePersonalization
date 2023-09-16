@@ -24,14 +24,16 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Exception thrown by OnDevicePersonalization APIs.
  *
- * @hide
  */
 public class OnDevicePersonalizationException extends Exception {
-    public static final int ERROR_SERVICE_FAILED = 1;
+    /**
+     * The {@link IsolatedService} that was invoked failed to run.
+     */
+    public static final int ERROR_ISOLATED_SERVICE_FAILED = 1;
 
     /** @hide */
     @IntDef(prefix = "ERROR_", value = {
-            ERROR_SERVICE_FAILED
+            ERROR_ISOLATED_SERVICE_FAILED
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface ErrorCode {}
