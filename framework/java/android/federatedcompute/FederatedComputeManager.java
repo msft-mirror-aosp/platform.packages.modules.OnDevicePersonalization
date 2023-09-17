@@ -77,7 +77,7 @@ public final class FederatedComputeManager {
      *
      * @hide
      */
-    public void scheduleFederatedCompute(
+    public void schedule(
             @NonNull ScheduleFederatedComputeRequest request,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
@@ -100,10 +100,45 @@ public final class FederatedComputeManager {
                                                             errorCode)));
                         }
                     };
-            service.scheduleFederatedCompute(
+            service.schedule(
                     mContext.getPackageName(),
                     request.getTrainingOptions(),
                     federatedComputeCallback);
+        } catch (RemoteException e) {
+            LogUtil.e(TAG, "Remote Exception", e);
+            executor.execute(() -> callback.onError(e));
+        }
+    }
+
+    /**
+     * Cancel FederatedCompute task.
+     *
+     * @hide
+     */
+    public void cancel(
+            @NonNull String populationName,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<Object, Exception> callback) {
+        Objects.requireNonNull(populationName);
+        final IFederatedComputeService service = getService(executor);
+        try {
+            IFederatedComputeCallback federatedComputeCallback =
+                    new IFederatedComputeCallback.Stub() {
+                        @Override
+                        public void onSuccess() {
+                            executor.execute(() -> callback.onResult(null));
+                        }
+
+                        @Override
+                        public void onFailure(int errorCode) {
+                            executor.execute(
+                                    () ->
+                                            callback.onError(
+                                                    new OnDevicePersonalizationException(
+                                                            errorCode)));
+                        }
+                    };
+            service.cancel(mContext.getPackageName(), populationName, federatedComputeCallback);
         } catch (RemoteException e) {
             LogUtil.e(TAG, "Remote Exception", e);
             executor.execute(() -> callback.onError(e));

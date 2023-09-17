@@ -21,6 +21,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -54,6 +55,7 @@ public final class FederatedJobServiceTest {
 
         mSpyService = spy(new FederatedJobService());
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        doReturn(mSpyService).when(mSpyService).getApplicationContext();
     }
 
     @Test

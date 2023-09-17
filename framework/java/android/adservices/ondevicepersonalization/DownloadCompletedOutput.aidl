@@ -16,4 +16,4 @@
 
 package android.adservices.ondevicepersonalization;
 
-parcelable DownloadOutput;
+parcelable DownloadCompletedOutput;

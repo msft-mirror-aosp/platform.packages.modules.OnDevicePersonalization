@@ -29,10 +29,10 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Dao used to manage access to local data tables
@@ -43,7 +43,7 @@ public class OnDevicePersonalizationLocalDataDao {
     private static final String LOCAL_DATA_TABLE_NAME_PREFIX = "localdata_";
 
     private static final Map<String, OnDevicePersonalizationLocalDataDao> sLocalDataDaos =
-            new HashMap<>();
+            new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
     private final String mOwner;
     private final String mCertDigest;
@@ -67,20 +67,23 @@ public class OnDevicePersonalizationLocalDataDao {
      * package's table
      */
     public static OnDevicePersonalizationLocalDataDao getInstance(Context context, String owner,
-            String certDigest) {
-        synchronized (OnDevicePersonalizationLocalDataDao.class) {
-            // TODO: Validate the owner and certDigest
-            String tableName = getTableName(owner, certDigest);
-            OnDevicePersonalizationLocalDataDao instance = sLocalDataDaos.get(tableName);
-            if (instance == null) {
-                OnDevicePersonalizationDbHelper dbHelper =
-                        OnDevicePersonalizationDbHelper.getInstance(context);
-                instance = new OnDevicePersonalizationLocalDataDao(
-                        dbHelper, owner, certDigest);
-                sLocalDataDaos.put(tableName, instance);
+                                                                  String certDigest) {
+        // TODO: Validate the owner and certDigest
+        String tableName = getTableName(owner, certDigest);
+        OnDevicePersonalizationLocalDataDao instance = sLocalDataDaos.get(tableName);
+        if (instance == null) {
+            synchronized (sLocalDataDaos) {
+                instance = sLocalDataDaos.get(tableName);
+                if (instance == null) {
+                    OnDevicePersonalizationDbHelper dbHelper =
+                            OnDevicePersonalizationDbHelper.getInstance(context);
+                    instance = new OnDevicePersonalizationLocalDataDao(
+                            dbHelper, owner, certDigest);
+                    sLocalDataDaos.put(tableName, instance);
+                }
             }
-            return instance;
         }
+        return instance;
     }
 
     /**

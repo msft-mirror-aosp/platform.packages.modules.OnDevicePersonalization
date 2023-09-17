@@ -27,7 +27,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedWorker#onWebViewEvent()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class WebViewEventInput implements Parcelable {
@@ -39,7 +38,7 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * The Event URL parameters that the service passed to
-     * {@link EventUrlProvider#getEventTrackingUrl()}.
+     * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
      */
     @NonNull private PersistableBundle mParameters = PersistableBundle.EMPTY;
 
@@ -81,7 +80,7 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * The Event URL parameters that the service passed to
-     * {@link EventUrlProvider#getEventTrackingUrl()}.
+     * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
      */
     @DataClass.Generated.Member
     public @NonNull PersistableBundle getParameters() {
@@ -169,6 +168,8 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * A builder for {@link WebViewEventInput}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -196,7 +197,7 @@ public final class WebViewEventInput implements Parcelable {
 
         /**
          * The Event URL parameters that the service passed to
-         * {@link EventUrlProvider#getEventTrackingUrl()}.
+         * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setParameters(@NonNull PersistableBundle value) {
