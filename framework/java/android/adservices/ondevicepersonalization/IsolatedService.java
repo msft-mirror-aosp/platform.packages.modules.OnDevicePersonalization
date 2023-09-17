@@ -86,7 +86,7 @@ public abstract class IsolatedService extends Service {
      * endpoint declared in the <download> tag in the ODP manifest of the service, as shown in the
      * following example.
      *
-     * <pre
+     * <pre>
      * {@code
      * <!-- Contents of res/xml/OdpSettings.xml -->
      * <on-device-personalization>
@@ -104,6 +104,8 @@ public abstract class IsolatedService extends Service {
      * @param requestToken an opaque token that identifies the current request to the service.
      *     @see #onRequest
      * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table.
+     *     The methods in the returned {@link KeyValueStore} are blocking operations and should be
+     *     called from a worker thread and not the main thread or a binder thread.
      */
     @NonNull public final KeyValueStore getRemoteData(
             @NonNull RequestToken requestToken) {
@@ -119,6 +121,8 @@ public abstract class IsolatedService extends Service {
      * @param requestToken an opaque token that identifies the current request to the service.
      *     @see #onRequest
      * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
+     *     The methods in the returned {@link MutableKeyValueStore} are blocking operations and
+     *     should be called from a worker thread and not the main thread or a binder thread.
      */
     @NonNull public final MutableKeyValueStore getLocalData(
             @NonNull RequestToken requestToken) {
@@ -183,11 +187,13 @@ public abstract class IsolatedService extends Service {
 
             } else if (operationCode == Constants.OP_DOWNLOAD) {
 
-                DownloadInputParcel input = Objects.requireNonNull(
+                DownloadInputParcel inputParcel = Objects.requireNonNull(
                         params.getParcelable(Constants.EXTRA_INPUT, DownloadInputParcel.class));
 
-                List<String> keys = Objects.requireNonNull(input.getDownloadedKeys()).getList();
-                List<byte[]> values = Objects.requireNonNull(input.getDownloadedValues()).getList();
+                List<String> keys =
+                        Objects.requireNonNull(inputParcel.getDownloadedKeys()).getList();
+                List<byte[]> values =
+                        Objects.requireNonNull(inputParcel.getDownloadedValues()).getList();
                 if (keys.size() != values.size()) {
                     throw new IllegalArgumentException(
                             "Mismatching key and value list sizes of "
@@ -198,7 +204,7 @@ public abstract class IsolatedService extends Service {
                 for (int i = 0; i < keys.size(); i++) {
                     downloadData.put(keys.get(i), values.get(i));
                 }
-                DownloadInput downloadInput = new DownloadInput.Builder()
+                DownloadCompletedInput input = new DownloadCompletedInput.Builder()
                         .setData(downloadData)
                         .build();
 
@@ -211,8 +217,8 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, userData);
                 IsolatedWorker implCallback =
                         IsolatedService.this.onRequest(requestToken);
-                implCallback.onDownload(
-                        downloadInput, new WrappedCallback<DownloadOutput>(resultCallback));
+                implCallback.onDownloadCompleted(
+                        input, new WrappedCallback<DownloadCompletedOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_RENDER) {
 
