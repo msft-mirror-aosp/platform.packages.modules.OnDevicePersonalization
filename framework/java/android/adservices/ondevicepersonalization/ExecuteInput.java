@@ -26,7 +26,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedWorker#onExecute()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteInput implements Parcelable {
@@ -166,6 +165,8 @@ public final class ExecuteInput implements Parcelable {
 
     /**
      * A builder for {@link ExecuteInput}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member

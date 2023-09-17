@@ -59,7 +59,7 @@ public class FederatedComputeJobManager {
     @NonNull private final Context mContext;
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
-    private static FederatedComputeJobManager sSingletonInstance;
+    private static volatile FederatedComputeJobManager sSingletonInstance;
     private final FederatedJobIdGenerator mJobIdGenerator;
     private Clock mClock;
     private final Flags mFlags;
@@ -83,20 +83,22 @@ public class FederatedComputeJobManager {
     /** Returns an instance of FederatedComputeJobManager given a context. */
     @NonNull
     public static FederatedComputeJobManager getInstance(@NonNull Context mContext) {
-        synchronized (FederatedComputeJobManager.class) {
-            if (sSingletonInstance == null) {
-                Clock clock = MonotonicClock.getInstance();
-                sSingletonInstance =
-                        new FederatedComputeJobManager(
-                                mContext,
-                                FederatedTrainingTaskDao.getInstance(mContext),
-                                FederatedJobIdGenerator.getInstance(),
-                                new JobSchedulerHelper(clock),
-                                clock,
-                                PhFlags.getInstance());
+        if (sSingletonInstance == null) {
+            synchronized (FederatedComputeJobManager.class) {
+                if (sSingletonInstance == null) {
+                    Clock clock = MonotonicClock.getInstance();
+                    sSingletonInstance =
+                            new FederatedComputeJobManager(
+                                    mContext.getApplicationContext(),
+                                    FederatedTrainingTaskDao.getInstance(mContext),
+                                    FederatedJobIdGenerator.getInstance(),
+                                    new JobSchedulerHelper(clock),
+                                    clock,
+                                    PhFlags.getInstance());
+                }
             }
-            return sSingletonInstance;
         }
+        return sSingletonInstance;
     }
 
     /**
@@ -236,6 +238,27 @@ public class FederatedComputeJobManager {
             LogUtil.i(TAG, " JobScheduler cancel the task %d", newTask.jobId());
             mJobSchedulerHelper.cancelTask(mContext, trainingTaskToCancel);
         }
+        sendSuccess(callback);
+    }
+
+    /**
+     * Called when a client indicates via the client API that a task with the given parameters
+     * should be canceled.
+     */
+    public synchronized void onTrainerStopCalled(
+            String callingPackageName, String populationName, IFederatedComputeCallback callback) {
+        FederatedTrainingTask taskToCancel =
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(populationName);
+        // If no matching task exists then there's nothing for us to do. This is not an error
+        // case though.
+        if (taskToCancel == null) {
+            LogUtil.i(TAG, "No matching task exists when cancel the job %s", populationName);
+            sendSuccess(callback);
+            return;
+        }
+
+        LogUtil.i(TAG, " onTrainerStopCalled cancel the task %d", taskToCancel.jobId());
+        mJobSchedulerHelper.cancelTask(mContext, taskToCancel);
         sendSuccess(callback);
     }
 
