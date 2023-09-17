@@ -56,15 +56,17 @@ public class FederatedComputeWorker {
     /** Gets an instance of {@link FederatedComputeWorker}. */
     @NonNull
     public static FederatedComputeWorker getInstance(Context context) {
-        synchronized (FederatedComputeWorker.class) {
-            if (sFederatedComputeWorker == null) {
-                sFederatedComputeWorker =
-                        new FederatedComputeWorker(
-                                FederatedComputeJobManager.getInstance(context),
-                                PhFlags.getInstance());
+        if (sFederatedComputeWorker == null) {
+            synchronized (FederatedComputeWorker.class) {
+                if (sFederatedComputeWorker == null) {
+                    sFederatedComputeWorker =
+                            new FederatedComputeWorker(
+                                    FederatedComputeJobManager.getInstance(context),
+                                    PhFlags.getInstance());
+                }
             }
-            return sFederatedComputeWorker;
         }
+        return sFederatedComputeWorker;
     }
 
     /** Starts a training run with the given job Id. */

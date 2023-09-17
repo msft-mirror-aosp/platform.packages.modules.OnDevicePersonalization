@@ -204,8 +204,8 @@ public class IsolatedServiceTest {
                 Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
-        DownloadOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, DownloadOutput.class);
+        DownloadCompletedOutput result = mCallbackResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadCompletedOutput.class);
         assertEquals("12", result.getRetainedKeys().get(0));
     }
 
@@ -484,12 +484,12 @@ public class IsolatedServiceTest {
             }
         }
 
-        @Override public void onDownload(
-                DownloadInput input,
-                Consumer<DownloadOutput> consumer
+        @Override public void onDownloadCompleted(
+                DownloadCompletedInput input,
+                Consumer<DownloadCompletedOutput> consumer
         ) {
             mOnDownloadCalled = true;
-            consumer.accept(new DownloadOutput.Builder().addRetainedKey("12").build());
+            consumer.accept(new DownloadCompletedOutput.Builder().addRetainedKey("12").build());
         }
 
         @Override public void onRender(

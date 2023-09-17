@@ -57,7 +57,7 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
     }
 
     @Override
-    public void scheduleFederatedCompute(
+    public void schedule(
             String callingPackageName,
             TrainingOptions trainingOptions,
             IFederatedComputeCallback callback) {
@@ -78,6 +78,30 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                         () -> {
                             jobManager.onTrainerStartCalled(
                                     callingPackageName, trainingOptions, callback);
+                        });
+    }
+
+    @Override
+    public void cancel(
+            String callingPackageName, String populationName, IFederatedComputeCallback callback) {
+        // Use FederatedCompute instead of caller permission to read experiment flags. It requires
+        // READ_DEVICE_CONFIG permission.
+        long origId = Binder.clearCallingIdentity();
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+        Binder.restoreCallingIdentity(origId);
+
+        Objects.requireNonNull(callingPackageName);
+        Objects.requireNonNull(callback);
+        Objects.requireNonNull(populationName);
+
+        FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
+        FederatedComputeExecutors.getBackgroundExecutor()
+                .execute(
+                        () -> {
+                            jobManager.onTrainerStopCalled(
+                                    callingPackageName, populationName, callback);
                         });
     }
 }

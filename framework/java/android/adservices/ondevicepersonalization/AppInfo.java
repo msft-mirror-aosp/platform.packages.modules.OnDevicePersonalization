@@ -25,7 +25,6 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * Information about apps.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class AppInfo implements Parcelable {
@@ -140,6 +139,8 @@ public final class AppInfo implements Parcelable {
 
     /**
      * A builder for {@link AppInfo}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
