@@ -49,6 +49,14 @@ import java.util.concurrent.Executor;
  * @hide
  */
 public final class FederatedComputeManager {
+    /**
+     * Constant that represents the service name for {@link FederatedComputeManager} to be used in
+     * {@link android.ondevicepersonalization.OnDevicePersonalizationFrameworkInitializer
+     *      #registerServiceWrappers}
+     *
+     * @hide
+     */
+    public static final String FEDERATED_COMPUTE_SERVICE = "federated_compute_service";
     private static final String TAG = "FederatedComputeManager";
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
@@ -68,7 +76,7 @@ public final class FederatedComputeManager {
 
     private final Context mContext;
 
-    FederatedComputeManager(Context context) {
+    public FederatedComputeManager(Context context) {
         this.mContext = context;
     }
 
