@@ -60,7 +60,7 @@ public class FederatedJobService extends JobService {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        LogUtil.e(TAG, "Failed to handle computation job: %d", params.getJobId());
+                        LogUtil.e(TAG, "Failed to handle computation job: " + params.getJobId(), t);
                         jobFinished(params, /* wantsReschedule= */ false);
                     }
                 },
