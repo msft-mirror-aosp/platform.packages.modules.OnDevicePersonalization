@@ -128,6 +128,10 @@ public class OdpFederatedComputeJobService extends JobService {
         if (federatedComputeNeedsScheduling()) {
             FederatedComputeManager FCManager =
                     this.getSystemService(FederatedComputeManager.class);
+            if (FCManager == null) {
+                sLogger.e(TAG + ": Failed to get FederatedCompute Service");
+                return;
+            }
             TrainingOptions trainingOptions =
                     new TrainingOptions.Builder().setPopulationName(ODP_POPULATION_NAME).build();
             ScheduleFederatedComputeRequest request =
