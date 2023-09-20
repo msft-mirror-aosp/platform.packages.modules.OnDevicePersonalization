@@ -42,7 +42,6 @@ android_test {
         "mockito-target-extended-minus-junit4",
         "modules-utils-build",
         "modules-utils-preconditions",
-        "flatbuffers-java",
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
     ],
