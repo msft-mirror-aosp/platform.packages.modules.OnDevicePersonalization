@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
@@ -79,6 +80,27 @@ public class OdpFederatedComputeJobServiceTest {
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));
             verify(mockManager, times(1)).schedule(any(), any(), any());
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobNullFederatedComputeManagerTest() {
+        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
+                OnDevicePersonalizationExecutors.class).strictness(
+                Strictness.LENIENT).startMocking();
+        try {
+            doReturn(null).when(mSpyService).getSystemService(FederatedComputeManager.class);
+            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+                    OnDevicePersonalizationExecutors::getBackgroundExecutor);
+            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+                    OnDevicePersonalizationExecutors::getLightweightExecutor);
+
+            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+        } catch (Exception e) {
+            fail("An unexpected exception was thrown: " + e.getMessage());
         } finally {
             session.finishMocking();
         }
