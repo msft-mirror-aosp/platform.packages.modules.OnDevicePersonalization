@@ -157,6 +157,7 @@ public final class FederatedComputeJobManagerTest {
                                 .creationTime(1000L)
                                 .lastScheduledTime(1000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
                                 .build());
     }
@@ -183,12 +184,14 @@ public final class FederatedComputeJobManagerTest {
                                 .lastScheduledTime(1000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                                 .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .build(),
                         basicFLTrainingTaskBuilder(JOB_ID2, POPULATION_NAME2, null)
                                 .creationTime(2000L)
                                 .lastScheduledTime(2000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                                 .earliestNextRunTime(2000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .build());
 
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(2);
@@ -279,6 +282,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastScheduledTime(3000L)
                         .creationTime(1000L)
                         .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                        .intervalOptions(createDefaultTrainingInterval())
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
 
@@ -506,6 +510,7 @@ public final class FederatedComputeJobManagerTest {
         // is set to the new interval.
         verifyTaskAndJobAfterIntervalChange(trainingIntervalOption2, 1000, 3000, newInterval);
 
+        // Change to default training interval {one_time, interval 0}.
         when(mClock.currentTimeMillis()).thenReturn(4000L);
         mJobManager.onTrainerStartCalled(
                 CALLING_PACKAGE_NAME,
@@ -522,14 +527,6 @@ public final class FederatedComputeJobManagerTest {
         // is set to the new interval.
         verifyTaskAndJobAfterIntervalChange(
                 trainingIntervalOption3, 1000, 4000, DEFAULT_SCHEDULING_PERIOD_MILLIS);
-
-        // Transition back to not set
-        when(mClock.currentTimeMillis()).thenReturn(5000L);
-        mJobManager.onTrainerStartCalled(
-                CALLING_PACKAGE_NAME,
-                basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1).build(),
-                new TestFederatedComputeCallback());
-        verifyTaskAndJobAfterIntervalChange(null, 1000, 5000, DEFAULT_SCHEDULING_PERIOD_MILLIS);
     }
 
     private void verifyTaskAndJobAfterIntervalChange(
@@ -587,12 +584,14 @@ public final class FederatedComputeJobManagerTest {
                                 .lastScheduledTime(1000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                                 .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .build(),
                         basicFLTrainingTaskBuilder(JOB_ID2, POPULATION_NAME2, null)
                                 .creationTime(2000L)
                                 .lastScheduledTime(2000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                                 .earliestNextRunTime(2000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .build());
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(2);
         assertJobInfosMatch(
@@ -636,6 +635,7 @@ public final class FederatedComputeJobManagerTest {
                         .creationTime(1000L)
                         .constraints(DEFAULT_CONSTRAINTS)
                         .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                        .intervalOptions(createDefaultTrainingInterval())
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
 
@@ -1102,6 +1102,10 @@ public final class FederatedComputeJobManagerTest {
                 TrainingIntervalOptions.createTrainingIntervalOptions(
                         builder, schedulingMode, intervalMillis));
         return builder.sizedByteArray();
+    }
+
+    private static byte[] createDefaultTrainingInterval() {
+        return createTrainingIntervalOptions(SchedulingMode.ONE_TIME, 0);
     }
 
     private static byte[] createDefaultTrainingConstraints() {
