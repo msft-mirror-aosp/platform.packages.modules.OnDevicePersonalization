@@ -169,7 +169,7 @@ public class FederatedTrainingTaskDao {
         try {
             return mDbHelper.getWritableDatabase();
         } catch (SQLiteException e) {
-            LogUtil.e(TAG, "Failed to open the database.", e);
+            LogUtil.e(TAG, e, "Failed to open the database.");
         }
         return null;
     }

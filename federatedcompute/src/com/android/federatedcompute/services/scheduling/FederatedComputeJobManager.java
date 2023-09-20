@@ -410,7 +410,7 @@ public class FederatedComputeJobManager {
         try {
             callback.onFailure(STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
-            LogUtil.e(TAG, "IFederatedComputeCallback error", e);
+            LogUtil.e(TAG, e, "IFederatedComputeCallback error");
         }
     }
 
@@ -418,7 +418,7 @@ public class FederatedComputeJobManager {
         try {
             callback.onSuccess();
         } catch (RemoteException e) {
-            LogUtil.e(TAG, "IFederatedComputeCallback error", e);
+            LogUtil.e(TAG, e, "IFederatedComputeCallback error");
         }
     }
 }

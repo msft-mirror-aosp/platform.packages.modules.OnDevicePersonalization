@@ -99,7 +99,7 @@ public final class ResultHandlingServiceProviderImpl implements ResultHandlingSe
         } catch (ExecutionException e) {
             throw new UncheckedExecutionException(e);
         } catch (InterruptedException e) {
-            LogUtil.e(TAG, "ResultHandlingService interrupted", e);
+            LogUtil.e(TAG, e, "ResultHandlingService interrupted");
             unbindService();
             return false;
         }

@@ -47,7 +47,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
         try {
             mExampleStoreQueryCallback.onStartQuerySuccess(iteratorAdapter);
         } catch (RemoteException e) {
-            LogUtil.w(TAG, "onIteratorNextSuccess AIDL call failed, closing iterator", e);
+            LogUtil.w(TAG, e, "onIteratorNextSuccess AIDL call failed, closing iterator");
             iteratorAdapter.close();
         }
     }
@@ -57,7 +57,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
         try {
             mExampleStoreQueryCallback.onStartQueryFailure(errorCode);
         } catch (RemoteException e) {
-            LogUtil.w(TAG, "onIteratorNextFailure AIDL call failed, closing iterator", e);
+            LogUtil.w(TAG, e, "onIteratorNextFailure AIDL call failed, closing iterator");
         }
     }
     /**
@@ -124,7 +124,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
                 mExampleStoreIteratorCallback.onIteratorNextSuccess(result);
                 return true;
             } catch (RemoteException e) {
-                LogUtil.w(TAG, "onIteratorNextSuccess AIDL call failed, closing iterator", e);
+                LogUtil.w(TAG, e, "onIteratorNextSuccess AIDL call failed, closing iterator");
                 mIteratorAdapter.close();
             }
             return false;
@@ -135,7 +135,7 @@ public class ExampleStoreQueryCallbackImpl implements QueryCallback {
             try {
                 mExampleStoreIteratorCallback.onIteratorNextFailure(errorCode);
             } catch (RemoteException e) {
-                LogUtil.w(TAG, "onIteratorNextFailure AIDL call failed, closing iterator", e);
+                LogUtil.w(TAG, e, "onIteratorNextFailure AIDL call failed, closing iterator");
                 mIteratorAdapter.close();
             }
         }
