@@ -87,12 +87,14 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
                                 intent, Context.BIND_AUTO_CREATE, executor, mServiceConnection);
                 if (!result) {
                     mServiceConnection = null;
-                    throw new IllegalStateException("Unable to bind to the service");
+                    throw new IllegalStateException(
+                            String.format(
+                                    "Unable to bind to the service %s", mServiceIntentAction));
                 } else {
-                    LogUtil.i(TAG, "bindService() succeeded...");
+                    LogUtil.i(TAG, "bindService() %s succeeded...", mServiceIntentAction);
                 }
             } else {
-                LogUtil.i(TAG, "bindService() already pending...");
+                LogUtil.i(TAG, "bindService() %s already pending...", mServiceIntentAction);
             }
         }
         // release the lock to let connection to set the mFcpService
@@ -103,7 +105,9 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
         }
         synchronized (mLock) {
             if (mService == null) {
-                throw new IllegalStateException("Failed to connect to the service");
+                throw new IllegalStateException(
+                        String.format(
+                                "Failed to connect to the service %s", mServiceIntentAction));
             }
             return mService;
         }
@@ -118,28 +122,30 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     private ComponentName resolveComponentName(@NonNull Intent intent) {
         List<ResolveInfo> services = mContext.getPackageManager().queryIntentServices(intent, 0);
         if (services == null || services.isEmpty()) {
-            LogUtil.e(TAG, "Failed to find service!");
+            LogUtil.e(TAG, "Failed to find service %s!", intent.getAction());
             return null;
         }
 
         for (int i = 0; i < services.size(); i++) {
             ServiceInfo serviceInfo = services.get(i).serviceInfo;
             if (serviceInfo == null) {
-                LogUtil.e(TAG, "Failed to find serviceInfo.");
+                LogUtil.e(TAG, "Failed to find %s serviceInfo.", intent.getAction());
                 return null;
             }
             // There should only be one matching service inside the given package.
             // If there's more than one, return the first one found.
+            LogUtil.d(TAG, "Resolved component with pkg %s, class %s",
+                    serviceInfo.packageName, serviceInfo.name);
             return new ComponentName(serviceInfo.packageName, serviceInfo.name);
         }
-        LogUtil.e(TAG, "Didn't find any matching service.");
+        LogUtil.e(TAG, "Didn't find any matching service %s.", intent.getAction());
         return null;
     }
 
     public void unbindFromService() {
         synchronized (mLock) {
             if (mServiceConnection != null) {
-                LogUtil.d(TAG, "unbinding...");
+                LogUtil.d(TAG, "unbinding %s...", mServiceIntentAction);
                 mContext.unbindService(mServiceConnection);
             }
             mServiceConnection = null;
