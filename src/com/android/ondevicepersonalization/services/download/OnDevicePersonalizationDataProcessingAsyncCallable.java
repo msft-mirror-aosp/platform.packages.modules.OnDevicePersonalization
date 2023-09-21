@@ -17,8 +17,8 @@
 package com.android.ondevicepersonalization.services.download;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
-import android.adservices.ondevicepersonalization.DownloadOutput;
 import android.adservices.ondevicepersonalization.UserData;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -57,6 +57,7 @@ import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -205,8 +206,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         sLogger.d(TAG + ": Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        DownloadOutput downloadResult = pluginResult.getParcelable(
-                Constants.EXTRA_RESULT, DownloadOutput.class);
+        DownloadCompletedOutput downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadCompletedOutput.class);
         List<String> retainedKeys = downloadResult.getRetainedKeys();
         if (retainedKeys == null) {
             // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
@@ -282,7 +283,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             if (name.equals("key")) {
                 key = reader.nextString();
             } else if (name.equals("data")) {
-                data = reader.nextString().getBytes();
+                data = reader.nextString().getBytes(StandardCharsets.UTF_8);
             } else {
                 reader.skipValue();
             }

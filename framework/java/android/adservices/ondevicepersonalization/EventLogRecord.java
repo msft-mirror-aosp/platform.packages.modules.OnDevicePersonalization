@@ -16,17 +16,25 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.annotation.IntRange;
 import android.annotation.Nullable;
 import android.content.ContentValues;
 import android.os.Parcelable;
 
+import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+// TODO(b/289102463): Add a link to the public doc for the EVENTS table when available.
 /**
- * Data to be logged in the EVENTS table that is associated with a pre-existing
- * {@link RequestLogRecord} that has been written to the REQUESTS table.
+ * Data to be logged in the EVENTS table.
  *
- * @hide
+ * Each record in the EVENTS table is associated with one row from an existing
+ * {@link RequestRecordRecord} in the requests table (@see RequestLogRecord#getRows).
+ * The purpose of the EVENTS table is to add supplemental information to logged data
+ * from a prior request, e.g., logging an event when a link in a rendered WebView
+ * is clicked (@see IsolatedWorker#onWebViewEvent). The contents of the EVENTS table can be
+ * consumed by Federated Learning facilitated model training, or Federated Analytics facilitated
+ * cross-device statistical analysis.
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventLogRecord implements Parcelable {
@@ -34,15 +42,21 @@ public final class EventLogRecord implements Parcelable {
      * The index of the row in an existing {@link RequestLogRecord} that this payload should be
      * associated with.
      **/
-    private int mRowIndex = 0;
+    private @IntRange(from = 0) int mRowIndex = 0;
 
     /**
-     * The service-assigned type that identifies this payload. Unique for each row. Duplicates are
-     * discarded. Must be >0 and <128.
+     * The service-assigned identifier that identifies this payload. Each row in
+     * {@link RequestLogRecord} can be associated with up to one event of a specified type.
+     * The platform drops events if another event with the same type already exists for a row
+     * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
+     * written for each row in {@link RequestLogRecord}.
      */
-    private int mType = 0;
+    private @IntRange(from = 1, to = 127) int mType;
 
-    /** Additional data to be logged. */
+    /**
+     * Additional data to be logged. Can be null if no additional data needs to be written as part
+     * of the event, and only the occurrence of the event needs to be logged.
+     */
     @Nullable ContentValues mData = null;
 
 
@@ -62,11 +76,18 @@ public final class EventLogRecord implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ EventLogRecord(
-            int rowIndex,
-            int type,
+            @IntRange(from = 0) int rowIndex,
+            @IntRange(from = 1, to = 127) int type,
             @Nullable ContentValues data) {
         this.mRowIndex = rowIndex;
+        AnnotationValidations.validate(
+                IntRange.class, null, mRowIndex,
+                "from", 0);
         this.mType = type;
+        AnnotationValidations.validate(
+                IntRange.class, null, mType,
+                "from", 1,
+                "to", 127);
         this.mData = data;
 
         // onConstructed(); // You can define this method to get a callback
@@ -77,21 +98,25 @@ public final class EventLogRecord implements Parcelable {
      * associated with.
      */
     @DataClass.Generated.Member
-    public int getRowIndex() {
+    public @IntRange(from = 0) int getRowIndex() {
         return mRowIndex;
     }
 
     /**
-     * The service-assigned type that identifies this payload. Unique for each row. Duplicates are
-     * discarded. Must be >0 and <128.
+     * The service-assigned identifier that identifies this payload. Each row in
+     * {@link RequestLogRecord} can be associated with up to one event of a specified type.
+     * The platform drops events if another event with the same type already exists for a row
+     * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
+     * written for each row in {@link RequestLogRecord}.
      */
     @DataClass.Generated.Member
-    public int getType() {
+    public @IntRange(from = 1, to = 127) int getType() {
         return mType;
     }
 
     /**
-     * Additional data to be logged.
+     * Additional data to be logged. Can be null if no additional data needs to be written as part
+     * of the event, and only the occurrence of the event needs to be logged.
      */
     @DataClass.Generated.Member
     public @Nullable ContentValues getData() {
@@ -160,7 +185,14 @@ public final class EventLogRecord implements Parcelable {
         ContentValues data = (flg & 0x4) == 0 ? null : (ContentValues) in.readTypedObject(ContentValues.CREATOR);
 
         this.mRowIndex = rowIndex;
+        AnnotationValidations.validate(
+                IntRange.class, null, mRowIndex,
+                "from", 0);
         this.mType = type;
+        AnnotationValidations.validate(
+                IntRange.class, null, mType,
+                "from", 1,
+                "to", 127);
         this.mData = data;
 
         // onConstructed(); // You can define this method to get a callback
@@ -187,8 +219,8 @@ public final class EventLogRecord implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private int mRowIndex;
-        private int mType;
+        private @IntRange(from = 0) int mRowIndex;
+        private @IntRange(from = 1, to = 127) int mType;
         private @Nullable ContentValues mData;
 
         private long mBuilderFieldsSet = 0L;
@@ -201,7 +233,7 @@ public final class EventLogRecord implements Parcelable {
          * associated with.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRowIndex(int value) {
+        public @android.annotation.NonNull Builder setRowIndex(@IntRange(from = 0) int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRowIndex = value;
@@ -209,11 +241,14 @@ public final class EventLogRecord implements Parcelable {
         }
 
         /**
-         * The service-assigned type that identifies this payload. Unique for each row. Duplicates are
-         * discarded. Must be >0 and <128.
+         * The service-assigned identifier that identifies this payload. Each row in
+         * {@link RequestLogRecord} can be associated with up to one event of a specified type.
+         * The platform drops events if another event with the same type already exists for a row
+         * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
+         * written for each row in {@link RequestLogRecord}.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setType(int value) {
+        public @android.annotation.NonNull Builder setType(@IntRange(from = 1, to = 127) int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mType = value;
@@ -221,7 +256,8 @@ public final class EventLogRecord implements Parcelable {
         }
 
         /**
-         * Additional data to be logged.
+         * Additional data to be logged. Can be null if no additional data needs to be written as part
+         * of the event, and only the occurrence of the event needs to be logged.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setData(@android.annotation.NonNull ContentValues value) {
@@ -238,9 +274,6 @@ public final class EventLogRecord implements Parcelable {
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRowIndex = 0;
-            }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mType = 0;
             }
             if ((mBuilderFieldsSet & 0x4) == 0) {
                 mData = null;
@@ -261,10 +294,10 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118350572L,
+            time = 1694811341710L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventLogRecord.java",
-            inputSignatures = "private  int mRowIndex\nprivate  int mType\n @android.annotation.Nullable android.content.ContentValues mData\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\n @android.annotation.Nullable android.content.ContentValues mData\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

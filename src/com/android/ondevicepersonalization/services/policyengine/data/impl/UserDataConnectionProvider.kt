@@ -20,7 +20,7 @@ import android.adservices.ondevicepersonalization.UserData
 import android.adservices.ondevicepersonalization.OSVersion
 import android.adservices.ondevicepersonalization.DeviceMetrics
 import android.adservices.ondevicepersonalization.Location
-import android.adservices.ondevicepersonalization.AppInstallStatus
+import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.AppUsageStatus
 import android.adservices.ondevicepersonalization.LocationStatus
 import android.util.ArrayMap
@@ -68,7 +68,7 @@ class UserDataConnectionProvider() : ConnectionProvider {
             return UserData.Builder()
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
-                    .setAvailableStorageMb(rawUserData.availableStorageMB)
+                    .setAvailableStorageBytes(rawUserData.availableStorageBytes)
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
                     .setConnectionType(rawUserData.connectionType.ordinal)
@@ -81,17 +81,17 @@ class UserDataConnectionProvider() : ConnectionProvider {
                             .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
                             .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
                             .build())
-                    .setAppInstalledHistory(getAppInstalledHistory(rawUserData))
+                    .setAppInfos(getAppInfos(rawUserData))
                     .setAppUsageHistory(getAppUsageHistory(rawUserData))
                     .setLocationHistory(getLocationHistory(rawUserData))
                     .build()
         }
 
-        private fun getAppInstalledHistory(rawUserData: RawUserData): Map<String, AppInstallStatus> {
-            var res = ArrayMap<String, AppInstallStatus>()
+        private fun getAppInfos(rawUserData: RawUserData): Map<String, AppInfo> {
+            var res = ArrayMap<String, AppInfo>()
             for (appInfo in rawUserData.appsInfo) {
                 res.put(appInfo.packageName,
-                        AppInstallStatus.Builder()
+                        AppInfo.Builder()
                             .setInstalled(appInfo.installed)
                             .build())
             }

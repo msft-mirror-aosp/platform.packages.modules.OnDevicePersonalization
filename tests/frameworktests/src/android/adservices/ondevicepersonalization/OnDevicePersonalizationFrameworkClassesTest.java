@@ -78,14 +78,15 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      * Tests that the DownloadOutput object serializes correctly.
      */
     @Test
-    public void teetDownloadOutput() {
-        DownloadOutput result = new DownloadOutput.Builder()
+    public void teetDownloadCompletedOutput() {
+        DownloadCompletedOutput result = new DownloadCompletedOutput.Builder()
                 .addRetainedKey("abc").addRetainedKey("def").build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        DownloadOutput result2 = DownloadOutput.CREATOR.createFromParcel(parcel);
+        DownloadCompletedOutput result2 =
+                DownloadCompletedOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals("abc", result2.getRetainedKeys().get(0));

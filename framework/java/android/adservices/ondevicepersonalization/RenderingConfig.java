@@ -26,16 +26,16 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Information returned by {@link IsolatedComputationCallback#onExecute()} that is used
- * in a subesequent call to {@link IsolatedComputationCallback#onRender()} to identify the
+ * Information returned by {@link IsolatedWorker#onExecute()} that is used
+ * in a subesequent call to {@link IsolatedWorker#onRender()} to identify the
  * content to be displayed in a single {@link View}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RenderingConfig implements Parcelable {
     /**
-     * A List of keys in the REMOTE_DATA table that identify the content to be rendered.
+     * A List of keys in the REMOTE_DATA {@link IsolatedSurface#getRemoteData}
+     * table that identify the content to be rendered.
      **/
     @DataClass.PluralOf("key")
     @NonNull private List<String> mKeys = Collections.emptyList();
@@ -66,7 +66,8 @@ public final class RenderingConfig implements Parcelable {
     }
 
     /**
-     * A List of keys in the REMOTE_DATA table that identify the content to be rendered.
+     * A List of keys in the REMOTE_DATA {@link IsolatedSurface#getRemoteData}
+     * table that identify the content to be rendered.
      */
     @DataClass.Generated.Member
     public @NonNull List<String> getKeys() {
@@ -159,7 +160,8 @@ public final class RenderingConfig implements Parcelable {
         }
 
         /**
-         * A List of keys in the REMOTE_DATA table that identify the content to be rendered.
+         * A List of keys in the REMOTE_DATA {@link IsolatedSurface#getRemoteData}
+         * table that identify the content to be rendered.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setKeys(@NonNull List<String> value) {
@@ -199,7 +201,7 @@ public final class RenderingConfig implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118399909L,
+            time = 1694525848638L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderingConfig.java",
             inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"key\") @android.annotation.NonNull java.util.List<java.lang.String> mKeys\nclass RenderingConfig extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

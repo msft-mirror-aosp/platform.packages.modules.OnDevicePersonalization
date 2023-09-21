@@ -24,8 +24,8 @@ import android.federatedcompute.common.ExampleConsumption;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.RemoteException;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -41,7 +41,7 @@ import java.util.concurrent.TimeoutException;
  * A helper class for binding to client implemented ResultHandlingService and trigger handleResult.
  */
 public class ResultCallbackHelper {
-    private static final String TAG = "ResultCallbackHelper";
+    private static final String TAG = ResultCallbackHelper.class.getSimpleName();
     private static final long RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS = 60 * 9 + 45;
 
     /** The outcome of the result handling. */
@@ -104,36 +104,33 @@ public class ResultCallbackHelper {
                             mResultHandlingServiceCallbackTimeoutSecs, TimeUnit.SECONDS);
             return statusCode == STATUS_SUCCESS ? CallbackResult.SUCCESS : CallbackResult.FAIL;
         } catch (RemoteException e) {
-            Log.e(
+            LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService binding died. population name: %s",
-                            populationName),
-                    e);
+                    e,
+                    "ResultHandlingService binding died. population name: %s",
+                    populationName);
             return CallbackResult.FAIL;
         } catch (InterruptedException interruptedException) {
-            Log.e(
+            LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService callback interrupted. population name: %s",
-                            populationName),
-                    interruptedException);
+                    interruptedException,
+                    "ResultHandlingService callback interrupted. population name: %s",
+                    populationName);
             return CallbackResult.FAIL;
         } catch (ExecutionException e) {
-            Log.e(
+            LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService callback failed. population name: %s",
-                            populationName),
-                    e);
+                    e,
+                    "ResultHandlingService callback failed. population name: %s",
+                    populationName);
             return CallbackResult.FAIL;
         } catch (TimeoutException e) {
-            Log.e(
+            LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService callback timed out %d population name: %s",
-                            mResultHandlingServiceCallbackTimeoutSecs, populationName),
-                    e);
+                    e,
+                    "ResultHandlingService callback timed out %d population name: %s",
+                    mResultHandlingServiceCallbackTimeoutSecs,
+                    populationName);
         }
         return CallbackResult.FAIL;
     }
@@ -144,7 +141,7 @@ public class ResultCallbackHelper {
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalBytes));
         TrainingOptions.Builder trainingOptionsBuilder = new TrainingOptions.Builder();
-        trainingOptionsBuilder.setJobSchedulerJobId(jobId).setPopulationName(populationName);
+        trainingOptionsBuilder.setPopulationName(populationName);
         if (intervalOptions != null) {
             TrainingInterval interval =
                     new TrainingInterval.Builder()

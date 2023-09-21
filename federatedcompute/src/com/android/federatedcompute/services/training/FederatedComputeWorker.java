@@ -19,23 +19,23 @@ package com.android.federatedcompute.services.training;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.PhFlags;
-import com.android.federatedcompute.services.common.TaskRetry;
 import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.scheduling.SchedulingUtil;
 
 import com.google.common.annotations.VisibleForTesting;
+import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import javax.annotation.concurrent.GuardedBy;
 
 /** The worker to execute federated computation jobs. */
 public class FederatedComputeWorker {
-    private static final String TAG = "FederatedComputeWorker";
+    private static final String TAG = FederatedComputeWorker.class.getSimpleName();
 
     static final Object LOCK = new Object();
 
@@ -56,34 +56,36 @@ public class FederatedComputeWorker {
     /** Gets an instance of {@link FederatedComputeWorker}. */
     @NonNull
     public static FederatedComputeWorker getInstance(Context context) {
-        synchronized (FederatedComputeWorker.class) {
-            if (sFederatedComputeWorker == null) {
-                sFederatedComputeWorker =
-                        new FederatedComputeWorker(
-                                FederatedComputeJobManager.getInstance(context),
-                                PhFlags.getInstance());
+        if (sFederatedComputeWorker == null) {
+            synchronized (FederatedComputeWorker.class) {
+                if (sFederatedComputeWorker == null) {
+                    sFederatedComputeWorker =
+                            new FederatedComputeWorker(
+                                    FederatedComputeJobManager.getInstance(context),
+                                    PhFlags.getInstance());
+                }
             }
-            return sFederatedComputeWorker;
         }
+        return sFederatedComputeWorker;
     }
 
     /** Starts a training run with the given job Id. */
     public boolean startTrainingRun(int jobId) {
-        Log.d(TAG, "startTrainingRun()");
+        LogUtil.d(TAG, "startTrainingRun()");
         FederatedTrainingTask trainingTask = mJobManager.onTrainingStarted(jobId);
         if (trainingTask == null) {
-            Log.i(TAG, String.format("Could not find task to run for job ID %s", jobId));
+            LogUtil.i(TAG, "Could not find task to run for job ID %s", jobId);
             return false;
         }
 
         synchronized (LOCK) {
             // Only allow one concurrent federated computation job.
             if (mActiveRun != null) {
-                Log.i(
+                LogUtil.i(
                         TAG,
-                        String.format(
-                                "Delaying %d/%s another run is already active!",
-                                jobId, trainingTask.populationName()));
+                        "Delaying %d/%s another run is already active!",
+                        jobId,
+                        trainingTask.populationName());
                 mJobManager.onTrainingCompleted(
                         jobId,
                         trainingTask.populationName(),
@@ -104,7 +106,7 @@ public class FederatedComputeWorker {
 
     /** Cancels the running job if present. */
     public void cancelActiveRun() {
-        Log.d(TAG, "cancelActiveRun()");
+        LogUtil.d(TAG, "cancelActiveRun()");
         synchronized (LOCK) {
             if (mActiveRun == null) {
                 return;
@@ -131,7 +133,7 @@ public class FederatedComputeWorker {
 
     private void doTraining(TrainingRun run) {
         // TODO: add training logic.
-        Log.d(TAG, "Start run training job " + run.mJobId);
+        LogUtil.d(TAG, "Start run training job %d ", run.mJobId);
     }
 
     private static final class TrainingRun {

@@ -24,9 +24,8 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedComputationCallback#onExecute()}.
+ * The input data for {@link IsolatedWorker#onExecute()}.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteInput implements Parcelable {
@@ -36,7 +35,7 @@ public final class ExecuteInput implements Parcelable {
     @NonNull String mAppPackageName = "";
 
     /**
-     * The parameters provided by the app to the {@link IsolatedComputationService}. The service
+     * The parameters provided by the app to the {@link IsolatedService}. The service
      * defines the expected keys in this {@link PersistableBundle}.
      */
     @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
@@ -79,7 +78,7 @@ public final class ExecuteInput implements Parcelable {
     }
 
     /**
-     * The parameters provided by the app to the {@link IsolatedComputationService}. The service
+     * The parameters provided by the app to the {@link IsolatedService}. The service
      * defines the expected keys in this {@link PersistableBundle}.
      */
     @DataClass.Generated.Member
@@ -166,6 +165,8 @@ public final class ExecuteInput implements Parcelable {
 
     /**
      * A builder for {@link ExecuteInput}
+     *
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -191,7 +192,7 @@ public final class ExecuteInput implements Parcelable {
         }
 
         /**
-         * The parameters provided by the app to the {@link IsolatedComputationService}. The service
+         * The parameters provided by the app to the {@link IsolatedService}. The service
          * defines the expected keys in this {@link PersistableBundle}.
          */
         @DataClass.Generated.Member

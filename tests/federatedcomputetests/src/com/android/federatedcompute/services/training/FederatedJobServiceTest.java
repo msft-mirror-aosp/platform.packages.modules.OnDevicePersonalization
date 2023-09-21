@@ -19,6 +19,9 @@ package com.android.federatedcompute.services.training;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -28,6 +31,7 @@ import android.app.job.JobParameters;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -45,8 +49,13 @@ public final class FederatedJobServiceTest {
     private FederatedJobService mSpyService;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
+
         mSpyService = spy(new FederatedJobService());
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        doReturn(mSpyService).when(mSpyService).getApplicationContext();
     }
 
     @Test
@@ -66,6 +75,28 @@ public final class FederatedJobServiceTest {
             Thread.sleep(WAIT_IN_MILLIS);
 
             verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void testOnStartJobKillSwitch() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        MockitoSession session =
+                ExtendedMockito.mockitoSession()
+                        .spyStatic(FederatedComputeExecutors.class)
+                        .strictness(Strictness.LENIENT)
+                        .startMocking();
+        try {
+            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
+                    .when(FederatedComputeExecutors::getBackgroundExecutor);
+
+            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+
+            assertTrue(result);
+
+            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         } finally {
             session.finishMocking();
         }

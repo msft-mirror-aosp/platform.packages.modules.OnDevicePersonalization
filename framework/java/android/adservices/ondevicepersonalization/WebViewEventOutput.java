@@ -22,9 +22,8 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- *  The result returned by {@link IsolatedComputationCallback#onWebViewEvent()}
+ *  The result returned by {@link IsolatedWorker#onWebViewEvent()}
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class WebViewEventOutput implements Parcelable {

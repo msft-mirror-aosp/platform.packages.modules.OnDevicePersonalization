@@ -27,16 +27,15 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a call to
+ * The result returned by {@link IsolatedWorker#onExecute()} in response to a call to
  * {@link OnDevicePersonalizationManager#execute()} from a client app.
  *
- * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput implements Parcelable {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
+     * {@link IsolatedWorker#onExecute()} completes. If null, no persistent data will
      * be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
@@ -77,7 +76,7 @@ public final class ExecuteOutput implements Parcelable {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
+     * {@link IsolatedWorker#onExecute()} completes. If null, no persistent data will
      * be written.
      */
     @DataClass.Generated.Member
@@ -191,7 +190,7 @@ public final class ExecuteOutput implements Parcelable {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
+         * {@link IsolatedWorker#onExecute()} completes. If null, no persistent data will
          * be written.
          */
         @DataClass.Generated.Member
