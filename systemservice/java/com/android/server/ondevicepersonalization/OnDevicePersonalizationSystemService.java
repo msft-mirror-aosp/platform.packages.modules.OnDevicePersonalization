@@ -48,6 +48,28 @@ public class OnDevicePersonalizationSystemService
         }
     }
 
+    @Override
+    public void setPersonalizationStatus(boolean enabled,
+                                         IOnDevicePersonalizationSystemServiceCallback callback) {
+        try {
+            callback.onResult(null);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Callback error", e);
+        }
+    }
+
+    @Override
+    public boolean readPersonalizationStatus(
+                    IOnDevicePersonalizationSystemServiceCallback callback) {
+        try {
+            callback.onResult(null);
+        } catch (RemoteException e) {
+            Log.e(TAG, "Callback error", e);
+            return false;
+        }
+        return false;
+    }
+
     /** @hide */
     public static class Lifecycle extends SystemService {
         private OnDevicePersonalizationSystemService mService;
