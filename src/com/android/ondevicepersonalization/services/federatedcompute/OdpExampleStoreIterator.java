@@ -16,15 +16,35 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
+import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
+
 import android.federatedcompute.ExampleStoreIterator;
+import android.os.Bundle;
+
+import androidx.annotation.NonNull;
+
+import java.util.List;
+import java.util.ListIterator;
 
 /**
  * Implementation of ExampleStoreIterator for OnDevicePersonalization
  */
 public class OdpExampleStoreIterator implements ExampleStoreIterator {
+
+    ListIterator<byte[]> mExampleIterator;
+
+    OdpExampleStoreIterator(List<byte[]> exampleList) {
+        mExampleIterator = exampleList.listIterator();
+    }
+
     @Override
-    public void next(IteratorCallback callback) {
-        // TODO(278106108): Implement this method.
+    public void next(@NonNull IteratorCallback callback) {
+        if (mExampleIterator.hasNext()) {
+            Bundle result = new Bundle();
+            result.putByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT, mExampleIterator.next());
+            callback.onIteratorNextSuccess(result);
+            return;
+        }
         callback.onIteratorNextSuccess(null);
     }
 
