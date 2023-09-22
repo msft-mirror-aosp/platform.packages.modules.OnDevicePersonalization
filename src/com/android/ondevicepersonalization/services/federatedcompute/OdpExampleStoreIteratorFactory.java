@@ -16,39 +16,25 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
-import android.annotation.NonNull;
-import android.content.Context;
-
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.data.events.EventsDao;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
+import java.util.List;
 
 /**
  * Factory for creating iterators
  */
 public class OdpExampleStoreIteratorFactory {
-
-    private final ListeningExecutorService mExecutor;
-    private final EventsDao mEventsDao;
     private static volatile OdpExampleStoreIteratorFactory sSingleton;
 
-    private OdpExampleStoreIteratorFactory(
-            @NonNull Context context,
-            @NonNull ListeningExecutorService executor) {
-        mExecutor = executor;
-        mEventsDao = EventsDao.getInstance(context);
+    private OdpExampleStoreIteratorFactory() {
     }
 
     /**
      * Returns an instance of OdpExampleStoreIteratorFactory
      */
-    public static OdpExampleStoreIteratorFactory getInstance(Context context) {
+    public static OdpExampleStoreIteratorFactory getInstance() {
         if (null == sSingleton) {
             synchronized (OdpExampleStoreIteratorFactory.class) {
                 if (null == sSingleton) {
-                    sSingleton = new OdpExampleStoreIteratorFactory(context.getApplicationContext(),
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                    sSingleton = new OdpExampleStoreIteratorFactory();
                 }
             }
         }
@@ -58,8 +44,8 @@ public class OdpExampleStoreIteratorFactory {
     /**
      * Creates an OdpExampleStoreIterator
      */
-    public OdpExampleStoreIterator createIterator() {
+    public OdpExampleStoreIterator createIterator(List<byte[]> exampleList) {
         // TODO(278106108): Implement this method.
-        return new OdpExampleStoreIterator();
+        return new OdpExampleStoreIterator(exampleList);
     }
 }
