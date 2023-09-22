@@ -134,7 +134,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        LogUtil.e(TAG, "Failed to runTaskWithNativeRunner", t);
+                        LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
                         FLRunnerResult result =
                                 FLRunnerResult.newBuilder()
                                         .setContributionResult(ContributionResult.FAIL)
@@ -157,7 +157,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         try {
             callback.onResult(bundle);
         } catch (RemoteException e) {
-            LogUtil.w(TAG, ": Callback failed ", e);
+            LogUtil.w(TAG, e, ": Callback failed ");
         }
     }
 

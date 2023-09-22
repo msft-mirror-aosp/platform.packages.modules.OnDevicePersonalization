@@ -200,7 +200,7 @@ public final class HttpFederatedProtocol {
                 clientOnlyPlan = ClientOnlyPlan.parseFrom(planDataResponse.getPayload());
 
             } catch (InvalidProtocolBufferException e) {
-                LogUtil.e(TAG, "Could not parse ClientOnlyPlan proto", e);
+                LogUtil.e(TAG, e, "Could not parse ClientOnlyPlan proto");
                 return Futures.immediateFailedFuture(
                         new IllegalStateException("Could not parse ClientOnlyPlan proto", e));
             }
@@ -292,7 +292,7 @@ public final class HttpFederatedProtocol {
                 outputStream.write(buffer, 0, len);
             }
         } catch (IOException e) {
-            LogUtil.e(TAG, "Failed to read the content of binary file " + filePath, e);
+            LogUtil.e(TAG, e, "Failed to read the content of binary file %s", filePath);
             throw e;
         }
         return outputStream.toByteArray();

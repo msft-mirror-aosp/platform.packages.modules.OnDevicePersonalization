@@ -96,7 +96,7 @@ public final class FederatedComputeManager {
                     request.getTrainingOptions(),
                     federatedComputeCallback);
         } catch (RemoteException e) {
-            LogUtil.e(TAG, "Remote Exception", e);
+            LogUtil.e(TAG, e, "Remote Exception");
             executor.execute(() -> callback.onError(e));
         }
     }
@@ -131,7 +131,7 @@ public final class FederatedComputeManager {
                     };
             service.cancel(mContext.getPackageName(), populationName, federatedComputeCallback);
         } catch (RemoteException e) {
-            LogUtil.e(TAG, "Remote Exception", e);
+            LogUtil.e(TAG, e, "Remote Exception");
             executor.execute(() -> callback.onError(e));
         }
     }

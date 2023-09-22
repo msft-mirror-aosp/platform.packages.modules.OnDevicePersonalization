@@ -219,7 +219,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 try {
                     mExampleStoreIterator.close();
                 } catch (RemoteException e) {
-                    LogUtil.w(TAG, "Exception during call to IExampleStoreIterator.close", e);
+                    LogUtil.w(TAG, e, "Exception during call to IExampleStoreIterator.close");
                 }
             }
         }

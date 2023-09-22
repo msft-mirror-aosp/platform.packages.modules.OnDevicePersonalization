@@ -106,34 +106,31 @@ public class ResultCallbackHelper {
         } catch (RemoteException e) {
             LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService binding died. population name: %s",
-                            populationName),
-                    e);
+                    e,
+                    "ResultHandlingService binding died. population name: %s",
+                    populationName);
             return CallbackResult.FAIL;
         } catch (InterruptedException interruptedException) {
             LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService callback interrupted. population name: %s",
-                            populationName),
-                    interruptedException);
+                    interruptedException,
+                    "ResultHandlingService callback interrupted. population name: %s",
+                    populationName);
             return CallbackResult.FAIL;
         } catch (ExecutionException e) {
             LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService callback failed. population name: %s",
-                            populationName),
-                    e);
+                    e,
+                    "ResultHandlingService callback failed. population name: %s",
+                    populationName);
             return CallbackResult.FAIL;
         } catch (TimeoutException e) {
             LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService callback timed out %d population name: %s",
-                            mResultHandlingServiceCallbackTimeoutSecs, populationName),
-                    e);
+                    e,
+                    "ResultHandlingService callback timed out %d population name: %s",
+                    mResultHandlingServiceCallbackTimeoutSecs,
+                    populationName);
         }
         return CallbackResult.FAIL;
     }
