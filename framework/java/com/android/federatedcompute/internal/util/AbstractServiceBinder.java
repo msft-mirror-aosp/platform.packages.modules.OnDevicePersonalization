@@ -16,6 +16,7 @@
 package com.android.federatedcompute.internal.util;
 
 import android.content.Context;
+import android.content.Intent;
 import android.os.IBinder;
 
 import java.util.concurrent.Executor;
@@ -36,6 +37,12 @@ public abstract class AbstractServiceBinder<T> {
 
     /** Get the binder service. */
     public abstract T getService(Executor executor);
+
+    /**
+     * Get the binder service based on provided intent. The use case is we already know the package
+     * name and intent action we plan to bind to e.g. ExampleStoreService, ResultHandlingService.
+     */
+    public abstract T getService(Executor executor, Intent intent);
 
     /**
      * The service is in an APK (as opposed to the system service), unbind it from the service to
