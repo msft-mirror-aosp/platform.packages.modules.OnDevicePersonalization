@@ -16,6 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
@@ -51,12 +52,13 @@ import java.util.function.Consumer;
 public class IsolatedServiceTest {
     private static final String EVENT_TYPE_KEY = "event_type";
     private final TestService mTestService = new TestService();
-    private IIsolatedService mBinder;
     private final CountDownLatch mLatch = new CountDownLatch(1);
+    private IIsolatedService mBinder;
     private boolean mSelectContentCalled;
     private boolean mOnDownloadCalled;
     private boolean mOnRenderCalled;
     private boolean mOnEventCalled;
+    private boolean mOnTrainingExampleCalled;
     private Bundle mCallbackResult;
     private int mCallbackErrorCode;
 
@@ -416,6 +418,100 @@ public class IsolatedServiceTest {
                 });
     }
 
+    @Test
+    public void testOnTrainingExample() throws Exception {
+        JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
+        ExampleInput input =
+                new ExampleInput.Builder()
+                        .setPopulationName("")
+                        .setCollectionName("")
+                        .setTaskName("")
+                        .setInputData(joinedLogRecord)
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
+        mLatch.await();
+        assertTrue(mOnTrainingExampleCalled);
+        ExampleOutput result =
+                mCallbackResult.getParcelable(
+                        Constants.EXTRA_RESULT, ExampleOutput.class);
+        assertArrayEquals(new byte[]{12}, result.getTrainingExample());
+    }
+
+    @Test
+    public void testOnTrainingExampleThrowsIfParamsMissing() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, null,
+                            new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnTrainingExampleThrowsIfDataAccessServiceMissing() throws Exception {
+        JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
+        ExampleInput input =
+                new ExampleInput.Builder()
+                        .setPopulationName("")
+                        .setCollectionName("")
+                        .setTaskName("")
+                        .setInputData(joinedLogRecord)
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params,
+                            new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnTrainingExampleThrowsIfCallbackMissing() throws Exception {
+        JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
+        ExampleInput input =
+                new ExampleInput.Builder()
+                        .setPopulationName("")
+                        .setCollectionName("")
+                        .setTaskName("")
+                        .setInputData(joinedLogRecord)
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, null);
+                });
+    }
+
+    static class TestDataAccessService extends IDataAccessService.Stub {
+        @Override
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {
+        }
+    }
+
+    static class TestFederatedComputeService extends IFederatedComputeService.Stub {
+        @Override
+        public void schedule(
+                String callingPackageName,
+                TrainingOptions trainingOptions,
+                IFederatedComputeCallback callback) {
+        }
+
+        public void cancel(
+                String callingPackageName,
+                String populationName,
+                IFederatedComputeCallback callback) {
+        }
+    }
+
     class TestHandler implements IsolatedWorker {
         @Override
         public void onExecute(ExecuteInput input, Consumer<ExecuteOutput> consumer) {
@@ -471,6 +567,13 @@ public class IsolatedServiceTest {
                                 .build());
             }
         }
+
+        @Override
+        public void onTrainingExample(
+                ExampleInput input, Consumer<ExampleOutput> consumer) {
+            mOnTrainingExampleCalled = true;
+            consumer.accept(new ExampleOutput.Builder().setTrainingExample(new byte[]{12}).build());
+        }
     }
 
     class TestService extends IsolatedService {
@@ -478,24 +581,6 @@ public class IsolatedServiceTest {
         public IsolatedWorker onRequest(RequestToken token) {
             return new TestHandler();
         }
-    }
-
-    static class TestDataAccessService extends IDataAccessService.Stub {
-        @Override
-        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
-    }
-
-    static class TestFederatedComputeService extends IFederatedComputeService.Stub {
-        @Override
-        public void schedule(
-                String callingPackageName,
-                TrainingOptions trainingOptions,
-                IFederatedComputeCallback callback) {}
-
-        public void cancel(
-                String callingPackageName,
-                String populationName,
-                IFederatedComputeCallback callback) {}
     }
 
     class TestServiceCallback extends IIsolatedServiceCallback.Stub {
