@@ -19,19 +19,14 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import android.federatedcompute.ResultHandlingService;
-import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingOptions;
+import android.os.Bundle;
 
-import java.util.List;
 import java.util.function.Consumer;
 
-/**
- * Implementation of ResultHandlingService for OnDevicePersonalization
- */
+/** Implementation of ResultHandlingService for OnDevicePersonalization */
 public class OdpResultHandlingService extends ResultHandlingService {
     @Override
-    public void handleResult(TrainingOptions trainingOptions, boolean success,
-            List<ExampleConsumption> exampleConsumptionList, Consumer<Integer> callback) {
+    public void handleResult(Bundle params, Consumer<Integer> callback) {
         // TODO(278106108): Implement this method
         callback.accept(STATUS_SUCCESS);
     }
