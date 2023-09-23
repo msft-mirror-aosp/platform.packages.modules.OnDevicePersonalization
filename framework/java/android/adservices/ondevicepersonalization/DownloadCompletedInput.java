@@ -26,10 +26,10 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * The input data for {@link IsolatedWorker#onDownload()}.
+ * The input data for {@link IsolatedWorker#onDownloadCompleted()}.
  *
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
+@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class DownloadCompletedInput {
     /** Map containing downloaded keys and values */
     @NonNull Map<String, byte[]> mData = Collections.emptyMap();
@@ -96,7 +96,6 @@ public final class DownloadCompletedInput {
 
     /**
      * A builder for {@link DownloadCompletedInput}
-     *
      * @hide
      */
     @SuppressWarnings("WeakerAccess")
@@ -154,10 +153,10 @@ public final class DownloadCompletedInput {
     }
 
     @DataClass.Generated(
-            time = 1694646050485L,
+            time = 1695492633750L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedInput.java",
-            inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadCompletedInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadCompletedInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
