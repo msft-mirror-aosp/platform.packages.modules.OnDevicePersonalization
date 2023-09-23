@@ -65,26 +65,23 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
 
     @Override
     public T getService(@NonNull Executor executor) {
+        return getService(executor, null);
+    }
+
+    @Override
+    public T getService(@NonNull Executor executor, Intent intent) {
         synchronized (mLock) {
             if (mService != null) {
                 return mService;
             }
             if (mServiceConnection == null) {
-                Intent intent = new Intent(mServiceIntentAction);
-                ComponentName serviceComponent = resolveComponentName(intent);
-                if (serviceComponent == null) {
-                    LogUtil.e(TAG, "Invalid component for %s intent", mServiceIntentAction);
-                    throw new IllegalStateException(
-                            String.format(
-                                    "Invalid component for %s service", mServiceIntentAction));
-                }
-                intent.setComponent(serviceComponent);
+                Intent bindIntent = (intent == null) ? getIntentBasedOnAction() : intent;
                 // This latch will open when the connection is established or any error occurs.
                 mConnectionCountDownLatch = new CountDownLatch(1);
                 mServiceConnection = new GenericServiceConnection();
                 boolean result =
                         mContext.bindService(
-                                intent, Context.BIND_AUTO_CREATE, executor, mServiceConnection);
+                                bindIntent, Context.BIND_AUTO_CREATE, executor, mServiceConnection);
                 if (!result) {
                     mServiceConnection = null;
                     throw new IllegalStateException("Unable to bind to the service");
@@ -107,6 +104,18 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
             }
             return mService;
         }
+    }
+
+    private Intent getIntentBasedOnAction() {
+        Intent intent = new Intent(mServiceIntentAction);
+        ComponentName serviceComponent = resolveComponentName(intent);
+        if (serviceComponent == null) {
+            LogUtil.e(TAG, "Invalid component for %s intent", mServiceIntentAction);
+            throw new IllegalStateException(
+                    String.format("Invalid component for %s service", mServiceIntentAction));
+        }
+        intent.setComponent(serviceComponent);
+        return intent;
     }
 
     /**

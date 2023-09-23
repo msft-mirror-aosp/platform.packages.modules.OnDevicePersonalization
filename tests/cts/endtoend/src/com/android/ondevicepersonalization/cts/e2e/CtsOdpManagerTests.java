@@ -16,7 +16,8 @@
 package com.android.ondevicepersonalization.cts.e2e;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -44,17 +45,17 @@ import java.util.concurrent.TimeUnit;
  */
 @RunWith(AndroidJUnit4.class)
 public class CtsOdpManagerTests {
-    private final Context mContext = ApplicationProvider.getApplicationContext();
     private static final String SERVICE_PACKAGE =
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
+    private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Test
     public void testExecuteThrowsIfComponentNameMissing() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
 
         assertThrows(
                 NullPointerException.class,
@@ -69,7 +70,7 @@ public class CtsOdpManagerTests {
     public void testExecuteThrowsIfParamsMissing() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
 
         assertThrows(
                 NullPointerException.class,
@@ -84,7 +85,7 @@ public class CtsOdpManagerTests {
     public void testExecuteThrowsIfExecutorMissing() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
 
         assertThrows(
                 NullPointerException.class,
@@ -99,7 +100,7 @@ public class CtsOdpManagerTests {
     public void testExecuteThrowsIfReceiverMissing() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
 
         assertThrows(
                 NullPointerException.class,
@@ -114,7 +115,7 @@ public class CtsOdpManagerTests {
     public void testExecuteThrowsIfPackageNameMissing() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -129,7 +130,7 @@ public class CtsOdpManagerTests {
     public void testExecuteThrowsIfClassNameMissing() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
 
         assertThrows(
                 IllegalArgumentException.class,
@@ -144,15 +145,15 @@ public class CtsOdpManagerTests {
     public void testExecuteReturnsNameNotFoundIfServiceNotInstalled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
         var receiver = new ResultReceiver<List<SurfacePackageToken>>();
         manager.execute(
                 new ComponentName("somepackage", "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.await();
-        assertEquals(null, receiver.getResult());
+        assertTrue(receiver.await());
+        assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof NameNotFoundException);
     }
 
@@ -161,15 +162,15 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
         var receiver = new ResultReceiver<List<SurfacePackageToken>>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.await();
-        assertEquals(null, receiver.getResult());
+        assertTrue(receiver.await());
+        assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof ClassNotFoundException);
     }
 
@@ -177,19 +178,19 @@ public class CtsOdpManagerTests {
     public void testExecute() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        assertNotEquals(null, manager);
+        assertNotNull(manager);
         var receiver = new ResultReceiver<List<SurfacePackageToken>>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.await();
+        assertTrue(receiver.await());
         List<SurfacePackageToken> results = receiver.getResult();
-        assertNotEquals(null, results);
+        assertNotNull(results);
         assertEquals(1, results.size());
         SurfacePackageToken token = results.get(0);
-        assertNotEquals(null, token);
+        assertNotNull(token);
     }
 
     class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
@@ -204,8 +205,8 @@ public class CtsOdpManagerTests {
             mException = e;
             mLatch.countDown();
         }
-        void await() throws InterruptedException {
-            mLatch.await(5, TimeUnit.SECONDS);
+        boolean await() throws InterruptedException {
+            return mLatch.await(15, TimeUnit.SECONDS);
         }
         T getResult() {
             return mResult;
