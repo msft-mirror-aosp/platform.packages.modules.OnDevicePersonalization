@@ -132,15 +132,14 @@ public class FederatedComputeJobManager {
                             .lastScheduledTime(nowMs)
                             .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                             .constraints(newTrainingConstraint)
+                            .intervalOptions(
+                                    buildTrainingIntervalOptions(
+                                            trainingOptions.getTrainingInterval()))
                             .populationName(trainingOptions.getPopulationName())
                             .serverAddress(trainingOptions.getServerAddress())
                             .earliestNextRunTime(
                                     SchedulingUtil.getEarliestRuntimeForInitialSchedule(
                                             nowMs, 0, trainingOptions, mFlags));
-            if (trainingOptions.getTrainingInterval() != null) {
-                newTaskBuilder.intervalOptions(
-                        buildTrainingIntervalOptions(trainingOptions.getTrainingInterval()));
-            }
             newTask = newTaskBuilder.build();
             shouldSchedule = true;
         } else {
@@ -155,17 +154,15 @@ public class FederatedComputeJobManager {
                     existingTask.toBuilder()
                             .constraints(buildTrainingConstraints())
                             .lastScheduledTime(nowMs);
-            if (detectKeyParametersChanged(trainingOptions, existingTask, trainingTasksToCancel)) {
+            if (detectKeyParametersChanged(trainingOptions, existingTask)) {
                 newTaskBuilder.intervalOptions(null).lastRunStartTime(null).lastRunEndTime(null);
                 newTaskBuilder
                         .populationName(trainingOptions.getPopulationName())
+                        .intervalOptions(
+                                buildTrainingIntervalOptions(trainingOptions.getTrainingInterval()))
                         .earliestNextRunTime(
                                 SchedulingUtil.getEarliestRuntimeForInitialSchedule(
                                         nowMs, nowMs, trainingOptions, mFlags));
-                if (trainingOptions.getTrainingInterval() != null) {
-                    newTaskBuilder.intervalOptions(
-                            buildTrainingIntervalOptions(trainingOptions.getTrainingInterval()));
-                }
                 shouldSchedule = true;
             } else {
                 long earliestNextRunTime =
@@ -354,15 +351,21 @@ public class FederatedComputeJobManager {
         return builder.sizedByteArray();
     }
 
+    private static byte[] buildDefaultTrainingInterval() {
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(
+                TrainingIntervalOptions.createTrainingIntervalOptions(
+                        builder, SchedulingMode.ONE_TIME, 0));
+        return builder.sizedByteArray();
+    }
+
     private static byte[] buildTrainingIntervalOptions(
             @Nullable TrainingInterval trainingInterval) {
-        FlatBufferBuilder builder = new FlatBufferBuilder();
         if (trainingInterval == null) {
-            builder.finish(
-                    TrainingIntervalOptions.createTrainingIntervalOptions(
-                            builder, SchedulingMode.ONE_TIME, 0));
-            return builder.sizedByteArray();
+            return buildDefaultTrainingInterval();
         }
+
+        FlatBufferBuilder builder = new FlatBufferBuilder();
         builder.finish(
                 TrainingIntervalOptions.createTrainingIntervalOptions(
                         builder,
@@ -373,9 +376,7 @@ public class FederatedComputeJobManager {
     }
 
     private boolean detectKeyParametersChanged(
-            TrainingOptions newTaskOptions,
-            FederatedTrainingTask existingTask,
-            Set<FederatedTrainingTask> trainingTasksToCancel) {
+            TrainingOptions newTaskOptions, FederatedTrainingTask existingTask) {
         // Check if the task previously had a different population name.
         boolean populationChanged =
                 !existingTask.populationName().equals(newTaskOptions.getPopulationName());
@@ -401,9 +402,7 @@ public class FederatedComputeJobManager {
     private static boolean trainingIntervalChanged(
             TrainingOptions newTaskOptions, FederatedTrainingTask existingTask) {
         byte[] incomingTrainingIntervalOptions =
-                newTaskOptions.getTrainingInterval() == null
-                        ? null
-                        : buildTrainingIntervalOptions(newTaskOptions.getTrainingInterval());
+                buildTrainingIntervalOptions(newTaskOptions.getTrainingInterval());
         return !Arrays.equals(incomingTrainingIntervalOptions, existingTask.intervalOptions());
     }
 
@@ -411,7 +410,7 @@ public class FederatedComputeJobManager {
         try {
             callback.onFailure(STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
-            LogUtil.e(TAG, "IFederatedComputeCallback error", e);
+            LogUtil.e(TAG, e, "IFederatedComputeCallback error");
         }
     }
 
@@ -419,7 +418,7 @@ public class FederatedComputeJobManager {
         try {
             callback.onSuccess();
         } catch (RemoteException e) {
-            LogUtil.e(TAG, "IFederatedComputeCallback error", e);
+            LogUtil.e(TAG, e, "IFederatedComputeCallback error");
         }
     }
 }
