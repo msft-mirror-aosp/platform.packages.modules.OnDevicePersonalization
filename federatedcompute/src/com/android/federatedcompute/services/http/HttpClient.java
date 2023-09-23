@@ -84,7 +84,7 @@ public class HttpClient {
         try {
             url = new URL(request.getUri());
         } catch (MalformedURLException e) {
-            LogUtil.e(TAG, "Malformed registration target URL", e);
+            LogUtil.e(TAG, e, "Malformed registration target URL");
             throw new IllegalArgumentException("Malformed registration target URL", e);
         }
 
@@ -92,7 +92,7 @@ public class HttpClient {
         try {
             urlConnection = (HttpURLConnection) setup(url);
         } catch (IOException e) {
-            LogUtil.e(TAG, "Failed to open target URL", e);
+            LogUtil.e(TAG, e, "Failed to open target URL");
             throw new IllegalArgumentException("Failed to open target URL", e);
         }
 
@@ -135,7 +135,7 @@ public class HttpClient {
                         .build();
             }
         } catch (IOException e) {
-            LogUtil.e(TAG, "Failed to get registration response", e);
+            LogUtil.e(TAG, e, "Failed to get registration response");
             throw new IOException("Failed to get registration response", e);
         } finally {
             if (urlConnection != null) {

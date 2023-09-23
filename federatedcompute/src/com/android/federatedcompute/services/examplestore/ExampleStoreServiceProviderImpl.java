@@ -97,7 +97,7 @@ public final class ExampleStoreServiceProviderImpl implements ExampleStoreServic
         } catch (ExecutionException e) {
             throw new UncheckedExecutionException(e);
         } catch (InterruptedException e) {
-            LogUtil.e(TAG, "ExampleStoreService interrupted", e);
+            LogUtil.e(TAG, e, "ExampleStoreService interrupted");
             unbindService();
             return false;
         }
