@@ -269,6 +269,22 @@ public abstract class IsolatedService extends Service {
                 implCallback.onWebViewEvent(
                         input, new WrappedCallback<WebViewEventOutput>(resultCallback));
 
+            } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
+                ExampleInput input =
+                        Objects.requireNonNull(
+                        params.getParcelable(
+                                Constants.EXTRA_INPUT, ExampleInput.class));
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(
+                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                Objects.requireNonNull(binder);
+                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
+                RequestToken requestToken = new RequestToken(binder, null, userData);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onTrainingExample(
+                        input, new WrappedCallback<ExampleOutput>(resultCallback));
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }
