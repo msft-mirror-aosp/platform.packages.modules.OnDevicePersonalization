@@ -32,6 +32,7 @@ public class Constants {
     public static final int OP_DOWNLOAD = 2;
     public static final int OP_RENDER = 3;
     public static final int OP_WEB_VIEW_EVENT = 4;
+    public static final int OP_TRAINING_EXAMPLE = 5;
 
     // Keys for Bundle objects passed between processes.
     public static final String EXTRA_DATA_ACCESS_SERVICE_BINDER =

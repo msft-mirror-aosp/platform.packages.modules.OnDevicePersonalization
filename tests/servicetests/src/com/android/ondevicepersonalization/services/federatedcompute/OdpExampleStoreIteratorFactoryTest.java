@@ -32,6 +32,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @RunWith(JUnit4.class)
 public class OdpExampleStoreIteratorFactoryTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
@@ -46,8 +49,10 @@ public class OdpExampleStoreIteratorFactoryTest {
 
     @Test
     public void testNext() {
-        OdpExampleStoreIterator it = OdpExampleStoreIteratorFactory.getInstance(mContext)
-                .createIterator();
+        List<byte[]> exampleList = new ArrayList<>();
+        exampleList.add(new byte[]{1});
+        OdpExampleStoreIterator it = OdpExampleStoreIteratorFactory.getInstance()
+                .createIterator(exampleList);
         it.next(new TestIteratorCallback());
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
@@ -63,7 +68,7 @@ public class OdpExampleStoreIteratorFactoryTest {
 
         @Override
         public void onIteratorNextFailure(int errorCode) {
-            mIteratorCallbackOnSuccessCalled = true;
+            mIteratorCallbackOnFailureCalled = true;
         }
     }
 }
