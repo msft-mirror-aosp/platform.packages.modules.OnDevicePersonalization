@@ -28,7 +28,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The input data for {@link IsolatedWorker#onWebViewEvent()}.
  *
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
+@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class WebViewEventInput implements Parcelable {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
@@ -168,7 +168,6 @@ public final class WebViewEventInput implements Parcelable {
 
     /**
      * A builder for {@link WebViewEventInput}
-     *
      * @hide
      */
     @SuppressWarnings("WeakerAccess")
@@ -233,10 +232,10 @@ public final class WebViewEventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118434746L,
+            time = 1695492714319L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebViewEventInput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass WebViewEventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
