@@ -40,7 +40,6 @@ android_app {
     ],
     libs: [
         "auto_value_annotations",
-        "flatbuffers-java",
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
         "framework-configinfrastructure", // For PH flags
@@ -48,6 +47,7 @@ android_app {
     ],
     plugins: ["auto_value_plugin"],
     static_libs: [
+        "flatbuffers-java",
         "federated-compute-java-proto-lite",
         "guava",
         "modules-utils-preconditions",
