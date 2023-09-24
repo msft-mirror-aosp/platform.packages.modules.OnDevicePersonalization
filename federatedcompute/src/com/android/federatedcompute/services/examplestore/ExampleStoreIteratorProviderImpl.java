@@ -94,7 +94,7 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
                             }
                         });
             } catch (RemoteException e) {
-                LogUtil.e(TAG, "StartQuery failure: ", e);
+                LogUtil.e(TAG, e, "StartQuery failure: ");
                 throw new IllegalStateException(e);
             }
             Pair<IExampleStoreIterator, Integer> iteratorOrFailure;
@@ -106,7 +106,7 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
                 // Should not happen.
                 throw new UncheckedExecutionException(e);
             } catch (TimeoutException e) {
-                LogUtil.e(TAG, "startQuery timed out: ", e);
+                LogUtil.e(TAG, e, "startQuery timed out.");
                 throw new IllegalStateException(
                         String.format(
                                 "startQuery timed out (%ss): %s",
@@ -124,7 +124,7 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
         } catch (Exception e) {
             // If any exception is thrown in try block, we first call unbindService to avoid service
             // connection hanging.
-            LogUtil.d(TAG, "Unbinding from service due to exception", e);
+            LogUtil.d(TAG, e, "Unbinding from service due to exception");
             mExampleStoreServiceProvider.unbindService();
             throw e;
         }

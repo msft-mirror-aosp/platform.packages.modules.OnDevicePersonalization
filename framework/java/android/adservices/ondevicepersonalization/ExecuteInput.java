@@ -27,7 +27,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The input data for {@link IsolatedWorker#onExecute()}.
  *
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
+@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class ExecuteInput implements Parcelable {
     /**
      * The package name of the calling app.
@@ -39,6 +39,7 @@ public final class ExecuteInput implements Parcelable {
      * defines the expected keys in this {@link PersistableBundle}.
      */
     @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
+
 
 
 
@@ -165,7 +166,6 @@ public final class ExecuteInput implements Parcelable {
 
     /**
      * A builder for {@link ExecuteInput}
-     *
      * @hide
      */
     @SuppressWarnings("WeakerAccess")
@@ -229,10 +229,10 @@ public final class ExecuteInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118363539L,
+            time = 1695492068155L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

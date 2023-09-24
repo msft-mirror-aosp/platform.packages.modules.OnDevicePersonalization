@@ -14,22 +14,6 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization;
+package android.adservices.ondevicepersonalization;
 
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.os.Bundle;
-
-/** @hide */
-interface IOnDevicePersonalizationSystemService {
-    void onRequest(
-            in Bundle params,
-            in IOnDevicePersonalizationSystemServiceCallback callback
-    );
-
-    void setPersonalizationStatus(
-            in boolean enabled,
-            in IOnDevicePersonalizationSystemServiceCallback callback
-    );
-
-    boolean readPersonalizationStatus(in IOnDevicePersonalizationSystemServiceCallback callback);
-}
+parcelable JoinedLogRecord;

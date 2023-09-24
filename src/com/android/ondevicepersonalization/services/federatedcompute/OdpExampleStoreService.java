@@ -19,14 +19,18 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 import android.federatedcompute.ExampleStoreService;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
+
+import java.util.ArrayList;
+
 /**
  * Implementation of ExampleStoreService for OnDevicePersonalization
  */
 public class OdpExampleStoreService extends ExampleStoreService {
     @Override
-    public void startQuery(Bundle params, QueryCallback callback) {
+    public void startQuery(@NonNull Bundle params, QueryCallback callback) {
         // TODO(278106108): Validate params and pass to iterator
         callback.onStartQuerySuccess(
-                OdpExampleStoreIteratorFactory.getInstance(this).createIterator());
+                OdpExampleStoreIteratorFactory.getInstance().createIterator(new ArrayList<>()));
     }
 }
