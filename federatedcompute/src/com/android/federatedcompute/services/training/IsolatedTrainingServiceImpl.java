@@ -18,7 +18,6 @@ package com.android.federatedcompute.services.training;
 
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
-import android.federatedcompute.aidl.IResultHandlingService;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
@@ -54,7 +53,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     @VisibleForTesting
     ListenableSupplier<Boolean> mInterruptState = new ListenableSupplier<>(mInterruptFlag::get);
 
-    private ComputationRunner mComputationRunner;
+    private final ComputationRunner mComputationRunner;
 
     public IsolatedTrainingServiceImpl(Context context) {
         mComputationRunner = new ComputationRunner(context);
@@ -74,11 +73,6 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         Objects.requireNonNull(
                                 params.getBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER)));
         Objects.requireNonNull(exampleStoreIteratorBinder);
-        IResultHandlingService resultHandlingServiceBinder =
-                IResultHandlingService.Stub.asInterface(
-                        Objects.requireNonNull(
-                                params.getBinder(Constants.EXTRA_RESULT_HANDLING_SERVICE_BINDER)));
-        Objects.requireNonNull(resultHandlingServiceBinder);
         ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
         byte[] exampleSelectorBytes =
                 Objects.requireNonNull(params.getByteArray(Constants.EXTRA_EXAMPLE_SELECTOR));
@@ -120,7 +114,6 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                         exampleSelector,
                                         recorder,
                                         exampleStoreIteratorBinder,
-                                        resultHandlingServiceBinder,
                                         mInterruptState),
                         FederatedComputeExecutors.getBackgroundExecutor());
 
@@ -134,7 +127,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        LogUtil.e(TAG, "Failed to runTaskWithNativeRunner", t);
+                        LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
                         FLRunnerResult result =
                                 FLRunnerResult.newBuilder()
                                         .setContributionResult(ContributionResult.FAIL)
@@ -157,7 +150,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         try {
             callback.onResult(bundle);
         } catch (RemoteException e) {
-            LogUtil.w(TAG, ": Callback failed ", e);
+            LogUtil.w(TAG, e, ": Callback failed ");
         }
     }
 

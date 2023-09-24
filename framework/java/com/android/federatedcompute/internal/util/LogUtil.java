@@ -58,7 +58,7 @@ public final class LogUtil {
     }
 
     /** Log the message as DEBUG. Return The number of bytes written. */
-    public static int d(String tag, String msg, Throwable throwable) {
+    public static int d(String tag, Throwable throwable, String msg) {
         if (Log.isLoggable(TAG, Log.DEBUG)) {
             return Log.d(TAG, tag + " - " + msg, throwable);
         }
@@ -92,7 +92,7 @@ public final class LogUtil {
     }
 
     /** Log the message as WARN. Return The number of bytes written. */
-    public static int w(String tag, String msg, Throwable throwable) {
+    public static int w(String tag, Throwable throwable, String msg) {
         if (Log.isLoggable(TAG, Log.WARN)) {
             return Log.w(TAG, tag + " - " + msg, throwable);
         }
@@ -117,7 +117,7 @@ public final class LogUtil {
     }
 
     /** Log the message as ERROR. Return The number of bytes written. */
-    public static int e(String tag, String msg, Throwable throwable) {
+    public static int e(String tag, Throwable throwable, String msg) {
         if (Log.isLoggable(TAG, Log.ERROR)) {
             return Log.e(TAG, tag + " - " + msg, throwable);
         }
@@ -129,6 +129,15 @@ public final class LogUtil {
         if (Log.isLoggable(TAG, Log.ERROR)) {
             String msg = format(format, params);
             return Log.e(TAG, tag + " - " + msg);
+        }
+        return 0;
+    }
+
+    /** Log the message as ERROR. Return The number of bytes written. */
+    public static int e(String tag, Throwable throwable, String format, Object... params) {
+        if (Log.isLoggable(TAG, Log.ERROR)) {
+            String msg = format(format, params);
+            return Log.e(TAG, tag + " - " + msg, throwable);
         }
         return 0;
     }
