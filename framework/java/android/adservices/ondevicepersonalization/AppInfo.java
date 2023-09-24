@@ -26,7 +26,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * Information about apps.
  *
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
+@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class AppInfo implements Parcelable {
     /** Whether the app is installed. */
     @NonNull boolean mInstalled = false;
@@ -139,7 +139,6 @@ public final class AppInfo implements Parcelable {
 
     /**
      * A builder for {@link AppInfo}
-     *
      * @hide
      */
     @SuppressWarnings("WeakerAccess")
@@ -186,10 +185,10 @@ public final class AppInfo implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1694022624774L,
+            time = 1695492606666L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/AppInfo.java",
-            inputSignatures = " @android.annotation.NonNull boolean mInstalled\nclass AppInfo extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull boolean mInstalled\nclass AppInfo extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

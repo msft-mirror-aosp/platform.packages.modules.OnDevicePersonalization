@@ -19,34 +19,46 @@ package android.adservices.ondevicepersonalization;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.federatedcompute.aidl.IFederatedComputeService;
 
 import java.util.Objects;
 
 /**
- * An opaque token that identifies the current request to an
- * {@link IsolatedService}. This token must be passed as a parameter to all service
- * methods that depend on per-request state.
- *
+ * An opaque token that identifies the current request to an {@link IsolatedService}. This token
+ * must be passed as a parameter to all service methods that depend on per-request state.
  */
 public class RequestToken {
-    @NonNull private IDataAccessService mDataAccessService;
-    @Nullable private UserData mUserData;
+    @NonNull private final IDataAccessService mDataAccessService;
+
+    @Nullable private final IFederatedComputeService mFcService;
+
+    @Nullable private final UserData mUserData;
 
     /** @hide */
     RequestToken(
             @NonNull IDataAccessService binder,
+            @Nullable IFederatedComputeService fcServiceBinder,
             @Nullable UserData userData) {
         mDataAccessService = Objects.requireNonNull(binder);
+        mFcService = fcServiceBinder;
         mUserData = userData;
     }
 
     /** @hide */
-    @NonNull IDataAccessService getDataAccessService() {
+    @NonNull
+    IDataAccessService getDataAccessService() {
         return mDataAccessService;
     }
 
     /** @hide */
-    @Nullable UserData getUserData() {
+    @Nullable
+    IFederatedComputeService getFederatedComputeService() {
+        return mFcService;
+    }
+
+    /** @hide */
+    @Nullable
+    UserData getUserData() {
         return mUserData;
     }
 }

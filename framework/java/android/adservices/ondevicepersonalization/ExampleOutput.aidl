@@ -14,20 +14,6 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.federatedcompute;
+package android.adservices.ondevicepersonalization;
 
-import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
-
-import android.federatedcompute.ResultHandlingService;
-import android.os.Bundle;
-
-import java.util.function.Consumer;
-
-/** Implementation of ResultHandlingService for OnDevicePersonalization */
-public class OdpResultHandlingService extends ResultHandlingService {
-    @Override
-    public void handleResult(Bundle params, Consumer<Integer> callback) {
-        // TODO(278106108): Implement this method
-        callback.accept(STATUS_SUCCESS);
-    }
-}
+parcelable ExampleOutput;
