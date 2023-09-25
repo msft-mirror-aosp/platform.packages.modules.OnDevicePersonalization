@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -196,9 +197,12 @@ public class AppRequestFlow {
 
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {
         sLogger.d(TAG + ": logQuery() started.");
-        // TODO(b/228200518): Extract log data from ExecuteOutput.
+        List<ContentValues> rows = null;
+        if (result.getRequestLogRecord() != null) {
+            rows = result.getRequestLogRecord().getRows();
+        }
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                mService.getPackageName(), null, result.getRequestLogRecord().getRows());
+                mService.getPackageName(), null, rows);
         Query query = new Query.Builder()
                 .setServicePackageName(mService.getPackageName())
                 .setQueryData(queryData)
