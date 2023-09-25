@@ -129,8 +129,7 @@ public class EventsDao {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(EventStateContract.EventStateEntry.EVENT_ID, eventState.getEventId());
-            values.put(EventStateContract.EventStateEntry.QUERY_ID, eventState.getQueryId());
+            values.put(EventStateContract.EventStateEntry.TOKEN, eventState.getToken());
             values.put(EventStateContract.EventStateEntry.SERVICE_PACKAGE_NAME,
                     eventState.getServicePackageName());
             values.put(EventStateContract.EventStateEntry.TASK_IDENTIFIER,
@@ -153,8 +152,7 @@ public class EventsDao {
         String selection = EventStateContract.EventStateEntry.TASK_IDENTIFIER + " = ? AND "
                 + EventStateContract.EventStateEntry.SERVICE_PACKAGE_NAME + " = ?";
         String[] selectionArgs = {taskIdentifier, packageName};
-        String[] projection = {EventStateContract.EventStateEntry.EVENT_ID,
-                EventStateContract.EventStateEntry.QUERY_ID};
+        String[] projection = {EventStateContract.EventStateEntry.TOKEN};
         try (Cursor cursor = db.query(
                 EventStateContract.EventStateEntry.TABLE_NAME,
                 projection,
@@ -165,14 +163,11 @@ public class EventsDao {
                 /* orderBy= */ null
         )) {
             if (cursor.moveToFirst()) {
-                long eventId = cursor.getLong(cursor.getColumnIndexOrThrow(
-                        EventStateContract.EventStateEntry.EVENT_ID));
-                long queryId = cursor.getLong(cursor.getColumnIndexOrThrow(
-                        EventStateContract.EventStateEntry.QUERY_ID));
+                byte[] token = cursor.getBlob(cursor.getColumnIndexOrThrow(
+                        EventStateContract.EventStateEntry.TOKEN));
 
                 return new EventState.Builder()
-                        .setEventId(eventId)
-                        .setQueryId(queryId)
+                        .setToken(token)
                         .setServicePackageName(packageName)
                         .setTaskIdentifier(taskIdentifier)
                         .build();

@@ -57,8 +57,7 @@ public class EventsDaoTest {
     private final EventState mEventState = new EventState.Builder()
             .setTaskIdentifier(TASK_IDENTIFIER)
             .setServicePackageName(mContext.getPackageName())
-            .setQueryId(1L)
-            .setEventId(1L)
+            .setToken(new byte[]{1})
             .build();
     private EventsDao mDao;
 
@@ -98,8 +97,7 @@ public class EventsDaoTest {
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
                 .setServicePackageName(mContext.getPackageName())
-                .setQueryId(5L)
-                .setEventId(7L)
+                .setToken(new byte[]{100})
                 .build();
         assertTrue(mDao.updateOrInsertEventState(testEventState));
         assertEquals(testEventState,
@@ -112,8 +110,7 @@ public class EventsDaoTest {
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
                 .setServicePackageName("packageA")
-                .setQueryId(5L)
-                .setEventId(7L)
+                .setToken(new byte[]{100})
                 .build();
         mDao.updateOrInsertEventState(testEventState);
         mDao.deleteEventState(mContext.getPackageName());
