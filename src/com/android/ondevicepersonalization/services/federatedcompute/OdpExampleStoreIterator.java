@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
+import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
 
 import android.federatedcompute.ExampleStoreIterator;
 import android.os.Bundle;
@@ -32,16 +33,25 @@ import java.util.ListIterator;
 public class OdpExampleStoreIterator implements ExampleStoreIterator {
 
     ListIterator<byte[]> mExampleIterator;
+    ListIterator<byte[]> mResumptionTokens;
 
-    OdpExampleStoreIterator(List<byte[]> exampleList) {
+    OdpExampleStoreIterator(List<byte[]> exampleList, List<byte[]> resumptionTokens) {
+        if (exampleList.size() != resumptionTokens.size()) {
+            throw new IllegalArgumentException(
+                    "exampleList and resumptionTokens must be the same size");
+        }
         mExampleIterator = exampleList.listIterator();
+        mResumptionTokens = resumptionTokens.listIterator();
     }
 
     @Override
     public void next(@NonNull IteratorCallback callback) {
         if (mExampleIterator.hasNext()) {
+            byte[] example = mExampleIterator.next();
+            byte[] resumptionToken = mResumptionTokens.next();
             Bundle result = new Bundle();
-            result.putByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT, mExampleIterator.next());
+            result.putByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT, example);
+            result.putByteArray(EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
             callback.onIteratorNextSuccess(result);
             return;
         }
