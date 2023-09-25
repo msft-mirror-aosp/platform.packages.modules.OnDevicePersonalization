@@ -28,6 +28,7 @@ import android.os.IBinder;
 import android.os.Parcelable;
 import android.os.RemoteException;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.HashMap;
@@ -284,7 +285,35 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onTrainingExample(
-                        input, new WrappedCallback<TrainingExampleOutput>(resultCallback));
+                        input, new Consumer<TrainingExampleOutput>() {
+                            @Override
+                            public void accept(TrainingExampleOutput result) {
+                                if (result == null) {
+                                    try {
+                                        resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                                    } catch (RemoteException e) {
+                                        sLogger.w(TAG + ": Callback failed.", e);
+                                    }
+                                } else {
+                                    TrainingExampleOutputParcel parcelResult =
+                                            new TrainingExampleOutputParcel.Builder()
+                                                    .setTrainingExamples(
+                                                            new ByteArrayParceledListSlice(
+                                                                    result.getTrainingExamples()))
+                                                    .setResumptionTokens(
+                                                            new ByteArrayParceledListSlice(
+                                                                    result.getResumptionTokens()))
+                                                    .build();
+                                    Bundle bundle = new Bundle();
+                                    bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
+                                    try {
+                                        resultCallback.onSuccess(bundle);
+                                    } catch (RemoteException e) {
+                                        sLogger.w(TAG + ": Callback failed.", e);
+                                    }
+                                }
+                            }
+                        });
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }
