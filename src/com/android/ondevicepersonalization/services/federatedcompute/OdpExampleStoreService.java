@@ -31,6 +31,7 @@ public class OdpExampleStoreService extends ExampleStoreService {
     public void startQuery(@NonNull Bundle params, QueryCallback callback) {
         // TODO(278106108): Validate params and pass to iterator
         callback.onStartQuerySuccess(
-                OdpExampleStoreIteratorFactory.getInstance().createIterator(new ArrayList<>()));
+                OdpExampleStoreIteratorFactory.getInstance().createIterator(new ArrayList<>(),
+                        new ArrayList<>()));
     }
 }
