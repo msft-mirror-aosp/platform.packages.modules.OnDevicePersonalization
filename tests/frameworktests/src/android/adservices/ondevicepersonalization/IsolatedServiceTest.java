@@ -43,6 +43,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
@@ -426,7 +428,7 @@ public class IsolatedServiceTest {
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
-                        .setInputData(joinedLogRecord)
+                        .setResumptionToken(new byte[]{0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -434,9 +436,15 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnTrainingExampleCalled);
-        TrainingExampleOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, TrainingExampleOutput.class);
-        assertArrayEquals(new byte[] {12}, result.getTrainingExample());
+        TrainingExampleOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT,
+                        TrainingExampleOutputParcel.class);
+        List<byte[]> examples = result.getTrainingExamples().getList();
+        List<byte[]> tokens  = result.getResumptionTokens().getList();
+        assertEquals(1, examples.size());
+        assertEquals(1, tokens.size());
+        assertArrayEquals(new byte[] {12}, examples.get(0));
+        assertArrayEquals(new byte[] {13}, tokens.get(0));
     }
 
     @Test
@@ -457,7 +465,7 @@ public class IsolatedServiceTest {
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
-                        .setInputData(joinedLogRecord)
+                        .setResumptionToken(new byte[]{0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -477,7 +485,7 @@ public class IsolatedServiceTest {
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
-                        .setInputData(joinedLogRecord)
+                        .setResumptionToken(new byte[]{0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -568,9 +576,14 @@ public class IsolatedServiceTest {
         public void onTrainingExample(
                 TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
             mOnTrainingExampleCalled = true;
+            List<byte[]> examples = new ArrayList<>();
+            examples.add(new byte[] {12});
+            List<byte[]> tokens = new ArrayList<>();
+            tokens.add(new byte[] {13});
             consumer.accept(
                     new TrainingExampleOutput.Builder()
-                            .setTrainingExample(new byte[] {12})
+                            .setTrainingExamples(examples)
+                            .setResumptionTokens(tokens)
                             .build());
         }
     }
