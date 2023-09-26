@@ -270,10 +270,10 @@ public abstract class IsolatedService extends Service {
                         input, new WrappedCallback<WebViewEventOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
-                ExampleInput input =
+                TrainingExampleInput input =
                         Objects.requireNonNull(
-                        params.getParcelable(
-                                Constants.EXTRA_INPUT, ExampleInput.class));
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, TrainingExampleInput.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -284,7 +284,7 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onTrainingExample(
-                        input, new WrappedCallback<ExampleOutput>(resultCallback));
+                        input, new WrappedCallback<TrainingExampleOutput>(resultCallback));
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }
@@ -293,6 +293,7 @@ public abstract class IsolatedService extends Service {
 
     private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
         @NonNull private final IIsolatedServiceCallback mCallback;
+
         WrappedCallback(IIsolatedServiceCallback callback) {
             mCallback = Objects.requireNonNull(callback);
         }
