@@ -421,8 +421,8 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExample() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        ExampleInput input =
-                new ExampleInput.Builder()
+        TrainingExampleInput input =
+                new TrainingExampleInput.Builder()
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
@@ -434,10 +434,9 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnTrainingExampleCalled);
-        ExampleOutput result =
-                mCallbackResult.getParcelable(
-                        Constants.EXTRA_RESULT, ExampleOutput.class);
-        assertArrayEquals(new byte[]{12}, result.getTrainingExample());
+        TrainingExampleOutput result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, TrainingExampleOutput.class);
+        assertArrayEquals(new byte[] {12}, result.getTrainingExample());
     }
 
     @Test
@@ -445,16 +444,16 @@ public class IsolatedServiceTest {
         assertThrows(
                 NullPointerException.class,
                 () -> {
-                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, null,
-                            new TestServiceCallback());
+                    mBinder.onRequest(
+                            Constants.OP_TRAINING_EXAMPLE, null, new TestServiceCallback());
                 });
     }
 
     @Test
     public void testOnTrainingExampleThrowsIfDataAccessServiceMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        ExampleInput input =
-                new ExampleInput.Builder()
+        TrainingExampleInput input =
+                new TrainingExampleInput.Builder()
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
@@ -465,16 +464,16 @@ public class IsolatedServiceTest {
         assertThrows(
                 NullPointerException.class,
                 () -> {
-                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params,
-                            new TestServiceCallback());
+                    mBinder.onRequest(
+                            Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
                 });
     }
 
     @Test
     public void testOnTrainingExampleThrowsIfCallbackMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        ExampleInput input =
-                new ExampleInput.Builder()
+        TrainingExampleInput input =
+                new TrainingExampleInput.Builder()
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
@@ -493,8 +492,7 @@ public class IsolatedServiceTest {
 
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
-        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {
-        }
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
@@ -502,14 +500,12 @@ public class IsolatedServiceTest {
         public void schedule(
                 String callingPackageName,
                 TrainingOptions trainingOptions,
-                IFederatedComputeCallback callback) {
-        }
+                IFederatedComputeCallback callback) {}
 
         public void cancel(
                 String callingPackageName,
                 String populationName,
-                IFederatedComputeCallback callback) {
-        }
+                IFederatedComputeCallback callback) {}
     }
 
     class TestHandler implements IsolatedWorker {
@@ -570,9 +566,12 @@ public class IsolatedServiceTest {
 
         @Override
         public void onTrainingExample(
-                ExampleInput input, Consumer<ExampleOutput> consumer) {
+                TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
             mOnTrainingExampleCalled = true;
-            consumer.accept(new ExampleOutput.Builder().setTrainingExample(new byte[]{12}).build());
+            consumer.accept(
+                    new TrainingExampleOutput.Builder()
+                            .setTrainingExample(new byte[] {12})
+                            .build());
         }
     }
 

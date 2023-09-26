@@ -111,7 +111,8 @@ public interface IsolatedWorker {
      * @hide
      */
     default void onTrainingExample(
-            @NonNull ExampleInput input, @NonNull Consumer<ExampleOutput> consumer) {
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
         consumer.accept(null);
     }
 }
