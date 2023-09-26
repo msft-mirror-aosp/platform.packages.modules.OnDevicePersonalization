@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(JUnit4.class)
@@ -104,6 +105,21 @@ public class EventsDaoTest {
                 mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
     }
 
+
+    @Test
+    public void testInsertAndReadEventStatesTransaction() {
+        EventState testEventState = new EventState.Builder()
+                .setTaskIdentifier(TASK_IDENTIFIER)
+                .setServicePackageName(mContext.getPackageName())
+                .setToken(new byte[]{100})
+                .build();
+        List<EventState> eventStates = new ArrayList<>();
+        eventStates.add(mEventState);
+        eventStates.add(testEventState);
+        assertTrue(mDao.updateOrInsertEventStatesTransaction(eventStates));
+        assertEquals(testEventState,
+                mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+    }
     @Test
     public void testDeleteEventState() {
         mDao.updateOrInsertEventState(mEventState);

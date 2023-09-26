@@ -19,15 +19,101 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import android.federatedcompute.ResultHandlingService;
+import android.federatedcompute.common.ClientConstants;
+import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.events.EventState;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 
 /** Implementation of ResultHandlingService for OnDevicePersonalization */
 public class OdpResultHandlingService extends ResultHandlingService {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "OdpResultHandlingService";
+
     @Override
     public void handleResult(Bundle params, Consumer<Integer> callback) {
-        // TODO(278106108): Implement this method
-        callback.accept(STATUS_SUCCESS);
+        try {
+            ContextData contextData = ContextData.fromByteArray(Objects.requireNonNull(
+                    params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
+            String packageName = contextData.getPackageName();
+            String populationName = Objects.requireNonNull(
+                    params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+            String taskName = Objects.requireNonNull(
+                    params.getString(ClientConstants.EXTRA_TASK_NAME));
+            int computationResult = params.getInt(
+                    ClientConstants.EXTRA_COMPUTATION_RESULT);
+            ArrayList<ExampleConsumption> consumptionList = Objects.requireNonNull(
+                    params.getParcelableArrayList(
+                            ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
+                            ExampleConsumption.class));
+
+            // Just return if training failed. Next query will retry the failed examples.
+            if (computationResult != STATUS_SUCCESS) {
+                callback.accept(ClientConstants.STATUS_SUCCESS);
+                return;
+            }
+
+            ListenableFuture<Boolean> result = Futures.submit(
+                    () -> processExampleConsumptions(consumptionList, populationName, taskName,
+                            packageName), OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            Futures.addCallback(
+                    result,
+                    new FutureCallback<Boolean>() {
+                        @Override
+                        public void onSuccess(
+                                Boolean result) {
+                            if (result) {
+                                callback.accept(STATUS_SUCCESS);
+                            } else {
+                                callback.accept(ClientConstants.STATUS_INTERNAL_ERROR);
+                            }
+                        }
+
+                        @Override
+                        public void onFailure(Throwable t) {
+                            sLogger.w(TAG + ": handleResult failed.", t);
+                            callback.accept(ClientConstants.STATUS_INTERNAL_ERROR);
+                        }
+                    },
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
+
+        } catch (Exception e) {
+            sLogger.w(TAG + ": handleResult failed.", e);
+            callback.accept(ClientConstants.STATUS_INTERNAL_ERROR);
+        }
+    }
+
+    private Boolean processExampleConsumptions(List<ExampleConsumption> exampleConsumptions,
+            String populationName,
+            String taskName,
+            String packageName) {
+        List<EventState> eventStates = new ArrayList<>();
+        for (ExampleConsumption consumption : exampleConsumptions) {
+            String collectionName = consumption.getCollectionName();
+            String taskIdentifier = OdpExampleStoreService.getTaskIdentifier(collectionName,
+                    populationName, taskName);
+            byte[] resumptionToken = consumption.getResumptionToken();
+            if (resumptionToken != null) {
+                eventStates.add(new EventState.Builder()
+                        .setServicePackageName(packageName)
+                        .setTaskIdentifier(taskIdentifier)
+                        .setToken(resumptionToken)
+                        .build());
+            }
+        }
+        EventsDao eventsDao = EventsDao.getInstance(this);
+        return eventsDao.updateOrInsertEventStatesTransaction(eventStates);
     }
 }
