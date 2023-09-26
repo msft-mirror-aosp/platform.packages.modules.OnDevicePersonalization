@@ -258,9 +258,7 @@ class UserDataReaderTest : ProcessorNode {
                 .setAvailableStorageBytes(222)
                 .setBatteryPercentage(33)
                 .setCarrier("AT_T")
-                .setConnectionType(2)
-                .setNetworkConnectionSpeedKbps(666)
-                .setNetworkMetered(true)
+                .setDataNetworkType(1)
                 .setAppInfos(appInstalledHistory)
                 .setAppUsageHistory(appUsageHistory)
                 .setCurrentLocation(location)
@@ -282,9 +280,8 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
         assertThat(userData.getCarrier()).isEqualTo(ref.carrier.toString())
 
-        assertThat(userData.getConnectionType()).isEqualTo(ref.connectionType.ordinal)
-        assertThat(userData.getNetworkConnectionSpeedKbps()).isEqualTo(ref.connectionSpeedKbps)
-        assertThat(userData.isNetworkMetered()).isEqualTo(ref.networkMetered)
+        assertThat(userData.getNetworkCapabilities()).isEqualTo(ref.networkCapabilities)
+        assertThat(userData.getDataNetworkType()).isEqualTo(ref.dataNetworkType)
 
         val currentLocation: Location = userData.getCurrentLocation()
 

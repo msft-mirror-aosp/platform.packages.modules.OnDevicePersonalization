@@ -24,7 +24,10 @@ import static android.content.res.Configuration.ORIENTATION_UNDEFINED;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
+import android.net.NetworkCapabilities;
 import android.os.Parcelable;
+import android.telephony.TelephonyManager;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
@@ -78,29 +81,52 @@ public final class UserData implements Parcelable {
     /** The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName} */
     @NonNull String mCarrier = "";
 
-    /** Connection type unknown. @hide */
-    public static final int CONNECTION_TYPE_UNKNOWN = 0;
-    /** Connection type ethernet. @hide */
-    public static final int CONNECTION_TYPE_ETHERNET = 1;
-    /** Connection type wifi. @hide */
-    public static final int CONNECTION_TYPE_WIFI = 2;
-    /** Connection type cellular 2G. @hide */
-    public static final int CONNECTION_TYPE_CELLULAR_2G = 3;
-    /** Connection type cellular 3G. @hide */
-    public static final int CONNECTION_TYPE_CELLULAR_3G = 4;
-    /** Connection type cellular 4G. @hide */
-    public static final int CONNECTION_TYPE_CELLULAR_4G = 5;
-    /** Connection type cellular 5G. @hide */
-    public static final int CONNECTION_TYPE_CELLULAR_5G = 6;
+    /** @hide **/
+    @IntDef({
+            TelephonyManager.NETWORK_TYPE_UNKNOWN,
+            TelephonyManager.NETWORK_TYPE_GPRS,
+            TelephonyManager.NETWORK_TYPE_EDGE,
+            TelephonyManager.NETWORK_TYPE_UMTS,
+            TelephonyManager.NETWORK_TYPE_CDMA,
+            TelephonyManager.NETWORK_TYPE_EVDO_0,
+            TelephonyManager.NETWORK_TYPE_EVDO_A,
+            TelephonyManager.NETWORK_TYPE_1xRTT,
+            TelephonyManager.NETWORK_TYPE_HSDPA,
+            TelephonyManager.NETWORK_TYPE_HSUPA,
+            TelephonyManager.NETWORK_TYPE_HSPA,
+            TelephonyManager.NETWORK_TYPE_EVDO_B,
+            TelephonyManager.NETWORK_TYPE_LTE,
+            TelephonyManager.NETWORK_TYPE_EHRPD,
+            TelephonyManager.NETWORK_TYPE_HSPAP,
+            TelephonyManager.NETWORK_TYPE_GSM,
+            TelephonyManager.NETWORK_TYPE_TD_SCDMA,
+            TelephonyManager.NETWORK_TYPE_IWLAN,
 
-    /** Connection types. @hide */
-    int mConnectionType = 0;
+            //TODO: In order for @SystemApi methods to use this class, there cannot be any
+            // public hidden members.  This network type is marked as hidden because it is not a
+            // true network type and we are looking to remove it completely from the available list
+            // of network types.
+            //TelephonyManager.NETWORK_TYPE_LTE_CA,
 
-    /** Network connection speed in kbps. 0 if no network connection is present. @hide */
-    @IntRange(from = 0) long mNetworkConnectionSpeedKbps = 0;
+            TelephonyManager.NETWORK_TYPE_NR,
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface NetworkType {
+    }
 
-    /** Whether the network is metered. False - not metered. True - metered. @hide */
-    boolean mNetworkMetered = false;
+    /**
+     * Network capabilities of the device. This is the value of
+     * {@link android.net.ConnectivityManager#getNetworkCapabilities(android.net.Network)}.
+     * @hide
+     */
+    @Nullable NetworkCapabilities mNetworkCapabilities = null;
+
+    /**
+     * Data network type. This is the value of
+     * {@link android.telephony.TelephonyManager#getDataNetworkType()}.
+     * @hide
+     */
+    @NetworkType int mDataNetworkType = 0;
 
     /** A map from package name to app information for installed and uninstalled apps. */
     @DataClass.PluralOf("appInfo")
@@ -137,9 +163,8 @@ public final class UserData implements Parcelable {
             @IntRange(from = 0) long availableStorageBytes,
             @IntRange(from = 0, to = 100) int batteryPercentage,
             @NonNull String carrier,
-            int connectionType,
-            @IntRange(from = 0) long networkConnectionSpeedKbps,
-            boolean networkMetered,
+            @Nullable NetworkCapabilities networkCapabilities,
+            @NetworkType int dataNetworkType,
             @NonNull Map<String,AppInfo> appInfos,
             @NonNull List<AppUsageStatus> appUsageHistory,
             @NonNull Location currentLocation,
@@ -160,12 +185,10 @@ public final class UserData implements Parcelable {
         this.mCarrier = carrier;
         AnnotationValidations.validate(
                 NonNull.class, null, mCarrier);
-        this.mConnectionType = connectionType;
-        this.mNetworkConnectionSpeedKbps = networkConnectionSpeedKbps;
+        this.mNetworkCapabilities = networkCapabilities;
+        this.mDataNetworkType = dataNetworkType;
         AnnotationValidations.validate(
-                IntRange.class, null, mNetworkConnectionSpeedKbps,
-                "from", 0);
-        this.mNetworkMetered = networkMetered;
+                NetworkType.class, null, mDataNetworkType);
         this.mAppInfos = appInfos;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppInfos);
@@ -227,27 +250,25 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Connection types. @hide
+     * Network capabilities of the device. This is the value of
+     * {@link android.net.ConnectivityManager#getNetworkCapabilities(android.net.Network)}.
+     *
+     * @hide
      */
     @DataClass.Generated.Member
-    public int getConnectionType() {
-        return mConnectionType;
+    public @Nullable NetworkCapabilities getNetworkCapabilities() {
+        return mNetworkCapabilities;
     }
 
     /**
-     * Network connection speed in kbps. 0 if no network connection is present. @hide
+     * Data network type. This is the value of
+     * {@link android.telephony.TelephonyManager#getDataNetworkType()}.
+     *
+     * @hide
      */
     @DataClass.Generated.Member
-    public @IntRange(from = 0) long getNetworkConnectionSpeedKbps() {
-        return mNetworkConnectionSpeedKbps;
-    }
-
-    /**
-     * Whether the network is metered. False - not metered. True - metered. @hide
-     */
-    @DataClass.Generated.Member
-    public boolean isNetworkMetered() {
-        return mNetworkMetered;
+    public @NetworkType int getDataNetworkType() {
+        return mDataNetworkType;
     }
 
     /**
@@ -284,7 +305,7 @@ public final class UserData implements Parcelable {
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@android.annotation.Nullable Object o) {
+    public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(UserData other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -300,9 +321,8 @@ public final class UserData implements Parcelable {
                 && mAvailableStorageBytes == that.mAvailableStorageBytes
                 && mBatteryPercentage == that.mBatteryPercentage
                 && java.util.Objects.equals(mCarrier, that.mCarrier)
-                && mConnectionType == that.mConnectionType
-                && mNetworkConnectionSpeedKbps == that.mNetworkConnectionSpeedKbps
-                && mNetworkMetered == that.mNetworkMetered
+                && java.util.Objects.equals(mNetworkCapabilities, that.mNetworkCapabilities)
+                && mDataNetworkType == that.mDataNetworkType
                 && java.util.Objects.equals(mAppInfos, that.mAppInfos)
                 && java.util.Objects.equals(mAppUsageHistory, that.mAppUsageHistory)
                 && java.util.Objects.equals(mCurrentLocation, that.mCurrentLocation)
@@ -321,9 +341,8 @@ public final class UserData implements Parcelable {
         _hash = 31 * _hash + Long.hashCode(mAvailableStorageBytes);
         _hash = 31 * _hash + mBatteryPercentage;
         _hash = 31 * _hash + java.util.Objects.hashCode(mCarrier);
-        _hash = 31 * _hash + mConnectionType;
-        _hash = 31 * _hash + Long.hashCode(mNetworkConnectionSpeedKbps);
-        _hash = 31 * _hash + Boolean.hashCode(mNetworkMetered);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mNetworkCapabilities);
+        _hash = 31 * _hash + mDataNetworkType;
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppInfos);
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppUsageHistory);
         _hash = 31 * _hash + java.util.Objects.hashCode(mCurrentLocation);
@@ -338,15 +357,15 @@ public final class UserData implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         int flg = 0;
-        if (mNetworkMetered) flg |= 0x80;
+        if (mNetworkCapabilities != null) flg |= 0x20;
         dest.writeInt(flg);
         dest.writeInt(mTimezoneUtcOffsetMins);
         dest.writeInt(mOrientation);
         dest.writeLong(mAvailableStorageBytes);
         dest.writeInt(mBatteryPercentage);
         dest.writeString(mCarrier);
-        dest.writeInt(mConnectionType);
-        dest.writeLong(mNetworkConnectionSpeedKbps);
+        if (mNetworkCapabilities != null) dest.writeTypedObject(mNetworkCapabilities, flags);
+        dest.writeInt(mDataNetworkType);
         dest.writeMap(mAppInfos);
         dest.writeParcelableList(mAppUsageHistory, flags);
         dest.writeTypedObject(mCurrentLocation, flags);
@@ -365,14 +384,13 @@ public final class UserData implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         int flg = in.readInt();
-        boolean networkMetered = (flg & 0x80) != 0;
         int timezoneUtcOffsetMins = in.readInt();
         int orientation = in.readInt();
         long availableStorageBytes = in.readLong();
         int batteryPercentage = in.readInt();
         String carrier = in.readString();
-        int connectionType = in.readInt();
-        long networkConnectionSpeedKbps = in.readLong();
+        NetworkCapabilities networkCapabilities = (flg & 0x20) == 0 ? null : (NetworkCapabilities) in.readTypedObject(NetworkCapabilities.CREATOR);
+        int dataNetworkType = in.readInt();
         Map<String,AppInfo> appInfos = new java.util.LinkedHashMap<>();
         in.readMap(appInfos, AppInfo.class.getClassLoader());
         List<AppUsageStatus> appUsageHistory = new java.util.ArrayList<>();
@@ -397,12 +415,10 @@ public final class UserData implements Parcelable {
         this.mCarrier = carrier;
         AnnotationValidations.validate(
                 NonNull.class, null, mCarrier);
-        this.mConnectionType = connectionType;
-        this.mNetworkConnectionSpeedKbps = networkConnectionSpeedKbps;
+        this.mNetworkCapabilities = networkCapabilities;
+        this.mDataNetworkType = dataNetworkType;
         AnnotationValidations.validate(
-                IntRange.class, null, mNetworkConnectionSpeedKbps,
-                "from", 0);
-        this.mNetworkMetered = networkMetered;
+                NetworkType.class, null, mDataNetworkType);
         this.mAppInfos = appInfos;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppInfos);
@@ -446,9 +462,8 @@ public final class UserData implements Parcelable {
         private @IntRange(from = 0) long mAvailableStorageBytes;
         private @IntRange(from = 0, to = 100) int mBatteryPercentage;
         private @NonNull String mCarrier;
-        private int mConnectionType;
-        private @IntRange(from = 0) long mNetworkConnectionSpeedKbps;
-        private boolean mNetworkMetered;
+        private @Nullable NetworkCapabilities mNetworkCapabilities;
+        private @NetworkType int mDataNetworkType;
         private @NonNull Map<String,AppInfo> mAppInfos;
         private @NonNull List<AppUsageStatus> mAppUsageHistory;
         private @NonNull Location mCurrentLocation;
@@ -519,35 +534,30 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Connection types. @hide
+         * Network capabilities of the device. This is the value of
+         * {@link android.net.ConnectivityManager#getNetworkCapabilities(android.net.Network)}.
+         *
+         * @hide
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setConnectionType(int value) {
+        public @NonNull Builder setNetworkCapabilities(@NonNull NetworkCapabilities value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x20;
-            mConnectionType = value;
+            mNetworkCapabilities = value;
             return this;
         }
 
         /**
-         * Network connection speed in kbps. 0 if no network connection is present. @hide
+         * Data network type. This is the value of
+         * {@link android.telephony.TelephonyManager#getDataNetworkType()}.
+         *
+         * @hide
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setNetworkConnectionSpeedKbps(@IntRange(from = 0) long value) {
+        public @NonNull Builder setDataNetworkType(@NetworkType int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x40;
-            mNetworkConnectionSpeedKbps = value;
-            return this;
-        }
-
-        /**
-         * Whether the network is metered. False - not metered. True - metered. @hide
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setNetworkMetered(boolean value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x80;
-            mNetworkMetered = value;
+            mDataNetworkType = value;
             return this;
         }
 
@@ -557,7 +567,7 @@ public final class UserData implements Parcelable {
         @DataClass.Generated.Member
         public @NonNull Builder setAppInfos(@NonNull Map<String,AppInfo> value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x100;
+            mBuilderFieldsSet |= 0x80;
             mAppInfos = value;
             return this;
         }
@@ -576,7 +586,7 @@ public final class UserData implements Parcelable {
         @DataClass.Generated.Member
         public @NonNull Builder setAppUsageHistory(@NonNull List<AppUsageStatus> value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x200;
+            mBuilderFieldsSet |= 0x100;
             mAppUsageHistory = value;
             return this;
         }
@@ -598,7 +608,7 @@ public final class UserData implements Parcelable {
         @DataClass.Generated.Member
         public @NonNull Builder setCurrentLocation(@NonNull Location value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x400;
+            mBuilderFieldsSet |= 0x200;
             mCurrentLocation = value;
             return this;
         }
@@ -609,7 +619,7 @@ public final class UserData implements Parcelable {
         @DataClass.Generated.Member
         public @NonNull Builder setLocationHistory(@NonNull List<LocationStatus> value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x800;
+            mBuilderFieldsSet |= 0x400;
             mLocationHistory = value;
             return this;
         }
@@ -628,7 +638,7 @@ public final class UserData implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull UserData build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x1000; // Mark builder used
+            mBuilderFieldsSet |= 0x800; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mTimezoneUtcOffsetMins = 0;
@@ -646,24 +656,21 @@ public final class UserData implements Parcelable {
                 mCarrier = "";
             }
             if ((mBuilderFieldsSet & 0x20) == 0) {
-                mConnectionType = 0;
+                mNetworkCapabilities = null;
             }
             if ((mBuilderFieldsSet & 0x40) == 0) {
-                mNetworkConnectionSpeedKbps = 0;
+                mDataNetworkType = 0;
             }
             if ((mBuilderFieldsSet & 0x80) == 0) {
-                mNetworkMetered = false;
-            }
-            if ((mBuilderFieldsSet & 0x100) == 0) {
                 mAppInfos = Collections.emptyMap();
             }
-            if ((mBuilderFieldsSet & 0x200) == 0) {
+            if ((mBuilderFieldsSet & 0x100) == 0) {
                 mAppUsageHistory = Collections.emptyList();
             }
-            if ((mBuilderFieldsSet & 0x400) == 0) {
+            if ((mBuilderFieldsSet & 0x200) == 0) {
                 mCurrentLocation = Location.EMPTY;
             }
-            if ((mBuilderFieldsSet & 0x800) == 0) {
+            if ((mBuilderFieldsSet & 0x400) == 0) {
                 mLocationHistory = Collections.emptyList();
             }
             UserData o = new UserData(
@@ -672,9 +679,8 @@ public final class UserData implements Parcelable {
                     mAvailableStorageBytes,
                     mBatteryPercentage,
                     mCarrier,
-                    mConnectionType,
-                    mNetworkConnectionSpeedKbps,
-                    mNetworkMetered,
+                    mNetworkCapabilities,
+                    mDataNetworkType,
                     mAppInfos,
                     mAppUsageHistory,
                     mCurrentLocation,
@@ -683,7 +689,7 @@ public final class UserData implements Parcelable {
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x1000) != 0) {
+            if ((mBuilderFieldsSet & 0x800) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -691,10 +697,10 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1695492831925L,
+            time = 1695677519158L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
-            inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\npublic static final  int CONNECTION_TYPE_UNKNOWN\npublic static final  int CONNECTION_TYPE_ETHERNET\npublic static final  int CONNECTION_TYPE_WIFI\npublic static final  int CONNECTION_TYPE_CELLULAR_2G\npublic static final  int CONNECTION_TYPE_CELLULAR_3G\npublic static final  int CONNECTION_TYPE_CELLULAR_4G\npublic static final  int CONNECTION_TYPE_CELLULAR_5G\n  int mConnectionType\n @android.annotation.IntRange long mNetworkConnectionSpeedKbps\n  boolean mNetworkMetered\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")
+            inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n @android.annotation.Nullable android.net.NetworkCapabilities mNetworkCapabilities\n @android.adservices.ondevicepersonalization.UserData.NetworkType int mDataNetworkType\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")
     @Deprecated
     private void __metadata() {}
 

@@ -49,9 +49,7 @@ class DataIngressPolicy {
                 "availableStorageMB" {rawUsage(UsageType.ANY)}
                 "batteryPercentage" {rawUsage(UsageType.ANY)}
                 "carrier" {rawUsage(UsageType.ANY)}
-                "connectionType" {rawUsage(UsageType.ANY)}
-                "connectionSpeedKbps" {rawUsage(UsageType.ANY)}
-                "networkMetered" {rawUsage(UsageType.ANY)}
+                "dataNetworkType" {rawUsage(UsageType.ANY)}
                 "appInfos" {
                     "packageName" {rawUsage(UsageType.ANY)}
                     "installed" {rawUsage(UsageType.ANY)}

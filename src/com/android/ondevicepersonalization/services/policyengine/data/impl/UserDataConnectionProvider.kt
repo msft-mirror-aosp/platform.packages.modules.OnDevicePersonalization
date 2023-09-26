@@ -17,17 +17,13 @@
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
 import android.adservices.ondevicepersonalization.UserData
-import android.adservices.ondevicepersonalization.OSVersion
-import android.adservices.ondevicepersonalization.DeviceMetrics
 import android.adservices.ondevicepersonalization.Location
 import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.AppUsageStatus
 import android.adservices.ondevicepersonalization.LocationStatus
 import android.util.ArrayMap
 
-import com.android.ondevicepersonalization.services.data.user.UserDataDao
 import com.android.ondevicepersonalization.services.data.user.RawUserData
-import com.android.ondevicepersonalization.services.data.user.UserDataCollector
 import com.android.libraries.pcc.chronicle.api.Connection
 import com.android.libraries.pcc.chronicle.api.ConnectionProvider
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
@@ -40,9 +36,6 @@ import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
 
 import java.time.Duration
-
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 
 /** [ConnectionProvider] implementation for ODA use data. */
 class UserDataConnectionProvider() : ConnectionProvider {
@@ -59,21 +52,15 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
     class UserDataReaderImpl : UserDataReader {
         override fun readUserData(): UserData? {
-            val rawUserData: RawUserData? = RawUserData.getInstance();
-            if (rawUserData == null) {
-                return null;
-            }
-
+            val rawUserData: RawUserData = RawUserData.getInstance() ?: return null
             // TODO(b/267013762): more privacy-preserving processing may be needed
-            return UserData.Builder()
+            val builder: UserData.Builder = UserData.Builder()
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
                     .setAvailableStorageBytes(rawUserData.availableStorageBytes)
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
-                    .setConnectionType(rawUserData.connectionType.ordinal)
-                    .setNetworkConnectionSpeedKbps(rawUserData.connectionSpeedKbps)
-                    .setNetworkMetered(rawUserData.networkMetered)
+                    .setDataNetworkType(rawUserData.dataNetworkType)
                     .setCurrentLocation(Location.Builder()
                             .setTimestampSeconds(rawUserData.currentLocation.timeMillis / 1000)
                             .setLatitude(rawUserData.currentLocation.latitude)
@@ -84,7 +71,11 @@ class UserDataConnectionProvider() : ConnectionProvider {
                     .setAppInfos(getAppInfos(rawUserData))
                     .setAppUsageHistory(getAppUsageHistory(rawUserData))
                     .setLocationHistory(getLocationHistory(rawUserData))
-                    .build()
+            // TODO (b/299683848): follow up the codegen bug
+            if (rawUserData.networkCapabilities != null) {
+                builder.setNetworkCapabilities(rawUserData.networkCapabilities)
+            }
+            return builder.build()
         }
 
         private fun getAppInfos(rawUserData: RawUserData): Map<String, AppInfo> {
