@@ -126,6 +126,23 @@ public abstract class IsolatedService extends Service {
     }
 
     /**
+     * Returns a DAO for the REQUESTS and EVENTS tables that provides
+     * access to the rows that are readable by the IsolatedService.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
+     * @see #onRequest
+     * @return A {@link LogReader} object that provides access to the REQUESTS and EVENTS table.
+     *     The methods in the returned {@link LogReader} are blocking operations and
+     *     should be called from a worker thread and not the main thread or a binder thread.
+     *
+     * @hide
+     */
+    @NonNull
+    public final LogReader getLogReader(@NonNull RequestToken requestToken) {
+        return new LogReader(requestToken.getDataAccessService());
+    }
+
+    /**
      * Returns an {@link EventUrlProvider} for the current request. The {@link EventUrlProvider}
      * provides URLs that can be embedded in HTML. When the HTML is rendered in a {@link WebView},
      * the platform intercepts requests to these URLs and invokes {@link
