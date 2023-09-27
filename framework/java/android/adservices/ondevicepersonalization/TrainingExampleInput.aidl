@@ -16,4 +16,4 @@
 
 package android.adservices.ondevicepersonalization;
 
-parcelable ExampleInput;
+parcelable TrainingExampleInput;
