@@ -35,7 +35,6 @@ import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlags;
-import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
@@ -46,6 +45,7 @@ import com.android.internal.util.Preconditions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import java.util.Arrays;
@@ -55,14 +55,13 @@ import java.util.Set;
 /** Handles scheduling training tasks e.g. calling into JobScheduler, maintaining datastore. */
 public class FederatedComputeJobManager {
     private static final String TAG = FederatedComputeJobManager.class.getSimpleName();
-
+    private static volatile FederatedComputeJobManager sSingletonInstance;
     @NonNull private final Context mContext;
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
-    private static volatile FederatedComputeJobManager sSingletonInstance;
     private final FederatedJobIdGenerator mJobIdGenerator;
-    private Clock mClock;
     private final Flags mFlags;
+    private final Clock mClock;
 
     @VisibleForTesting
     FederatedComputeJobManager(
@@ -72,7 +71,7 @@ public class FederatedComputeJobManager {
             JobSchedulerHelper jobSchedulerHelper,
             @NonNull Clock clock,
             Flags flag) {
-        this.mContext = context;
+        this.mContext = context.getApplicationContext();
         this.mFederatedTrainingTaskDao = federatedTrainingTaskDao;
         this.mJobIdGenerator = jobIdGenerator;
         this.mJobSchedulerHelper = jobSchedulerHelper;
@@ -285,7 +284,7 @@ public class FederatedComputeJobManager {
             String populationName,
             TrainingIntervalOptions trainingIntervalOptions,
             TaskRetry taskRetry,
-            @TrainingResult int trainingResult) {
+            ContributionResult trainingResult) {
         boolean result =
                 rescheduleFederatedTaskAfterTraining(
                         jobId, populationName, trainingIntervalOptions, taskRetry, trainingResult);
@@ -300,7 +299,7 @@ public class FederatedComputeJobManager {
             String populationName,
             TrainingIntervalOptions intervalOptions,
             TaskRetry taskRetry,
-            @TrainingResult int trainingResult) {
+            ContributionResult trainingResult) {
         FederatedTrainingTask existingTask =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(
                         populationName, jobId);
@@ -310,7 +309,7 @@ public class FederatedComputeJobManager {
         if (existingTask == null) {
             return true;
         }
-        boolean hasContributed = trainingResult == TrainingResult.SUCCESS;
+        boolean hasContributed = trainingResult == ContributionResult.SUCCESS;
         if (intervalOptions != null
                 && intervalOptions.schedulingMode() == SchedulingMode.ONE_TIME
                 && hasContributed) {
