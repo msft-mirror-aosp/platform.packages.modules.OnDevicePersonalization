@@ -108,8 +108,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         EventState eventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
                 .setServicePackageName(packageName)
-                .setQueryId(0)
-                .setEventId(0)
+                .setToken(new byte[]{1})
                 .build();
         mEventsDao.updateOrInsertEventState(eventState);
     }

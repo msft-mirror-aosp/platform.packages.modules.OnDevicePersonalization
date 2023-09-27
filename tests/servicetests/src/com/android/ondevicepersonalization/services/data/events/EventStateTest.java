@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data.events;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
@@ -29,22 +30,20 @@ public class EventStateTest {
     public void testBuilderAndEquals() {
         String servicePackageName = "servicePackageName";
         String taskIdentifier = "taskIdentifier";
-        long queryId = 1;
-        long eventId = 1;
+        byte[] token = new byte[] {1};
+
         EventState eventState1 = new EventState.Builder()
                 .setTaskIdentifier(taskIdentifier)
                 .setServicePackageName(servicePackageName)
-                .setQueryId(queryId)
-                .setEventId(eventId)
+                .setToken(token)
                 .build();
 
         assertEquals(eventState1.getTaskIdentifier(), taskIdentifier);
         assertEquals(eventState1.getServicePackageName(), servicePackageName);
-        assertEquals(eventState1.getQueryId(), queryId);
-        assertEquals(eventState1.getEventId(), eventId);
+        assertArrayEquals(eventState1.getToken(), token);
 
         EventState eventState2 = new EventState.Builder(
-                eventId, queryId, servicePackageName, taskIdentifier)
+                token, servicePackageName, taskIdentifier)
                 .build();
         assertEquals(eventState1, eventState2);
         assertEquals(eventState1.hashCode(), eventState2.hashCode());
@@ -54,13 +53,11 @@ public class EventStateTest {
     public void testBuildTwiceThrows() {
         String servicePackageName = "servicePackageName";
         String taskIdentifier = "taskIdentifier";
-        long queryId = 1;
-        long eventId = 1;
+        byte[] token = new byte[] {1};
         EventState.Builder builder = new EventState.Builder()
                 .setTaskIdentifier(taskIdentifier)
                 .setServicePackageName(servicePackageName)
-                .setQueryId(queryId)
-                .setEventId(eventId);
+                .setToken(token);
 
         builder.build();
         assertThrows(IllegalStateException.class, builder::build);

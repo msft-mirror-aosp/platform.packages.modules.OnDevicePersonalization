@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import android.adservices.ondevicepersonalization.UserData;
 import android.content.res.Configuration;
+import android.net.NetworkCapabilities;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
@@ -60,25 +62,9 @@ public final class RawUserData {
     // OS versions of the device.
     public OSVersion osVersions = new OSVersion();
 
-    // Connection type values.
-    public enum ConnectionType {
-        UNKNOWN,
-        ETHERNET,
-        WIFI,
-        CELLULAR_2G,
-        CELLULAR_3G,
-        CELLULAR_4G,
-        CELLULAR_5G
-    };
+    public NetworkCapabilities networkCapabilities;
 
-    // Connection type.
-    public ConnectionType connectionType = ConnectionType.UNKNOWN;
-
-    // Status if network is metered. False - not metered. True - metered.
-    public boolean networkMetered = false;
-
-    // Connection speed in kbps.
-    public long connectionSpeedKbps = 0;
+    @UserData.NetworkType public int dataNetworkType;
 
     // Device metrics values.
     public DeviceMetrics deviceMetrics = new DeviceMetrics();
