@@ -48,6 +48,7 @@ android_app {
     plugins: ["auto_value_plugin"],
     static_libs: [
         "flatbuffers-java",
+        "androidx.concurrent_concurrent-futures",
         "federated-compute-java-proto-lite",
         "guava",
         "modules-utils-preconditions",

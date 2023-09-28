@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.training;
 
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
+import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
@@ -83,7 +84,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
             throw new IllegalArgumentException("ExampleSelector proto is invalid", e);
         }
         String populationName =
-                Objects.requireNonNull(params.getString(Constants.EXTRA_POPULATION_NAME));
+                Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
         ParcelFileDescriptor inputCheckpointFd =
                 Objects.requireNonNull(
                         params.getParcelable(

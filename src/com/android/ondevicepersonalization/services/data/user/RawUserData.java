@@ -38,7 +38,7 @@ public final class RawUserData {
     // The current system time in milliseconds.
     public long timeMillis = 0;
 
-    // The device time zone +/- minutes offset from UTC.
+    // The device time zone +/- offset in minute from UTC.
     public int utcOffset = 0;
 
     // The device orientation.
