@@ -36,6 +36,7 @@ import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonal
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
+import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
@@ -231,6 +232,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 mPackageName, mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
+                mPackageName, mContext);
+        pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
 
         List<String> keys = new ArrayList<>();
         List<byte[]> values = new ArrayList<>();
