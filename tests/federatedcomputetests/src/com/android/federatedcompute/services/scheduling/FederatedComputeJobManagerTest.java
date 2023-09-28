@@ -37,7 +37,6 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDbHelper;
@@ -47,6 +46,7 @@ import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import org.junit.After;
@@ -92,13 +92,11 @@ public final class FederatedComputeJobManagerTest {
                     .build();
     private static final TaskRetry TASK_RETRY =
             TaskRetry.newBuilder().setDelayMin(5000000).setDelayMax(6000000).build();
-
+    private final CountDownLatch mLatch = new CountDownLatch(1);
     private FederatedComputeJobManager mJobManager;
     private Context mContext;
     private FederatedTrainingTaskDao mTrainingTaskDao;
     private boolean mSuccess = false;
-    private final CountDownLatch mLatch = new CountDownLatch(1);
-
     @Mock private Clock mClock;
     @Mock private Flags mMockFlags;
     @Mock private FederatedJobIdGenerator mMockJobIdGenerator;
@@ -724,7 +722,7 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 createTrainingIntervalOptionsAsRoot(SchedulingMode.RECURRENT, 0),
                 TASK_RETRY,
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNotNull();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
@@ -748,7 +746,7 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 createTrainingIntervalOptionsAsRoot(SchedulingMode.ONE_TIME, 0),
                 TASK_RETRY,
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNull();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
@@ -787,7 +785,7 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverRetryDelayMillis)
                         .setDelayMax(serverRetryDelayMillis)
                         .build(),
-                TrainingResult.FAIL);
+                ContributionResult.FAIL);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -847,7 +845,7 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(minRetryDelayMillis)
                         .setDelayMax(maxRetryDelayMillis)
                         .build(),
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -907,7 +905,7 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverDefinedIntervalMillis)
                         .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -967,7 +965,7 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverDefinedIntervalMillis)
                         .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                TrainingResult.FAIL);
+                ContributionResult.FAIL);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);

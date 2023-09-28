@@ -68,7 +68,7 @@ import java.util.TimeZone;
  * and update a few time-sensitive signals in UserData to the latest version.
  */
 public class UserDataCollector {
-    public static final int BYTES_IN_MB = 1048576;
+    private static final int MILLISECONDS_IN_MINUTE = 60000;
 
     private static volatile UserDataCollector sUserDataCollector = null;
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -240,10 +240,10 @@ public class UserDataCollector {
         return System.currentTimeMillis();
     }
 
-    /** Collects current device's time zone in +/- of minutes from UTC. */
+    /** Collects current device's time zone in +/- offset of minutes from UTC. */
     @VisibleForTesting
     public int getUtcOffset() {
-        return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000;
+        return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / MILLISECONDS_IN_MINUTE;
     }
 
     /** Collects the current device orientation. */
