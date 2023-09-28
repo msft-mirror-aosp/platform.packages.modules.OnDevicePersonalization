@@ -185,7 +185,9 @@ public class FederatedComputeManagerTest {
 
                 manager.schedule(request, Runnable::run, spyCallback);
 
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(RemoteException.class));
+                verify(mContext, times(1)).unbindService(any());
                 break;
             case "schedule-mockIService-onSuccess":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
@@ -202,7 +204,9 @@ public class FederatedComputeManagerTest {
 
                 manager.schedule(request, Runnable::run, spyCallback);
 
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onResult(isNull());
+                verify(mContext, times(1)).unbindService(any());
                 break;
             case "schedule-mockIService-onFailure":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
@@ -219,7 +223,9 @@ public class FederatedComputeManagerTest {
 
                 manager.schedule(request, Runnable::run, spyCallback);
 
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
+                verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-allNull":
                 assertThrows(
@@ -236,7 +242,9 @@ public class FederatedComputeManagerTest {
 
                 manager.cancel(populationName, Runnable::run, spyCallback);
 
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onError(any(RemoteException.class));
+                verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-mockIService-onSuccess":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
@@ -253,7 +261,9 @@ public class FederatedComputeManagerTest {
 
                 manager.cancel(populationName, Runnable::run, spyCallback);
 
+                verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
                 verify(spyCallback, times(1)).onResult(isNull());
+                verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-mockIService-onFailure":
                 when(mMockIBinder.queryLocalInterface(any())).thenReturn(mMockIService);
@@ -270,18 +280,9 @@ public class FederatedComputeManagerTest {
 
                 manager.cancel(populationName, Runnable::run, spyCallback);
 
-                verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
-                break;
-            case "unbind":
-                manager.schedule(request, Executors.newSingleThreadExecutor(), null);
-                manager.schedule(request, Executors.newSingleThreadExecutor(), null);
-                manager.unbindFromService();
-
-                verify(mContext, times(1)).unbindService(any());
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-
-                manager.schedule(request, Executors.newSingleThreadExecutor(), null);
-                verify(mContext, times(2)).bindService(any(), anyInt(), any(), any());
+                verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
+                verify(mContext, times(1)).unbindService(any());
                 break;
             default:
                 break;

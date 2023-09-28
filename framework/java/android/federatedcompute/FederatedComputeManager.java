@@ -79,16 +79,21 @@ public final class FederatedComputeManager {
                     new IFederatedComputeCallback.Stub() {
                         @Override
                         public void onSuccess() {
+                            LogUtil.d(TAG, ": schedule onSuccess() called");
                             executor.execute(() -> callback.onResult(null));
+                            unbindFromService();
                         }
 
                         @Override
                         public void onFailure(int errorCode) {
+                            LogUtil.d(TAG, ": schedule onFailure() called with errorCode %d",
+                                    errorCode);
                             executor.execute(
                                     () ->
                                             callback.onError(
                                                     new OnDevicePersonalizationException(
                                                             errorCode)));
+                            unbindFromService();
                         }
                     };
             service.schedule(
@@ -98,6 +103,7 @@ public final class FederatedComputeManager {
         } catch (RemoteException e) {
             LogUtil.e(TAG, e, "Remote Exception");
             executor.execute(() -> callback.onError(e));
+            unbindFromService();
         }
     }
 
@@ -117,22 +123,28 @@ public final class FederatedComputeManager {
                     new IFederatedComputeCallback.Stub() {
                         @Override
                         public void onSuccess() {
+                            LogUtil.d(TAG, ": cancel onSuccess() called");
                             executor.execute(() -> callback.onResult(null));
+                            unbindFromService();
                         }
 
                         @Override
                         public void onFailure(int errorCode) {
+                            LogUtil.d(TAG, ": cancel onFailure() called with errorCode %d",
+                                    errorCode);
                             executor.execute(
                                     () ->
                                             callback.onError(
                                                     new OnDevicePersonalizationException(
                                                             errorCode)));
+                            unbindFromService();
                         }
                     };
             service.cancel(mContext.getPackageName(), populationName, federatedComputeCallback);
         } catch (RemoteException e) {
             LogUtil.e(TAG, e, "Remote Exception");
             executor.execute(() -> callback.onError(e));
+            unbindFromService();
         }
     }
 
