@@ -17,6 +17,8 @@
 package com.android.ondevicepersonalization.services.data;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.JoinedLogRecord;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
@@ -28,21 +30,25 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.events.JoinedEvent;
+import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -52,44 +58,25 @@ import java.util.Objects;
 public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "DataAccessServiceImpl";
-
-    @VisibleForTesting
-    static class Injector {
-        long getTimeMillis() {
-            return System.currentTimeMillis();
-        }
-
-        ListeningExecutorService getExecutor() {
-            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
-        }
-
-        OnDevicePersonalizationVendorDataDao getVendorDataDao(
-                Context context, String packageName, String certDigest
-        ) {
-            return OnDevicePersonalizationVendorDataDao.getInstance(context,
-                    packageName, certDigest);
-        }
-
-        OnDevicePersonalizationLocalDataDao getLocalDataDao(
-                Context context, String packageName, String certDigest
-        ) {
-            return OnDevicePersonalizationLocalDataDao.getInstance(context,
-                    packageName, certDigest);
-        }
-    }
-
-    @NonNull private final Context mApplicationContext;
-    @NonNull private final String mServicePackageName;
+    @NonNull
+    private final Context mApplicationContext;
+    @NonNull
+    private final String mServicePackageName;
     private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
-    @Nullable private final OnDevicePersonalizationLocalDataDao mLocalDataDao;
+    @Nullable
+    private final OnDevicePersonalizationLocalDataDao mLocalDataDao;
+    @Nullable
+    private final EventsDao mEventsDao;
     private final boolean mIncludeLocalData;
-    @NonNull private final Injector mInjector;
-
+    private final boolean mIncludeEventData;
+    @NonNull
+    private final Injector mInjector;
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
-            boolean includeLocalData) {
-        this(servicePackageName, applicationContext, includeLocalData,
+            boolean includeLocalData,
+            boolean includeEventData) {
+        this(servicePackageName, applicationContext, includeLocalData, includeEventData,
                 new Injector());
     }
 
@@ -98,6 +85,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeLocalData,
+            boolean includeEventData,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
         mServicePackageName = Objects.requireNonNull(servicePackageName, "servicePackageName");
@@ -117,6 +105,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         } catch (PackageManager.NameNotFoundException nnfe) {
             throw new IllegalArgumentException("Package: " + servicePackageName
                     + " does not exist.", nnfe);
+        }
+        mIncludeEventData = includeEventData;
+        if (includeEventData) {
+            mEventsDao = mInjector.getEventsDao(mApplicationContext);
+        } else {
+            mEventsDao = null;
         }
     }
 
@@ -195,6 +189,59 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> getEventUrl(
                                 eventParams, responseData, mimeType, destinationUrl, callback)
                 );
+                break;
+            case Constants.DATA_ACCESS_OP_GET_REQUEST_IDS:
+                if (!mIncludeEventData) {
+                    throw new IllegalStateException(
+                            "request and event data are not included for this instance.");
+                }
+                long[] requestTimes = Objects.requireNonNull(params.getLongArray(
+                        Constants.EXTRA_LOOKUP_KEYS));
+                if (requestTimes.length != 2) {
+                    throw new IllegalArgumentException("Invalid request timestamps provided.");
+                }
+                mInjector.getExecutor().execute(
+                        () -> getRequestIds(requestTimes[0], requestTimes[1], callback));
+                break;
+            case Constants.DATA_ACCESS_OP_EVENT_IDS:
+                if (!mIncludeEventData) {
+                    throw new IllegalStateException(
+                            "request and event data are not included for this instance.");
+                }
+                long[] eventTimes = Objects.requireNonNull(params.getLongArray(
+                        Constants.EXTRA_LOOKUP_KEYS));
+                if (eventTimes.length != 2) {
+                    throw new IllegalArgumentException("Invalid event timestamps provided.");
+                }
+                mInjector.getExecutor().execute(
+                        () -> getEventIds(eventTimes[0], eventTimes[1], callback));
+                break;
+            case Constants.DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST:
+                if (!mIncludeEventData) {
+                    throw new IllegalStateException(
+                            "request and event data are not included for this instance.");
+                }
+                long requestId = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
+                mInjector.getExecutor().execute(
+                        () -> getEventIdsForRequest(requestId, callback));
+                break;
+            case Constants.DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD:
+                if (!mIncludeEventData) {
+                    throw new IllegalStateException(
+                            "request and event data are not included for this instance.");
+                }
+                requestId = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
+                mInjector.getExecutor().execute(
+                        () -> getRequestLogRecord(requestId, callback));
+                break;
+            case Constants.DATA_ACCESS_OP_GET_JOINED_LOG_RECORD:
+                if (!mIncludeEventData) {
+                    throw new IllegalStateException(
+                            "request and event data are not included for this instance.");
+                }
+                long eventId = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
+                mInjector.getExecutor().execute(
+                        () -> getJoinedLogRecord(eventId, callback));
                 break;
             default:
                 sendError(callback);
@@ -281,7 +328,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull IDataAccessServiceCallback callback) {
         try {
             sLogger.d(TAG, ": getEventUrl() started.");
-            EventUrlPayload payload =  new EventUrlPayload(eventParams, responseData, mimeType);
+            EventUrlPayload payload = new EventUrlPayload(eventParams, responseData, mimeType);
             Uri eventUrl;
             if (destinationUrl == null || destinationUrl.isEmpty()) {
                 eventUrl = EventUrlHelper.getEncryptedOdpEventUrl(payload);
@@ -295,6 +342,98 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             sendResult(result, callback);
         } catch (Exception e) {
             sLogger.d(TAG + ": getEventUrl() failed.", e);
+            sendError(callback);
+        }
+    }
+
+    private void getRequestIds(long startTimeMillis, long endTimeMillis,
+            @NonNull IDataAccessServiceCallback callback) {
+        try {
+            List<Long> ids = mEventsDao.readAllQueryIds(startTimeMillis, endTimeMillis,
+                    mServicePackageName);
+            Bundle result = new Bundle();
+            result.putLongArray(Constants.EXTRA_RESULT, ids.stream()
+                    .mapToLong(Long::longValue).toArray());
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getEventIds(long startTimeMillis, long endTimeMillis,
+            @NonNull IDataAccessServiceCallback callback) {
+        try {
+            List<Long> ids = mEventsDao.readAllEventIds(startTimeMillis, endTimeMillis,
+                    mServicePackageName);
+            Bundle result = new Bundle();
+            result.putLongArray(Constants.EXTRA_RESULT, ids.stream()
+                    .mapToLong(Long::longValue).toArray());
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getEventIdsForRequest(long requestId,
+            @NonNull IDataAccessServiceCallback callback) {
+        try {
+            List<Long> ids = mEventsDao.readAllEventIdsForQuery(requestId, mServicePackageName);
+            Bundle result = new Bundle();
+            result.putLongArray(Constants.EXTRA_RESULT, ids.stream()
+                    .mapToLong(Long::longValue).toArray());
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getRequestLogRecord(long requestId,
+            @NonNull IDataAccessServiceCallback callback) {
+        try {
+            Query query = mEventsDao.readSingleQueryRow(requestId, mServicePackageName);
+            RequestLogRecord record;
+            if (query == null) {
+                record = new RequestLogRecord.Builder().build();
+            } else {
+                record = new RequestLogRecord.Builder()
+                        .setRows(OnDevicePersonalizationFlatbufferUtils
+                                .getContentValuesFromQueryData(query.getQueryData()))
+                        .build();
+            }
+            Bundle result = new Bundle();
+            result.putParcelable(Constants.EXTRA_RESULT, record);
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getJoinedLogRecord(long eventId,
+            @NonNull IDataAccessServiceCallback callback) {
+        try {
+            JoinedEvent joinedEvent = mEventsDao.readSingleJoinedTableRow(eventId,
+                    mServicePackageName);
+            JoinedLogRecord record;
+            if (joinedEvent == null) {
+                record = new JoinedLogRecord.Builder().build();
+            } else {
+                record = new JoinedLogRecord.Builder()
+                        .setRequestTimeMillis(joinedEvent.getQueryTimeMillis())
+                        .setEventTimeMillis(joinedEvent.getEventTimeMillis())
+                        .setType(joinedEvent.getType())
+                        .setEventData(
+                                OnDevicePersonalizationFlatbufferUtils
+                                        .getContentValuesFromEventData(joinedEvent.getEventData()))
+                        .setRequestData(
+                                OnDevicePersonalizationFlatbufferUtils
+                                        .getContentValuesRowFromQueryData(
+                                        joinedEvent.getQueryData(), joinedEvent.getRowIndex()))
+                        .build();
+            }
+            Bundle result = new Bundle();
+            result.putParcelable(Constants.EXTRA_RESULT, record);
+            sendResult(result, callback);
+        } catch (Exception e) {
             sendError(callback);
         }
     }
@@ -314,6 +453,37 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             callback.onError(Constants.STATUS_INTERNAL_ERROR);
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
+        }
+    }
+
+    @VisibleForTesting
+    static class Injector {
+        long getTimeMillis() {
+            return System.currentTimeMillis();
+        }
+
+        ListeningExecutorService getExecutor() {
+            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
+        }
+
+        OnDevicePersonalizationVendorDataDao getVendorDataDao(
+                Context context, String packageName, String certDigest
+        ) {
+            return OnDevicePersonalizationVendorDataDao.getInstance(context,
+                    packageName, certDigest);
+        }
+
+        OnDevicePersonalizationLocalDataDao getLocalDataDao(
+                Context context, String packageName, String certDigest
+        ) {
+            return OnDevicePersonalizationLocalDataDao.getInstance(context,
+                    packageName, certDigest);
+        }
+
+        EventsDao getEventsDao(
+                Context context
+        ) {
+            return EventsDao.getInstance(context);
         }
     }
 }
