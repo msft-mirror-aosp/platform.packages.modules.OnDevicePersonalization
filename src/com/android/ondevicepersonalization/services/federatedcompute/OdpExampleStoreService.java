@@ -155,7 +155,8 @@ public class OdpExampleStoreService extends ExampleStoreService {
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                packageName, mContext, true);
+                packageName, mContext, /* includeLocalData */ true,
+                /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();

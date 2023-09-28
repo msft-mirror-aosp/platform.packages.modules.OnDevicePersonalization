@@ -186,7 +186,8 @@ public class AppRequestFlow {
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mService.getPackageName(), mContext, true);
+                mService.getPackageName(), mContext, /* includeLocalData */ true,
+                /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
