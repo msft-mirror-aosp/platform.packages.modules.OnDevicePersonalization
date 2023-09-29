@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
 import static com.android.federatedcompute.services.common.Constants.ISOLATED_TRAINING_SERVICE_NAME;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
@@ -40,6 +41,7 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
+import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
@@ -315,7 +317,7 @@ public class FederatedComputeWorker {
 
     @VisibleForTesting
     HttpFederatedProtocol getHttpFederatedProtocol(String serverAddress, String populationName) {
-        return HttpFederatedProtocol.create(serverAddress, "1.0", populationName);
+        return HttpFederatedProtocol.create(serverAddress, "1.0.0.1", populationName);
     }
 
     private ExampleSelector getExampleSelector(CheckinResult checkinResult) {
@@ -360,10 +362,24 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult,
             String outputCheckpointFile,
             IExampleStoreIterator iterator) {
-        ParcelFileDescriptor outputCheckpointFd = createTempFileDescriptor(outputCheckpointFile);
+        ParcelFileDescriptor outputCheckpointFd =
+                createTempFileDescriptor(
+                        outputCheckpointFile, ParcelFileDescriptor.MODE_READ_WRITE);
         ParcelFileDescriptor inputCheckpointFd =
-                createTempFileDescriptor(checkinResult.getInputCheckpointFile());
+                createTempFileDescriptor(
+                        checkinResult.getInputCheckpointFile(),
+                        ParcelFileDescriptor.MODE_READ_ONLY);
+        ExampleSelector exampleSelector = getExampleSelector(checkinResult);
+        ClientOnlyPlan clientPlan = checkinResult.getPlanData();
+
         try {
+            // Write ClientOnlyPlan to file and pass ParcelFileDescriptor to isolated process to
+            // avoid TransactionTooLargeException through IPC.
+            String clientOnlyPlanFile = createTempFile(CLIENT_ONLY_PLAN_FILE_NAME, ".pb");
+            FileUtils.writeToFile(clientOnlyPlanFile, clientPlan.toByteArray());
+            ParcelFileDescriptor clientPlanFd =
+                    createTempFileDescriptor(
+                            clientOnlyPlanFile, ParcelFileDescriptor.MODE_READ_ONLY);
             IIsolatedTrainingService trainingService = getIsolatedTrainingService();
             if (trainingService == null) {
                 LogUtil.w(TAG, "Could not bind to IsolatedTrainingService");
@@ -372,11 +388,13 @@ public class FederatedComputeWorker {
             run.mIsolatedTrainingService = trainingService;
 
             Bundle bundle = new Bundle();
+            bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, exampleSelector.toByteArray());
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
+            bundle.putParcelable(Constants.EXTRA_CLIENT_ONLY_PLAN_FD, clientPlanFd);
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
-            bundle.putInt(Constants.EXTRA_JOB_ID, run.mJobId);
             bundle.putBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, iterator.asBinder());
+
             return FluentFuture.from(runIsolatedTrainingProcess(run, bundle))
                     .transform(
                             result -> {
@@ -432,6 +450,9 @@ public class FederatedComputeWorker {
         } catch (InvalidProtocolBufferException e) {
             throw new IllegalArgumentException(e);
         }
+        if (flRunnerResult.getContributionResult() == ContributionResult.FAIL) {
+            return new ComputationResult(outputCheckpoint, flRunnerResult, new ArrayList<>());
+        }
         ArrayList<ExampleConsumption> exampleList =
                 result.getParcelableArrayList(
                         ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, ExampleConsumption.class);
@@ -455,6 +476,7 @@ public class FederatedComputeWorker {
                                     }
                                 });
                     } catch (Exception e) {
+                        LogUtil.e(TAG, e, "Got exception when runIsolatedTrainingProcess");
                         completer.setException(e);
                     }
                     return "runIsolatedTrainingProcess";
@@ -497,7 +519,6 @@ public class FederatedComputeWorker {
         ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
         FLRunnerResult runResult =
                 mComputationRunner.runTaskWithNativeRunner(
-                        run.mJobId,
                         run.mTask.populationName(),
                         checkinResult.getInputCheckpointFile(),
                         outputCheckpointFile,
