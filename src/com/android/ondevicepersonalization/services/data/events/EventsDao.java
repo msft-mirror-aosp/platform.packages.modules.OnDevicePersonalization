@@ -143,6 +143,31 @@ public class EventsDao {
     }
 
     /**
+     * Updates/inserts a list of EventStates as a transaction
+     *
+     * @return true if the all the update/inserts succeeded, false otherwise
+     */
+    public boolean updateOrInsertEventStatesTransaction(List<EventState> eventStates) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            for (EventState eventState : eventStates) {
+                if (!updateOrInsertEventState(eventState)) {
+                    return false;
+                }
+            }
+
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            sLogger.e(TAG + ": Failed to insert/update eventstates", e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
+    /**
      * Gets the eventState for the given package and task
      *
      * @return eventState if found, null otherwise
