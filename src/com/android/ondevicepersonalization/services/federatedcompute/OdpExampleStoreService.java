@@ -55,6 +55,14 @@ public class OdpExampleStoreService extends ExampleStoreService {
     private static final String TASK_NAME = "ExampleStore";
     private final Context mContext = this;
 
+    /**
+     * Generates a unique task identifier from the given strings
+     */
+    public static String getTaskIdentifier(String collectionName, String populationName,
+            String taskName) {
+        return collectionName + "_" + populationName + "_" + taskName;
+    }
+
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
         try {
@@ -147,7 +155,8 @@ public class OdpExampleStoreService extends ExampleStoreService {
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                packageName, mContext, true);
+                packageName, mContext, /* includeLocalData */ true,
+                /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
@@ -156,12 +165,5 @@ public class OdpExampleStoreService extends ExampleStoreService {
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, packageName),
                 Constants.OP_TRAINING_EXAMPLE, serviceParams);
-    }
-
-    /**
-     * Generates a unique task identifier from the given strings
-     */
-    public String getTaskIdentifier(String collectionName, String populationName, String taskName) {
-        return collectionName + "_" + populationName + "_" + taskName;
     }
 }

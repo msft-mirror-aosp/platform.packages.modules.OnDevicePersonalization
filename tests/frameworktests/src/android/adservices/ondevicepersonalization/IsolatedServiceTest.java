@@ -23,11 +23,11 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
-import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -225,6 +225,23 @@ public class IsolatedServiceTest {
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnDownloadThrowsIfFederatedComputeServiceMissing() throws Exception {
+        DownloadInputParcel input =
+                new DownloadInputParcel.Builder()
+                        .setDownloadedKeys(StringParceledListSlice.emptyList())
+                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -440,11 +457,11 @@ public class IsolatedServiceTest {
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT,
                         TrainingExampleOutputParcel.class);
         List<byte[]> examples = result.getTrainingExamples().getList();
-        List<byte[]> tokens  = result.getResumptionTokens().getList();
+        List<byte[]> tokens = result.getResumptionTokens().getList();
         assertEquals(1, examples.size());
         assertEquals(1, tokens.size());
-        assertArrayEquals(new byte[] {12}, examples.get(0));
-        assertArrayEquals(new byte[] {13}, tokens.get(0));
+        assertArrayEquals(new byte[]{12}, examples.get(0));
+        assertArrayEquals(new byte[]{13}, tokens.get(0));
     }
 
     @Test
@@ -500,20 +517,21 @@ public class IsolatedServiceTest {
 
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
-        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {
+        }
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
         @Override
         public void schedule(
-                String callingPackageName,
                 TrainingOptions trainingOptions,
-                IFederatedComputeCallback callback) {}
+                IFederatedComputeCallback callback) {
+        }
 
         public void cancel(
-                String callingPackageName,
                 String populationName,
-                IFederatedComputeCallback callback) {}
+                IFederatedComputeCallback callback) {
+        }
     }
 
     class TestHandler implements IsolatedWorker {
@@ -577,9 +595,9 @@ public class IsolatedServiceTest {
                 TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
             mOnTrainingExampleCalled = true;
             List<byte[]> examples = new ArrayList<>();
-            examples.add(new byte[] {12});
+            examples.add(new byte[]{12});
             List<byte[]> tokens = new ArrayList<>();
-            tokens.add(new byte[] {13});
+            tokens.add(new byte[]{13});
             consumer.accept(
                     new TrainingExampleOutput.Builder()
                             .setTrainingExamples(examples)
