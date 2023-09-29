@@ -23,8 +23,10 @@ import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.federatedcompute.ExampleStoreService;
+import android.federatedcompute.FederatedComputeManager;
 import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
+import android.os.OutcomeReceiver;
 
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -77,6 +79,40 @@ public class OdpExampleStoreService extends ExampleStoreService {
                     params.getString(ClientConstants.EXTRA_TASK_NAME));
 
             EventsDao eventDao = EventsDao.getInstance(mContext);
+            // Cancel job if on longer valid. This is written to the table during scheduling
+            // via {@link FederatedComputeServiceImpl} and deleted either during cancel or
+            // during maintenance for uninstalled packages.
+            EventState eventStatePopulation = eventDao.getEventState(populationName, packageName);
+            if (eventStatePopulation == null) {
+                sLogger.w("Job was either cancelled or package was uninstalled");
+                // Cancel job.
+                FederatedComputeManager FCManager =
+                        mContext.getSystemService(FederatedComputeManager.class);
+                if (FCManager == null) {
+                    sLogger.e(TAG + ": Failed to get FederatedCompute Service");
+                    callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
+                    return;
+                }
+                FCManager.cancel(
+                        populationName,
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor(),
+                        new OutcomeReceiver<Object, Exception>() {
+                            @Override
+                            public void onResult(Object result) {
+                                sLogger.d(TAG + ": Successfully canceled job");
+                                callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
+                            }
+
+                            @Override
+                            public void onError(Exception error) {
+                                sLogger.e(TAG + ": Error while cancelling job", error);
+                                OutcomeReceiver.super.onError(error);
+                                callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
+                            }
+                        });
+                return;
+            }
+            // Get resumptionToken
             EventState eventState = eventDao.getEventState(
                     getTaskIdentifier(collectionName, populationName, taskName), packageName);
             byte[] resumptionToken = null;
