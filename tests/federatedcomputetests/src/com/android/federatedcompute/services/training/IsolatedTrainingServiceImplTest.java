@@ -20,7 +20,6 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -31,6 +30,7 @@ import android.os.ParcelFileDescriptor;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
@@ -119,7 +119,7 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingSuccess() throws Exception {
         when(mComputationRunner.runTaskWithNativeRunner(
-                        anyInt(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                        anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
 
         Bundle bundle = buildInputBundle();
@@ -133,7 +133,7 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingFailure() throws Exception {
         when(mComputationRunner.runTaskWithNativeRunner(
-                        anyInt(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                        anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_FAIL_RESULT);
 
         Bundle bundle = buildInputBundle();
@@ -206,7 +206,13 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
         ClientOnlyPlan clientOnlyPlan = TrainingTestUtil.createFederatedAnalyticClientPlan();
-        bundle.putByteArray(Constants.EXTRA_CLIENT_ONLY_PLAN, clientOnlyPlan.toByteArray());
+        String clientPlanFile =
+                FileUtils.createTempFile(Constants.EXTRA_CLIENT_ONLY_PLAN_FD, ".pb");
+        FileUtils.writeToFile(clientPlanFile, clientOnlyPlan.toByteArray());
+        bundle.putParcelable(
+                Constants.EXTRA_CLIENT_ONLY_PLAN_FD,
+                FileUtils.createTempFileDescriptor(
+                        clientPlanFile, ParcelFileDescriptor.MODE_READ_ONLY));
         return bundle;
     }
 
