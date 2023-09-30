@@ -28,7 +28,10 @@ public class Constants {
     public static final String EXTRA_FL_RUNNER_RESULT = "android.federatedcompute.fl_runner_result";
     public static final String EXTRA_JOB_ID = "android.federatedcompute.job_id";
     public static final String EXTRA_EXAMPLE_SELECTOR = "android.federatedcompute.example_selector";
-    public static final String EXTRA_CLIENT_ONLY_PLAN = "android.federatedcompute.client_only_plan";
+    public static final String EXTRA_CLIENT_ONLY_PLAN_FD =
+            "android.federatedcompute.client_only_plan_fd";
+
+    public static final String CLIENT_ONLY_PLAN_FILE_NAME = "federated_client_only_plan";
 
     public static final String ISOLATED_TRAINING_SERVICE_NAME =
             "com.android.federatedcompute.service.training.IsolatedTrainingService";

@@ -24,6 +24,9 @@ genrule {
          " --javaPackage com.android.federatedcompute.services.stats" +
          " --javaClass FederatedComputeStatsLog",
     out: ["com/android/federatedcompute/services/stats/FederatedComputeStatsLog.java"],
+    visibility: [
+      "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
 }
 
 android_app_certificate {

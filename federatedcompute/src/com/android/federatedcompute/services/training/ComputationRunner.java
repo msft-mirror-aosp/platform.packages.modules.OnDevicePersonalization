@@ -40,7 +40,6 @@ public class ComputationRunner {
 
     /** Run a single round of federated computation. */
     public FLRunnerResult runTaskWithNativeRunner(
-            int jobId,
             String populationName,
             String inputCheckpointFd,
             String outputCheckpointFd,
