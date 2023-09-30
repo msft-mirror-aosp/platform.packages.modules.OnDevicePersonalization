@@ -20,16 +20,22 @@ import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.federatedcompute.FederatedComputeManager;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
+import android.os.SystemProperties;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.events.EventState;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
@@ -43,6 +49,12 @@ import java.util.Objects;
 public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "FederatedComputeServiceImpl";
+
+    private static final String OVERRIDE_FC_SERVER_URL_PACKAGE =
+            "debug.ondevicepersonalization.override_fc_server_url_package";
+    private static final String OVERRIDE_FC_SERVER_URL =
+            "debug.ondevicepersonalization.override_fc_server_url";
+
 
     @NonNull
     private final Context mApplicationContext;
@@ -76,13 +88,34 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     public void schedule(TrainingOptions trainingOptions,
             IFederatedComputeCallback callback) {
         try {
-            // TODO(300696702): Read server address from manifest
+            String url = AppManifestConfigHelper.getFcRemoteServerUrlFromOdpSettings(
+                    mApplicationContext, mServicePackageName);
+
+            // Check for override manifest url property, if package is debuggable
+            if (PackageUtils.isPackageDebuggable(mApplicationContext, mServicePackageName)) {
+                if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "").equals(
+                        mServicePackageName)) {
+                    String overrideManifestUrl = SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
+                    if (!overrideManifestUrl.isEmpty()) {
+                        sLogger.d(TAG + ": Overriding fc server URL for package "
+                                + mServicePackageName + " to " + overrideManifestUrl);
+                        url = overrideManifestUrl;
+                    }
+                }
+            }
+
+            if (url == null) {
+                sLogger.d("Missing remote server URL for package: " + mServicePackageName);
+                sendError(callback);
+                return;
+            }
+
             ContextData contextData = new ContextData(mServicePackageName);
             TrainingOptions trainingOptionsWithContext = new TrainingOptions.Builder()
                     .setContextData(ContextData.toByteArray(contextData))
                     .setTrainingInterval(trainingOptions.getTrainingInterval())
                     .setPopulationName(trainingOptions.getPopulationName())
-                    .setServerAddress(trainingOptions.getServerAddress())
+                    .setServerAddress(url)
                     .build();
             ScheduleFederatedComputeRequest request =
                     new ScheduleFederatedComputeRequest.Builder()
@@ -94,6 +127,12 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                     new OutcomeReceiver<>() {
                         @Override
                         public void onResult(Object result) {
+                            mInjector.getEventsDao(mApplicationContext).updateOrInsertEventState(
+                                    new EventState.Builder()
+                                            .setServicePackageName(mServicePackageName)
+                                            .setTaskIdentifier(trainingOptions.getPopulationName())
+                                            .setToken(new byte[]{})
+                                            .build());
                             sendSuccess(callback);
                         }
 
@@ -103,7 +142,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                             sendError(callback);
                         }
                     });
-        } catch (IOException e) {
+        } catch (IOException | PackageManager.NameNotFoundException e) {
             sLogger.e(TAG + ": Error while scheduling federatedCompute", e);
             sendError(callback);
         }
@@ -112,7 +151,13 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     @Override
     public void cancel(String populationName,
             IFederatedComputeCallback callback) {
-        // TODO(300696702): Validate package->population
+        EventState eventState = mInjector.getEventsDao(mApplicationContext).getEventState(
+                populationName, mServicePackageName);
+        if (eventState == null) {
+            sLogger.d("No population registered for package: " + mServicePackageName);
+            sendSuccess(callback);
+            return;
+        }
         mFederatedComputeManager.cancel(
                 populationName,
                 mInjector.getExecutor(),
@@ -155,6 +200,12 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
 
         FederatedComputeManager getFederatedComputeManager(Context context) {
             return context.getSystemService(FederatedComputeManager.class);
+        }
+
+        EventsDao getEventsDao(
+                Context context
+        ) {
+            return EventsDao.getInstance(context);
         }
     }
 }

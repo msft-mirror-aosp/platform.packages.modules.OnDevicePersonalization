@@ -26,6 +26,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 
 /** Utils related to {@link File} and {@link ParcelFileDescriptor}. */
 public class FileUtils {
@@ -34,12 +35,10 @@ public class FileUtils {
     private static final int BUFFER_SIZE = 1024;
 
     /** Create {@link ParcelFileDescriptor} based on the input file. */
-    public static ParcelFileDescriptor createTempFileDescriptor(String fileName) {
+    public static ParcelFileDescriptor createTempFileDescriptor(String fileName, int mode) {
         ParcelFileDescriptor fileDescriptor;
         try {
-            fileDescriptor =
-                    ParcelFileDescriptor.open(
-                            new File(fileName), ParcelFileDescriptor.MODE_READ_ONLY);
+            fileDescriptor = ParcelFileDescriptor.open(new File(fileName), mode);
         } catch (IOException e) {
             LogUtil.e(TAG, e, "Failed to createTempFileDescriptor %s", fileName);
             throw new RuntimeException(e);
@@ -79,6 +78,24 @@ public class FileUtils {
         } catch (IOException e) {
             LogUtil.e(TAG, e, "Failed to read the content of binary file %s", filePath);
             throw e;
+        }
+        return outputStream.toByteArray();
+    }
+
+    /** Read the content from a file descriptor to a byte array. */
+    public static byte[] readFileDescriptorAsByteArray(ParcelFileDescriptor fd) {
+        InputStream inputStream = new ParcelFileDescriptor.AutoCloseInputStream(fd);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+
+        byte[] buffer = new byte[1024];
+        int bytesRead;
+        try {
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            inputStream.close();
+        } catch (IOException e) {
+            LogUtil.e(TAG, e, "Failed to read the content of binary file %d", fd.getFd());
         }
         return outputStream.toByteArray();
     }

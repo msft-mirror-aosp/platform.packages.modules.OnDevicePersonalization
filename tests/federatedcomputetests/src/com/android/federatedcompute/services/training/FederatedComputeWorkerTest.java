@@ -215,15 +215,7 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyWorker)
                 .getHttpFederatedProtocol(anyString(), anyString());
         when(mMockComputationRunner.runTaskWithNativeRunner(
-                        anyInt(),
-                        anyString(),
-                        anyString(),
-                        anyString(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                        anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
     }
 
@@ -322,15 +314,7 @@ public final class FederatedComputeWorkerTest {
 
         // Mock return failed runner result from native fcp client.
         when(mMockComputationRunner.runTaskWithNativeRunner(
-                        anyInt(),
-                        anyString(),
-                        anyString(),
-                        anyString(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                        anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_FAILURE_RESULT);
 
         FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
