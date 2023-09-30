@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.scheduling;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
+import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import static com.android.federatedcompute.services.scheduling.SchedulingUtil.convertSchedulingMode;
 
@@ -25,17 +26,14 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
-import android.os.RemoteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlags;
-import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
@@ -46,6 +44,7 @@ import com.android.internal.util.Preconditions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import java.util.Arrays;
@@ -55,13 +54,12 @@ import java.util.Set;
 /** Handles scheduling training tasks e.g. calling into JobScheduler, maintaining datastore. */
 public class FederatedComputeJobManager {
     private static final String TAG = FederatedComputeJobManager.class.getSimpleName();
-
+    private static volatile FederatedComputeJobManager sSingletonInstance;
     @NonNull private final Context mContext;
     private final FederatedTrainingTaskDao mFederatedTrainingTaskDao;
     private final JobSchedulerHelper mJobSchedulerHelper;
-    private static volatile FederatedComputeJobManager sSingletonInstance;
     private final FederatedJobIdGenerator mJobIdGenerator;
-    private Clock mClock;
+    private final Clock mClock;
     private final Flags mFlags;
 
     @VisibleForTesting
@@ -72,7 +70,7 @@ public class FederatedComputeJobManager {
             JobSchedulerHelper jobSchedulerHelper,
             @NonNull Clock clock,
             Flags flag) {
-        this.mContext = context;
+        this.mContext = context.getApplicationContext();
         this.mFederatedTrainingTaskDao = federatedTrainingTaskDao;
         this.mJobIdGenerator = jobIdGenerator;
         this.mJobSchedulerHelper = jobSchedulerHelper;
@@ -105,17 +103,15 @@ public class FederatedComputeJobManager {
      * Called when a client indicates via the client API that a task with the given parameters
      * should be scheduled.
      */
-    public synchronized void onTrainerStartCalled(
-            String callingPackageName,
-            TrainingOptions trainingOptions,
-            IFederatedComputeCallback callback) {
+    public synchronized int onTrainerStartCalled(
+            String callingPackageName, TrainingOptions trainingOptions) {
         FederatedTrainingTask existingTask =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(
                         trainingOptions.getPopulationName());
         Set<FederatedTrainingTask> trainingTasksToCancel = new HashSet<>();
         String populationName = trainingOptions.getPopulationName();
         long nowMs = mClock.currentTimeMillis();
-        boolean shouldSchedule = false;
+        boolean shouldSchedule;
         FederatedTrainingTask newTask;
         byte[] newTrainingConstraint = buildTrainingConstraints();
 
@@ -213,8 +209,7 @@ public class FederatedComputeJobManager {
                         "JobScheduler returned failure when starting training job %d",
                         newTask.jobId());
                 // If scheduling failed then leave the task store as-is, and bail.
-                sendError(callback);
-                return;
+                return STATUS_INTERNAL_ERROR;
             }
         }
 
@@ -226,8 +221,7 @@ public class FederatedComputeJobManager {
                     TAG,
                     "JobScheduler returned failure when storing training job with id %d!",
                     newTask.jobId());
-            sendError(callback);
-            return;
+            return STATUS_INTERNAL_ERROR;
         }
         // Second, if the task previously had a different job ID or a if there was another
         // task with the same population name, then cancel the corresponding old tasks.
@@ -235,28 +229,26 @@ public class FederatedComputeJobManager {
             LogUtil.i(TAG, " JobScheduler cancel the task %d", newTask.jobId());
             mJobSchedulerHelper.cancelTask(mContext, trainingTaskToCancel);
         }
-        sendSuccess(callback);
+        return STATUS_SUCCESS;
     }
 
     /**
      * Called when a client indicates via the client API that a task with the given parameters
      * should be canceled.
      */
-    public synchronized void onTrainerStopCalled(
-            String callingPackageName, String populationName, IFederatedComputeCallback callback) {
+    public synchronized int onTrainerStopCalled(String callingPackageName, String populationName) {
         FederatedTrainingTask taskToCancel =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(populationName);
         // If no matching task exists then there's nothing for us to do. This is not an error
         // case though.
         if (taskToCancel == null) {
             LogUtil.i(TAG, "No matching task exists when cancel the job %s", populationName);
-            sendSuccess(callback);
-            return;
+            return STATUS_SUCCESS;
         }
 
         LogUtil.i(TAG, " onTrainerStopCalled cancel the task %d", taskToCancel.jobId());
         mJobSchedulerHelper.cancelTask(mContext, taskToCancel);
-        sendSuccess(callback);
+        return STATUS_SUCCESS;
     }
 
     /** Called when a training task identified by {@code jobId} starts running. */
@@ -285,7 +277,7 @@ public class FederatedComputeJobManager {
             String populationName,
             TrainingIntervalOptions trainingIntervalOptions,
             TaskRetry taskRetry,
-            @TrainingResult int trainingResult) {
+            ContributionResult trainingResult) {
         boolean result =
                 rescheduleFederatedTaskAfterTraining(
                         jobId, populationName, trainingIntervalOptions, taskRetry, trainingResult);
@@ -300,7 +292,7 @@ public class FederatedComputeJobManager {
             String populationName,
             TrainingIntervalOptions intervalOptions,
             TaskRetry taskRetry,
-            @TrainingResult int trainingResult) {
+            ContributionResult trainingResult) {
         FederatedTrainingTask existingTask =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(
                         populationName, jobId);
@@ -310,7 +302,7 @@ public class FederatedComputeJobManager {
         if (existingTask == null) {
             return true;
         }
-        boolean hasContributed = trainingResult == TrainingResult.SUCCESS;
+        boolean hasContributed = trainingResult == ContributionResult.SUCCESS;
         if (intervalOptions != null
                 && intervalOptions.schedulingMode() == SchedulingMode.ONE_TIME
                 && hasContributed) {
@@ -404,21 +396,5 @@ public class FederatedComputeJobManager {
         byte[] incomingTrainingIntervalOptions =
                 buildTrainingIntervalOptions(newTaskOptions.getTrainingInterval());
         return !Arrays.equals(incomingTrainingIntervalOptions, existingTask.intervalOptions());
-    }
-
-    private void sendError(@NonNull IFederatedComputeCallback callback) {
-        try {
-            callback.onFailure(STATUS_INTERNAL_ERROR);
-        } catch (RemoteException e) {
-            LogUtil.e(TAG, e, "IFederatedComputeCallback error");
-        }
-    }
-
-    private void sendSuccess(@NonNull IFederatedComputeCallback callback) {
-        try {
-            callback.onSuccess();
-        } catch (RemoteException e) {
-            LogUtil.e(TAG, e, "IFederatedComputeCallback error");
-        }
     }
 }

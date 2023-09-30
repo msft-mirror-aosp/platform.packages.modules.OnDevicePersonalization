@@ -44,8 +44,8 @@ public class OdpExampleStoreIteratorFactory {
     /**
      * Creates an OdpExampleStoreIterator
      */
-    public OdpExampleStoreIterator createIterator(List<byte[]> exampleList) {
-        // TODO(278106108): Implement this method.
-        return new OdpExampleStoreIterator(exampleList);
+    public OdpExampleStoreIterator createIterator(List<byte[]> exampleList,
+            List<byte[]> resumptionTokens) {
+        return new OdpExampleStoreIterator(exampleList, resumptionTokens);
     }
 }

@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -25,12 +26,12 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 import java.util.function.Consumer;
 
 /**
- * The input data for {@link IsolatedWorker#onTrainingExample(ExampleInput, Consumer)}
+ * The input data for {@link IsolatedWorker#onTrainingExample(TrainingExampleInput, Consumer)}
  *
  * @hide
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
-public class ExampleInput implements Parcelable  {
+@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
+public class TrainingExampleInput implements Parcelable {
     /** Name of the federated compute task. */
     @NonNull private final String mPopulationName;
 
@@ -45,9 +46,9 @@ public class ExampleInput implements Parcelable  {
      */
     @NonNull private final String mCollectionName;
 
-    /** Input data to create example from. Represents a single joined log record. */
-    @NonNull private final JoinedLogRecord mInputData;
-
+    /** Token used to support the resumption of training. */
+    @Nullable
+    private final byte[] mResumptionToken;
 
 
 
@@ -57,7 +58,7 @@ public class ExampleInput implements Parcelable  {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExampleInput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleInput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -65,11 +66,11 @@ public class ExampleInput implements Parcelable  {
 
 
     @DataClass.Generated.Member
-    /* package-private */ ExampleInput(
+    /* package-private */ TrainingExampleInput(
             @NonNull String populationName,
             @NonNull String taskName,
             @NonNull String collectionName,
-            @NonNull JoinedLogRecord inputData) {
+            @Nullable byte[] resumptionToken) {
         this.mPopulationName = populationName;
         AnnotationValidations.validate(
                 NonNull.class, null, mPopulationName);
@@ -79,9 +80,7 @@ public class ExampleInput implements Parcelable  {
         this.mCollectionName = collectionName;
         AnnotationValidations.validate(
                 NonNull.class, null, mCollectionName);
-        this.mInputData = inputData;
-        AnnotationValidations.validate(
-                NonNull.class, null, mInputData);
+        this.mResumptionToken = resumptionToken;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -112,30 +111,30 @@ public class ExampleInput implements Parcelable  {
     }
 
     /**
-     * Input data to create example from. Represents a single joined log record.
+     * Token used to support the resumption of training.
      */
     @DataClass.Generated.Member
-    public @NonNull JoinedLogRecord getInputData() {
-        return mInputData;
+    public @Nullable byte[] getResumptionToken() {
+        return mResumptionToken;
     }
 
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@android.annotation.Nullable Object o) {
+    public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(ExampleInput other) { ... }
+        // boolean fieldNameEquals(TrainingExampleInput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        ExampleInput that = (ExampleInput) o;
+        TrainingExampleInput that = (TrainingExampleInput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mPopulationName, that.mPopulationName)
                 && java.util.Objects.equals(mTaskName, that.mTaskName)
                 && java.util.Objects.equals(mCollectionName, that.mCollectionName)
-                && java.util.Objects.equals(mInputData, that.mInputData);
+                && java.util.Arrays.equals(mResumptionToken, that.mResumptionToken);
     }
 
     @Override
@@ -148,7 +147,7 @@ public class ExampleInput implements Parcelable  {
         _hash = 31 * _hash + java.util.Objects.hashCode(mPopulationName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mTaskName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mCollectionName);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mInputData);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mResumptionToken);
         return _hash;
     }
 
@@ -161,7 +160,7 @@ public class ExampleInput implements Parcelable  {
         dest.writeString(mPopulationName);
         dest.writeString(mTaskName);
         dest.writeString(mCollectionName);
-        dest.writeTypedObject(mInputData, flags);
+        dest.writeByteArray(mResumptionToken);
     }
 
     @Override
@@ -171,14 +170,14 @@ public class ExampleInput implements Parcelable  {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    protected ExampleInput(@NonNull android.os.Parcel in) {
+    protected TrainingExampleInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         String populationName = in.readString();
         String taskName = in.readString();
         String collectionName = in.readString();
-        JoinedLogRecord inputData = (JoinedLogRecord) in.readTypedObject(JoinedLogRecord.CREATOR);
+        byte[] resumptionToken = in.createByteArray();
 
         this.mPopulationName = populationName;
         AnnotationValidations.validate(
@@ -189,29 +188,27 @@ public class ExampleInput implements Parcelable  {
         this.mCollectionName = collectionName;
         AnnotationValidations.validate(
                 NonNull.class, null, mCollectionName);
-        this.mInputData = inputData;
-        AnnotationValidations.validate(
-                NonNull.class, null, mInputData);
+        this.mResumptionToken = resumptionToken;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<ExampleInput> CREATOR
-            = new Parcelable.Creator<ExampleInput>() {
+    public static final @NonNull Parcelable.Creator<TrainingExampleInput> CREATOR
+            = new Parcelable.Creator<TrainingExampleInput>() {
         @Override
-        public ExampleInput[] newArray(int size) {
-            return new ExampleInput[size];
+        public TrainingExampleInput[] newArray(int size) {
+            return new TrainingExampleInput[size];
         }
 
         @Override
-        public ExampleInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new ExampleInput(in);
+        public TrainingExampleInput createFromParcel(@NonNull android.os.Parcel in) {
+            return new TrainingExampleInput(in);
         }
     };
 
     /**
-     * A builder for {@link ExampleInput}
+     * A builder for {@link TrainingExampleInput}
      * @hide
      */
     @SuppressWarnings("WeakerAccess")
@@ -221,12 +218,11 @@ public class ExampleInput implements Parcelable  {
         private @NonNull String mPopulationName;
         private @NonNull String mTaskName;
         private @NonNull String mCollectionName;
-        private @NonNull JoinedLogRecord mInputData;
+        private @Nullable byte[] mResumptionToken;
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {
-        }
+        public Builder() {}
 
         /**
          * Creates a new Builder.
@@ -238,14 +234,14 @@ public class ExampleInput implements Parcelable  {
          * @param collectionName
          *   The name of data collection to read from, specified by the federated task plan configured at
          *   federated computation server.
-         * @param inputData
-         *   Input data to create example from. Represents a single joined log record.
+         * @param resumptionToken
+         *   Token used to support the resumption of training.
          */
         public Builder(
                 @NonNull String populationName,
                 @NonNull String taskName,
                 @NonNull String collectionName,
-                @NonNull JoinedLogRecord inputData) {
+                @Nullable byte[] resumptionToken) {
             mPopulationName = populationName;
             AnnotationValidations.validate(
                     NonNull.class, null, mPopulationName);
@@ -255,9 +251,7 @@ public class ExampleInput implements Parcelable  {
             mCollectionName = collectionName;
             AnnotationValidations.validate(
                     NonNull.class, null, mCollectionName);
-            mInputData = inputData;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mInputData);
+            mResumptionToken = resumptionToken;
         }
 
         /**
@@ -295,26 +289,26 @@ public class ExampleInput implements Parcelable  {
         }
 
         /**
-         * Input data to create example from. Represents a single joined log record.
+         * Token used to support the resumption of training.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setInputData(@NonNull JoinedLogRecord value) {
+        public @NonNull Builder setResumptionToken(@NonNull byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8;
-            mInputData = value;
+            mResumptionToken = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull ExampleInput build() {
+        public @NonNull TrainingExampleInput build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
-            ExampleInput o = new ExampleInput(
+            TrainingExampleInput o = new TrainingExampleInput(
                     mPopulationName,
                     mTaskName,
                     mCollectionName,
-                    mInputData);
+                    mResumptionToken);
             return o;
         }
 
@@ -327,10 +321,10 @@ public class ExampleInput implements Parcelable  {
     }
 
     @DataClass.Generated(
-            time = 1695411754229L,
+            time = 1695743436351L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExampleInput.java",
-            inputSignatures = "private final @android.annotation.NonNull java.lang.String mPopulationName\nprivate final @android.annotation.NonNull java.lang.String mTaskName\nprivate final @android.annotation.NonNull java.lang.String mCollectionName\nprivate final @android.annotation.NonNull android.adservices.ondevicepersonalization.JoinedLogRecord mInputData\nclass ExampleInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleInput.java",
+            inputSignatures = "private final @android.annotation.NonNull java.lang.String mPopulationName\nprivate final @android.annotation.NonNull java.lang.String mTaskName\nprivate final @android.annotation.NonNull java.lang.String mCollectionName\nprivate final @android.annotation.Nullable byte[] mResumptionToken\nclass TrainingExampleInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
