@@ -27,8 +27,6 @@ import android.os.RemoteException;
 import android.util.Pair;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Constants;
-import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.common.Flags;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -53,8 +51,7 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
 
     @Override
     public IExampleStoreIterator getExampleStoreIterator(
-            String packageName, ExampleSelector exampleSelector)
-            throws InterruptedException, ErrorStatusException {
+            String packageName, ExampleSelector exampleSelector) throws InterruptedException {
         String collection = exampleSelector.getCollectionUri();
         byte[] criteria = exampleSelector.getCriteria().toByteArray();
         byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
@@ -71,9 +68,10 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
         IExampleStoreService exampleStoreService =
                 mExampleStoreServiceProvider.getExampleStoreService();
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.EXTRA_COLLECTION_NAME, collection);
-        bundle.putByteArray(Constants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
-        bundle.putByteArray(Constants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
+        bundle.putString(ClientConstants.EXTRA_COLLECTION_NAME, collection);
+        bundle.putByteArray(
+                ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
+        bundle.putByteArray(ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
         SettableFuture<Pair<IExampleStoreIterator, Integer>> iteratorOrFailureFuture =
                 SettableFuture.create();
         try {

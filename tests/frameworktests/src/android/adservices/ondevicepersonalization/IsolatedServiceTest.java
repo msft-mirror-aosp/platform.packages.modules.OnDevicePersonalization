@@ -23,11 +23,11 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
-import android.federatedcompute.aidl.IFederatedComputeService;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
@@ -43,6 +43,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
@@ -223,6 +225,23 @@ public class IsolatedServiceTest {
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnDownloadThrowsIfFederatedComputeServiceMissing() throws Exception {
+        DownloadInputParcel input =
+                new DownloadInputParcel.Builder()
+                        .setDownloadedKeys(StringParceledListSlice.emptyList())
+                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -421,12 +440,12 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExample() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        ExampleInput input =
-                new ExampleInput.Builder()
+        TrainingExampleInput input =
+                new TrainingExampleInput.Builder()
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
-                        .setInputData(joinedLogRecord)
+                        .setResumptionToken(new byte[]{0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -434,10 +453,15 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnTrainingExampleCalled);
-        ExampleOutput result =
-                mCallbackResult.getParcelable(
-                        Constants.EXTRA_RESULT, ExampleOutput.class);
-        assertArrayEquals(new byte[]{12}, result.getTrainingExample());
+        TrainingExampleOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT,
+                        TrainingExampleOutputParcel.class);
+        List<byte[]> examples = result.getTrainingExamples().getList();
+        List<byte[]> tokens = result.getResumptionTokens().getList();
+        assertEquals(1, examples.size());
+        assertEquals(1, tokens.size());
+        assertArrayEquals(new byte[]{12}, examples.get(0));
+        assertArrayEquals(new byte[]{13}, tokens.get(0));
     }
 
     @Test
@@ -445,40 +469,40 @@ public class IsolatedServiceTest {
         assertThrows(
                 NullPointerException.class,
                 () -> {
-                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, null,
-                            new TestServiceCallback());
+                    mBinder.onRequest(
+                            Constants.OP_TRAINING_EXAMPLE, null, new TestServiceCallback());
                 });
     }
 
     @Test
     public void testOnTrainingExampleThrowsIfDataAccessServiceMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        ExampleInput input =
-                new ExampleInput.Builder()
+        TrainingExampleInput input =
+                new TrainingExampleInput.Builder()
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
-                        .setInputData(joinedLogRecord)
+                        .setResumptionToken(new byte[]{0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
                 NullPointerException.class,
                 () -> {
-                    mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params,
-                            new TestServiceCallback());
+                    mBinder.onRequest(
+                            Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
                 });
     }
 
     @Test
     public void testOnTrainingExampleThrowsIfCallbackMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        ExampleInput input =
-                new ExampleInput.Builder()
+        TrainingExampleInput input =
+                new TrainingExampleInput.Builder()
                         .setPopulationName("")
                         .setCollectionName("")
                         .setTaskName("")
-                        .setInputData(joinedLogRecord)
+                        .setResumptionToken(new byte[]{0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -500,13 +524,11 @@ public class IsolatedServiceTest {
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
         @Override
         public void schedule(
-                String callingPackageName,
                 TrainingOptions trainingOptions,
                 IFederatedComputeCallback callback) {
         }
 
         public void cancel(
-                String callingPackageName,
                 String populationName,
                 IFederatedComputeCallback callback) {
         }
@@ -570,9 +592,17 @@ public class IsolatedServiceTest {
 
         @Override
         public void onTrainingExample(
-                ExampleInput input, Consumer<ExampleOutput> consumer) {
+                TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
             mOnTrainingExampleCalled = true;
-            consumer.accept(new ExampleOutput.Builder().setTrainingExample(new byte[]{12}).build());
+            List<byte[]> examples = new ArrayList<>();
+            examples.add(new byte[]{12});
+            List<byte[]> tokens = new ArrayList<>();
+            tokens.add(new byte[]{13});
+            consumer.accept(
+                    new TrainingExampleOutput.Builder()
+                            .setTrainingExamples(examples)
+                            .setResumptionTokens(tokens)
+                            .build());
         }
     }
 

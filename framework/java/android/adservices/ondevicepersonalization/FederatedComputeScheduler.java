@@ -16,12 +16,17 @@
 
 package android.adservices.ondevicepersonalization;
 
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
-import android.federatedcompute.aidl.IFederatedComputeService;
+import android.annotation.WorkerThread;
+import android.federatedcompute.common.TrainingOptions;
+import android.os.IBinder;
+import android.os.RemoteException;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
-import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * Handles scheduling federated learning and federated analytic jobs.
@@ -32,25 +37,64 @@ public class FederatedComputeScheduler {
     private static final String TAG = FederatedComputeScheduler.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
 
-    @NonNull private final IFederatedComputeService mFcService;
+    private final IFederatedComputeService mFcService;
 
     /** @hide */
-    public FederatedComputeScheduler(@NonNull IFederatedComputeService binder) {
-        mFcService = Objects.requireNonNull(binder);
+    public FederatedComputeScheduler(IFederatedComputeService binder) {
+        mFcService = binder;
     }
 
     /**
      * Schedule a federated computation job.
      *
      * @param params parameters related to job scheduling.
-     * @param input the configuration related o federated computation. It should be consistent with
-     *     federated computation server setup. TODO(b/300461799): add federated compute server
-     *     document.
+     * @param input  the configuration related o federated computation. It should be consistent
+     *               with federated computation server setup.
+     *               TODO(b/300461799): add federated compute server document.
      * @throws IllegalArgumentException caused by caller supplied invalid input argument.
-     * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
+     * @throws IllegalStateException    caused by an internal failure of FederatedComputeScheduler.
      */
+    @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
-        // TODO(b/300696702): add implementation to call FCP service.
+        if (mFcService == null) {
+            throw new IllegalStateException(
+                    "FederatedComputeScheduler not available for this instance.");
+        }
+        android.federatedcompute.common.TrainingInterval trainingInterval = convertTrainingInterval(
+                params.getTrainingInterval());
+        TrainingOptions trainingOptions = new TrainingOptions.Builder()
+                .setPopulationName(input.getPopulationName())
+                .setTrainingInterval(trainingInterval)
+                .build();
+        CountDownLatch latch = new CountDownLatch(1);
+        final int[] err = {0};
+        try {
+            mFcService.schedule(trainingOptions,
+                    new IFederatedComputeCallback() {
+                        @Override
+                        public void onSuccess() throws RemoteException {
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onFailure(int i) throws RemoteException {
+                            err[0] = i;
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public IBinder asBinder() {
+                            return null;
+                        }
+                    });
+            latch.await();
+            if (err[0] != 0) {
+                throw new IllegalStateException("Internal failure occurred while scheduling job");
+            }
+        } catch (RemoteException | InterruptedException e) {
+            sLogger.e(TAG + ": Failed to schedule federated compute job", e);
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
@@ -59,8 +103,51 @@ public class FederatedComputeScheduler {
      * @param populationName population name of the job that caller wants to cancel
      * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
      */
+    @WorkerThread
     public void cancel(@NonNull String populationName) {
-        // TODO(b/300696702): add implementation to call FCP service.
+        if (mFcService == null) {
+            throw new IllegalStateException(
+                    "FederatedComputeScheduler not available for this instance.");
+        }
+        CountDownLatch latch = new CountDownLatch(1);
+        final int[] err = {0};
+        try {
+            mFcService.cancel(populationName,
+                    new IFederatedComputeCallback() {
+                        @Override
+                        public void onSuccess() throws RemoteException {
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onFailure(int i) throws RemoteException {
+                            err[0] = i;
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public IBinder asBinder() {
+                            return null;
+                        }
+                    });
+            latch.await();
+            if (err[0] != 0) {
+                throw new IllegalStateException("Internal failure occurred while cancelling job");
+            }
+        } catch (RemoteException | InterruptedException e) {
+            sLogger.e(TAG + ": Failed to cancel federated compute job", e);
+            throw new IllegalStateException(e);
+        }
+    }
+
+    private android.federatedcompute.common.TrainingInterval convertTrainingInterval(
+            TrainingInterval interval) {
+        android.federatedcompute.common.TrainingInterval trainingInterval =
+                new android.federatedcompute.common.TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(interval.getMinimumInterval().toMillis())
+                        .setSchedulingMode(interval.getSchedulingMode())
+                        .build();
+        return trainingInterval;
     }
 
     /** The parameters related to job scheduling. */
@@ -72,7 +159,8 @@ public class FederatedComputeScheduler {
          * scheduled. When a one time job is scheduled, the earliest next runtime is calculated
          * based on federated compute default interval.
          */
-        @NonNull private final TrainingInterval mTrainingInterval;
+        @NonNull
+        private final TrainingInterval mTrainingInterval;
 
         public Params(@NonNull TrainingInterval trainingInterval) {
             mTrainingInterval = trainingInterval;
