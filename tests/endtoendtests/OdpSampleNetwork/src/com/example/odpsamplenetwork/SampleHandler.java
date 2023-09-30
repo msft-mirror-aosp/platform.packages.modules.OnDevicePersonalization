@@ -16,24 +16,25 @@
 
 package com.example.odpsamplenetwork;
 
+import android.adservices.ondevicepersonalization.AppInfo;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventUrlProvider;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.WebViewEventInput;
+import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.AppInstallStatus;
-import android.app.ondevicepersonalization.DownloadInput;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.EventLogRecord;
-import android.app.ondevicepersonalization.EventUrlProvider;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.KeyValueStore;
-import android.app.ondevicepersonalization.RenderInput;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.UserData;
-import android.app.ondevicepersonalization.WebViewEventInput;
-import android.app.ondevicepersonalization.WebViewEventOutput;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -50,6 +51,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.setfilters.cuckoofilter.CuckooFilter;
 
+import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -60,7 +62,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
-public class SampleHandler implements IsolatedComputationCallback {
+public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
@@ -103,12 +105,12 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     @Override
-    public void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            @NonNull DownloadCompletedInput input,
+            @NonNull Consumer<DownloadCompletedOutput> consumer) {
         Log.d(TAG, "onDownload() started.");
-        DownloadOutput downloadResult =
-                new DownloadOutput.Builder()
+        DownloadCompletedOutput downloadResult =
+                new DownloadCompletedOutput.Builder()
                         .setRetainedKeys(getFilteredKeys(input.getData()))
                         .build();
         consumer.accept(downloadResult);
@@ -155,13 +157,21 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     private boolean isMatch(Ad ad, String requestKeyword) {
-        if (ad.mTargetKeyword != null && !ad.mTargetKeyword.isEmpty()) {
-            if (!ad.mTargetKeyword.equals(requestKeyword)) {
+        if (ad.mTargetKeywords != null && !ad.mTargetKeywords.isEmpty()) {
+            if (!ad.mTargetKeywords.contains(requestKeyword)) {
                 return false;
             }
         }
-        if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
-            if (ad.mExcludeKeyword.equals(requestKeyword)) {
+        if (ad.mTargetApps != null && !ad.mTargetApps.isEmpty()) {
+            if (!isInstalledAppFound(ad.mTargetApps)) {
+                return false;
+            }
+        }
+        if (ad.mExcludes != null && !ad.mExcludes.isEmpty()) {
+            if (ad.mExcludes.contains(requestKeyword)) {
+                return false;
+            }
+            if (isInstalledAppFound(ad.mExcludes)) {
                 return false;
             }
         }
@@ -267,8 +277,8 @@ public class SampleHandler implements IsolatedComputationCallback {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
-            String url = mEventUrlProvider.getEventTrackingUrl(
-                    eventParams, TRANSPARENT_PNG_BYTES, "image/png");
+            String url = mEventUrlProvider.createEventTrackingUrlWithResponse(
+                    eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -280,8 +290,8 @@ public class SampleHandler implements IsolatedComputationCallback {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
-            String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage);
+            String url = mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                    eventParams, Uri.parse(landingPage)).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -403,8 +413,7 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -413,8 +422,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
-            AppInstallStatus value = mUserData.getAppInstalledHistory().get(app);
+        for (String app: mUserData.getAppInfos().keySet()) {
+            AppInfo value = mUserData.getAppInfos().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -423,8 +432,32 @@ public class SampleHandler implements IsolatedComputationCallback {
         return false;
     }
 
+    boolean isInstalledAppFound(List<String> apps) {
+        if (mUserData == null) {
+            Log.i(TAG, "No userdata.");
+            return false;
+        }
+
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
+            Log.i(TAG, "No installed apps.");
+            return false;
+        }
+
+        if (apps == null || apps.isEmpty()) {
+            return false;
+        }
+
+        for (String app: mUserData.getAppInfos().keySet()) {
+            if (apps.contains(app)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     boolean isBlockedAd(Ad ad) {
-        return isInstalledAppFound(ad.mExcludeFilter);
+        return isInstalledAppFound(ad.mExcludeFilter) || isInstalledAppFound(ad.mExcludes);
     }
 
     private List<String> getFilteredKeys(Map<String, byte[]> data) {
@@ -475,23 +508,25 @@ public class SampleHandler implements IsolatedComputationCallback {
     static class Ad {
         final String mId;
         final double mPrice;
-        final String mTargetKeyword;
-        final String mExcludeKeyword;
+        final List<String> mTargetKeywords;
+        final List<String> mTargetApps;
+        final List<String> mExcludes;
         final String mLandingPage;
         final String mText;
         final String mTemplateId;
         final CuckooFilter<String> mTargetKeywordFilter;
         final CuckooFilter<String> mTargetAppFilter;
         final CuckooFilter<String> mExcludeFilter;
-        Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage, String text, String templateId,
+        Ad(String id, double price, List<String> targetKeywords, List<String> targetApps,
+                List<String> excludes, String landingPage, String text, String templateId,
                 CuckooFilter<String> targetKeywordFilter,
                 CuckooFilter<String> targetAppFilter,
                 CuckooFilter<String> excludeFilter) {
             mId = id;
             mPrice = price;
-            mTargetKeyword = targetKeyword;
-            mExcludeKeyword = excludeKeyword;
+            mTargetKeywords = targetKeywords;
+            mTargetApps = targetApps;
+            mExcludes = excludes;
             mLandingPage = landingPage;
             mText = text;
             mTemplateId = templateId;
@@ -499,6 +534,17 @@ public class SampleHandler implements IsolatedComputationCallback {
             mTargetAppFilter = targetAppFilter;
             mExcludeFilter = excludeFilter;
         }
+    }
+
+    private static void readJsonArray(JsonReader reader, List<String> values) throws IOException {
+        reader.beginArray();
+        while (reader.hasNext()) {
+            String value = reader.nextString();
+            if (value != null && !value.isEmpty()) {
+                values.add(value);
+            }
+        }
+        reader.endArray();
     }
 
     Ad parseAd(String id, byte[] data) {
@@ -511,8 +557,9 @@ public class SampleHandler implements IsolatedComputationCallback {
         try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
             reader.beginObject();
             double price = 0.0;
-            String targetKeyword = "";
-            String excludeKeyword = "";
+            ArrayList<String> targetKeywords = new ArrayList<>();
+            ArrayList<String> targetApps = new ArrayList<>();
+            ArrayList<String> excludes = new ArrayList<>();
             String landingPage = "";
             String text = "Click Here!";
             String templateId = null;
@@ -523,10 +570,12 @@ public class SampleHandler implements IsolatedComputationCallback {
                 String name = reader.nextName();
                 if (name.equals("price")) {
                     price = reader.nextDouble();
-                } else if (name.equals("keyword")) {
-                    targetKeyword = reader.nextString();
-                } else if (name.equals("excludekeyword")) {
-                    excludeKeyword = reader.nextString();
+                } else if (name.equals("keywords")) {
+                    readJsonArray(reader, targetKeywords);
+                } else if (name.equals("apps")) {
+                    readJsonArray(reader, targetApps);
+                } else if (name.equals("excludes")) {
+                    readJsonArray(reader, excludes);
                 } else if (name.equals("landingPage")) {
                     landingPage = reader.nextString();
                 } else if (name.equals("text")) {
@@ -544,8 +593,8 @@ public class SampleHandler implements IsolatedComputationCallback {
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId,
-                    targetKeywordFilter, targetAppFilter, excludeFilter);
+            return new Ad(id, price, targetKeywords, targetApps, excludes, landingPage, text,
+                    templateId, targetKeywordFilter, targetAppFilter, excludeFilter);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;

@@ -17,8 +17,10 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import static android.federatedcompute.common.ClientConstants.RESULT_HANDLING_SERVICE_ACTION;
-import static android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
+import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
+import static android.federatedcompute.common.ClientConstants.STATUS_TRAINING_FAILED;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
@@ -27,23 +29,28 @@ import android.content.Context;
 import android.content.Intent;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
+import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingInterval;
-import android.federatedcompute.common.TrainingOptions;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
-import com.google.common.collect.ImmutableList;
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.events.EventState;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
@@ -57,38 +64,109 @@ public class OdpResultHandlingServiceTests {
     private boolean mCallbackOnSuccessCalled = false;
     private boolean mCallbackOnFailureCalled = false;
 
+    private EventsDao mEventsDao;
+
+    @Before
+    public void setup() {
+        mEventsDao = EventsDao.getInstanceForTest(mContext);
+    }
+
+    @After
+    public void cleanup() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        dbHelper.getWritableDatabase().close();
+        dbHelper.getReadableDatabase().close();
+        dbHelper.close();
+    }
+
+
     @Test
     public void testHandleResult() throws Exception {
         Intent mIntent = new Intent();
         mIntent.setAction(RESULT_HANDLING_SERVICE_ACTION).setPackage(mContext.getPackageName());
         mIntent.setData(
-                new Uri.Builder().scheme("app").authority(mContext.getPackageName())
-                        .path("collection").build());
+                new Uri.Builder()
+                        .scheme("app")
+                        .authority(mContext.getPackageName())
+                        .path("collection")
+                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
 
-        TrainingOptions trainingOptions =
-                new TrainingOptions.Builder()
-                        .setPopulationName("population")
-                        .setJobSchedulerJobId(1)
-                        .setTrainingInterval(
-                                new TrainingInterval.Builder()
-                                        .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
-                                        .build())
-                        .build();
-        ImmutableList<ExampleConsumption> exampleConsumptions =
-                ImmutableList.of(
-                        new ExampleConsumption.Builder()
-                                .setCollectionName("collection")
-                                .setExampleCount(100)
-                                .setSelectionCriteria(new byte[]{10, 0, 1})
-                                .build());
+        Bundle input = new Bundle();
+        ContextData contextData = new ContextData(mContext.getPackageName());
+        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
+                ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
+        input.putString(ClientConstants.EXTRA_TASK_NAME, "task_name");
+        input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
+        ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
+        exampleConsumptions.add(
+                new ExampleConsumption.Builder()
+                        .setCollectionName("collection")
+                        .setExampleCount(100)
+                        .setSelectionCriteria(new byte[]{10, 0, 1})
+                        .setResumptionToken(new byte[]{10, 0, 1})
+                        .build());
+        exampleConsumptions.add(
+                new ExampleConsumption.Builder()
+                        .setCollectionName("collection2")
+                        .setExampleCount(100)
+                        .setSelectionCriteria(new byte[]{11, 1})
+                        .setResumptionToken(new byte[]{11, 1})
+                        .build());
+        input.putParcelableArrayList(
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
 
-        ((IResultHandlingService.Stub) binder).handleResult(
-                trainingOptions,
-                true,
-                exampleConsumptions,
-                new TestCallback());
+        ((IResultHandlingService.Stub) binder).handleResult(input, new TestCallback());
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertTrue(mCallbackOnSuccessCalled);
+        assertFalse(mCallbackOnFailureCalled);
+
+        EventState state1 = mEventsDao.getEventState(
+                OdpExampleStoreService.getTaskIdentifier("collection", "population", "task_name"),
+                mContext.getPackageName());
+        assertArrayEquals(new byte[]{10, 0, 1}, state1.getToken());
+
+        EventState state2 = mEventsDao.getEventState(
+                OdpExampleStoreService.getTaskIdentifier("collection2", "population", "task_name"),
+                mContext.getPackageName());
+        assertArrayEquals(new byte[]{11, 1}, state2.getToken());
+    }
+
+    @Test
+    public void testHandleResultTrainingFailed() throws Exception {
+        Intent mIntent = new Intent();
+        mIntent.setAction(RESULT_HANDLING_SERVICE_ACTION).setPackage(mContext.getPackageName());
+        mIntent.setData(
+                new Uri.Builder()
+                        .scheme("app")
+                        .authority(mContext.getPackageName())
+                        .path("collection")
+                        .build());
+        IBinder binder = serviceRule.bindService(mIntent);
+        assertNotNull(binder);
+
+        Bundle input = new Bundle();
+        ContextData contextData = new ContextData(mContext.getPackageName());
+        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
+                ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
+        input.putString(ClientConstants.EXTRA_TASK_NAME, "task_name");
+        input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_TRAINING_FAILED);
+        ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
+        exampleConsumptions.add(
+                new ExampleConsumption.Builder()
+                        .setCollectionName("collection")
+                        .setExampleCount(100)
+                        .setSelectionCriteria(new byte[]{10, 0, 1})
+                        .setResumptionToken(new byte[]{10, 0, 1})
+                        .build());
+        input.putParcelableArrayList(
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
+
+        ((IResultHandlingService.Stub) binder).handleResult(input, new TestCallback());
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mCallbackOnSuccessCalled);
         assertFalse(mCallbackOnFailureCalled);

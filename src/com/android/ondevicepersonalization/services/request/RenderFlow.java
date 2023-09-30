@@ -16,13 +16,13 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.RenderInput;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -216,7 +216,8 @@ public class RenderFlow {
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mServicePackageName, mContext, false);
+                mServicePackageName, mContext, /* includeLocalData */ false,
+                /* includeEventData */ false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,

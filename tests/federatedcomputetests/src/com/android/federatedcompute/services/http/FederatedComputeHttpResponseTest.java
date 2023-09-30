@@ -22,18 +22,17 @@ import static org.junit.Assert.assertThrows;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 import java.util.List;
 import java.util.Map;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(JUnit4.class)
 public final class FederatedComputeHttpResponseTest {
     @Test
     public void testBuildWithAllValues() {

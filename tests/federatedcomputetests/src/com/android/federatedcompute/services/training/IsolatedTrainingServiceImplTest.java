@@ -20,24 +20,17 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
-import android.content.Context;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
-import android.federatedcompute.aidl.IResultHandlingService;
-import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingOptions;
+import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.os.RemoteException;
-
-import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
@@ -62,26 +55,16 @@ import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
 public final class IsolatedTrainingServiceImplTest {
     private static final String POPULATION_NAME = "population_name";
-    private static final String CLIENT_PACKAGE_NAME = "de.myselph";
     private static final long RUN_ID = 12345L;
-    private static final String SESSION_NAME = "session_name";
-    private static final String TASK_NAME = "task_name";
-    private static final String INPUT_CHECKPOINT_FD = "fd:///5";
-    private static final String OUTPUT_CHECKPOINT_FD = "fd:///6";
     private static final FakeExampleStoreIterator FAKE_EXAMPLE_STORE_ITERATOR =
             new FakeExampleStoreIterator(ImmutableList.of());
-    private static final FakeResultHandlingService FAKE_RESULT_HANDLING_SERVICE =
-            new FakeResultHandlingService();
     private static final ExampleSelector EXAMPLE_SELECTOR =
             ExampleSelector.newBuilder().setCollectionUri("collection_uri").build();
-
-    private final CountDownLatch mLatch = new CountDownLatch(1);
     private static final TaskRetry TASK_RETRY =
             TaskRetry.newBuilder().setRetryToken("foobar").build();
     private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
@@ -92,7 +75,6 @@ public final class IsolatedTrainingServiceImplTest {
                                     .setRetryToken(TASK_RETRY.getRetryToken())
                                     .build())
                     .build();
-
     private static final FLRunnerResult FL_RUNNER_FAIL_RESULT =
             FLRunnerResult.newBuilder()
                     .setContributionResult(ContributionResult.FAIL)
@@ -101,11 +83,9 @@ public final class IsolatedTrainingServiceImplTest {
                                     .setRetryToken(TASK_RETRY.getRetryToken())
                                     .build())
                     .build();
-
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final CountDownLatch mLatch = new CountDownLatch(1);
     private IsolatedTrainingServiceImpl mIsolatedTrainingService;
     private Bundle mCallbackResult;
-    private int mCallbackErrorCode;
     @Mock private ComputationRunner mComputationRunner;
     private MockitoSession mStaticMockSession;
     private ParcelFileDescriptor mInputCheckpointFd;
@@ -139,16 +119,7 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingSuccess() throws Exception {
         when(mComputationRunner.runTaskWithNativeRunner(
-                        anyInt(),
-                        anyString(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                        anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
 
         Bundle bundle = buildInputBundle();
@@ -162,16 +133,7 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingFailure() throws Exception {
         when(mComputationRunner.runTaskWithNativeRunner(
-                        anyInt(),
-                        anyString(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any(),
-                        any()))
+                        anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_FAIL_RESULT);
 
         Bundle bundle = buildInputBundle();
@@ -185,13 +147,11 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingMissingExampleSelector_returnsFailure() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.EXTRA_POPULATION_NAME, POPULATION_NAME);
+        bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
-        bundle.putBinder(
-                Constants.EXTRA_RESULT_HANDLING_SERVICE_BINDER, FAKE_RESULT_HANDLING_SERVICE);
 
         assertThrows(
                 NullPointerException.class,
@@ -201,13 +161,11 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingInvalidExampleSelector_returnsFailure() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.EXTRA_POPULATION_NAME, POPULATION_NAME);
+        bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
-        bundle.putBinder(
-                Constants.EXTRA_RESULT_HANDLING_SERVICE_BINDER, FAKE_RESULT_HANDLING_SERVICE);
 
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, "exampleselector".getBytes());
 
@@ -219,13 +177,11 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingNullPlan_returnsFailure() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.EXTRA_POPULATION_NAME, POPULATION_NAME);
+        bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
-        bundle.putBinder(
-                Constants.EXTRA_RESULT_HANDLING_SERVICE_BINDER, FAKE_RESULT_HANDLING_SERVICE);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
 
         assertThrows(
@@ -243,16 +199,20 @@ public final class IsolatedTrainingServiceImplTest {
 
     private Bundle buildInputBundle() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.EXTRA_POPULATION_NAME, POPULATION_NAME);
+        bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
-        bundle.putBinder(
-                Constants.EXTRA_RESULT_HANDLING_SERVICE_BINDER, FAKE_RESULT_HANDLING_SERVICE);
         ClientOnlyPlan clientOnlyPlan = TrainingTestUtil.createFederatedAnalyticClientPlan();
-        bundle.putByteArray(Constants.EXTRA_CLIENT_ONLY_PLAN, clientOnlyPlan.toByteArray());
+        String clientPlanFile =
+                FileUtils.createTempFile(Constants.EXTRA_CLIENT_ONLY_PLAN_FD, ".pb");
+        FileUtils.writeToFile(clientPlanFile, clientOnlyPlan.toByteArray());
+        bundle.putParcelable(
+                Constants.EXTRA_CLIENT_ONLY_PLAN_FD,
+                FileUtils.createTempFileDescriptor(
+                        clientPlanFile, ParcelFileDescriptor.MODE_READ_ONLY));
         return bundle;
     }
 
@@ -272,18 +232,6 @@ public final class IsolatedTrainingServiceImplTest {
         public void onResult(Bundle result) {
             mCallbackResult = result;
             mLatch.countDown();
-        }
-    }
-
-    private static final class FakeResultHandlingService extends IResultHandlingService.Stub {
-        @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                IFederatedComputeCallback callback)
-                throws RemoteException {
-            callback.onSuccess();
         }
     }
 }

@@ -26,9 +26,9 @@ import android.federatedcompute.aidl.IExampleStoreIteratorCallback;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.RemoteException;
-import android.util.Log;
 import android.util.Pair;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
@@ -50,7 +50,7 @@ import javax.annotation.Nullable;
  * main thread.
  */
 public final class FederatedExampleIterator implements ExampleIterator {
-    private static final String TAG = "FederatedExampleIterator";
+    private static final String TAG = FederatedExampleIterator.class.getSimpleName();
     // TODO: replace with PH flag.
     private static final long TIMEOUT_SECS = 2L;
 
@@ -143,7 +143,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
         mCurrentResult = mIteratorWrapper.next();
         if (mCurrentResult == null) {
             mNextResultState = NextResultState.END_OF_ITERATOR;
-            Log.d(TAG, "App example store returns null, end of iterator.");
+            LogUtil.d(TAG, "App example store returns null, end of iterator.");
         } else {
             mNextResultState = NextResultState.RESULT_AVAILABLE;
         }
@@ -219,7 +219,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 try {
                     mExampleStoreIterator.close();
                 } catch (RemoteException e) {
-                    Log.w(TAG, "Exception during call to IExampleStoreIterator.close", e);
+                    LogUtil.w(TAG, e, "Exception during call to IExampleStoreIterator.close");
                 }
             }
         }

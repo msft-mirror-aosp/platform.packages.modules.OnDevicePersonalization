@@ -16,20 +16,22 @@
 
 package com.test;
 
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleInput;
+import android.adservices.ondevicepersonalization.TrainingExampleOutput;
+import android.adservices.ondevicepersonalization.WebViewEventInput;
+import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.DownloadInput;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.EventLogRecord;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.KeyValueStore;
-import android.app.ondevicepersonalization.RenderInput;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.WebViewEventInput;
-import android.app.ondevicepersonalization.WebViewEventOutput;
 import android.content.ContentValues;
 import android.util.Log;
 
@@ -41,7 +43,7 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationCallback {
+public class TestPersonalizationHandler implements IsolatedWorker {
     public final String TAG = "TestPersonalizationHandler";
     private final KeyValueStore mRemoteData;
 
@@ -50,7 +52,9 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
     }
 
     @Override
-    public void onDownload(DownloadInput input, Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            DownloadCompletedInput input,
+            Consumer<DownloadCompletedOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Data: " + input.getData());
@@ -63,8 +67,8 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
                     getFilteredKeys(input.getData());
             keysToRetain.add("keyExtra");
             // Get the keys to keep from the downloaded data
-            DownloadOutput result =
-                    new DownloadOutput.Builder()
+            DownloadCompletedOutput result =
+                    new DownloadCompletedOutput.Builder()
                             .setRetainedKeys(keysToRetain)
                             .build();
             consumer.accept(result);
@@ -132,5 +136,28 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
         Set<String> filteredKeys = data.keySet();
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);
+    }
+
+    @Override
+    public void onTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
+        Log.d(TAG, "onTrainingExample() started.");
+        Log.d(TAG, "Collection name: " + input.getCollectionName());
+        Log.d(TAG, "Population name: " + input.getPopulationName());
+        Log.d(TAG, "Task name: " + input.getTaskName());
+
+        List<byte[]> examples = new ArrayList<>();
+        List<byte[]> tokens = new ArrayList<>();
+        examples.add(new byte[]{10});
+        examples.add(new byte[]{20});
+        tokens.add("token1".getBytes());
+        tokens.add("token2".getBytes());
+
+        TrainingExampleOutput output = new TrainingExampleOutput.Builder()
+                .setTrainingExamples(examples)
+                .setResumptionTokens(tokens)
+                .build();
+        consumer.accept(output);
     }
 }

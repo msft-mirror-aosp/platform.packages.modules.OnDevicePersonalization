@@ -16,7 +16,13 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
+import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
+import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
+
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.federatedcompute.ExampleStoreIterator;
@@ -26,6 +32,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -37,16 +45,49 @@ public class OdpExampleStoreIteratorTest {
 
     @Test
     public void testNext() {
-        OdpExampleStoreIterator it = new OdpExampleStoreIterator();
-        it.next(new TestIteratorCallback());
+        List<byte[]> exampleList = new ArrayList<>();
+        exampleList.add(new byte[]{1});
+        List<byte[]> tokenList = new ArrayList<>();
+        tokenList.add(new byte[]{2});
+        OdpExampleStoreIterator it = new OdpExampleStoreIterator(exampleList, tokenList);
+        it.next(new TestIteratorCallback(new byte[]{1}, new byte[]{2}));
+        assertTrue(mIteratorCallbackOnSuccessCalled);
+        assertFalse(mIteratorCallbackOnFailureCalled);
+        mIteratorCallbackOnSuccessCalled = false;
+        it.next(new TestIteratorCallback(null, null));
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
     }
 
+    @Test
+    public void testConstructorError() {
+        List<byte[]> exampleList = new ArrayList<>();
+        exampleList.add(new byte[]{1});
+        List<byte[]> tokenList = new ArrayList<>();
+        assertThrows(IllegalArgumentException.class,
+                () -> new OdpExampleStoreIterator(exampleList, tokenList));
+    }
+
     public class TestIteratorCallback implements ExampleStoreIterator.IteratorCallback {
+
+        byte[] mExpectedExample;
+        byte[] mExpectedResumptionToken;
+
+        TestIteratorCallback(byte[] expectedExample, byte[] expectedResumptionToken) {
+            mExpectedExample = expectedExample;
+            mExpectedResumptionToken = expectedResumptionToken;
+        }
 
         @Override
         public boolean onIteratorNextSuccess(Bundle result) {
+            if (mExpectedExample == null) {
+                assertNull(result);
+            } else {
+                assertArrayEquals(mExpectedExample, result.getByteArray(
+                        EXTRA_EXAMPLE_ITERATOR_RESULT));
+                assertArrayEquals(mExpectedResumptionToken, result.getByteArray(
+                        EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
+            }
             mIteratorCallbackOnSuccessCalled = true;
             mLatch.countDown();
             return true;
@@ -54,7 +95,7 @@ public class OdpExampleStoreIteratorTest {
 
         @Override
         public void onIteratorNextFailure(int errorCode) {
-            mIteratorCallbackOnSuccessCalled = true;
+            mIteratorCallbackOnFailureCalled = true;
             mLatch.countDown();
         }
     }

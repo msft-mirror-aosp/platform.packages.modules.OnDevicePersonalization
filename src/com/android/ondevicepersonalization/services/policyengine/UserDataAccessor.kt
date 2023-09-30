@@ -16,19 +16,12 @@
 
 package com.android.ondevicepersonalization.services.policyengine
 
-import android.util.Log
-
-import android.app.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.UserData
 
 import com.android.libraries.pcc.chronicle.util.MutableTypedMap
 import com.android.libraries.pcc.chronicle.util.TypedMap
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
-import com.android.libraries.pcc.chronicle.api.ConnectionResult
-import com.android.libraries.pcc.chronicle.api.ReadConnection
 import com.android.libraries.pcc.chronicle.api.error.ChronicleError
-import com.android.libraries.pcc.chronicle.api.error.PolicyNotFound
-import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
-import com.android.libraries.pcc.chronicle.api.error.Disabled
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory
@@ -39,13 +32,10 @@ import com.android.ondevicepersonalization.services.policyengine.policy.DataIngr
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.KidStatusEnabled
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.LimitedAdsTrackingEnabled
 
-import com.android.ondevicepersonalization.services.data.user.RawUserData
-
 class UserDataAccessor : ProcessorNode {
-    private val sLogger: LoggerFactory.Logger = LoggerFactory.getLogger();
-    private val TAG: String = "UserDataAccessor";
-    private lateinit var policyContext: MutableTypedMap
-    private val rawUserData: RawUserData = RawUserData.getInstance()
+    private val sLogger: LoggerFactory.Logger = LoggerFactory.getLogger()
+    private val TAG: String = "UserDataAccessor"
+    private var policyContext: MutableTypedMap = MutableTypedMap()
 
     override val requiredConnectionTypes = setOf(UserDataReader::class.java)
 
@@ -56,7 +46,6 @@ class UserDataAccessor : ProcessorNode {
     )
 
     init {
-        policyContext = MutableTypedMap()
         policyContext[KidStatusEnabled] = false
         policyContext[LimitedAdsTrackingEnabled] = false
 
@@ -67,14 +56,13 @@ class UserDataAccessor : ProcessorNode {
     fun getUserData(): UserData? {
         try {
             val userDataReader: UserDataReader? =
-                chronicleManager.chronicle.getConnectionOrThrow(
-                        ConnectionRequest(UserDataReader::class.java, this,
-                                            DataIngressPolicy.NPA_DATA_POLICY)
-            )
-            val userData: UserData? = userDataReader?.readUserData()
-            return userData
+                    chronicleManager.chronicle.getConnectionOrThrow(
+                            ConnectionRequest(UserDataReader::class.java, this,
+                                    DataIngressPolicy.NPA_DATA_POLICY)
+                    )
+            return userDataReader?.readUserData()
         } catch (e: ChronicleError) {
-            sLogger.e(TAG + ": Expect success but connection failed with: ", e)
+            sLogger.e(e, TAG + ": Expect success but connection failed with: ")
             return null
         }
     }

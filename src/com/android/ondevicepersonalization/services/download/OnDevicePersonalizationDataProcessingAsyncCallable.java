@@ -16,10 +16,10 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.DownloadInputParcel;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.DownloadInputParcel;
+import android.adservices.ondevicepersonalization.UserData;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -36,6 +36,7 @@ import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonal
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
+import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
@@ -57,6 +58,7 @@ import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -205,8 +207,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         sLogger.d(TAG + ": Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        DownloadOutput downloadResult = pluginResult.getParcelable(
-                Constants.EXTRA_RESULT, DownloadOutput.class);
+        DownloadCompletedOutput downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadCompletedOutput.class);
         List<String> retainedKeys = downloadResult.getRetainedKeys();
         if (retainedKeys == null) {
             // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
@@ -227,8 +229,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mPackageName, mContext, true);
+                mPackageName, mContext, /* includeLocalData */ true,
+                /* includeEventData */ true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
+                mPackageName, mContext);
+        pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
 
         List<String> keys = new ArrayList<>();
         List<byte[]> values = new ArrayList<>();
@@ -282,7 +288,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             if (name.equals("key")) {
                 key = reader.nextString();
             } else if (name.equals("data")) {
-                data = reader.nextString().getBytes();
+                data = reader.nextString().getBytes(StandardCharsets.UTF_8);
             } else {
                 reader.skipValue();
             }

@@ -24,11 +24,9 @@ import android.federatedcompute.common.ClientConstants;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 import android.util.Pair;
 
-import com.android.federatedcompute.services.common.Constants;
-import com.android.federatedcompute.services.common.ErrorStatusException;
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -41,7 +39,7 @@ import java.util.concurrent.TimeoutException;
 
 /** Implementation of the ExampleStoreIterator interface. */
 public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorProvider {
-    private static final String TAG = "ExampleStoreIteratorProvider";
+    private static final String TAG = ExampleStoreIteratorProviderImpl.class.getSimpleName();
     private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
     private final Flags mFlags;
 
@@ -53,8 +51,7 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
 
     @Override
     public IExampleStoreIterator getExampleStoreIterator(
-            String packageName, ExampleSelector exampleSelector)
-            throws InterruptedException, ErrorStatusException {
+            String packageName, ExampleSelector exampleSelector) throws InterruptedException {
         String collection = exampleSelector.getCollectionUri();
         byte[] criteria = exampleSelector.getCriteria().toByteArray();
         byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
@@ -62,18 +59,19 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
         intent.setAction(ClientConstants.EXAMPLE_STORE_ACTION).setPackage(packageName);
         intent.setData(
                 new Uri.Builder().scheme("app").authority(packageName).path(collection).build());
-        Log.d(TAG, "Attempting to bind to example store service: " + intent);
+        LogUtil.d(TAG, "Attempting to bind to example store service: %s", intent);
         if (!mExampleStoreServiceProvider.bindService(intent)) {
-            Log.w(TAG, "bindService failed for example store service: " + intent);
+            LogUtil.w(TAG, "bindService failed for example store service: %s", intent);
             mExampleStoreServiceProvider.unbindService();
             return null;
         }
         IExampleStoreService exampleStoreService =
                 mExampleStoreServiceProvider.getExampleStoreService();
         Bundle bundle = new Bundle();
-        bundle.putString(Constants.EXTRA_COLLECTION_NAME, collection);
-        bundle.putByteArray(Constants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
-        bundle.putByteArray(Constants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
+        bundle.putString(ClientConstants.EXTRA_COLLECTION_NAME, collection);
+        bundle.putByteArray(
+                ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
+        bundle.putByteArray(ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
         SettableFuture<Pair<IExampleStoreIterator, Integer>> iteratorOrFailureFuture =
                 SettableFuture.create();
         try {
@@ -83,18 +81,18 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
                         new IExampleStoreCallback.Stub() {
                             @Override
                             public void onStartQuerySuccess(IExampleStoreIterator iterator) {
-                                Log.d(TAG, "Acquire iterator");
+                                LogUtil.d(TAG, "Acquire iterator");
                                 iteratorOrFailureFuture.set(Pair.create(iterator, null));
                             }
 
                             @Override
                             public void onStartQueryFailure(int errorCode) {
-                                Log.e(TAG, "Could not acquire iterator: " + errorCode);
+                                LogUtil.e(TAG, "Could not acquire iterator: %d", errorCode);
                                 iteratorOrFailureFuture.set(Pair.create(null, errorCode));
                             }
                         });
             } catch (RemoteException e) {
-                Log.e(TAG, "StartQuery failure: " + e.getMessage());
+                LogUtil.e(TAG, e, "StartQuery failure: ");
                 throw new IllegalStateException(e);
             }
             Pair<IExampleStoreIterator, Integer> iteratorOrFailure;
@@ -106,7 +104,7 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
                 // Should not happen.
                 throw new UncheckedExecutionException(e);
             } catch (TimeoutException e) {
-                Log.e(TAG, "startQuery timed out: ", e);
+                LogUtil.e(TAG, e, "startQuery timed out.");
                 throw new IllegalStateException(
                         String.format(
                                 "startQuery timed out (%ss): %s",
@@ -119,12 +117,12 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
                                 "onStartQueryFailure collection %s error code %d",
                                 collection, iteratorOrFailure.second));
             }
-            Log.d(TAG, "Wrapping IExampleStoreIterator");
+            LogUtil.d(TAG, "Wrapping IExampleStoreIterator");
             return iteratorOrFailure.first;
         } catch (Exception e) {
             // If any exception is thrown in try block, we first call unbindService to avoid service
             // connection hanging.
-            Log.d(TAG, "Unbinding from service due to exception", e);
+            LogUtil.d(TAG, e, "Unbinding from service due to exception");
             mExampleStoreServiceProvider.unbindService();
             throw e;
         }

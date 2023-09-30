@@ -61,7 +61,7 @@ public final class FederatedComputeHttpRequest {
             throw new IllegalArgumentException("Content-Length header should not be provided!");
         }
         if (body.length > 0) {
-            if (httpMethod != HttpMethod.POST) {
+            if (httpMethod != HttpMethod.POST && httpMethod != HttpMethod.PUT) {
                 throw new IllegalArgumentException(
                         "Request method does not allow request mBody: " + httpMethod);
             }

@@ -26,43 +26,38 @@ import static org.junit.Assert.assertTrue;
 
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
+import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
+import android.os.Bundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-
-import com.google.common.collect.ImmutableList;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.List;
+import java.util.ArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.function.Consumer;
 
 @RunWith(AndroidJUnit4.class)
 public final class ResultHandlingServiceTest {
+    private static final String TASK_NAME = "task-name";
     private static final String TEST_POPULATION = "testPopulation";
     private static final int JOB_ID = 12345;
     private static final byte[] SELECTION_CRITERIA = new byte[] {10, 0, 1};
     private static final TrainingOptions TRAINING_OPTIONS =
             new TrainingOptions.Builder()
                     .setPopulationName(TEST_POPULATION)
-                    .setJobSchedulerJobId(JOB_ID)
                     .setTrainingInterval(
                             new TrainingInterval.Builder()
                                     .setSchedulingMode(SCHEDULING_MODE_ONE_TIME)
                                     .build())
                     .build();
-    private static final ImmutableList<ExampleConsumption> EXAMPLE_CONSUMPTIONS =
-            ImmutableList.of(
-                    new ExampleConsumption.Builder()
-                            .setCollectionName("collection")
-                            .setExampleCount(100)
-                            .setSelectionCriteria(SELECTION_CRITERIA)
-                            .build());
+    private static final ArrayList<ExampleConsumption> EXAMPLE_CONSUMPTIONS =
+            createExampleConsumptionList();
 
     private boolean mSuccess = false;
     private boolean mHandleResultCalled = false;
@@ -81,8 +76,14 @@ public final class ResultHandlingServiceTest {
 
     @Test
     public void testHandleResult_success() throws Exception {
-        mBinder.handleResult(
-                TRAINING_OPTIONS, true, EXAMPLE_CONSUMPTIONS, new TestFederatedComputeCallback());
+        Bundle input = new Bundle();
+        input.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, TEST_POPULATION);
+        input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
+        input.putParcelableArrayList(
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, EXAMPLE_CONSUMPTIONS);
+
+        mBinder.handleResult(input, new TestFederatedComputeCallback());
 
         mLatch.await();
         assertTrue(mHandleResultCalled);
@@ -91,7 +92,13 @@ public final class ResultHandlingServiceTest {
 
     @Test
     public void testHandleResult_failure() throws Exception {
-        mBinder.handleResult(TRAINING_OPTIONS, true, null, new TestFederatedComputeCallback());
+        Bundle input = new Bundle();
+        input.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, TEST_POPULATION);
+        input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
+        input.putParcelableArrayList(ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, null);
+
+        mBinder.handleResult(input, new TestFederatedComputeCallback());
 
         mLatch.await();
         assertTrue(mHandleResultCalled);
@@ -100,18 +107,29 @@ public final class ResultHandlingServiceTest {
 
     class TestResultHandlingService extends ResultHandlingService {
         @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                Consumer<Integer> callback) {
+        public void handleResult(Bundle input, Consumer<Integer> callback) {
             mHandleResultCalled = true;
+            ArrayList<ExampleConsumption> exampleConsumptionList =
+                    input.getParcelableArrayList(
+                            ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
+                            ExampleConsumption.class);
             if (exampleConsumptionList == null || exampleConsumptionList.isEmpty()) {
                 callback.accept(STATUS_INTERNAL_ERROR);
                 return;
             }
             callback.accept(STATUS_SUCCESS);
         }
+    }
+
+    private static ArrayList<ExampleConsumption> createExampleConsumptionList() {
+        ArrayList<ExampleConsumption> exampleList = new ArrayList<>();
+        exampleList.add(
+                new ExampleConsumption.Builder()
+                        .setCollectionName("collection")
+                        .setExampleCount(100)
+                        .setSelectionCriteria(SELECTION_CRITERIA)
+                        .build());
+        return exampleList;
     }
 
     class TestFederatedComputeCallback extends IFederatedComputeCallback.Stub {

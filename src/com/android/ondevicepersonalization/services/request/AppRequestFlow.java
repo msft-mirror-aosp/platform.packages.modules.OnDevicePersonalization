@@ -16,15 +16,15 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.annotation.NonNull;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.OnDevicePersonalizationException;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.UserData;
-import android.app.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -112,16 +112,20 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            AppManifestConfig config = Objects.requireNonNull(
-                    AppManifestConfigHelper.getAppManifestConfig(
+            AppManifestConfig config = null;
+            try {
+                config = Objects.requireNonNull(
+                        AppManifestConfigHelper.getAppManifestConfig(
                         mContext, mService.getPackageName()));
+            } catch (Exception e) {
+                sLogger.d(TAG + ": Failed to read manifest.", e);
+                sendErrorResult(Constants.STATUS_NAME_NOT_FOUND);
+                return;
+            }
             if (!mService.getClassName().equals(config.getServiceName())) {
-                // TODO(b/228200518): Define a new error code and map it to a specific
-                // exception type in the client API.
-                throw new OnDevicePersonalizationException(
-                    Constants.STATUS_INTERNAL_ERROR,
-                    "Name not found: " + mService.getClassName()
-                    + " expected: " + config.getServiceName());
+                sLogger.d(TAG + "service class not found");
+                sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
+                return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
@@ -182,7 +186,8 @@ public class AppRequestFlow {
                         .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mService.getPackageName(), mContext, true);
+                mService.getPackageName(), mContext, /* includeLocalData */ true,
+                /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
@@ -193,9 +198,12 @@ public class AppRequestFlow {
 
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {
         sLogger.d(TAG + ": logQuery() started.");
-        // TODO(b/228200518): Extract log data from ExecuteOutput.
+        List<ContentValues> rows = null;
+        if (result.getRequestLogRecord() != null) {
+            rows = result.getRequestLogRecord().getRows();
+        }
         byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                mService.getPackageName(), null, result.getRequestLogRecord().getRows());
+                mService.getPackageName(), null, rows);
         Query query = new Query.Builder()
                 .setServicePackageName(mService.getPackageName())
                 .setQueryData(queryData)
