@@ -31,8 +31,10 @@ public class AppManifestConfigParser {
     private static final String TAG = "AppManifestConfigParser";
     private static final String TAG_ON_DEVICE_PERSONALIZATION_CONFIG = "on-device-personalization";
     private static final String TAG_DOWNLOAD_SETTINGS = "download-settings";
+    private static final String TAG_FEDERATED_COMPUTE_SETTINGS = "federated-compute-settings";
     private static final String TAG_SERVICE = "service";
     private static final String ATTR_DOWNLOAD_URL = "url";
+    private static final String ATTR_FC_URL = "url";
     private static final String ATTR_NAME = "name";
 
     private AppManifestConfigParser() {
@@ -47,6 +49,7 @@ public class AppManifestConfigParser {
             XmlPullParserException {
         String downloadUrl = null;
         String serviceName = null;
+        String fcServerUrl = null;
 
         while (parser.getEventType() != XmlPullParser.START_TAG) {
             parser.next();
@@ -70,12 +73,15 @@ public class AppManifestConfigParser {
                 case TAG_DOWNLOAD_SETTINGS:
                     downloadUrl = parser.getAttributeValue(null, ATTR_DOWNLOAD_URL);
                     break;
+                case TAG_FEDERATED_COMPUTE_SETTINGS:
+                    fcServerUrl = parser.getAttributeValue(null, ATTR_FC_URL);
+                    break;
                 default:
                     sLogger.i(TAG + ": Unknown tag: " + parser.getName());
             }
             parser.next();
         }
 
-        return new AppManifestConfig(downloadUrl, serviceName);
+        return new AppManifestConfig(downloadUrl, serviceName, fcServerUrl);
     }
 }
