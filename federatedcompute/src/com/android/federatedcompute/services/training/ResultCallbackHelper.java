@@ -25,18 +25,17 @@ import android.content.Intent;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
 import android.federatedcompute.common.ClientConstants;
-import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
+import com.android.federatedcompute.services.training.util.ComputationResult;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.ArrayList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -69,19 +68,16 @@ public class ResultCallbackHelper {
      * Publishes the training result and example list to client implemented ResultHandlingService.
      */
     public ListenableFuture<CallbackResult> callHandleResult(
-            String taskName,
-            FederatedTrainingTask task,
-            ArrayList<ExampleConsumption> exampleConsumptions,
-            boolean success) {
+            String taskName, FederatedTrainingTask task, ComputationResult result) {
         Bundle input = new Bundle();
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
         input.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
         input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
         input.putInt(
                 ClientConstants.EXTRA_COMPUTATION_RESULT,
-                success ? STATUS_SUCCESS : STATUS_TRAINING_FAILED);
+                result.isResultSuccess() ? STATUS_SUCCESS : STATUS_TRAINING_FAILED);
         input.putParcelableArrayList(
-                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, result.getExampleConsumptionList());
 
         try {
             IResultHandlingService resultHandlingService =
@@ -117,10 +113,9 @@ public class ResultCallbackHelper {
         } catch (Exception e) {
             LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService binding died. population name: %s",
-                            task.populationName()),
-                    e);
+                    e,
+                    "ResultHandlingService binding died. population name: %s",
+                    task.populationName());
             // We publish result to client app with best effort and should not crash flow.
             return Futures.immediateFuture(CallbackResult.FAIL);
         } finally {

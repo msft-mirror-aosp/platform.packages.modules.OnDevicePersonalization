@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
@@ -28,6 +29,7 @@ import android.os.IBinder;
 import android.os.Parcelable;
 import android.os.RemoteException;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.HashMap;
@@ -123,6 +125,23 @@ public abstract class IsolatedService extends Service {
     @NonNull
     public final MutableKeyValueStore getLocalData(@NonNull RequestToken requestToken) {
         return new LocalDataImpl(requestToken.getDataAccessService());
+    }
+
+    /**
+     * Returns a DAO for the REQUESTS and EVENTS tables that provides
+     * access to the rows that are readable by the IsolatedService.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
+     * @see #onRequest
+     * @return A {@link LogReader} object that provides access to the REQUESTS and EVENTS table.
+     *     The methods in the returned {@link LogReader} are blocking operations and
+     *     should be called from a worker thread and not the main thread or a binder thread.
+     *
+     * @hide
+     */
+    @NonNull
+    public final LogReader getLogReader(@NonNull RequestToken requestToken) {
+        return new LogReader(requestToken.getDataAccessService());
     }
 
     /**
@@ -230,8 +249,14 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
+                IFederatedComputeService fcBinder =
+                        IFederatedComputeService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(
+                                                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
+                Objects.requireNonNull(fcBinder);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, null, userData);
+                RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onDownloadCompleted(
                         input, new WrappedCallback<DownloadCompletedOutput>(resultCallback));
@@ -284,7 +309,35 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onTrainingExample(
-                        input, new WrappedCallback<TrainingExampleOutput>(resultCallback));
+                        input, new Consumer<TrainingExampleOutput>() {
+                            @Override
+                            public void accept(TrainingExampleOutput result) {
+                                if (result == null) {
+                                    try {
+                                        resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                                    } catch (RemoteException e) {
+                                        sLogger.w(TAG + ": Callback failed.", e);
+                                    }
+                                } else {
+                                    TrainingExampleOutputParcel parcelResult =
+                                            new TrainingExampleOutputParcel.Builder()
+                                                    .setTrainingExamples(
+                                                            new ByteArrayParceledListSlice(
+                                                                    result.getTrainingExamples()))
+                                                    .setResumptionTokens(
+                                                            new ByteArrayParceledListSlice(
+                                                                    result.getResumptionTokens()))
+                                                    .build();
+                                    Bundle bundle = new Bundle();
+                                    bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
+                                    try {
+                                        resultCallback.onSuccess(bundle);
+                                    } catch (RemoteException e) {
+                                        sLogger.w(TAG + ": Callback failed.", e);
+                                    }
+                                }
+                            }
+                        });
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }

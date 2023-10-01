@@ -14,6 +14,20 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization;
+package android.federatedcompute.test.scenario.federatedcompute;
 
-parcelable ExampleOutput;
+import android.platform.test.microbenchmark.Microbenchmark;
+import android.platform.test.rule.DropCachesRule;
+import android.platform.test.rule.PressHomeRule;
+
+import org.junit.Rule;
+import org.junit.rules.RuleChain;
+import org.junit.runner.RunWith;
+
+@RunWith(Microbenchmark.class)
+public class ScheduleFederatedComputeTaskMicrobenchmark extends ScheduleFederatedComputeTask {
+
+    @Rule
+    public RuleChain rules = RuleChain.outerRule(new DropCachesRule())
+            .around(new PressHomeRule());
+}
