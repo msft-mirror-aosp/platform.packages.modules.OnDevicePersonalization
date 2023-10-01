@@ -92,6 +92,8 @@ public final class HttpFederatedProtocolTest {
     private static final String OCTET_STREAM = "application/octet-stream";
     private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
+    private static final FLRunnerResult FL_RUNNER_FAIL_RESULT =
+            FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
     private static final FederatedComputeHttpResponse CHECKPOINT_HTTP_RESPONSE =
             new FederatedComputeHttpResponse.Builder()
                     .setStatusCode(200)
@@ -228,6 +230,27 @@ public final class HttpFederatedProtocolTest {
                         () -> mHttpFederatedProtocol.issueCheckin().get());
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void testReportFailedTrainingResult_returnSuccess() throws Exception {
+        ComputationResult computationResult =
+                new ComputationResult(createOutputCheckpointFile(), FL_RUNNER_FAIL_RESULT, null);
+
+        setUpHttpFederatedProtocol();
+        // Setup task id, aggregation id for report result.
+        mHttpFederatedProtocol.issueCheckin().get();
+
+        mHttpFederatedProtocol.reportResult(computationResult).get();
+
+        // Verify ReportResult request.
+        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        assertThat(actualHttpRequests).hasSize(4);
+        FederatedComputeHttpRequest acutalReportResultRequest = actualHttpRequests.get(3);
+        ReportResultRequest reportResultRequest =
+                ReportResultRequest.newBuilder().setResult(Result.FAILED).build();
+        assertThat(acutalReportResultRequest.getBody())
+                .isEqualTo(reportResultRequest.toByteArray());
     }
 
     @Test
