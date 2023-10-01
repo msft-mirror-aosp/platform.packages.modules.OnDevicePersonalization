@@ -41,8 +41,11 @@ import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.training.ResultCallbackHelper.CallbackResult;
+import com.android.federatedcompute.services.training.util.ComputationResult;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.FLRunnerResult;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -51,7 +54,6 @@ import org.junit.runners.JUnit4;
 import org.mockito.Mockito;
 
 import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
 public final class ResultCallbackHelperTest {
@@ -60,10 +62,10 @@ public final class ResultCallbackHelperTest {
     private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final String POPULATION_NAME = "population_name";
     private static final String TASK_NAME = "task_name";
-    private static final int JOB_ID = 123;
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
-    private final CountDownLatch mLatch = new CountDownLatch(1);
+    private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
+            FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
 
     private static final FederatedTrainingTask TRAINING_TASK =
             FederatedTrainingTask.builder()
@@ -80,11 +82,14 @@ public final class ResultCallbackHelperTest {
                     .build();
     private static final ArrayList<ExampleConsumption> EXAMPLE_CONSUMPTIONS =
             getExampleConsumptions();
+    private ComputationResult mComputationResult;
     private ResultCallbackHelper mHelper;
 
     @Before
     public void setUp() {
         Context context = ApplicationProvider.getApplicationContext();
+        mComputationResult =
+                new ComputationResult("output", FL_RUNNER_SUCCESS_RESULT, EXAMPLE_CONSUMPTIONS);
         mHelper = Mockito.spy(new ResultCallbackHelper(context));
         doNothing().when(mHelper).unbindFromResultHandlingService();
     }
@@ -96,8 +101,7 @@ public final class ResultCallbackHelperTest {
                 .getResultHandlingService(eq(PACKAGE_NAME));
 
         CallbackResult result =
-                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, EXAMPLE_CONSUMPTIONS, true)
-                        .get();
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
 
         assertThat(result).isEqualTo(CallbackResult.SUCCESS);
     }
@@ -109,8 +113,7 @@ public final class ResultCallbackHelperTest {
                 .getResultHandlingService(eq(PACKAGE_NAME));
 
         CallbackResult result =
-                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, EXAMPLE_CONSUMPTIONS, true)
-                        .get();
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
@@ -122,8 +125,7 @@ public final class ResultCallbackHelperTest {
                 .getResultHandlingService(eq(PACKAGE_NAME));
 
         CallbackResult result =
-                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, EXAMPLE_CONSUMPTIONS, true)
-                        .get();
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
@@ -135,8 +137,7 @@ public final class ResultCallbackHelperTest {
                 .getResultHandlingService(eq(PACKAGE_NAME));
 
         CallbackResult result =
-                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, EXAMPLE_CONSUMPTIONS, true)
-                        .get();
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }

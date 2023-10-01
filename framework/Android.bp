@@ -51,6 +51,7 @@ java_sdk_library {
     ],
     libs: [
         "modules-utils-preconditions",
+        "framework-connectivity.stubs.module_lib",
     ],
     sdk_version: "module_current",
     defaults: [

@@ -43,3 +43,31 @@ android_test {
     certificate: "platform",
     platform_apis: true,
 }
+
+android_test {
+    name: "FederatedComputePerfScenariosTests",
+    srcs: [
+        "src/android/federatedcompute/**/*.java",
+    ],
+    static_libs: [
+        "androidx.test.runner",
+        "androidx.test.rules",
+        "collector-device-lib-platform",
+        "microbenchmark-device-lib",
+        "federatedcompute-test-scenarios",
+        "platform-test-options",
+        "platform-test-rules",
+    ],
+    data: [
+        ":perfetto_artifacts"
+    ],
+    min_sdk_version: "Tiramisu",
+    test_suites: [
+        "device-tests",
+        "general-tests",
+    ],
+
+    // Certificate and platform api is needed for collector-device-lib-platform.
+    certificate: "platform",
+    platform_apis: true,
+}

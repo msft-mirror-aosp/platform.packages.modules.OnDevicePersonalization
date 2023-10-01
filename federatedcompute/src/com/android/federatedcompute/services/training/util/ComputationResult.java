@@ -21,24 +21,24 @@ import android.federatedcompute.common.ExampleConsumption;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 
-import java.util.List;
+import java.util.ArrayList;
 
 /** The result of federated computation. */
 public class ComputationResult {
     private String mOutputCheckpointFile = "";
     private FLRunnerResult mFlRunnerResult = null;
-    private List<ExampleConsumption> mExampleConsumptionList = null;
+    private ArrayList<ExampleConsumption> mExampleConsumptionList = null;
 
     public ComputationResult(
             String outputCheckpointFile,
             FLRunnerResult flRunnerResult,
-            List<ExampleConsumption> exampleConsumptionList) {
+            ArrayList<ExampleConsumption> exampleConsumptionList) {
         this.mOutputCheckpointFile = outputCheckpointFile;
         this.mFlRunnerResult = flRunnerResult;
         this.mExampleConsumptionList = exampleConsumptionList;
     }
 
-    public List<ExampleConsumption> getExampleConsumptionList() {
+    public ArrayList<ExampleConsumption> getExampleConsumptionList() {
         return mExampleConsumptionList;
     }
 

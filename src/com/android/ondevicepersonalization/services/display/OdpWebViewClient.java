@@ -166,7 +166,8 @@ class OdpWebViewClient extends WebViewClient {
             sLogger.d(TAG + ": executeEventHandler() called");
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                    mServicePackageName, mContext, true);
+                    mServicePackageName, mContext, /* includeLocalData */ true,
+                    /* includeEventData */ true);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
             // TODO(b/259950177): Add Query row to input.
             WebViewEventInput input = new WebViewEventInput.Builder()
