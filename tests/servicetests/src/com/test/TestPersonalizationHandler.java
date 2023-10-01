@@ -27,6 +27,8 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleInput;
+import android.adservices.ondevicepersonalization.TrainingExampleOutput;
 import android.adservices.ondevicepersonalization.WebViewEventInput;
 import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
@@ -134,5 +136,28 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         Set<String> filteredKeys = data.keySet();
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);
+    }
+
+    @Override
+    public void onTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
+        Log.d(TAG, "onTrainingExample() started.");
+        Log.d(TAG, "Collection name: " + input.getCollectionName());
+        Log.d(TAG, "Population name: " + input.getPopulationName());
+        Log.d(TAG, "Task name: " + input.getTaskName());
+
+        List<byte[]> examples = new ArrayList<>();
+        List<byte[]> tokens = new ArrayList<>();
+        examples.add(new byte[]{10});
+        examples.add(new byte[]{20});
+        tokens.add("token1".getBytes());
+        tokens.add("token2".getBytes());
+
+        TrainingExampleOutput output = new TrainingExampleOutput.Builder()
+                .setTrainingExamples(examples)
+                .setResumptionTokens(tokens)
+                .build();
+        consumer.accept(output);
     }
 }

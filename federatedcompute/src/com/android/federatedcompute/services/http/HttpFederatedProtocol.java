@@ -18,6 +18,9 @@ package com.android.federatedcompute.services.http;
 
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
+import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
+import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
+import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 
 import com.android.federatedcompute.internal.util.LogUtil;
@@ -42,17 +45,11 @@ import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import java.io.BufferedInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
 import java.util.HashMap;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
     public static final String TAG = "HttpFederatedProtocol";
-    private static final int BUFFER_SIZE = 1024;
 
     private final String mClientVersion;
     private final String mPopulationName;
@@ -204,9 +201,10 @@ public final class HttpFederatedProtocol {
                 return Futures.immediateFailedFuture(
                         new IllegalStateException("Could not parse ClientOnlyPlan proto", e));
             }
+            String inputCheckpointFile = createTempFile("input", ".ckp");
+            writeToFile(inputCheckpointFile, checkpointDataResponse.getPayload());
             return Futures.immediateFuture(
-                    new CheckinResult(
-                            checkpointDataResponse.getPayload(), clientOnlyPlan, taskAssignment));
+                    new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment));
 
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -280,22 +278,6 @@ public final class HttpFederatedProtocol {
         if (!HTTP_OK_STATUS.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
         }
-    }
-
-    private byte[] readFileAsByteArray(String filePath) throws IOException {
-        File file = new File(filePath);
-        long fileLength = file.length();
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream((int) fileLength);
-        try (BufferedInputStream inputStream = new BufferedInputStream(new FileInputStream(file))) {
-            byte[] buffer = new byte[BUFFER_SIZE];
-            for (int len = inputStream.read(buffer); len > 0; len = inputStream.read(buffer)) {
-                outputStream.write(buffer, 0, len);
-            }
-        } catch (IOException e) {
-            LogUtil.e(TAG, e, "Failed to read the content of binary file %s", filePath);
-            throw e;
-        }
-        return outputStream.toByteArray();
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> fetchTaskResource(Resource resource) {

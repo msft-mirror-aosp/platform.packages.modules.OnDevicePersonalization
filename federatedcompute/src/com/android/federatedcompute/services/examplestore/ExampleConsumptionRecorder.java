@@ -89,8 +89,8 @@ public class ExampleConsumptionRecorder {
     }
 
     /** Returns all recorded {@link ExampleConsumption}. */
-    public synchronized List<ExampleConsumption> finishRecordingAndGet() {
-        List<ExampleConsumption> exampleConsumptions = new ArrayList<>();
+    public synchronized ArrayList<ExampleConsumption> finishRecordingAndGet() {
+        ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
         for (SingleQueryRecorder recorder : mSingleQueryRecorders) {
             exampleConsumptions.add(recorder.finishRecordingAndGet());
         }

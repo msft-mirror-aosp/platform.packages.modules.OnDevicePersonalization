@@ -17,9 +17,9 @@
 package android.adservices.ondevicepersonalization;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
+import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.federatedcompute.aidl.IFederatedComputeService;
 
 import java.util.Objects;
 
@@ -28,11 +28,14 @@ import java.util.Objects;
  * must be passed as a parameter to all service methods that depend on per-request state.
  */
 public class RequestToken {
-    @NonNull private final IDataAccessService mDataAccessService;
+    @NonNull
+    private final IDataAccessService mDataAccessService;
 
-    @Nullable private final IFederatedComputeService mFcService;
+    @Nullable
+    private final IFederatedComputeService mFcService;
 
-    @Nullable private final UserData mUserData;
+    @Nullable
+    private final UserData mUserData;
 
     /** @hide */
     RequestToken(

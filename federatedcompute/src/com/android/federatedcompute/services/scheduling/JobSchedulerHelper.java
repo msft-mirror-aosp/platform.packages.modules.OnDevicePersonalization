@@ -39,6 +39,7 @@ public class JobSchedulerHelper {
     /** Schedules a task using JobScheduler. */
     public boolean scheduleTask(Context context, FederatedTrainingTask newTask) {
         JobInfo jobInfo = convertToJobInfo(context, newTask);
+        LogUtil.i(TAG, "Scheduling job %s", jobInfo.getId());
         return tryScheduleJob(context, jobInfo);
     }
 
