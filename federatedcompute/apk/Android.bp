@@ -40,6 +40,7 @@ android_app {
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
         ":statslog-federatedcompute-java-gen",
+        ":fcp_native_wrapper",
     ],
     libs: [
         "auto_value_annotations",
@@ -57,6 +58,7 @@ android_app {
         "modules-utils-preconditions",
         "libprotobuf-java-lite",
     ],
+    jni_libs: ["libfcp_cpp_dep_jni"],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
     updatable: true,
@@ -65,4 +67,7 @@ android_app {
     defaults: [
         "federatedcompute-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
 }

@@ -49,9 +49,8 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
-public class OdpExampleStoreServiceTests {
-    @Rule
-    public final ServiceTestRule serviceRule = new ServiceTestRule();
+public class OdpJavaExampleStoreServiceTests {
+    @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private CountDownLatch mLatch = new CountDownLatch(1);
 

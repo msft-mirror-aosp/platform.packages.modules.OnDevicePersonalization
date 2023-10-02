@@ -42,7 +42,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 @RunWith(AndroidJUnit4.class)
-public final class ExampleStoreIteratorProviderImplTest {
+public final class JavaExampleStoreIteratorProviderImplTest {
     private static final long TIMEOUT_SECS = 5L;
     private static final String EXPECTED_COLLECTION_NAME =
             "/federatedcompute.examplestoretest/test_collection";
