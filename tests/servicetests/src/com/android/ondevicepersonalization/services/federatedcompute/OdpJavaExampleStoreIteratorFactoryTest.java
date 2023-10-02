@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(JUnit4.class)
-public class OdpExampleStoreIteratorFactoryTest {
+public class OdpJavaExampleStoreIteratorFactoryTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private boolean mIteratorCallbackOnSuccessCalled = false;
