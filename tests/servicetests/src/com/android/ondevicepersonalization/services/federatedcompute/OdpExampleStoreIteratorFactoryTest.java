@@ -36,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(JUnit4.class)
-public class OdpJavaExampleStoreIteratorFactoryTest {
+public class OdpExampleStoreIteratorFactoryTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     private boolean mIteratorCallbackOnSuccessCalled = false;
@@ -50,11 +50,11 @@ public class OdpJavaExampleStoreIteratorFactoryTest {
     @Test
     public void testNext() {
         List<byte[]> exampleList = new ArrayList<>();
-        exampleList.add(new byte[]{1});
+        exampleList.add(new byte[] {1});
         List<byte[]> tokenList = new ArrayList<>();
-        tokenList.add(new byte[]{2});
-        OdpExampleStoreIterator it = OdpExampleStoreIteratorFactory.getInstance()
-                .createIterator(exampleList, tokenList);
+        tokenList.add(new byte[] {2});
+        OdpExampleStoreIterator it =
+                OdpExampleStoreIteratorFactory.getInstance().createIterator(exampleList, tokenList);
         it.next(new TestIteratorCallback());
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
