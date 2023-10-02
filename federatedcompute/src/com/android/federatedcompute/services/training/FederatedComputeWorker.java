@@ -125,7 +125,7 @@ public class FederatedComputeWorker {
                                     context,
                                     FederatedComputeJobManager.getInstance(context),
                                     TrainingConditionsChecker.getInstance(context),
-                                    new ComputationRunner(context),
+                                    new ComputationRunner(),
                                     new ResultCallbackHelper(context),
                                     new Injector());
                 }
@@ -400,6 +400,7 @@ public class FederatedComputeWorker {
             Bundle bundle = new Bundle();
             bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, exampleSelector.toByteArray());
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
+            bundle.putString(ClientConstants.EXTRA_TASK_NAME, run.mTaskName);
             bundle.putParcelable(Constants.EXTRA_CLIENT_ONLY_PLAN_FD, clientPlanFd);
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
@@ -529,6 +530,7 @@ public class FederatedComputeWorker {
         ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
         FLRunnerResult runResult =
                 mComputationRunner.runTaskWithNativeRunner(
+                        run.mTaskName,
                         run.mTask.populationName(),
                         checkinResult.getInputCheckpointFile(),
                         outputCheckpointFile,
