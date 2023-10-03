@@ -32,7 +32,6 @@ import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.WebViewEventInput;
 import android.adservices.ondevicepersonalization.WebViewEventOutput;
-import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.PersistableBundle;
@@ -42,6 +41,8 @@ import android.os.StrictMode.ThreadPolicy;
 import android.util.Base64;
 import android.util.JsonReader;
 import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
