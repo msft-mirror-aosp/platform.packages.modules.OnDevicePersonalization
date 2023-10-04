@@ -21,7 +21,6 @@ import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.federatedcompute.common.TrainingOptions;
-import android.os.IBinder;
 import android.os.RemoteException;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -48,11 +47,11 @@ public class FederatedComputeScheduler {
      * Schedule a federated computation job.
      *
      * @param params parameters related to job scheduling.
-     * @param input  the configuration related o federated computation. It should be consistent
-     *               with federated computation server setup.
-     *               TODO(b/300461799): add federated compute server document.
+     * @param input the configuration related o federated computation. It should be consistent with
+     *     federated computation server setup. TODO(b/300461799): add federated compute server
+     *     document.
      * @throws IllegalArgumentException caused by caller supplied invalid input argument.
-     * @throws IllegalStateException    caused by an internal failure of FederatedComputeScheduler.
+     * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
      */
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
@@ -60,31 +59,28 @@ public class FederatedComputeScheduler {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
         }
-        android.federatedcompute.common.TrainingInterval trainingInterval = convertTrainingInterval(
-                params.getTrainingInterval());
-        TrainingOptions trainingOptions = new TrainingOptions.Builder()
-                .setPopulationName(input.getPopulationName())
-                .setTrainingInterval(trainingInterval)
-                .build();
+        android.federatedcompute.common.TrainingInterval trainingInterval =
+                convertTrainingInterval(params.getTrainingInterval());
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder()
+                        .setPopulationName(input.getPopulationName())
+                        .setTrainingInterval(trainingInterval)
+                        .build();
         CountDownLatch latch = new CountDownLatch(1);
         final int[] err = {0};
         try {
-            mFcService.schedule(trainingOptions,
-                    new IFederatedComputeCallback() {
+            mFcService.schedule(
+                    trainingOptions,
+                    new IFederatedComputeCallback.Stub() {
                         @Override
-                        public void onSuccess() throws RemoteException {
+                        public void onSuccess() {
                             latch.countDown();
                         }
 
                         @Override
-                        public void onFailure(int i) throws RemoteException {
+                        public void onFailure(int i) {
                             err[0] = i;
                             latch.countDown();
-                        }
-
-                        @Override
-                        public IBinder asBinder() {
-                            return null;
                         }
                     });
             latch.await();
@@ -112,22 +108,18 @@ public class FederatedComputeScheduler {
         CountDownLatch latch = new CountDownLatch(1);
         final int[] err = {0};
         try {
-            mFcService.cancel(populationName,
-                    new IFederatedComputeCallback() {
+            mFcService.cancel(
+                    populationName,
+                    new IFederatedComputeCallback.Stub() {
                         @Override
-                        public void onSuccess() throws RemoteException {
+                        public void onSuccess() {
                             latch.countDown();
                         }
 
                         @Override
-                        public void onFailure(int i) throws RemoteException {
+                        public void onFailure(int i) {
                             err[0] = i;
                             latch.countDown();
-                        }
-
-                        @Override
-                        public IBinder asBinder() {
-                            return null;
                         }
                     });
             latch.await();
@@ -142,12 +134,10 @@ public class FederatedComputeScheduler {
 
     private android.federatedcompute.common.TrainingInterval convertTrainingInterval(
             TrainingInterval interval) {
-        android.federatedcompute.common.TrainingInterval trainingInterval =
-                new android.federatedcompute.common.TrainingInterval.Builder()
-                        .setMinimumIntervalMillis(interval.getMinimumInterval().toMillis())
-                        .setSchedulingMode(interval.getSchedulingMode())
-                        .build();
-        return trainingInterval;
+        return new android.federatedcompute.common.TrainingInterval.Builder()
+                .setMinimumIntervalMillis(interval.getMinimumInterval().toMillis())
+                .setSchedulingMode(interval.getSchedulingMode())
+                .build();
     }
 
     /** The parameters related to job scheduling. */
@@ -159,8 +149,7 @@ public class FederatedComputeScheduler {
          * scheduled. When a one time job is scheduled, the earliest next runtime is calculated
          * based on federated compute default interval.
          */
-        @NonNull
-        private final TrainingInterval mTrainingInterval;
+        @NonNull private final TrainingInterval mTrainingInterval;
 
         public Params(@NonNull TrainingInterval trainingInterval) {
             mTrainingInterval = trainingInterval;
