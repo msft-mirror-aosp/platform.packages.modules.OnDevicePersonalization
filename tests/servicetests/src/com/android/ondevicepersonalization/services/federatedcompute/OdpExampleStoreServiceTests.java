@@ -40,6 +40,11 @@ import android.os.RemoteException;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
+import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.events.EventState;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+
+import org.junit.After;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -50,8 +55,7 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OdpExampleStoreServiceTests {
-    @Rule
-    public final ServiceTestRule serviceRule = new ServiceTestRule();
+    @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private CountDownLatch mLatch = new CountDownLatch(1);
 
@@ -61,20 +65,31 @@ public class OdpExampleStoreServiceTests {
     private boolean mQueryCallbackOnSuccessCalled = false;
     private boolean mQueryCallbackOnFailureCalled = false;
 
+    private final EventsDao mEventsDao = EventsDao.getInstanceForTest(mContext);
+
     @Test
     public void testWithStartQuery() throws Exception {
+        mEventsDao.updateOrInsertEventState(
+                new EventState.Builder()
+                        .setTaskIdentifier("PopulationName")
+                        .setServicePackageName(mContext.getPackageName())
+                        .setToken()
+                        .build());
         Intent mIntent = new Intent();
         mIntent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
         mIntent.setData(
-                new Uri.Builder().scheme("app").authority(mContext.getPackageName())
-                        .path("collection").build());
+                new Uri.Builder()
+                        .scheme("app")
+                        .authority(mContext.getPackageName())
+                        .path("collection")
+                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
         ContextData contextData = new ContextData(mContext.getPackageName());
-        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
-                ContextData.toByteArray(contextData));
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_COLLECTION_NAME, "CollectionName");
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
         input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
@@ -86,7 +101,7 @@ public class OdpExampleStoreServiceTests {
         IExampleStoreIterator iterator = callback.getIterator();
         TestIteratorCallback iteratorCallback = new TestIteratorCallback();
         mLatch = new CountDownLatch(1);
-        iteratorCallback.setExpected(new byte[]{10}, "token1".getBytes());
+        iteratorCallback.setExpected(new byte[] {10}, "token1".getBytes());
         iterator.next(iteratorCallback);
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mIteratorCallbackOnSuccessCalled);
@@ -94,7 +109,7 @@ public class OdpExampleStoreServiceTests {
         mIteratorCallbackOnSuccessCalled = false;
 
         mLatch = new CountDownLatch(1);
-        iteratorCallback.setExpected(new byte[]{20}, "token2".getBytes());
+        iteratorCallback.setExpected(new byte[] {20}, "token2".getBytes());
         iterator.next(iteratorCallback);
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mIteratorCallbackOnSuccessCalled);
@@ -102,12 +117,41 @@ public class OdpExampleStoreServiceTests {
     }
 
     @Test
+    public void testWithStartQueryNotValidJob() throws Exception {
+        Intent mIntent = new Intent();
+        mIntent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
+        mIntent.setData(
+                new Uri.Builder()
+                        .scheme("app")
+                        .authority(mContext.getPackageName())
+                        .path("collection")
+                        .build());
+        IBinder binder = serviceRule.bindService(mIntent);
+        assertNotNull(binder);
+        TestQueryCallback callback = new TestQueryCallback();
+        Bundle input = new Bundle();
+        ContextData contextData = new ContextData(mContext.getPackageName());
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_COLLECTION_NAME, "CollectionName");
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
+        input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
+        ((IExampleStoreService.Stub) binder).startQuery(input, callback);
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertFalse(mQueryCallbackOnSuccessCalled);
+        assertTrue(mQueryCallbackOnFailureCalled);
+    }
+
+    @Test
     public void testWithStartQueryBadInput() throws Exception {
         Intent mIntent = new Intent();
         mIntent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
         mIntent.setData(
-                new Uri.Builder().scheme("app").authority(mContext.getPackageName())
-                        .path("collection").build());
+                new Uri.Builder()
+                        .scheme("app")
+                        .authority(mContext.getPackageName())
+                        .path("collection")
+                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
@@ -128,10 +172,10 @@ public class OdpExampleStoreServiceTests {
 
         @Override
         public void onIteratorNextSuccess(Bundle result) throws RemoteException {
-            assertArrayEquals(mExpectedExample, result.getByteArray(
-                    EXTRA_EXAMPLE_ITERATOR_RESULT));
-            assertArrayEquals(mExpectedResumptionToken, result.getByteArray(
-                    EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
+            assertArrayEquals(mExpectedExample, result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT));
+            assertArrayEquals(
+                    mExpectedResumptionToken,
+                    result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
             mIteratorCallbackOnSuccessCalled = true;
             mLatch.countDown();
         }
@@ -173,5 +217,14 @@ public class OdpExampleStoreServiceTests {
         public IExampleStoreIterator getIterator() {
             return mIterator;
         }
+    }
+
+    @After
+    public void cleanup() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
+        dbHelper.getWritableDatabase().close();
+        dbHelper.getReadableDatabase().close();
+        dbHelper.close();
     }
 }

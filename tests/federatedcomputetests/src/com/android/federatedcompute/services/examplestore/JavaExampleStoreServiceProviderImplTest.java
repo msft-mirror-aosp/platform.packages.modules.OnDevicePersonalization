@@ -39,7 +39,7 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
 @RunWith(AndroidJUnit4.class)
-public final class ExampleStoreServiceProviderImplTest {
+public final class JavaExampleStoreServiceProviderImplTest {
     private ExampleStoreServiceProviderImpl mExampleStoreServiceProvider;
     private Context mContext = ApplicationProvider.getApplicationContext();
     private static final long TIMEOUT_SECS = 5L;
