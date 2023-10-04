@@ -60,6 +60,7 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(JUnit4.class)
 public final class IsolatedTrainingServiceImplTest {
     private static final String POPULATION_NAME = "population_name";
+    private static final String TASK_NAME = "task_name";
     private static final long RUN_ID = 12345L;
     private static final FakeExampleStoreIterator FAKE_EXAMPLE_STORE_ITERATOR =
             new FakeExampleStoreIterator(ImmutableList.of());
@@ -119,7 +120,7 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingSuccess() throws Exception {
         when(mComputationRunner.runTaskWithNativeRunner(
-                        anyString(), any(), any(), any(), any(), any(), any(), any()))
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
 
         Bundle bundle = buildInputBundle();
@@ -133,7 +134,7 @@ public final class IsolatedTrainingServiceImplTest {
     @Test
     public void runFlTrainingFailure() throws Exception {
         when(mComputationRunner.runTaskWithNativeRunner(
-                        anyString(), any(), any(), any(), any(), any(), any(), any()))
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_FAIL_RESULT);
 
         Bundle bundle = buildInputBundle();
@@ -145,7 +146,7 @@ public final class IsolatedTrainingServiceImplTest {
     }
 
     @Test
-    public void runFlTrainingMissingExampleSelector_returnsFailure() throws Exception {
+    public void runFlTrainingMissingExampleSelector_returnsFailure() {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
@@ -159,7 +160,7 @@ public final class IsolatedTrainingServiceImplTest {
     }
 
     @Test
-    public void runFlTrainingInvalidExampleSelector_returnsFailure() throws Exception {
+    public void runFlTrainingInvalidExampleSelector_returnsFailure() {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
@@ -200,6 +201,7 @@ public final class IsolatedTrainingServiceImplTest {
     private Bundle buildInputBundle() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
+        bundle.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());

@@ -52,7 +52,6 @@ public final class FlRunnerWrapper implements Closeable {
 
     /** Starts run a federated computation job. */
     public FLRunnerResult run(
-            String sessionName,
             String taskName,
             String populationName,
             ClientOnlyPlan clientOnlyPlan,
@@ -64,7 +63,8 @@ public final class FlRunnerWrapper implements Closeable {
                 runNativeFederatedComputation(
                         simpleTaskEnv,
                         populationName,
-                        sessionName,
+                        // Session name is optional and mainly used by legacy customers
+                        "",
                         taskName,
                         mLogManager,
                         clientOnlyPlan.toByteArray(),
