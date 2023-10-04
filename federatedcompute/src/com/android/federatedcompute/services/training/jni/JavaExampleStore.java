@@ -16,8 +16,6 @@
 
 package com.android.federatedcompute.services.training.jni;
 
-import static com.android.federatedcompute.services.examplestore.ExampleStoreIteratorProviderImpl.validateExampleSelector;
-
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.examplestore.ExampleIterator;
@@ -61,7 +59,6 @@ public class JavaExampleStore implements Closeable {
         try {
             selector = ExampleSelector.parseFrom(exampleSelector);
             SelectorContext.parseFrom(selectorContext);
-            validateExampleSelector(selector);
         } catch (InvalidProtocolBufferException e) {
             LogUtil.e(TAG, "Invalid protobuf message", e);
         }
