@@ -371,6 +371,16 @@ public class FederatedComputeWorker {
                         ParcelFileDescriptor.MODE_READ_ONLY);
         ExampleSelector exampleSelector = getExampleSelector(checkinResult);
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
+        if (clientPlan.getTfliteGraph().isEmpty()) {
+            LogUtil.e(
+                    TAG,
+                    "ClientOnlyPlan input tflite graph is empty."
+                            + " population name: %s, task name: %s",
+                    run.mTask.populationName(),
+                    run.mTaskName);
+            return Futures.immediateFailedFuture(
+                    new IllegalStateException("Client plan input tflite graph is empty"));
+        }
 
         try {
             // Write ClientOnlyPlan to file and pass ParcelFileDescriptor to isolated process to

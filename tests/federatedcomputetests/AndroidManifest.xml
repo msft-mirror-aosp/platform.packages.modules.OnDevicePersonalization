@@ -50,6 +50,11 @@
                     <data android:scheme="app" />
                  </intent-filter>
         </service>
+        <service android:name="com.android.federatedcompute.services.training.FederatedIsolatedTrainingService"
+                android:exported="false"
+                android:process=":remote"
+                android:isolatedProcess="true">
+       </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="com.android.ondevicepersonalization.federatedcomputetests"

@@ -64,7 +64,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(JUnit4.class)
-public final class FederatedExampleIteratorTest {
+public final class FederatedJavaExampleIteratorTest {
     private static final String APP_ID = "com.foo.bar";
     private static final String FAKE_COLLECTION = "/collection1";
     private static final byte[] FAKE_CRITERIA = new byte[] {10, 0, 1};

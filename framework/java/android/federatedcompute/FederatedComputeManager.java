@@ -41,18 +41,19 @@ public final class FederatedComputeManager {
     /**
      * Constant that represents the service name for {@link FederatedComputeManager} to be used in
      * {@link android.ondevicepersonalization.OnDevicePersonalizationFrameworkInitializer
-     *      #registerServiceWrappers}
+     * #registerServiceWrappers}
      *
      * @hide
      */
     public static final String FEDERATED_COMPUTE_SERVICE = "federated_compute_service";
+
     private static final String TAG = FederatedComputeManager.class.getSimpleName();
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
 
     private final Context mContext;
 
-    private AbstractServiceBinder<IFederatedComputeService> mServiceBinder;
+    private final AbstractServiceBinder<IFederatedComputeService> mServiceBinder;
 
     public FederatedComputeManager(Context context) {
         this.mContext = context;
