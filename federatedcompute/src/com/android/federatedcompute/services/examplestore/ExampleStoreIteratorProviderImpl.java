@@ -29,10 +29,13 @@ import android.util.Pair;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.common.util.concurrent.UncheckedExecutionException;
 import com.google.internal.federated.plan.ExampleSelector;
 
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -40,6 +43,12 @@ import java.util.concurrent.TimeoutException;
 /** Implementation of the ExampleStoreIterator interface. */
 public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorProvider {
     private static final String TAG = ExampleStoreIteratorProviderImpl.class.getSimpleName();
+    private static final String APP_URI_SCHEME = "app";
+
+    /** The supported collection URI schemes. */
+    private static final ImmutableSet<String> SUPPORTED_URI_SCHEMES =
+            ImmutableSet.of(APP_URI_SCHEME);
+
     private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
     private final Flags mFlags;
 
@@ -125,6 +134,31 @@ public class ExampleStoreIteratorProviderImpl implements ExampleStoreIteratorPro
             LogUtil.d(TAG, e, "Unbinding from service due to exception");
             mExampleStoreServiceProvider.unbindService();
             throw e;
+        }
+    }
+
+    /** Validate the input ExampleSelector format. */
+    public static void validateExampleSelector(ExampleSelector exampleSelector) {
+        String collectionUri = exampleSelector.getCollectionUri();
+        URI parsedCollectionUri;
+        try {
+            parsedCollectionUri = new URI(collectionUri);
+        } catch (URISyntaxException e) {
+            LogUtil.e(TAG, String.format("URI invalid: collectionUri=%s", collectionUri));
+            throw new IllegalArgumentException(
+                    String.format("URI invalid: collectionUri=%s", collectionUri));
+        }
+        String scheme = parsedCollectionUri.getScheme();
+        if (scheme == null
+                || !SUPPORTED_URI_SCHEMES.contains(scheme)
+                || parsedCollectionUri.getFragment() != null
+                || parsedCollectionUri.getQuery() != null) {
+            LogUtil.e(TAG, String.format("URI invalid: collectionUri=%s", collectionUri));
+            throw new IllegalArgumentException(
+                    String.format("URI invalid: collectionUri=%s", collectionUri));
+        }
+        if (!scheme.equals(APP_URI_SCHEME)) {
+            throw new IllegalArgumentException("Unexpected scheme: " + scheme);
         }
     }
 }

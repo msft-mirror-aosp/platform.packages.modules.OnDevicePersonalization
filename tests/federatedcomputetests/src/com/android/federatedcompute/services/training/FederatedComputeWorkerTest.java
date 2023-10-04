@@ -71,6 +71,9 @@ import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.RetryInfo;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
+import com.google.internal.federated.plan.ClientOnlyPlan;
+import com.google.internal.federated.plan.ClientPhase;
+import com.google.internal.federated.plan.TensorflowSpec;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
@@ -215,7 +218,15 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyWorker)
                 .getHttpFederatedProtocol(anyString(), anyString());
         when(mMockComputationRunner.runTaskWithNativeRunner(
-                        anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
     }
 
@@ -314,7 +325,15 @@ public final class FederatedComputeWorkerTest {
 
         // Mock return failed runner result from native fcp client.
         when(mMockComputationRunner.runTaskWithNativeRunner(
-                        anyString(), anyString(), anyString(), any(), any(), any(), any(), any()))
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        anyString(),
+                        any(),
+                        any(),
+                        any(),
+                        any(),
+                        any()))
                 .thenReturn(FL_RUNNER_FAILURE_RESULT);
 
         FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
@@ -403,6 +422,38 @@ public final class FederatedComputeWorkerTest {
         assertThat(exception.getCause())
                 .hasMessageThat()
                 .isEqualTo("Could not bind to IsolatedTrainingService");
+
+        mSpyWorker.finish(null, ContributionResult.FAIL, false);
+        verify(mMockJobManager)
+                .onTrainingCompleted(
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+    }
+
+    @Test
+    public void testRunFLComputation_emptyTfliteGraph_returns() throws Exception {
+        setUpExampleStoreService();
+        TensorflowSpec tensorflowSpec =
+                TensorflowSpec.newBuilder()
+                        .setDatasetTokenTensorName("dataset")
+                        .addTargetNodeNames("target")
+                        .build();
+        ClientOnlyPlan clientOnlyPlan =
+                ClientOnlyPlan.newBuilder()
+                        .setPhase(
+                                ClientPhase.newBuilder().setTensorflowSpec(tensorflowSpec).build())
+                        .build();
+        CheckinResult checkinResultNoTfliteGraph =
+                new CheckinResult(
+                        createTempFile("input", ".ckp"),
+                        clientOnlyPlan,
+                        TaskAssignment.newBuilder().setTaskName(TASK_NAME).build());
+        setUpHttpFederatedProtocol(checkinResultNoTfliteGraph);
+
+        // Mock bind to IsolatedTrainingService.
+        doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
+        doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
+
+        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
 
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
