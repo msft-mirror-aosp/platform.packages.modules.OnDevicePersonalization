@@ -17,9 +17,11 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.annotation.NonNull;
@@ -34,6 +36,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
@@ -198,6 +201,8 @@ public class AppRequestFlow {
 
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {
         sLogger.d(TAG + ": logQuery() started.");
+        EventsDao eventsDao = EventsDao.getInstance(mContext);
+        // Insert query
         List<ContentValues> rows = null;
         if (result.getRequestLogRecord() != null) {
             rows = result.getRequestLogRecord().getRows();
@@ -209,10 +214,43 @@ public class AppRequestFlow {
                 .setQueryData(queryData)
                 .setTimeMillis(System.currentTimeMillis())
                 .build();
-        long queryId = EventsDao.getInstance(mContext).insertQuery(query);
+        long queryId = eventsDao.insertQuery(query);
         if (queryId == -1) {
             return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
         }
+        // Insert events
+        List<Event> events = new ArrayList<>();
+        List<EventLogRecord> eventLogRecords = result.getEventLogRecords();
+        for (EventLogRecord eventLogRecord : eventLogRecords) {
+            RequestLogRecord requestLogRecord = eventLogRecord.getRequestLogRecord();
+            // Verify requestLogRecord exists and has the corresponding rowIndex
+            if (requestLogRecord == null || requestLogRecord.getRequestId() == 0
+                    || eventLogRecord.getRowIndex() >= requestLogRecord.getRows().size()) {
+                continue;
+            }
+            // Make sure query exists for package in QUERY table
+            Query queryRow = eventsDao.readSingleQueryRow(requestLogRecord.getRequestId(),
+                    mService.getPackageName());
+            if (queryRow == null || eventLogRecord.getRowIndex()
+                    >= OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
+                    queryRow.getQueryData())) {
+                continue;
+            }
+            Event event = new Event.Builder()
+                    .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(
+                            eventLogRecord.getData()))
+                    .setQueryId(requestLogRecord.getRequestId())
+                    .setRowIndex(eventLogRecord.getRowIndex())
+                    .setServicePackageName(mService.getPackageName())
+                    .setTimeMillis(System.currentTimeMillis())
+                    .setType(eventLogRecord.getType())
+                    .build();
+            events.add(event);
+        }
+        if (!eventsDao.insertEvents(events)) {
+            return Futures.immediateFailedFuture(new RuntimeException("Failed to log events."));
+        }
+
         return Futures.immediateFuture(queryId);
     }
 

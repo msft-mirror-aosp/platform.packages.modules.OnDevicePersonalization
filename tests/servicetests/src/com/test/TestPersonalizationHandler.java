@@ -90,6 +90,16 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                 .addRenderingConfig(
                     new RenderingConfig.Builder().addKey("bid1").build()
                 )
+                .addEventLogRecord(new EventLogRecord.Builder()
+                        .setData(logData)
+                        .setRequestLogRecord(new RequestLogRecord.Builder()
+                                .addRow(logData)
+                                .addRow(logData)
+                                .setRequestId(1)
+                                .build())
+                        .setType(1)
+                        .setRowIndex(1)
+                        .build())
                 .build();
         consumer.accept(result);
     }
