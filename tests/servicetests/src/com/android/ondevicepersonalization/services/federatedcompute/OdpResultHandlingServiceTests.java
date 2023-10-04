@@ -31,7 +31,6 @@ import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -56,8 +55,7 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OdpResultHandlingServiceTests {
-    @Rule
-    public final ServiceTestRule serviceRule = new ServiceTestRule();
+    @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
 
@@ -80,24 +78,17 @@ public class OdpResultHandlingServiceTests {
         dbHelper.close();
     }
 
-
     @Test
     public void testHandleResult() throws Exception {
         Intent mIntent = new Intent();
         mIntent.setAction(RESULT_HANDLING_SERVICE_ACTION).setPackage(mContext.getPackageName());
-        mIntent.setData(
-                new Uri.Builder()
-                        .scheme("app")
-                        .authority(mContext.getPackageName())
-                        .path("collection")
-                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
 
         Bundle input = new Bundle();
         ContextData contextData = new ContextData(mContext.getPackageName());
-        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
-                ContextData.toByteArray(contextData));
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
         input.putString(ClientConstants.EXTRA_TASK_NAME, "task_name");
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
@@ -106,15 +97,15 @@ public class OdpResultHandlingServiceTests {
                 new ExampleConsumption.Builder()
                         .setCollectionName("collection")
                         .setExampleCount(100)
-                        .setSelectionCriteria(new byte[]{10, 0, 1})
-                        .setResumptionToken(new byte[]{10, 0, 1})
+                        .setSelectionCriteria(new byte[] {10, 0, 1})
+                        .setResumptionToken(new byte[] {10, 0, 1})
                         .build());
         exampleConsumptions.add(
                 new ExampleConsumption.Builder()
                         .setCollectionName("collection2")
                         .setExampleCount(100)
-                        .setSelectionCriteria(new byte[]{11, 1})
-                        .setResumptionToken(new byte[]{11, 1})
+                        .setSelectionCriteria(new byte[] {11, 1})
+                        .setResumptionToken(new byte[] {11, 1})
                         .build());
         input.putParcelableArrayList(
                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
@@ -124,34 +115,32 @@ public class OdpResultHandlingServiceTests {
         assertTrue(mCallbackOnSuccessCalled);
         assertFalse(mCallbackOnFailureCalled);
 
-        EventState state1 = mEventsDao.getEventState(
-                OdpExampleStoreService.getTaskIdentifier("collection", "population", "task_name"),
-                mContext.getPackageName());
-        assertArrayEquals(new byte[]{10, 0, 1}, state1.getToken());
+        EventState state1 =
+                mEventsDao.getEventState(
+                        OdpExampleStoreService.getTaskIdentifier(
+                                "collection", "population", "task_name"),
+                        mContext.getPackageName());
+        assertArrayEquals(new byte[] {10, 0, 1}, state1.getToken());
 
-        EventState state2 = mEventsDao.getEventState(
-                OdpExampleStoreService.getTaskIdentifier("collection2", "population", "task_name"),
-                mContext.getPackageName());
-        assertArrayEquals(new byte[]{11, 1}, state2.getToken());
+        EventState state2 =
+                mEventsDao.getEventState(
+                        OdpExampleStoreService.getTaskIdentifier(
+                                "collection2", "population", "task_name"),
+                        mContext.getPackageName());
+        assertArrayEquals(new byte[] {11, 1}, state2.getToken());
     }
 
     @Test
     public void testHandleResultTrainingFailed() throws Exception {
         Intent mIntent = new Intent();
         mIntent.setAction(RESULT_HANDLING_SERVICE_ACTION).setPackage(mContext.getPackageName());
-        mIntent.setData(
-                new Uri.Builder()
-                        .scheme("app")
-                        .authority(mContext.getPackageName())
-                        .path("collection")
-                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
 
         Bundle input = new Bundle();
         ContextData contextData = new ContextData(mContext.getPackageName());
-        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
-                ContextData.toByteArray(contextData));
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
         input.putString(ClientConstants.EXTRA_TASK_NAME, "task_name");
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_TRAINING_FAILED);
@@ -160,8 +149,8 @@ public class OdpResultHandlingServiceTests {
                 new ExampleConsumption.Builder()
                         .setCollectionName("collection")
                         .setExampleCount(100)
-                        .setSelectionCriteria(new byte[]{10, 0, 1})
-                        .setResumptionToken(new byte[]{10, 0, 1})
+                        .setSelectionCriteria(new byte[] {10, 0, 1})
+                        .setResumptionToken(new byte[] {10, 0, 1})
                         .build());
         input.putParcelableArrayList(
                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);

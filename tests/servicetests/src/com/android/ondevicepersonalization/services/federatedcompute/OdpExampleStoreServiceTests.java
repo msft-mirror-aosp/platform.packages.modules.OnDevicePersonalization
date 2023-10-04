@@ -32,7 +32,6 @@ import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreIteratorCallback;
 import android.federatedcompute.aidl.IExampleStoreService;
 import android.federatedcompute.common.ClientConstants;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.RemoteException;
@@ -77,12 +76,6 @@ public class OdpExampleStoreServiceTests {
                         .build());
         Intent mIntent = new Intent();
         mIntent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
-        mIntent.setData(
-                new Uri.Builder()
-                        .scheme("app")
-                        .authority(mContext.getPackageName())
-                        .path("collection")
-                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
@@ -120,12 +113,6 @@ public class OdpExampleStoreServiceTests {
     public void testWithStartQueryNotValidJob() throws Exception {
         Intent mIntent = new Intent();
         mIntent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
-        mIntent.setData(
-                new Uri.Builder()
-                        .scheme("app")
-                        .authority(mContext.getPackageName())
-                        .path("collection")
-                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
@@ -146,12 +133,6 @@ public class OdpExampleStoreServiceTests {
     public void testWithStartQueryBadInput() throws Exception {
         Intent mIntent = new Intent();
         mIntent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
-        mIntent.setData(
-                new Uri.Builder()
-                        .scheme("app")
-                        .authority(mContext.getPackageName())
-                        .path("collection")
-                        .build());
         IBinder binder = serviceRule.bindService(mIntent);
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();

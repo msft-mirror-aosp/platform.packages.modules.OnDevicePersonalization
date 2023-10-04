@@ -72,14 +72,12 @@
                  android:enabled="true" android:exported="true" >
             <intent-filter>
                 <action android:name="android.federatedcompute.EXAMPLE_STORE" />
-                <data android:scheme="app" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpResultHandlingService"
                  android:enabled="true" android:exported="true" >
             <intent-filter>
                 <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
-                <data android:scheme="app" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"
