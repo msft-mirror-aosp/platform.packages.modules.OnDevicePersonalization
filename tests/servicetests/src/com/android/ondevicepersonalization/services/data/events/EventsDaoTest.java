@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -89,6 +90,30 @@ public class EventsDaoTest {
                 .setRowIndex(0)
                 .build();
         assertEquals(2, mDao.insertEvent(testEvent));
+    }
+
+    @Test
+    public void testInsertEvents() {
+        mDao.insertQuery(mTestQuery);
+        Event testEvent = new Event.Builder()
+                .setType(EVENT_TYPE_CLICK)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(1L)
+                .setTimeMillis(1L)
+                .setRowIndex(0)
+                .build();
+        List<Event> events = new ArrayList<>();
+        events.add(mTestEvent);
+        events.add(testEvent);
+        assertTrue(mDao.insertEvents(events));
+    }
+
+    @Test
+    public void testInsertEventsFalse() {
+        List<Event> events = new ArrayList<>();
+        events.add(mTestEvent);
+        assertFalse(mDao.insertEvents(events));
     }
 
     @Test
