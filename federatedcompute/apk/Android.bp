@@ -58,7 +58,6 @@ android_app {
         "modules-utils-preconditions",
         "libprotobuf-java-lite",
     ],
-    jni_libs: ["libfcp_cpp_dep_jni"],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
     updatable: true,
