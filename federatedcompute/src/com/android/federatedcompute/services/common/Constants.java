@@ -34,7 +34,7 @@ public class Constants {
     public static final String CLIENT_ONLY_PLAN_FILE_NAME = "federated_client_only_plan";
 
     public static final String ISOLATED_TRAINING_SERVICE_NAME =
-            "com.android.federatedcompute.service.training.IsolatedTrainingService";
+            "com.android.federatedcompute.services.training.IsolatedTrainingService";
 
     private Constants() {}
 }

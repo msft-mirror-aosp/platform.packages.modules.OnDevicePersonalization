@@ -71,25 +71,25 @@ public final class TrainingOptionsTest {
     }
 
     @Test
-    public void testNullServerAddressIsAllowed() {
-        TrainingOptions options =
-                new TrainingOptions.Builder()
-                        .setPopulationName(POPULATION_NAME)
-                        .setServerAddress(null)
-                        .build();
-
-        assertThat(options.getServerAddress()).isNull();
+    public void testNullServerAddressIsNotAllowed() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new TrainingOptions.Builder()
+                                .setPopulationName(POPULATION_NAME)
+                                .setServerAddress(null)
+                                .build());
     }
 
     @Test
-    public void testEmptyServerAddressIsAllowed() {
-        TrainingOptions options =
-                new TrainingOptions.Builder()
-                        .setPopulationName(POPULATION_NAME)
-                        .setServerAddress("")
-                        .build();
-
-        assertThat(options.getServerAddress()).isEmpty();
+    public void testEmptyServerAddressIsNotAllowed() {
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        new TrainingOptions.Builder()
+                                .setPopulationName(POPULATION_NAME)
+                                .setServerAddress("")
+                                .build());
     }
 
     @Test
