@@ -107,7 +107,6 @@ public final class FlRunnerWrapperTest {
 
         FLRunnerResult result =
                 mFlRunnerWrapper.run(
-                        SESSION_NAME,
                         TASK_NAME,
                         POPULATION_NAME,
                         invalidClientOnlyPlan,
@@ -157,7 +156,6 @@ public final class FlRunnerWrapperTest {
 
         FLRunnerResult result =
                 mFlRunnerWrapper.run(
-                        SESSION_NAME,
                         TASK_NAME,
                         POPULATION_NAME,
                         clientOnlyPlan,
@@ -222,7 +220,6 @@ public final class FlRunnerWrapperTest {
 
         FLRunnerResult result =
                 mFlRunnerWrapper.run(
-                        SESSION_NAME,
                         TASK_NAME,
                         POPULATION_NAME,
                         clientOnlyPlan,
@@ -245,7 +242,6 @@ public final class FlRunnerWrapperTest {
 
         FLRunnerResult result =
                 mFlRunnerWrapper.run(
-                        SESSION_NAME,
                         TASK_NAME,
                         POPULATION_NAME,
                         clientOnlyPlan,
@@ -287,7 +283,6 @@ public final class FlRunnerWrapperTest {
 
         FLRunnerResult result =
                 mFlRunnerWrapper.run(
-                        SESSION_NAME,
                         TASK_NAME,
                         POPULATION_NAME,
                         clientOnlyPlan,
