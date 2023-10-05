@@ -37,7 +37,6 @@ import android.os.IBinder;
  *   <service android:enabled="true" android:exported="true" android:name=".YourServiceClass">
  *     <intent-filter>
  *       <action android:name="com.android.federatedcompute.EXAMPLE_STORE"/>
- *       <data android:scheme="app"/>
  *     </intent-filter>
  *   </service>
  * </application>
@@ -66,11 +65,13 @@ public abstract class ExampleStoreService extends Service {
                     params, new ExampleStoreQueryCallbackImpl(callback));
         }
     }
+
     /**
      * The abstract method that client apps should implement to start a new example store query
      * using the given selection criteria.
      */
     public abstract void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback);
+
     /**
      * The client apps use this callback to return their ExampleStoreIterator implementation to the
      * federated training service.
@@ -78,7 +79,8 @@ public abstract class ExampleStoreService extends Service {
     public interface QueryCallback {
         /** Called when the iterator is ready for use. */
         void onStartQuerySuccess(@NonNull ExampleStoreIterator iterator);
-        /** Called when an error occurred and the iterator cannot not be created. */
+
+        /** Called when an error occurred and the iterator cannot be created. */
         void onStartQueryFailure(int errorCode);
     }
 }

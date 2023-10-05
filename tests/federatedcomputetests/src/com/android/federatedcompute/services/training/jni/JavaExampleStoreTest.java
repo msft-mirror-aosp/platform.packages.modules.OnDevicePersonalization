@@ -76,22 +76,6 @@ public final class JavaExampleStoreTest {
     }
 
     @Test
-    public void testCreateExampleIterator_dispatchError() throws Exception {
-        ExampleSelector invalidSelector =
-                ExampleSelector.newBuilder()
-                        .setCollectionUri("app://com.foo.bar/inapp/collection1#")
-                        .build();
-
-        mJavaExampleStore = new JavaExampleStore(new FakeExampleIterator(ImmutableList.of()));
-
-        assertThrows(
-                IllegalArgumentException.class,
-                () ->
-                        mJavaExampleStore.createExampleIteratorWithContext(
-                                invalidSelector.toByteArray(), new byte[] {}));
-    }
-
-    @Test
     public void testCreateExampleIterator_interruptedIterator() throws Exception {
         when(mIterator.hasNext()).thenThrow(new InterruptedException("Interrupted"));
 

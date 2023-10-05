@@ -99,6 +99,31 @@ public class EventsDao {
         return -1;
     }
 
+
+    /**
+     * Inserts the List of Events into the Events table.
+     *
+     * @return true if all inserts succeeded, false otherwise.
+     */
+    public boolean insertEvents(@NonNull List<Event> events) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            for (Event event : events) {
+                if (insertEvent(event) == -1) {
+                    return false;
+                }
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            sLogger.e(TAG + ": Failed to insert events", e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
     /**
      * Inserts the Query into the Queries table.
      *
