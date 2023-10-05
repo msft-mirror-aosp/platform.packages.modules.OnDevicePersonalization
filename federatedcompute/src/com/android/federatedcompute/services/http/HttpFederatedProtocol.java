@@ -144,7 +144,9 @@ public final class HttpFederatedProtocol {
                         .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
                         .build();
         String taskAssignmentUriSuffix =
-                String.format("/v1/population/%1$s:create-task-assignment", mPopulationName);
+                String.format(
+                        "/taskassignment/v1/population/%1$s:create-task-assignment",
+                        mPopulationName);
         FederatedComputeHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         taskAssignmentUriSuffix,
@@ -228,7 +230,8 @@ public final class HttpFederatedProtocol {
                 ReportResultRequest.newBuilder().setResult(result).build();
         String startDataUploadUri =
                 String.format(
-                        "/v1/population/%1$s/task/%2$s/aggregation/%3$s/task-assignment/%4$s:report-result",
+                        "/taskassignment/v1/population/%1$s/task/%2$s/aggregation"
+                                + "/%3$s/task-assignment/%4$s:report-result",
                         mPopulationName, mTaskId, mAggregationId, mAssignmentId);
         FederatedComputeHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
