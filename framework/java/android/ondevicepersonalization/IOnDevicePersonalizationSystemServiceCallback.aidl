@@ -21,6 +21,4 @@ import android.os.Bundle;
 /** @hide */
 oneway interface IOnDevicePersonalizationSystemServiceCallback {
     void onResult(in Bundle result);
-
-    void onError(int errorCode);
 }

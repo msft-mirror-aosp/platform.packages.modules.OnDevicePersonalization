@@ -23,18 +23,11 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
-import android.os.Bundle;
-import android.os.RemoteException;
 
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
-import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
@@ -55,8 +48,6 @@ import java.util.concurrent.Executor;
 public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
-    private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
-    private static final int KEY_NOT_FOUND_ERROR = 404;
     private final Executor mExecutor;
 
     public OnDevicePersonalizationBroadcastReceiver() {
@@ -92,44 +83,6 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
-        }
-        // Restore personalization status from the system server on U+ devices.
-        if (SdkLevel.isAtLeastU()) {
-            OnDevicePersonalizationSystemServiceManager systemServiceManager =
-                    context.getSystemService(
-                            OnDevicePersonalizationSystemServiceManager.class);
-            if (systemServiceManager != null) {
-                IOnDevicePersonalizationSystemService systemService =
-                                systemServiceManager.getService();
-                if (systemService != null) {
-                    try {
-                        systemService.readPersonalizationStatus(
-                                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                @Override
-                                public void onResult(Bundle bundle) {
-                                    boolean personalizationStatus = bundle.getBoolean(
-                                                    PERSONALIZATION_STATUS_KEY);
-                                    UserPrivacyStatus.getInstance()
-                                                    .setPersonalizationStatusEnabled(
-                                                                    personalizationStatus);
-                                }
-                                @Override
-                                public void onError(int errorCode) {
-                                    if (errorCode == KEY_NOT_FOUND_ERROR) {
-                                        sLogger.d(TAG + ": Personalization status "
-                                                        + "not found in the system server");
-                                    }
-                                }
-                            });
-                    } catch (RemoteException e) {
-                        sLogger.e(TAG + ": Callback error.");
-                    }
-                } else {
-                    sLogger.w(TAG + ": System service is not ready.");
-                }
-            } else {
-                sLogger.w(TAG + ": Cannot find system server on U+ devices.");
-            }
         }
 
         // Initialize policy engine instance
