@@ -77,8 +77,11 @@
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:isolatedProcess="true" android:exported="false" >
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
-                 android:enabled="true" android:exported="true" >
+        <service
+            android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_EXAMPLE_STORE_SERVICE">
             <intent-filter>
                 <action android:name="android.federatedcompute.EXAMPLE_STORE" />
             </intent-filter>

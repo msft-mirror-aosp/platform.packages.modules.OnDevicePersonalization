@@ -19,6 +19,7 @@ package android.federatedcompute;
 import android.annotation.NonNull;
 import android.app.Service;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreService;
 import android.os.Bundle;
@@ -45,7 +46,10 @@ import android.os.IBinder;
  * @hide
  */
 public abstract class ExampleStoreService extends Service {
-    private static final String TAG = "ExampleStoreService";
+    private static final String TAG = ExampleStoreService.class.getSimpleName();
+
+    private static final String BIND_EXAMPLE_STORE_SERVICE =
+            "android.permission.BIND_EXAMPLE_STORE_SERVICE";
     private IBinder mIBinder;
 
     @Override
@@ -61,9 +65,24 @@ public abstract class ExampleStoreService extends Service {
     class ServiceBinder extends IExampleStoreService.Stub {
         @Override
         public void startQuery(Bundle params, IExampleStoreCallback callback) {
+            if (!ExampleStoreService.this.checkCallerPermission()) {
+                throw new SecurityException(
+                        "Unauthorized startQuery call to ExampleStore.");
+            }
             ExampleStoreService.this.startQuery(
                     params, new ExampleStoreQueryCallbackImpl(callback));
         }
+    }
+
+    /**
+     * To be overridden by implementation to provide checks if caller has specific permission to be
+     * used in ServiceBinder call.
+     *
+     * @return true if permission granted
+     */
+    protected boolean checkCallerPermission() {
+        return checkCallingOrSelfPermission(BIND_EXAMPLE_STORE_SERVICE)
+                == PackageManager.PERMISSION_GRANTED;
     }
 
     /**

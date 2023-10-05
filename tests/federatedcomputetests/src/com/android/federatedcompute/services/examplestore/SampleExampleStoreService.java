@@ -68,6 +68,11 @@ public class SampleExampleStoreService extends ExampleStoreService {
                 new ListExampleStoreIterator(ImmutableList.of(EXAMPLE_PROTO_1)));
     }
 
+    @Override
+    protected boolean checkCallerPermission() {
+        return true;
+    }
+
     /**
      * A simple {@link ExampleStoreIterator} that returns the contents of the {@link List} it's
      * constructed with.

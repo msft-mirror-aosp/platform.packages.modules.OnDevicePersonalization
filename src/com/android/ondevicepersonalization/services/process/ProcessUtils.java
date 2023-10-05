@@ -51,7 +51,7 @@ public class ProcessUtils {
     public static final String PARAM_OPERATION_KEY = "param.operation";
     public static final String PARAM_SERVICE_INPUT = "param.service_input";
 
-    private static PluginManager sPluginManager;
+    private static volatile PluginManager sPluginManager;
 
     /** Loads a service in an isolated process */
     @NonNull public static ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
@@ -81,13 +81,16 @@ public class ProcessUtils {
         return executePlugin(isolatedProcessInfo.getPluginController(), pluginParams);
     }
 
-    @NonNull static PluginManager getPluginManager(@NonNull Context context) {
-        synchronized (ProcessUtils.class) {
-            if (sPluginManager == null) {
-                sPluginManager = new PluginManagerImpl(context);
+    @NonNull
+    static PluginManager getPluginManager(@NonNull Context context) {
+        if (sPluginManager == null) {
+            synchronized (ProcessUtils.class) {
+                if (sPluginManager == null) {
+                    sPluginManager = new PluginManagerImpl(context.getApplicationContext());
+                }
             }
-            return sPluginManager;
         }
+        return sPluginManager;
     }
 
     @NonNull static PluginController createPluginController(
