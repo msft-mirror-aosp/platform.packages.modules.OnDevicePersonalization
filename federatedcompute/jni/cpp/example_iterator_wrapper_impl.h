@@ -41,7 +41,7 @@ class ExampleIteratorWrapperImpl : public ExampleIterator {
 
   absl::StatusOr<std::string> Next() override;
 
-  void Close() override;
+  void Close() override final;
 
  private:
   jmethodID next_id_;
