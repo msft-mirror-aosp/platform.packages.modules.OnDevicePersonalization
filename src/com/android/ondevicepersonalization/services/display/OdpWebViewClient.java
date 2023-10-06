@@ -17,11 +17,11 @@
 package com.android.ondevicepersonalization.services.display;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.EventInput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
-import android.adservices.ondevicepersonalization.WebViewEventInput;
-import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
 import android.content.Context;
 import android.content.Intent;
@@ -160,7 +160,7 @@ class OdpWebViewClient extends WebViewClient {
         return true;
     }
 
-    private ListenableFuture<WebViewEventOutput> executeEventHandler(
+    private ListenableFuture<EventOutput> executeEventHandler(
             IsolatedServiceInfo isolatedServiceInfo, EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": executeEventHandler() called");
@@ -170,7 +170,7 @@ class OdpWebViewClient extends WebViewClient {
                     /* includeEventData */ true);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
             // TODO(b/259950177): Add Query row to input.
-            WebViewEventInput input = new WebViewEventInput.Builder()
+            EventInput input = new EventInput.Builder()
                     .setParameters(payload.getEventParams())
                     .setRequestLogRecord(mLogRecord)
                     .build();
@@ -187,7 +187,7 @@ class OdpWebViewClient extends WebViewClient {
                         serviceParams))
                     .transform(
                             result -> result.getParcelable(
-                                Constants.EXTRA_RESULT, WebViewEventOutput.class),
+                                Constants.EXTRA_RESULT, EventOutput.class),
                             mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": executeEventHandler() failed", e);
@@ -196,7 +196,7 @@ class OdpWebViewClient extends WebViewClient {
 
     }
 
-    ListenableFuture<WebViewEventOutput> getEventOutput(EventUrlPayload payload) {
+    ListenableFuture<EventOutput> getEventOutput(EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": getEventOutput(): Starting isolated process.");
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
@@ -211,7 +211,7 @@ class OdpWebViewClient extends WebViewClient {
         }
     }
 
-    private ListenableFuture<Void> writeEvent(WebViewEventOutput result) {
+    private ListenableFuture<Void> writeEvent(EventOutput result) {
         try {
             sLogger.d(TAG + ": writeEvent() called. EventOutput: " + result.toString());
             if (result == null || result.getEventLogRecord() == null) {

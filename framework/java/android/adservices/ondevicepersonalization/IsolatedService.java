@@ -148,7 +148,7 @@ public abstract class IsolatedService extends Service {
      * Returns an {@link EventUrlProvider} for the current request. The {@link EventUrlProvider}
      * provides URLs that can be embedded in HTML. When the HTML is rendered in a {@link WebView},
      * the platform intercepts requests to these URLs and invokes {@link
-     * IsolatedCmputationCallback#onWebViewEvent()}.
+     * IsolatedCmputationCallback#onEvent()}.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
      * @see #onRequest
@@ -279,10 +279,10 @@ public abstract class IsolatedService extends Service {
 
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
-                WebViewEventInput input =
+                EventInput input =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, WebViewEventInput.class));
+                                        Constants.EXTRA_INPUT, EventInput.class));
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -291,8 +291,8 @@ public abstract class IsolatedService extends Service {
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onWebViewEvent(
-                        input, new WrappedCallback<WebViewEventOutput>(resultCallback));
+                implCallback.onEvent(
+                        input, new WrappedCallback<EventOutput>(resultCallback));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
                 TrainingExampleInput input =
