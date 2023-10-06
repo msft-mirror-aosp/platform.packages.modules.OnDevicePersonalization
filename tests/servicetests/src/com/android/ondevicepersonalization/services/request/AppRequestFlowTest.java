@@ -34,6 +34,7 @@ import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
@@ -89,7 +90,7 @@ public class AppRequestFlowTest {
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 PersistableBundle.EMPTY,
-                new TestCallback(), mContext, MoreExecutors.newDirectExecutorService());
+                new TestCallback(), mContext, 100L, new TestInjector());
         appRequestFlow.run();
         mLatch.await();
         assertTrue(mCallbackSuccess);
@@ -112,6 +113,12 @@ public class AppRequestFlowTest {
         public void onError(int errorCode) {
             mCallbackError = true;
             mLatch.countDown();
+        }
+    }
+
+    class TestInjector extends AppRequestFlow.Injector {
+        ListeningExecutorService getExecutor() {
+            return MoreExecutors.newDirectExecutorService();
         }
     }
 }
