@@ -31,5 +31,5 @@ interface IOnDevicePersonalizationSystemService {
             in IOnDevicePersonalizationSystemServiceCallback callback
     );
 
-    boolean readPersonalizationStatus(in IOnDevicePersonalizationSystemServiceCallback callback);
+    void readPersonalizationStatus(in IOnDevicePersonalizationSystemServiceCallback callback);
 }

@@ -23,6 +23,7 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
 
     <application android:label="FederatedComputeServicesTests"
                  android:debuggable="true">
@@ -34,9 +35,10 @@
         <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
                  android:isolatedProcess="true" android:exported="false" >
         </service>
-        <service android:name="com.android.federatedcompute.services.examplestore.SampleExampleStoreService"
-                 android:enabled="true"
-                 android:exported="true">
+        <service
+            android:name="com.android.federatedcompute.services.examplestore.SampleExampleStoreService"
+            android:enabled="true"
+            android:exported="true">
                  <intent-filter>
                     <action android:name="android.federatedcompute.EXAMPLE_STORE" />
                  </intent-filter>
