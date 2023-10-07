@@ -22,6 +22,7 @@ package android.adservices.ondevicepersonalization;
  * @hide
  */
 public class Constants {
+    public static final int STATUS_SUCCESS = 0;
     public static final int STATUS_INTERNAL_ERROR = 100;
     public static final int STATUS_NAME_NOT_FOUND = 101;
     public static final int STATUS_CLASS_NOT_FOUND = 102;

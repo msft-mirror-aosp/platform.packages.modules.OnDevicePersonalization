@@ -44,7 +44,11 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
+import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
@@ -75,20 +79,34 @@ public class AppRequestFlow {
     private final IExecuteCallback mCallback;
     @NonNull
     private final Context mContext;
+    private final long mStartTimeMillis;
     @NonNull
     private String mServiceClassName;
 
+    @VisibleForTesting
+    static class Injector {
+        ListeningExecutorService getExecutor() {
+            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
+        }
+
+        Clock getClock() {
+            return MonotonicClock.getInstance();
+        }
+    }
+
     @NonNull
-    private final ListeningExecutorService mExecutorService;
+    private final Injector mInjector;
 
     public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
-            @NonNull Context context) {
+            @NonNull Context context,
+            long startTimeMillis) {
         this(callingPackageName, service, params,
-                callback, context, OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                callback, context, startTimeMillis,
+                new Injector());
     }
 
     @VisibleForTesting
@@ -98,19 +116,21 @@ public class AppRequestFlow {
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
-            @NonNull ListeningExecutorService executorService) {
+            long startTimeMillis,
+            @NonNull Injector injector) {
         sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
         mService = Objects.requireNonNull(service);
         mParams = Objects.requireNonNull(params);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
-        mExecutorService = Objects.requireNonNull(executorService);
+        mStartTimeMillis = startTimeMillis;
+        mInjector = Objects.requireNonNull(injector);
     }
 
     /** Runs the request processing flow. */
     public void run() {
-        var unused = Futures.submit(() -> this.processRequest(), mExecutorService);
+        var unused = Futures.submit(() -> this.processRequest(), mInjector.getExecutor());
     }
 
     private void processRequest() {
@@ -136,18 +156,18 @@ public class AppRequestFlow {
                                     TASK_NAME, mService.getPackageName(), mContext))
                     .transformAsync(
                             result -> executeAppRequest(result),
-                            mExecutorService
+                            mInjector.getExecutor()
                     )
                     .transform(
                             result -> {
                                 return result.getParcelable(
                                         Constants.EXTRA_RESULT, ExecuteOutput.class);
                             },
-                            mExecutorService
+                            mInjector.getExecutor()
                     );
 
             ListenableFuture<Long> queryIdFuture = FluentFuture.from(resultFuture)
-                    .transformAsync(input -> logQuery(input), mExecutorService);
+                    .transformAsync(input -> logQuery(input), mInjector.getExecutor());
 
             ListenableFuture<List<String>> slotResultTokensFuture =
                     Futures.whenAllSucceed(resultFuture, queryIdFuture)
@@ -156,7 +176,7 @@ public class AppRequestFlow {
                                 public ListenableFuture<List<String>> call() {
                                     return createTokens(resultFuture, queryIdFuture);
                                 }
-                            }, mExecutorService);
+                            }, mInjector.getExecutor());
 
             Futures.addCallback(
                     slotResultTokensFuture,
@@ -172,7 +192,7 @@ public class AppRequestFlow {
                             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                         }
                     },
-                    mExecutorService);
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -285,15 +305,23 @@ public class AppRequestFlow {
     }
 
     private void sendResult(List<String> slotResultTokens) {
+        if (slotResultTokens != null && slotResultTokens.size() > 0) {
+            sendSuccessResult(slotResultTokens);
+        } else {
+            sLogger.w(TAG + ": slotResultTokens is null or empty");
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+        }
+    }
+
+    private void sendSuccessResult(List<String> slotResultTokens) {
+        int responseCode = Constants.STATUS_SUCCESS;
         try {
-            if (slotResultTokens != null && slotResultTokens.size() > 0) {
-                mCallback.onSuccess(slotResultTokens);
-            } else {
-                sLogger.w(TAG + ": slotResultTokens is null or empty");
-                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-            }
+            mCallback.onSuccess(slotResultTokens);
         } catch (RemoteException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            writeMetrics(responseCode);
         }
     }
 
@@ -302,6 +330,17 @@ public class AppRequestFlow {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            writeMetrics(errorCode);
         }
+    }
+
+    private void writeMetrics(int responseCode) {
+        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
+                .setLatencyMillis(latencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }

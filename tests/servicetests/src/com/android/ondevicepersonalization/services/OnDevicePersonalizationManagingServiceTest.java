@@ -333,7 +333,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                     mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                 PersistableBundle.EMPTY,
                 executeCallback,
-                mContext));
+                mContext,
+                0L));
 
         assertNotNull(injector.getRenderFlow(
                 "resultToken",
@@ -342,7 +343,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                 100,
                 50,
                 renderCallback,
-                mContext
+                mContext,
+                0L
         ));
     }
 
@@ -360,9 +362,10 @@ public class OnDevicePersonalizationManagingServiceTest {
                 ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new AppRequestFlow(
-                    callingPackageName, handler, params, callback, context) {
+                    callingPackageName, handler, params, callback, context, startTimeMillis) {
                 @Override public void run() {
                     mAppRequestFlowStarted = true;
                 }
@@ -376,9 +379,11 @@ public class OnDevicePersonalizationManagingServiceTest {
                 int width,
                 int height,
                 IRequestSurfacePackageCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new RenderFlow(
-                    slotResultToken, hostToken, displayId, width, height, callback, context) {
+                    slotResultToken, hostToken, displayId, width, height, callback, context,
+                    startTimeMillis) {
                 @Override public void run() {
                     mRenderFlowStarted = true;
                 }
