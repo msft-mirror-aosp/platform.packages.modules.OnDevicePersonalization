@@ -62,11 +62,8 @@ public class Constants {
     public static final int DATA_ACCESS_OP_LOCAL_DATA_KEYSET = 5;
     public static final int DATA_ACCESS_OP_LOCAL_DATA_PUT = 6;
     public static final int DATA_ACCESS_OP_LOCAL_DATA_REMOVE = 7;
-    public static final int DATA_ACCESS_OP_GET_REQUEST_IDS = 8;
-    public static final int DATA_ACCESS_OP_EVENT_IDS = 9;
-    public static final int DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST = 10;
-    public static final int DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD = 11;
-    public static final int DATA_ACCESS_OP_GET_JOINED_LOG_RECORD = 12;
+    public static final int DATA_ACCESS_OP_GET_REQUESTS = 8;
+    public static final int DATA_ACCESS_OP_GET_JOINED_EVENTS = 9;
 
     private Constants() {}
 }
