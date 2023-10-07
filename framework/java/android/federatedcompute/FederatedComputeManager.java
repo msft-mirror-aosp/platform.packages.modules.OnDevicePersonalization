@@ -16,7 +16,6 @@
 
 package android.federatedcompute;
 
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.content.Context;
@@ -87,13 +86,14 @@ public final class FederatedComputeManager {
 
                         @Override
                         public void onFailure(int errorCode) {
-                            LogUtil.d(TAG, ": schedule onFailure() called with errorCode %d",
+                            LogUtil.d(
+                                    TAG,
+                                    ": schedule onFailure() called with errorCode %d",
                                     errorCode);
                             executor.execute(
                                     () ->
                                             callback.onError(
-                                                    new OnDevicePersonalizationException(
-                                                            errorCode)));
+                                                    new FederatedComputeException(errorCode)));
                             unbindFromService();
                         }
                     };
@@ -131,13 +131,14 @@ public final class FederatedComputeManager {
 
                         @Override
                         public void onFailure(int errorCode) {
-                            LogUtil.d(TAG, ": cancel onFailure() called with errorCode %d",
+                            LogUtil.d(
+                                    TAG,
+                                    ": cancel onFailure() called with errorCode %d",
                                     errorCode);
                             executor.execute(
                                     () ->
                                             callback.onError(
-                                                    new OnDevicePersonalizationException(
-                                                            errorCode)));
+                                                    new FederatedComputeException(errorCode)));
                             unbindFromService();
                         }
                     };
