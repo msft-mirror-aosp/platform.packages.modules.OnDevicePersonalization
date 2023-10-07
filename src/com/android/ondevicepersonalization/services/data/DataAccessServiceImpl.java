@@ -17,7 +17,7 @@
 package com.android.ondevicepersonalization.services.data;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.JoinedLogRecord;
+import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -32,6 +32,7 @@ import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
@@ -46,6 +47,7 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -71,6 +73,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final boolean mIncludeEventData;
     @NonNull
     private final Injector mInjector;
+
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
@@ -190,7 +193,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                                 eventParams, responseData, mimeType, destinationUrl, callback)
                 );
                 break;
-            case Constants.DATA_ACCESS_OP_GET_REQUEST_IDS:
+            case Constants.DATA_ACCESS_OP_GET_REQUESTS:
                 if (!mIncludeEventData) {
                     throw new IllegalStateException(
                             "request and event data are not included for this instance.");
@@ -201,9 +204,9 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     throw new IllegalArgumentException("Invalid request timestamps provided.");
                 }
                 mInjector.getExecutor().execute(
-                        () -> getRequestIds(requestTimes[0], requestTimes[1], callback));
+                        () -> getRequests(requestTimes[0], requestTimes[1], callback));
                 break;
-            case Constants.DATA_ACCESS_OP_EVENT_IDS:
+            case Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS:
                 if (!mIncludeEventData) {
                     throw new IllegalStateException(
                             "request and event data are not included for this instance.");
@@ -214,34 +217,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     throw new IllegalArgumentException("Invalid event timestamps provided.");
                 }
                 mInjector.getExecutor().execute(
-                        () -> getEventIds(eventTimes[0], eventTimes[1], callback));
-                break;
-            case Constants.DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST:
-                if (!mIncludeEventData) {
-                    throw new IllegalStateException(
-                            "request and event data are not included for this instance.");
-                }
-                long requestId = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
-                mInjector.getExecutor().execute(
-                        () -> getEventIdsForRequest(requestId, callback));
-                break;
-            case Constants.DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD:
-                if (!mIncludeEventData) {
-                    throw new IllegalStateException(
-                            "request and event data are not included for this instance.");
-                }
-                requestId = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
-                mInjector.getExecutor().execute(
-                        () -> getRequestLogRecord(requestId, callback));
-                break;
-            case Constants.DATA_ACCESS_OP_GET_JOINED_LOG_RECORD:
-                if (!mIncludeEventData) {
-                    throw new IllegalStateException(
-                            "request and event data are not included for this instance.");
-                }
-                long eventId = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
-                mInjector.getExecutor().execute(
-                        () -> getJoinedLogRecord(eventId, callback));
+                        () -> getJoinedEvents(eventTimes[0], eventTimes[1], callback));
                 break;
             default:
                 sendError(callback);
@@ -346,92 +322,57 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
     }
 
-    private void getRequestIds(long startTimeMillis, long endTimeMillis,
+    private void getRequests(long startTimeMillis, long endTimeMillis,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            List<Long> ids = mEventsDao.readAllQueryIds(startTimeMillis, endTimeMillis,
+            List<Query> queries = mEventsDao.readAllQueries(startTimeMillis, endTimeMillis,
                     mServicePackageName);
-            Bundle result = new Bundle();
-            result.putLongArray(Constants.EXTRA_RESULT, ids.stream()
-                    .mapToLong(Long::longValue).toArray());
-            sendResult(result, callback);
-        } catch (Exception e) {
-            sendError(callback);
-        }
-    }
-
-    private void getEventIds(long startTimeMillis, long endTimeMillis,
-            @NonNull IDataAccessServiceCallback callback) {
-        try {
-            List<Long> ids = mEventsDao.readAllEventIds(startTimeMillis, endTimeMillis,
-                    mServicePackageName);
-            Bundle result = new Bundle();
-            result.putLongArray(Constants.EXTRA_RESULT, ids.stream()
-                    .mapToLong(Long::longValue).toArray());
-            sendResult(result, callback);
-        } catch (Exception e) {
-            sendError(callback);
-        }
-    }
-
-    private void getEventIdsForRequest(long requestId,
-            @NonNull IDataAccessServiceCallback callback) {
-        try {
-            List<Long> ids = mEventsDao.readAllEventIdsForQuery(requestId, mServicePackageName);
-            Bundle result = new Bundle();
-            result.putLongArray(Constants.EXTRA_RESULT, ids.stream()
-                    .mapToLong(Long::longValue).toArray());
-            sendResult(result, callback);
-        } catch (Exception e) {
-            sendError(callback);
-        }
-    }
-
-    private void getRequestLogRecord(long requestId,
-            @NonNull IDataAccessServiceCallback callback) {
-        try {
-            Query query = mEventsDao.readSingleQueryRow(requestId, mServicePackageName);
-            RequestLogRecord record;
-            if (query == null) {
-                record = new RequestLogRecord.Builder().build();
-            } else {
-                record = new RequestLogRecord.Builder()
+            List<RequestLogRecord> requestLogRecords = new ArrayList<>();
+            for (Query query : queries) {
+                RequestLogRecord record = new RequestLogRecord.Builder()
                         .setRows(OnDevicePersonalizationFlatbufferUtils
                                 .getContentValuesFromQueryData(query.getQueryData()))
+                        .setRequestId(query.getQueryId())
+                        .setTimeMillis(query.getTimeMillis())
                         .build();
+                requestLogRecords.add(record);
             }
             Bundle result = new Bundle();
-            result.putParcelable(Constants.EXTRA_RESULT, record);
+            result.putParcelable(Constants.EXTRA_RESULT,
+                    new OdpParceledListSlice<>(requestLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
         }
     }
 
-    private void getJoinedLogRecord(long eventId,
+    private void getJoinedEvents(long startTimeMillis, long endTimeMillis,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            JoinedEvent joinedEvent = mEventsDao.readSingleJoinedTableRow(eventId,
+            List<JoinedEvent> joinedEvents = mEventsDao.readJoinedTableRows(startTimeMillis,
+                    endTimeMillis,
                     mServicePackageName);
-            JoinedLogRecord record;
-            if (joinedEvent == null) {
-                record = new JoinedLogRecord.Builder().build();
-            } else {
-                record = new JoinedLogRecord.Builder()
-                        .setRequestTimeMillis(joinedEvent.getQueryTimeMillis())
-                        .setEventTimeMillis(joinedEvent.getEventTimeMillis())
+            List<EventLogRecord> joinedLogRecords = new ArrayList<>();
+            for (JoinedEvent joinedEvent : joinedEvents) {
+                RequestLogRecord requestLogRecord = new RequestLogRecord.Builder()
+                        .setRequestId(joinedEvent.getQueryId())
+                        .setRows(OnDevicePersonalizationFlatbufferUtils
+                                .getContentValuesFromQueryData(joinedEvent.getQueryData()))
+                        .setTimeMillis(joinedEvent.getQueryTimeMillis())
+                        .build();
+                EventLogRecord record = new EventLogRecord.Builder()
+                        .setTimeMillis(joinedEvent.getEventTimeMillis())
                         .setType(joinedEvent.getType())
-                        .setEventData(
+                        .setData(
                                 OnDevicePersonalizationFlatbufferUtils
                                         .getContentValuesFromEventData(joinedEvent.getEventData()))
-                        .setRequestData(
-                                OnDevicePersonalizationFlatbufferUtils
-                                        .getContentValuesRowFromQueryData(
-                                        joinedEvent.getQueryData(), joinedEvent.getRowIndex()))
+                        .setRequestLogRecord(requestLogRecord)
                         .build();
+                joinedLogRecords.add(record);
             }
             Bundle result = new Bundle();
-            result.putParcelable(Constants.EXTRA_RESULT, record);
+            result.putParcelable(Constants.EXTRA_RESULT,
+                    new OdpParceledListSlice<>(joinedLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);

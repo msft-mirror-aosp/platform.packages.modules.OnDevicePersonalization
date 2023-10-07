@@ -26,7 +26,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -224,7 +223,7 @@ public class FederatedComputeManagerTest {
                 manager.schedule(request, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
+                verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-allNull":
@@ -281,7 +280,7 @@ public class FederatedComputeManagerTest {
                 manager.cancel(populationName, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
+                verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             default:
