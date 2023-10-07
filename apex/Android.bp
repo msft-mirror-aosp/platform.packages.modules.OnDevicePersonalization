@@ -94,4 +94,5 @@ apex {
     systemserverclasspath_fragments: ["com.android.ondevicepersonalization-systemserverclasspath-fragment"],
     defaults: ["t-launched-apex-module"],
     prebuilts: ["current_sdkinfo"],
+    jni_libs: ["libfcp_cpp_dep_jni"],
 }
