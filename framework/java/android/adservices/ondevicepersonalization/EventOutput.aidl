@@ -14,19 +14,6 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.examplestore;
+package android.adservices.ondevicepersonalization;
 
-import android.federatedcompute.aidl.IExampleStoreIterator;
-
-import com.android.federatedcompute.services.common.ErrorStatusException;
-
-import com.google.internal.federated.plan.ExampleSelector;
-
-/** Interface used to provide a reference to the IExampleStoreIterator. */
-public interface ExampleStoreIteratorProvider {
-
-    /** Returns the selected ExampleStoreIterator. */
-    IExampleStoreIterator getExampleStoreIterator(
-            String packageName, ExampleSelector exampleSelector)
-            throws InterruptedException, ErrorStatusException;
-}
+parcelable EventOutput;

@@ -67,31 +67,26 @@ import java.util.concurrent.ExecutionException;
 
 @RunWith(JUnit4.class)
 public final class HttpFederatedProtocolTest {
-    private static final String TASK_ASSIGNMENT_TARGET_URI = "https://taskassignment.uri/";
-    private static final String AGGREGATION_TARGET_URI = "https://aggregation.uri/";
+    private static final String TASK_ASSIGNMENT_TARGET_URI = "https://test-server.com/";
     private static final String PLAN_URI = "https://fake.uri/plan";
     private static final String CHECKPOINT_URI = "https://fake.uri/checkpoint";
     private static final String START_TASK_ASSIGNMENT_URI =
-            "https://taskassignment.uri/v1/population/test_population:create-task-assignment";
+            "https://test-server.com/taskassignment/v1/population/test_population:create-task-assignment";
     private static final String REPORT_RESULT_URI =
-            "https://taskassignment.uri/v1/population/test_population/task/task-id/aggregation/aggregation-id/task-assignment/assignment-id:report-result";
+            "https://test-server.com/taskassignment/v1/population/test_population/task/task-id/"
+                    + "aggregation/aggregation-id/task-assignment/assignment-id:report-result";
     private static final String UPLOAD_LOCATION_URI = "https://dataupload.uri";
     private static final String POPULATION_NAME = "test_population";
-    private static final byte[] PLAN = "CLIENT_ONLY_PLAN".getBytes(UTF_8);
     private static final byte[] CHECKPOINT = "INIT_CHECKPOINT".getBytes(UTF_8);
-    private static final String INIT_CHECKPOINT = "INIT_CHECKPOINT";
     private static final String CLIENT_VERSION = "CLIENT_VERSION";
-    private static final String CLIENT_SESSION_ID = "CLIENT_SESSION_ID";
-    private static final String AGGREGATION_SESSION_ID = "AGGREGATION_SESSION_ID";
     private static final String TASK_ID = "task-id";
     private static final String ASSIGNMENT_ID = "assignment-id";
     private static final String AGGREGATION_ID = "aggregation-id";
-    private static final String RESOURCE_NAME = "CHECKPOINT_RESOURCE";
-    private static final String CLIENT_TOKEN = "CLIENT_TOKEN";
-    private static final byte[] COMPUTATION_RESULT = "COMPUTATION_RESULT".getBytes(UTF_8);
     private static final String OCTET_STREAM = "application/octet-stream";
     private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
+    private static final FLRunnerResult FL_RUNNER_FAIL_RESULT =
+            FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
     private static final FederatedComputeHttpResponse CHECKPOINT_HTTP_RESPONSE =
             new FederatedComputeHttpResponse.Builder()
                     .setStatusCode(200)
@@ -228,6 +223,27 @@ public final class HttpFederatedProtocolTest {
                         () -> mHttpFederatedProtocol.issueCheckin().get());
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
+    }
+
+    @Test
+    public void testReportFailedTrainingResult_returnSuccess() throws Exception {
+        ComputationResult computationResult =
+                new ComputationResult(createOutputCheckpointFile(), FL_RUNNER_FAIL_RESULT, null);
+
+        setUpHttpFederatedProtocol();
+        // Setup task id, aggregation id for report result.
+        mHttpFederatedProtocol.issueCheckin().get();
+
+        mHttpFederatedProtocol.reportResult(computationResult).get();
+
+        // Verify ReportResult request.
+        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        assertThat(actualHttpRequests).hasSize(4);
+        FederatedComputeHttpRequest acutalReportResultRequest = actualHttpRequests.get(3);
+        ReportResultRequest reportResultRequest =
+                ReportResultRequest.newBuilder().setResult(Result.FAILED).build();
+        assertThat(acutalReportResultRequest.getBody())
+                .isEqualTo(reportResultRequest.toByteArray());
     }
 
     @Test

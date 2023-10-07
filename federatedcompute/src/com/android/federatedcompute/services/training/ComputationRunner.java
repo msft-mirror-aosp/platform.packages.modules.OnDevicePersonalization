@@ -16,14 +16,14 @@
 
 package com.android.federatedcompute.services.training;
 
-import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
+import com.android.federatedcompute.services.examplestore.FederatedExampleIterator;
+import com.android.federatedcompute.services.training.jni.FlRunnerWrapper;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
 
 import com.google.intelligence.fcp.client.FLRunnerResult;
-import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
 
@@ -32,14 +32,12 @@ import com.google.internal.federated.plan.ExampleSelector;
  * start federated ananlytic and federated training jobs.
  */
 public class ComputationRunner {
-    private final String mPackageName;
 
-    public ComputationRunner(Context context) {
-        this.mPackageName = context.getPackageName();
-    }
+    public ComputationRunner() {}
 
     /** Run a single round of federated computation. */
     public FLRunnerResult runTaskWithNativeRunner(
+            String taskName,
             String populationName,
             String inputCheckpointFd,
             String outputCheckpointFd,
@@ -48,9 +46,28 @@ public class ComputationRunner {
             ExampleConsumptionRecorder recorder,
             IExampleStoreIterator exampleStoreIterator,
             ListenableSupplier<Boolean> interruptState) {
-        // TODO(b/241799297): add native fl runner to call fcp client.
-        return FLRunnerResult.newBuilder()
-                .setContributionResult(ContributionResult.SUCCESS)
-                .build();
+        String collectionUri = exampleSelector.getCollectionUri();
+        byte[] criteria = exampleSelector.getCriteria().toByteArray();
+        byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
+        FederatedExampleIterator federatedExampleIterator =
+                new FederatedExampleIterator(
+                        exampleStoreIterator,
+                        collectionUri,
+                        criteria,
+                        resumptionToken,
+                        recorder.createRecorderForTracking(collectionUri, resumptionToken));
+
+        FlRunnerWrapper flRunnerWrapper =
+                new FlRunnerWrapper(interruptState, populationName, federatedExampleIterator);
+
+        FLRunnerResult runResult =
+                flRunnerWrapper.run(
+                        taskName,
+                        populationName,
+                        clientOnlyPlan,
+                        inputCheckpointFd,
+                        outputCheckpointFd);
+
+        return runResult;
     }
 }

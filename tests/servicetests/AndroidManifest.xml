@@ -32,6 +32,9 @@
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
+    <!--  Permission to call OdpExampleStore  -->
+    <uses-permission android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
+
     <application android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication"
             android:label="OnDevicePersonalizationManagingServicesTests"
             android:debuggable="true">
@@ -68,18 +71,19 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
-                 android:enabled="true" android:exported="true" >
+        <service
+            android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_EXAMPLE_STORE_SERVICE">
             <intent-filter>
                 <action android:name="android.federatedcompute.EXAMPLE_STORE" />
-                <data android:scheme="app" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpResultHandlingService"
                  android:enabled="true" android:exported="true" >
             <intent-filter>
                 <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
-                <data android:scheme="app" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"

@@ -30,6 +30,8 @@ import android.os.PersistableBundle;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
+import com.android.ondevicepersonalization.services.util.Clock;
+import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import java.util.Objects;
 
@@ -45,9 +47,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new AppRequestFlow(
-                    callingPackageName, handler, params, callback, context);
+                    callingPackageName, handler, params, callback, context, startTimeMillis);
         }
 
         RenderFlow getRenderFlow(
@@ -57,9 +60,15 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 int width,
                 int height,
                 IRequestSurfacePackageCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new RenderFlow(
-                    slotResultToken, hostToken, displayId, width, height, callback, context);
+                    slotResultToken, hostToken, displayId, width, height, callback, context,
+                    startTimeMillis);
+        }
+
+        Clock getClock() {
+            return MonotonicClock.getInstance();
         }
     }
 
@@ -88,6 +97,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull IExecuteCallback callback) {
+        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
@@ -116,7 +126,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 handler,
                 params,
                 callback,
-                mContext);
+                mContext,
+                startTimeMillis);
         flow.run();
     }
 
@@ -128,6 +139,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int width,
             int height,
             @NonNull IRequestSurfacePackageCallback callback) {
+        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
@@ -154,7 +166,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 width,
                 height,
                 callback,
-                mContext);
+                mContext,
+                startTimeMillis);
         flow.run();
     }
 
