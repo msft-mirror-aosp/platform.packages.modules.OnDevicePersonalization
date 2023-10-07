@@ -46,11 +46,11 @@ public class OdpExampleStoreIteratorTest {
     @Test
     public void testNext() {
         List<byte[]> exampleList = new ArrayList<>();
-        exampleList.add(new byte[]{1});
+        exampleList.add(new byte[] {1});
         List<byte[]> tokenList = new ArrayList<>();
-        tokenList.add(new byte[]{2});
+        tokenList.add(new byte[] {2});
         OdpExampleStoreIterator it = new OdpExampleStoreIterator(exampleList, tokenList);
-        it.next(new TestIteratorCallback(new byte[]{1}, new byte[]{2}));
+        it.next(new TestIteratorCallback(new byte[] {1}, new byte[] {2}));
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
         mIteratorCallbackOnSuccessCalled = false;
@@ -62,9 +62,10 @@ public class OdpExampleStoreIteratorTest {
     @Test
     public void testConstructorError() {
         List<byte[]> exampleList = new ArrayList<>();
-        exampleList.add(new byte[]{1});
+        exampleList.add(new byte[] {1});
         List<byte[]> tokenList = new ArrayList<>();
-        assertThrows(IllegalArgumentException.class,
+        assertThrows(
+                IllegalArgumentException.class,
                 () -> new OdpExampleStoreIterator(exampleList, tokenList));
     }
 
@@ -83,10 +84,11 @@ public class OdpExampleStoreIteratorTest {
             if (mExpectedExample == null) {
                 assertNull(result);
             } else {
-                assertArrayEquals(mExpectedExample, result.getByteArray(
-                        EXTRA_EXAMPLE_ITERATOR_RESULT));
-                assertArrayEquals(mExpectedResumptionToken, result.getByteArray(
-                        EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
+                assertArrayEquals(
+                        mExpectedExample, result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT));
+                assertArrayEquals(
+                        mExpectedResumptionToken,
+                        result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
             }
             mIteratorCallbackOnSuccessCalled = true;
             mLatch.countDown();

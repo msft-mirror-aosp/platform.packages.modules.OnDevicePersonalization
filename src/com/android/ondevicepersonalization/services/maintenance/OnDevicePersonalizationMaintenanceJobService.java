@@ -115,7 +115,6 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
             String certDigest = entry.getValue();
             OnDevicePersonalizationVendorDataDao.deleteVendorData(context, packageName, certDigest);
             eventsDao.deleteEventState(entry.getKey());
-            // TODO(296893799): Cancel any tasks scheduled by the uninstalled package with FCP.
         }
 
         // Cleanup event and queries table.
