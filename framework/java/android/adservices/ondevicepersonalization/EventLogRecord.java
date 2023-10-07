@@ -32,7 +32,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * {@link RequestRecordRecord} in the requests table (@see RequestLogRecord#getRows).
  * The purpose of the EVENTS table is to add supplemental information to logged data
  * from a prior request, e.g., logging an event when a link in a rendered WebView
- * is clicked (@see IsolatedWorker#onWebViewEvent). The contents of the EVENTS table can be
+ * is clicked (@see IsolatedWorker#onEvent). The contents of the EVENTS table can be
  * consumed by Federated Learning facilitated model training, or Federated Analytics facilitated
  * cross-device statistical analysis.
  */

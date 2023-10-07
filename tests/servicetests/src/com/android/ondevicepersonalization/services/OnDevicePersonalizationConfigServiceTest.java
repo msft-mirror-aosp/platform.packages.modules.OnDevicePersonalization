@@ -38,6 +38,7 @@ import com.android.ondevicepersonalization.services.data.user.UserDataDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import org.junit.After;
+import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -62,7 +63,6 @@ public class OnDevicePersonalizationConfigServiceTest {
     public void setup() throws Exception {
         mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
-        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserData = RawUserData.getInstance();
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserDataDao = UserDataDao.getInstanceForTest(mContext);
@@ -78,7 +78,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
         CountDownLatch latch = new CountDownLatch(1);
         mBinder.setPersonalizationStatus(true,
-                new IOnDevicePersonalizationConfigServiceCallback.Stub() {
+                new IOnDevicePersonalizationConfigServiceCallback() {
                     @Override
                     public void onSuccess() {
                         latch.countDown();
@@ -86,7 +86,12 @@ public class OnDevicePersonalizationConfigServiceTest {
 
                     @Override
                     public void onFailure(int errorCode) {
-                        latch.countDown();
+                        Assert.fail();
+                    }
+
+                    @Override
+                    public IBinder asBinder() {
+                        return null;
                     }
                 });
 
@@ -131,7 +136,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
         CountDownLatch latch = new CountDownLatch(1);
         mBinder.setPersonalizationStatus(true,
-                new IOnDevicePersonalizationConfigServiceCallback.Stub() {
+                new IOnDevicePersonalizationConfigServiceCallback() {
                     @Override
                     public void onSuccess() {
                         latch.countDown();
@@ -139,7 +144,12 @@ public class OnDevicePersonalizationConfigServiceTest {
 
                     @Override
                     public void onFailure(int errorCode) {
-                        latch.countDown();
+                        Assert.fail();
+                    }
+
+                    @Override
+                    public IBinder asBinder() {
+                        return null;
                     }
                 });
 

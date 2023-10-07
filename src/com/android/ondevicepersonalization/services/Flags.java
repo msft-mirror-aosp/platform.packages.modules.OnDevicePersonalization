@@ -23,21 +23,46 @@ package com.android.ondevicepersonalization.services;
  * generated from the GCL.
  */
 public interface Flags {
-
-    boolean ONDEVICEPERSONALIZATION_ENABLED = false;
-
-    default boolean getOnDevicePersonalizationEnabled() {
-        return ONDEVICEPERSONALIZATION_ENABLED;
-    }
-
     /**
      * Global OnDevicePersonalization Kill Switch. This overrides all other killswitches.
-     * The default value is false which means OnDevicePersonalization is enabled.
-     * This flag is used for emergency turning off the whole module.
+     * The default value is true which means OnDevicePersonalization is disabled.
+     * This flag is used for ramp-up and emergency turning off the whole module.
      */
     boolean GLOBAL_KILL_SWITCH = true;
 
+    /**
+     * P/H flag to enable all APIs under OnDevicePersonalization (ODP).
+     * The default value is false, which means all APIs are disabled.
+     * This flag is used for ramp-up and emergency turning off ODP API.
+     */
+    boolean ENABLE_ONDEVICEPERSONALIZATION_APIS = false;
+
+    /**
+     * P/H flag to override the personalization status for end-to-end tests.
+     * The default value is false, which means UserPrivacyStatus#personalizationStatus is not
+     * override by PERSONALIZATION_STATUS_OVERRIDE_VALUE. If true, returns the personalization
+     * status in PERSONALIZATION_STATUS_OVERRIDE_VALUE.
+     */
+    boolean ENABLE_PERSONALIZATION_STATUS_OVERRIDE = false;
+
+    /**
+     * Value of the personalization status, if ENABLE_PERSONALIZATION_STATUS_OVERRIDE is true.
+     */
+    boolean PERSONALIZATION_STATUS_OVERRIDE_VALUE = false;
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
+    }
+
+    default boolean isOnDevicePersonalizationApisEnabled() {
+        return ENABLE_ONDEVICEPERSONALIZATION_APIS;
+    }
+
+    default boolean isPersonalizationStatusOverrideEnabled() {
+        return ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+    }
+
+    default boolean getPersonalizationStatusOverrideValue() {
+        return PERSONALIZATION_STATUS_OVERRIDE_VALUE;
     }
 }
