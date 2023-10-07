@@ -68,6 +68,7 @@ public class RenderFlowTest {
                 50,
                 new TestCallback(),
                 mContext,
+                100L,
                 new TestInjector(),
                 new TestDisplayHelper());
         flow.run();
