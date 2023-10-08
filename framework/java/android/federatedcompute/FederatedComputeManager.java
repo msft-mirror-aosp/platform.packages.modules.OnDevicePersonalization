@@ -16,7 +16,6 @@
 
 package android.federatedcompute;
 
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
 import android.content.Context;
@@ -41,18 +40,19 @@ public final class FederatedComputeManager {
     /**
      * Constant that represents the service name for {@link FederatedComputeManager} to be used in
      * {@link android.ondevicepersonalization.OnDevicePersonalizationFrameworkInitializer
-     *      #registerServiceWrappers}
+     * #registerServiceWrappers}
      *
      * @hide
      */
     public static final String FEDERATED_COMPUTE_SERVICE = "federated_compute_service";
+
     private static final String TAG = FederatedComputeManager.class.getSimpleName();
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
 
     private final Context mContext;
 
-    private AbstractServiceBinder<IFederatedComputeService> mServiceBinder;
+    private final AbstractServiceBinder<IFederatedComputeService> mServiceBinder;
 
     public FederatedComputeManager(Context context) {
         this.mContext = context;
@@ -86,13 +86,14 @@ public final class FederatedComputeManager {
 
                         @Override
                         public void onFailure(int errorCode) {
-                            LogUtil.d(TAG, ": schedule onFailure() called with errorCode %d",
+                            LogUtil.d(
+                                    TAG,
+                                    ": schedule onFailure() called with errorCode %d",
                                     errorCode);
                             executor.execute(
                                     () ->
                                             callback.onError(
-                                                    new OnDevicePersonalizationException(
-                                                            errorCode)));
+                                                    new FederatedComputeException(errorCode)));
                             unbindFromService();
                         }
                     };
@@ -130,13 +131,14 @@ public final class FederatedComputeManager {
 
                         @Override
                         public void onFailure(int errorCode) {
-                            LogUtil.d(TAG, ": cancel onFailure() called with errorCode %d",
+                            LogUtil.d(
+                                    TAG,
+                                    ": cancel onFailure() called with errorCode %d",
                                     errorCode);
                             executor.execute(
                                     () ->
                                             callback.onError(
-                                                    new OnDevicePersonalizationException(
-                                                            errorCode)));
+                                                    new FederatedComputeException(errorCode)));
                             unbindFromService();
                         }
                     };

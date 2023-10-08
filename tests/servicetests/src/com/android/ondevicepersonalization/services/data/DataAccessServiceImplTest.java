@@ -25,7 +25,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.JoinedLogRecord;
+import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -37,6 +37,7 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
@@ -294,112 +295,66 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
-    public void testGetRequestIds() throws Exception {
+    public void testGetRequests() throws Exception {
         addTestData();
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{0L, 200L});
         mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_REQUEST_IDS,
+                Constants.DATA_ACCESS_OP_GET_REQUESTS,
                 params,
                 new TestCallback());
         mLatch.await();
         assertNotNull(mResult);
-        long[] data = mResult.getLongArray(
-                Constants.EXTRA_RESULT);
-        assertEquals(3, data.length);
-        assertEquals(1, data[0]);
-        assertEquals(2, data[1]);
-        assertEquals(3, data[2]);
+        List<RequestLogRecord> data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, OdpParceledListSlice.class).getList();
+        assertEquals(3, data.size());
+        assertEquals(1, data.get(0).getRequestId());
+        assertEquals(2, data.get(1).getRequestId());
+        assertEquals(3, data.get(2).getRequestId());
     }
 
     @Test
-    public void testGetRequestIdsBadInput() {
+    public void testGetRequestsBadInput() {
         addTestData();
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{0L});
         assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_REQUEST_IDS,
+                Constants.DATA_ACCESS_OP_GET_REQUESTS,
                 params,
                 new TestCallback()));
     }
 
     @Test
-    public void testGetEventIds() throws Exception {
+    public void testGetJoinedEvents() throws Exception {
         addTestData();
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{0L, 200L});
         mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_EVENT_IDS,
+                Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS,
                 params,
                 new TestCallback());
         mLatch.await();
         assertNotNull(mResult);
-        long[] data = mResult.getLongArray(
-                Constants.EXTRA_RESULT);
-        assertEquals(3, data.length);
-        assertEquals(1, data[0]);
-        assertEquals(2, data[1]);
-        assertEquals(3, data[2]);
+        List<EventLogRecord> data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, OdpParceledListSlice.class).getList();
+        assertEquals(3, data.size());
+        assertEquals(2L, data.get(0).getTimeMillis());
+        assertEquals(1L, data.get(0).getRequestLogRecord().getTimeMillis());
+        assertEquals(11L, data.get(1).getTimeMillis());
+        assertEquals(10L, data.get(1).getRequestLogRecord().getTimeMillis());
+        assertEquals(101L, data.get(2).getTimeMillis());
+        assertEquals(100L, data.get(2).getRequestLogRecord().getTimeMillis());
     }
 
     @Test
-    public void testGetEventIdsBadInput() {
+    public void testGetJoinedEventsBadInput() {
         addTestData();
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{0L});
         assertThrows(IllegalArgumentException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_EVENT_IDS,
+                Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS,
                 params,
                 new TestCallback()));
-    }
-
-    @Test
-    public void testGetEventIdsForRequest() throws Exception {
-        addTestData();
-        Bundle params = new Bundle();
-        params.putLong(Constants.EXTRA_LOOKUP_KEYS, 1L);
-        mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST,
-                params,
-                new TestCallback());
-        mLatch.await();
-        assertNotNull(mResult);
-        long[] data = mResult.getLongArray(
-                Constants.EXTRA_RESULT);
-        assertEquals(1, data.length);
-        assertEquals(1, data[0]);
-    }
-
-    @Test
-    public void testGetRequestLogRecord() throws Exception {
-        addTestData();
-        Bundle params = new Bundle();
-        params.putLong(Constants.EXTRA_LOOKUP_KEYS, 1L);
-        mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD,
-                params,
-                new TestCallback());
-        mLatch.await();
-        assertNotNull(mResult);
-        RequestLogRecord data = mResult.getParcelable(
-                Constants.EXTRA_RESULT, RequestLogRecord.class);
-        assertEquals(1, (int) (data.getRows().get(0).getAsInteger("a")));
-    }
-
-    @Test
-    public void testGetJoinedLogRecord() throws Exception {
-        addTestData();
-        Bundle params = new Bundle();
-        params.putLong(Constants.EXTRA_LOOKUP_KEYS, 1L);
-        mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_JOINED_LOG_RECORD,
-                params,
-                new TestCallback());
-        mLatch.await();
-        assertNotNull(mResult);
-        JoinedLogRecord data = mResult.getParcelable(
-                Constants.EXTRA_RESULT, JoinedLogRecord.class);
-        assertEquals(1, (int) (data.getRequestData().getAsInteger("a")));
     }
 
     @Test
@@ -410,29 +365,13 @@ public class DataAccessServiceImplTest {
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{1L, 2L});
         assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_REQUEST_IDS,
+                Constants.DATA_ACCESS_OP_GET_REQUESTS,
                 params,
                 new TestCallback()));
         assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_EVENT_IDS,
+                Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS,
                 params,
                 new TestCallback()));
-
-        Bundle longParam = new Bundle();
-        longParam.putLong(Constants.EXTRA_LOOKUP_KEYS, 1L);
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST,
-                longParam,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD,
-                longParam,
-                new TestCallback()));
-        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
-                Constants.DATA_ACCESS_OP_GET_JOINED_LOG_RECORD,
-                longParam,
-                new TestCallback()));
-
     }
 
     private void addTestData() {

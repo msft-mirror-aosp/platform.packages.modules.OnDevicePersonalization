@@ -86,7 +86,6 @@ package android.adservices.ondevicepersonalization {
     method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.DownloadCompletedOutput>);
     method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
     method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
-    method public default void onWebViewEvent(@NonNull android.adservices.ondevicepersonalization.WebViewEventInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.WebViewEventOutput>);
   }
 
   public interface KeyValueStore {
@@ -105,7 +104,6 @@ package android.adservices.ondevicepersonalization {
   }
 
   public class OnDevicePersonalizationManager {
-    method public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.util.List<android.adservices.ondevicepersonalization.SurfacePackageToken>,java.lang.Exception>);
     method public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
   }
 
@@ -179,27 +177,6 @@ package android.adservices.ondevicepersonalization {
     method public int getOrientation();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.UserData> CREATOR;
-  }
-
-  public final class WebViewEventInput implements android.os.Parcelable {
-    method public int describeContents();
-    method @NonNull public android.os.PersistableBundle getParameters();
-    method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.WebViewEventInput> CREATOR;
-  }
-
-  public final class WebViewEventOutput implements android.os.Parcelable {
-    method public int describeContents();
-    method @Nullable public android.adservices.ondevicepersonalization.EventLogRecord getEventLogRecord();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.WebViewEventOutput> CREATOR;
-  }
-
-  public static final class WebViewEventOutput.Builder {
-    ctor public WebViewEventOutput.Builder();
-    method @NonNull public android.adservices.ondevicepersonalization.WebViewEventOutput build();
-    method @NonNull public android.adservices.ondevicepersonalization.WebViewEventOutput.Builder setEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
   }
 
 }

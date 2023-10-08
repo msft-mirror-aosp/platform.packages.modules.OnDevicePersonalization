@@ -18,7 +18,9 @@ package com.test;
 
 import android.adservices.ondevicepersonalization.DownloadCompletedInput;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.EventInput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
@@ -29,8 +31,6 @@ import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.TrainingExampleInput;
 import android.adservices.ondevicepersonalization.TrainingExampleOutput;
-import android.adservices.ondevicepersonalization.WebViewEventInput;
-import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.util.Log;
@@ -90,6 +90,16 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                 .addRenderingConfig(
                     new RenderingConfig.Builder().addKey("bid1").build()
                 )
+                .addEventLogRecord(new EventLogRecord.Builder()
+                        .setData(logData)
+                        .setRequestLogRecord(new RequestLogRecord.Builder()
+                                .addRow(logData)
+                                .addRow(logData)
+                                .setRequestId(1)
+                                .build())
+                        .setType(1)
+                        .setRowIndex(1)
+                        .build())
                 .build();
         consumer.accept(result);
     }
@@ -107,9 +117,9 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         consumer.accept(result);
     }
 
-    public void onWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer
+    @Override public void onEvent(
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer
     ) {
         Log.d(TAG, "onEvent() started.");
         long longValue = 0;
@@ -118,8 +128,8 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         }
         ContentValues logData = new ContentValues();
         logData.put("x", longValue);
-        WebViewEventOutput result =
-                new WebViewEventOutput.Builder()
+        EventOutput result =
+                new EventOutput.Builder()
                     .setEventLogRecord(
                         new EventLogRecord.Builder()
                             .setType(1)

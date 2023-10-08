@@ -17,7 +17,6 @@
 package com.android.federatedcompute.services.training;
 
 import android.annotation.NonNull;
-import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
@@ -58,8 +57,8 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private final ComputationRunner mComputationRunner;
 
-    public IsolatedTrainingServiceImpl(Context context) {
-        mComputationRunner = new ComputationRunner(context);
+    public IsolatedTrainingServiceImpl() {
+        mComputationRunner = new ComputationRunner();
     }
 
     @VisibleForTesting
@@ -89,6 +88,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
         String populationName =
                 Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+        String taskName = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
 
         ParcelFileDescriptor inputCheckpointFd =
                 Objects.requireNonNull(
@@ -115,6 +115,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 Futures.submit(
                         () ->
                                 mComputationRunner.runTaskWithNativeRunner(
+                                        taskName,
                                         populationName,
                                         getFileDescriptorForTensorflow(inputCheckpointFd),
                                         getFileDescriptorForTensorflow(outputCheckpointFd),
