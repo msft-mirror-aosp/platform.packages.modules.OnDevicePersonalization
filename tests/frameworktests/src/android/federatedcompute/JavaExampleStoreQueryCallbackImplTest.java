@@ -46,7 +46,7 @@ import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 
 @RunWith(AndroidJUnit4.class)
-public final class ExampleStoreQueryCallbackImplTest {
+public final class JavaExampleStoreQueryCallbackImplTest {
     private IteratorAdapter mMockIteratorAdaptor;
     private ExampleStoreIterator mMockExampleStoreIterator;
     private IExampleStoreIteratorCallback mMockAidlExampleStoreIteratorCallback;

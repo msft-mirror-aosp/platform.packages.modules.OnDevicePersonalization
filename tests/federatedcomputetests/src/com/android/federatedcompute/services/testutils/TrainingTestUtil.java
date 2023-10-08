@@ -27,6 +27,7 @@ import com.google.internal.federated.plan.ExampleSelector;
 import com.google.internal.federated.plan.FederatedExampleQueryIORouter;
 import com.google.internal.federated.plan.TFV1CheckpointAggregation;
 import com.google.internal.federated.plan.TensorflowSpec;
+import com.google.protobuf.ByteString;
 
 /** The utility class for federated learning related tests. */
 public class TrainingTestUtil {
@@ -90,6 +91,7 @@ public class TrainingTestUtil {
                         .build();
         ClientOnlyPlan clientOnlyPlan =
                 ClientOnlyPlan.newBuilder()
+                        .setTfliteGraph(ByteString.copyFromUtf8("tflite_graph"))
                         .setPhase(
                                 ClientPhase.newBuilder().setTensorflowSpec(tensorflowSpec).build())
                         .build();
