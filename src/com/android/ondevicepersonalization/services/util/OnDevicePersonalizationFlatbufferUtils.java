@@ -132,6 +132,15 @@ public class OnDevicePersonalizationFlatbufferUtils {
     }
 
     /**
+     * Retrieves the length of the rows in a QueryField flatbuffer.
+     */
+    public static int getContentValuesLengthFromQueryData(byte[] queryData) {
+        QueryFields queryFields = QueryData.getRootAsQueryData(
+                ByteBuffer.wrap(queryData)).queryFields(0);
+        return queryFields.rowsLength();
+    }
+
+    /**
      * Retrieves the KeyValueList in an EventData flatbuffer as a ContentValues object.
      */
     public static ContentValues getContentValuesFromEventData(byte[] eventData) {

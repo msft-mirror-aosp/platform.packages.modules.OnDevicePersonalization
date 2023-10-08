@@ -114,12 +114,11 @@ public class FederatedComputeJobManager {
         boolean shouldSchedule;
         FederatedTrainingTask newTask;
         byte[] newTrainingConstraint = buildTrainingConstraints();
+        // Federated server address is required to schedule the job.
+        Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
 
         if (existingTask == null) {
             int jobId = mJobIdGenerator.generateJobId(this.mContext, populationName);
-            // Federated server address is required to provide when first time schedule the
-            // job.
-            Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
             FederatedTrainingTask.Builder newTaskBuilder =
                     FederatedTrainingTask.builder()
                             .appPackageName(callingPackageName)
@@ -132,6 +131,7 @@ public class FederatedComputeJobManager {
                                     buildTrainingIntervalOptions(
                                             trainingOptions.getTrainingInterval()))
                             .populationName(trainingOptions.getPopulationName())
+                            .contextData(trainingOptions.getContextData())
                             .serverAddress(trainingOptions.getServerAddress())
                             .earliestNextRunTime(
                                     SchedulingUtil.getEarliestRuntimeForInitialSchedule(
@@ -149,6 +149,8 @@ public class FederatedComputeJobManager {
             FederatedTrainingTask.Builder newTaskBuilder =
                     existingTask.toBuilder()
                             .constraints(buildTrainingConstraints())
+                            .serverAddress(trainingOptions.getServerAddress())
+                            .contextData(trainingOptions.getContextData())
                             .lastScheduledTime(nowMs);
             if (detectKeyParametersChanged(trainingOptions, existingTask)) {
                 newTaskBuilder.intervalOptions(null).lastRunStartTime(null).lastRunEndTime(null);
@@ -167,10 +169,11 @@ public class FederatedComputeJobManager {
                 long maxExpectedRuntimeSecs =
                         mFlags.getTrainingServiceResultCallbackTimeoutSecs() + /*buffer*/ 30;
                 boolean currentlyRunningHeuristic =
-                        existingTask.lastRunStartTime() < nowMs
-                                && nowMs - existingTask.lastRunStartTime()
+                        existingTask.getLastRunStartTime() < nowMs
+                                && nowMs - existingTask.getLastRunStartTime()
                                         < 1000 * maxExpectedRuntimeSecs
-                                && existingTask.lastRunStartTime() > existingTask.lastRunEndTime();
+                                && existingTask.getLastRunStartTime()
+                                        > existingTask.getLastRunEndTime();
                 shouldSchedule =
                         !currentlyRunningHeuristic
                                 && (!mJobSchedulerHelper.isTaskScheduled(mContext, existingTask)
@@ -191,10 +194,6 @@ public class FederatedComputeJobManager {
                     shouldSchedule
                             ? SchedulingReason.SCHEDULING_REASON_NEW_TASK
                             : existingTask.schedulingReason());
-            if (trainingOptions.getServerAddress() != null
-                    && !trainingOptions.getServerAddress().isEmpty()) {
-                newTaskBuilder.serverAddress(trainingOptions.getServerAddress());
-            }
             newTask = newTaskBuilder.build();
         }
 
