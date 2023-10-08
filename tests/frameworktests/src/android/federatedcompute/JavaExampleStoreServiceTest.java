@@ -112,6 +112,11 @@ public class JavaExampleStoreServiceTest {
             callback.onStartQuerySuccess(
                     new ListJavaExampleStoreIterator(ImmutableList.of(EXAMPLE_PROTO_1)));
         }
+
+        @Override
+        protected boolean checkCallerPermission() {
+            return true;
+        }
     }
 
     /**

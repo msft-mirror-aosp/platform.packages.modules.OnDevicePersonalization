@@ -19,7 +19,9 @@ package com.example.odpsamplenetwork;
 import android.adservices.ondevicepersonalization.AppInfo;
 import android.adservices.ondevicepersonalization.DownloadCompletedInput;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.EventInput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
@@ -30,8 +32,6 @@ import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
-import android.adservices.ondevicepersonalization.WebViewEventInput;
-import android.adservices.ondevicepersonalization.WebViewEventOutput;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.PersistableBundle;
@@ -133,10 +133,10 @@ public class SampleHandler implements IsolatedWorker {
         sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
-    @Override public void onWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer) {
-        Log.d(TAG, "onWebViewEvent() started.");
+    @Override public void onEvent(
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer) {
+        Log.d(TAG, "onEvent() started.");
         sBackgroundExecutor.execute(
                 () -> handleOnWebViewEvent(input, consumer));
     }
@@ -368,14 +368,14 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     public void handleOnWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer) {
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer) {
         try {
             Log.d(TAG, "handleOnEvent() started.");
             PersistableBundle eventParams = input.getParameters();
             int eventType = eventParams.getInt(EVENT_TYPE_KEY);
             if (eventType <= 0) {
-                consumer.accept(new WebViewEventOutput.Builder().build());
+                consumer.accept(new EventOutput.Builder().build());
                 return;
             }
             ContentValues logData = null;
@@ -394,7 +394,7 @@ public class SampleHandler implements IsolatedWorker {
                 logData = new ContentValues();
                 logData.put(CLICK_COST_KEY, updatedPrice);
             }
-            WebViewEventOutput result = new WebViewEventOutput.Builder()
+            EventOutput result = new EventOutput.Builder()
                     .setEventLogRecord(
                         new EventLogRecord.Builder()
                             .setRowIndex(0)

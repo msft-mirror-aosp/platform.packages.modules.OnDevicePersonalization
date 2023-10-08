@@ -97,9 +97,10 @@ public interface IsolatedWorker {
      *     an error. If called with <code>null</code>, no data is written to the EVENTS table.
      *     <p>If this method throws a {@link RuntimeException}, no data is written to the EVENTS
      *     table.
+     * @hide
      */
-    default void onWebViewEvent(
-            @NonNull WebViewEventInput input, @NonNull Consumer<WebViewEventOutput> consumer) {
+    default void onEvent(
+            @NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
         consumer.accept(null);
     }
 

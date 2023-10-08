@@ -32,7 +32,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * {@link RequestRecordRecord} in the requests table (@see RequestLogRecord#getRows).
  * The purpose of the EVENTS table is to add supplemental information to logged data
  * from a prior request, e.g., logging an event when a link in a rendered WebView
- * is clicked (@see IsolatedWorker#onWebViewEvent). The contents of the EVENTS table can be
+ * is clicked (@see IsolatedWorker#onEvent). The contents of the EVENTS table can be
  * consumed by Federated Learning facilitated model training, or Federated Analytics facilitated
  * cross-device statistical analysis.
  */
@@ -54,6 +54,12 @@ public final class EventLogRecord implements Parcelable {
     private @IntRange(from = 1, to = 127) int mType;
 
     /**
+     * Time of the event in milliseconds.
+     * @hide
+     */
+    private final long mTimeMillis;
+
+    /**
      * Additional data to be logged. Can be null if no additional data needs to be written as part
      * of the event, and only the occurrence of the event needs to be logged.
      */
@@ -65,6 +71,14 @@ public final class EventLogRecord implements Parcelable {
      * @hide
      */
     @Nullable RequestLogRecord mRequestLogRecord = null;
+
+
+    abstract static class BaseBuilder {
+        /**
+         * @hide
+         */
+        public abstract Builder setTimeMillis(long value);
+    }
 
 
 
@@ -85,6 +99,7 @@ public final class EventLogRecord implements Parcelable {
     /* package-private */ EventLogRecord(
             @IntRange(from = 0) int rowIndex,
             @IntRange(from = 1, to = 127) int type,
+            long timeMillis,
             @Nullable ContentValues data,
             @Nullable RequestLogRecord requestLogRecord) {
         this.mRowIndex = rowIndex;
@@ -96,6 +111,7 @@ public final class EventLogRecord implements Parcelable {
                 IntRange.class, null, mType,
                 "from", 1,
                 "to", 127);
+        this.mTimeMillis = timeMillis;
         this.mData = data;
         this.mRequestLogRecord = requestLogRecord;
 
@@ -121,6 +137,16 @@ public final class EventLogRecord implements Parcelable {
     @DataClass.Generated.Member
     public @IntRange(from = 1, to = 127) int getType() {
         return mType;
+    }
+
+    /**
+     * Time of the event in milliseconds.
+     *
+     * @hide
+     */
+    @DataClass.Generated.Member
+    public long getTimeMillis() {
+        return mTimeMillis;
     }
 
     /**
@@ -157,6 +183,7 @@ public final class EventLogRecord implements Parcelable {
         return true
                 && mRowIndex == that.mRowIndex
                 && mType == that.mType
+                && mTimeMillis == that.mTimeMillis
                 && java.util.Objects.equals(mData, that.mData)
                 && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord);
     }
@@ -170,6 +197,7 @@ public final class EventLogRecord implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + mRowIndex;
         _hash = 31 * _hash + mType;
+        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
         _hash = 31 * _hash + java.util.Objects.hashCode(mData);
         _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
         return _hash;
@@ -182,11 +210,12 @@ public final class EventLogRecord implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mData != null) flg |= 0x4;
-        if (mRequestLogRecord != null) flg |= 0x8;
+        if (mData != null) flg |= 0x8;
+        if (mRequestLogRecord != null) flg |= 0x10;
         dest.writeByte(flg);
         dest.writeInt(mRowIndex);
         dest.writeInt(mType);
+        dest.writeLong(mTimeMillis);
         if (mData != null) dest.writeTypedObject(mData, flags);
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
     }
@@ -205,8 +234,9 @@ public final class EventLogRecord implements Parcelable {
         byte flg = in.readByte();
         int rowIndex = in.readInt();
         int type = in.readInt();
-        ContentValues data = (flg & 0x4) == 0 ? null : (ContentValues) in.readTypedObject(ContentValues.CREATOR);
-        RequestLogRecord requestLogRecord = (flg & 0x8) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
+        long timeMillis = in.readLong();
+        ContentValues data = (flg & 0x8) == 0 ? null : (ContentValues) in.readTypedObject(ContentValues.CREATOR);
+        RequestLogRecord requestLogRecord = (flg & 0x10) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
 
         this.mRowIndex = rowIndex;
         AnnotationValidations.validate(
@@ -217,6 +247,7 @@ public final class EventLogRecord implements Parcelable {
                 IntRange.class, null, mType,
                 "from", 1,
                 "to", 127);
+        this.mTimeMillis = timeMillis;
         this.mData = data;
         this.mRequestLogRecord = requestLogRecord;
 
@@ -242,10 +273,11 @@ public final class EventLogRecord implements Parcelable {
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static final class Builder {
+    public static final class Builder extends BaseBuilder {
 
         private @IntRange(from = 0) int mRowIndex;
         private @IntRange(from = 1, to = 127) int mType;
+        private long mTimeMillis;
         private @Nullable ContentValues mData;
         private @Nullable RequestLogRecord mRequestLogRecord;
 
@@ -281,13 +313,27 @@ public final class EventLogRecord implements Parcelable {
         }
 
         /**
+         * Time of the event in milliseconds.
+         *
+         * @hide
+         */
+        @DataClass.Generated.Member
+        @Override
+        public @android.annotation.NonNull Builder setTimeMillis(long value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mTimeMillis = value;
+            return this;
+        }
+
+        /**
          * Additional data to be logged. Can be null if no additional data needs to be written as part
          * of the event, and only the occurrence of the event needs to be logged.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setData(@android.annotation.NonNull ContentValues value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x8;
             mData = value;
             return this;
         }
@@ -300,7 +346,7 @@ public final class EventLogRecord implements Parcelable {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setRequestLogRecord(@android.annotation.NonNull RequestLogRecord value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x10;
             mRequestLogRecord = value;
             return this;
         }
@@ -308,27 +354,28 @@ public final class EventLogRecord implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull EventLogRecord build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x20; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRowIndex = 0;
             }
-            if ((mBuilderFieldsSet & 0x4) == 0) {
+            if ((mBuilderFieldsSet & 0x8) == 0) {
                 mData = null;
             }
-            if ((mBuilderFieldsSet & 0x8) == 0) {
+            if ((mBuilderFieldsSet & 0x10) == 0) {
                 mRequestLogRecord = null;
             }
             EventLogRecord o = new EventLogRecord(
                     mRowIndex,
                     mType,
+                    mTimeMillis,
                     mData,
                     mRequestLogRecord);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x20) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -336,10 +383,10 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696367821944L,
+            time = 1696637984527L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventLogRecord.java",
-            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
     @Deprecated
     private void __metadata() {}
 

@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization;
+package com.android.ondevicepersonalization.services.util;
 
-parcelable WebViewEventInput;
+/** Wrapper of time operations. */
+public interface Clock {
+    /** Returns milliseconds since boot, including time spent in sleep. */
+    long elapsedRealtime();
+
+    /** Get the current time of the clock in milliseconds. */
+    long currentTimeMillis();
+}

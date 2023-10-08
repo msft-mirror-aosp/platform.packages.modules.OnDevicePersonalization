@@ -361,13 +361,13 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
+                new EventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnEventCalled);
-        WebViewEventOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, WebViewEventOutput.class);
+        EventOutput result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventOutput.class);
         assertEquals(1, result.getEventLogRecord().getType());
         assertEquals(2, result.getEventLogRecord().getRowIndex());
     }
@@ -380,7 +380,7 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(eventParams).build());
+                new EventInput.Builder().setParameters(eventParams).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
@@ -414,7 +414,7 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
+                new EventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -428,7 +428,7 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
+                new EventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
@@ -572,14 +572,14 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onWebViewEvent(WebViewEventInput input, Consumer<WebViewEventOutput> consumer) {
+        public void onEvent(EventInput input, Consumer<EventOutput> consumer) {
             mOnEventCalled = true;
             int eventType = input.getParameters().getInt(EVENT_TYPE_KEY);
             if (eventType == 9999) {
                 consumer.accept(null);
             } else {
                 consumer.accept(
-                        new WebViewEventOutput.Builder()
+                        new EventOutput.Builder()
                                 .setEventLogRecord(
                                         new EventLogRecord.Builder()
                                                 .setType(1)

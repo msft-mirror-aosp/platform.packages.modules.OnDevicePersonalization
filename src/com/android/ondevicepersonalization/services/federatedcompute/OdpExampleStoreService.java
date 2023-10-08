@@ -47,38 +47,36 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.ArrayList;
 import java.util.Objects;
 
-/**
- * Implementation of ExampleStoreService for OnDevicePersonalization
- */
-public class OdpExampleStoreService extends ExampleStoreService {
+/** Implementation of ExampleStoreService for OnDevicePersonalization */
+public final class OdpExampleStoreService extends ExampleStoreService {
 
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "OdpExampleStoreService";
+    private static final String TAG = OdpExampleStoreService.class.getSimpleName();
     private static final String TASK_NAME = "ExampleStore";
-    private final Context mContext = this;
 
-    /**
-     * Generates a unique task identifier from the given strings
-     */
-    public static String getTaskIdentifier(String collectionName, String populationName,
-            String taskName) {
+    /** Generates a unique task identifier from the given strings */
+    public static String getTaskIdentifier(
+            String collectionName, String populationName, String taskName) {
         return collectionName + "_" + populationName + "_" + taskName;
     }
 
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
         try {
-            ContextData contextData = ContextData.fromByteArray(Objects.requireNonNull(
-                    params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
+            ContextData contextData =
+                    ContextData.fromByteArray(
+                            Objects.requireNonNull(
+                                    params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
             String packageName = contextData.getPackageName();
-            String collectionName = Objects.requireNonNull(
-                    params.getString(ClientConstants.EXTRA_COLLECTION_NAME));
-            String populationName = Objects.requireNonNull(
-                    params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-            String taskName = Objects.requireNonNull(
-                    params.getString(ClientConstants.EXTRA_TASK_NAME));
+            String collectionName =
+                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_COLLECTION_NAME));
+            String populationName =
+                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+            String taskName =
+                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
 
-            EventsDao eventDao = EventsDao.getInstance(mContext);
+            EventsDao eventDao = EventsDao.getInstance(getContext());
+
             // Cancel job if on longer valid. This is written to the table during scheduling
             // via {@link FederatedComputeServiceImpl} and deleted either during cancel or
             // during maintenance for uninstalled packages.
@@ -87,7 +85,7 @@ public class OdpExampleStoreService extends ExampleStoreService {
                 sLogger.w("Job was either cancelled or package was uninstalled");
                 // Cancel job.
                 FederatedComputeManager FCManager =
-                        mContext.getSystemService(FederatedComputeManager.class);
+                        getContext().getSystemService(FederatedComputeManager.class);
                 if (FCManager == null) {
                     sLogger.e(TAG + ": Failed to get FederatedCompute Service");
                     callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
@@ -120,28 +118,30 @@ public class OdpExampleStoreService extends ExampleStoreService {
                 resumptionToken = eventState.getToken();
             }
 
-            TrainingExampleInput input = new TrainingExampleInput.Builder()
-                    .setResumptionToken(resumptionToken)
-                    .setCollectionName(collectionName)
-                    .setPopulationName(populationName)
-                    .setTaskName(taskName)
-                    .build();
+            TrainingExampleInput input =
+                    new TrainingExampleInput.Builder()
+                            .setResumptionToken(resumptionToken)
+                            .setCollectionName(collectionName)
+                            .setPopulationName(populationName)
+                            .setTaskName(taskName)
+                            .build();
 
-
-            ListenableFuture<TrainingExampleOutputParcel> resultFuture = FluentFuture.from(
-                            ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, packageName, mContext))
-                    .transformAsync(
-                            result -> executeOnTrainingExample(result, input, packageName),
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                    )
-                    .transform(
-                            result -> {
-                                return result.getParcelable(
-                                        Constants.EXTRA_RESULT, TrainingExampleOutputParcel.class);
-                            },
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                    );
+            ListenableFuture<TrainingExampleOutputParcel> resultFuture =
+                    FluentFuture.from(
+                                    ProcessUtils.loadIsolatedService(
+                                            TASK_NAME,
+                                            packageName,
+                                            getContext().getApplicationContext()))
+                            .transformAsync(
+                                    result -> executeOnTrainingExample(result, input, packageName),
+                                    OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                            .transform(
+                                    result -> {
+                                        return result.getParcelable(
+                                                Constants.EXTRA_RESULT,
+                                                TrainingExampleOutputParcel.class);
+                                    },
+                                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             Futures.addCallback(
                     resultFuture,
@@ -156,42 +156,41 @@ public class OdpExampleStoreService extends ExampleStoreService {
                             if (trainingExamplesListSlice == null
                                     || resumptionTokensListSlice == null) {
                                 callback.onStartQuerySuccess(
-                                        OdpExampleStoreIteratorFactory.getInstance().createIterator(
-                                                new ArrayList<>(), new ArrayList<>()
-                                        )
-                                );
+                                        OdpExampleStoreIteratorFactory.getInstance()
+                                                .createIterator(
+                                                        new ArrayList<>(), new ArrayList<>()));
                             } else {
                                 callback.onStartQuerySuccess(
-                                        OdpExampleStoreIteratorFactory.getInstance().createIterator(
-                                                trainingExamplesListSlice.getList(),
-                                                resumptionTokensListSlice.getList()
-                                        )
-                                );
+                                        OdpExampleStoreIteratorFactory.getInstance()
+                                                .createIterator(
+                                                        trainingExamplesListSlice.getList(),
+                                                        resumptionTokensListSlice.getList()));
                             }
                         }
 
                         @Override
                         public void onFailure(Throwable t) {
-                            sLogger.w(TAG + ": Request failed.", t);
+                            sLogger.w(t, "%s : Request failed.", TAG);
                             callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
                         }
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
         } catch (Exception e) {
-            sLogger.w(TAG + ": Start query failed.", e);
+            sLogger.w(e, "%s : Start query failed.", TAG);
             callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
         }
     }
 
     private ListenableFuture<Bundle> executeOnTrainingExample(
-            IsolatedServiceInfo isolatedServiceInfo, TrainingExampleInput exampleInput,
+            IsolatedServiceInfo isolatedServiceInfo,
+            TrainingExampleInput exampleInput,
             String packageName) {
         sLogger.d(TAG + ": executeOnTrainingExample() started.");
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                packageName, mContext, /* includeLocalData */ true,
+                packageName, getContext(), /* includeLocalData */ true,
                 /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
@@ -199,7 +198,13 @@ public class OdpExampleStoreService extends ExampleStoreService {
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         return ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
-                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, packageName),
-                Constants.OP_TRAINING_EXAMPLE, serviceParams);
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(getContext(), packageName),
+                Constants.OP_TRAINING_EXAMPLE,
+                serviceParams);
+    }
+
+    //used for tests to provide mock/real implementation of context.
+    private Context getContext() {
+        return this.getApplicationContext();
     }
 }
