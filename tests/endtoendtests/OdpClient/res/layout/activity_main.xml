@@ -35,7 +35,23 @@
         android:layout_height="wrap_content"
         android:layout_width="wrap_content"
         style="?android:attr/buttonBarButtonStyle"
-        android:text="@string/get_ad" />
+	android:text="@string/get_ad" />
+
+    <EditText
+        android:id="@+id/schedule_training_text_box"
+        android:inputType="text"
+        android:maxLines="1"
+        android:lines="1"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+	android:hint="Population" />
+
+    <Button
+        android:id="@+id/schedule_training_button"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        style="?android:attr/buttonBarButtonStyle"
+        android:text="@string/schedule_training" />
 
     <SurfaceView
         android:id="@+id/rendered_view"

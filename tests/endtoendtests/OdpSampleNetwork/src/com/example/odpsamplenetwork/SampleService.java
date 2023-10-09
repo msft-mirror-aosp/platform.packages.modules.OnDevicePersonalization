@@ -26,6 +26,6 @@ public class SampleService extends IsolatedService {
     @NonNull @Override public IsolatedWorker onRequest(
             RequestToken requestToken) {
         return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
-                getUserData(requestToken));
+                getUserData(requestToken), getFederatedComputeScheduler(requestToken));
     }
 }
