@@ -41,6 +41,10 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.util.Clock;
+import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
@@ -76,10 +80,24 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private final Context mContext;
     private OnDevicePersonalizationVendorDataDao mDao;
 
+    static class Injector {
+        Clock getClock() {
+            return MonotonicClock.getInstance();
+        }
+    }
+
+    private final Injector mInjector;
+
     public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
             Context context) {
+        this(packageName, context, new Injector());
+    }
+
+    public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
+            Context context, Injector injector) {
         mPackageName = packageName;
         mContext = context;
+        mInjector = injector;
     }
 
     private static boolean validateSyncToken(long syncToken) {
@@ -227,6 +245,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private ListenableFuture<Bundle> executeDownloadHandler(
             IsolatedServiceInfo isolatedServiceInfo,
             Map<String, VendorData> vendorDataMap) {
+        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mPackageName, mContext, /* includeLocalData */ true,
@@ -258,11 +277,29 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         pluginParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        return ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
                 Constants.OP_DOWNLOAD,
                 pluginParams);
+        return FluentFuture.from(result)
+                .transform(
+                    val -> {
+                        writeServiceRequestMetrics(
+                                startTimeMillis, Constants.STATUS_SUCCESS);
+                        return val;
+                    },
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                )
+                .catchingAsync(
+                    Exception.class,
+                    e -> {
+                        writeServiceRequestMetrics(
+                                startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                        return Futures.immediateFailedFuture(e);
+                    },
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                );
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
@@ -298,5 +335,15 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             return null;
         }
         return new VendorData.Builder().setKey(key).setData(data).build();
+    }
+
+    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        ApiCallStats callStats =
+                new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_DOWNLOAD_COMPLETED)
+                .setLatencyMillis((int) latencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }

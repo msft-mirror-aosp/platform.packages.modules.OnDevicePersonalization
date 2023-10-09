@@ -38,6 +38,10 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.util.Clock;
+import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -53,6 +57,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = OdpExampleStoreService.class.getSimpleName();
     private static final String TASK_NAME = "ExampleStore";
+
+    static class Injector {
+        Clock getClock() {
+            return MonotonicClock.getInstance();
+        }
+    }
+
+    private final Injector mInjector = new Injector();
 
     /** Generates a unique task identifier from the given strings */
     public static String getTaskIdentifier(
@@ -187,6 +199,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             TrainingExampleInput exampleInput,
             String packageName) {
         sLogger.d(TAG + ": executeOnTrainingExample() started.");
+        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
@@ -196,11 +209,39 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        return ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(getContext(), packageName),
                 Constants.OP_TRAINING_EXAMPLE,
                 serviceParams);
+        return FluentFuture.from(result)
+                .transform(
+                    val -> {
+                        writeServiceRequestMetrics(
+                                startTimeMillis, Constants.STATUS_SUCCESS);
+                        return val;
+                    },
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                )
+                .catchingAsync(
+                    Exception.class,
+                    e -> {
+                        writeServiceRequestMetrics(
+                                startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                        return Futures.immediateFailedFuture(e);
+                    },
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                );
+    }
+
+    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        ApiCallStats callStats =
+                new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_TRAINING_EXAMPLE)
+                .setLatencyMillis((int) latencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
     //used for tests to provide mock/real implementation of context.
