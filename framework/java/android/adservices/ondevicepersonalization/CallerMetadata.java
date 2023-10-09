@@ -22,14 +22,14 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * Wrapper class for additional information returned with IPC results.
+ * Wrapper class for additional information passed to IPC requests.
 *
 * @hide
 */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class CalleeMetadata implements Parcelable {
-    /** Time elapsed in callee, as measured by callee. */
-    private long mElapsedTimeMillis = 0;
+public final class CallerMetadata implements Parcelable {
+    /** Start time of the operation. */
+    private long mStartTimeMillis = 0;
 
 
 
@@ -39,7 +39,7 @@ public final class CalleeMetadata implements Parcelable {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/CalleeMetadata.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/CallerMetadata.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -47,35 +47,35 @@ public final class CalleeMetadata implements Parcelable {
 
 
     @DataClass.Generated.Member
-    /* package-private */ CalleeMetadata(
-            long elapsedTimeMillis) {
-        this.mElapsedTimeMillis = elapsedTimeMillis;
+    /* package-private */ CallerMetadata(
+            long startTimeMillis) {
+        this.mStartTimeMillis = startTimeMillis;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * Time elapsed in callee, as measured by callee.
+     * Start time of the operation.
      */
     @DataClass.Generated.Member
-    public long getElapsedTimeMillis() {
-        return mElapsedTimeMillis;
+    public long getStartTimeMillis() {
+        return mStartTimeMillis;
     }
 
     @Override
     @DataClass.Generated.Member
     public boolean equals(@android.annotation.Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(CalleeMetadata other) { ... }
+        // boolean fieldNameEquals(CallerMetadata other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        CalleeMetadata that = (CalleeMetadata) o;
+        CallerMetadata that = (CallerMetadata) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mElapsedTimeMillis == that.mElapsedTimeMillis;
+                && mStartTimeMillis == that.mStartTimeMillis;
     }
 
     @Override
@@ -85,7 +85,7 @@ public final class CalleeMetadata implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + Long.hashCode(mElapsedTimeMillis);
+        _hash = 31 * _hash + Long.hashCode(mStartTimeMillis);
         return _hash;
     }
 
@@ -95,7 +95,7 @@ public final class CalleeMetadata implements Parcelable {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
-        dest.writeLong(mElapsedTimeMillis);
+        dest.writeLong(mStartTimeMillis);
     }
 
     @Override
@@ -105,39 +105,39 @@ public final class CalleeMetadata implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ CalleeMetadata(@NonNull android.os.Parcel in) {
+    /* package-private */ CallerMetadata(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
-        long elapsedTimeMillis = in.readLong();
+        long startTimeMillis = in.readLong();
 
-        this.mElapsedTimeMillis = elapsedTimeMillis;
+        this.mStartTimeMillis = startTimeMillis;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<CalleeMetadata> CREATOR
-            = new Parcelable.Creator<CalleeMetadata>() {
+    public static final @NonNull Parcelable.Creator<CallerMetadata> CREATOR
+            = new Parcelable.Creator<CallerMetadata>() {
         @Override
-        public CalleeMetadata[] newArray(int size) {
-            return new CalleeMetadata[size];
+        public CallerMetadata[] newArray(int size) {
+            return new CallerMetadata[size];
         }
 
         @Override
-        public CalleeMetadata createFromParcel(@NonNull android.os.Parcel in) {
-            return new CalleeMetadata(in);
+        public CallerMetadata createFromParcel(@NonNull android.os.Parcel in) {
+            return new CallerMetadata(in);
         }
     };
 
     /**
-     * A builder for {@link CalleeMetadata}
+     * A builder for {@link CallerMetadata}
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private long mElapsedTimeMillis;
+        private long mStartTimeMillis;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -145,26 +145,26 @@ public final class CalleeMetadata implements Parcelable {
         }
 
         /**
-         * Time elapsed in callee, as measured by callee.
+         * Start time of the operation.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setElapsedTimeMillis(long value) {
+        public @NonNull Builder setStartTimeMillis(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mElapsedTimeMillis = value;
+            mStartTimeMillis = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull CalleeMetadata build() {
+        public @NonNull CallerMetadata build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mElapsedTimeMillis = 0;
+                mStartTimeMillis = 0;
             }
-            CalleeMetadata o = new CalleeMetadata(
-                    mElapsedTimeMillis);
+            CallerMetadata o = new CallerMetadata(
+                    mStartTimeMillis);
             return o;
         }
 
@@ -177,10 +177,10 @@ public final class CalleeMetadata implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696885546254L,
+            time = 1696884555838L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/CalleeMetadata.java",
-            inputSignatures = "private  long mElapsedTimeMillis\nclass CalleeMetadata extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/CallerMetadata.java",
+            inputSignatures = "private  long mStartTimeMillis\nclass CallerMetadata extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

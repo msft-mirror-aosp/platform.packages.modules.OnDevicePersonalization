@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization.aidl;
 
 import android.content.ComponentName;
+import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
@@ -28,6 +29,7 @@ interface IOnDevicePersonalizationManagingService {
         in String callingPackageName,
         in ComponentName handler,
         in PersistableBundle params,
+        in CallerMetadata metadata,
         in IExecuteCallback callback);
 
     void requestSurfacePackage(
@@ -36,5 +38,6 @@ interface IOnDevicePersonalizationManagingService {
         int displayId,
         int width,
         int height,
+        in CallerMetadata metadata,
         in IRequestSurfacePackageCallback callback);
 }
