@@ -46,6 +46,7 @@ import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
@@ -286,7 +287,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                startTimeMillis, Constants.STATUS_SUCCESS);
+                                val, startTimeMillis, Constants.STATUS_SUCCESS);
                         return val;
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()
@@ -295,7 +296,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()
@@ -337,11 +338,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         return new VendorData.Builder().setKey(key).setData(data).build();
     }
 
-    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats =
                 new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_DOWNLOAD_COMPLETED)
-                .setLatencyMillis((int) latencyMillis)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);

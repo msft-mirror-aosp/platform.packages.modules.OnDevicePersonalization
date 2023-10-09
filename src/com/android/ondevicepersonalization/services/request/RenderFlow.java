@@ -42,6 +42,7 @@ import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -239,7 +240,7 @@ public class RenderFlow {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                executeStartTimemillis, Constants.STATUS_SUCCESS);
+                                val, executeStartTimemillis, Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -248,7 +249,7 @@ public class RenderFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                executeStartTimemillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, executeStartTimemillis, Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
@@ -295,10 +296,13 @@ public class RenderFlow {
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
-    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
-                .setLatencyMillis((int) latencyMillis)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
