@@ -17,7 +17,7 @@ package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
 
 import android.platform.test.scenario.annotation.Scenario;
 
-import org.junit.AfterClass;
+import org.junit.After;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -28,30 +28,33 @@ import java.io.IOException;
 
 @Scenario
 @RunWith(JUnit4.class)
-public class RequestAd {
+public class DownloadVendorData {
 
-    private TestAppHelper mTestAppHelper = new TestAppHelper();
+    private DownloadHelper mDownloadHelper = new DownloadHelper();
 
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
-        TestAppHelper.initialize();
+        DownloadHelper.initialize();
     }
-
     @Before
-    public void setup() throws IOException {
-        mTestAppHelper.openApp();
+    public void setUp() throws IOException {
+        mDownloadHelper.pressHome();
     }
 
     @Test
-    public void testRequestAd() {
-        mTestAppHelper.clickGetAd();
-        mTestAppHelper.verifyRenderedView();
+    public void testDownloadVendorData() throws IOException {
+        mDownloadHelper.downloadVendorData();
+        mDownloadHelper.processDownloadedVendorData();
     }
 
-    @AfterClass
-    public static void tearDown() throws IOException {
-        TestAppHelper.goToHomeScreen();
-        TestAppHelper.wrapUp();
+    @After
+    public void tearDown() throws IOException {
+        mDownloadHelper.uninstallVendorApk();
+        mDownloadHelper.cleanupDatabase();
+        mDownloadHelper.cleanupDownloadedMetadata();
+        mDownloadHelper.pressHome();
+        mDownloadHelper.wrapUp();
     }
+
 }
