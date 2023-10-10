@@ -20,6 +20,11 @@
     android:versionCode="1"
     android:versionName="T-initial">
 
+    <!-- Define the permission to call federated compute clients implemented ExampleStoreService -->
+    <permission
+        android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE"
+        android:protectionLevel="signature" />
+
     <!-- Required for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Used for scheduling connectivity jobs -->
@@ -27,11 +32,14 @@
     <uses-permission android:name="android.permission.INTERNET" />
      <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
+    <!--  Permission to call federated compute clients implemented ExampleStoreService  -->
+    <uses-permission
+        android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
 
     <application>
-        <service android:name=".FederatedComputeServiceImpl" android:exported="true" >
+        <service android:name=".FederatedComputeManagingServiceImpl" android:exported="true" >
             <intent-filter>
-                <action android:name="com.android.federatedcompute.FederatedComputeService" />
+                <action android:name="android.federatedcompute.FederatedComputeService" />
             </intent-filter>
         </service>
         <!-- The JobService runs in main process, so when JobScheduler wakes up, it allows us to

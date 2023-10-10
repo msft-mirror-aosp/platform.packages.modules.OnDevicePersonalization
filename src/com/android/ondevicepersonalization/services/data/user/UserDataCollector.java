@@ -55,6 +55,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -67,11 +68,34 @@ import java.util.TimeZone;
  * and update a few time-sensitive signals in UserData to the latest version.
  */
 public class UserDataCollector {
-    public static final int BYTES_IN_MB = 1048576;
+    private static final int MILLISECONDS_IN_MINUTE = 60000;
 
-    private static UserDataCollector sUserDataCollector = null;
+    private static volatile UserDataCollector sUserDataCollector = null;
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "UserDataCollector";
+
+    private static final Set<Integer> ALLOWED_NETWORK_TYPE =
+            Set.of(
+                    TelephonyManager.NETWORK_TYPE_UNKNOWN,
+                    TelephonyManager.NETWORK_TYPE_GPRS,
+                    TelephonyManager.NETWORK_TYPE_EDGE,
+                    TelephonyManager.NETWORK_TYPE_UMTS,
+                    TelephonyManager.NETWORK_TYPE_CDMA,
+                    TelephonyManager.NETWORK_TYPE_EVDO_0,
+                    TelephonyManager.NETWORK_TYPE_EVDO_A,
+                    TelephonyManager.NETWORK_TYPE_1xRTT,
+                    TelephonyManager.NETWORK_TYPE_HSDPA,
+                    TelephonyManager.NETWORK_TYPE_HSUPA,
+                    TelephonyManager.NETWORK_TYPE_HSPA,
+                    TelephonyManager.NETWORK_TYPE_EVDO_B,
+                    TelephonyManager.NETWORK_TYPE_LTE,
+                    TelephonyManager.NETWORK_TYPE_EHRPD,
+                    TelephonyManager.NETWORK_TYPE_HSPAP,
+                    TelephonyManager.NETWORK_TYPE_GSM,
+                    TelephonyManager.NETWORK_TYPE_TD_SCDMA,
+                    TelephonyManager.NETWORK_TYPE_IWLAN,
+                    TelephonyManager.NETWORK_TYPE_NR
+            );
 
     @NonNull
     private final Context mContext;
@@ -79,8 +103,7 @@ public class UserDataCollector {
     private Locale mLocale;
     @NonNull
     private final TelephonyManager mTelephonyManager;
-    @NonNull
-    private final NetworkCapabilities mNetworkCapabilities;
+    @NonNull final ConnectivityManager mConnectivityManager;
     @NonNull
     private final LocationManager mLocationManager;
     @NonNull
@@ -103,10 +126,7 @@ public class UserDataCollector {
 
         mLocale = Locale.getDefault();
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
-        ConnectivityManager connectivityManager = mContext.getSystemService(
-                ConnectivityManager.class);
-        mNetworkCapabilities = connectivityManager.getNetworkCapabilities(
-                connectivityManager.getActiveNetwork());
+        mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         mLocationManager = mContext.getSystemService(LocationManager.class);
         mUserDataDao = userDataDao;
         mLastTimeMillisAppUsageCollected = 0L;
@@ -117,13 +137,16 @@ public class UserDataCollector {
 
     /** Returns an instance of UserDataCollector. */
     public static UserDataCollector getInstance(Context context) {
-        synchronized (UserDataCollector.class) {
-            if (sUserDataCollector == null) {
-                sUserDataCollector = new UserDataCollector(
-                        context, UserDataDao.getInstance(context));
+        if (sUserDataCollector == null) {
+            synchronized (UserDataCollector.class) {
+                if (sUserDataCollector == null) {
+                    sUserDataCollector = new UserDataCollector(
+                            context.getApplicationContext(),
+                            UserDataDao.getInstance(context.getApplicationContext()));
+                }
             }
-            return sUserDataCollector;
         }
+        return sUserDataCollector;
     }
 
     /**
@@ -167,9 +190,8 @@ public class UserDataCollector {
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
-        userData.connectionType = getConnectionType();
-        userData.networkMetered = isNetworkMetered();
-        userData.connectionSpeedKbps = getConnectionSpeedKbps();
+        userData.networkCapabilities = getNetworkCapabilities();
+        userData.dataNetworkType = getDataNetworkType();
 
         getOSVersions(userData.osVersions);
         getInstalledApps(userData.appsInfo);
@@ -191,9 +213,8 @@ public class UserDataCollector {
         userData.country = getCountry();
         userData.language = getLanguage();
         userData.carrier = getCarrier();
-        userData.connectionType = getConnectionType();
-        userData.networkMetered = isNetworkMetered();
-        userData.connectionSpeedKbps = getConnectionSpeedKbps();
+        userData.networkCapabilities = getNetworkCapabilities();
+        userData.dataNetworkType = getDataNetworkType();
 
         getOSVersions(userData.osVersions);
 
@@ -219,10 +240,10 @@ public class UserDataCollector {
         return System.currentTimeMillis();
     }
 
-    /** Collects current device's time zone in +/- of minutes from UTC. */
+    /** Collects current device's time zone in +/- offset of minutes from UTC. */
     @VisibleForTesting
     public int getUtcOffset() {
-        return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / 60000;
+        return TimeZone.getDefault().getOffset(System.currentTimeMillis()) / MILLISECONDS_IN_MINUTE;
     }
 
     /** Collects the current device orientation. */
@@ -398,74 +419,19 @@ public class UserDataCollector {
         }
     }
 
-    /** Collects connection type. */
+    /** Collects network capabilities. */
     @VisibleForTesting
-    public RawUserData.ConnectionType getConnectionType() {
-        try {
-            // TODO(b/290256559): Fix permissions issue.
-            if (mNetworkCapabilities == null) {
-                return RawUserData.ConnectionType.UNKNOWN;
-            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
-                switch (mTelephonyManager.getDataNetworkType()) {
-                    case TelephonyManager.NETWORK_TYPE_1xRTT:
-                    case TelephonyManager.NETWORK_TYPE_CDMA:
-                    case TelephonyManager.NETWORK_TYPE_EDGE:
-                    case TelephonyManager.NETWORK_TYPE_GPRS:
-                    case TelephonyManager.NETWORK_TYPE_GSM:
-                    case TelephonyManager.NETWORK_TYPE_IDEN:
-                        return RawUserData.ConnectionType.CELLULAR_2G;
-                    case TelephonyManager.NETWORK_TYPE_EHRPD:
-                    case TelephonyManager.NETWORK_TYPE_EVDO_0:
-                    case TelephonyManager.NETWORK_TYPE_EVDO_A:
-                    case TelephonyManager.NETWORK_TYPE_EVDO_B:
-                    case TelephonyManager.NETWORK_TYPE_HSDPA:
-                    case TelephonyManager.NETWORK_TYPE_HSPA:
-                    case TelephonyManager.NETWORK_TYPE_HSPAP:
-                    case TelephonyManager.NETWORK_TYPE_HSUPA:
-                    case TelephonyManager.NETWORK_TYPE_TD_SCDMA:
-                    case TelephonyManager.NETWORK_TYPE_UMTS:
-                        return RawUserData.ConnectionType.CELLULAR_3G;
-                    case TelephonyManager.NETWORK_TYPE_LTE:
-                    case TelephonyManager.NETWORK_TYPE_IWLAN:
-                        return RawUserData.ConnectionType.CELLULAR_4G;
-                    case TelephonyManager.NETWORK_TYPE_NR:
-                        return RawUserData.ConnectionType.CELLULAR_5G;
-                    default:
-                        return RawUserData.ConnectionType.UNKNOWN;
-                }
-            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI)) {
-                return RawUserData.ConnectionType.WIFI;
-            } else if (mNetworkCapabilities.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
-                return RawUserData.ConnectionType.ETHERNET;
-            }
-        } catch (Exception e) {
-            sLogger.e(TAG + ": getConnectionType() failed.", e);
-        }
-        return RawUserData.ConnectionType.UNKNOWN;
+    public NetworkCapabilities getNetworkCapabilities() {
+        return mConnectivityManager.getNetworkCapabilities(mConnectivityManager.getActiveNetwork());
     }
 
-    /** Collects metered status. */
     @VisibleForTesting
-    public boolean isNetworkMetered() {
-        if (mNetworkCapabilities == null) {
-            return false;
+    public int getDataNetworkType() {
+        int dataNetworkType = mTelephonyManager.getDataNetworkType();
+        if (!ALLOWED_NETWORK_TYPE.contains(dataNetworkType)) {
+            return TelephonyManager.NETWORK_TYPE_UNKNOWN;
         }
-        int[] capabilities = mNetworkCapabilities.getCapabilities();
-        for (int i = 0; i < capabilities.length; ++i) {
-            if (capabilities[i] == NetworkCapabilities.NET_CAPABILITY_NOT_METERED) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    /** Collects connection speed in kbps */
-    @VisibleForTesting
-    public long getConnectionSpeedKbps() {
-        if (mNetworkCapabilities == null) {
-            return 0;
-        }
-        return mNetworkCapabilities.getLinkDownstreamBandwidthKbps();
+        return dataNetworkType;
     }
 
     /** Collects current device's static metrics. */
@@ -889,9 +855,7 @@ public class UserDataCollector {
         userData.language = Language.UNKNOWN;
         userData.carrier = Carrier.UNKNOWN;
         userData.osVersions = new OSVersion();
-        userData.connectionType = RawUserData.ConnectionType.UNKNOWN;
-        userData.networkMetered = false;
-        userData.connectionSpeedKbps = 0;
+        userData.networkCapabilities = null;
         userData.deviceMetrics = new DeviceMetrics();
         userData.appsInfo.clear();
         userData.appUsageHistory.clear();

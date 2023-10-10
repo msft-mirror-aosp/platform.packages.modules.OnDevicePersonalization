@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.WorkerThread;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -32,10 +33,9 @@ import java.util.concurrent.BlockingQueue;
 /**
  * Generates event tracking URLs for a request. The service can embed these URLs within the
  * HTML output as needed. When the HTML is rendered within an ODP WebView, ODP will intercept
- * requests to these URLs, call {@link IsolatedWorker#onWebViewEvent}, and log the returned
+ * requests to these URLs, call {@link IsolatedWorker#onEvent}, and log the returned
  * output in the EVENTS table.
  *
- * @hide
  */
 public class EventUrlProvider {
     private static final long ASYNC_TIMEOUT_MS = 1000;
@@ -52,13 +52,14 @@ public class EventUrlProvider {
      * 200 (OK) if the response data is not empty. Returns HTTP Status 204 (No Content) if the
      * response data is empty.
      *
-     * @param eventParams The data to be passed to {@link IsolatedWorker#onWebViewEvent}
+     * @param eventParams The data to be passed to {@link IsolatedWorker#onEvent}
      *     when the event occurs.
      * @param responseData The content to be returned to the WebView when the URL is fetched.
      * @param mimeType The Mime Type of the URL response.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public Uri getEventTrackingUrl(
+    @WorkerThread
+    @NonNull public Uri createEventTrackingUrlWithResponse(
             @NonNull PersistableBundle eventParams,
             @Nullable byte[] responseData,
             @Nullable String mimeType) {
@@ -78,12 +79,13 @@ public class EventUrlProvider {
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.
      */
-    @NonNull public Uri getEventTrackingUrlWithRedirect(
+    @WorkerThread
+    @NonNull public Uri createEventTrackingUrlWithRedirect(
             @NonNull PersistableBundle eventParams,
-            @Nullable String destinationUrl) {
+            @Nullable Uri destinationUrl) {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_EVENT_PARAMS, eventParams);
-        params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl);
+        params.putString(Constants.EXTRA_DESTINATION_URL, destinationUrl.toString());
         return getUrl(params);
     }
 

@@ -24,8 +24,8 @@ import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 
 import com.google.common.annotations.VisibleForTesting;
@@ -36,10 +36,10 @@ import java.util.List;
 /** DAO for accessing training task table. */
 public class FederatedTrainingTaskDao {
 
-    private static final String TAG = "FederatedTrainingTaskDao";
+    private static final String TAG = FederatedTrainingTaskDao.class.getSimpleName();
 
     private final SQLiteOpenHelper mDbHelper;
-    private static FederatedTrainingTaskDao sSingletonInstance;
+    private static volatile FederatedTrainingTaskDao sSingletonInstance;
 
     private FederatedTrainingTaskDao(SQLiteOpenHelper dbHelper) {
         this.mDbHelper = dbHelper;
@@ -48,14 +48,16 @@ public class FederatedTrainingTaskDao {
     /** Returns an instance of the FederatedTrainingTaskDao given a context. */
     @NonNull
     public static FederatedTrainingTaskDao getInstance(Context context) {
-        synchronized (FederatedTrainingTaskDao.class) {
-            if (sSingletonInstance == null) {
-                sSingletonInstance =
-                        new FederatedTrainingTaskDao(
-                                FederatedTrainingTaskDbHelper.getInstance(context));
+        if (sSingletonInstance == null) {
+            synchronized (FederatedTrainingTaskDao.class) {
+                if (sSingletonInstance == null) {
+                    sSingletonInstance =
+                            new FederatedTrainingTaskDao(
+                                    FederatedTrainingTaskDbHelper.getInstance(context));
+                }
             }
-            return sSingletonInstance;
         }
+        return sSingletonInstance;
     }
 
     /** It's only public to unit test. */
@@ -167,7 +169,7 @@ public class FederatedTrainingTaskDao {
         try {
             return mDbHelper.getWritableDatabase();
         } catch (SQLiteException e) {
-            Log.e(TAG, "Failed to open the database.", e);
+            LogUtil.e(TAG, e, "Failed to open the database.");
         }
         return null;
     }

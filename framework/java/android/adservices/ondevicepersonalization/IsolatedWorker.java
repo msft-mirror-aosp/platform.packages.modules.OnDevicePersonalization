@@ -21,69 +21,99 @@ import android.annotation.NonNull;
 import java.util.function.Consumer;
 
 /**
- * Interface with methods that need to be implemented to handle requests to an
- * {@link IsolatedService}. An instance of {@link IsolatedWorker} is created on each request
- * to an {@link IsolatedService} and one of its methods below is called.
- *
- * @hide
+ * Interface with methods that need to be implemented to handle requests from the OS to an {@link
+ * IsolatedService}. The {@link IsolatedService} creates an instance of {@link IsolatedWorker} on
+ * each request and calls one of the methods below, depending the type of the request. The {@link
+ * IsolatedService} calls the method on a Binder thread and the {@link IsolatedWorker} should
+ * offload long running operations to a worker thread. The consumer parameter of each method is used
+ * to return results.
  */
 public interface IsolatedWorker {
 
     /**
-     * Handles a request from an app. A {@link IsolatedService} that
-     * processes requests from apps must override this method.
+     * Handles a request from an app. This method is called when an app calls {@link
+     * OnDevicePersonalizationManager#execute} that refers to a named {@link IsolatedService}.
      *
-     * @param input App Request Parameters.
-     * @param consumer Callback to be invoked on completion.
+     * @param input Request Parameters from the calling app.
+     * @param consumer Callback that receives the result (@see ExecuteOutput). Should be called with
+     *     <code>null</code> on an error. The error is propagated to the calling app as an {@link
+     *     OnDevicePersonalizationException} with error code {@link
+     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}. To avoid leaking private
+     *     data to the calling app, more detailed error reporting is not available. If the {@link
+     *     IsolatedService} needs to report error stats to its backend, it should populate {@link
+     *     ExecuteOutput} with error data for logging, and rely on Federated Analytics to aggregate
+     *     the error reports.
+     *     <p>If this method throws a {@link RunTimeException}, that is also reported to calling
+     *     apps as an {@link OnDevicePersonalizationException} with error code {@link
+     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
      */
-    default void onExecute(
-            @NonNull ExecuteInput input,
-            @NonNull Consumer<ExecuteOutput> consumer
-    ) {
+    default void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
         consumer.accept(null);
     }
 
     /**
-     * Handles a completed download. The platform downloads content using the parameters defined
-     * in the package manifest of the {@link IsolatedService} and calls this function after the
-     * download is complete.
+     * Handles a completed download. The platform downloads content using the parameters defined in
+     * the package manifest of the {@link IsolatedService}, calls this function after the download
+     * is complete, and updates the REMOTE_DATA table (@see IsolatedService#getRemoteData) with the
+     * result of this method.
      *
      * @param input Download handler parameters.
-     * @param consumer Callback to be invoked on completion.
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. If called with <code>null</code>, no updates are made to the REMOTE_DATA table.
+     *     <p>If this method throws a {@link RuntimeException}, no updates are made to the
+     *     REMOTE_DATA table.
      */
-    default void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull Consumer<DownloadOutput> consumer
-    ) {
+    default void onDownloadCompleted(
+            @NonNull DownloadCompletedInput input,
+            @NonNull Consumer<DownloadCompletedOutput> consumer) {
         consumer.accept(null);
     }
 
     /**
-     * Generates HTML for the results that were returned as a result of {@link #onExecute()}.
-     * Called when a client app calls {@link OnDevicePersonalizationManager#requestSurfacePackage}.
-     * The platform will render this HTML in a WebView inside a fenced frame.
+     * Generates HTML for the results that were returned as a result of {@link #onExecute()}. Called
+     * when a client app calls {@link OnDevicePersonalizationManager#requestSurfacePackage}. The
+     * platform will render this HTML in a WebView inside a fenced frame.
      *
      * @param input Parameters for the render request.
-     * @param consumer Callback to be invoked on completion.
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. The error is propagated to the calling app as an {@link
+     *     OnDevicePersonalizationException} with error code {@link
+     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
+     *     <p>If this method throws a {@link RuntimeException}, that is also reported to calling
+     *     apps as an {@link OnDevicePersonalizationException} with error code {@link
+     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
      */
-    default void onRender(
-            @NonNull RenderInput input,
-            @NonNull Consumer<RenderOutput> consumer
-    ) {
+    default void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
         consumer.accept(null);
     }
 
     /**
-     * Handles an event triggered by a request to a platform-provided tracking URL that was
-     * embedded in the HTML output returned by {@link #onRender()}.
+     * Handles an event triggered by a request to a platform-provided tracking URL {@link
+     * EventUrlProvider} that was embedded in the HTML output returned by {@link #onRender()}. The
+     * platform updates the EVENTS table (@see EventLogRecord) with the result of this method.
      *
      * @param input The parameters needed to compute event data.
-     * @param consumer Callback to be invoked on completion.
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. If called with <code>null</code>, no data is written to the EVENTS table.
+     *     <p>If this method throws a {@link RuntimeException}, no data is written to the EVENTS
+     *     table.
+     * @hide
      */
-    default void onWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer
-    ) {
+    default void onEvent(
+            @NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
+        consumer.accept(null);
+    }
+
+    /**
+     * Generate a single training example used for federated computation job.
+     *
+     * @param input The parameters needed to generate the training example.
+     * @param consumer Callback to be invoked on completion.
+     * @hide
+     */
+    default void onTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
         consumer.accept(null);
     }
 }

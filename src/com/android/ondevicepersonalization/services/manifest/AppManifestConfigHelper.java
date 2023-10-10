@@ -92,4 +92,15 @@ public final class AppManifestConfigHelper {
             String packageName) {
         return getAppManifestConfig(context, packageName).getServiceName();
     }
+
+    /**
+     * Gets the federated compute service remote server url from package's ODP settings config
+     *
+     * @param context     the context of the API call.
+     * @param packageName the packageName of the package whose manifest config will be read
+     */
+    public static String getFcRemoteServerUrlFromOdpSettings(Context context,
+            String packageName) {
+        return getAppManifestConfig(context, packageName).getFcRemoteServerUrl();
+    }
 }
