@@ -67,10 +67,11 @@ bootclasspath_fragment {
         // classes into an API surface, e.g. public, system, etc.. Doing so will
         // result in a build failure due to inconsistent flags.
         package_prefixes: [
-	    "android.app.ondevicepersonalization",
+            "android.adservices.ondevicepersonalization",
             "android.ondevicepersonalization",
             "com.android.ondevicepersonalization.internal",
             "android.federatedcompute",
+            "com.android.federatedcompute.internal",
         ],
     },
 }
@@ -92,8 +93,6 @@ apex {
     bootclasspath_fragments: ["com.android.ondevicepersonalization-bootclasspath-fragment"],
     systemserverclasspath_fragments: ["com.android.ondevicepersonalization-systemserverclasspath-fragment"],
     defaults: ["t-launched-apex-module"],
-    prebuilts: [
-        "privapp_allowlist_com.android.ondevicepersonalization.services.xml",
-        "current_sdkinfo"
-    ],
+    prebuilts: ["current_sdkinfo"],
+    jni_libs: ["libfcp_cpp_dep_jni"],
 }

@@ -39,6 +39,7 @@ import org.junit.runner.RunWith;
 public final class FederatedTrainingTaskDaoTest {
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
@@ -160,6 +161,7 @@ public final class FederatedTrainingTaskDaoTest {
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
                 .populationName(POPULATION_NAME)
+                .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
                 .constraints(TRAINING_CONSTRAINTS)
                 .creationTime(CREATION_TIME)

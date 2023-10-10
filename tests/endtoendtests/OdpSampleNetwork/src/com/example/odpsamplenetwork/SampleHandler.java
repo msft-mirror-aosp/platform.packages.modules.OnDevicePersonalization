@@ -16,24 +16,29 @@
 
 package com.example.odpsamplenetwork;
 
-import android.annotation.NonNull;
-import android.app.ondevicepersonalization.AppInstallStatus;
-import android.app.ondevicepersonalization.DownloadInput;
-import android.app.ondevicepersonalization.DownloadOutput;
-import android.app.ondevicepersonalization.EventLogRecord;
-import android.app.ondevicepersonalization.EventUrlProvider;
-import android.app.ondevicepersonalization.ExecuteInput;
-import android.app.ondevicepersonalization.ExecuteOutput;
-import android.app.ondevicepersonalization.IsolatedComputationCallback;
-import android.app.ondevicepersonalization.KeyValueStore;
-import android.app.ondevicepersonalization.RenderInput;
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.UserData;
-import android.app.ondevicepersonalization.WebViewEventInput;
-import android.app.ondevicepersonalization.WebViewEventOutput;
+import android.adservices.ondevicepersonalization.AppInfo;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.EventInput;
+import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventOutput;
+import android.adservices.ondevicepersonalization.EventUrlProvider;
+import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleInput;
+import android.adservices.ondevicepersonalization.TrainingExampleOutput;
+import android.adservices.ondevicepersonalization.TrainingInterval;
+import android.adservices.ondevicepersonalization.UserData;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -42,16 +47,28 @@ import android.util.Base64;
 import android.util.JsonReader;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.protobuf.ByteString;
 import com.google.setfilters.cuckoofilter.CuckooFilter;
 
+import org.tensorflow.example.BytesList;
+import org.tensorflow.example.Example;
+import org.tensorflow.example.Feature;
+import org.tensorflow.example.Features;
+import org.tensorflow.example.Int64List;
+
+import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -60,7 +77,7 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
 
-public class SampleHandler implements IsolatedComputationCallback {
+public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
@@ -85,12 +102,14 @@ public class SampleHandler implements IsolatedComputationCallback {
     private final KeyValueStore mRemoteData;
     private final EventUrlProvider mEventUrlProvider;
     private final UserData mUserData;
+    private final FederatedComputeScheduler mFCScheduler;
 
     SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider,
-            UserData userData) {
+            UserData userData, FederatedComputeScheduler fcScheduler) {
         mRemoteData = remoteData;
         mEventUrlProvider = eventUrlProvider;
         mUserData = userData;
+        mFCScheduler = fcScheduler;
         if (mRemoteData == null) {
             Log.e(TAG, "RemoteData missing");
         }
@@ -100,15 +119,18 @@ public class SampleHandler implements IsolatedComputationCallback {
         if (mUserData == null) {
             Log.e(TAG, "UserData missing");
         }
+        if (mFCScheduler == null) {
+            Log.e(TAG, "Federated Compute Scheduler missing");
+        }
     }
 
     @Override
-    public void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            @NonNull DownloadCompletedInput input,
+            @NonNull Consumer<DownloadCompletedOutput> consumer) {
         Log.d(TAG, "onDownload() started.");
-        DownloadOutput downloadResult =
-                new DownloadOutput.Builder()
+        DownloadCompletedOutput downloadResult =
+                new DownloadCompletedOutput.Builder()
                         .setRetainedKeys(getFilteredKeys(input.getData()))
                         .build();
         consumer.accept(downloadResult);
@@ -122,6 +144,13 @@ public class SampleHandler implements IsolatedComputationCallback {
         sBackgroundExecutor.execute(() -> handleOnExecute(input, consumer));
     }
 
+    @Override public void onTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
+        Log.d(TAG, "onTrainingExample() started.");
+        sBackgroundExecutor.execute(() -> handleOnTrainingExample(input, consumer));
+    }
+
     @Override public void onRender(
             @NonNull RenderInput input,
             @NonNull Consumer<RenderOutput> consumer
@@ -130,10 +159,10 @@ public class SampleHandler implements IsolatedComputationCallback {
         sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
-    @Override public void onWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer) {
-        Log.d(TAG, "onWebViewEvent() started.");
+    @Override public void onEvent(
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer) {
+        Log.d(TAG, "onEvent() started.");
         sBackgroundExecutor.execute(
                 () -> handleOnWebViewEvent(input, consumer));
     }
@@ -155,13 +184,21 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     private boolean isMatch(Ad ad, String requestKeyword) {
-        if (ad.mTargetKeyword != null && !ad.mTargetKeyword.isEmpty()) {
-            if (!ad.mTargetKeyword.equals(requestKeyword)) {
+        if (ad.mTargetKeywords != null && !ad.mTargetKeywords.isEmpty()) {
+            if (!ad.mTargetKeywords.contains(requestKeyword)) {
                 return false;
             }
         }
-        if (ad.mExcludeKeyword != null && !ad.mExcludeKeyword.isEmpty()) {
-            if (ad.mExcludeKeyword.equals(requestKeyword)) {
+        if (ad.mTargetApps != null && !ad.mTargetApps.isEmpty()) {
+            if (!isInstalledAppFound(ad.mTargetApps)) {
+                return false;
+            }
+        }
+        if (ad.mExcludes != null && !ad.mExcludes.isEmpty()) {
+            if (ad.mExcludes.contains(requestKeyword)) {
+                return false;
+            }
+            if (isInstalledAppFound(ad.mExcludes)) {
                 return false;
             }
         }
@@ -233,30 +270,115 @@ public class SampleHandler implements IsolatedComputationCallback {
                 .build();
     }
 
+    static Feature convertStringToFeature(String value) {
+        BytesList.Builder bytesListBuilder = BytesList.newBuilder();
+        String nonNullValue = Strings.nullToEmpty(value);
+        bytesListBuilder.addValue(ByteString.copyFromUtf8(nonNullValue));
+        return Feature.newBuilder().setBytesList(bytesListBuilder.build()).build();
+    }
+
+    static Feature convertLongToFeature(long value) {
+        return Feature.newBuilder()
+            .setInt64List(Int64List.newBuilder().addValue(value).build())
+            .build();
+    }
+
+    private void handleOnTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
+        Features.Builder featuresBuilder = Features.newBuilder();
+
+        featuresBuilder.putFeature("int-feature-1", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-2", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-3", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-4", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-5", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-6", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-7", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-8", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-9", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-10", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-11", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-12", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-13", convertLongToFeature(0L));
+
+        featuresBuilder.putFeature("categorical-feature-14", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-15", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-16", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-17", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-18", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-19", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-20", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-21", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-22", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-23", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-24", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-25", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-26", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-27", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-28", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-29", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-30", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-31", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-32", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-33", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-34", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-35", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-36", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-37", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-38", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-39", convertStringToFeature(""));
+
+        featuresBuilder.putFeature("clicked", convertLongToFeature(1L));
+
+        Example example = Example.newBuilder().setFeatures(featuresBuilder.build()).build();
+        TrainingExampleOutput result = new TrainingExampleOutput
+                .Builder()
+                .addTrainingExample(example.toByteArray())
+                .addResumptionToken("token1".getBytes()).build();
+        consumer.accept(result);
+    }
+
     private void handleOnExecute(
             @NonNull ExecuteInput input,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         try {
-            var unused = FluentFuture.from(readAds(mRemoteData))
-                    .transform(
-                        ads -> buildResult(runAuction(matchAds(ads, input))),
-                        sBackgroundExecutor)
-                    .transform(
-                        result -> {
-                            consumer.accept(result);
-                            return null;
-                        },
-                        MoreExecutors.directExecutor())
-                    .catching(
-                        Exception.class,
-                        e -> {
-                            Log.e(TAG, "Execution failed.", e);
-                            consumer.accept(null);
-                            return null;
-                        },
-                        MoreExecutors.directExecutor());
+            if (input != null && input.getAppParams() != null
+                    && !input.getAppParams().getString("schedule_training").isEmpty()) {
+                TrainingInterval interval = new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofSeconds(10))
+                        .setSchedulingMode(2)
+                        .build();
+                FederatedComputeScheduler.Params params = new FederatedComputeScheduler
+                        .Params(interval);
+                FederatedComputeInput fcInput = new FederatedComputeInput.Builder()
+                        .setPopulationName(input.getAppParams().getString("schedule_training"))
+                        .build();
+                mFCScheduler.schedule(params, fcInput);
 
+                ExecuteOutput result = new ExecuteOutput.Builder().build();
+                consumer.accept(result);
+            } else {
+                var unused = FluentFuture.from(readAds(mRemoteData))
+                        .transform(
+                            ads -> buildResult(runAuction(matchAds(ads, input))),
+                            sBackgroundExecutor)
+                        .transform(
+                            result -> {
+                                consumer.accept(result);
+                                return null;
+                            },
+                            MoreExecutors.directExecutor())
+                        .catching(
+                            Exception.class,
+                            e -> {
+                                Log.e(TAG, "Execution failed.", e);
+                                consumer.accept(null);
+                                return null;
+                            },
+                            MoreExecutors.directExecutor());
+            }
         } catch (Exception e) {
             Log.e(TAG, "handleOnExecute() failed", e);
             consumer.accept(null);
@@ -267,8 +389,8 @@ public class SampleHandler implements IsolatedComputationCallback {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
-            String url = mEventUrlProvider.getEventTrackingUrl(
-                    eventParams, TRANSPARENT_PNG_BYTES, "image/png");
+            String url = mEventUrlProvider.createEventTrackingUrlWithResponse(
+                    eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -280,8 +402,8 @@ public class SampleHandler implements IsolatedComputationCallback {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
-            String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage);
+            String url = mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                    eventParams, Uri.parse(landingPage)).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -357,14 +479,14 @@ public class SampleHandler implements IsolatedComputationCallback {
     }
 
     public void handleOnWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer) {
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer) {
         try {
             Log.d(TAG, "handleOnEvent() started.");
             PersistableBundle eventParams = input.getParameters();
             int eventType = eventParams.getInt(EVENT_TYPE_KEY);
             if (eventType <= 0) {
-                consumer.accept(new WebViewEventOutput.Builder().build());
+                consumer.accept(new EventOutput.Builder().build());
                 return;
             }
             ContentValues logData = null;
@@ -383,7 +505,7 @@ public class SampleHandler implements IsolatedComputationCallback {
                 logData = new ContentValues();
                 logData.put(CLICK_COST_KEY, updatedPrice);
             }
-            WebViewEventOutput result = new WebViewEventOutput.Builder()
+            EventOutput result = new EventOutput.Builder()
                     .setEventLogRecord(
                         new EventLogRecord.Builder()
                             .setRowIndex(0)
@@ -403,8 +525,7 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        if (mUserData.getAppInstalledHistory() == null
-                || mUserData.getAppInstalledHistory().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -413,8 +534,8 @@ public class SampleHandler implements IsolatedComputationCallback {
             return false;
         }
 
-        for (String app: mUserData.getAppInstalledHistory().keySet()) {
-            AppInstallStatus value = mUserData.getAppInstalledHistory().get(app);
+        for (String app: mUserData.getAppInfos().keySet()) {
+            AppInfo value = mUserData.getAppInfos().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -423,8 +544,32 @@ public class SampleHandler implements IsolatedComputationCallback {
         return false;
     }
 
+    boolean isInstalledAppFound(List<String> apps) {
+        if (mUserData == null) {
+            Log.i(TAG, "No userdata.");
+            return false;
+        }
+
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
+            Log.i(TAG, "No installed apps.");
+            return false;
+        }
+
+        if (apps == null || apps.isEmpty()) {
+            return false;
+        }
+
+        for (String app: mUserData.getAppInfos().keySet()) {
+            if (apps.contains(app)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     boolean isBlockedAd(Ad ad) {
-        return isInstalledAppFound(ad.mExcludeFilter);
+        return isInstalledAppFound(ad.mExcludeFilter) || isInstalledAppFound(ad.mExcludes);
     }
 
     private List<String> getFilteredKeys(Map<String, byte[]> data) {
@@ -475,23 +620,25 @@ public class SampleHandler implements IsolatedComputationCallback {
     static class Ad {
         final String mId;
         final double mPrice;
-        final String mTargetKeyword;
-        final String mExcludeKeyword;
+        final List<String> mTargetKeywords;
+        final List<String> mTargetApps;
+        final List<String> mExcludes;
         final String mLandingPage;
         final String mText;
         final String mTemplateId;
         final CuckooFilter<String> mTargetKeywordFilter;
         final CuckooFilter<String> mTargetAppFilter;
         final CuckooFilter<String> mExcludeFilter;
-        Ad(String id, double price, String targetKeyword, String excludeKeyword,
-                String landingPage, String text, String templateId,
+        Ad(String id, double price, List<String> targetKeywords, List<String> targetApps,
+                List<String> excludes, String landingPage, String text, String templateId,
                 CuckooFilter<String> targetKeywordFilter,
                 CuckooFilter<String> targetAppFilter,
                 CuckooFilter<String> excludeFilter) {
             mId = id;
             mPrice = price;
-            mTargetKeyword = targetKeyword;
-            mExcludeKeyword = excludeKeyword;
+            mTargetKeywords = targetKeywords;
+            mTargetApps = targetApps;
+            mExcludes = excludes;
             mLandingPage = landingPage;
             mText = text;
             mTemplateId = templateId;
@@ -499,6 +646,17 @@ public class SampleHandler implements IsolatedComputationCallback {
             mTargetAppFilter = targetAppFilter;
             mExcludeFilter = excludeFilter;
         }
+    }
+
+    private static void readJsonArray(JsonReader reader, List<String> values) throws IOException {
+        reader.beginArray();
+        while (reader.hasNext()) {
+            String value = reader.nextString();
+            if (value != null && !value.isEmpty()) {
+                values.add(value);
+            }
+        }
+        reader.endArray();
     }
 
     Ad parseAd(String id, byte[] data) {
@@ -511,8 +669,9 @@ public class SampleHandler implements IsolatedComputationCallback {
         try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
             reader.beginObject();
             double price = 0.0;
-            String targetKeyword = "";
-            String excludeKeyword = "";
+            ArrayList<String> targetKeywords = new ArrayList<>();
+            ArrayList<String> targetApps = new ArrayList<>();
+            ArrayList<String> excludes = new ArrayList<>();
             String landingPage = "";
             String text = "Click Here!";
             String templateId = null;
@@ -523,10 +682,12 @@ public class SampleHandler implements IsolatedComputationCallback {
                 String name = reader.nextName();
                 if (name.equals("price")) {
                     price = reader.nextDouble();
-                } else if (name.equals("keyword")) {
-                    targetKeyword = reader.nextString();
-                } else if (name.equals("excludekeyword")) {
-                    excludeKeyword = reader.nextString();
+                } else if (name.equals("keywords")) {
+                    readJsonArray(reader, targetKeywords);
+                } else if (name.equals("apps")) {
+                    readJsonArray(reader, targetApps);
+                } else if (name.equals("excludes")) {
+                    readJsonArray(reader, excludes);
                 } else if (name.equals("landingPage")) {
                     landingPage = reader.nextString();
                 } else if (name.equals("text")) {
@@ -544,8 +705,8 @@ public class SampleHandler implements IsolatedComputationCallback {
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeyword, excludeKeyword, landingPage, text, templateId,
-                    targetKeywordFilter, targetAppFilter, excludeFilter);
+            return new Ad(id, price, targetKeywords, targetApps, excludes, landingPage, text,
+                    templateId, targetKeywordFilter, targetAppFilter, excludeFilter);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;

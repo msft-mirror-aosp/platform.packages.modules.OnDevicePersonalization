@@ -16,9 +16,13 @@
 
 package com.android.federatedcompute.services.scheduling;
 
+import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
+
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
 import static java.lang.Math.min;
@@ -27,7 +31,6 @@ import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
 
@@ -35,8 +38,6 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.TaskRetry;
-import com.android.federatedcompute.services.common.TrainingResult;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDbHelper;
@@ -46,6 +47,8 @@ import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
+import com.google.intelligence.fcp.client.engine.TaskRetry;
 
 import org.junit.After;
 import org.junit.Before;
@@ -56,14 +59,15 @@ import org.mockito.junit.MockitoJUnitRunner;
 
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.concurrent.CountDownLatch;
 
 import javax.annotation.Nullable;
 
 @RunWith(MockitoJUnitRunner.class)
 public final class FederatedComputeJobManagerTest {
+    private static final String CALLING_PACKAGE_NAME = "callingPkg";
     private static final String POPULATION_NAME1 = "population1";
     private static final String POPULATION_NAME2 = "population2";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID1 = 700000001;
     private static final int JOB_ID2 = 700000002;
     private static final long DEFAULT_SCHEDULING_PERIOD_SECS = 1234;
@@ -79,24 +83,21 @@ public final class FederatedComputeJobManagerTest {
     private static final TrainingOptions OPTIONS1 =
             new TrainingOptions.Builder()
                     .setPopulationName(POPULATION_NAME1)
-                    .setJobSchedulerJobId(JOB_ID1)
+                    .setServerAddress(SERVER_ADDRESS)
                     .build();
     private static final TrainingOptions OPTIONS2 =
             new TrainingOptions.Builder()
                     .setPopulationName(POPULATION_NAME2)
-                    .setJobSchedulerJobId(JOB_ID2)
+                    .setServerAddress(SERVER_ADDRESS)
                     .build();
     private static final TaskRetry TASK_RETRY =
-            new TaskRetry.Builder().setMinDelay(5000000).setMaxDelay(6000000).build();
-
+            TaskRetry.newBuilder().setDelayMin(5000000).setDelayMax(6000000).build();
     private FederatedComputeJobManager mJobManager;
     private Context mContext;
     private FederatedTrainingTaskDao mTrainingTaskDao;
-    private boolean mSuccess = false;
-    private final CountDownLatch mLatch = new CountDownLatch(1);
-
     @Mock private Clock mClock;
     @Mock private Flags mMockFlags;
+    @Mock private FederatedJobIdGenerator mMockJobIdGenerator;
     private JobScheduler mJobScheduler;
 
     @Before
@@ -109,6 +110,7 @@ public final class FederatedComputeJobManagerTest {
                 new FederatedComputeJobManager(
                         mContext,
                         mTrainingTaskDao,
+                        mMockJobIdGenerator,
                         new JobSchedulerHelper(mClock),
                         mClock,
                         mMockFlags);
@@ -119,6 +121,9 @@ public final class FederatedComputeJobManagerTest {
                 .thenReturn(MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
         when(mMockFlags.getMinSchedulingIntervalSecsForFederatedComputation()).thenReturn(1L);
         when(mMockFlags.getMaxSchedulingPeriodSecs()).thenReturn(MAX_SCHEDULING_PERIOD_SECS);
+        when(mMockJobIdGenerator.generateJobId(any(), anyString()))
+                .thenReturn(JOB_ID1)
+                .thenReturn(JOB_ID2);
     }
 
     @After
@@ -136,9 +141,9 @@ public final class FederatedComputeJobManagerTest {
     public void testOnTrainerStartCalledSuccess() throws Exception {
         when(mClock.currentTimeMillis()).thenReturn(1000L).thenReturn(2000L);
 
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        int resultCode = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
-        assertThat(mSuccess).isTrue();
+        assertThat(resultCode).isEqualTo(STATUS_SUCCESS);
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
         assertThat(taskList)
@@ -147,6 +152,7 @@ public final class FederatedComputeJobManagerTest {
                                 .creationTime(1000L)
                                 .lastScheduledTime(1000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
                                 .build());
     }
@@ -155,12 +161,11 @@ public final class FederatedComputeJobManagerTest {
     public void testOnTrainerStartCalled_firstTime() throws Exception {
         when(mClock.currentTimeMillis()).thenReturn(1000L);
         // Make three onTrainerStart calls, each with different job ID and session name.
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        int resultCode = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
         when(mClock.currentTimeMillis()).thenReturn(2000L);
-        mJobManager.onTrainerStartCalled(OPTIONS2, new TestFederatedComputeCallback());
-        mLatch.await();
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS2);
 
-        assertThat(mSuccess).isTrue();
+        assertThat(resultCode).isEqualTo(STATUS_SUCCESS);
         // verify training tasks in database.
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -171,12 +176,14 @@ public final class FederatedComputeJobManagerTest {
                                 .lastScheduledTime(1000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                                 .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .build(),
                         basicFLTrainingTaskBuilder(JOB_ID2, POPULATION_NAME2, null)
                                 .creationTime(2000L)
                                 .lastScheduledTime(2000L)
                                 .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
                                 .earliestNextRunTime(2000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
                                 .build());
 
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(2);
@@ -214,7 +221,7 @@ public final class FederatedComputeJobManagerTest {
                                         .setMinimumIntervalMillis(userDefinedIntervalMillis)
                                         .build())
                         .build();
-        mJobManager.onTrainerStartCalled(trainerOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
 
         byte[] trainingIntervalOptions =
                 createTrainingIntervalOptions(SchedulingMode.RECURRENT, userDefinedIntervalMillis);
@@ -247,14 +254,15 @@ public final class FederatedComputeJobManagerTest {
     @Test
     public void testOnTrainerStartCalled_multipleTimes_sameParams() throws Exception {
         when(mClock.currentTimeMillis()).thenReturn(1000L);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         when(mClock.currentTimeMillis()).thenReturn(2000L);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         when(mClock.currentTimeMillis()).thenReturn(3000L);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        int resultCode = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
+        assertThat(resultCode).isEqualTo(STATUS_SUCCESS);
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
         FederatedTrainingTask expectedTask =
@@ -263,6 +271,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastScheduledTime(3000L)
                         .creationTime(1000L)
                         .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                        .intervalOptions(createDefaultTrainingInterval())
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
 
@@ -294,13 +303,13 @@ public final class FederatedComputeJobManagerTest {
                         .build();
 
         when(mClock.currentTimeMillis()).thenReturn(1000L);
-        mJobManager.onTrainerStartCalled(trainingOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainingOptions);
 
         when(mClock.currentTimeMillis()).thenReturn(2000L);
-        mJobManager.onTrainerStartCalled(trainingOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainingOptions);
 
         when(mClock.currentTimeMillis()).thenReturn(3000L);
-        mJobManager.onTrainerStartCalled(trainingOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainingOptions);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -343,7 +352,7 @@ public final class FederatedComputeJobManagerTest {
                         .build();
 
         when(mClock.currentTimeMillis()).thenReturn(1000L);
-        mJobManager.onTrainerStartCalled(trainingOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainingOptions);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -379,7 +388,7 @@ public final class FederatedComputeJobManagerTest {
                         .build();
 
         when(mClock.currentTimeMillis()).thenReturn(2000L);
-        mJobManager.onTrainerStartCalled(newTrainingOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, newTrainingOptions);
 
         taskList = mTrainingTaskDao.getFederatedTrainingTask(null, null);
         expectedInterval =
@@ -419,7 +428,7 @@ public final class FederatedComputeJobManagerTest {
                         .build();
 
         when(mClock.currentTimeMillis()).thenReturn(1000L);
-        mJobManager.onTrainerStartCalled(trainingOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainingOptions);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -443,12 +452,12 @@ public final class FederatedComputeJobManagerTest {
     public void testOnTrainerStartCalled_trainingIntervalChange_FL() throws Exception {
         when(mClock.currentTimeMillis()).thenReturn(1000L);
         mJobManager.onTrainerStartCalled(
-                basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1).build(),
-                new TestFederatedComputeCallback());
+                CALLING_PACKAGE_NAME, basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1).build());
 
         long minTrainingIntervalMillis = 60000L;
         when(mClock.currentTimeMillis()).thenReturn(2000L);
         mJobManager.onTrainerStartCalled(
+                CALLING_PACKAGE_NAME,
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
                                 new TrainingInterval.Builder()
@@ -456,8 +465,7 @@ public final class FederatedComputeJobManagerTest {
                                                 TrainingInterval.SCHEDULING_MODE_RECURRENT)
                                         .setMinimumIntervalMillis(minTrainingIntervalMillis)
                                         .build())
-                        .build(),
-                new TestFederatedComputeCallback());
+                        .build());
         byte[] trainingInterval =
                 createTrainingIntervalOptions(SchedulingMode.RECURRENT, minTrainingIntervalMillis);
         verifyTaskAndJobAfterIntervalChange(
@@ -466,6 +474,7 @@ public final class FederatedComputeJobManagerTest {
         long newInterval = 70000L;
         when(mClock.currentTimeMillis()).thenReturn(3000L);
         mJobManager.onTrainerStartCalled(
+                CALLING_PACKAGE_NAME,
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
                                 new TrainingInterval.Builder()
@@ -473,36 +482,29 @@ public final class FederatedComputeJobManagerTest {
                                                 TrainingInterval.SCHEDULING_MODE_RECURRENT)
                                         .setMinimumIntervalMillis(newInterval)
                                         .build())
-                        .build(),
-                new TestFederatedComputeCallback());
+                        .build());
         byte[] trainingIntervalOption2 =
                 createTrainingIntervalOptions(SchedulingMode.RECURRENT, newInterval);
         // Verify the creation time not changed, modified time is set to now, and the min interval
         // is set to the new interval.
         verifyTaskAndJobAfterIntervalChange(trainingIntervalOption2, 1000, 3000, newInterval);
 
+        // Change to default training interval {one_time, interval 0}.
         when(mClock.currentTimeMillis()).thenReturn(4000L);
         mJobManager.onTrainerStartCalled(
+                CALLING_PACKAGE_NAME,
                 basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1)
                         .setTrainingInterval(
                                 new TrainingInterval.Builder()
                                         .setSchedulingMode(
                                                 TrainingInterval.SCHEDULING_MODE_ONE_TIME)
                                         .build())
-                        .build(),
-                new TestFederatedComputeCallback());
+                        .build());
         byte[] trainingIntervalOption3 = createTrainingIntervalOptions(SchedulingMode.ONE_TIME, 0L);
         // Verify the creation time not changed, modified time is set to now, and the min interval
         // is set to the new interval.
         verifyTaskAndJobAfterIntervalChange(
                 trainingIntervalOption3, 1000, 4000, DEFAULT_SCHEDULING_PERIOD_MILLIS);
-
-        // Transition back to not set
-        when(mClock.currentTimeMillis()).thenReturn(5000L);
-        mJobManager.onTrainerStartCalled(
-                basicFLOptionsBuilder(JOB_ID1, POPULATION_NAME1).build(),
-                new TestFederatedComputeCallback());
-        verifyTaskAndJobAfterIntervalChange(null, 1000, 5000, DEFAULT_SCHEDULING_PERIOD_MILLIS);
     }
 
     private void verifyTaskAndJobAfterIntervalChange(
@@ -530,88 +532,91 @@ public final class FederatedComputeJobManagerTest {
 
     @Test
     public void testOnTrainerStartCalled_multipleTimes_changingPopulationName() throws Exception {
-        // Only change the population name.
-        int jobId = JOB_ID1;
-        doTestOnTrainerStartCalled_multipleTimes_changingParams(
-                jobId,
-                POPULATION_NAME1,
-                jobId,
-                POPULATION_NAME2,
-                SchedulingReason.SCHEDULING_REASON_NEW_TASK);
+        when(mClock.currentTimeMillis()).thenReturn(1000L);
+        TrainingOptions options1 =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME1)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .build();
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
+
+        // Pass in a new population name and We will assign new job id since population name
+        // changes.
+        when(mClock.currentTimeMillis()).thenReturn(2000L);
+        TrainingOptions options2 =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME2)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .build();
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options2);
+
+        // Verify two training tasks in database.
+        List<FederatedTrainingTask> taskList =
+                mTrainingTaskDao.getFederatedTrainingTask(null, null);
+        assertThat(taskList)
+                .containsExactly(
+                        basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, null)
+                                .creationTime(1000L)
+                                .lastScheduledTime(1000L)
+                                .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                                .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
+                                .build(),
+                        basicFLTrainingTaskBuilder(JOB_ID2, POPULATION_NAME2, null)
+                                .creationTime(2000L)
+                                .lastScheduledTime(2000L)
+                                .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                                .earliestNextRunTime(2000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
+                                .build());
+        assertThat(mJobScheduler.getAllPendingJobs()).hasSize(2);
+        assertJobInfosMatch(
+                mJobScheduler.getPendingJob(JOB_ID1),
+                buildExpectedJobInfo(JOB_ID1, DEFAULT_SCHEDULING_PERIOD_MILLIS));
+        assertJobInfosMatch(
+                mJobScheduler.getPendingJob(JOB_ID2),
+                buildExpectedJobInfo(JOB_ID2, DEFAULT_SCHEDULING_PERIOD_MILLIS));
     }
 
     @Test
     public void testOnTrainerStartCalled_twoJobsWithSamePopulationName() throws Exception {
-        // Change both the job ID and session name between Trainer.start calls.
-        doTestOnTrainerStartCalled_multipleTimes_changingParams(
-                JOB_ID1,
-                POPULATION_NAME1,
-                JOB_ID2,
-                POPULATION_NAME1,
-                SchedulingReason.SCHEDULING_REASON_NEW_TASK);
-    }
-
-    @Test
-    public void testOnTrainerStartCalled_multipleTimes_changingJobId() throws Exception {
-        // Only change the job ID.
-        String populationName = POPULATION_NAME1;
-        doTestOnTrainerStartCalled_multipleTimes_changingParams(
-                JOB_ID1,
-                populationName,
-                JOB_ID2,
-                populationName,
-                SchedulingReason.SCHEDULING_REASON_NEW_TASK);
-    }
-
-    private void doTestOnTrainerStartCalled_multipleTimes_changingParams(
-            int jobId1,
-            String populationName1,
-            int jobId2,
-            String populationName2,
-            int expectedSchedulingReason)
-            throws Exception {
         when(mClock.currentTimeMillis()).thenReturn(1000L);
         TrainingOptions options1 =
                 new TrainingOptions.Builder()
-                        .setPopulationName(populationName1)
-                        .setJobSchedulerJobId(jobId1)
+                        .setPopulationName(POPULATION_NAME1)
+                        .setServerAddress(SERVER_ADDRESS)
                         .build();
-        mJobManager.onTrainerStartCalled(options1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
 
-        // Pass in a new population name.
+        // For same population, we will reuse the job id assigned to the previous task.
         when(mClock.currentTimeMillis()).thenReturn(2000L);
         TrainingOptions options2 =
                 new TrainingOptions.Builder()
-                        .setPopulationName(populationName2)
-                        .setJobSchedulerJobId(jobId2)
+                        .setPopulationName(POPULATION_NAME1)
+                        .setServerAddress(SERVER_ADDRESS)
                         .build();
-        mJobManager.onTrainerStartCalled(options2, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options2);
 
-        long earliestNextRunTimeMillis = 2000 + DEFAULT_SCHEDULING_PERIOD_MILLIS;
-        long minLatencyMillis = DEFAULT_SCHEDULING_PERIOD_MILLIS;
-        // If none of the job id, session name, population name and InAppTrainingConstraints
-        // changes,
-        // the previous earliest next
-        // run time will not change.
-        if (jobId1 == jobId2 && populationName1.equals(populationName2)) {
-            earliestNextRunTimeMillis = 1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS;
-        }
+        // Verify only task in database.
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
+        long earliestNextRunTimeMillis = 1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS;
+
         FederatedTrainingTask expectedTask =
-                basicFLTrainingTaskBuilder(jobId2, populationName2, null)
+                basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, null)
                         .earliestNextRunTime(earliestNextRunTimeMillis)
                         .lastScheduledTime(2000L)
-                        .creationTime(populationName1.equals(populationName2) ? 1000L : 2000L)
+                        .creationTime(1000L)
                         .constraints(DEFAULT_CONSTRAINTS)
-                        .schedulingReason(expectedSchedulingReason)
+                        .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                        .intervalOptions(createDefaultTrainingInterval())
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
 
         assertThat(mJobScheduler.getAllPendingJobs()).hasSize(1);
         assertJobInfosMatch(
-                mJobScheduler.getPendingJob(jobId2),
-                buildExpectedJobInfo(jobId2, minLatencyMillis));
+                mJobScheduler.getPendingJob(JOB_ID1),
+                buildExpectedJobInfo(JOB_ID1, DEFAULT_SCHEDULING_PERIOD_MILLIS));
     }
 
     @Test
@@ -633,7 +638,7 @@ public final class FederatedComputeJobManagerTest {
 
         long nowMillis = 1000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         // Simulate attempting to run a task a lot later. This should not fail, b/c we're not yet
         // past the TTL threshold.
@@ -647,7 +652,7 @@ public final class FederatedComputeJobManagerTest {
         when(mMockFlags.getTrainingTimeForLiveSeconds()).thenReturn(1L);
 
         when(mClock.currentTimeMillis()).thenReturn(1000L);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         // Simulate attempting to run a task one second later. This should not fail, b/c we're not
         // yet
@@ -658,10 +663,11 @@ public final class FederatedComputeJobManagerTest {
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
 
         // Now reschedule again, should keep the task alive for another second.
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        int resultCode = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         // The task should again still be alive a second later.
         nowMillis = 3000;
+        assertThat(resultCode).isEqualTo(STATUS_SUCCESS);
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNotNull();
 
@@ -676,7 +682,7 @@ public final class FederatedComputeJobManagerTest {
     public void testRescheduleFLTask_success() throws Exception {
         long nowMillis = 1000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         nowMillis = 2000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
@@ -689,7 +695,7 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 createTrainingIntervalOptionsAsRoot(SchedulingMode.RECURRENT, 0),
                 TASK_RETRY,
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNotNull();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
@@ -699,7 +705,7 @@ public final class FederatedComputeJobManagerTest {
     public void testRescheduleFLTask_oneoff_success() throws Exception {
         long nowMillis = 1000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
-        mJobManager.onTrainerStartCalled(OPTIONS1, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
 
         nowMillis = 2000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
@@ -712,7 +718,7 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 createTrainingIntervalOptionsAsRoot(SchedulingMode.ONE_TIME, 0),
                 TASK_RETRY,
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNull();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
@@ -732,7 +738,7 @@ public final class FederatedComputeJobManagerTest {
                                                 TrainingInterval.SCHEDULING_MODE_ONE_TIME)
                                         .build())
                         .build();
-        mJobManager.onTrainerStartCalled(trainerOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
 
         nowMillis = 2000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
@@ -746,11 +752,11 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalOptions)),
-                new TaskRetry.Builder()
-                        .setMinDelay(serverRetryDelayMillis)
-                        .setMaxDelay(serverRetryDelayMillis)
+                TaskRetry.newBuilder()
+                        .setDelayMin(serverRetryDelayMillis)
+                        .setDelayMax(serverRetryDelayMillis)
                         .build(),
-                TrainingResult.FAIL);
+                ContributionResult.FAIL);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -790,7 +796,7 @@ public final class FederatedComputeJobManagerTest {
                         .build();
         long nowMillis = 1000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
-        mJobManager.onTrainerStartCalled(trainerOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
 
         nowMillis = 2000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
@@ -805,11 +811,11 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalOptions)),
-                new TaskRetry.Builder()
-                        .setMinDelay(minRetryDelayMillis)
-                        .setMaxDelay(maxRetryDelayMillis)
+                TaskRetry.newBuilder()
+                        .setDelayMin(minRetryDelayMillis)
+                        .setDelayMax(maxRetryDelayMillis)
                         .build(),
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -849,7 +855,7 @@ public final class FederatedComputeJobManagerTest {
 
         long nowMillis = 1000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
-        mJobManager.onTrainerStartCalled(trainerOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
 
         nowMillis = 2000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
@@ -864,11 +870,11 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalOptions)),
-                new TaskRetry.Builder()
-                        .setMinDelay(serverDefinedIntervalMillis)
-                        .setMaxDelay(serverDefinedIntervalMillis)
+                TaskRetry.newBuilder()
+                        .setDelayMin(serverDefinedIntervalMillis)
+                        .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                TrainingResult.SUCCESS);
+                ContributionResult.SUCCESS);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -908,7 +914,7 @@ public final class FederatedComputeJobManagerTest {
 
         long nowMillis = 1000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
-        mJobManager.onTrainerStartCalled(trainerOptions, new TestFederatedComputeCallback());
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
 
         nowMillis = 2000;
         when(mClock.currentTimeMillis()).thenReturn(nowMillis);
@@ -923,11 +929,11 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalOptions)),
-                new TaskRetry.Builder()
-                        .setMinDelay(serverDefinedIntervalMillis)
-                        .setMaxDelay(serverDefinedIntervalMillis)
+                TaskRetry.newBuilder()
+                        .setDelayMin(serverDefinedIntervalMillis)
+                        .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                TrainingResult.FAIL);
+                ContributionResult.FAIL);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -949,6 +955,34 @@ public final class FederatedComputeJobManagerTest {
                 buildExpectedJobInfo(JOB_ID1, serverDefinedIntervalMillis));
     }
 
+    @Test
+    public void testOnTrainerStopCalled_withoutOnTrainerStartCalled() throws Exception {
+        // Should not fail, even if onTrainerStartCalled was never called.
+        int resultCode = mJobManager.onTrainerStopCalled(CALLING_PACKAGE_NAME, POPULATION_NAME1);
+
+        // No task should exist, nor should a job have been scheduled.
+        assertThat(resultCode).isEqualTo(STATUS_SUCCESS);
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
+    @Test
+    public void testOnTrainerStopCalled_afterOnTrainerStartCalled() throws Exception {
+        // After a cycle of onTrainerStartCalled -> onTrainerStopCalled there should be no pending
+        // jobs.
+        long nowMillis = 1000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, OPTIONS1);
+
+        nowMillis = 2000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStopCalled(CALLING_PACKAGE_NAME, POPULATION_NAME1);
+
+        // No task should exist, nor should a job be scheduled anymore
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
     /**
      * Helper for checking that two JobInfos match, since JobInfos unfortunately can't be compared
      * directly.
@@ -968,9 +1002,9 @@ public final class FederatedComputeJobManagerTest {
         assertWithMessage("requireDeviceIdle")
                 .that(pendingJob.isRequireDeviceIdle())
                 .isEqualTo(expectedJobInfo.isRequireDeviceIdle());
-        assertWithMessage("requireCharging")
-                .that(pendingJob.isRequireCharging())
-                .isEqualTo(expectedJobInfo.isRequireCharging());
+        assertWithMessage("requireBatteryNotLow")
+                .that(pendingJob.isRequireBatteryNotLow())
+                .isEqualTo(expectedJobInfo.isRequireBatteryNotLow());
         assertWithMessage("minLatencyMillis")
                 .that(pendingJob.getMinLatencyMillis())
                 .isEqualTo(expectedJobInfo.getMinLatencyMillis());
@@ -982,7 +1016,7 @@ public final class FederatedComputeJobManagerTest {
     private static TrainingOptions.Builder basicFLOptionsBuilder(int jobId, String population) {
         return new TrainingOptions.Builder()
                 .setPopulationName(population)
-                .setJobSchedulerJobId(jobId);
+                .setServerAddress(SERVER_ADDRESS);
     }
 
     private JobInfo buildExpectedJobInfo(int jobId, long minLatencyMillis) {
@@ -994,7 +1028,7 @@ public final class FederatedComputeJobManagerTest {
                         .setRequiresDeviceIdle(true)
                         // the latency should be capped.
                         .setMinimumLatency(minLatencyMillis)
-                        .setRequiresCharging(true);
+                        .setRequiresBatteryNotLow(true);
         jobInfo.setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED);
 
         return jobInfo.build();
@@ -1010,7 +1044,8 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunStartTime(0L)
                         .lastRunEndTime(0L)
                         .constraints(DEFAULT_CONSTRAINTS)
-                        .appPackageName(mContext.getPackageName());
+                        .serverAddress(SERVER_ADDRESS)
+                        .appPackageName(CALLING_PACKAGE_NAME);
         if (trainingIntervalOptions != null) {
             builder.intervalOptions(trainingIntervalOptions);
         }
@@ -1032,22 +1067,13 @@ public final class FederatedComputeJobManagerTest {
         return builder.sizedByteArray();
     }
 
+    private static byte[] createDefaultTrainingInterval() {
+        return createTrainingIntervalOptions(SchedulingMode.ONE_TIME, 0);
+    }
+
     private static byte[] createDefaultTrainingConstraints() {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
         return builder.sizedByteArray();
-    }
-
-    class TestFederatedComputeCallback extends IFederatedComputeCallback.Stub {
-        @Override
-        public void onSuccess() {
-            mSuccess = true;
-            mLatch.countDown();
-        }
-
-        @Override
-        public void onFailure(int errorCode) {
-            mLatch.countDown();
-        }
     }
 }

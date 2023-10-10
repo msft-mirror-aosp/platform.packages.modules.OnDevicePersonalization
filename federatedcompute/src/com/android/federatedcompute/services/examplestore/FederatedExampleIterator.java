@@ -16,37 +16,30 @@
 
 package com.android.federatedcompute.services.examplestore;
 
-import static android.federatedcompute.common.ClientConstants.EXTRA_COLLECTION_NAME;
-import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
-import android.content.Intent;
-import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreIteratorCallback;
-import android.federatedcompute.aidl.IExampleStoreService;
-import android.federatedcompute.common.ClientConstants;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.RemoteException;
-import android.util.Log;
 import android.util.Pair;
 
+import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
 import com.android.internal.util.Preconditions;
 
 import com.google.common.util.concurrent.SettableFuture;
-import com.google.common.util.concurrent.UncheckedExecutionException;
+import com.google.internal.federatedcompute.v1.Code;
 
 import java.io.Closeable;
 import java.util.NoSuchElementException;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import javax.annotation.Nullable;
@@ -57,19 +50,17 @@ import javax.annotation.Nullable;
  * main thread.
  */
 public final class FederatedExampleIterator implements ExampleIterator {
-    private static final String TAG = "FederatedExampleIterator";
+    private static final String TAG = FederatedExampleIterator.class.getSimpleName();
     // TODO: replace with PH flag.
     private static final long TIMEOUT_SECS = 2L;
 
     private boolean mClosed;
-    private final String mPackageName;
     private final String mCollection;
     private final byte[] mCriteria;
     @Nullable private ProxyIteratorWrapper mIteratorWrapper;
     @Nullable private IteratorResult mCurrentResult;
     private byte[] mResumptionToken;
     @Nullable private final SingleQueryRecorder mRecorder;
-    private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
 
     private enum NextResultState {
         /**
@@ -90,14 +81,11 @@ public final class FederatedExampleIterator implements ExampleIterator {
     private Flags mFlags;
 
     public FederatedExampleIterator(
-            String packageName,
+            IExampleStoreIterator exampleStoreIterator,
             String collectionName,
             byte[] criteria,
             byte[] resumptionToken,
-            SingleQueryRecorder recorder,
-            ExampleStoreServiceProvider exampleStoreServiceProvider,
-            Flags flags) {
-        this.mPackageName = packageName;
+            SingleQueryRecorder recorder) {
         this.mCollection = collectionName;
         this.mCriteria = criteria;
         this.mResumptionToken = resumptionToken;
@@ -105,12 +93,11 @@ public final class FederatedExampleIterator implements ExampleIterator {
         this.mCurrentResult = null;
         this.mClosed = false;
         this.mRecorder = recorder;
-        this.mExampleStoreServiceProvider = exampleStoreServiceProvider;
-        this.mFlags = flags;
+        this.mIteratorWrapper = new ProxyIteratorWrapper(exampleStoreIterator);
     }
 
     @Override
-    public boolean hasNext() throws InterruptedException {
+    public boolean hasNext() throws InterruptedException, ErrorStatusException {
         Preconditions.checkState(!mClosed, "hasNext() called after close()");
         Preconditions.checkState(!isMainThread(), "hasNext() called on main thread");
         if (mNextResultState != NextResultState.UNKNOWN) {
@@ -121,7 +108,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
     }
 
     @Override
-    public byte[] next() throws InterruptedException {
+    public byte[] next() throws InterruptedException, ErrorStatusException {
         Preconditions.checkState(!mClosed, "next() called after close()");
         Preconditions.checkState(!isMainThread(), "next() called on main thread");
         if (mNextResultState == NextResultState.UNKNOWN) {
@@ -152,92 +139,13 @@ public final class FederatedExampleIterator implements ExampleIterator {
         }
     }
 
-    private void getNextResult() throws InterruptedException {
-        if (mIteratorWrapper == null) {
-            Log.i(TAG, "iterator wrapper is null");
-            connectToClientExampleStoreService();
-        }
+    private void getNextResult() throws InterruptedException, ErrorStatusException {
         mCurrentResult = mIteratorWrapper.next();
         if (mCurrentResult == null) {
             mNextResultState = NextResultState.END_OF_ITERATOR;
-            Log.d(TAG, "App example store returns null, end of iterator.");
+            LogUtil.d(TAG, "App example store returns null, end of iterator.");
         } else {
             mNextResultState = NextResultState.RESULT_AVAILABLE;
-        }
-    }
-
-    private void connectToClientExampleStoreService() throws InterruptedException {
-        Intent intent = new Intent();
-        intent.setAction(ClientConstants.EXAMPLE_STORE_ACTION).setPackage(mPackageName);
-        intent.setData(
-                new Uri.Builder().scheme("app").authority(mPackageName).path(mCollection).build());
-        Log.d(TAG, "Attempting to bind to example store service: " + intent);
-        if (!mExampleStoreServiceProvider.bindService(intent)) {
-            Log.w(TAG, "bindService failed for example store service: " + intent);
-            mExampleStoreServiceProvider.unbindService();
-            return;
-        }
-        IExampleStoreService exampleStoreService =
-                mExampleStoreServiceProvider.getExampleStoreService();
-        Bundle bundle = new Bundle();
-        bundle.putString(EXTRA_COLLECTION_NAME, mCollection);
-        bundle.putByteArray(EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, this.mResumptionToken);
-        bundle.putByteArray(EXTRA_EXAMPLE_ITERATOR_CRITERIA, mCriteria);
-
-        SettableFuture<Pair<IExampleStoreIterator, Integer>> iteratorOrFailureFuture =
-                SettableFuture.create();
-        try {
-            try {
-                exampleStoreService.startQuery(
-                        bundle,
-                        new IExampleStoreCallback.Stub() {
-                            @Override
-                            public void onStartQuerySuccess(IExampleStoreIterator iterator) {
-                                Log.d(TAG, "Acquire iterator");
-                                iteratorOrFailureFuture.set(Pair.create(iterator, null));
-                            }
-
-                            @Override
-                            public void onStartQueryFailure(int errorCode) {
-                                Log.e(TAG, "Could not acquire iterator: " + errorCode);
-                                iteratorOrFailureFuture.set(Pair.create(null, errorCode));
-                            }
-                        });
-            } catch (RemoteException e) {
-                Log.e(TAG, "StartQuery failure: " + e.getMessage());
-                throw new IllegalStateException(e);
-            }
-
-            Pair<IExampleStoreIterator, Integer> iteratorOrFailure;
-            try {
-                iteratorOrFailure =
-                        iteratorOrFailureFuture.get(
-                                mFlags.getAppHostedExampleStoreTimeoutSecs(), TimeUnit.SECONDS);
-            } catch (ExecutionException e) {
-                // Should not happen.
-                throw new UncheckedExecutionException(e);
-            } catch (TimeoutException e) {
-                Log.e(TAG, "startQuery timed out: ", e);
-                throw new IllegalStateException(
-                        String.format(
-                                "startQuery timed out (%ss): %s",
-                                mFlags.getAppHostedExampleStoreTimeoutSecs(), this.mCollection),
-                        e);
-            }
-            if (iteratorOrFailure.second != null) {
-                throw new IllegalStateException(
-                        String.format(
-                                "onStartQueryFailure collection %s error code %d",
-                                this.mCollection, iteratorOrFailure.second));
-            }
-            Log.d(TAG, "Wrapping IExampleStoreIterator");
-            mIteratorWrapper = new ProxyIteratorWrapper(iteratorOrFailure.first);
-        } catch (Exception e) {
-            // If any exception is thrown in try block, we first call unbindService to avoid service
-            // connection hanging.
-            Log.d(TAG, "Unbinding from service due to exception", e);
-            mExampleStoreServiceProvider.unbindService();
-            throw e;
         }
     }
 
@@ -261,7 +169,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
             this.mExampleStoreIterator = iterator;
         }
 
-        private IteratorResult next() {
+        private IteratorResult next() throws InterruptedException, ErrorStatusException {
             Preconditions.checkState(
                     !mIteratorClosed, "next() called after ProxyIteratorWrapper close()");
             SettableFuture<Pair<IteratorResult, Integer>> resultOrErrorCodeFuture =
@@ -271,27 +179,29 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 mExampleStoreIterator.next(mIteratorCallback);
             } catch (RemoteException e) {
                 close();
-                throw new IllegalStateException("Failed to call next()", e);
+                throw ErrorStatusException.create(
+                        Code.UNAVAILABLE_VALUE, e, "Failed to call next()");
             }
 
             Pair<IteratorResult, Integer> resultOrFailure;
             try {
                 resultOrFailure = resultOrErrorCodeFuture.get(TIMEOUT_SECS, SECONDS);
-            } catch (InterruptedException e) {
-                close();
-                throw new IllegalStateException(e);
             } catch (ExecutionException e) {
                 close();
                 throw new IllegalStateException("Failed to get iterator result", e);
             } catch (TimeoutException e) {
                 close();
-                throw new IllegalStateException("call iterator next() timeout", e);
+                throw ErrorStatusException.create(
+                        Code.UNAVAILABLE_VALUE, "next() timed out (%ss)", TIMEOUT_SECS);
             }
 
             if (resultOrFailure.second != null) {
                 close();
-                throw new IllegalStateException(
-                        "OnIteratorNextFailure: " + mCollection + ": " + resultOrFailure.second);
+                throw ErrorStatusException.create(
+                        Code.UNAVAILABLE_VALUE,
+                        "OnIteratorNextFailure: %s %s",
+                        mCollection,
+                        resultOrFailure.second);
             }
             if (resultOrFailure.first == null) {
                 close();
@@ -309,11 +219,9 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 try {
                     mExampleStoreIterator.close();
                 } catch (RemoteException e) {
-                    Log.w(TAG, "Exception during call to IExampleStoreIterator.close", e);
+                    LogUtil.w(TAG, e, "Exception during call to IExampleStoreIterator.close");
                 }
             }
-            Log.d(TAG, "Unbinding from service due to iterator being closed");
-            mExampleStoreServiceProvider.unbindService();
         }
     }
 

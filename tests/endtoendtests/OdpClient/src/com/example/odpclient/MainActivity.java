@@ -16,9 +16,9 @@
 
 package com.example.odpclient;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.app.Activity;
-import android.app.ondevicepersonalization.OnDevicePersonalizationManager;
-import android.app.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
@@ -45,6 +45,8 @@ public class MainActivity extends Activity {
 
     private EditText mTextBox;
     private Button mGetAdButton;
+    private EditText mScheduleTrainingTextBox;
+    private Button mScheduleTrainingButton;
     private SurfaceView mRenderedView;
 
     private Context mContext;
@@ -60,8 +62,11 @@ public class MainActivity extends Activity {
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setVisibility(View.INVISIBLE);
         mGetAdButton = findViewById(R.id.get_ad_button);
+        mScheduleTrainingButton = findViewById(R.id.schedule_training_button);
         mTextBox = findViewById(R.id.text_box);
+        mScheduleTrainingTextBox = findViewById(R.id.schedule_training_text_box);
         registerGetAdButton();
+        registerScheduleTrainingButton();
     }
 
     private void registerGetAdButton() {
@@ -89,7 +94,7 @@ public class MainActivity extends Activity {
                     new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
                         @Override
                         public void onResult(List<SurfacePackageToken> result) {
-                            makeToast("execute() success: " + result.size());
+                            Log.i(TAG, "execute() success: " + result.size());
                             if (result.size() > 0) {
                                 slotResultHandle.set(result.get(0));
                             } else {
@@ -116,7 +121,7 @@ public class MainActivity extends Activity {
                     new OutcomeReceiver<SurfacePackage, Exception>() {
                         @Override
                         public void onResult(SurfacePackage surfacePackage) {
-                            makeToast(
+                            Log.i(TAG,
                                     "requestSurfacePackage() success: "
                                     + surfacePackage.toString());
                             new Handler(Looper.getMainLooper()).post(() -> {
@@ -136,6 +141,47 @@ public class MainActivity extends Activity {
                     });
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
+        }
+    }
+
+    private void registerScheduleTrainingButton() {
+        mScheduleTrainingButton.setOnClickListener(
+                v -> scheduleTraining());
+    }
+
+    private void scheduleTraining() {
+        try {
+            if (mOdpManager == null) {
+                makeToast("OnDevicePersonalizationManager is null");
+                return;
+            }
+            CountDownLatch latch = new CountDownLatch(1);
+            Log.i(TAG, "Starting execute()");
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString("schedule_training", mScheduleTrainingTextBox.getText().toString());
+            mOdpManager.execute(
+                    ComponentName.createRelative(
+                        "com.example.odpsamplenetwork",
+                        "com.example.odpsamplenetwork.SampleService"),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
+                        @Override
+                        public void onResult(List<SurfacePackageToken> result) {
+                            Log.i(TAG, "execute() success: " + result.size());
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            makeToast("execute() error: " + e.toString());
+                            latch.countDown();
+                        }
+                    });
+            latch.await();
+        } catch (Exception e) {
+            Log.e(TAG, "Error", e);
+
         }
     }
 

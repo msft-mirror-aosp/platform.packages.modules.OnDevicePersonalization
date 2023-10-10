@@ -21,6 +21,8 @@ import static android.app.job.JobScheduler.RESULT_FAILURE;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.FEDERATED_COMPUTE_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.ODP_POPULATION_NAME;
 
+import static java.util.concurrent.TimeUnit.MILLISECONDS;
+
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -32,7 +34,6 @@ import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.OutcomeReceiver;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
@@ -42,29 +43,27 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-/**
- * JobService to handle the OnDevicePersonalization FederatedCompute scheduling
- */
+import java.util.concurrent.CountDownLatch;
+
+/** JobService to handle the OnDevicePersonalization FederatedCompute scheduling */
 public class OdpFederatedComputeJobService extends JobService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OdpFederatedComputeJobService";
     private static final long PERIOD_SECONDS = 86400;
+    private static final long ASYNC_SCHEDULE_TIMEOUT_MS = 6000;
     private ListenableFuture<Void> mFuture;
 
-    /**
-     * Schedules a unique instance of OdpFederatedComputeJobService to be run.
-     */
+    /** Schedules a unique instance of OdpFederatedComputeJobService to be run. */
     public static int schedule(Context context) {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
-        if (jobScheduler.getPendingJob(
-                FEDERATED_COMPUTE_TASK_JOB_ID) != null) {
+        if (jobScheduler.getPendingJob(FEDERATED_COMPUTE_TASK_JOB_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
             return RESULT_FAILURE;
         }
-        ComponentName serviceComponent = new ComponentName(context,
-                OdpFederatedComputeJobService.class);
-        JobInfo.Builder builder = new JobInfo.Builder(
-                FEDERATED_COMPUTE_TASK_JOB_ID, serviceComponent);
+        ComponentName serviceComponent =
+                new ComponentName(context, OdpFederatedComputeJobService.class);
+        JobInfo.Builder builder =
+                new JobInfo.Builder(FEDERATED_COMPUTE_TASK_JOB_ID, serviceComponent);
 
         // Constraints.
         // TODO(278106108): Update scheduling conditions.
@@ -83,25 +82,43 @@ public class OdpFederatedComputeJobService extends JobService {
         sLogger.d(TAG + ": onStartJob()");
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
-            jobFinished(params, /* wantsReschedule = */ false);
+            jobFinished(params, /* wantsReschedule= */ false);
             return true;
         }
-        mFuture = Futures.submit(new Runnable() {
-            @Override
-            public void run() {
-                scheduleFederatedCompute();
-            }
-        }, OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        final CountDownLatch latch = new CountDownLatch(1);
+        mFuture =
+                Futures.submit(
+                        new Runnable() {
+                            @Override
+                            public void run() {
+                                scheduleFederatedCompute(latch);
+                            }
+                        },
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
         Futures.addCallback(
                 mFuture,
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        sLogger.d(TAG + ": Job completed successfully.");
+                        // Prevent the framework from unbinding/freezing/garbage collecting the
+                        // remote FCP process before receiving the async schedule callback
+                        try {
+                            boolean asyncTaskTimelyCompletion =
+                                    latch.await(ASYNC_SCHEDULE_TIMEOUT_MS, MILLISECONDS);
+                            if (asyncTaskTimelyCompletion) {
+                                sLogger.d(TAG + ": Job completed successfully.");
+                            } else {
+                                sLogger.w(TAG + ": Job completed, but the remote schedule call "
+                                        + "did not finish on time");
+                            }
+                        } catch (InterruptedException e) {
+                            sLogger.w(TAG + ": Job completed, the callback thread is interrupted "
+                                    + "while waiting for latch countdown");
+                        }
                         // Tell the JobScheduler that the job has completed and does not needs to be
                         // rescheduled.
-                        jobFinished(params, /* wantsReschedule = */ false);
+                        jobFinished(params, /* wantsReschedule= */ false);
                     }
 
                     @Override
@@ -109,7 +126,7 @@ public class OdpFederatedComputeJobService extends JobService {
                         sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
                         //  When failure, also tell the JobScheduler that the job has completed and
                         // does not need to be rescheduled.
-                        jobFinished(params, /* wantsReschedule = */ false);
+                        jobFinished(params, /* wantsReschedule= */ false);
                     }
                 },
                 OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -119,6 +136,7 @@ public class OdpFederatedComputeJobService extends JobService {
 
     @Override
     public boolean onStopJob(JobParameters params) {
+        sLogger.d(TAG + ": onStopJob()");
         if (mFuture != null) {
             mFuture.cancel(true);
         }
@@ -127,32 +145,40 @@ public class OdpFederatedComputeJobService extends JobService {
     }
 
     @VisibleForTesting
-    void scheduleFederatedCompute() {
+    void scheduleFederatedCompute(final CountDownLatch latch) {
         if (federatedComputeNeedsScheduling()) {
             FederatedComputeManager FCManager =
                     this.getSystemService(FederatedComputeManager.class);
-            TrainingOptions trainingOptions = new TrainingOptions.Builder()
-                    .setJobSchedulerJobId(FEDERATED_COMPUTE_TASK_JOB_ID)
-                    .setPopulationName(ODP_POPULATION_NAME)
-                    .build();
-            ScheduleFederatedComputeRequest request = new ScheduleFederatedComputeRequest
-                    .Builder()
-                    .setTrainingOptions(trainingOptions)
-                    .build();
-            FCManager.scheduleFederatedCompute(request,
+            if (FCManager == null) {
+                sLogger.e(TAG + ": Failed to get FederatedCompute Service");
+                latch.countDown();
+                return;
+            }
+            TrainingOptions trainingOptions =
+                    new TrainingOptions.Builder().setPopulationName(ODP_POPULATION_NAME).build();
+            ScheduleFederatedComputeRequest request =
+                    new ScheduleFederatedComputeRequest.Builder()
+                            .setTrainingOptions(trainingOptions)
+                            .build();
+            FCManager.schedule(
+                    request,
                     OnDevicePersonalizationExecutors.getBackgroundExecutor(),
                     new OutcomeReceiver<Object, Exception>() {
                         @Override
                         public void onResult(Object result) {
                             sLogger.d(TAG + ": Successfully scheduled federatedCompute");
+                            latch.countDown();
                         }
 
                         @Override
                         public void onError(Exception error) {
                             sLogger.e(TAG + ": Error while scheduling federatedCompute", error);
+                            latch.countDown();
                             OutcomeReceiver.super.onError(error);
                         }
                     });
+        } else {
+            latch.countDown();
         }
     }
 

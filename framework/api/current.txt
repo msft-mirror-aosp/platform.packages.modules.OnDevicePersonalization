@@ -1,78 +1,51 @@
 // Signature format: 2.0
-package android.app.ondevicepersonalization {
+package android.adservices.ondevicepersonalization {
 
-  public final class AppInstallStatus implements android.os.Parcelable {
+  public final class AppInfo implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public boolean isInstalled();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.AppInstallStatus> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.AppInfo> CREATOR;
   }
 
-  public static final class AppInstallStatus.Builder {
-    ctor public AppInstallStatus.Builder();
-    method @NonNull public android.app.ondevicepersonalization.AppInstallStatus build();
-    method @NonNull public android.app.ondevicepersonalization.AppInstallStatus.Builder setInstalled(@NonNull boolean);
-  }
-
-  public final class AppUsageStatus implements android.os.Parcelable {
-    method public int describeContents();
-    method @NonNull public String getPackageName();
-    method @NonNull public long getTotalTimeUsedInMillis();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.AppUsageStatus> CREATOR;
-  }
-
-  public static final class AppUsageStatus.Builder {
-    ctor public AppUsageStatus.Builder();
-    method @NonNull public android.app.ondevicepersonalization.AppUsageStatus build();
-    method @NonNull public android.app.ondevicepersonalization.AppUsageStatus.Builder setPackageName(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.AppUsageStatus.Builder setTotalTimeUsedInMillis(@NonNull long);
-  }
-
-  public final class DownloadInput {
+  public final class DownloadCompletedInput {
     method @NonNull public java.util.Map<java.lang.String,byte[]> getData();
   }
 
-  public static final class DownloadInput.Builder {
-    ctor public DownloadInput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.DownloadInput build();
-    method @NonNull public android.app.ondevicepersonalization.DownloadInput.Builder setData(@NonNull java.util.Map<java.lang.String,byte[]>);
-  }
-
-  public final class DownloadOutput implements android.os.Parcelable {
+  public final class DownloadCompletedOutput implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public java.util.List<java.lang.String> getRetainedKeys();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.DownloadOutput> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.DownloadCompletedOutput> CREATOR;
   }
 
-  public static final class DownloadOutput.Builder {
-    ctor public DownloadOutput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.DownloadOutput.Builder addRetainedKey(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.DownloadOutput build();
-    method @NonNull public android.app.ondevicepersonalization.DownloadOutput.Builder setRetainedKeys(@NonNull java.util.List<java.lang.String>);
+  public static final class DownloadCompletedOutput.Builder {
+    ctor public DownloadCompletedOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder addRetainedKey(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.DownloadCompletedOutput.Builder setRetainedKeys(@NonNull java.util.List<java.lang.String>);
   }
 
   public final class EventLogRecord implements android.os.Parcelable {
     method public int describeContents();
     method @Nullable public android.content.ContentValues getData();
-    method public int getRowIndex();
-    method public int getType();
+    method @IntRange(from=0) public int getRowIndex();
+    method @IntRange(from=1, to=127) public int getType();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.EventLogRecord> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.EventLogRecord> CREATOR;
   }
 
   public static final class EventLogRecord.Builder {
     ctor public EventLogRecord.Builder();
-    method @NonNull public android.app.ondevicepersonalization.EventLogRecord build();
-    method @NonNull public android.app.ondevicepersonalization.EventLogRecord.Builder setData(@NonNull android.content.ContentValues);
-    method @NonNull public android.app.ondevicepersonalization.EventLogRecord.Builder setRowIndex(int);
-    method @NonNull public android.app.ondevicepersonalization.EventLogRecord.Builder setType(int);
+    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord build();
+    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setData(@NonNull android.content.ContentValues);
+    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setRowIndex(@IntRange(from=0) int);
+    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setType(@IntRange(from=1, to=127) int);
   }
 
   public class EventUrlProvider {
-    method @NonNull public String getEventTrackingUrl(@NonNull android.os.PersistableBundle, @Nullable byte[], @Nullable String) throws android.app.ondevicepersonalization.OnDevicePersonalizationException;
-    method @NonNull public String getEventTrackingUrlWithRedirect(@NonNull android.os.PersistableBundle, @Nullable String) throws android.app.ondevicepersonalization.OnDevicePersonalizationException;
+    method @NonNull @WorkerThread public android.net.Uri createEventTrackingUrlWithRedirect(@NonNull android.os.PersistableBundle, @Nullable android.net.Uri);
+    method @NonNull @WorkerThread public android.net.Uri createEventTrackingUrlWithResponse(@NonNull android.os.PersistableBundle, @Nullable byte[], @Nullable String);
   }
 
   public final class ExecuteInput implements android.os.Parcelable {
@@ -80,131 +53,68 @@ package android.app.ondevicepersonalization {
     method @NonNull public String getAppPackageName();
     method @NonNull public android.os.PersistableBundle getAppParams();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.ExecuteInput> CREATOR;
-  }
-
-  public static final class ExecuteInput.Builder {
-    ctor public ExecuteInput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.ExecuteInput build();
-    method @NonNull public android.app.ondevicepersonalization.ExecuteInput.Builder setAppPackageName(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.ExecuteInput.Builder setAppParams(@NonNull android.os.PersistableBundle);
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.ExecuteInput> CREATOR;
   }
 
   public final class ExecuteOutput implements android.os.Parcelable {
     method public int describeContents();
-    method @NonNull public java.util.List<android.app.ondevicepersonalization.RenderingConfig> getRenderingConfigs();
-    method @Nullable public android.app.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
+    method @NonNull public java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> getRenderingConfigs();
+    method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.ExecuteOutput> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.ExecuteOutput> CREATOR;
   }
 
   public static final class ExecuteOutput.Builder {
     ctor public ExecuteOutput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.ExecuteOutput.Builder addRenderingConfig(@NonNull android.app.ondevicepersonalization.RenderingConfig);
-    method @NonNull public android.app.ondevicepersonalization.ExecuteOutput build();
-    method @NonNull public android.app.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfigs(@NonNull java.util.List<android.app.ondevicepersonalization.RenderingConfig>);
-    method @NonNull public android.app.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.app.ondevicepersonalization.RequestLogRecord);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder addRenderingConfig(@NonNull android.adservices.ondevicepersonalization.RenderingConfig);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfigs(@NonNull java.util.List<android.adservices.ondevicepersonalization.RenderingConfig>);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
   }
 
-  public interface IsolatedComputationCallback {
-    method public default void onDownload(@NonNull android.app.ondevicepersonalization.DownloadInput, @NonNull java.util.function.Consumer<android.app.ondevicepersonalization.DownloadOutput>);
-    method public default void onExecute(@NonNull android.app.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.app.ondevicepersonalization.ExecuteOutput>);
-    method public default void onRender(@NonNull android.app.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.app.ondevicepersonalization.RenderOutput>);
-    method public default void onWebViewEvent(@NonNull android.app.ondevicepersonalization.WebViewEventInput, @NonNull java.util.function.Consumer<android.app.ondevicepersonalization.WebViewEventOutput>);
-  }
-
-  public abstract class IsolatedComputationService extends android.app.Service {
-    ctor public IsolatedComputationService();
-    method @NonNull public final android.app.ondevicepersonalization.EventUrlProvider getEventUrlProvider(@NonNull android.app.ondevicepersonalization.RequestToken);
-    method @NonNull public final android.app.ondevicepersonalization.MutableKeyValueStore getLocalData(@NonNull android.app.ondevicepersonalization.RequestToken);
-    method @NonNull public final android.app.ondevicepersonalization.KeyValueStore getRemoteData(@NonNull android.app.ondevicepersonalization.RequestToken);
-    method @Nullable public final android.app.ondevicepersonalization.UserData getUserData(@NonNull android.app.ondevicepersonalization.RequestToken);
+  public abstract class IsolatedService extends android.app.Service {
+    ctor public IsolatedService();
+    method @NonNull public final android.adservices.ondevicepersonalization.EventUrlProvider getEventUrlProvider(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+    method @NonNull public final android.adservices.ondevicepersonalization.MutableKeyValueStore getLocalData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+    method @NonNull public final android.adservices.ondevicepersonalization.KeyValueStore getRemoteData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+    method @Nullable public final android.adservices.ondevicepersonalization.UserData getUserData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @Nullable public android.os.IBinder onBind(@NonNull android.content.Intent);
-    method @NonNull public abstract android.app.ondevicepersonalization.IsolatedComputationCallback onRequest(@NonNull android.app.ondevicepersonalization.RequestToken);
+    method @NonNull public abstract android.adservices.ondevicepersonalization.IsolatedWorker onRequest(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+  }
+
+  public interface IsolatedWorker {
+    method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.DownloadCompletedOutput>);
+    method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
+    method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
   }
 
   public interface KeyValueStore {
-    method @Nullable public byte[] get(@NonNull String) throws android.app.ondevicepersonalization.OnDevicePersonalizationException;
-    method @NonNull public java.util.Set<java.lang.String> keySet() throws android.app.ondevicepersonalization.OnDevicePersonalizationException;
+    method @Nullable @WorkerThread public byte[] get(@NonNull String);
+    method @NonNull @WorkerThread public java.util.Set<java.lang.String> keySet();
   }
 
-  public final class Location implements android.os.Parcelable {
-    method public int describeContents();
-    method public double getLatitude();
-    method public int getLocationProvider();
-    method public double getLongitude();
-    method public long getTimestampSeconds();
-    method public boolean isPreciseLocation();
-    method @NonNull public static String locationProviderTypeToString(int);
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.Location> CREATOR;
-    field public static final int LOCATION_PROVIDER_TYPE_GPS = 1; // 0x1
-    field public static final int LOCATION_PROVIDER_TYPE_NETWORK = 2; // 0x2
-    field public static final int LOCATION_PROVIDER_TYPE_UNKNOWN = 0; // 0x0
-  }
-
-  public static final class Location.Builder {
-    ctor public Location.Builder();
-    method @NonNull public android.app.ondevicepersonalization.Location build();
-    method @NonNull public android.app.ondevicepersonalization.Location.Builder setLatitude(double);
-    method @NonNull public android.app.ondevicepersonalization.Location.Builder setLocationProvider(int);
-    method @NonNull public android.app.ondevicepersonalization.Location.Builder setLongitude(double);
-    method @NonNull public android.app.ondevicepersonalization.Location.Builder setPreciseLocation(boolean);
-    method @NonNull public android.app.ondevicepersonalization.Location.Builder setTimestampSeconds(long);
-  }
-
-  public final class LocationStatus implements android.os.Parcelable {
-    method public int describeContents();
-    method @NonNull public long getDurationMillis();
-    method @NonNull public double getLatitude();
-    method @NonNull public double getLongitude();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.LocationStatus> CREATOR;
-  }
-
-  public static final class LocationStatus.Builder {
-    ctor public LocationStatus.Builder();
-    method @NonNull public android.app.ondevicepersonalization.LocationStatus build();
-    method @NonNull public android.app.ondevicepersonalization.LocationStatus.Builder setDurationMillis(@NonNull long);
-    method @NonNull public android.app.ondevicepersonalization.LocationStatus.Builder setLatitude(@NonNull double);
-    method @NonNull public android.app.ondevicepersonalization.LocationStatus.Builder setLongitude(@NonNull double);
-  }
-
-  public interface MutableKeyValueStore extends android.app.ondevicepersonalization.KeyValueStore {
-    method @Nullable public byte[] put(@NonNull String, @NonNull byte[]) throws android.app.ondevicepersonalization.OnDevicePersonalizationException;
-    method @Nullable public byte[] remove(@NonNull String) throws android.app.ondevicepersonalization.OnDevicePersonalizationException;
+  public interface MutableKeyValueStore extends android.adservices.ondevicepersonalization.KeyValueStore {
+    method @Nullable @WorkerThread public byte[] put(@NonNull String, @NonNull byte[]);
+    method @Nullable @WorkerThread public byte[] remove(@NonNull String);
   }
 
   public class OnDevicePersonalizationException extends java.lang.Exception {
-    ctor public OnDevicePersonalizationException(int);
-    ctor public OnDevicePersonalizationException(int, @NonNull String);
-    ctor public OnDevicePersonalizationException(int, @NonNull Throwable);
-    ctor public OnDevicePersonalizationException(int, @NonNull String, @NonNull Throwable);
     method public int getErrorCode();
+    field public static final int ERROR_ISOLATED_SERVICE_FAILED = 1; // 0x1
   }
 
   public class OnDevicePersonalizationManager {
-    method public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.util.List<android.app.ondevicepersonalization.SurfacePackageToken>,java.lang.Exception>);
-    method public void requestSurfacePackage(@NonNull android.app.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
+    method public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
   }
 
   public final class RenderInput implements android.os.Parcelable {
     method public int describeContents();
     method public int getHeight();
-    method @Nullable public android.app.ondevicepersonalization.RenderingConfig getRenderingConfig();
+    method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
     method public int getRenderingConfigIndex();
     method public int getWidth();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.RenderInput> CREATOR;
-  }
-
-  public static final class RenderInput.Builder {
-    ctor public RenderInput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.RenderInput build();
-    method @NonNull public android.app.ondevicepersonalization.RenderInput.Builder setHeight(int);
-    method @NonNull public android.app.ondevicepersonalization.RenderInput.Builder setRenderingConfig(@NonNull android.app.ondevicepersonalization.RenderingConfig);
-    method @NonNull public android.app.ondevicepersonalization.RenderInput.Builder setRenderingConfigIndex(int);
-    method @NonNull public android.app.ondevicepersonalization.RenderInput.Builder setWidth(int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RenderInput> CREATOR;
   }
 
   public final class RenderOutput implements android.os.Parcelable {
@@ -213,43 +123,43 @@ package android.app.ondevicepersonalization {
     method @Nullable public String getTemplateId();
     method @NonNull public android.os.PersistableBundle getTemplateParams();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.RenderOutput> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RenderOutput> CREATOR;
   }
 
   public static final class RenderOutput.Builder {
     ctor public RenderOutput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.RenderOutput build();
-    method @NonNull public android.app.ondevicepersonalization.RenderOutput.Builder setContent(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.RenderOutput.Builder setTemplateId(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.RenderOutput.Builder setTemplateParams(@NonNull android.os.PersistableBundle);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setContent(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setTemplateId(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setTemplateParams(@NonNull android.os.PersistableBundle);
   }
 
   public final class RenderingConfig implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public java.util.List<java.lang.String> getKeys();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.RenderingConfig> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RenderingConfig> CREATOR;
   }
 
   public static final class RenderingConfig.Builder {
     ctor public RenderingConfig.Builder();
-    method @NonNull public android.app.ondevicepersonalization.RenderingConfig.Builder addKey(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.RenderingConfig build();
-    method @NonNull public android.app.ondevicepersonalization.RenderingConfig.Builder setKeys(@NonNull java.util.List<java.lang.String>);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderingConfig.Builder addKey(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderingConfig build();
+    method @NonNull public android.adservices.ondevicepersonalization.RenderingConfig.Builder setKeys(@NonNull java.util.List<java.lang.String>);
   }
 
   public final class RequestLogRecord implements android.os.Parcelable {
     method public int describeContents();
     method @NonNull public java.util.List<android.content.ContentValues> getRows();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.RequestLogRecord> CREATOR;
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RequestLogRecord> CREATOR;
   }
 
   public static final class RequestLogRecord.Builder {
     ctor public RequestLogRecord.Builder();
-    method @NonNull public android.app.ondevicepersonalization.RequestLogRecord.Builder addRow(@NonNull android.content.ContentValues);
-    method @NonNull public android.app.ondevicepersonalization.RequestLogRecord build();
-    method @NonNull public android.app.ondevicepersonalization.RequestLogRecord.Builder setRows(@NonNull java.util.List<android.content.ContentValues>);
+    method @NonNull public android.adservices.ondevicepersonalization.RequestLogRecord.Builder addRow(@NonNull android.content.ContentValues);
+    method @NonNull public android.adservices.ondevicepersonalization.RequestLogRecord build();
+    method @NonNull public android.adservices.ondevicepersonalization.RequestLogRecord.Builder setRows(@NonNull java.util.List<android.content.ContentValues>);
   }
 
   public class RequestToken {
@@ -259,76 +169,14 @@ package android.app.ondevicepersonalization {
   }
 
   public final class UserData implements android.os.Parcelable {
-    method @NonNull public static String connectionTypeToString(int);
     method public int describeContents();
-    method @NonNull public java.util.Map<java.lang.String,android.app.ondevicepersonalization.AppInstallStatus> getAppInstalledHistory();
-    method @NonNull public java.util.List<android.app.ondevicepersonalization.AppUsageStatus> getAppUsageHistory();
-    method public long getAvailableStorageMb();
-    method public int getBatteryPercentage();
+    method @NonNull public java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> getAppInfos();
+    method @IntRange(from=0) public long getAvailableStorageBytes();
+    method @IntRange(from=0, to=100) public int getBatteryPercentage();
     method @NonNull public String getCarrier();
-    method public int getConnectionType();
-    method @NonNull public android.app.ondevicepersonalization.Location getCurrentLocation();
-    method @NonNull public java.util.List<android.app.ondevicepersonalization.LocationStatus> getLocationHistory();
-    method public long getNetworkConnectionSpeedKbps();
     method public int getOrientation();
-    method public long getTimestampSeconds();
-    method public int getTimezoneUtcOffsetMins();
-    method public boolean isNetworkMetered();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field public static final int CONNECTION_TYPE_CELLULAR_2G = 3; // 0x3
-    field public static final int CONNECTION_TYPE_CELLULAR_3G = 4; // 0x4
-    field public static final int CONNECTION_TYPE_CELLULAR_4G = 5; // 0x5
-    field public static final int CONNECTION_TYPE_CELLULAR_5G = 6; // 0x6
-    field public static final int CONNECTION_TYPE_ETHERNET = 1; // 0x1
-    field public static final int CONNECTION_TYPE_UNKNOWN = 0; // 0x0
-    field public static final int CONNECTION_TYPE_WIFI = 2; // 0x2
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.UserData> CREATOR;
-  }
-
-  public static final class UserData.Builder {
-    ctor public UserData.Builder();
-    method @NonNull public android.app.ondevicepersonalization.UserData build();
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setAppInstalledHistory(@NonNull java.util.Map<java.lang.String,android.app.ondevicepersonalization.AppInstallStatus>);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setAppUsageHistory(@NonNull java.util.List<android.app.ondevicepersonalization.AppUsageStatus>);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setAvailableStorageMb(long);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setBatteryPercentage(int);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setCarrier(@NonNull String);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setConnectionType(int);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setCurrentLocation(@NonNull android.app.ondevicepersonalization.Location);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setLocationHistory(@NonNull java.util.List<android.app.ondevicepersonalization.LocationStatus>);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setNetworkConnectionSpeedKbps(long);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setNetworkMetered(boolean);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setOrientation(int);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setTimestampSeconds(long);
-    method @NonNull public android.app.ondevicepersonalization.UserData.Builder setTimezoneUtcOffsetMins(int);
-  }
-
-  public final class WebViewEventInput implements android.os.Parcelable {
-    method public int describeContents();
-    method @NonNull public android.os.PersistableBundle getParameters();
-    method @Nullable public android.app.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.WebViewEventInput> CREATOR;
-  }
-
-  public static final class WebViewEventInput.Builder {
-    ctor public WebViewEventInput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.WebViewEventInput build();
-    method @NonNull public android.app.ondevicepersonalization.WebViewEventInput.Builder setParameters(@NonNull android.os.PersistableBundle);
-    method @NonNull public android.app.ondevicepersonalization.WebViewEventInput.Builder setRequestLogRecord(@NonNull android.app.ondevicepersonalization.RequestLogRecord);
-  }
-
-  public final class WebViewEventOutput implements android.os.Parcelable {
-    method public int describeContents();
-    method @Nullable public android.app.ondevicepersonalization.EventLogRecord getEventLogRecord();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.app.ondevicepersonalization.WebViewEventOutput> CREATOR;
-  }
-
-  public static final class WebViewEventOutput.Builder {
-    ctor public WebViewEventOutput.Builder();
-    method @NonNull public android.app.ondevicepersonalization.WebViewEventOutput build();
-    method @NonNull public android.app.ondevicepersonalization.WebViewEventOutput.Builder setEventLogRecord(@NonNull android.app.ondevicepersonalization.EventLogRecord);
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.UserData> CREATOR;
   }
 
 }

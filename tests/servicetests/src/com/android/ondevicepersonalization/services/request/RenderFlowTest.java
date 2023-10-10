@@ -19,10 +19,10 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ContentValues;
 import android.content.Context;
 import android.os.Binder;
@@ -68,6 +68,7 @@ public class RenderFlowTest {
                 50,
                 new TestCallback(),
                 mContext,
+                100L,
                 new TestInjector(),
                 new TestDisplayHelper());
         flow.run();

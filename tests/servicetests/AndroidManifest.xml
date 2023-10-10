@@ -25,11 +25,15 @@
     <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
     <uses-permission android:name="android.permission.INTERNAL_SYSTEM_WINDOW"/>
+    <uses-permission android:name="android.permission.MODIFY_ONDEVICEPERSONALIZATION_STATE"/>
 
     <!-- Required for reading and writing device configs -->
 
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!--  Permission to call OdpExampleStore  -->
+    <uses-permission android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
 
     <application android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication"
             android:label="OnDevicePersonalizationManagingServicesTests"
@@ -42,9 +46,9 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationPrivacyStatusServiceImpl" android:exported="true" >
+        <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationConfigServiceImpl" android:exported="true" >
             <intent-filter>
-                <action android:name="android.OnDevicePersonalizationPrivacyStatusService" />
+                <action android:name="android.OnDevicePersonalizationConfigService" />
             </intent-filter>
         </service>
         <!-- TODO(b/258808270): Set isolated process to true -->
@@ -67,18 +71,19 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
-                 android:enabled="true" android:exported="true" >
+        <service
+            android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
+            android:enabled="true"
+            android:exported="true"
+            android:permission="android.permission.BIND_EXAMPLE_STORE_SERVICE">
             <intent-filter>
                 <action android:name="android.federatedcompute.EXAMPLE_STORE" />
-                <data android:scheme="app" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpResultHandlingService"
                  android:enabled="true" android:exported="true" >
             <intent-filter>
                 <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
-                <data android:scheme="app" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"

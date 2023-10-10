@@ -20,6 +20,8 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
+import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
+
 import java.util.Objects;
 
 /** Implementation of FederatedCompute Service */
@@ -30,7 +32,9 @@ public class FederatedComputeManagingServiceImpl extends Service {
     public void onCreate() {
         super.onCreate();
         if (mFcpServiceDelegate == null) {
-            mFcpServiceDelegate = new FederatedComputeManagingServiceDelegate();
+            mFcpServiceDelegate =
+                    new FederatedComputeManagingServiceDelegate(
+                            this, FederatedComputeStatsdLogger.getInstance());
         }
     }
 

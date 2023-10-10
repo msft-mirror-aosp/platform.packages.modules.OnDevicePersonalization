@@ -19,17 +19,22 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
 import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
+import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
@@ -38,6 +43,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
@@ -57,7 +63,18 @@ public class AppRequestFlowTest {
     @Before
     public void setup() {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
-        EventsDao.getInstanceForTest(mContext);
+        ArrayList<ContentValues> rows = new ArrayList<>();
+        ContentValues row1 = new ContentValues();
+        row1.put("a", 1);
+        rows.add(row1);
+        ContentValues row2 = new ContentValues();
+        row2.put("b", 2);
+        rows.add(row2);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                "com.example.test", "AABBCCDD", rows);
+        EventsDao.getInstanceForTest(mContext).insertQuery(
+                new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
+                        queryDataBytes).build());
     }
 
     @After
@@ -73,23 +90,35 @@ public class AppRequestFlowTest {
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 PersistableBundle.EMPTY,
-                new TestCallback(), mContext, MoreExecutors.newDirectExecutorService());
+                new TestCallback(), mContext, 100L, new TestInjector());
         appRequestFlow.run();
         mLatch.await();
         assertTrue(mCallbackSuccess);
-        assertEquals(1,
+        assertEquals(2,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
+                        null, null, null, null, null).getCount());
+        assertEquals(1,
+                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
     }
 
     class TestCallback extends IExecuteCallback.Stub {
-        @Override public void onSuccess(List<String> tokens) {
+        @Override
+        public void onSuccess(List<String> tokens) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
-        @Override public void onError(int errorCode) {
+
+        @Override
+        public void onError(int errorCode) {
             mCallbackError = true;
             mLatch.countDown();
+        }
+    }
+
+    class TestInjector extends AppRequestFlow.Injector {
+        ListeningExecutorService getExecutor() {
+            return MoreExecutors.newDirectExecutorService();
         }
     }
 }

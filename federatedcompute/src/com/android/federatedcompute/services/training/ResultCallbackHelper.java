@@ -18,34 +18,34 @@ package com.android.federatedcompute.services.training;
 
 import static android.federatedcompute.common.ClientConstants.RESULT_HANDLING_SERVICE_ACTION;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
+import static android.federatedcompute.common.ClientConstants.STATUS_TRAINING_FAILED;
 
+import android.content.Context;
 import android.content.Intent;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
-import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingInterval;
-import android.federatedcompute.common.TrainingOptions;
-import android.net.Uri;
-import android.os.RemoteException;
-import android.util.Log;
+import android.federatedcompute.common.ClientConstants;
+import android.os.Bundle;
 
-import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.TrainingResult;
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
-import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.federatedcompute.services.training.util.ComputationResult;
 
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * A helper class for binding to client implemented ResultHandlingService and trigger handleResult.
  */
 public class ResultCallbackHelper {
-    private static final String TAG = "ResultCallbackHelper";
+    private static final String TAG = ResultCallbackHelper.class.getSimpleName();
+    private static final long RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS = 10;
 
     /** The outcome of the result handling. */
     public enum CallbackResult {
@@ -53,112 +53,89 @@ public class ResultCallbackHelper {
         SUCCESS,
         // Result handling failed.
         FAIL,
+        // Result handling succeeded, but the task needs to resume.
+        NEEDS_RESUME,
     }
 
-    private final List<ExampleConsumption> mExampleConsumptions;
-    private final ResultHandlingServiceProvider mResultHandlingServiceProvider;
-    private final Flags mFlags;
+    private final Context mContext;
+    private AbstractServiceBinder<IResultHandlingService> mResultHandlingServiceBinder;
 
-    public ResultCallbackHelper(
-            List<ExampleConsumption> exampleConsumptions,
-            ResultHandlingServiceProvider resultHandlingServiceProvider,
-            Flags flags) {
-        this.mExampleConsumptions = exampleConsumptions;
-        this.mResultHandlingServiceProvider = resultHandlingServiceProvider;
-        this.mFlags = flags;
+    public ResultCallbackHelper(Context context) {
+        this.mContext = context.getApplicationContext();
     }
 
-    /** Binds to ResultHandlingService and trigger #handleResult. */
-    public CallbackResult callHandleResult(
-            FederatedTrainingTask task, @TrainingResult int trainingResult) {
-        Intent resultHandlingServiceIntent = new Intent();
-        resultHandlingServiceIntent
-                .setPackage(task.appPackageName())
-                .setAction(RESULT_HANDLING_SERVICE_ACTION)
-                .setData(new Uri.Builder().scheme("app").build());
-        if (!mResultHandlingServiceProvider.bindService(resultHandlingServiceIntent)) {
-            Log.w(
-                    TAG,
-                    "bindService failed for example store service: " + resultHandlingServiceIntent);
-            mResultHandlingServiceProvider.unbindService();
-            return CallbackResult.FAIL;
-        }
-        IResultHandlingService resultHandlingService =
-                mResultHandlingServiceProvider.getResultHandlingService();
-        SettableFuture<Integer> errorCodeFuture = SettableFuture.create();
-        IFederatedComputeCallback callback =
-                new IFederatedComputeCallback.Stub() {
-                    @Override
-                    public void onSuccess() {
-                        errorCodeFuture.set(STATUS_SUCCESS);
-                    }
+    /**
+     * Publishes the training result and example list to client implemented ResultHandlingService.
+     */
+    public ListenableFuture<CallbackResult> callHandleResult(
+            String taskName, FederatedTrainingTask task, ComputationResult result) {
+        Bundle input = new Bundle();
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
+        input.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
+        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
+        input.putInt(
+                ClientConstants.EXTRA_COMPUTATION_RESULT,
+                result.isResultSuccess() ? STATUS_SUCCESS : STATUS_TRAINING_FAILED);
+        input.putParcelableArrayList(
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, result.getExampleConsumptionList());
 
-                    @Override
-                    public void onFailure(int errorCode) {
-                        errorCodeFuture.set(errorCode);
-                    }
-                };
         try {
+            IResultHandlingService resultHandlingService =
+                    getResultHandlingService(task.appPackageName());
+            if (resultHandlingService == null) {
+                LogUtil.e(
+                        TAG,
+                        "ResultHandlingService binding died. population name: "
+                                + task.populationName());
+                return Futures.immediateFuture(CallbackResult.FAIL);
+            }
+
+            BlockingQueue<Integer> asyncResult = new ArrayBlockingQueue<>(1);
             resultHandlingService.handleResult(
-                    buildTrainingOptions(task),
-                    trainingResult == TrainingResult.SUCCESS,
-                    mExampleConsumptions,
-                    callback);
+                    input,
+                    new IFederatedComputeCallback.Stub() {
+                        @Override
+                        public void onSuccess() {
+                            asyncResult.add(STATUS_SUCCESS);
+                        }
+
+                        @Override
+                        public void onFailure(int errorCode) {
+                            asyncResult.add(errorCode);
+                        }
+                    });
             int statusCode =
-                    errorCodeFuture.get(
-                            mFlags.getResultHandlingServiceCallbackTimeoutSecs(), TimeUnit.SECONDS);
-            return statusCode == STATUS_SUCCESS ? CallbackResult.SUCCESS : CallbackResult.FAIL;
-        } catch (RemoteException e) {
-            Log.e(
+                    asyncResult.poll(
+                            RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS, TimeUnit.SECONDS);
+            CallbackResult callbackResult =
+                    statusCode == STATUS_SUCCESS ? CallbackResult.SUCCESS : CallbackResult.FAIL;
+            return Futures.immediateFuture(callbackResult);
+        } catch (Exception e) {
+            LogUtil.e(
                     TAG,
-                    String.format(
-                            "ResultHandlingService binding died %s", resultHandlingServiceIntent),
-                    e);
-            return CallbackResult.FAIL;
-        } catch (InterruptedException interruptedException) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService callback interrupted %s",
-                            resultHandlingServiceIntent),
-                    interruptedException);
-            return CallbackResult.FAIL;
-        } catch (ExecutionException e) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService callback failed %s",
-                            resultHandlingServiceIntent),
-                    e);
-            return CallbackResult.FAIL;
-        } catch (TimeoutException e) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService callback timed out %d Intent: %s",
-                            mFlags.getResultHandlingBindServiceTimeoutSecs(),
-                            resultHandlingServiceIntent),
-                    e);
+                    e,
+                    "ResultHandlingService binding died. population name: %s",
+                    task.populationName());
+            // We publish result to client app with best effort and should not crash flow.
+            return Futures.immediateFuture(CallbackResult.FAIL);
         } finally {
-            mResultHandlingServiceProvider.unbindService();
+            unbindFromResultHandlingService();
         }
-        return CallbackResult.FAIL;
     }
 
-    private TrainingOptions buildTrainingOptions(FederatedTrainingTask task) {
-        TrainingOptions.Builder trainingOptionsBuilder = new TrainingOptions.Builder();
-        trainingOptionsBuilder
-                .setJobSchedulerJobId(task.jobId())
-                .setPopulationName(task.populationName());
-        TrainingIntervalOptions intervalOptions = task.getTrainingIntervalOptions();
-        if (intervalOptions != null) {
-            TrainingInterval interval =
-                    new TrainingInterval.Builder()
-                            .setSchedulingMode(intervalOptions.schedulingMode())
-                            .setMinimumIntervalMillis(intervalOptions.minIntervalMillis())
-                            .build();
-            trainingOptionsBuilder.setTrainingInterval(interval);
-        }
-        return trainingOptionsBuilder.build();
+    @VisibleForTesting
+    IResultHandlingService getResultHandlingService(String appPackageName) {
+        mResultHandlingServiceBinder =
+                AbstractServiceBinder.getServiceBinder(
+                        this.mContext,
+                        RESULT_HANDLING_SERVICE_ACTION,
+                        IResultHandlingService.Stub::asInterface);
+        Intent intent = new Intent(RESULT_HANDLING_SERVICE_ACTION).setPackage(appPackageName);
+        return mResultHandlingServiceBinder.getService(Runnable::run, intent);
+    }
+
+    @VisibleForTesting
+    void unbindFromResultHandlingService() {
+        mResultHandlingServiceBinder.unbindFromService();
     }
 }

@@ -16,10 +16,9 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.app.ondevicepersonalization.Constants;
-import android.app.ondevicepersonalization.OnDevicePersonalizationException;
 import android.content.Context;
 import android.os.Bundle;
 
@@ -33,6 +32,7 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 import com.android.ondevicepersonalization.libraries.plugin.PluginInfo;
 import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
@@ -51,7 +51,7 @@ public class ProcessUtils {
     public static final String PARAM_OPERATION_KEY = "param.operation";
     public static final String PARAM_SERVICE_INPUT = "param.service_input";
 
-    private static PluginManager sPluginManager;
+    private static volatile PluginManager sPluginManager;
 
     /** Loads a service in an isolated process */
     @NonNull public static ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
@@ -81,13 +81,16 @@ public class ProcessUtils {
         return executePlugin(isolatedProcessInfo.getPluginController(), pluginParams);
     }
 
-    @NonNull static PluginManager getPluginManager(@NonNull Context context) {
-        synchronized (ProcessUtils.class) {
-            if (sPluginManager == null) {
-                sPluginManager = new PluginManagerImpl(context);
+    @NonNull
+    static PluginManager getPluginManager(@NonNull Context context) {
+        if (sPluginManager == null) {
+            synchronized (ProcessUtils.class) {
+                if (sPluginManager == null) {
+                    sPluginManager = new PluginManagerImpl(context.getApplicationContext());
+                }
             }
-            return sPluginManager;
         }
+        return sPluginManager;
     }
 
     @NonNull static PluginController createPluginController(
@@ -109,7 +112,7 @@ public class ProcessUtils {
                             completer.set(new IsolatedServiceInfo(pluginController));
                         }
                         @Override public void onFailure(FailureType failure) {
-                            completer.setException(new OnDevicePersonalizationException(
+                            completer.setException(new OdpServiceException(
                                     Constants.STATUS_INTERNAL_ERROR,
                                     String.format("loadPlugin failed. %s", failure.toString())));
                         }
@@ -133,7 +136,7 @@ public class ProcessUtils {
                             completer.set(bundle);
                         }
                         @Override public void onFailure(FailureType failure) {
-                            completer.setException(new OnDevicePersonalizationException(
+                            completer.setException(new OdpServiceException(
                                     Constants.STATUS_INTERNAL_ERROR,
                                     String.format("executePlugin failed: %s", failure.toString())));
                         }
