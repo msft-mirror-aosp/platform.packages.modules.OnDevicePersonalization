@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.WorkerThread;
@@ -26,6 +29,7 @@ import android.annotation.WorkerThread;
  * Used as a Data Access Object for the LOCAL_DATA table {@link IsolatedService#getLocalData}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface MutableKeyValueStore extends KeyValueStore {
     /**
      * Associates the specified value with the specified key.

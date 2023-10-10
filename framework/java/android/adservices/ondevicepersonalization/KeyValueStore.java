@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.WorkerThread;
@@ -28,6 +31,7 @@ import java.util.Set;
  * Used as a Data Access Object for the REMOTE_DATA table {@link IsolatedService#getRemoteData}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface KeyValueStore {
     /**
      * Looks up a key in a read-only store. @see IsolatedService#getRemoteData

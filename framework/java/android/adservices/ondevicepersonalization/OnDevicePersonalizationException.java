@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 
 import java.lang.annotation.Retention;
@@ -25,6 +28,7 @@ import java.lang.annotation.RetentionPolicy;
  * Exception thrown by OnDevicePersonalization APIs.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationException extends Exception {
     /**
      * The {@link IsolatedService} that was invoked failed to run.

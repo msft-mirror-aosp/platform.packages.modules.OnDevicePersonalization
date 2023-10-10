@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.os.Parcelable;
 
@@ -29,6 +32,7 @@ import java.util.List;
  * The result returned by {@link IsolatedWorker#onDownloadCompleted()}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class DownloadCompletedOutput implements Parcelable {
     /**
@@ -146,6 +150,7 @@ public final class DownloadCompletedOutput implements Parcelable {
     /**
      * A builder for {@link DownloadCompletedOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -199,7 +204,7 @@ public final class DownloadCompletedOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1694646057660L,
+            time = 1696972554365L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedOutput.java",
             inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.NonNull java.util.List<java.lang.String> mRetainedKeys\nclass DownloadCompletedOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
