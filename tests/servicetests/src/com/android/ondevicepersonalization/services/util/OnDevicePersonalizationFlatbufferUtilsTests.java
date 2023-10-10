@@ -161,6 +161,22 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
     }
 
     @Test
+    public void testGetContentValuesLengthFromQueryData() {
+        ArrayList<ContentValues> rows = new ArrayList<>();
+        ContentValues row1 = new ContentValues();
+        row1.put("a", 1);
+        rows.add(row1);
+        ContentValues row2 = new ContentValues();
+        row2.put("b", 2);
+        rows.add(row2);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                "com.example.test", "AABBCCDD", rows);
+
+        assertEquals(2, OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
+                queryDataBytes));
+    }
+
+    @Test
     public void testGetContentValuesFromEventData() {
         ContentValues data = new ContentValues();
         data.put("a", 1);

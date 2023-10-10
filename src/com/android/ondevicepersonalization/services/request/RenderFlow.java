@@ -37,7 +37,12 @@ import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
+import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -64,6 +69,10 @@ public class RenderFlow {
         SlotWrapper decryptToken(String slotResultToken) throws Exception {
             return (SlotWrapper) CryptUtils.decrypt(slotResultToken);
         }
+
+        Clock getClock() {
+            return MonotonicClock.getInstance();
+        }
     }
 
     @NonNull
@@ -77,6 +86,7 @@ public class RenderFlow {
     private final IRequestSurfacePackageCallback mCallback;
     @NonNull
     private final Context mContext;
+    private final long mStartTimeMillis;
     @NonNull
     private final Injector mInjector;
     @NonNull
@@ -93,9 +103,10 @@ public class RenderFlow {
             int width,
             int height,
             @NonNull IRequestSurfacePackageCallback callback,
-            @NonNull Context context) {
+            @NonNull Context context,
+            long startTimeMillis) {
         this(slotResultToken, hostToken, displayId, width, height,
-                callback, context,
+                callback, context, startTimeMillis,
                 new Injector(),
                 new DisplayHelper(context));
     }
@@ -109,6 +120,7 @@ public class RenderFlow {
             int height,
             @NonNull IRequestSurfacePackageCallback callback,
             @NonNull Context context,
+            long startTimeMillis,
             @NonNull Injector injector,
             @NonNull DisplayHelper displayHelper) {
         sLogger.d(TAG + ": RenderFlow created.");
@@ -118,6 +130,7 @@ public class RenderFlow {
         mWidth = width;
         mHeight = height;
         mCallback = Objects.requireNonNull(callback);
+        mStartTimeMillis = startTimeMillis;
         mInjector = Objects.requireNonNull(injector);
         mContext = Objects.requireNonNull(context);
         mDisplayHelper = Objects.requireNonNull(displayHelper);
@@ -173,10 +186,12 @@ public class RenderFlow {
                     Objects.requireNonNull(slotWrapper.getRenderingConfig());
             long queryId = slotWrapper.getQueryId();
 
+            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
+                                    serviceStartTimeMillis,
                                     loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
@@ -203,6 +218,7 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
+            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
@@ -216,23 +232,50 @@ public class RenderFlow {
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mServicePackageName, mContext, false);
+                mServicePackageName, mContext, /* includeLocalData */ false,
+                /* includeEventData */ false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        return ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,
                 serviceParams);
+        return FluentFuture.from(result)
+                .transform(
+                    val -> {
+                        writeServiceRequestMetrics(
+                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
+                        return val;
+                    },
+                    mInjector.getExecutor()
+                )
+                .catchingAsync(
+                    Exception.class,
+                    e -> {
+                        writeServiceRequestMetrics(
+                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                        return Futures.immediateFailedFuture(e);
+                    },
+                    mInjector.getExecutor()
+                );
     }
 
     private void sendDisplayResult(SurfacePackage surfacePackage) {
+        if (surfacePackage != null) {
+            sendSuccessResult(surfacePackage);
+        } else {
+            sLogger.w(TAG + ": surfacePackages is null or empty");
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+        }
+    }
+
+    private void sendSuccessResult(SurfacePackage surfacePackage) {
+        int responseCode = Constants.STATUS_SUCCESS;
         try {
-            if (surfacePackage != null) {
-                mCallback.onSuccess(surfacePackage);
-            } else {
-                sLogger.w(TAG + ": surfacePackages is null or empty");
-                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-            }
+            mCallback.onSuccess(surfacePackage);
         } catch (RemoteException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            writeAppRequestMetrics(responseCode);
         }
     }
 
@@ -241,6 +284,29 @@ public class RenderFlow {
             mCallback.onError(errorCode);
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            writeAppRequestMetrics(errorCode);
         }
+    }
+
+    private void writeAppRequestMetrics(int responseCode) {
+        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_REQUEST_SURFACE_PACKAGE)
+                .setLatencyMillis(latencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
+
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
+        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }

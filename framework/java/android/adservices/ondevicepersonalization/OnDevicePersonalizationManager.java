@@ -32,6 +32,7 @@ import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -39,6 +40,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
@@ -54,7 +56,6 @@ import java.util.concurrent.TimeUnit;
  * analysis or by Federated Learning for model training. The displayed content and the persistent
  * output are both not directly accessible by the calling app.
  *
- * @hide
  */
 public class OnDevicePersonalizationManager {
     /** @hide */
@@ -111,7 +112,7 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Executes a {@link IsolatedService} in the OnDevicePersonalization sandbox. The
+     * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
      * and calls {@link IsolatedService#onExecute()} with the caller-provided
      * parameters. When the {@link IsolatedService} finishes execution, the platform
@@ -131,6 +132,13 @@ public class OnDevicePersonalizationManager {
      *     the {@link IsolatedService} must agree on the expected size of this list.
      *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
      *     indicate that the service has no output for that specific surface.
+     *
+     *     In case of an error, the receiver returns one of the following exceptions:
+     *     Returns a {@link android.content.pm.PackageManager.NameNotFoundException} if the handler
+     *     package is not installed or does not have a valid ODP manifest.
+     *     Returns {@link ClassNotFoundException} if the handler class is not found.
+     *     Returns an {@link OnDevicePersonalizationException} if execution of the handler fails.
+     * @hide
      */
     public void execute(
             @NonNull ComponentName handler,
@@ -138,6 +146,12 @@ public class OnDevicePersonalizationManager {
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<List<SurfacePackageToken>, Exception> receiver
     ) {
+        Objects.requireNonNull(handler);
+        Objects.requireNonNull(params);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
         try {
             bindService(executor);
 
@@ -165,16 +179,18 @@ public class OnDevicePersonalizationManager {
 
                 @Override
                 public void onError(int errorCode) {
-                    executor.execute(() -> receiver.onError(
-                            new OnDevicePersonalizationException(errorCode)));
+                    executor.execute(() -> receiver.onError(createException(errorCode)));
                 }
             };
 
             mService.execute(
-                    mContext.getPackageName(), handler, params, callbackWrapper);
+                    mContext.getPackageName(), handler, params,
+                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                    callbackWrapper);
 
-        } catch (Exception e) {
-            receiver.onError(e);
+        } catch (InterruptedException
+                | RemoteException e) {
+            receiver.onError(new IllegalStateException(e));
         }
     }
 
@@ -185,7 +201,7 @@ public class OnDevicePersonalizationManager {
      *
      * @param surfacePackageToken a reference to a {@link SurfacePackageToken} returned by a prior
      *     call to {@link execute}.
-     * @param hostToken the hostToken of the {@link SurfaceView}, which is returned by
+     * @param surfaceViewHostToken the hostToken of the {@link SurfaceView}, which is returned by
      *     {@link SurfaceView#getHostToken()} after the {@link SurfaceView} has been added to the
      *     view hierarchy.
      * @param displayId the integer ID of the logical display on which to display the
@@ -194,18 +210,24 @@ public class OnDevicePersonalizationManager {
      * @param height the height of the {@link SurfacePackage} in pixels.
      * @param executor the {@link Executor} on which to invoke the callback
      * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
-     *     Exception} on failure.
-     *
+     *     Exception} on failure. The exception type is {@link OnDevicePersonalizationException}
+     *     if execution of the handler fails.
      */
     public void requestSurfacePackage(
             @NonNull SurfacePackageToken surfacePackageToken,
-            @NonNull IBinder hostToken,
+            @NonNull IBinder surfaceViewHostToken,
             int displayId,
             int width,
             int height,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<SurfaceControlViewHost.SurfacePackage, Exception> receiver
     ) {
+        Objects.requireNonNull(surfacePackageToken);
+        Objects.requireNonNull(surfaceViewHostToken);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
         try {
             bindService(executor);
 
@@ -221,19 +243,19 @@ public class OnDevicePersonalizationManager {
 
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(
-                                    new OnDevicePersonalizationException(errorCode)));
+                            executor.execute(() -> receiver.onError(createException(errorCode)));
                         }
                     };
 
             mService.requestSurfacePackage(
-                    surfacePackageToken.getTokenString(), hostToken, displayId,
-                    width, height, callbackWrapper);
+                    surfacePackageToken.getTokenString(), surfaceViewHostToken, displayId,
+                    width, height,
+                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                    callbackWrapper);
 
         } catch (InterruptedException
-                | NullPointerException
                 | RemoteException e) {
-            receiver.onError(e);
+            receiver.onError(new IllegalStateException(e));
         }
     }
 
@@ -286,5 +308,18 @@ public class OnDevicePersonalizationManager {
         }
         sLogger.e(TAG + ": Didn't find any matching ondevicepersonalization service.");
         return null;
+    }
+
+    private Exception createException(int errorCode) {
+        if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
+            return new PackageManager.NameNotFoundException();
+        } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
+            return new ClassNotFoundException();
+        } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
+            return new OnDevicePersonalizationException(
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        } else {
+            return new IllegalStateException("Error: " + errorCode);
+        }
     }
 }

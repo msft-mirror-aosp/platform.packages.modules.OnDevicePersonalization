@@ -25,8 +25,20 @@ public final class ClientConstants {
     // Status code constants.
     public static final int STATUS_SUCCESS = 0;
     public static final int STATUS_INTERNAL_ERROR = 1;
+    public static final int STATUS_TRAINING_FAILED = 2;
+    public static final String EXTRA_POPULATION_NAME = "android.federatedcompute.population_name";
 
     public static final String EXTRA_COLLECTION_NAME = "android.federatedcompute.collection_name";
+
+    public static final String EXTRA_TASK_NAME = "android.federatedcompute.task_name";
+
+    public static final String EXTRA_CONTEXT_DATA = "android.federatedcompute.context_data";
+
+    public static final String EXTRA_COMPUTATION_RESULT =
+            "android.federatedcompute.computation_result";
+
+    public static final String EXTRA_EXAMPLE_CONSUMPTION_LIST =
+            "android.federatedcompute.example_consumption_list";
 
     // ExampleStoreService related constants.
     public static final String EXAMPLE_STORE_ACTION = "android.federatedcompute.EXAMPLE_STORE";

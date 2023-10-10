@@ -21,9 +21,12 @@ genrule {
     name: "statslog-federatedcompute-java-gen",
     tools: ["stats-log-api-gen"],
     cmd: "$(location stats-log-api-gen) --java $(out) --module ondevicepersonalization" +
-         " --javaPackage com.android.ondevicepersonalization" +
+         " --javaPackage com.android.federatedcompute.services.stats" +
          " --javaClass FederatedComputeStatsLog",
-    out: ["com/android/federatedcompute/services/FederatedComputeStatsLog.java"],
+    out: ["com/android/federatedcompute/services/stats/FederatedComputeStatsLog.java"],
+    visibility: [
+      "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
 }
 
 android_app_certificate {
@@ -37,10 +40,10 @@ android_app {
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
         ":statslog-federatedcompute-java-gen",
+        ":fcp_native_wrapper",
     ],
     libs: [
         "auto_value_annotations",
-        "flatbuffers-java",
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
         "framework-configinfrastructure", // For PH flags
@@ -48,6 +51,8 @@ android_app {
     ],
     plugins: ["auto_value_plugin"],
     static_libs: [
+        "flatbuffers-java",
+        "androidx.concurrent_concurrent-futures",
         "federated-compute-java-proto-lite",
         "guava",
         "modules-utils-preconditions",
@@ -61,4 +66,7 @@ android_app {
     defaults: [
         "federatedcompute-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
 }

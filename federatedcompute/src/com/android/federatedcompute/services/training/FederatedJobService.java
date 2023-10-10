@@ -16,66 +16,64 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
-import android.util.Log;
 
-import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FlagsFactory;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.intelligence.fcp.client.FLRunnerResult;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 
 /** Main service for the scheduled federated computation jobs. */
 public class FederatedJobService extends JobService {
-    private static final String TAG = "FederatedJobService";
-    private ListenableFuture<Boolean> mRunCompleteFuture;
+    private static final String TAG = FederatedJobService.class.getSimpleName();
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        Log.d(TAG, "FederatedJobService.onStartJob");
+        LogUtil.d(TAG, "FederatedJobService.onStartJob");
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-            Log.d(TAG, "GlobalKillSwitch enabled, finishing job.");
+            LogUtil.d(TAG, "GlobalKillSwitch enabled, finishing job.");
             jobFinished(params, /* wantsReschedule= */ false);
             return true;
         }
-        mRunCompleteFuture =
-                Futures.submit(
-                        () ->
-                                FederatedComputeWorker.getInstance(this)
-                                        .startTrainingRun(params.getJobId()),
-                        FederatedComputeExecutors.getBackgroundExecutor());
+        FederatedComputeWorker worker = FederatedComputeWorker.getInstance(this);
+        ListenableFuture<FLRunnerResult> runCompleteFuture =
+                worker.startTrainingRun(params.getJobId());
 
         Futures.addCallback(
-                mRunCompleteFuture,
-                new FutureCallback<Boolean>() {
+                runCompleteFuture,
+                new FutureCallback<FLRunnerResult>() {
                     @Override
-                    public void onSuccess(Boolean result) {
-                        Log.d(TAG, "federated computation job is done!");
+                    public void onSuccess(FLRunnerResult flRunnerResult) {
+                        LogUtil.d(TAG, "Federated computation job %d is done!", params.getJobId());
+                        if (flRunnerResult != null) {
+                            worker.finish(flRunnerResult);
+                        }
                         jobFinished(params, /* wantsReschedule= */ false);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to handle computation job: " + params.getJobId());
+                        LogUtil.e(
+                                TAG, t, "Failed to handle computation job: %d", params.getJobId());
+                        worker.finish(null, ContributionResult.FAIL, false);
                         jobFinished(params, /* wantsReschedule= */ false);
                     }
                 },
-                directExecutor());
+                getBackgroundExecutor());
         return true;
     }
 
     @Override
     public boolean onStopJob(JobParameters params) {
-        if (mRunCompleteFuture != null) {
-            mRunCompleteFuture.cancel(true);
-        }
-        FederatedComputeWorker.getInstance(this).cancelActiveRun();
-        // Reschedule the job since it's not done. TODO: we should implement specify reschedule
-        // logic instead.
-        return true;
+        LogUtil.d(TAG, "FederatedJobService.onStopJob %d", params.getJobId());
+        FederatedComputeWorker.getInstance(this).finish(null, ContributionResult.FAIL, true);
+        return false;
     }
 }

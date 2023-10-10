@@ -26,6 +26,8 @@ import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -40,6 +42,9 @@ public class OdpSystemServiceImplTest {
 
     @Test
     public void testSystemServerService() throws Exception {
+        if (!SdkLevel.isAtLeastU()) {
+            return;
+        }
         OnDevicePersonalizationSystemService serviceImpl =
                 new OnDevicePersonalizationSystemService(mContext);
         IOnDevicePersonalizationSystemService service =

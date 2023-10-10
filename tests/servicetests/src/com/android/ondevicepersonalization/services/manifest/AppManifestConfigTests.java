@@ -34,6 +34,9 @@ import org.junit.runners.JUnit4;
 public class AppManifestConfigTests {
     private static final String BASE_DOWNLOAD_URL =
             "android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1";
+
+    private static final String FC_SERVER_URL =
+            "https://google.com";
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Test
@@ -54,6 +57,7 @@ public class AppManifestConfigTests {
                 AppManifestConfigHelper.getAppManifestConfig(mContext, mContext.getPackageName());
         assertEquals(BASE_DOWNLOAD_URL, config.getDownloadUrl());
         assertEquals("com.test.TestPersonalizationService", config.getServiceName());
+        assertEquals(FC_SERVER_URL, config.getFcRemoteServerUrl());
     }
 
     @Test
