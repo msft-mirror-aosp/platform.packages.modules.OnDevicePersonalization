@@ -45,7 +45,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -95,6 +95,10 @@ class OdpWebViewClient extends WebViewClient {
 
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -197,7 +201,7 @@ class OdpWebViewClient extends WebViewClient {
             UserData userData = userDataAccessor.getUserData();
             serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
             return FluentFuture.from(
-                    ProcessUtils.runIsolatedService(
+                    mInjector.getProcessRunner().runIsolatedService(
                         isolatedServiceInfo,
                         AppManifestConfigHelper.getServiceNameFromOdpSettings(
                                 mContext, mServicePackageName),
@@ -286,8 +290,8 @@ class OdpWebViewClient extends WebViewClient {
             sLogger.d(TAG + ": handleEvent() called");
 
             ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    ProcessUtils.loadIsolatedService(
-                        TASK_NAME, mServicePackageName, mContext);
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, mServicePackageName);
 
             var doneFuture = FluentFuture.from(getEventOutput(loadFuture, eventUrlPayload))
                     .transformAsync(
@@ -300,7 +304,8 @@ class OdpWebViewClient extends WebViewClient {
                     );
 
             var unused = Futures.whenAllComplete(loadFuture, doneFuture)
-                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
                     mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Failed to handle Event", e);

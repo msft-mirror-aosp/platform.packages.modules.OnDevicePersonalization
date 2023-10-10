@@ -46,7 +46,7 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -105,6 +105,10 @@ public class AppRequestFlow {
 
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -165,8 +169,9 @@ public class AppRequestFlow {
                 return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
-            ListenableFuture<IsolatedServiceInfo> loadFuture = ProcessUtils.loadIsolatedService(
-                    TASK_NAME, mService.getPackageName(), mContext);
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, mService.getPackageName());
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeAppRequest(result),
@@ -215,7 +220,8 @@ public class AppRequestFlow {
                     mInjector.getExecutor());
 
             var unused = Futures.whenAllComplete(loadFuture, slotResultTokensFuture)
-                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
                     mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
@@ -243,7 +249,7 @@ public class AppRequestFlow {
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
         return FluentFuture.from(result)
                 .transform(

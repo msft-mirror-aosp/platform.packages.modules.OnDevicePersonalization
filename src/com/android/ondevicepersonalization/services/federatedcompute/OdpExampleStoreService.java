@@ -39,7 +39,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -74,6 +74,10 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -152,10 +156,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .build();
 
             ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    ProcessUtils.loadIsolatedService(
-                        TASK_NAME,
-                        packageName,
-                        getContext().getApplicationContext());
+                    mInjector.getProcessRunner().loadIsolatedService(TASK_NAME, packageName);
             ListenableFuture<TrainingExampleOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
@@ -208,7 +209,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             var unused = Futures.whenAllComplete(loadFuture, resultFuture)
-                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             sLogger.w(e, "%s : Start query failed.", TAG);
@@ -230,7 +232,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(getContext(), packageName),
                 Constants.OP_TRAINING_EXAMPLE,
