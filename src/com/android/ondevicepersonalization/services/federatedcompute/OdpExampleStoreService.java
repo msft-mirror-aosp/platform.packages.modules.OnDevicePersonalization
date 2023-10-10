@@ -139,6 +139,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setTaskName(taskName)
                             .build();
 
+            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             ListenableFuture<TrainingExampleOutputParcel> resultFuture =
                     FluentFuture.from(
                                     ProcessUtils.loadIsolatedService(
@@ -146,7 +147,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                             packageName,
                                             getContext().getApplicationContext()))
                             .transformAsync(
-                                    result -> executeOnTrainingExample(result, input, packageName),
+                                    result -> executeOnTrainingExample(
+                                            startTimeMillis, result, input, packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
@@ -196,11 +198,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     }
 
     private ListenableFuture<Bundle> executeOnTrainingExample(
+            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             TrainingExampleInput exampleInput,
             String packageName) {
         sLogger.d(TAG + ": executeOnTrainingExample() started.");
-        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(

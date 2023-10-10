@@ -186,10 +186,12 @@ public class RenderFlow {
                     Objects.requireNonNull(slotWrapper.getRenderingConfig());
             long queryId = slotWrapper.getQueryId();
 
+            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
+                                    serviceStartTimeMillis,
                                     loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
@@ -216,10 +218,10 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
+            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
-        long executeStartTimemillis = mInjector.getClock().elapsedRealtime();
         Bundle serviceParams = new Bundle();
         RenderInput input =
                 new RenderInput.Builder()
@@ -240,7 +242,7 @@ public class RenderFlow {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, executeStartTimemillis, Constants.STATUS_SUCCESS);
+                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -249,7 +251,7 @@ public class RenderFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, executeStartTimemillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()

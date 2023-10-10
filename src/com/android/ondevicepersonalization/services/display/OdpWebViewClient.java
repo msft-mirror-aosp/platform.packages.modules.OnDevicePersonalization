@@ -166,10 +166,11 @@ class OdpWebViewClient extends WebViewClient {
     }
 
     private ListenableFuture<EventOutput> executeEventHandler(
-            IsolatedServiceInfo isolatedServiceInfo, EventUrlPayload payload) {
+            long startTimeMillis,
+            IsolatedServiceInfo isolatedServiceInfo,
+            EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": executeEventHandler() called");
-            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
                     mServicePackageName, mContext, /* includeLocalData */ true,
@@ -218,10 +219,11 @@ class OdpWebViewClient extends WebViewClient {
     ListenableFuture<EventOutput> getEventOutput(EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": getEventOutput(): Starting isolated process.");
+            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                     TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
-                        result -> executeEventHandler(result, payload),
+                        result -> executeEventHandler(startTimeMillis, result, payload),
                         mInjector.getExecutor());
 
         } catch (Exception e) {

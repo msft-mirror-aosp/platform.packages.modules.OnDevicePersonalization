@@ -198,11 +198,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
         try {
+            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                     TASK_NAME, mPackageName, mContext))
                     .transformAsync(
                             result ->
                                     executeDownloadHandler(
+                                            startTimeMillis,
                                             result,
                                             finalVendorDataMap),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
@@ -244,9 +246,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     }
 
     private ListenableFuture<Bundle> executeDownloadHandler(
+            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             Map<String, VendorData> vendorDataMap) {
-        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
                 mPackageName, mContext, /* includeLocalData */ true,
