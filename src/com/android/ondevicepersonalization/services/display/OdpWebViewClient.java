@@ -34,6 +34,8 @@ import android.webkit.WebViewClient;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -54,12 +56,14 @@ import com.android.ondevicepersonalization.services.util.StatsUtils;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.Collections;
-import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 class OdpWebViewClient extends WebViewClient {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -68,7 +72,7 @@ class OdpWebViewClient extends WebViewClient {
 
     @VisibleForTesting
     static class Injector {
-        Executor getExecutor() {
+        ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
 
@@ -83,6 +87,14 @@ class OdpWebViewClient extends WebViewClient {
 
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
     }
 
@@ -275,7 +287,12 @@ class OdpWebViewClient extends WebViewClient {
             var unused = FluentFuture.from(getEventOutput(eventUrlPayload))
                     .transformAsync(
                         result -> writeEvent(result),
-                        mInjector.getExecutor());
+                        mInjector.getExecutor())
+                    .withTimeout(
+                        mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                        TimeUnit.SECONDS,
+                        mInjector.getScheduledExecutor()
+                    );
 
         } catch (Exception e) {
             sLogger.e(TAG + ": Failed to handle Event", e);

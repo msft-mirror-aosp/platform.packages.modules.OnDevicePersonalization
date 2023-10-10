@@ -29,13 +29,16 @@ public final class PhFlags implements Flags {
     static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
 
     static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
-                    "enable_ondevicepersonalization_apis";
+            "enable_ondevicepersonalization_apis";
 
     static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
-                    "enable_personalization_status_override";
+            "enable_personalization_status_override";
 
     static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
-                    "personalization_status_override_value";
+            "personalization_status_override_value";
+
+    static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
+            "isolated_service_deadline_seconds";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -91,5 +94,14 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
                 /* defaultValue= */ PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+    }
+
+    @Override
+    public int getIsolatedServiceDeadlineSeconds() {
+        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ISOLATED_SERVICE_DEADLINE_SECONDS,
+                /* defaultValue= */ ISOLATED_SERVICE_DEADLINE_SECONDS);
     }
 }

@@ -34,6 +34,8 @@ import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -59,10 +61,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles a surface package request from an app or SDK.
@@ -93,6 +97,14 @@ public class AppRequestFlow {
 
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
     }
 
@@ -173,13 +185,19 @@ public class AppRequestFlow {
                     .transformAsync(input -> logQuery(input), mInjector.getExecutor());
 
             ListenableFuture<List<String>> slotResultTokensFuture =
-                    Futures.whenAllSucceed(resultFuture, queryIdFuture)
-                            .callAsync(new AsyncCallable<List<String>>() {
-                                @Override
-                                public ListenableFuture<List<String>> call() {
-                                    return createTokens(resultFuture, queryIdFuture);
-                                }
-                            }, mInjector.getExecutor());
+                    FluentFuture.from(
+                            Futures.whenAllSucceed(resultFuture, queryIdFuture)
+                                .callAsync(new AsyncCallable<List<String>>() {
+                                    @Override
+                                    public ListenableFuture<List<String>> call() {
+                                        return createTokens(resultFuture, queryIdFuture);
+                                    }
+                                }, mInjector.getExecutor()))
+                            .withTimeout(
+                                mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                                TimeUnit.SECONDS,
+                                mInjector.getScheduledExecutor()
+                            );
 
             Futures.addCallback(
                     slotResultTokensFuture,

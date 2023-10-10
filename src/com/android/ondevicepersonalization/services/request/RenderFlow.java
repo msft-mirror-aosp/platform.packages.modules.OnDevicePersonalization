@@ -31,6 +31,8 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
@@ -49,8 +51,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles a surface package request from an app or SDK.
@@ -72,6 +76,14 @@ public class RenderFlow {
 
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
     }
 
@@ -152,7 +164,12 @@ public class RenderFlow {
                         mContext, mServicePackageName));
 
             ListenableFuture<SurfacePackage> surfacePackageFuture =
-                    renderContentForSlot(slotWrapper);
+                    FluentFuture.from(renderContentForSlot(slotWrapper))
+                    .withTimeout(
+                            mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                            TimeUnit.SECONDS,
+                            mInjector.getScheduledExecutor()
+                    );
 
             Futures.addCallback(
                     surfacePackageFuture,
