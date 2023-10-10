@@ -39,6 +39,7 @@ import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
@@ -50,6 +51,7 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -151,11 +153,12 @@ public class AppRequestFlow {
                 return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
+            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
                                     TASK_NAME, mService.getPackageName(), mContext))
                     .transformAsync(
-                            result -> executeAppRequest(result),
+                            result -> executeAppRequest(serviceStartTimeMillis, result),
                             mInjector.getExecutor()
                     )
                     .transform(
@@ -199,7 +202,9 @@ public class AppRequestFlow {
         }
     }
 
-    private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
+    private ListenableFuture<Bundle> executeAppRequest(
+            long serviceStartTimeMillis,
+            IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
         ExecuteInput input =
@@ -212,11 +217,32 @@ public class AppRequestFlow {
                 mService.getPackageName(), mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
+        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
+                mService.getPackageName(), mContext);
+        serviceParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        return ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
+        return FluentFuture.from(result)
+                .transform(
+                    val -> {
+                        writeServiceRequestMetrics(
+                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
+                        return val;
+                    },
+                    mInjector.getExecutor()
+                )
+                .catchingAsync(
+                    Exception.class,
+                    e -> {
+                        writeServiceRequestMetrics(
+                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                        return Futures.immediateFailedFuture(e);
+                    },
+                    mInjector.getExecutor()
+                );
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutput result) {
@@ -321,7 +347,7 @@ public class AppRequestFlow {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeMetrics(responseCode);
+            writeAppRequestMetrics(responseCode);
         }
     }
 
@@ -331,11 +357,11 @@ public class AppRequestFlow {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeMetrics(errorCode);
+            writeAppRequestMetrics(errorCode);
         }
     }
 
-    private void writeMetrics(int responseCode) {
+    private void writeAppRequestMetrics(int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
         ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
                 .setLatencyMillis(latencyMillis)
@@ -343,4 +369,18 @@ public class AppRequestFlow {
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
+
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
+        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EXECUTE)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
 }
+
+

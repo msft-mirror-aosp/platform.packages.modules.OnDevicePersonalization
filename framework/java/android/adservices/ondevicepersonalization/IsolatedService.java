@@ -28,6 +28,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.os.SystemClock;
 
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -212,10 +213,17 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
+                IFederatedComputeService fcBinder =
+                        IFederatedComputeService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(
+                                                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
+                Objects.requireNonNull(fcBinder);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, null, userData);
+                RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onExecute(input, new WrappedCallback<ExecuteOutput>(resultCallback));
+                implCallback.onExecute(input, new WrappedCallback<ExecuteOutput>(
+                        resultCallback, requestToken));
 
             } else if (operationCode == Constants.OP_DOWNLOAD) {
 
@@ -259,7 +267,8 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onDownloadCompleted(
-                        input, new WrappedCallback<DownloadCompletedOutput>(resultCallback));
+                        input, new WrappedCallback<DownloadCompletedOutput>(
+                                resultCallback, requestToken));
 
             } else if (operationCode == Constants.OP_RENDER) {
 
@@ -275,7 +284,8 @@ public abstract class IsolatedService extends Service {
                 Objects.requireNonNull(binder);
                 RequestToken requestToken = new RequestToken(binder, null, null);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onRender(input, new WrappedCallback<RenderOutput>(resultCallback));
+                implCallback.onRender(input, new WrappedCallback<RenderOutput>(
+                        resultCallback, requestToken));
 
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
@@ -292,7 +302,7 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onEvent(
-                        input, new WrappedCallback<EventOutput>(resultCallback));
+                        input, new WrappedCallback<EventOutput>(resultCallback, requestToken));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
                 TrainingExampleInput input =
@@ -312,6 +322,8 @@ public abstract class IsolatedService extends Service {
                         input, new Consumer<TrainingExampleOutput>() {
                             @Override
                             public void accept(TrainingExampleOutput result) {
+                                long elapsedTimeMillis = SystemClock.elapsedRealtime()
+                                        - requestToken.getStartTimeMillis();
                                 if (result == null) {
                                     try {
                                         resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -330,6 +342,10 @@ public abstract class IsolatedService extends Service {
                                                     .build();
                                     Bundle bundle = new Bundle();
                                     bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
+                                    bundle.putParcelable(Constants.EXTRA_CALLEE_METADATA,
+                                            new CalleeMetadata.Builder()
+                                                .setElapsedTimeMillis(elapsedTimeMillis)
+                                                .build());
                                     try {
                                         resultCallback.onSuccess(bundle);
                                     } catch (RemoteException e) {
@@ -346,13 +362,17 @@ public abstract class IsolatedService extends Service {
 
     private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
         @NonNull private final IIsolatedServiceCallback mCallback;
+        @NonNull private final RequestToken mRequestToken;
 
-        WrappedCallback(IIsolatedServiceCallback callback) {
+        WrappedCallback(IIsolatedServiceCallback callback, RequestToken requestToken) {
             mCallback = Objects.requireNonNull(callback);
+            mRequestToken = Objects.requireNonNull(requestToken);
         }
 
         @Override
         public void accept(T result) {
+            long elapsedTimeMillis =
+                    SystemClock.elapsedRealtime() - mRequestToken.getStartTimeMillis();
             if (result == null) {
                 try {
                     mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -362,6 +382,10 @@ public abstract class IsolatedService extends Service {
             } else {
                 Bundle bundle = new Bundle();
                 bundle.putParcelable(Constants.EXTRA_RESULT, result);
+                bundle.putParcelable(Constants.EXTRA_CALLEE_METADATA,
+                        new CalleeMetadata.Builder()
+                            .setElapsedTimeMillis(elapsedTimeMillis)
+                            .build());
                 try {
                     mCallback.onSuccess(bundle);
                 } catch (RemoteException e) {
