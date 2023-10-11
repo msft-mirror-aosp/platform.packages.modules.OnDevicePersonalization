@@ -345,6 +345,7 @@ public class SampleHandler implements IsolatedWorker {
     ) {
         try {
             if (input != null && input.getAppParams() != null
+                    && input.getAppParams().getString("schedule_training") != null
                     && !input.getAppParams().getString("schedule_training").isEmpty()) {
                 TrainingInterval interval = new TrainingInterval.Builder()
                         .setMinimumInterval(Duration.ofSeconds(10))
