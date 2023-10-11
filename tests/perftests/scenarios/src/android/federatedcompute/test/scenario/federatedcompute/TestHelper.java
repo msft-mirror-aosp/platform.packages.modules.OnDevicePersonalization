@@ -15,10 +15,15 @@
  */
 package android.federatedcompute.test.scenario.federatedcompute;
 
+import static org.junit.Assert.assertNotNull;
+
 import android.os.SystemClock;
 
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.UiObject2;
+import androidx.test.uiautomator.Until;
 
 import org.junit.Assert;
 
@@ -27,6 +32,13 @@ import java.io.IOException;
 /** Helper class for interacting with federatedcompute in perf tests. */
 public class TestHelper {
     private static UiDevice sUiDevice;
+    private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
+    private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
+    private static final String SCHEDULE_TRAINING_BUTTON_RESOURCE_ID = "schedule_training_button";
+    private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
+            "schedule_training_text_box";
+    private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
+    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
     private static final String FEDERATED_COMPUTE_TASK_JOB_ID = "1007";
 
     private static final String FEDERATED_TRAINING_JOB_ID = "109883";
@@ -35,9 +47,55 @@ public class TestHelper {
         getUiDevice().pressHome();
     }
 
-    public void initialize() {
+    /** Commands to prepare the device, odp module, fcp module before testing. */
+    public static void initialize() {
         disableGlobalKillSwitch();
         disableFederatedComputeKillSwitch();
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
+        executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
+        executeShellCommand("setprop log.tag.federatedcompute VERBOSE");
+        executeShellCommand(
+                "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
+                    + "com.google.android.ondevicepersonalization.services");
+        executeShellCommand(
+                "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
+                    + "com.google.android.federatedcompute");
+    }
+
+    /** Commands to return device to original state */
+    public static void wrapUp() {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests none");
+    }
+
+    /** Open ODP client test app. */
+    public void openTestApp() throws IOException {
+        sUiDevice.executeShellCommand(
+                "am start " + ODP_CLIENT_TEST_APP_PACKAGE_NAME + "/.MainActivity");
+    }
+
+    /** Put the default population name down for training */
+    public void inputPopulationForScheduleTraining() {
+        UiObject2 scheduleTrainingTextBox = getScheduleTrainingTextBox();
+        assertNotNull("Schedule Training text box not found", scheduleTrainingTextBox);
+        scheduleTrainingTextBox.setText(ODP_TEST_APP_POPULATION_NAME);
+    }
+
+    /** Click Schedule Training button. */
+    public void clickScheduleTraining() {
+        UiObject2 scheduleTrainingButton = getScheduleTrainingButton();
+        assertNotNull("Schedule Training button not found", scheduleTrainingButton);
+        scheduleTrainingButton.click();
+        SystemClock.sleep(10000);
+    }
+
+    /** Force the JobScheduler to execute the training task, bypassing all constraints */
+    public void forceExecuteTrainingTaskForTestApp() {
+        executeShellCommand(
+                "cmd jobscheduler run -f com.google.android.federatedcompute "
+                    + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
+        SystemClock.sleep(30000);
     }
 
     public void scheduleFederatedComputeTask() throws IOException {
@@ -54,17 +112,17 @@ public class TestHelper {
         SystemClock.sleep(8000);
     }
 
-    private void disableGlobalKillSwitch() {
+    private static void disableGlobalKillSwitch() {
         executeShellCommand(
                 "device_config put on_device_personalization global_kill_switch false");
     }
 
-    private void disableFederatedComputeKillSwitch() {
+    private static void disableFederatedComputeKillSwitch() {
         executeShellCommand(
                 "device_config put on_device_personalization federated_compute_kill_switch false");
     }
 
-    private void executeShellCommand(String cmd) {
+    private static void executeShellCommand(String cmd) {
         try {
             getUiDevice().executeShellCommand(cmd);
         } catch (IOException e) {
@@ -78,4 +136,19 @@ public class TestHelper {
         }
         return sUiDevice;
     }
+
+    private UiObject2 getScheduleTrainingTextBox() {
+        return sUiDevice.wait(
+            Until.findObject(
+                By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID)),
+            UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    private UiObject2 getScheduleTrainingButton() {
+        return sUiDevice.wait(
+            Until.findObject(
+                By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, SCHEDULE_TRAINING_BUTTON_RESOURCE_ID)),
+            UI_FIND_RESOURCE_TIMEOUT);
+    }
+
 }
