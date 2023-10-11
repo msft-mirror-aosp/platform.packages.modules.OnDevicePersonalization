@@ -129,7 +129,8 @@ public class OnDevicePersonalizationConfigManager {
                         @Override
                         public void onFailure(int errorCode) {
                             executor.execute(() -> {
-                                sLogger.w(TAG + ": Unexpected failure from ODP config service");
+                                sLogger.w(TAG + ": Unexpected failure from ODP"
+                                        + "config service with error code: " + errorCode);
                                 Binder.clearCallingIdentity();
                                 receiver.onError(new IllegalStateException("Unexpected failure."));
                             });

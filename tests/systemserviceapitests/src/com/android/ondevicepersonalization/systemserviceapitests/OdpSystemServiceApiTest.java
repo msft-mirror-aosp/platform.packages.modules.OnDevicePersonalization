@@ -63,17 +63,33 @@ public class OdpSystemServiceApiTest {
                         mOnRequestCalled = true;
                         mLatch.countDown();
                     }
+                    @Override
+                    public void onError(int errorCode) {
+                        mOnRequestCalled = true;
+                        mLatch.countDown();
+                    }
                 });
-        service.setPersonalizationStatus(true,
+
+        //TODO(b/302991761): delete the file in system server.
+        service.setPersonalizationStatus(false,
                 new IOnDevicePersonalizationSystemServiceCallback.Stub() {
                     @Override public void onResult(Bundle result) {
                         mSetPersonalizationStatusCalled = true;
                         mLatch.countDown();
                     }
+                    @Override public void onError(int errorCode) {
+                        mSetPersonalizationStatusCalled = true;
+                        mLatch.countDown();
+                    }
                 });
+
         service.readPersonalizationStatus(
                 new IOnDevicePersonalizationSystemServiceCallback.Stub() {
                     @Override public void onResult(Bundle result) {
+                        mReadPersonalizationStatusCalled = true;
+                        mLatch.countDown();
+                    }
+                    @Override public void onError(int errorCode) {
                         mReadPersonalizationStatusCalled = true;
                         mLatch.countDown();
                     }
