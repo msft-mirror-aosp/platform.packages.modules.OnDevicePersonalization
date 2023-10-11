@@ -151,16 +151,16 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setTaskName(taskName)
                             .build();
 
-            long startTimeMillis = mInjector.getClock().elapsedRealtime();
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    ProcessUtils.loadIsolatedService(
+                        TASK_NAME,
+                        packageName,
+                        getContext().getApplicationContext());
             ListenableFuture<TrainingExampleOutputParcel> resultFuture =
-                    FluentFuture.from(
-                                    ProcessUtils.loadIsolatedService(
-                                            TASK_NAME,
-                                            packageName,
-                                            getContext().getApplicationContext()))
+                    FluentFuture.from(loadFuture)
                             .transformAsync(
                                     result -> executeOnTrainingExample(
-                                            startTimeMillis, result, input, packageName),
+                                            result, input, packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
@@ -207,6 +207,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
+            var unused = Futures.whenAllComplete(loadFuture, resultFuture)
+                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             sLogger.w(e, "%s : Start query failed.", TAG);
             callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
@@ -214,7 +217,6 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     }
 
     private ListenableFuture<Bundle> executeOnTrainingExample(
-            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             TrainingExampleInput exampleInput,
             String packageName) {
@@ -237,7 +239,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, startTimeMillis, Constants.STATUS_SUCCESS);
+                                val, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_SUCCESS);
                         return val;
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()
@@ -246,7 +249,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()

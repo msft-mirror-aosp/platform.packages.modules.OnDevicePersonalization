@@ -165,12 +165,11 @@ public class AppRequestFlow {
                 return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
-            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
-            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
-                            ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, mService.getPackageName(), mContext))
+            ListenableFuture<IsolatedServiceInfo> loadFuture = ProcessUtils.loadIsolatedService(
+                    TASK_NAME, mService.getPackageName(), mContext);
+            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
-                            result -> executeAppRequest(serviceStartTimeMillis, result),
+                            result -> executeAppRequest(result),
                             mInjector.getExecutor()
                     )
                     .transform(
@@ -214,6 +213,10 @@ public class AppRequestFlow {
                         }
                     },
                     mInjector.getExecutor());
+
+            var unused = Futures.whenAllComplete(loadFuture, slotResultTokensFuture)
+                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -221,7 +224,6 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<Bundle> executeAppRequest(
-            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
@@ -247,7 +249,8 @@ public class AppRequestFlow {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
+                                val, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -256,7 +259,8 @@ public class AppRequestFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()

@@ -33,6 +33,7 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginInfo;
 import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.OdpServiceException;
+import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.Futures;
@@ -81,6 +82,12 @@ public class ProcessUtils {
         return executePlugin(isolatedProcessInfo.getPluginController(), pluginParams);
     }
 
+    /** Unloads a service loaded in an isolated process */
+    @NonNull public static ListenableFuture<Void> unloadIsolatedService(
+            @NonNull IsolatedServiceInfo isolatedServiceInfo) {
+        return unloadPlugin(isolatedServiceInfo.getPluginController());
+    }
+
     @NonNull
     static PluginManager getPluginManager(@NonNull Context context) {
         if (sPluginManager == null) {
@@ -107,9 +114,12 @@ public class ProcessUtils {
             completer -> {
                 try {
                     sLogger.d(TAG + ": loadPlugin");
+                    // TODO(b/304801439): Inject a clock.
+                    long startTimeMillis = MonotonicClock.getInstance().elapsedRealtime();
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
-                            completer.set(new IsolatedServiceInfo(pluginController));
+                            completer.set(new IsolatedServiceInfo(
+                                    startTimeMillis, pluginController));
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OdpServiceException(
@@ -134,6 +144,30 @@ public class ProcessUtils {
                     pluginController.execute(pluginParams, new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
                             completer.set(bundle);
+                        }
+                        @Override public void onFailure(FailureType failure) {
+                            completer.setException(new OdpServiceException(
+                                    Constants.STATUS_INTERNAL_ERROR,
+                                    String.format("executePlugin failed: %s", failure.toString())));
+                        }
+                    });
+                } catch (Exception e) {
+                    completer.setException(e);
+                }
+                return "executePlugin";
+            }
+        );
+    }
+
+    @NonNull static ListenableFuture<Void> unloadPlugin(
+            @NonNull PluginController pluginController) {
+        return CallbackToFutureAdapter.getFuture(
+            completer -> {
+                try {
+                    sLogger.d(TAG + ": unloadPlugin");
+                    pluginController.unload(new PluginCallback() {
+                        @Override public void onSuccess(Bundle bundle) {
+                            completer.set(null);
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OdpServiceException(

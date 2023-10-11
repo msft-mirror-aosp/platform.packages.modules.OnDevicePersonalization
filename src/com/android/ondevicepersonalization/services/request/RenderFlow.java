@@ -163,8 +163,10 @@ public class RenderFlow {
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                         mContext, mServicePackageName));
 
+            ListenableFuture<IsolatedServiceInfo> loadFuture = ProcessUtils.loadIsolatedService(
+                            TASK_NAME, mServicePackageName, mContext);
             ListenableFuture<SurfacePackage> surfacePackageFuture =
-                    FluentFuture.from(renderContentForSlot(slotWrapper))
+                    FluentFuture.from(renderContentForSlot(loadFuture, slotWrapper))
                     .withTimeout(
                             mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
                             TimeUnit.SECONDS,
@@ -186,6 +188,10 @@ public class RenderFlow {
                         }
                     },
                     mInjector.getExecutor());
+
+            var unused = Futures.whenAllComplete(loadFuture, surfacePackageFuture)
+                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -193,6 +199,7 @@ public class RenderFlow {
     }
 
     private ListenableFuture<SurfacePackage> renderContentForSlot(
+            @NonNull ListenableFuture<IsolatedServiceInfo> loadFuture,
             @NonNull SlotWrapper slotWrapper
     ) {
         try {
@@ -203,12 +210,9 @@ public class RenderFlow {
                     Objects.requireNonNull(slotWrapper.getRenderingConfig());
             long queryId = slotWrapper.getQueryId();
 
-            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
-            return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                            TASK_NAME, mServicePackageName, mContext))
+            return FluentFuture.from(loadFuture)
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    serviceStartTimeMillis,
                                     loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
@@ -235,7 +239,6 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
-            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
@@ -259,7 +262,8 @@ public class RenderFlow {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
+                                val, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -268,7 +272,8 @@ public class RenderFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()

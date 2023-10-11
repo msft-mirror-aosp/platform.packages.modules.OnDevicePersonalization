@@ -198,15 +198,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
         try {
-            long startTimeMillis = mInjector.getClock().elapsedRealtime();
-            return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                    TASK_NAME, mPackageName, mContext))
+            ListenableFuture<IsolatedServiceInfo> loadFuture = ProcessUtils.loadIsolatedService(
+                    TASK_NAME, mPackageName, mContext);
+            var resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
-                            result ->
-                                    executeDownloadHandler(
-                                            startTimeMillis,
-                                            result,
-                                            finalVendorDataMap),
+                            result -> executeDownloadHandler(result, finalVendorDataMap),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor())
                     .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
                                     finalVendorDataMap),
@@ -218,6 +214,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                                 return null;
                             },
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
+
+            var unused = Futures.whenAllComplete(loadFuture, resultFuture)
+                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+
+            return resultFuture;
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not run isolated service.", e);
             return Futures.immediateFuture(null);
@@ -246,7 +248,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     }
 
     private ListenableFuture<Bundle> executeDownloadHandler(
-            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             Map<String, VendorData> vendorDataMap) {
         Bundle pluginParams = new Bundle();
@@ -289,7 +290,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, startTimeMillis, Constants.STATUS_SUCCESS);
+                                val, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_SUCCESS);
                         return val;
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()
@@ -298,7 +300,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()

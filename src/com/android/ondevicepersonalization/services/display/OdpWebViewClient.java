@@ -178,7 +178,6 @@ class OdpWebViewClient extends WebViewClient {
     }
 
     private ListenableFuture<EventOutput> executeEventHandler(
-            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             EventUrlPayload payload) {
         try {
@@ -207,7 +206,8 @@ class OdpWebViewClient extends WebViewClient {
                     .transform(
                             result -> {
                                 writeServiceRequestMetrics(
-                                        result, startTimeMillis, Constants.STATUS_SUCCESS);
+                                        result, isolatedServiceInfo.getStartTimeMillis(),
+                                        Constants.STATUS_SUCCESS);
                                 return result.getParcelable(
                                         Constants.EXTRA_RESULT, EventOutput.class);
                             },
@@ -216,7 +216,8 @@ class OdpWebViewClient extends WebViewClient {
                             Exception.class,
                             e -> {
                                 writeServiceRequestMetrics(
-                                        null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                        null, isolatedServiceInfo.getStartTimeMillis(),
+                                        Constants.STATUS_INTERNAL_ERROR);
                                 return Futures.immediateFailedFuture(e);
                             },
                             mInjector.getExecutor()
@@ -228,14 +229,14 @@ class OdpWebViewClient extends WebViewClient {
 
     }
 
-    ListenableFuture<EventOutput> getEventOutput(EventUrlPayload payload) {
+    ListenableFuture<EventOutput> getEventOutput(
+            ListenableFuture<IsolatedServiceInfo> loadFuture,
+            EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": getEventOutput(): Starting isolated process.");
-            long startTimeMillis = mInjector.getClock().elapsedRealtime();
-            return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                    TASK_NAME, mServicePackageName, mContext))
+            return FluentFuture.from(loadFuture)
                 .transformAsync(
-                        result -> executeEventHandler(startTimeMillis, result, payload),
+                        result -> executeEventHandler(result, payload),
                         mInjector.getExecutor());
 
         } catch (Exception e) {
@@ -284,7 +285,11 @@ class OdpWebViewClient extends WebViewClient {
         try {
             sLogger.d(TAG + ": handleEvent() called");
 
-            var unused = FluentFuture.from(getEventOutput(eventUrlPayload))
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    ProcessUtils.loadIsolatedService(
+                        TASK_NAME, mServicePackageName, mContext);
+
+            var doneFuture = FluentFuture.from(getEventOutput(loadFuture, eventUrlPayload))
                     .transformAsync(
                         result -> writeEvent(result),
                         mInjector.getExecutor())
@@ -294,6 +299,9 @@ class OdpWebViewClient extends WebViewClient {
                         mInjector.getScheduledExecutor()
                     );
 
+            var unused = Futures.whenAllComplete(loadFuture, doneFuture)
+                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Failed to handle Event", e);
         }
