@@ -204,7 +204,7 @@ public class MainActivity extends Activity {
         if (mOdpConfigManager == null) {
             makeToast("OnDevicePersonalizationConfigManager is null");
         }
-        boolean enabled = false;
+        boolean enabled = true;
         mOdpConfigManager.setPersonalizationEnabled(enabled,
                 Executors.newSingleThreadExecutor(),
                 new OutcomeReceiver<Void, Exception>() {
