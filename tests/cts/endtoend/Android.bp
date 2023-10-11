@@ -34,7 +34,7 @@ android_test {
     libs: [
         "android.test.base",
         "android.test.runner",
-        "truth-prebuilt",
+        "truth",
     ],
     data: [
         ":OdpTestingSampleService",

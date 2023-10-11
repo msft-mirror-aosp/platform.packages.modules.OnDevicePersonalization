@@ -34,7 +34,7 @@ android_test {
         "framework-connectivity.stubs.module_lib",
         "framework-location.stubs.module_lib",
         "kotlin-annotations",
-        "truth-prebuilt",
+        "truth",
         "framework-ondevicepersonalization.impl",
         "framework-statsd.stubs.module_lib", // For WW logging
     ],
