@@ -32,7 +32,8 @@ import java.util.List;
 // TODO(b/289102463): Add a link to the public doc for the REQUESTS table when available.
 /**
  * Contains data that will be written to the REQUESTS table at the end of a call to
- * {@link IsolatedWorker#onExecute()}. A single {$link RequestLogRecord} is appended to the
+ * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+ * A single {@link RequestLogRecord} is appended to the
  * REQUESTS table if it is provided as a part of {@link ExecuteOutput}. The contents of
  * the REQUESTS table can be consumed by Federated Learning facilitated model training,
  * or Federated Analytics facilitated cross-device statistical analysis.

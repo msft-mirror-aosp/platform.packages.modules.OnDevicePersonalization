@@ -22,7 +22,7 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- *  The result returned by {@link IsolatedWorker#onEvent()}
+ *  The result returned by {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)

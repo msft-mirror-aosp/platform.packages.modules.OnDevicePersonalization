@@ -22,8 +22,8 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 /**
- * An opaque reference to content that can be displayed in a {@link SurfaceView}. This maps
- * to a {@link RenderingConfig} returned by an {@link IsolatedService}.
+ * An opaque reference to content that can be displayed in a {@link android.view.SurfaceView}. This
+ * maps to a {@link RenderingConfig} returned by an {@link IsolatedService}.
  *
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
