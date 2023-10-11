@@ -28,7 +28,7 @@ android_test {
         "android.test.base",
         "android.test.runner",
         "kotlin-annotations",
-        "truth-prebuilt",
+        "truth",
         "framework-ondevicepersonalization.impl",
     ],
     static_libs: [
