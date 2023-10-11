@@ -42,6 +42,7 @@ import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -185,10 +186,12 @@ public class RenderFlow {
                     Objects.requireNonNull(slotWrapper.getRenderingConfig());
             long queryId = slotWrapper.getQueryId();
 
+            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                             TASK_NAME, mServicePackageName, mContext))
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
+                                    serviceStartTimeMillis,
                                     loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
@@ -215,10 +218,10 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
+            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
-        long executeStartTimemillis = mInjector.getClock().elapsedRealtime();
         Bundle serviceParams = new Bundle();
         RenderInput input =
                 new RenderInput.Builder()
@@ -239,7 +242,7 @@ public class RenderFlow {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                executeStartTimemillis, Constants.STATUS_SUCCESS);
+                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -248,7 +251,7 @@ public class RenderFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                executeStartTimemillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
@@ -295,10 +298,13 @@ public class RenderFlow {
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
-    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
-                .setLatencyMillis((int) latencyMillis)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);

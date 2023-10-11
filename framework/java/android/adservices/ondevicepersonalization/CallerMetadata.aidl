@@ -14,18 +14,6 @@
  * limitations under the License.
  */
 
-package com.example.odpsamplenetwork;
+package android.adservices.ondevicepersonalization;
 
-import android.adservices.ondevicepersonalization.IsolatedService;
-import android.adservices.ondevicepersonalization.IsolatedWorker;
-import android.adservices.ondevicepersonalization.RequestToken;
-
-import androidx.annotation.NonNull;
-
-public class SampleService extends IsolatedService {
-    @NonNull @Override public IsolatedWorker onRequest(
-            RequestToken requestToken) {
-        return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
-                getUserData(requestToken), getFederatedComputeScheduler(requestToken));
-    }
-}
+parcelable CallerMetadata;

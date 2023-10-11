@@ -49,6 +49,7 @@ import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -165,10 +166,11 @@ class OdpWebViewClient extends WebViewClient {
     }
 
     private ListenableFuture<EventOutput> executeEventHandler(
-            IsolatedServiceInfo isolatedServiceInfo, EventUrlPayload payload) {
+            long startTimeMillis,
+            IsolatedServiceInfo isolatedServiceInfo,
+            EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": executeEventHandler() called");
-            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
                     mServicePackageName, mContext, /* includeLocalData */ true,
@@ -193,7 +195,7 @@ class OdpWebViewClient extends WebViewClient {
                     .transform(
                             result -> {
                                 writeServiceRequestMetrics(
-                                        startTimeMillis, Constants.STATUS_SUCCESS);
+                                        result, startTimeMillis, Constants.STATUS_SUCCESS);
                                 return result.getParcelable(
                                         Constants.EXTRA_RESULT, EventOutput.class);
                             },
@@ -202,7 +204,7 @@ class OdpWebViewClient extends WebViewClient {
                             Exception.class,
                             e -> {
                                 writeServiceRequestMetrics(
-                                        startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                        null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
                                 return Futures.immediateFailedFuture(e);
                             },
                             mInjector.getExecutor()
@@ -217,10 +219,11 @@ class OdpWebViewClient extends WebViewClient {
     ListenableFuture<EventOutput> getEventOutput(EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": getEventOutput(): Starting isolated process.");
+            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             return FluentFuture.from(ProcessUtils.loadIsolatedService(
                     TASK_NAME, mServicePackageName, mContext))
                 .transformAsync(
-                        result -> executeEventHandler(result, payload),
+                        result -> executeEventHandler(startTimeMillis, result, payload),
                         mInjector.getExecutor());
 
         } catch (Exception e) {
@@ -279,11 +282,13 @@ class OdpWebViewClient extends WebViewClient {
         }
     }
 
-    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        ApiCallStats callStats =
-                new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EVENT)
-                .setLatencyMillis((int) latencyMillis)
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EVENT)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
