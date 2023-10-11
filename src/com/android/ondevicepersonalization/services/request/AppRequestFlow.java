@@ -353,7 +353,7 @@ public class AppRequestFlow {
     }
 
     private void sendResult(List<String> slotResultTokens) {
-        if (slotResultTokens != null && slotResultTokens.size() > 0) {
+        if (slotResultTokens != null) {
             sendSuccessResult(slotResultTokens);
         } else {
             sLogger.w(TAG + ": slotResultTokens is null or empty");
