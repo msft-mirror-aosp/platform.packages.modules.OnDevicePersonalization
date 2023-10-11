@@ -33,7 +33,7 @@ android_test {
         "framework-ondevicepersonalization.impl",
         "framework-configinfrastructure", // For PH flags
         "framework-statsd.stubs.module_lib", // For WW logging
-        "truth-prebuilt",
+        "truth",
     ],
     static_libs: [
         "androidx.test.ext.junit",
