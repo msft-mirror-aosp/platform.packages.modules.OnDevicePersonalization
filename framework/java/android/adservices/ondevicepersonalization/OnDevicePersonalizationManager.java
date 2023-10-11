@@ -32,6 +32,7 @@ import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
 import com.android.modules.utils.build.SdkLevel;
@@ -149,6 +150,7 @@ public class OnDevicePersonalizationManager {
         Objects.requireNonNull(params);
         Objects.requireNonNull(executor);
         Objects.requireNonNull(receiver);
+        long startTimeMillis = SystemClock.elapsedRealtime();
 
         try {
             bindService(executor);
@@ -182,7 +184,9 @@ public class OnDevicePersonalizationManager {
             };
 
             mService.execute(
-                    mContext.getPackageName(), handler, params, callbackWrapper);
+                    mContext.getPackageName(), handler, params,
+                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                    callbackWrapper);
 
         } catch (InterruptedException
                 | RemoteException e) {
@@ -222,6 +226,8 @@ public class OnDevicePersonalizationManager {
         Objects.requireNonNull(surfaceViewHostToken);
         Objects.requireNonNull(executor);
         Objects.requireNonNull(receiver);
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
         try {
             bindService(executor);
 
@@ -243,7 +249,9 @@ public class OnDevicePersonalizationManager {
 
             mService.requestSurfacePackage(
                     surfacePackageToken.getTokenString(), surfaceViewHostToken, displayId,
-                    width, height, callbackWrapper);
+                    width, height,
+                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                    callbackWrapper);
 
         } catch (InterruptedException
                 | RemoteException e) {

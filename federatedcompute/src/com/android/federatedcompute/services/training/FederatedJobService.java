@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
@@ -66,7 +66,7 @@ public class FederatedJobService extends JobService {
                         jobFinished(params, /* wantsReschedule= */ false);
                     }
                 },
-                directExecutor());
+                getBackgroundExecutor());
         return true;
     }
 

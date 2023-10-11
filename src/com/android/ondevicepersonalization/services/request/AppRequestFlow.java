@@ -51,6 +51,7 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
@@ -152,11 +153,12 @@ public class AppRequestFlow {
                 return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
+            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
             ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
                             ProcessUtils.loadIsolatedService(
                                     TASK_NAME, mService.getPackageName(), mContext))
                     .transformAsync(
-                            result -> executeAppRequest(result),
+                            result -> executeAppRequest(serviceStartTimeMillis, result),
                             mInjector.getExecutor()
                     )
                     .transform(
@@ -200,9 +202,10 @@ public class AppRequestFlow {
         }
     }
 
-    private ListenableFuture<Bundle> executeAppRequest(IsolatedServiceInfo isolatedServiceInfo) {
+    private ListenableFuture<Bundle> executeAppRequest(
+            long serviceStartTimeMillis,
+            IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": executeAppRequest() started.");
-        long executeStartTimemillis = mInjector.getClock().elapsedRealtime();
         Bundle serviceParams = new Bundle();
         ExecuteInput input =
                 new ExecuteInput.Builder()
@@ -226,7 +229,7 @@ public class AppRequestFlow {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                executeStartTimemillis, Constants.STATUS_SUCCESS);
+                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -235,7 +238,7 @@ public class AppRequestFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                executeStartTimemillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
@@ -367,10 +370,13 @@ public class AppRequestFlow {
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
-    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EXECUTE)
-                .setLatencyMillis((int) latencyMillis)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);

@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.os.SystemClock;
 
 import java.util.Objects;
 
@@ -37,6 +38,8 @@ public class RequestToken {
     @Nullable
     private final UserData mUserData;
 
+    private final long mStartTimeMillis;
+
     /** @hide */
     RequestToken(
             @NonNull IDataAccessService binder,
@@ -45,6 +48,7 @@ public class RequestToken {
         mDataAccessService = Objects.requireNonNull(binder);
         mFcService = fcServiceBinder;
         mUserData = userData;
+        mStartTimeMillis = SystemClock.elapsedRealtime();
     }
 
     /** @hide */
@@ -63,5 +67,10 @@ public class RequestToken {
     @Nullable
     UserData getUserData() {
         return mUserData;
+    }
+
+    /** @hide */
+    long getStartTimeMillis() {
+        return mStartTimeMillis;
     }
 }

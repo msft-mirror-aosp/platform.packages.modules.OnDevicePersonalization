@@ -36,6 +36,8 @@ public class Constants {
     public static final int OP_TRAINING_EXAMPLE = 5;
 
     // Keys for Bundle objects passed between processes.
+    public static final String EXTRA_CALLEE_METADATA =
+            "android.ondevicepersonalization.extra.callee_metadata";
     public static final String EXTRA_DATA_ACCESS_SERVICE_BINDER =
             "android.ondevicepersonalization.extra.data_access_service_binder";
     public static final String EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER =

@@ -42,6 +42,7 @@ import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -138,6 +139,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setTaskName(taskName)
                             .build();
 
+            long startTimeMillis = mInjector.getClock().elapsedRealtime();
             ListenableFuture<TrainingExampleOutputParcel> resultFuture =
                     FluentFuture.from(
                                     ProcessUtils.loadIsolatedService(
@@ -145,7 +147,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                             packageName,
                                             getContext().getApplicationContext()))
                             .transformAsync(
-                                    result -> executeOnTrainingExample(result, input, packageName),
+                                    result -> executeOnTrainingExample(
+                                            startTimeMillis, result, input, packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
@@ -195,11 +198,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     }
 
     private ListenableFuture<Bundle> executeOnTrainingExample(
+            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             TrainingExampleInput exampleInput,
             String packageName) {
         sLogger.d(TAG + ": executeOnTrainingExample() started.");
-        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
@@ -218,7 +221,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                startTimeMillis, Constants.STATUS_SUCCESS);
+                                val, startTimeMillis, Constants.STATUS_SUCCESS);
                         return val;
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()
@@ -227,18 +230,21 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor()
                 );
     }
 
-    private void writeServiceRequestMetrics(long startTimeMillis, int responseCode) {
+    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
         int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats =
                 new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_TRAINING_EXAMPLE)
-                .setLatencyMillis((int) latencyMillis)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
