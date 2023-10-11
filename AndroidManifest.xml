@@ -40,7 +40,9 @@
     <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
-    <permission android:name="android.permission.MODIFY_ONDEVICEPERSONALIZATION_STATE" />
+    <!-- Required for modifying personalization state -->
+    <permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"
+                android:protectionLevel="signature|privileged"/>
 
     <application android:name=".OnDevicePersonalizationApplication"
                  android:forceQueryable="true">
