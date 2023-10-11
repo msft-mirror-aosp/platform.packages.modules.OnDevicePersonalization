@@ -30,6 +30,8 @@ import android.os.OutcomeReceiver;
 
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventState;
@@ -48,9 +50,11 @@ import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.ArrayList;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /** Implementation of ExampleStoreService for OnDevicePersonalization */
 public final class OdpExampleStoreService extends ExampleStoreService {
@@ -62,6 +66,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     static class Injector {
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
     }
 
@@ -156,7 +168,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                                 Constants.EXTRA_RESULT,
                                                 TrainingExampleOutputParcel.class);
                                     },
-                                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                                    OnDevicePersonalizationExecutors.getBackgroundExecutor())
+                            .withTimeout(
+                                    mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                                    TimeUnit.SECONDS,
+                                    mInjector.getScheduledExecutor());
 
             Futures.addCallback(
                     resultFuture,
