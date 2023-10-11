@@ -32,7 +32,7 @@ android_test {
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
-        "truth-prebuilt",
+        "truth",
         "framework-ondevicepersonalization.impl",
     ],
     static_libs: [
