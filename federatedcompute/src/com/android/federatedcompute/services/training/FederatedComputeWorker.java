@@ -603,12 +603,10 @@ public class FederatedComputeWorker {
             }
             run.mExampleStoreService = exampleStoreService;
 
-            String collection = exampleSelector.getCollectionUri();
             byte[] criteria = exampleSelector.getCriteria().toByteArray();
             byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_COLLECTION_NAME, collection);
             bundle.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
             bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, run.mTask.contextData());
             bundle.putByteArray(

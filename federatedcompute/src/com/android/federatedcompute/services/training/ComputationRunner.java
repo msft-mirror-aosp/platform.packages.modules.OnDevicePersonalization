@@ -46,16 +46,12 @@ public class ComputationRunner {
             ExampleConsumptionRecorder recorder,
             IExampleStoreIterator exampleStoreIterator,
             ListenableSupplier<Boolean> interruptState) {
-        String collectionUri = exampleSelector.getCollectionUri();
-        byte[] criteria = exampleSelector.getCriteria().toByteArray();
         byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
         FederatedExampleIterator federatedExampleIterator =
                 new FederatedExampleIterator(
                         exampleStoreIterator,
-                        collectionUri,
-                        criteria,
                         resumptionToken,
-                        recorder.createRecorderForTracking(collectionUri, resumptionToken));
+                        recorder.createRecorderForTracking(taskName, resumptionToken));
 
         FlRunnerWrapper flRunnerWrapper =
                 new FlRunnerWrapper(interruptState, populationName, federatedExampleIterator);

@@ -53,74 +53,66 @@ public class TestPersonalizationHandler implements IsolatedWorker {
 
     @Override
     public void onDownloadCompleted(
-            DownloadCompletedInput input,
-            Consumer<DownloadCompletedOutput> consumer) {
+            DownloadCompletedInput input, Consumer<DownloadCompletedOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Data: " + input.getData());
 
-            Log.d(TAG, "Existing keyExtra: "
-                    + Arrays.toString(mRemoteData.get("keyExtra")));
+            Log.d(TAG, "Existing keyExtra: " + Arrays.toString(mRemoteData.get("keyExtra")));
             Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
-            List<String> keysToRetain =
-                    getFilteredKeys(input.getData());
+            List<String> keysToRetain = getFilteredKeys(input.getData());
             keysToRetain.add("keyExtra");
             // Get the keys to keep from the downloaded data
             DownloadCompletedOutput result =
-                    new DownloadCompletedOutput.Builder()
-                            .setRetainedKeys(keysToRetain)
-                            .build();
+                    new DownloadCompletedOutput.Builder().setRetainedKeys(keysToRetain).build();
             consumer.accept(result);
         } catch (Exception e) {
             Log.e(TAG, "Error occurred in onDownload", e);
         }
     }
 
-    @Override public void onExecute(
-            @NonNull ExecuteInput input,
-            @NonNull Consumer<ExecuteOutput> consumer
-    ) {
+    @Override
+    public void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
         Log.d(TAG, "onExecute() started.");
         ContentValues logData = new ContentValues();
         logData.put("id", "bid1");
         logData.put("pr", 5.0);
-        ExecuteOutput result = new ExecuteOutput.Builder()
-                .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                .addRenderingConfig(
-                    new RenderingConfig.Builder().addKey("bid1").build()
-                )
-                .addEventLogRecord(new EventLogRecord.Builder()
-                        .setData(logData)
-                        .setRequestLogRecord(new RequestLogRecord.Builder()
-                                .addRow(logData)
-                                .addRow(logData)
-                                .setRequestId(1)
-                                .build())
-                        .setType(1)
-                        .setRowIndex(1)
-                        .build())
-                .build();
+        ExecuteOutput result =
+                new ExecuteOutput.Builder()
+                        .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
+                        .addRenderingConfig(new RenderingConfig.Builder().addKey("bid1").build())
+                        .addEventLogRecord(
+                                new EventLogRecord.Builder()
+                                        .setData(logData)
+                                        .setRequestLogRecord(
+                                                new RequestLogRecord.Builder()
+                                                        .addRow(logData)
+                                                        .addRow(logData)
+                                                        .setRequestId(1)
+                                                        .build())
+                                        .setType(1)
+                                        .setRowIndex(1)
+                                        .build())
+                        .build();
         consumer.accept(result);
     }
 
-    @Override public void onRender(
-            @NonNull RenderInput input,
-            @NonNull Consumer<RenderOutput> consumer
-    ) {
+    @Override
+    public void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
         Log.d(TAG, "onRender() started.");
         RenderOutput result =
                 new RenderOutput.Builder()
-                .setContent("<p>RenderResult: "
-                    + String.join(",", input.getRenderingConfig().getKeys()) + "<p>")
-                .build();
+                        .setContent(
+                                "<p>RenderResult: "
+                                        + String.join(",", input.getRenderingConfig().getKeys())
+                                        + "<p>")
+                        .build();
         consumer.accept(result);
     }
 
-    @Override public void onEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer
-    ) {
+    @Override
+    public void onEvent(@NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
         Log.d(TAG, "onEvent() started.");
         long longValue = 0;
         if (input.getParameters() != null) {
@@ -130,14 +122,13 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         logData.put("x", longValue);
         EventOutput result =
                 new EventOutput.Builder()
-                    .setEventLogRecord(
-                        new EventLogRecord.Builder()
-                            .setType(1)
-                            .setRowIndex(0)
-                            .setData(logData)
-                            .build()
-                    )
-                    .build();
+                        .setEventLogRecord(
+                                new EventLogRecord.Builder()
+                                        .setType(1)
+                                        .setRowIndex(0)
+                                        .setData(logData)
+                                        .build())
+                        .build();
         Log.d(TAG, "onEvent() result: " + result.toString());
         consumer.accept(result);
     }
@@ -153,21 +144,21 @@ public class TestPersonalizationHandler implements IsolatedWorker {
             @NonNull TrainingExampleInput input,
             @NonNull Consumer<TrainingExampleOutput> consumer) {
         Log.d(TAG, "onTrainingExample() started.");
-        Log.d(TAG, "Collection name: " + input.getCollectionName());
         Log.d(TAG, "Population name: " + input.getPopulationName());
         Log.d(TAG, "Task name: " + input.getTaskName());
 
         List<byte[]> examples = new ArrayList<>();
         List<byte[]> tokens = new ArrayList<>();
-        examples.add(new byte[]{10});
-        examples.add(new byte[]{20});
+        examples.add(new byte[] {10});
+        examples.add(new byte[] {20});
         tokens.add("token1".getBytes());
         tokens.add("token2".getBytes());
 
-        TrainingExampleOutput output = new TrainingExampleOutput.Builder()
-                .setTrainingExamples(examples)
-                .setResumptionTokens(tokens)
-                .build();
+        TrainingExampleOutput output =
+                new TrainingExampleOutput.Builder()
+                        .setTrainingExamples(examples)
+                        .setResumptionTokens(tokens)
+                        .build();
         consumer.accept(output);
     }
 }

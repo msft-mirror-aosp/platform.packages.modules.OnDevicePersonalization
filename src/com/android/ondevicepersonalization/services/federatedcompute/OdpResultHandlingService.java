@@ -45,19 +45,21 @@ public class OdpResultHandlingService extends ResultHandlingService {
     @Override
     public void handleResult(Bundle params, Consumer<Integer> callback) {
         try {
-            ContextData contextData = ContextData.fromByteArray(Objects.requireNonNull(
-                    params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
+            ContextData contextData =
+                    ContextData.fromByteArray(
+                            Objects.requireNonNull(
+                                    params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
             String packageName = contextData.getPackageName();
-            String populationName = Objects.requireNonNull(
-                    params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-            String taskName = Objects.requireNonNull(
-                    params.getString(ClientConstants.EXTRA_TASK_NAME));
-            int computationResult = params.getInt(
-                    ClientConstants.EXTRA_COMPUTATION_RESULT);
-            ArrayList<ExampleConsumption> consumptionList = Objects.requireNonNull(
-                    params.getParcelableArrayList(
-                            ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
-                            ExampleConsumption.class));
+            String populationName =
+                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+            String taskName =
+                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+            int computationResult = params.getInt(ClientConstants.EXTRA_COMPUTATION_RESULT);
+            ArrayList<ExampleConsumption> consumptionList =
+                    Objects.requireNonNull(
+                            params.getParcelableArrayList(
+                                    ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
+                                    ExampleConsumption.class));
 
             // Just return if training failed. Next query will retry the failed examples.
             if (computationResult != STATUS_SUCCESS) {
@@ -65,15 +67,17 @@ public class OdpResultHandlingService extends ResultHandlingService {
                 return;
             }
 
-            ListenableFuture<Boolean> result = Futures.submit(
-                    () -> processExampleConsumptions(consumptionList, populationName, taskName,
-                            packageName), OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            ListenableFuture<Boolean> result =
+                    Futures.submit(
+                            () ->
+                                    processExampleConsumptions(
+                                            consumptionList, populationName, taskName, packageName),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
             Futures.addCallback(
                     result,
                     new FutureCallback<Boolean>() {
                         @Override
-                        public void onSuccess(
-                                Boolean result) {
+                        public void onSuccess(Boolean result) {
                             if (result) {
                                 callback.accept(STATUS_SUCCESS);
                             } else {
@@ -95,22 +99,23 @@ public class OdpResultHandlingService extends ResultHandlingService {
         }
     }
 
-    private Boolean processExampleConsumptions(List<ExampleConsumption> exampleConsumptions,
+    private Boolean processExampleConsumptions(
+            List<ExampleConsumption> exampleConsumptions,
             String populationName,
             String taskName,
             String packageName) {
         List<EventState> eventStates = new ArrayList<>();
         for (ExampleConsumption consumption : exampleConsumptions) {
-            String collectionName = consumption.getCollectionName();
-            String taskIdentifier = OdpExampleStoreService.getTaskIdentifier(collectionName,
-                    populationName, taskName);
+            String taskIdentifier =
+                    OdpExampleStoreService.getTaskIdentifier(populationName, taskName);
             byte[] resumptionToken = consumption.getResumptionToken();
             if (resumptionToken != null) {
-                eventStates.add(new EventState.Builder()
-                        .setServicePackageName(packageName)
-                        .setTaskIdentifier(taskIdentifier)
-                        .setToken(resumptionToken)
-                        .build());
+                eventStates.add(
+                        new EventState.Builder()
+                                .setServicePackageName(packageName)
+                                .setTaskIdentifier(taskIdentifier)
+                                .setToken(resumptionToken)
+                                .build());
             }
         }
         EventsDao eventsDao = EventsDao.getInstance(this);
