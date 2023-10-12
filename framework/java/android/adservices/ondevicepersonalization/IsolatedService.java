@@ -144,8 +144,6 @@ public abstract class IsolatedService extends Service {
      *     The methods in the returned {@link LogReader} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
      * @see #onRequest(RequestToken)
-     *
-     * @hide
      */
     @NonNull
     public final LogReader getLogReader(@NonNull RequestToken requestToken) {
@@ -188,7 +186,6 @@ public abstract class IsolatedService extends Service {
      * @return An {@link FederatedComputeScheduler} that returns a federated computation job
      *     scheduler.
      * @see #onRequest(RequestToken)
-     * @hide
      */
     @NonNull
     public final FederatedComputeScheduler getFederatedComputeScheduler(
