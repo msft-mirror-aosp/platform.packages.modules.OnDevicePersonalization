@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 /**
@@ -23,6 +26,7 @@ import android.annotation.NonNull;
  * to a {@link RenderingConfig} returned by an {@link IsolatedService}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class SurfacePackageToken {
     @NonNull private final String mTokenString;
 
