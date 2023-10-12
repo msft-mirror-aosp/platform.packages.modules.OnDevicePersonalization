@@ -35,7 +35,7 @@ android_test {
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
         "mockito-target-minus-junit4",
-        "truth-prebuilt",
+        "truth",
     ],
     libs: [
         "android.test.runner",
@@ -44,7 +44,7 @@ android_test {
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
         "general-tests",
-    	"mts-ondevicepersonalization",
+        "mts-ondevicepersonalization",
     ],
     test_config: "AndroidTest.xml",
 }
