@@ -24,7 +24,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
@@ -84,7 +83,7 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
         }
-
+        // TODO(b/271158496): restore personalization status from system server.
         // Initialize policy engine instance
         ChronicleManager.getInstance(
                 new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),

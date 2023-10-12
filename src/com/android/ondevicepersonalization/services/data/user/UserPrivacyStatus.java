@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import com.android.ondevicepersonalization.services.PhFlags;
+
 /**
  * A singleton class that stores all user privacy statuses in memory.
  */
@@ -28,7 +30,7 @@ public final class UserPrivacyStatus {
         mPersonalizationStatusEnabled = false;
     }
 
-    /** Returns an instance of OnDevicePersonalizationUserStatus. */
+    /** Returns an instance of UserPrivacyStatus. */
     public static UserPrivacyStatus getInstance() {
         synchronized (UserPrivacyStatus.class) {
             if (sUserPrivacyStatus == null) {
@@ -39,10 +41,17 @@ public final class UserPrivacyStatus {
     }
 
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
-        mPersonalizationStatusEnabled = personalizationStatusEnabled;
+        PhFlags phFlags = PhFlags.getInstance();
+        if (!phFlags.isPersonalizationStatusOverrideEnabled()) {
+            mPersonalizationStatusEnabled = personalizationStatusEnabled;
+        }
     }
 
     public boolean isPersonalizationStatusEnabled() {
+        PhFlags phFlags = PhFlags.getInstance();
+        if (phFlags.isPersonalizationStatusOverrideEnabled()) {
+            return phFlags.getPersonalizationStatusOverrideValue();
+        }
         return mPersonalizationStatusEnabled;
     }
 }

@@ -58,17 +58,21 @@ public class OnDevicePersonalizationConfigServiceDelegate
         if (!isOnDevicePersonalizationApisEnabled()) {
             throw new IllegalStateException("Service skipped as the API flag is turned off.");
         }
-        Objects.requireNonNull(callback);
         // Verify caller's permission
         OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
                 MODIFY_ONDEVICEPERSONALIZATION_STATE);
+        Objects.requireNonNull(callback);
         // TODO(b/270468742): Call system server for U+ devices
         sBackgroundExecutor.execute(
                 () -> {
                     try {
                         UserPrivacyStatus userPrivacyStatus = UserPrivacyStatus.getInstance();
 
-                        if (enabled == userPrivacyStatus.isPersonalizationStatusEnabled()) {
+                        boolean oldStatus = userPrivacyStatus.isPersonalizationStatusEnabled();
+                        userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
+                        boolean newStatus = userPrivacyStatus.isPersonalizationStatusEnabled();
+
+                        if (oldStatus == newStatus) {
                             callback.onSuccess();
                             return;
                         }
@@ -81,7 +85,6 @@ public class OnDevicePersonalizationConfigServiceDelegate
                         userDataCollector.clearMetadata();
                         userDataCollector.clearDatabase();
 
-                        userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
                         callback.onSuccess();
                     } catch (RemoteException re) {
                         sLogger.e(TAG + ": Unable to send result to the callback.", re);
