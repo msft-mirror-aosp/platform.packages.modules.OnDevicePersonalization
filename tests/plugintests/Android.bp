@@ -28,7 +28,7 @@ android_test {
         "auto_value_annotations",
         "framework-annotations-lib",
         "framework-ondevicepersonalization.impl",
-        "truth-prebuilt",
+        "truth",
     ],
     static_libs: [
         "androidx.test.ext.junit",
