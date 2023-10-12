@@ -40,7 +40,7 @@ import com.android.ondevicepersonalization.services.federatedcompute.FederatedCo
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -84,6 +84,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     static class Injector {
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -198,8 +202,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
         try {
-            ListenableFuture<IsolatedServiceInfo> loadFuture = ProcessUtils.loadIsolatedService(
-                    TASK_NAME, mPackageName, mContext);
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, mPackageName);
             var resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeDownloadHandler(result, finalVendorDataMap),
@@ -216,7 +221,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             var unused = Futures.whenAllComplete(loadFuture, resultFuture)
-                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             return resultFuture;
@@ -281,7 +287,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         pluginParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo,
                 AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
                 Constants.OP_DOWNLOAD,

@@ -33,6 +33,8 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginInfo;
 import com.android.ondevicepersonalization.libraries.plugin.PluginManager;
 import com.android.ondevicepersonalization.libraries.plugin.impl.PluginManagerImpl;
 import com.android.ondevicepersonalization.services.OdpServiceException;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
+import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.collect.ImmutableList;
@@ -42,7 +44,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Objects;
 
 /** Utilities to support loading and executing plugins. */
-public class ProcessUtils {
+public class ProcessRunner {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "ProcessUtils";
     private static final String ENTRY_POINT_CLASS =
@@ -52,24 +54,59 @@ public class ProcessUtils {
     public static final String PARAM_OPERATION_KEY = "param.operation";
     public static final String PARAM_SERVICE_INPUT = "param.service_input";
 
+    @NonNull private Context mApplicationContext;
+
+    private static volatile ProcessRunner sProcessRunner;
     private static volatile PluginManager sPluginManager;
 
+    static class Injector {
+        Clock getClock() {
+            return MonotonicClock.getInstance();
+        }
+    }
+
+    private final Injector mInjector;
+
+    /** Creates a ProcessRunner. */
+    ProcessRunner(
+            @NonNull Context applicationContext,
+            @NonNull Injector injector) {
+        mApplicationContext = Objects.requireNonNull(applicationContext);
+        mInjector = Objects.requireNonNull(injector);
+    }
+
+    /** Returns the global ProcessRunner */
+    @NonNull public static ProcessRunner getInstance() {
+        if (sProcessRunner == null) {
+            synchronized (ProcessRunner.class) {
+                if (sProcessRunner == null) {
+                    sProcessRunner = new ProcessRunner(
+                            OnDevicePersonalizationApplication.getAppContext(),
+                            new Injector());
+                }
+            }
+        }
+        return sProcessRunner;
+    }
+
     /** Loads a service in an isolated process */
-    @NonNull public static ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
-            @NonNull String taskName, @NonNull String packageName,
-            @NonNull Context context) {
+    @NonNull public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
+            @NonNull String taskName, @NonNull String packageName) {
         try {
             sLogger.d(TAG + ": loadIsolatedService: " + packageName);
-            return loadPlugin(createPluginController(
-                    createPluginId(packageName, taskName),
-                    getPluginManager(context), packageName));
+            return loadPlugin(
+                    mInjector.getClock().elapsedRealtime(),
+                    createPluginController(
+                        createPluginId(packageName, taskName),
+                        getPluginManager(mApplicationContext),
+                        packageName));
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
     }
 
     /** Executes a service loaded in an isolated process */
-    @NonNull public static ListenableFuture<Bundle> runIsolatedService(
+    @NonNull public ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo,
             @NonNull String className,
             int operationCode,
@@ -83,17 +120,17 @@ public class ProcessUtils {
     }
 
     /** Unloads a service loaded in an isolated process */
-    @NonNull public static ListenableFuture<Void> unloadIsolatedService(
+    @NonNull public ListenableFuture<Void> unloadIsolatedService(
             @NonNull IsolatedServiceInfo isolatedServiceInfo) {
         return unloadPlugin(isolatedServiceInfo.getPluginController());
     }
 
     @NonNull
-    static PluginManager getPluginManager(@NonNull Context context) {
+    static PluginManager getPluginManager(@NonNull Context applicationContext) {
         if (sPluginManager == null) {
-            synchronized (ProcessUtils.class) {
+            synchronized (ProcessRunner.class) {
                 if (sPluginManager == null) {
-                    sPluginManager = new PluginManagerImpl(context.getApplicationContext());
+                    sPluginManager = new PluginManagerImpl(applicationContext);
                 }
             }
         }
@@ -109,13 +146,12 @@ public class ProcessUtils {
     }
 
     @NonNull static ListenableFuture<IsolatedServiceInfo> loadPlugin(
+            long startTimeMillis,
             @NonNull PluginController pluginController) {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
                 try {
                     sLogger.d(TAG + ": loadPlugin");
-                    // TODO(b/304801439): Inject a clock.
-                    long startTimeMillis = MonotonicClock.getInstance().elapsedRealtime();
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
                             completer.set(new IsolatedServiceInfo(
@@ -198,6 +234,4 @@ public class ProcessUtils {
         // TODO(b/249345663) Perform any validation needed on the input.
         return vendorPackageName + "-" + taskName;
     }
-
-    private ProcessUtils() {}
 }

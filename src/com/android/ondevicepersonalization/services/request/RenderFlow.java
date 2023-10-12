@@ -38,7 +38,7 @@ import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -84,6 +84,10 @@ public class RenderFlow {
 
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -163,8 +167,9 @@ public class RenderFlow {
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                         mContext, mServicePackageName));
 
-            ListenableFuture<IsolatedServiceInfo> loadFuture = ProcessUtils.loadIsolatedService(
-                            TASK_NAME, mServicePackageName, mContext);
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
+                            TASK_NAME, mServicePackageName);
             ListenableFuture<SurfacePackage> surfacePackageFuture =
                     FluentFuture.from(renderContentForSlot(loadFuture, slotWrapper))
                     .withTimeout(
@@ -190,7 +195,8 @@ public class RenderFlow {
                     mInjector.getExecutor());
 
             var unused = Futures.whenAllComplete(loadFuture, surfacePackageFuture)
-                    .callAsync(() -> ProcessUtils.unloadIsolatedService(loadFuture.get()),
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
                     mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
@@ -255,7 +261,7 @@ public class RenderFlow {
                 mServicePackageName, mContext, /* includeLocalData */ false,
                 /* includeEventData */ false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,
                 serviceParams);
         return FluentFuture.from(result)
