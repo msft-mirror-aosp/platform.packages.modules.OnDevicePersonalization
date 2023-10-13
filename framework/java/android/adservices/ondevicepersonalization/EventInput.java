@@ -25,20 +25,22 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedWorker#onEvent()}.
+ * The input data for {@link
+ * IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
  * @hide
  */
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class EventInput implements Parcelable {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedWorker#onExecute()}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
-     * The Event URL parameters that the service passed to
-     * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
+     * The Event URL parameters that the service passed to {@link
+     * EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
+     * or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
      */
     @NonNull private PersistableBundle mParameters = PersistableBundle.EMPTY;
 
@@ -71,7 +73,7 @@ public final class EventInput implements Parcelable {
 
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedWorker#onExecute()}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -79,8 +81,9 @@ public final class EventInput implements Parcelable {
     }
 
     /**
-     * The Event URL parameters that the service passed to
-     * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
+     * The Event URL parameters that the service passed to {@link
+     * EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
+     * or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
      */
     @DataClass.Generated.Member
     public @NonNull PersistableBundle getParameters() {
@@ -184,7 +187,7 @@ public final class EventInput implements Parcelable {
 
         /**
          * The {@link RequestLogRecord} that was returned as a result of
-         * {@link IsolatedWorker#onExecute()}.
+         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -195,8 +198,9 @@ public final class EventInput implements Parcelable {
         }
 
         /**
-         * The Event URL parameters that the service passed to
-         * {@link EventUrlProvider#createEventTrackingUrlWithResponse()}.
+         * The Event URL parameters that the service passed to {@link
+         * EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
+         * or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setParameters(@NonNull PersistableBundle value) {
@@ -232,7 +236,7 @@ public final class EventInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696369227342L,
+            time = 1697062257720L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInput.java",
             inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
