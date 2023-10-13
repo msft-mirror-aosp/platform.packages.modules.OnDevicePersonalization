@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
@@ -27,6 +30,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The input data for {@link IsolatedWorker#onExecute()}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class ExecuteInput implements Parcelable {
     /**

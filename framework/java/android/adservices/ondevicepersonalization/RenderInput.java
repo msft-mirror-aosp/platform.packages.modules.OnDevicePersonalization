@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.Nullable;
 import android.os.Parcelable;
 
@@ -25,6 +28,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The input data for {@link IsolatedWorker#onRender()}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class RenderInput implements Parcelable {
     /** The width of the slot. */
