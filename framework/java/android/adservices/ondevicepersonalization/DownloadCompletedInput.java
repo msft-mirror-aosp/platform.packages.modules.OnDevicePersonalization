@@ -29,7 +29,8 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * The input data for {@link IsolatedWorker#onDownloadCompleted()}.
+ * The input data for {@link
+ * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
  *
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
