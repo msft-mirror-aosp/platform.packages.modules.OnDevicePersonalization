@@ -31,12 +31,14 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -49,8 +51,10 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles a surface package request from an app or SDK.
@@ -72,6 +76,18 @@ public class RenderFlow {
 
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -151,8 +167,16 @@ public class RenderFlow {
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
                         mContext, mServicePackageName));
 
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
+                            TASK_NAME, mServicePackageName);
             ListenableFuture<SurfacePackage> surfacePackageFuture =
-                    renderContentForSlot(slotWrapper);
+                    FluentFuture.from(renderContentForSlot(loadFuture, slotWrapper))
+                    .withTimeout(
+                            mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                            TimeUnit.SECONDS,
+                            mInjector.getScheduledExecutor()
+                    );
 
             Futures.addCallback(
                     surfacePackageFuture,
@@ -169,6 +193,11 @@ public class RenderFlow {
                         }
                     },
                     mInjector.getExecutor());
+
+            var unused = Futures.whenAllComplete(loadFuture, surfacePackageFuture)
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -176,6 +205,7 @@ public class RenderFlow {
     }
 
     private ListenableFuture<SurfacePackage> renderContentForSlot(
+            @NonNull ListenableFuture<IsolatedServiceInfo> loadFuture,
             @NonNull SlotWrapper slotWrapper
     ) {
         try {
@@ -186,12 +216,9 @@ public class RenderFlow {
                     Objects.requireNonNull(slotWrapper.getRenderingConfig());
             long queryId = slotWrapper.getQueryId();
 
-            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
-            return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                            TASK_NAME, mServicePackageName, mContext))
+            return FluentFuture.from(loadFuture)
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    serviceStartTimeMillis,
                                     loadResult, slotWrapper.getSlotIndex(), renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
@@ -218,7 +245,6 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
-            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
@@ -235,14 +261,15 @@ public class RenderFlow {
                 mServicePackageName, mContext, /* includeLocalData */ false,
                 /* includeEventData */ false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,
                 serviceParams);
         return FluentFuture.from(result)
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
+                                val, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -251,7 +278,8 @@ public class RenderFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
