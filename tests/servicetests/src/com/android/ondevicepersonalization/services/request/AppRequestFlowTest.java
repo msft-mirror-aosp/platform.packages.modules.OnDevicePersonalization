@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
@@ -27,11 +28,13 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -52,6 +55,7 @@ public class AppRequestFlowTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private OnDevicePersonalizationDbHelper mDbHelper;
+    private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
 
     private String mRenderedContent;
     private boolean mGenerateHtmlCalled;
@@ -59,6 +63,7 @@ public class AppRequestFlowTest {
     private boolean mDisplayHtmlCalled;
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
+    private int mCallbackErrorCode;
 
     @Before
     public void setup() {
@@ -75,6 +80,9 @@ public class AppRequestFlowTest {
         EventsDao.getInstanceForTest(mContext).insertQuery(
                 new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
+        EventsDao.getInstanceForTest(mContext);
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
     }
 
     @After
@@ -102,6 +110,20 @@ public class AppRequestFlowTest {
                         null, null, null, null, null).getCount());
     }
 
+    @Test
+    public void testRunAppRequestFlowPersonalizationDisabled() throws Exception {
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
+        AppRequestFlow appRequestFlow = new AppRequestFlow(
+                "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                PersistableBundle.EMPTY,
+                new TestCallback(), mContext, 100L, new TestInjector());
+        appRequestFlow.run();
+        mLatch.await();
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
     class TestCallback extends IExecuteCallback.Stub {
         @Override
         public void onSuccess(List<String> tokens) {
@@ -112,6 +134,7 @@ public class AppRequestFlowTest {
         @Override
         public void onError(int errorCode) {
             mCallbackError = true;
+            mCallbackErrorCode = errorCode;
             mLatch.countDown();
         }
     }

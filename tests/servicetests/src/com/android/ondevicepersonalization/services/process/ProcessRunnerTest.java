@@ -19,6 +19,8 @@ package com.android.ondevicepersonalization.services.process;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import androidx.test.core.app.ApplicationProvider;
+
 import com.android.ondevicepersonalization.libraries.plugin.PluginInfo;
 
 import com.google.common.collect.ImmutableList;
@@ -28,15 +30,18 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class ProcessUtilsTest {
+public class ProcessRunnerTest {
+    ProcessRunner mProcessRunner = new ProcessRunner(
+            ApplicationProvider.getApplicationContext(),
+            new ProcessRunner.Injector());
     @Test
     public void testGetArchiveList_NullApkList() throws Exception {
-        assertTrue(ProcessUtils.getArchiveList(null).isEmpty());
+        assertTrue(ProcessRunner.getArchiveList(null).isEmpty());
     }
 
     @Test
     public void testGetArchiveList() throws Exception {
-        ImmutableList<PluginInfo.ArchiveInfo> result = ProcessUtils.getArchiveList("fakeApk");
+        ImmutableList<PluginInfo.ArchiveInfo> result = ProcessRunner.getArchiveList("fakeApk");
         assertEquals(1, result.size());
         assertEquals("fakeApk", result.get(0).packageName());
     }
