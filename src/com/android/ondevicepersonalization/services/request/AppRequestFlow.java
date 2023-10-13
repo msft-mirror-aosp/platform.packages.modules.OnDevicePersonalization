@@ -34,17 +34,20 @@ import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -59,10 +62,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Handles a surface package request from an app or SDK.
@@ -93,6 +98,18 @@ public class AppRequestFlow {
 
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -137,6 +154,11 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
+            if (!isPersonalizationStatusEnabled()) {
+                sLogger.d(TAG + ": Personalization is disabled.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+                return;
+            }
             AppManifestConfig config = null;
             try {
                 config = Objects.requireNonNull(
@@ -153,12 +175,12 @@ public class AppRequestFlow {
                 return;
             }
             mServiceClassName = Objects.requireNonNull(config.getServiceName());
-            long serviceStartTimeMillis = mInjector.getClock().elapsedRealtime();
-            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(
-                            ProcessUtils.loadIsolatedService(
-                                    TASK_NAME, mService.getPackageName(), mContext))
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, mService.getPackageName());
+            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
-                            result -> executeAppRequest(serviceStartTimeMillis, result),
+                            result -> executeAppRequest(result),
                             mInjector.getExecutor()
                     )
                     .transform(
@@ -173,13 +195,19 @@ public class AppRequestFlow {
                     .transformAsync(input -> logQuery(input), mInjector.getExecutor());
 
             ListenableFuture<List<String>> slotResultTokensFuture =
-                    Futures.whenAllSucceed(resultFuture, queryIdFuture)
-                            .callAsync(new AsyncCallable<List<String>>() {
-                                @Override
-                                public ListenableFuture<List<String>> call() {
-                                    return createTokens(resultFuture, queryIdFuture);
-                                }
-                            }, mInjector.getExecutor());
+                    FluentFuture.from(
+                            Futures.whenAllSucceed(resultFuture, queryIdFuture)
+                                .callAsync(new AsyncCallable<List<String>>() {
+                                    @Override
+                                    public ListenableFuture<List<String>> call() {
+                                        return createTokens(resultFuture, queryIdFuture);
+                                    }
+                                }, mInjector.getExecutor()))
+                            .withTimeout(
+                                mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                                TimeUnit.SECONDS,
+                                mInjector.getScheduledExecutor()
+                            );
 
             Futures.addCallback(
                     slotResultTokensFuture,
@@ -196,6 +224,11 @@ public class AppRequestFlow {
                         }
                     },
                     mInjector.getExecutor());
+
+            var unused = Futures.whenAllComplete(loadFuture, slotResultTokensFuture)
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -203,7 +236,6 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<Bundle> executeAppRequest(
-            long serviceStartTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
@@ -223,13 +255,14 @@ public class AppRequestFlow {
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = ProcessUtils.runIsolatedService(
+        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
         return FluentFuture.from(result)
                 .transform(
                     val -> {
                         writeServiceRequestMetrics(
-                                val, serviceStartTimeMillis, Constants.STATUS_SUCCESS);
+                                val, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_SUCCESS);
                         return val;
                     },
                     mInjector.getExecutor()
@@ -238,7 +271,8 @@ public class AppRequestFlow {
                     Exception.class,
                     e -> {
                         writeServiceRequestMetrics(
-                                null, serviceStartTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                null, isolatedServiceInfo.getStartTimeMillis(),
+                                Constants.STATUS_INTERNAL_ERROR);
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
@@ -331,7 +365,7 @@ public class AppRequestFlow {
     }
 
     private void sendResult(List<String> slotResultTokens) {
-        if (slotResultTokens != null && slotResultTokens.size() > 0) {
+        if (slotResultTokens != null) {
             sendSuccessResult(slotResultTokens);
         } else {
             sLogger.w(TAG + ": slotResultTokens is null or empty");
@@ -380,6 +414,11 @@ public class AppRequestFlow {
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
+
+    private boolean isPersonalizationStatusEnabled() {
+        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
+        return privacyStatus.isPersonalizationStatusEnabled();
     }
 }
 

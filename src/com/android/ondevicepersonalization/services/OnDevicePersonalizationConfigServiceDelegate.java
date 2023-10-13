@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationC
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.content.Context;
+import android.os.Binder;
 import android.os.RemoteException;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -51,25 +52,31 @@ public class OnDevicePersonalizationConfigServiceDelegate
 
     @Override
     @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
-    public void setPersonalizationStatus(boolean statusEnabled,
+    public void setPersonalizationStatus(boolean enabled,
                                      @NonNull IOnDevicePersonalizationConfigServiceCallback
                                              callback) {
-        Objects.requireNonNull(callback);
+        if (!isOnDevicePersonalizationApisEnabled()) {
+            throw new IllegalStateException("Service skipped as the API flag is turned off.");
+        }
         // Verify caller's permission
         OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
                 MODIFY_ONDEVICEPERSONALIZATION_STATE);
+        Objects.requireNonNull(callback);
         // TODO(b/270468742): Call system server for U+ devices
         sBackgroundExecutor.execute(
                 () -> {
                     try {
                         UserPrivacyStatus userPrivacyStatus = UserPrivacyStatus.getInstance();
 
-                        if (statusEnabled == userPrivacyStatus.isPersonalizationStatusEnabled()) {
+                        boolean oldStatus = userPrivacyStatus.isPersonalizationStatusEnabled();
+                        userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
+                        boolean newStatus = userPrivacyStatus.isPersonalizationStatusEnabled();
+
+                        if (oldStatus == newStatus) {
                             callback.onSuccess();
                             return;
                         }
 
-                        userPrivacyStatus.setPersonalizationStatusEnabled(statusEnabled);
                         // Rollback all user data if personalization status changes
                         RawUserData userData = RawUserData.getInstance();
                         UserDataCollector userDataCollector =
@@ -77,11 +84,20 @@ public class OnDevicePersonalizationConfigServiceDelegate
                         userDataCollector.clearUserData(userData);
                         userDataCollector.clearMetadata();
                         userDataCollector.clearDatabase();
+
                         callback.onSuccess();
                     } catch (RemoteException re) {
                         sLogger.e(TAG + ": Unable to send result to the callback.", re);
                     }
                 }
         );
+    }
+
+    private boolean isOnDevicePersonalizationApisEnabled() {
+        long origId = Binder.clearCallingIdentity();
+        boolean isOnDevicePersonalizationApisEnabled =
+                        FlagsFactory.getFlags().isOnDevicePersonalizationApisEnabled();
+        Binder.restoreCallingIdentity(origId);
+        return isOnDevicePersonalizationApisEnabled;
     }
 }

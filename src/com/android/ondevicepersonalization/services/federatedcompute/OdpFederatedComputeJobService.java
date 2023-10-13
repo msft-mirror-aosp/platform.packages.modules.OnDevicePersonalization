@@ -38,6 +38,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -85,6 +86,12 @@ public class OdpFederatedComputeJobService extends JobService {
             jobFinished(params, /* wantsReschedule= */ false);
             return true;
         }
+        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            jobFinished(params, false);
+            return true;
+        }
+
         final CountDownLatch latch = new CountDownLatch(1);
         mFuture =
                 Futures.submit(

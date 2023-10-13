@@ -28,7 +28,11 @@
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
         <option name="run-command" value="device_config set_sync_disabled_for_tests persistent" />
         <option name="run-command" value="device_config put on_device_personalization global_kill_switch false" />
+        <option name="run-command" value="device_config put on_device_personalization enable_personalization_status_override true"/>
+        <option name="run-command" value="device_config put on_device_personalization personalization_status_override_value true"/>
         <option name="teardown-command" value="device_config delete on_device_personalization global_kill_switch" />
+        <option name="teardown-command" value="device_config delete on_device_personalization enable_personalization_status_override" />
+        <option name="teardown-command" value="device_config delete on_device_personalization personalization_status_override_value" />
         <option name="teardown-command" value="device_config set_sync_disabled_for_tests none" />
     </target_preparer>
 
