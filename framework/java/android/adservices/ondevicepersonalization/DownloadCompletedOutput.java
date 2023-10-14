@@ -29,7 +29,8 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedWorker#onDownloadCompleted()}.
+ * The result returned by {@link
+ * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
  *
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)

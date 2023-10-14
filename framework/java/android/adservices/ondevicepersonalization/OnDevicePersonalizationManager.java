@@ -54,11 +54,10 @@ import java.util.concurrent.TimeUnit;
  * {@link IsolatedService} in an isolated process and interact with it.
  *
  * An app can request an {@link IsolatedService} to generate content for display
- * within a {@link SurfaceView} within the app's view hierarchy, and also write persistent results
- * to on-device storage which can be consumed by Federated Analytics for cross-device statistical
- * analysis or by Federated Learning for model training. The displayed content and the persistent
- * output are both not directly accessible by the calling app.
- *
+ * within an {@link android.view.SurfaceView} within the app's view hierarchy, and also write
+ * persistent results to on-device storage which can be consumed by Federated Analytics for
+ * cross-device statistical analysis or by Federated Learning for model training. The displayed
+ * content and the persistent output are both not directly accessible by the calling app.
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationManager {
@@ -118,10 +117,11 @@ public class OnDevicePersonalizationManager {
     /**
      * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
-     * and calls {@link IsolatedService#onExecute()} with the caller-provided
-     * parameters. When the {@link IsolatedService} finishes execution, the platform
-     * returns tokens that refer to the results from the service to the caller. These tokens can
-     * be subsequently used to display results in a {@link SurfaceView} within the calling app.
+     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * with the caller-provided parameters. When the {@link IsolatedService} finishes execution,
+     * the platform returns tokens that refer to the results from the service to the caller.
+     * These tokens can be subsequently used to display results in a
+     * {@link android.view.SurfaceView} within the calling app.
      *
      * @param handler The {@link ComponentName} of the {@link IsolatedService}.
      * @param params a {@link PersistableBundle} that is passed from the calling app to the
@@ -132,7 +132,8 @@ public class OnDevicePersonalizationManager {
      *     an opaque reference to a {@link RenderingConfig} returned by an
      *     {@link IsolatedService}, or an {@link Exception} on failure. The returned
      *     {@link SurfacePackageToken} objects can be used in a subsequent
-     *     {@link requestSurfacePackage} call to display the result in a view. The calling app and
+     *     {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, Executor,
+     *     OutcomeReceiver)} call to display the result in a view. The calling app and
      *     the {@link IsolatedService} must agree on the expected size of this list.
      *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
      *     indicate that the service has no output for that specific surface.
@@ -199,23 +200,29 @@ public class OnDevicePersonalizationManager {
     }
 
     /**
-     * Requests a {@link SurfacePackage} to be inserted into a {@link SurfaceView} inside the
-     * calling app. The surface package will contain a {@link View} with the content from a result
-     * of a prior call to {@link #execute()} running in the OnDevicePersonalization sandbox.
+     * Requests a {@link android.view.SurfaceControlViewHost.SurfacePackage} to be inserted into a
+     * {@link android.view.SurfaceView} inside the calling app. The surface package will contain an
+     * {@link android.view.View} with the content from a result of a prior call to
+     * {@code #execute(ComponentName, PersistableBundle, Executor, OutcomeReceiver)} running in
+     * the OnDevicePersonalization sandbox.
      *
      * @param surfacePackageToken a reference to a {@link SurfacePackageToken} returned by a prior
-     *     call to {@link execute}.
-     * @param surfaceViewHostToken the hostToken of the {@link SurfaceView}, which is returned by
-     *     {@link SurfaceView#getHostToken()} after the {@link SurfaceView} has been added to the
-     *     view hierarchy.
+     *     call to {@code #execute(ComponentName, PersistableBundle, Executor, OutcomeReceiver)}.
+     * @param surfaceViewHostToken the hostToken of the {@link android.view.SurfaceView}, which is
+     *     returned by {@link android.view.SurfaceView#getHostToken()} after the
+     *     {@link android.view.SurfaceView} has been added to the view hierarchy.
      * @param displayId the integer ID of the logical display on which to display the
-     *     {@link SurfacePackage}, returned by {@code Context.getDisplay().getDisplayId()}.
-     * @param width the width of the {@link SurfacePackage} in pixels.
-     * @param height the height of the {@link SurfacePackage} in pixels.
+     *     {@link android.view.SurfaceControlViewHost.SurfacePackage}, returned by
+     *     {@code Context.getDisplay().getDisplayId()}.
+     * @param width the width of the {@link android.view.SurfaceControlViewHost.SurfacePackage}
+     *     in pixels.
+     * @param height the height of the {@link android.view.SurfaceControlViewHost.SurfacePackage}
+     *     in pixels.
      * @param executor the {@link Executor} on which to invoke the callback
-     * @param receiver This either returns a {@link SurfacePackage} on success, or {@link
-     *     Exception} on failure. The exception type is {@link OnDevicePersonalizationException}
-     *     if execution of the handler fails.
+     * @param receiver This either returns a
+     *     {@link android.view.SurfaceControlViewHost.SurfacePackage} on success, or
+     *     {@link Exception} on failure. The exception type is
+     *     {@link OnDevicePersonalizationException} if execution of the handler fails.
      */
     public void requestSurfacePackage(
             @NonNull SurfacePackageToken surfacePackageToken,
@@ -322,6 +329,9 @@ public class OnDevicePersonalizationManager {
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
             return new OnDevicePersonalizationException(
                     OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+        } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
+            return new OnDevicePersonalizationException(
+                    OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED);
         } else {
             return new IllegalStateException("Error: " + errorCode);
         }

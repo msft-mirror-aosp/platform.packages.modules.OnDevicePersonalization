@@ -26,7 +26,9 @@ import android.annotation.WorkerThread;
 /**
  * An interface to a read-write key-value store.
  *
- * Used as a Data Access Object for the LOCAL_DATA table {@link IsolatedService#getLocalData}.
+ * Used as a Data Access Object for the LOCAL_DATA table.
+ *
+ * @see IsolatedService#getLocalData(RequestToken)
  *
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
