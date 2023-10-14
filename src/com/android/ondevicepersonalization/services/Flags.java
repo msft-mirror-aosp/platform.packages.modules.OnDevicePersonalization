@@ -50,6 +50,11 @@ public interface Flags {
      */
     boolean PERSONALIZATION_STATUS_OVERRIDE_VALUE = false;
 
+    /**
+     * Deadline for calls from ODP to isolated services.
+     */
+    int ISOLATED_SERVICE_DEADLINE_SECONDS = 30;
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
     }
@@ -64,5 +69,9 @@ public interface Flags {
 
     default boolean getPersonalizationStatusOverrideValue() {
         return PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+    }
+
+    default int getIsolatedServiceDeadlineSeconds() {
+        return ISOLATED_SERVICE_DEADLINE_SECONDS;
     }
 }

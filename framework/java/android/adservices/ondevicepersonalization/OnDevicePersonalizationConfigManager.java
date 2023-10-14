@@ -16,20 +16,24 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.annotation.CallbackExecutor;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
+import android.annotation.SystemApi;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
@@ -43,10 +47,12 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * OnDevicePersonalizationConfigManager provides system APIs
- * for GMSCore to control ODP's enablement status.
+ * for privileged APKs to control OnDevicePersonalization's enablement status.
  *
  * @hide
  */
+@SystemApi
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationConfigManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE =
@@ -87,37 +93,58 @@ public class OnDevicePersonalizationConfigManager {
     }
 
     /**
-     * Modify ODP personalization status from privileged APKs.
-     * Personalization status should be disabled by default.
+     * API users are expected to call this to modify personalization status for
+     * On Device Personalization. The status is persisted both in memory and to the disk.
+     * When reboot, the in-memory status will be restored from the disk.
+     * Personalization is disabled by default.
      *
-     * @param statusEnabled boolean whether personalization should be enabled in ODP.
-     *                      False if it is never called to set status.
-     * @param executor      the {@link Executor} on which to invoke the callback.
-     * @param receiver      This either returns true on success or {@link Exception} on failure.
-     * @hide
+     * @param enabled boolean whether On Device Personalization should be enabled.
+     * @param executor The {@link Executor} on which to invoke the callback.
+     * @param receiver This either returns null on success or {@link Exception} on failure.
+     *
+     *     In case of an error, the receiver returns one of the following exceptions:
+     *     Returns an {@link IllegalStateException} if the callback is unable to send back results.
+     *     Returns a {@link SecurityException} if the caller is unauthorized to modify
+     *     personalization status.
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
-    public void setPersonalizationStatus(boolean statusEnabled,
-                                         @NonNull @CallbackExecutor Executor executor,
-                                         @NonNull OutcomeReceiver<Boolean, Exception> receiver) {
+    public void setPersonalizationEnabled(boolean enabled,
+                                          @NonNull @CallbackExecutor Executor executor,
+                                          @NonNull OutcomeReceiver<Void, Exception> receiver) {
+
         try {
             bindService(executor);
 
-            mService.setPersonalizationStatus(statusEnabled,
+            mService.setPersonalizationStatus(enabled,
                     new IOnDevicePersonalizationConfigServiceCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> receiver.onResult(true));
+                            executor.execute(() -> {
+                                Binder.clearCallingIdentity();
+                                receiver.onResult(null);
+                            });
                         }
 
                         @Override
                         public void onFailure(int errorCode) {
-                            executor.execute(() -> receiver.onError(
-                                    new OnDevicePersonalizationException(errorCode)));
+                            executor.execute(() -> {
+                                sLogger.w(TAG + ": Unexpected failure from ODP"
+                                        + "config service with error code: " + errorCode);
+                                Binder.clearCallingIdentity();
+                                receiver.onError(new IllegalStateException("Unexpected failure."));
+                            });
                         }
                     });
-        } catch (InterruptedException | RemoteException e) {
-            receiver.onError(e);
+        } catch (IllegalStateException | InterruptedException | RemoteException e) {
+            executor.execute(() -> {
+                receiver.onError(new IllegalStateException(e));
+            });
+        } catch (SecurityException e) {
+            executor.execute(() -> {
+                sLogger.w(TAG + ": Unauthorized call to ODP config service.");
+                receiver.onError(e);
+            });
         }
     }
 

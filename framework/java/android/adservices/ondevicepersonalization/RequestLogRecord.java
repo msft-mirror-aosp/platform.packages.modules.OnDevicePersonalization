@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.os.Parcelable;
@@ -29,12 +32,14 @@ import java.util.List;
 // TODO(b/289102463): Add a link to the public doc for the REQUESTS table when available.
 /**
  * Contains data that will be written to the REQUESTS table at the end of a call to
- * {@link IsolatedWorker#onExecute()}. A single {$link RequestLogRecord} is appended to the
+ * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+ * A single {@link RequestLogRecord} is appended to the
  * REQUESTS table if it is provided as a part of {@link ExecuteOutput}. The contents of
  * the REQUESTS table can be consumed by Federated Learning facilitated model training,
  * or Federated Analytics facilitated cross-device statistical analysis.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class RequestLogRecord implements Parcelable {
     /**
@@ -53,7 +58,7 @@ public final class RequestLogRecord implements Parcelable {
      * Time of the request in milliseconds
      * @hide
      */
-    private final long mTimeMillis;
+    private long mTimeMillis = 0;
 
     abstract static class BaseBuilder {
         /**
@@ -203,6 +208,7 @@ public final class RequestLogRecord implements Parcelable {
     /**
      * A builder for {@link RequestLogRecord}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder extends BaseBuilder {
@@ -213,7 +219,8 @@ public final class RequestLogRecord implements Parcelable {
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         /**
          * A List of rows, each containing a {@link ContentValues}.
@@ -272,6 +279,9 @@ public final class RequestLogRecord implements Parcelable {
             if ((mBuilderFieldsSet & 0x2) == 0) {
                 mRequestId = 0;
             }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mTimeMillis = 0;
+            }
             RequestLogRecord o = new RequestLogRecord(
                     mRows,
                     mRequestId,
@@ -288,7 +298,7 @@ public final class RequestLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696637991963L,
+            time = 1696978492795L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RequestLogRecord.java",
             inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.NonNull java.util.List<android.content.ContentValues> mRows\nprivate  long mRequestId\nprivate  long mTimeMillis\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
