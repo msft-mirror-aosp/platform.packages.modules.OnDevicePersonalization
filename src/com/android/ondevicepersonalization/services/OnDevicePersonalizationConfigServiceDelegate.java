@@ -24,9 +24,14 @@ import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationC
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.content.Context;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
+import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.RemoteException;
 
+import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
@@ -45,6 +50,7 @@ public class OnDevicePersonalizationConfigServiceDelegate
     private final Context mContext;
     private static final Executor sBackgroundExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
+    private static final int SERVICE_NOT_IMPLEMENTED = 501;
 
     public OnDevicePersonalizationConfigServiceDelegate(Context context) {
         mContext = context;
@@ -62,7 +68,6 @@ public class OnDevicePersonalizationConfigServiceDelegate
         OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
                 MODIFY_ONDEVICEPERSONALIZATION_STATE);
         Objects.requireNonNull(callback);
-        // TODO(b/270468742): Call system server for U+ devices
         sBackgroundExecutor.execute(
                 () -> {
                     try {
@@ -85,7 +90,41 @@ public class OnDevicePersonalizationConfigServiceDelegate
                         userDataCollector.clearMetadata();
                         userDataCollector.clearDatabase();
 
-                        callback.onSuccess();
+                        // TODO(b/302018665): replicate system server storage to T devices.
+                        if (!SdkLevel.isAtLeastU()) {
+                            userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
+                            callback.onSuccess();
+                            return;
+                        }
+                        // Persist in the system server for U+ devices
+                        OnDevicePersonalizationSystemServiceManager systemServiceManager =
+                                mContext.getSystemService(
+                                        OnDevicePersonalizationSystemServiceManager.class);
+                        // Cannot find system server on U+.
+                        if (systemServiceManager == null) {
+                            callback.onFailure(SERVICE_NOT_IMPLEMENTED);
+                            return;
+                        }
+                        IOnDevicePersonalizationSystemService systemService =
+                                systemServiceManager.getService();
+                        // The system service is not ready.
+                        if (systemService == null) {
+                            callback.onFailure(SERVICE_NOT_IMPLEMENTED);
+                            return;
+                        }
+                        systemService.setPersonalizationStatus(enabled,
+                                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
+                                    @Override
+                                    public void onResult(Bundle bundle) throws RemoteException {
+                                        userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
+                                        callback.onSuccess();
+                                    }
+
+                                    @Override
+                                    public void onError(int errorCode) throws RemoteException {
+                                        callback.onFailure(errorCode);
+                                    }
+                                });
                     } catch (RemoteException re) {
                         sLogger.e(TAG + ": Unable to send result to the callback.", re);
                     }
