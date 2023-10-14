@@ -27,7 +27,7 @@ public class Constants {
     public static final int STATUS_NAME_NOT_FOUND = 101;
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
-
+    public static final int STATUS_PERSONALIZATION_DISABLED = 104;
     // Operations implemented by personalization services.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
@@ -36,6 +36,8 @@ public class Constants {
     public static final int OP_TRAINING_EXAMPLE = 5;
 
     // Keys for Bundle objects passed between processes.
+    public static final String EXTRA_CALLEE_METADATA =
+            "android.ondevicepersonalization.extra.callee_metadata";
     public static final String EXTRA_DATA_ACCESS_SERVICE_BINDER =
             "android.ondevicepersonalization.extra.data_access_service_binder";
     public static final String EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER =
@@ -53,6 +55,8 @@ public class Constants {
     public static final String EXTRA_USER_DATA = "android.ondevicepersonalization.extra.user_data";
     public static final String EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
     public static final String EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
+    public static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
+            "enable_ondevicepersonalization_apis";
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;

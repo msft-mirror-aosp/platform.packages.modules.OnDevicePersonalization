@@ -37,6 +37,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -51,12 +52,15 @@ import org.mockito.quality.Strictness;
 public class OdpFederatedComputeJobServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OdpFederatedComputeJobService mSpyService;
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
         mSpyService = spy(new OdpFederatedComputeJobService());
+        mPrivacyStatus.setPersonalizationStatusEnabled(true);
     }
 
     @Test
@@ -109,6 +113,23 @@ public class OdpFederatedComputeJobServiceTest {
     @Test
     public void onStartJobTestKillSwitchEnabled() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
+        MockitoSession session =
+                ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT).startMocking();
+        try {
+            FederatedComputeManager mockManager = mock(FederatedComputeManager.class);
+            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+            verify(mockManager, times(0)).schedule(any(), any(), any());
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestPersonalizationBlocked() {
+        mPrivacyStatus.setPersonalizationStatusEnabled(false);
         MockitoSession session =
                 ExtendedMockito.mockitoSession().strictness(Strictness.LENIENT).startMocking();
         try {

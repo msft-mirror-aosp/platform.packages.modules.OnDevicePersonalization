@@ -32,6 +32,7 @@ android_test_helper_app {
         "androidx.core_core",
         "cuckoofilter",
         "guava",
+        "tensorflow_core_proto_java_lite",
     ],
     resource_dirs: [
         "res",

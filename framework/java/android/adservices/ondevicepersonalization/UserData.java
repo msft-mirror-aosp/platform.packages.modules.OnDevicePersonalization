@@ -16,11 +16,13 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
 import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.content.res.Configuration.ORIENTATION_SQUARE;
 import static android.content.res.Configuration.ORIENTATION_UNDEFINED;
 
+import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
 import android.annotation.IntRange;
 import android.annotation.NonNull;
@@ -45,6 +47,7 @@ import java.util.Map;
  */
 // This class should be updated with the Kotlin mirror
 // {@link com.android.ondevicepersonalization.services.policyengine.data.UserData}.
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true, genConstDefs = false)
 public final class UserData implements Parcelable {
     /**
@@ -78,7 +81,7 @@ public final class UserData implements Parcelable {
     /** Battery percentage. */
     @IntRange(from = 0, to = 100) int mBatteryPercentage = 0;
 
-    /** The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName} */
+    /** The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName()} */
     @NonNull String mCarrier = "";
 
     /** @hide **/
@@ -247,7 +250,7 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName}
+     * The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName()}
      */
     @DataClass.Generated.Member
     public @NonNull String getCarrier() {
@@ -528,7 +531,7 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName}
+         * The Service Provider Name (SPN) returned by {@link TelephonyManager#getSimOperatorName()}
          */
         @DataClass.Generated.Member
         public @NonNull Builder setCarrier(@NonNull String value) {
@@ -702,7 +705,7 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1695754433652L,
+            time = 1697063796387L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
             inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n @android.annotation.Nullable android.net.NetworkCapabilities mNetworkCapabilities\n @android.adservices.ondevicepersonalization.UserData.NetworkType int mDataNetworkType\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\npublic @android.annotation.NonNull java.time.Duration getTimezoneUtcOffset()\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")
