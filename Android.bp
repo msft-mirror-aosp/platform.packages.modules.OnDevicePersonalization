@@ -114,6 +114,7 @@ android_app {
         "kotlinx-coroutines-android",
         "ondevicepersonalization-protos",
         "mobile_data_downloader_lib",
+        "modules-utils-build",
         "ondevicepersonalization-plugin-lib",
         "flatbuffers-java",
         "apache-velocity-engine-core",
@@ -123,6 +124,7 @@ android_app {
     min_sdk_version: "33",
     updatable: true,
     certificate: "platform",
+    privileged: true,
     apex_available: ["com.android.ondevicepersonalization"],
     defaults: [
         "ondevicepersonalization-java-defaults",
