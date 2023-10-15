@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -30,8 +31,6 @@ import android.os.PersistableBundle;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import java.util.Objects;
 
@@ -66,10 +65,6 @@ public class OnDevicePersonalizationManagingServiceDelegate
                     slotResultToken, hostToken, displayId, width, height, callback, context,
                     startTimeMillis);
         }
-
-        Clock getClock() {
-            return MonotonicClock.getInstance();
-        }
     }
 
     @NonNull private final Injector mInjector;
@@ -96,8 +91,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull String callingPackageName,
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
+            @NonNull CallerMetadata metadata,
             @NonNull IExecuteCallback callback) {
-        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
@@ -107,6 +102,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         Objects.requireNonNull(handler.getPackageName());
         Objects.requireNonNull(handler.getClassName());
         Objects.requireNonNull(params);
+        Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
         if (callingPackageName.isEmpty()) {
             throw new IllegalArgumentException("missing app package name");
@@ -127,7 +123,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 params,
                 callback,
                 mContext,
-                startTimeMillis);
+                metadata.getStartTimeMillis());
         flow.run();
     }
 
@@ -138,8 +134,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int displayId,
             int width,
             int height,
+            @NonNull CallerMetadata metadata,
             @NonNull IRequestSurfacePackageCallback callback) {
-        long startTimeMillis = mInjector.getClock().elapsedRealtime();
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
@@ -167,7 +163,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 height,
                 callback,
                 mContext,
-                startTimeMillis);
+                metadata.getStartTimeMillis());
         flow.run();
     }
 
