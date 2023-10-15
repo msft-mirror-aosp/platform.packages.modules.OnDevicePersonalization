@@ -25,6 +25,6 @@ import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationC
   */
 interface IOnDevicePersonalizationConfigService {
 
-    void setPersonalizationStatus(in boolean statusEnabled,
+    void setPersonalizationStatus(in boolean enabled,
             in IOnDevicePersonalizationConfigServiceCallback callback);
 }

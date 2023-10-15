@@ -55,9 +55,12 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
 
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public final class FederatedComputeManagingServiceDelegateTest {
+    private static final int BINDER_CONNECTION_TIMEOUT_MS = 10_000;
+
     private FederatedComputeManagingServiceDelegate mFcpService;
     private Context mContext;
     private final FederatedComputeStatsdLogger mFcStatsdLogger =
@@ -200,8 +203,8 @@ public final class FederatedComputeManagingServiceDelegateTest {
                         })
                 .when(mFcStatsdLogger)
                 .logApiCallStats(any(ApiCallStats.class));
-        sJobFinishCountDown.await();
-        logOperationCalledLatch.await();
+        sJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
         verify(mFcStatsdLogger).logApiCallStats(argument.capture());
@@ -229,8 +232,8 @@ public final class FederatedComputeManagingServiceDelegateTest {
                         })
                 .when(mFcStatsdLogger)
                 .logApiCallStats(any(ApiCallStats.class));
-        sJobFinishCountDown.await();
-        logOperationCalledLatch.await();
+        sJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+        logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
         verify(mFcStatsdLogger).logApiCallStats(argument.capture());
