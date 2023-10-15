@@ -16,10 +16,13 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.Service;
@@ -40,15 +43,19 @@ import java.util.function.Consumer;
 
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
- * Base class for services that are started by ODP on a call to {@link
- * OnDevicePersonalizationManager#execute} and run in an <a
+ * Base class for services that are started by ODP on a call to
+ * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
+ * java.util.concurrent.Executor, OutcomeReceiver)}
+ * and run in an <a
  * href="https://developer.android.com/guide/topics/manifest/service-element#isolated">isolated
- * process</a>. The service can produce content to be displayed in a {@link SurfaceView} in a
- * calling app and write persistent results to on-device storage, which can be consumed by Federated
- * Analytics for cross-device statistical analysis or by Federated Learning for model training.
+ * process</a>. The service can produce content to be displayed in a
+ * {@link android.view.SurfaceView} in a calling app and write persistent results to on-device
+ * storage, which can be consumed by Federated Analytics for cross-device statistical analysis or
+ * by Federated Learning for model training.
  * Client apps use {@link OnDevicePersonalizationManager} to interact with an {@link
  * IsolatedService}.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public abstract class IsolatedService extends Service {
     private static final String TAG = "IsolatedService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -101,10 +108,10 @@ public abstract class IsolatedService extends Service {
      * }</pre>
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table. The
      *     methods in the returned {@link KeyValueStore} are blocking operations and should be
      *     called from a worker thread and not the main thread or a binder thread.
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final KeyValueStore getRemoteData(@NonNull RequestToken requestToken) {
@@ -118,10 +125,10 @@ public abstract class IsolatedService extends Service {
      * device.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
      *     The methods in the returned {@link MutableKeyValueStore} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final MutableKeyValueStore getLocalData(@NonNull RequestToken requestToken) {
@@ -133,10 +140,10 @@ public abstract class IsolatedService extends Service {
      * access to the rows that are readable by the IsolatedService.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link LogReader} object that provides access to the REQUESTS and EVENTS table.
      *     The methods in the returned {@link LogReader} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
+     * @see #onRequest(RequestToken)
      *
      * @hide
      */
@@ -147,13 +154,13 @@ public abstract class IsolatedService extends Service {
 
     /**
      * Returns an {@link EventUrlProvider} for the current request. The {@link EventUrlProvider}
-     * provides URLs that can be embedded in HTML. When the HTML is rendered in a {@link WebView},
-     * the platform intercepts requests to these URLs and invokes {@link
-     * IsolatedCmputationCallback#onEvent()}.
+     * provides URLs that can be embedded in HTML. When the HTML is rendered in an
+     * {@link android.webkit.WebView}, the platform intercepts requests to these URLs and invokes
+     * {@code IsolatedWorker#onEvent(EventInput, Consumer)}.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return An {@link EventUrlProvider} that returns event tracking URLs.
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final EventUrlProvider getEventUrlProvider(@NonNull RequestToken requestToken) {
@@ -164,8 +171,8 @@ public abstract class IsolatedService extends Service {
      * Returns the platform-provided {@link UserData} for the current request.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link UserData} object.
+     * @see #onRequest(RequestToken)
      */
     @Nullable
     public final UserData getUserData(@NonNull RequestToken requestToken) {
@@ -178,9 +185,9 @@ public abstract class IsolatedService extends Service {
      * federated computation includes federated learning and federated analytic jobs.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return An {@link FederatedComputeScheduler} that returns a federated computation job
      *     scheduler.
+     * @see #onRequest(RequestToken)
      * @hide
      */
     @NonNull

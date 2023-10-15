@@ -34,6 +34,8 @@ import android.webkit.WebViewClient;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
@@ -43,7 +45,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessUtils;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -54,12 +56,14 @@ import com.android.ondevicepersonalization.services.util.StatsUtils;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.util.Collections;
-import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 class OdpWebViewClient extends WebViewClient {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -68,7 +72,7 @@ class OdpWebViewClient extends WebViewClient {
 
     @VisibleForTesting
     static class Injector {
-        Executor getExecutor() {
+        ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
 
@@ -83,6 +87,18 @@ class OdpWebViewClient extends WebViewClient {
 
         Clock getClock() {
             return MonotonicClock.getInstance();
+        }
+
+        Flags getFlags() {
+            return FlagsFactory.getFlags();
+        }
+
+        ListeningScheduledExecutorService getScheduledExecutor() {
+            return OnDevicePersonalizationExecutors.getScheduledExecutor();
+        }
+
+        ProcessRunner getProcessRunner() {
+            return ProcessRunner.getInstance();
         }
     }
 
@@ -166,7 +182,6 @@ class OdpWebViewClient extends WebViewClient {
     }
 
     private ListenableFuture<EventOutput> executeEventHandler(
-            long startTimeMillis,
             IsolatedServiceInfo isolatedServiceInfo,
             EventUrlPayload payload) {
         try {
@@ -186,7 +201,7 @@ class OdpWebViewClient extends WebViewClient {
             UserData userData = userDataAccessor.getUserData();
             serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
             return FluentFuture.from(
-                    ProcessUtils.runIsolatedService(
+                    mInjector.getProcessRunner().runIsolatedService(
                         isolatedServiceInfo,
                         AppManifestConfigHelper.getServiceNameFromOdpSettings(
                                 mContext, mServicePackageName),
@@ -195,7 +210,8 @@ class OdpWebViewClient extends WebViewClient {
                     .transform(
                             result -> {
                                 writeServiceRequestMetrics(
-                                        result, startTimeMillis, Constants.STATUS_SUCCESS);
+                                        result, isolatedServiceInfo.getStartTimeMillis(),
+                                        Constants.STATUS_SUCCESS);
                                 return result.getParcelable(
                                         Constants.EXTRA_RESULT, EventOutput.class);
                             },
@@ -204,7 +220,8 @@ class OdpWebViewClient extends WebViewClient {
                             Exception.class,
                             e -> {
                                 writeServiceRequestMetrics(
-                                        null, startTimeMillis, Constants.STATUS_INTERNAL_ERROR);
+                                        null, isolatedServiceInfo.getStartTimeMillis(),
+                                        Constants.STATUS_INTERNAL_ERROR);
                                 return Futures.immediateFailedFuture(e);
                             },
                             mInjector.getExecutor()
@@ -216,14 +233,14 @@ class OdpWebViewClient extends WebViewClient {
 
     }
 
-    ListenableFuture<EventOutput> getEventOutput(EventUrlPayload payload) {
+    ListenableFuture<EventOutput> getEventOutput(
+            ListenableFuture<IsolatedServiceInfo> loadFuture,
+            EventUrlPayload payload) {
         try {
             sLogger.d(TAG + ": getEventOutput(): Starting isolated process.");
-            long startTimeMillis = mInjector.getClock().elapsedRealtime();
-            return FluentFuture.from(ProcessUtils.loadIsolatedService(
-                    TASK_NAME, mServicePackageName, mContext))
+            return FluentFuture.from(loadFuture)
                 .transformAsync(
-                        result -> executeEventHandler(startTimeMillis, result, payload),
+                        result -> executeEventHandler(result, payload),
                         mInjector.getExecutor());
 
         } catch (Exception e) {
@@ -272,11 +289,24 @@ class OdpWebViewClient extends WebViewClient {
         try {
             sLogger.d(TAG + ": handleEvent() called");
 
-            var unused = FluentFuture.from(getEventOutput(eventUrlPayload))
+            ListenableFuture<IsolatedServiceInfo> loadFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, mServicePackageName);
+
+            var doneFuture = FluentFuture.from(getEventOutput(loadFuture, eventUrlPayload))
                     .transformAsync(
                         result -> writeEvent(result),
-                        mInjector.getExecutor());
+                        mInjector.getExecutor())
+                    .withTimeout(
+                        mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                        TimeUnit.SECONDS,
+                        mInjector.getScheduledExecutor()
+                    );
 
+            var unused = Futures.whenAllComplete(loadFuture, doneFuture)
+                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                            loadFuture.get()),
+                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Failed to handle Event", e);
         }

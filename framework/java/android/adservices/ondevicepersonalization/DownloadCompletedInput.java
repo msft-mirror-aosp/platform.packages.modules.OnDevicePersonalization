@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 
@@ -26,9 +29,11 @@ import java.util.Collections;
 import java.util.Map;
 
 /**
- * The input data for {@link IsolatedWorker#onDownloadCompleted()}.
+ * The input data for {@link
+ * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class DownloadCompletedInput {
     /** Map containing downloaded keys and values */

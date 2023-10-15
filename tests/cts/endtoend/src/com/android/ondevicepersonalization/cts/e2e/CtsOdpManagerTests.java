@@ -38,7 +38,6 @@ import org.junit.runner.RunWith;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 /**
  * CTS Test cases for OnDevicePersonalizationManager APIs.
@@ -152,7 +151,7 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.await());
+        receiver.await();
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof NameNotFoundException);
     }
@@ -169,7 +168,7 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.await());
+        receiver.await();
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof ClassNotFoundException);
     }
@@ -185,7 +184,7 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.await());
+        receiver.await();
         List<SurfacePackageToken> results = receiver.getResult();
         assertNotNull(results);
         assertEquals(1, results.size());
@@ -205,8 +204,8 @@ public class CtsOdpManagerTests {
             mException = e;
             mLatch.countDown();
         }
-        boolean await() throws InterruptedException {
-            return mLatch.await(15, TimeUnit.SECONDS);
+        void await() throws InterruptedException {
+            mLatch.await();
         }
         T getResult() {
             return mResult;
