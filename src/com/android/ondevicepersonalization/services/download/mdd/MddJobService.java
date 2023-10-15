@@ -29,6 +29,7 @@ import android.os.PersistableBundle;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
 
 import com.google.android.libraries.mobiledatadownload.tracing.PropagatedFutures;
@@ -51,6 +52,12 @@ public class MddJobService extends JobService {
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
             jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
+
+        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            jobFinished(params, false);
             return true;
         }
 

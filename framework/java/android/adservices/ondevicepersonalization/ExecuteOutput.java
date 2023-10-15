@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
@@ -27,16 +30,19 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedWorker#onExecute()} in response to a call to
- * {@link OnDevicePersonalizationManager#execute()} from a client app.
- *
+ * The result returned by
+ * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)} in response to a call to
+ * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
+ * java.util.concurrent.Executor, OutcomeReceiver)}
+ * from a client app.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput implements Parcelable {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute()} completes. If null, no persistent data will
-     * be written.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * completes. If null, no persistent data will be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
@@ -49,8 +55,9 @@ public final class ExecuteOutput implements Parcelable {
 
     /**
      * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord}.
-     * If the event does not contain a RequestLogRecord emitted by this package, the
+     * them with requests with the specified corresponding {@link RequestLogRecord} from
+     * {@link EventLogRecord#getRequestLogRecord()}.
+     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      * EventLogRecord is not written.
      *
      * @hide
@@ -91,8 +98,8 @@ public final class ExecuteOutput implements Parcelable {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute()} completes. If null, no persistent data will
-     * be written.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -110,8 +117,9 @@ public final class ExecuteOutput implements Parcelable {
 
     /**
      * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord}.
-     * If the event does not contain a RequestLogRecord emitted by this package, the
+     * them with requests with the specified corresponding {@link RequestLogRecord} from
+     * {@link EventLogRecord#getRequestLogRecord()}.
+     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      * EventLogRecord is not written.
      *
      * @hide
@@ -212,6 +220,7 @@ public final class ExecuteOutput implements Parcelable {
     /**
      * A builder for {@link ExecuteOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -227,8 +236,8 @@ public final class ExecuteOutput implements Parcelable {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedWorker#onExecute()} completes. If null, no persistent data will
-         * be written.
+         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+         * completes. If null, no persistent data will be written.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -260,8 +269,9 @@ public final class ExecuteOutput implements Parcelable {
 
         /**
          * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-         * them with requests with the specified corresponding {@link RequestLogRecord}.
-         * If the event does not contain a RequestLogRecord emitted by this package, the
+         * them with requests with the specified corresponding {@link RequestLogRecord} from
+         * {@link EventLogRecord#getRequestLogRecord()}.
+         * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
          * EventLogRecord is not written.
          *
          * @hide
@@ -274,8 +284,9 @@ public final class ExecuteOutput implements Parcelable {
             return this;
         }
 
-        /** @see #setEventLogRecords
-         *  @hide
+        /**
+         * @see #setEventLogRecords
+         * @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder addEventLogRecord(@NonNull EventLogRecord value) {
@@ -314,7 +325,7 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696367860133L,
+            time = 1697132452641L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
             inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

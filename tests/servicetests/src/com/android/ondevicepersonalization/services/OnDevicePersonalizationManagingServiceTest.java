@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
@@ -34,6 +35,7 @@ import android.view.SurfaceControlViewHost;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 
@@ -55,11 +57,13 @@ public class OnDevicePersonalizationManagingServiceTest {
     private OnDevicePersonalizationManagingServiceDelegate mService;
     private boolean mAppRequestFlowStarted = false;
     private boolean mRenderFlowStarted = false;
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mService = new OnDevicePersonalizationManagingServiceDelegate(
                 mContext, new TestInjector());
     }
@@ -81,6 +85,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         new ComponentName(
                             mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         callback
                     ));
         } finally {
@@ -96,6 +101,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 new ComponentName(
                     mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                 PersistableBundle.EMPTY,
+                new CallerMetadata.Builder().build(),
                 callback);
         assertTrue(mAppRequestFlowStarted);
     }
@@ -112,6 +118,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                             mContext.getPackageName(),
                             "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -127,6 +134,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                             mContext.getPackageName(),
                             "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -142,6 +150,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                             mContext.getPackageName(),
                             "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -155,6 +164,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         mContext.getPackageName(),
                         null,
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -168,6 +178,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         mContext.getPackageName(),
                         new ComponentName("", "ServiceClass"),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -181,6 +192,22 @@ public class OnDevicePersonalizationManagingServiceTest {
                         mContext.getPackageName(),
                         new ComponentName("com.test.TestPackage", ""),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
+                        callback));
+    }
+
+    @Test
+    public void testExecuteThrowsIfMetadataMissing() throws Exception {
+        var callback = new ExecuteCallback();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.execute(
+                        mContext.getPackageName(),
+                        new ComponentName(
+                            mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
+                        PersistableBundle.EMPTY,
+                        null,
                         callback));
     }
 
@@ -194,6 +221,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         new ComponentName(
                             mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
                         PersistableBundle.EMPTY,
+                        new CallerMetadata.Builder().build(),
                         null));
     }
 
@@ -211,6 +239,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         0,
                         100,
                         50,
+                        new CallerMetadata.Builder().build(),
                         callback
                     ));
         } finally {
@@ -227,6 +256,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 0,
                 100,
                 50,
+                new CallerMetadata.Builder().build(),
                 callback);
         assertTrue(mRenderFlowStarted);
     }
@@ -243,6 +273,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         0,
                         100,
                         50,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -258,6 +289,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         0,
                         100,
                         50,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -273,6 +305,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         -1,
                         100,
                         50,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -288,6 +321,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         0,
                         0,
                         50,
+                        new CallerMetadata.Builder().build(),
                         callback));
     }
 
@@ -303,6 +337,23 @@ public class OnDevicePersonalizationManagingServiceTest {
                         0,
                         100,
                         0,
+                        new CallerMetadata.Builder().build(),
+                        callback));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfMetadataMissing() throws Exception {
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                    mService.requestSurfacePackage(
+                        "resultToken",
+                        new Binder(),
+                        0,
+                        100,
+                        50,
+                        null,
                         callback));
     }
 
@@ -317,6 +368,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         0,
                         100,
                         50,
+                        new CallerMetadata.Builder().build(),
                         null));
     }
 

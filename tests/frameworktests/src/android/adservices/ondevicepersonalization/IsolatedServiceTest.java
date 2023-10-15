@@ -91,6 +91,9 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -112,6 +115,9 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -124,6 +130,9 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -142,6 +151,9 @@ public class IsolatedServiceTest {
     public void testOnExecuteThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -153,6 +165,22 @@ public class IsolatedServiceTest {
     public void testOnExecuteThrowsIfDataAccessServiceMissing() throws Exception {
         ExecuteInput input = new ExecuteInput.Builder().setAppPackageName("com.testapp").build();
         Bundle params = new Bundle();
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnExecuteThrowsIfFederatedComputeServiceMissing() throws Exception {
+        ExecuteInput input = new ExecuteInput.Builder().setAppPackageName("com.testapp").build();
+        Bundle params = new Bundle();
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
                 NullPointerException.class,
