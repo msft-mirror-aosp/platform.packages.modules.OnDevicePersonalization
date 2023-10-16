@@ -61,12 +61,11 @@ import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReference;
 
 @RunWith(JUnit4.class)
-public final class FederatedJavaExampleIteratorTest {
+public final class FederatedExampleIteratorTest {
     private static final String APP_ID = "com.foo.bar";
-    private static final String FAKE_COLLECTION = "/collection1";
+    private static final String FAKE_TASK_NAME = "task-name";
     private static final byte[] FAKE_CRITERIA = new byte[] {10, 0, 1};
     private static final byte[] RESUMPTION_TOKEN = "token1".getBytes(Charset.defaultCharset());
     private static final byte[] EXAMPLE_1 = "example1".getBytes(Charset.defaultCharset());
@@ -77,19 +76,14 @@ public final class FederatedJavaExampleIteratorTest {
             MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
     private final SingleQueryRecorder mRecorder =
             new ExampleConsumptionRecorder()
-                    .createRecorderForTracking(FAKE_COLLECTION, FAKE_CRITERIA);
+                    .createRecorderForTracking(FAKE_TASK_NAME, FAKE_CRITERIA);
 
     private FederatedExampleIterator mIterator;
-    private AtomicReference<IExampleStoreIterator> mExampleStoreIteratorStub;
-    private AtomicReference<Integer> mExampleStoreIteratorError;
     @Mock private Flags mMockFlags;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-
-        mExampleStoreIteratorStub = new AtomicReference<>(null);
-        mExampleStoreIteratorError = new AtomicReference<>(null);
         when(mMockFlags.getAppHostedExampleStoreTimeoutSecs()).thenReturn(TIMEOUT_SECS);
     }
 
@@ -98,9 +92,7 @@ public final class FederatedJavaExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         // Verify the mIterator works in a typical hasNext/Next/hasNext/next/hasNext.
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
@@ -119,9 +111,7 @@ public final class FederatedJavaExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         // Verify the mIterator works in a typical hasNext/Next/hasNext/next.
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
@@ -143,9 +133,7 @@ public final class FederatedJavaExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         // Verify the mIterator works if only next() is called and hasNext() never called.
         assertThat(runInBackgroundAndWait(mIterator::next)).isEqualTo(EXAMPLE_1);
@@ -161,9 +149,7 @@ public final class FederatedJavaExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         runInBackgroundAndWait(mIterator::close);
     }
@@ -173,9 +159,7 @@ public final class FederatedJavaExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
         runInBackgroundAndWait(mIterator::close);
@@ -188,9 +172,7 @@ public final class FederatedJavaExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         assertThat(runInBackgroundAndWait(mIterator::next)).isEqualTo(EXAMPLE_1);
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
@@ -205,9 +187,7 @@ public final class FederatedJavaExampleIteratorTest {
         FakeExampleStoreIterator fakeIterator =
                 new FakeExampleStoreIterator(fakeResults, STATUS_INTERNAL_ERROR);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         runInBackgroundAndWait(mIterator::next);
 
@@ -218,7 +198,7 @@ public final class FederatedJavaExampleIteratorTest {
         ErrorStatusException errorStatusException = (ErrorStatusException) exception.getCause();
         assertThat(errorStatusException.getStatus().getCode()).isEqualTo(Code.UNAVAILABLE_VALUE);
         assertThat(errorStatusException.getStatus().getMessage())
-                .isEqualTo("OnIteratorNextFailure: /collection1 1");
+                .isEqualTo("OnIteratorNextFailure: 1");
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
         runInBackgroundAndWait(mIterator::close);
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
@@ -230,9 +210,7 @@ public final class FederatedJavaExampleIteratorTest {
         FakeExampleStoreIterator fakeIterator =
                 new FakeExampleStoreIterator(fakeResults, STATUS_INTERNAL_ERROR);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         runInBackgroundAndWait(mIterator::next);
 
@@ -243,7 +221,7 @@ public final class FederatedJavaExampleIteratorTest {
         ErrorStatusException errorStatusException = (ErrorStatusException) exception.getCause();
         assertThat(errorStatusException.getStatus().getCode()).isEqualTo(Code.UNAVAILABLE_VALUE);
         assertThat(errorStatusException.getStatus().getMessage())
-                .isEqualTo("OnIteratorNextFailure: /collection1 1");
+                .isEqualTo("OnIteratorNextFailure: 1");
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
         runInBackgroundAndWait(mIterator::close);
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
@@ -255,9 +233,7 @@ public final class FederatedJavaExampleIteratorTest {
         FakeExampleStoreIterator fakeIterator =
                 new FakeExampleStoreIterator(fakeResults, STATUS_INTERNAL_ERROR);
 
-        mIterator =
-                new FederatedExampleIterator(
-                        fakeIterator, FAKE_COLLECTION, FAKE_CRITERIA, RESUMPTION_TOKEN, mRecorder);
+        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
 
         runInBackgroundAndWait(mIterator::close);
 
