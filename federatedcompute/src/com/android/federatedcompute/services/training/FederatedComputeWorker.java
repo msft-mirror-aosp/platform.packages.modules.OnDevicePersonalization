@@ -25,7 +25,9 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
 import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
@@ -548,9 +550,9 @@ public class FederatedComputeWorker {
                 AbstractServiceBinder.getServiceBinder(
                         mContext,
                         ClientConstants.EXAMPLE_STORE_ACTION,
-                        packageName,
                         IExampleStoreService.Stub::asInterface);
-        return mExampleStoreServiceBinder.getService(Runnable::run);
+        Intent intent = new Intent(ClientConstants.EXAMPLE_STORE_ACTION).setPackage(packageName);
+        return mExampleStoreServiceBinder.getService(Runnable::run, intent);
     }
 
     @VisibleForTesting
@@ -627,9 +629,12 @@ public class FederatedComputeWorker {
                 AbstractServiceBinder.getServiceBinder(
                         mContext,
                         ISOLATED_TRAINING_SERVICE_NAME,
-                        mContext.getPackageName(),
                         IIsolatedTrainingService.Stub::asInterface);
-        return mIsolatedTrainingServiceBinder.getService(Runnable::run);
+        Intent intent = new Intent();
+        ComponentName serviceComponent =
+                new ComponentName(mContext.getPackageName(), ISOLATED_TRAINING_SERVICE_NAME);
+        intent.setComponent(serviceComponent);
+        return mIsolatedTrainingServiceBinder.getService(Runnable::run, intent);
     }
 
     @VisibleForTesting

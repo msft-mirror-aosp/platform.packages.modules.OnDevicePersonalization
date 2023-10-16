@@ -24,9 +24,13 @@ import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCal
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
@@ -34,12 +38,15 @@ import android.os.RemoteException;
 import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
-import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
@@ -57,29 +64,44 @@ public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
             "on_device_personalization_service";
-    private static final String INTENT_FILTER_ACTION = "android.OnDevicePersonalizationService";
-    private static final String ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
-            "com.android.ondevicepersonalization.services";
 
-    private static final String ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX =
-            "com.google.android.ondevicepersonalization.services";
+    private boolean mBound = false;
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "OdpManager";
 
-    private final AbstractServiceBinder<IOnDevicePersonalizationManagingService> mServiceBinder;
+    private IOnDevicePersonalizationManagingService mService;
     private final Context mContext;
 
     /** @hide */
     public OnDevicePersonalizationManager(Context context) {
         mContext = context;
-        this.mServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
-                        context,
-                        INTENT_FILTER_ACTION,
-                        List.of(
-                                ODP_MANAGING_SERVICE_PACKAGE_SUFFIX,
-                                ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX),
-                        IOnDevicePersonalizationManagingService.Stub::asInterface);
     }
 
+    private final CountDownLatch mConnectionLatch = new CountDownLatch(1);
+
+    private final ServiceConnection mConnection =
+            new ServiceConnection() {
+                @Override
+                public void onServiceConnected(ComponentName name, IBinder service) {
+                    mService = IOnDevicePersonalizationManagingService.Stub.asInterface(service);
+                    mBound = true;
+                    mConnectionLatch.countDown();
+                }
+
+                @Override
+                public void onNullBinding(ComponentName name) {
+                    mBound = false;
+                    mConnectionLatch.countDown();
+                }
+
+                @Override
+                public void onServiceDisconnected(ComponentName name) {
+                    mService = null;
+                    mBound = false;
+                }
+            };
+
+    private static final int BIND_SERVICE_TIMEOUT_SEC = 5;
     private static final String VERSION = "1.0";
 
     /**
@@ -136,8 +158,7 @@ public class OnDevicePersonalizationManager {
         long startTimeMillis = SystemClock.elapsedRealtime();
 
         try {
-            final IOnDevicePersonalizationManagingService service =
-                    mServiceBinder.getService(executor);
+            bindService(executor);
 
             IExecuteCallback callbackWrapper = new IExecuteCallback.Stub() {
                 @Override
@@ -167,14 +188,13 @@ public class OnDevicePersonalizationManager {
                 }
             };
 
-            service.execute(
-                    mContext.getPackageName(),
-                    handler,
-                    params,
+            mService.execute(
+                    mContext.getPackageName(), handler, params,
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
+        } catch (InterruptedException
+                | RemoteException e) {
             receiver.onError(new IllegalStateException(e));
         }
     }
@@ -220,8 +240,7 @@ public class OnDevicePersonalizationManager {
         long startTimeMillis = SystemClock.elapsedRealtime();
 
         try {
-            final IOnDevicePersonalizationManagingService service =
-                    mServiceBinder.getService(executor);
+            bindService(executor);
 
             IRequestSurfacePackageCallback callbackWrapper =
                     new IRequestSurfacePackageCallback.Stub() {
@@ -239,18 +258,67 @@ public class OnDevicePersonalizationManager {
                         }
                     };
 
-            service.requestSurfacePackage(
-                    surfacePackageToken.getTokenString(),
-                    surfaceViewHostToken,
-                    displayId,
-                    width,
-                    height,
+            mService.requestSurfacePackage(
+                    surfacePackageToken.getTokenString(), surfaceViewHostToken, displayId,
+                    width, height,
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
+        } catch (InterruptedException
+                | RemoteException e) {
             receiver.onError(new IllegalStateException(e));
         }
+    }
+
+    /** Bind to the service, if not already bound. */
+    private void bindService(@NonNull Executor executor) throws InterruptedException {
+        if (!mBound) {
+            Intent intent = new Intent("android.OnDevicePersonalizationService");
+            ComponentName serviceComponent =
+                    resolveService(intent, mContext.getPackageManager());
+            if (serviceComponent == null) {
+                sLogger.e(TAG + ": Invalid component for ondevicepersonalization service");
+                return;
+            }
+
+            intent.setComponent(serviceComponent);
+            int bindFlags = Context.BIND_AUTO_CREATE;
+            if (SdkLevel.isAtLeastU()) {
+                bindFlags |= Context.BIND_ALLOW_ACTIVITY_STARTS;
+            }
+            boolean r = mContext.bindService(
+                    intent, bindFlags, executor, mConnection);
+            if (!r) {
+                return;
+            }
+            mConnectionLatch.await(BIND_SERVICE_TIMEOUT_SEC, TimeUnit.SECONDS);
+        }
+    }
+
+    /**
+     * Find the ComponentName of the service, given its intent and package manager.
+     *
+     * @return ComponentName of the service. Null if the service is not found.
+     */
+    private @Nullable ComponentName resolveService(
+            @NonNull Intent intent, @NonNull PackageManager pm) {
+        List<ResolveInfo> services =
+                pm.queryIntentServices(intent, PackageManager.ResolveInfoFlags.of(0));
+        if (services == null || services.isEmpty()) {
+            sLogger.e(TAG + ": Failed to find ondevicepersonalization service");
+            return null;
+        }
+
+        for (int i = 0; i < services.size(); i++) {
+            ResolveInfo ri = services.get(i);
+            ComponentName resolved =
+                    new ComponentName(ri.serviceInfo.packageName, ri.serviceInfo.name);
+            // There should only be one matching service inside the given package.
+            // If there's more than one, return the first one found.
+            return resolved;
+        }
+        sLogger.e(TAG + ": Didn't find any matching ondevicepersonalization service.");
+        return null;
     }
 
     private Exception createException(int errorCode) {
