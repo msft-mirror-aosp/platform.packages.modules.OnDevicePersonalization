@@ -36,7 +36,7 @@
     <uses-permission
         android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
 
-    <application android:forceQueryable="true">
+    <application>
         <service android:name=".FederatedComputeManagingServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.federatedcompute.FederatedComputeService" />
