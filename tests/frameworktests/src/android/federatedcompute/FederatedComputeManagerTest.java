@@ -140,6 +140,14 @@ public class FederatedComputeManagerTest {
                                 "testPopulation",
                                 null /* mock will be returned */
                         },
+                        {
+                                "unbind",
+                                new ScheduleFederatedComputeRequest.Builder()
+                                        .setTrainingOptions(new TrainingOptions.Builder().build())
+                                        .build(),
+                                null,
+                                new IFederatedComputeService.Default()
+                        },
                 });
     }
 
@@ -149,7 +157,7 @@ public class FederatedComputeManagerTest {
         ResolveInfo resolveInfo = new ResolveInfo();
         ServiceInfo serviceInfo = new ServiceInfo();
         serviceInfo.name = "TestName";
-        serviceInfo.packageName = "com.android.federatedcompute.services";
+        serviceInfo.packageName = "test.package.name";
         resolveInfo.serviceInfo = serviceInfo;
         when(mMockPackageManager.queryIntentServices(any(), anyInt()))
                 .thenReturn(List.of(resolveInfo));

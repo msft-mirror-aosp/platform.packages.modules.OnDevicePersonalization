@@ -24,8 +24,8 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
+import android.content.pm.ServiceInfo;
 import android.os.IBinder;
 
 import com.android.internal.annotations.GuardedBy;
@@ -40,7 +40,6 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
 
     private static final int BINDER_CONNECTION_TIMEOUT_MS = 5000;
     private final String mServiceIntentAction;
-    private final List<String> mServicePackageSuffixes;
     private final Function<IBinder, T> mBinderConverter;
     private final Context mContext;
     // Concurrency mLock.
@@ -58,33 +57,25 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     AndroidServiceBinder(
             @NonNull Context context,
             @NonNull String serviceIntentAction,
-            @NonNull String servicePackageSuffix,
             @NonNull Function<IBinder, T> converter) {
         this.mServiceIntentAction = serviceIntentAction;
         this.mContext = context;
         this.mBinderConverter = converter;
-        this.mServicePackageSuffixes = List.of(servicePackageSuffix);
-    }
-
-    AndroidServiceBinder(
-            @NonNull Context context,
-            @NonNull String serviceIntentAction,
-            @NonNull List<String> servicePackageSuffixes,
-            @NonNull Function<IBinder, T> converter) {
-        this.mServiceIntentAction = serviceIntentAction;
-        this.mContext = context;
-        this.mBinderConverter = converter;
-        this.mServicePackageSuffixes = servicePackageSuffixes;
     }
 
     @Override
     public T getService(@NonNull Executor executor) {
+        return getService(executor, null);
+    }
+
+    @Override
+    public T getService(@NonNull Executor executor, Intent intent) {
         synchronized (mLock) {
             if (mService != null) {
                 return mService;
             }
             if (mServiceConnection == null) {
-                Intent bindIntent =  getIntentBasedOnAction();
+                Intent bindIntent = (intent == null) ? getIntentBasedOnAction() : intent;
                 // This latch will open when the connection is established or any error occurs.
                 mConnectionCountDownLatch = new CountDownLatch(1);
                 mServiceConnection = new GenericServiceConnection();
@@ -138,41 +129,23 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
      */
     @Nullable
     private ComponentName resolveComponentName(@NonNull Intent intent) {
-        List<ResolveInfo> services =
-                mContext.getPackageManager()
-                        .queryIntentServices(intent, PackageManager.MATCH_SYSTEM_ONLY);
+        List<ResolveInfo> services = mContext.getPackageManager().queryIntentServices(intent, 0);
         if (services == null || services.isEmpty()) {
             LogUtil.e(TAG, "Failed to find service %s!", intent.getAction());
             return null;
-        } else if (services.size() != 1) {
-            LogUtil.i(TAG, "Found more than 1 (%d) service by intent %s!", services.size(), intent);
         }
 
-        for (ResolveInfo ri : services) {
-            // Check that found service has expected package.
-            if (ri != null
-                    && ri.serviceInfo != null
-                    && ri.serviceInfo.packageName != null
-                    && mServicePackageSuffixes.contains(ri.serviceInfo.packageName)) {
-                // There should only be one matching service inside the given package.
-                // If there's more than one, return the first one found.
-                LogUtil.d(
-                        TAG,
-                        "Resolved component with pkg %s, class %s",
-                        ri.serviceInfo.packageName,
-                        ri.serviceInfo.name);
-                return new ComponentName(ri.serviceInfo.packageName, ri.serviceInfo.name);
-            } else {
-                if (ri != null && ri.serviceInfo != null) {
-                    LogUtil.d(
-                            TAG,
-                            "Resolved component with pkg %s, class %s",
-                            ri.serviceInfo.packageName,
-                            ri.serviceInfo.name);
-                } else {
-                    LogUtil.d(TAG, "Resolved component is null or service info is null");
-                }
+        for (int i = 0; i < services.size(); i++) {
+            ServiceInfo serviceInfo = services.get(i).serviceInfo;
+            if (serviceInfo == null) {
+                LogUtil.e(TAG, "Failed to find %s serviceInfo.", intent.getAction());
+                return null;
             }
+            // There should only be one matching service inside the given package.
+            // If there's more than one, return the first one found.
+            LogUtil.d(TAG, "Resolved component with pkg %s, class %s",
+                    serviceInfo.packageName, serviceInfo.name);
+            return new ComponentName(serviceInfo.packageName, serviceInfo.name);
         }
         LogUtil.e(TAG, "Didn't find any matching service %s.", intent.getAction());
         return null;
