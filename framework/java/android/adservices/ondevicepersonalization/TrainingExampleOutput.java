@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 import com.android.internal.util.Preconditions;
@@ -29,10 +32,10 @@ import java.util.function.Consumer;
 /**
  * The output data of {@link IsolatedWorker#onTrainingExample(TrainingExampleInput, Consumer)}
  *
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public class TrainingExampleOutput {
+public final class TrainingExampleOutput {
     /**
      * A list of training example byte arrays. The format is binary
      * seriazlied tf.Example proto by default. The maximum example size is 50KB to avoid hitting
@@ -97,8 +100,10 @@ public class TrainingExampleOutput {
     }
 
     /**
-     * A list of resumption token byte arrays. The last processed resumption token will be passed to
-     * {@link TrainingExampleInput} to support resumption.
+     * A list of resumption token byte arrays corresponding to training examples. The last
+     * processed example's corresponding resumption token will be passed to
+     * {@link TrainingExampleInput} to support resumption. The length of resumptionTokens should
+     * match trainingExamples.
      */
     @DataClass.Generated.Member
     public @NonNull List<byte[]> getResumptionTokens() {
@@ -136,11 +141,11 @@ public class TrainingExampleOutput {
 
     /**
      * A builder for {@link TrainingExampleOutput}
-     * @hide
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static class Builder {
+    public static final class Builder {
 
         private @NonNull List<byte[]> mTrainingExamples;
         private @NonNull List<byte[]> mResumptionTokens;
@@ -172,8 +177,10 @@ public class TrainingExampleOutput {
         }
 
         /**
-         * A list of resumption token byte arrays. The last processed resumption token will be passed to
-         * {@link TrainingExampleInput} to support resumption.
+         * A list of resumption token byte arrays corresponding to training examples. The last
+         * processed example's corresponding resumption token will be passed to
+         * {@link TrainingExampleInput} to support resumption. The length of resumptionTokens should
+         * match trainingExamples.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setResumptionTokens(@NonNull List<byte[]> value) {
@@ -217,7 +224,7 @@ public class TrainingExampleOutput {
     }
 
     @DataClass.Generated(
-            time = 1695676710428L,
+            time = 1697143907469L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleOutput.java",
             inputSignatures = "private @android.annotation.NonNull @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"trainingExample\") java.util.List<byte[]> mTrainingExamples\nprivate @android.annotation.NonNull @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"resumptionToken\") java.util.List<byte[]> mResumptionTokens\nprivate  void onConstructed()\nclass TrainingExampleOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

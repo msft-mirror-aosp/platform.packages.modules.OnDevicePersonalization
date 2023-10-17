@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
@@ -28,10 +31,10 @@ import java.util.function.Consumer;
 /**
  * The input data for {@link IsolatedWorker#onTrainingExample(TrainingExampleInput, Consumer)}
  *
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
-public class TrainingExampleInput implements Parcelable {
+public final class TrainingExampleInput implements Parcelable {
     /** Name of the federated compute task. */
     @NonNull private final String mPopulationName;
 
@@ -170,7 +173,7 @@ public class TrainingExampleInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    protected TrainingExampleInput(@NonNull android.os.Parcel in) {
+    /* package-private */ TrainingExampleInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
@@ -213,7 +216,7 @@ public class TrainingExampleInput implements Parcelable {
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static class Builder {
+    public static final class Builder {
 
         private @NonNull String mPopulationName;
         private @NonNull String mTaskName;
@@ -321,7 +324,7 @@ public class TrainingExampleInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1695743436351L,
+            time = 1697143871001L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleInput.java",
             inputSignatures = "private final @android.annotation.NonNull java.lang.String mPopulationName\nprivate final @android.annotation.NonNull java.lang.String mTaskName\nprivate final @android.annotation.NonNull java.lang.String mCollectionName\nprivate final @android.annotation.Nullable byte[] mResumptionToken\nclass TrainingExampleInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")

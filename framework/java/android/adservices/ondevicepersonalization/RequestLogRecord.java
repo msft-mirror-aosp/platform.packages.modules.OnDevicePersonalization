@@ -56,7 +56,6 @@ public final class RequestLogRecord implements Parcelable {
 
     /**
      * Time of the request in milliseconds
-     * @hide
      */
     private long mTimeMillis = 0;
 
@@ -116,8 +115,6 @@ public final class RequestLogRecord implements Parcelable {
 
     /**
      * Time of the request in milliseconds
-     *
-     * @hide
      */
     @DataClass.Generated.Member
     public long getTimeMillis() {
@@ -256,7 +253,6 @@ public final class RequestLogRecord implements Parcelable {
 
         /**
          * Time of the request in milliseconds
-         *
          * @hide
          */
         @DataClass.Generated.Member
@@ -298,7 +294,7 @@ public final class RequestLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696978492795L,
+            time = 1697145744484L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RequestLogRecord.java",
             inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.NonNull java.util.List<android.content.ContentValues> mRows\nprivate  long mRequestId\nprivate  long mTimeMillis\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
