@@ -81,6 +81,7 @@ public class LogReader {
      * IsolatedService within the specified time range.
      */
     @WorkerThread
+    @NonNull
     public List<EventLogRecord> getJoinedEvents(long startTimeMillis, long endTimeMillis) {
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(

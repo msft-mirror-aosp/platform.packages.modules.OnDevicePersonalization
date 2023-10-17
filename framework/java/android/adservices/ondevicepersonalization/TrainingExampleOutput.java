@@ -32,11 +32,11 @@ import java.util.function.Consumer;
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public class TrainingExampleOutput {
+public final class TrainingExampleOutput {
     /**
-     * A list of training example byte arrays. The format is binary
-     * seriazlied tf.Example proto by default. The maximum example size is 50KB to avoid hitting
-     * Binder IPC size limit.
+     * A list of training example byte arrays. The format is a binary serialized
+     * <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto">
+     * tensorflow.Example</a> proto. The maximum allowed example size is 50KB.
      */
     @NonNull
     @DataClass.PluralOf("trainingExample")
@@ -45,8 +45,8 @@ public class TrainingExampleOutput {
     /**
      * A list of resumption token byte arrays corresponding to training examples. The last
      * processed example's corresponding resumption token will be passed to
-     * {@link TrainingExampleInput} to support resumption. The length of resumptionTokens should
-     * match trainingExamples.
+     * {@link IsolatedWorker#onTrainingExample(TrainingExampleInput, Consumer)} to support
+     * resumption. The length of this list must match the length {@link #getTrainingExamples()}.
      */
     @NonNull
     @DataClass.PluralOf("resumptionToken")
@@ -87,9 +87,9 @@ public class TrainingExampleOutput {
     }
 
     /**
-     * A list of training example byte arrays. The format is binary
-     * seriazlied tf.Example proto by default. The maximum example size is 50KB to avoid hitting
-     * Binder IPC size limit.
+     * A list of training example byte arrays. The format is a binary serialized
+     * <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto">
+     * tensorflow.Example</a> proto. The maximum allowed example size is 50KB.
      */
     @DataClass.Generated.Member
     public @NonNull List<byte[]> getTrainingExamples() {
@@ -97,8 +97,10 @@ public class TrainingExampleOutput {
     }
 
     /**
-     * A list of resumption token byte arrays. The last processed resumption token will be passed to
-     * {@link TrainingExampleInput} to support resumption.
+     * A list of resumption token byte arrays corresponding to training examples. The last
+     * processed example's corresponding resumption token will be passed to
+     * {@link IsolatedWorker#onTrainingExample(TrainingExampleInput, Consumer)} to support
+     * resumption. The length of this list must match the length {@link #getTrainingExamples()}.
      */
     @DataClass.Generated.Member
     public @NonNull List<byte[]> getResumptionTokens() {
@@ -136,11 +138,10 @@ public class TrainingExampleOutput {
 
     /**
      * A builder for {@link TrainingExampleOutput}
-     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static class Builder {
+    public static final class Builder {
 
         private @NonNull List<byte[]> mTrainingExamples;
         private @NonNull List<byte[]> mResumptionTokens;
@@ -151,9 +152,9 @@ public class TrainingExampleOutput {
         }
 
         /**
-         * A list of training example byte arrays. The format is binary
-         * seriazlied tf.Example proto by default. The maximum example size is 50KB to avoid hitting
-         * Binder IPC size limit.
+         * A list of training example byte arrays. The format is a binary serialized
+         * <a href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto">
+         * tensorflow.Example</a> proto. The maximum allowed example size is 50KB.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setTrainingExamples(@NonNull List<byte[]> value) {
@@ -172,8 +173,10 @@ public class TrainingExampleOutput {
         }
 
         /**
-         * A list of resumption token byte arrays. The last processed resumption token will be passed to
-         * {@link TrainingExampleInput} to support resumption.
+         * A list of resumption token byte arrays corresponding to training examples. The last
+         * processed example's corresponding resumption token will be passed to
+         * {@link IsolatedWorker#onTrainingExample(TrainingExampleInput, Consumer)} to support
+         * resumption. The length of this list must match the length {@link #getTrainingExamples()}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setResumptionTokens(@NonNull List<byte[]> value) {
@@ -217,7 +220,7 @@ public class TrainingExampleOutput {
     }
 
     @DataClass.Generated(
-            time = 1695676710428L,
+            time = 1697575854959L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleOutput.java",
             inputSignatures = "private @android.annotation.NonNull @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"trainingExample\") java.util.List<byte[]> mTrainingExamples\nprivate @android.annotation.NonNull @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"resumptionToken\") java.util.List<byte[]> mResumptionTokens\nprivate  void onConstructed()\nclass TrainingExampleOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
