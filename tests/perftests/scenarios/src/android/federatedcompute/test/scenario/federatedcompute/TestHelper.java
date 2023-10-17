@@ -49,10 +49,19 @@ public class TestHelper {
 
     /** Commands to prepare the device, odp module, fcp module before testing. */
     public static void initialize() {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
         disableGlobalKillSwitch();
         disableFederatedComputeKillSwitch();
         executeShellCommand(
-                "device_config set_sync_disabled_for_tests persistent");
+                "device_config put on_device_personalization "
+                    + "enable_ondevicepersonalization_apis true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_personalization_status_override true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "personalization_status_override_value true");
         executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
         executeShellCommand("setprop log.tag.federatedcompute VERBOSE");
         executeShellCommand(
