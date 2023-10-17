@@ -28,7 +28,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Handles scheduling federated learning and federated analytic jobs.
+ * Handles scheduling Federated Learning and Federated Analytics jobs.
  *
  * @hide
  */
@@ -43,13 +43,13 @@ public class FederatedComputeScheduler {
         mFcService = binder;
     }
 
+    // TODO(b/300461799): add federated compute server document.
     /**
      * Schedule a federated computation job.
      *
      * @param params parameters related to job scheduling.
-     * @param input the configuration related o federated computation. It should be consistent with
-     *     federated computation server setup. TODO(b/300461799): add federated compute server
-     *     document.
+     * @param input the configuration of the federated computation. It should be consistent with
+     *     the federated computation server setup.
      * @throws IllegalArgumentException caused by caller supplied invalid input argument.
      * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
      */
