@@ -125,7 +125,7 @@ public final class ResultHandlingServiceTest {
         ArrayList<ExampleConsumption> exampleList = new ArrayList<>();
         exampleList.add(
                 new ExampleConsumption.Builder()
-                        .setCollectionName("collection")
+                        .setTaskName("taskName")
                         .setExampleCount(100)
                         .setSelectionCriteria(SELECTION_CRITERIA)
                         .build());

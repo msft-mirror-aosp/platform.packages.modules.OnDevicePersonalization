@@ -159,10 +159,9 @@ public final class FederatedComputeWorkerTest {
                                                     .build()))
                     .build();
     private static final Any FAKE_CRITERIA = Any.newBuilder().setTypeUrl("baz.com").build();
-    private static final String COLLECTION_URI = "app://com.foo.bar//inapp/collection1";
     private static final ExampleConsumption EXAMPLE_CONSUMPTION_1 =
             new ExampleConsumption.Builder()
-                    .setCollectionName(COLLECTION_URI)
+                    .setTaskName(TASK_NAME)
                     .setSelectionCriteria(FAKE_CRITERIA.toByteArray())
                     .setExampleCount(100)
                     .build();

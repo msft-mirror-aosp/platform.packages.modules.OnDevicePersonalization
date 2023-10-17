@@ -84,9 +84,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     private final Injector mInjector = new Injector();
 
     /** Generates a unique task identifier from the given strings */
-    public static String getTaskIdentifier(
-            String collectionName, String populationName, String taskName) {
-        return collectionName + "_" + populationName + "_" + taskName;
+    public static String getTaskIdentifier(String populationName, String taskName) {
+        return populationName + "_" + taskName;
     }
 
     @Override
@@ -97,8 +96,6 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             Objects.requireNonNull(
                                     params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
             String packageName = contextData.getPackageName();
-            String collectionName =
-                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_COLLECTION_NAME));
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
             String taskName =
@@ -139,9 +136,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         });
                 return;
             }
+
             // Get resumptionToken
-            EventState eventState = eventDao.getEventState(
-                    getTaskIdentifier(collectionName, populationName, taskName), packageName);
+            EventState eventState =
+                    eventDao.getEventState(
+                            getTaskIdentifier(populationName, taskName), packageName);
             byte[] resumptionToken = null;
             if (eventState != null) {
                 resumptionToken = eventState.getToken();
@@ -150,7 +149,6 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             TrainingExampleInput input =
                     new TrainingExampleInput.Builder()
                             .setResumptionToken(resumptionToken)
-                            .setCollectionName(collectionName)
                             .setPopulationName(populationName)
                             .setTaskName(taskName)
                             .build();
@@ -160,8 +158,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             ListenableFuture<TrainingExampleOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
-                                    result -> executeOnTrainingExample(
-                                            result, input, packageName),
+                                    result -> executeOnTrainingExample(result, input, packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
@@ -208,10 +205,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     },
                     OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
-            var unused = Futures.whenAllComplete(loadFuture, resultFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
+            var unused =
+                    Futures.whenAllComplete(loadFuture, resultFuture)
+                            .callAsync(
+                                    () ->
+                                            mInjector
+                                                    .getProcessRunner()
+                                                    .unloadIsolatedService(loadFuture.get()),
+                                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (Exception e) {
             sLogger.w(e, "%s : Start query failed.", TAG);
             callback.onStartQueryFailure(ClientConstants.STATUS_INTERNAL_ERROR);
@@ -225,38 +226,45 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         sLogger.d(TAG + ": executeOnTrainingExample() started.");
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                packageName, getContext(), /* includeLocalData */ true,
-                /* includeEventData */ true);
+        DataAccessServiceImpl binder =
+                new DataAccessServiceImpl(
+                        packageName,
+                        getContext(), /* includeLocalData */
+                        true,
+                        /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo,
-                AppManifestConfigHelper.getServiceNameFromOdpSettings(getContext(), packageName),
-                Constants.OP_TRAINING_EXAMPLE,
-                serviceParams);
+        ListenableFuture<Bundle> result =
+                mInjector
+                        .getProcessRunner()
+                        .runIsolatedService(
+                                isolatedServiceInfo,
+                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                                        getContext(), packageName),
+                                Constants.OP_TRAINING_EXAMPLE,
+                                serviceParams);
         return FluentFuture.from(result)
                 .transform(
-                    val -> {
-                        writeServiceRequestMetrics(
-                                val, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_SUCCESS);
-                        return val;
-                    },
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                )
+                        val -> {
+                            writeServiceRequestMetrics(
+                                    val,
+                                    isolatedServiceInfo.getStartTimeMillis(),
+                                    Constants.STATUS_SUCCESS);
+                            return val;
+                        },
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor())
                 .catchingAsync(
-                    Exception.class,
-                    e -> {
-                        writeServiceRequestMetrics(
-                                null, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_INTERNAL_ERROR);
-                        return Futures.immediateFailedFuture(e);
-                    },
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                );
+                        Exception.class,
+                        e -> {
+                            writeServiceRequestMetrics(
+                                    null,
+                                    isolatedServiceInfo.getStartTimeMillis(),
+                                    Constants.STATUS_INTERNAL_ERROR);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
     }
 
     private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
@@ -265,14 +273,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats =
                 new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_TRAINING_EXAMPLE)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
+                        .setLatencyMillis(latencyMillis)
+                        .setOverheadLatencyMillis(overheadLatencyMillis)
+                        .setResponseCode(responseCode)
+                        .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
-    //used for tests to provide mock/real implementation of context.
+    // used for tests to provide mock/real implementation of context.
     private Context getContext() {
         return this.getApplicationContext();
     }
