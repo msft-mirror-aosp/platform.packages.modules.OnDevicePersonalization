@@ -16,7 +16,7 @@
 
 package android.federatedcompute;
 
-import static android.federatedcompute.common.ClientConstants.EXTRA_COLLECTION_NAME;
+import static android.federatedcompute.common.ClientConstants.EXTRA_TASK_NAME;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -49,9 +49,8 @@ import java.util.concurrent.CountDownLatch;
 import javax.annotation.Nonnull;
 
 @RunWith(AndroidJUnit4.class)
-public class JavaExampleStoreServiceTest {
-    private static final String EXPECTED_COLLECTION_NAME =
-            "/federatedcompute.examplestoretest/test_collection";
+public class ExampleStoreServiceTest {
+    private static final String EXPECTED_TASK_NAME = "federated_task";
     private static final Example EXAMPLE_PROTO_1 =
             Example.newBuilder()
                     .setFeatures(
@@ -83,7 +82,7 @@ public class JavaExampleStoreServiceTest {
     @Test
     public void testStartQuerySuccess() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(EXTRA_COLLECTION_NAME, EXPECTED_COLLECTION_NAME);
+        bundle.putString(EXTRA_TASK_NAME, EXPECTED_TASK_NAME);
         mBinder.startQuery(bundle, new TestJavaExampleStoreServiceCallback());
         mLatch.await();
         assertTrue(mStartQueryCalled);
@@ -93,10 +92,11 @@ public class JavaExampleStoreServiceTest {
     @Test
     public void testStartQueryFailure() throws Exception {
         Bundle bundle = new Bundle();
-        bundle.putString(EXTRA_COLLECTION_NAME, "wrong_collection");
+        bundle.putString(EXTRA_TASK_NAME, "wrong_taskName");
         mBinder.startQuery(bundle, new TestJavaExampleStoreServiceCallback());
         mLatch.await();
         assertTrue(mStartQueryCalled);
+        assertThat(mCallbackErrorCode).isEqualTo(STATUS_INTERNAL_ERROR);
         assertThat(mCallbackErrorCode).isEqualTo(STATUS_INTERNAL_ERROR);
     }
 
@@ -104,8 +104,8 @@ public class JavaExampleStoreServiceTest {
         @Override
         public void startQuery(@Nonnull Bundle params, @Nonnull QueryCallback callback) {
             mStartQueryCalled = true;
-            String collection = params.getString(EXTRA_COLLECTION_NAME);
-            if (!collection.equals(EXPECTED_COLLECTION_NAME)) {
+            String taskName = params.getString(EXTRA_TASK_NAME);
+            if (!taskName.equals(EXPECTED_TASK_NAME)) {
                 callback.onStartQueryFailure(STATUS_INTERNAL_ERROR);
                 return;
             }

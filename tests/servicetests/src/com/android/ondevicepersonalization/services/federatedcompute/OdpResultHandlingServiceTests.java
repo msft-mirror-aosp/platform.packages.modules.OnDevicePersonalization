@@ -95,17 +95,10 @@ public class OdpResultHandlingServiceTests {
         ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
         exampleConsumptions.add(
                 new ExampleConsumption.Builder()
-                        .setCollectionName("collection")
+                        .setTaskName("task_name")
                         .setExampleCount(100)
                         .setSelectionCriteria(new byte[] {10, 0, 1})
                         .setResumptionToken(new byte[] {10, 0, 1})
-                        .build());
-        exampleConsumptions.add(
-                new ExampleConsumption.Builder()
-                        .setCollectionName("collection2")
-                        .setExampleCount(100)
-                        .setSelectionCriteria(new byte[] {11, 1})
-                        .setResumptionToken(new byte[] {11, 1})
                         .build());
         input.putParcelableArrayList(
                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
@@ -117,17 +110,9 @@ public class OdpResultHandlingServiceTests {
 
         EventState state1 =
                 mEventsDao.getEventState(
-                        OdpExampleStoreService.getTaskIdentifier(
-                                "collection", "population", "task_name"),
+                        OdpExampleStoreService.getTaskIdentifier("population", "task_name"),
                         mContext.getPackageName());
         assertArrayEquals(new byte[] {10, 0, 1}, state1.getToken());
-
-        EventState state2 =
-                mEventsDao.getEventState(
-                        OdpExampleStoreService.getTaskIdentifier(
-                                "collection2", "population", "task_name"),
-                        mContext.getPackageName());
-        assertArrayEquals(new byte[] {11, 1}, state2.getToken());
     }
 
     @Test
@@ -147,7 +132,7 @@ public class OdpResultHandlingServiceTests {
         ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
         exampleConsumptions.add(
                 new ExampleConsumption.Builder()
-                        .setCollectionName("collection")
+                        .setTaskName("task")
                         .setExampleCount(100)
                         .setSelectionCriteria(new byte[] {10, 0, 1})
                         .setResumptionToken(new byte[] {10, 0, 1})
