@@ -101,7 +101,7 @@ public class TestHelper {
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
                     + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
-        SystemClock.sleep(30000);
+        SystemClock.sleep(60000);
     }
 
     private static void disableGlobalKillSwitch() {
