@@ -71,7 +71,7 @@ public class OnDevicePersonalizationManager {
     public OnDevicePersonalizationManager(Context context) {
         mContext = context;
         this.mServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         context,
                         INTENT_FILTER_ACTION,
                         List.of(
