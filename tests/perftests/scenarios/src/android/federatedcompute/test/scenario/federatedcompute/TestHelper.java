@@ -39,9 +39,6 @@ public class TestHelper {
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
     private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
-    private static final String FEDERATED_COMPUTE_TASK_JOB_ID = "1007";
-
-    private static final String FEDERATED_TRAINING_JOB_ID = "109883";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -105,20 +102,6 @@ public class TestHelper {
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
                     + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
         SystemClock.sleep(30000);
-    }
-
-    public void scheduleFederatedComputeTask() throws IOException {
-        executeShellCommand(
-                "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
-                        + FEDERATED_COMPUTE_TASK_JOB_ID);
-        SystemClock.sleep(8000);
-    }
-
-    public void scheduleFederatedTrainingTask() throws IOException {
-        executeShellCommand(
-                "cmd jobscheduler run -f com.google.android.federatedcompute "
-                        + FEDERATED_TRAINING_JOB_ID);
-        SystemClock.sleep(8000);
     }
 
     private static void disableGlobalKillSwitch() {
