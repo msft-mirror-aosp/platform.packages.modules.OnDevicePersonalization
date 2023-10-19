@@ -80,18 +80,6 @@ public class OnDevicePersonalizationManager {
                         IOnDevicePersonalizationManagingService.Stub::asInterface);
     }
 
-    private static final String VERSION = "1.0";
-
-    /**
-     * Gets OnDevicePersonalization version.
-     * This function is a temporary place holder. It will be removed when new APIs are added.
-     *
-     * @hide
-     */
-    public String getVersion() {
-        return VERSION;
-    }
-
     /**
      * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
