@@ -39,10 +39,11 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     private static final String TAG = AndroidServiceBinder.class.getSimpleName();
 
     private static final int BINDER_CONNECTION_TIMEOUT_MS = 5000;
-    private final String mServiceIntentAction;
-    private final List<String> mServicePackageSuffixes;
+    private final String mServiceIntentActionOrName;
+    private final List<String> mServicePackages;
     private final Function<IBinder, T> mBinderConverter;
     private final Context mContext;
+    private final boolean mEnableLookupByServiceName;
     // Concurrency mLock.
     private final Object mLock = new Object();
     // A CountDownloadLatch which will be opened when the connection is established or any error
@@ -60,21 +61,36 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
             @NonNull String serviceIntentAction,
             @NonNull String servicePackageSuffix,
             @NonNull Function<IBinder, T> converter) {
-        this.mServiceIntentAction = serviceIntentAction;
+        this.mServiceIntentActionOrName = serviceIntentAction;
         this.mContext = context;
         this.mBinderConverter = converter;
-        this.mServicePackageSuffixes = List.of(servicePackageSuffix);
+        this.mServicePackages = List.of(servicePackageSuffix);
+        this.mEnableLookupByServiceName = false;
     }
 
     AndroidServiceBinder(
             @NonNull Context context,
             @NonNull String serviceIntentAction,
-            @NonNull List<String> servicePackageSuffixes,
+            @NonNull List<String> servicePackages,
             @NonNull Function<IBinder, T> converter) {
-        this.mServiceIntentAction = serviceIntentAction;
+        this.mServiceIntentActionOrName = serviceIntentAction;
         this.mContext = context;
         this.mBinderConverter = converter;
-        this.mServicePackageSuffixes = servicePackageSuffixes;
+        this.mServicePackages = servicePackages;
+        this.mEnableLookupByServiceName = false;
+    }
+
+    AndroidServiceBinder(
+            @NonNull Context context,
+            @NonNull String serviceIntentActionOrName,
+            @NonNull String servicePackage,
+            boolean enableLookupByName,
+            @NonNull Function<IBinder, T> converter) {
+        this.mServiceIntentActionOrName = serviceIntentActionOrName;
+        this.mContext = context;
+        this.mBinderConverter = converter;
+        this.mServicePackages = List.of(servicePackage);
+        this.mEnableLookupByServiceName = enableLookupByName;
     }
 
     @Override
@@ -84,7 +100,10 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
                 return mService;
             }
             if (mServiceConnection == null) {
-                Intent bindIntent =  getIntentBasedOnAction();
+                Intent bindIntent =
+                        mEnableLookupByServiceName
+                                ? getIntentBasedOnServiceName()
+                                : getIntentBasedOnAction();
                 // This latch will open when the connection is established or any error occurs.
                 mConnectionCountDownLatch = new CountDownLatch(1);
                 mServiceConnection = new GenericServiceConnection();
@@ -95,12 +114,13 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
                     mServiceConnection = null;
                     throw new IllegalStateException(
                             String.format(
-                                    "Unable to bind to the service %s", mServiceIntentAction));
+                                    "Unable to bind to the service %s",
+                                    mServiceIntentActionOrName));
                 } else {
-                    LogUtil.i(TAG, "bindService() %s succeeded...", mServiceIntentAction);
+                    LogUtil.i(TAG, "bindService() %s succeeded...", mServiceIntentActionOrName);
                 }
             } else {
-                LogUtil.i(TAG, "bindService() %s already pending...", mServiceIntentAction);
+                LogUtil.i(TAG, "bindService() %s already pending...", mServiceIntentActionOrName);
             }
         }
         // release the lock to let connection to set the mFcpService
@@ -113,19 +133,27 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
             if (mService == null) {
                 throw new IllegalStateException(
                         String.format(
-                                "Failed to connect to the service %s", mServiceIntentAction));
+                                "Failed to connect to the service %s", mServiceIntentActionOrName));
             }
             return mService;
         }
     }
 
+    private Intent getIntentBasedOnServiceName() {
+        Intent intent = new Intent();
+        ComponentName serviceComponent =
+                new ComponentName(mServicePackages.get(0), mServiceIntentActionOrName);
+        intent.setComponent(serviceComponent);
+        return intent;
+    }
+
     private Intent getIntentBasedOnAction() {
-        Intent intent = new Intent(mServiceIntentAction);
+        Intent intent = new Intent(mServiceIntentActionOrName);
         ComponentName serviceComponent = resolveComponentName(intent);
         if (serviceComponent == null) {
-            LogUtil.e(TAG, "Invalid component for %s intent", mServiceIntentAction);
+            LogUtil.e(TAG, "Invalid component for %s intent", mServiceIntentActionOrName);
             throw new IllegalStateException(
-                    String.format("Invalid component for %s service", mServiceIntentAction));
+                    String.format("Invalid component for %s service", mServiceIntentActionOrName));
         }
         intent.setComponent(serviceComponent);
         return intent;
@@ -153,7 +181,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
             if (ri != null
                     && ri.serviceInfo != null
                     && ri.serviceInfo.packageName != null
-                    && mServicePackageSuffixes.contains(ri.serviceInfo.packageName)) {
+                    && mServicePackages.contains(ri.serviceInfo.packageName)) {
                 // There should only be one matching service inside the given package.
                 // If there's more than one, return the first one found.
                 LogUtil.d(
@@ -181,7 +209,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     public void unbindFromService() {
         synchronized (mLock) {
             if (mServiceConnection != null) {
-                LogUtil.d(TAG, "unbinding %s...", mServiceIntentAction);
+                LogUtil.d(TAG, "unbinding %s...", mServiceIntentActionOrName);
                 mContext.unbindService(mServiceConnection);
             }
             mServiceConnection = null;
@@ -192,7 +220,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     private class GenericServiceConnection implements ServiceConnection {
         @Override
         public void onServiceConnected(ComponentName name, IBinder service) {
-            LogUtil.d(TAG, "onServiceConnected " + mServiceIntentAction);
+            LogUtil.d(TAG, "onServiceConnected " + mServiceIntentActionOrName);
             synchronized (mLock) {
                 mService = mBinderConverter.apply(service);
             }
@@ -201,21 +229,21 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
 
         @Override
         public void onServiceDisconnected(ComponentName name) {
-            LogUtil.d(TAG, "onServiceDisconnected " + mServiceIntentAction);
+            LogUtil.d(TAG, "onServiceDisconnected " + mServiceIntentActionOrName);
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }
 
         @Override
         public void onBindingDied(ComponentName name) {
-            LogUtil.e(TAG, "onBindingDied " + mServiceIntentAction);
+            LogUtil.e(TAG, "onBindingDied " + mServiceIntentActionOrName);
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }
 
         @Override
         public void onNullBinding(ComponentName name) {
-            LogUtil.e(TAG, "onNullBinding shouldn't happen. " + mServiceIntentAction);
+            LogUtil.e(TAG, "onNullBinding shouldn't happen. " + mServiceIntentActionOrName);
             unbindFromService();
             mConnectionCountDownLatch.countDown();
         }

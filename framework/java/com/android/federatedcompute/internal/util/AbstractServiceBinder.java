@@ -30,23 +30,33 @@ import java.util.function.Function;
  */
 public abstract class AbstractServiceBinder<T> {
     /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
-    public static <T2> AbstractServiceBinder<T2> getServiceBinder(
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
             Context context,
             String serviceIntentAction,
-            String servicePackageSuffix,
+            String servicePackage,
             Function<IBinder, T2> converter) {
         return new AndroidServiceBinder<>(
-                context, serviceIntentAction, servicePackageSuffix, converter);
+                context, serviceIntentAction, servicePackage, converter);
     }
 
     /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
-    public static <T2> AbstractServiceBinder<T2> getServiceBinder(
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByServiceName(
             Context context,
-            String serviceIntentAction,
-            List<String> servicePackageSuffixes,
+            String serviceName,
+            String servicePackage,
             Function<IBinder, T2> converter) {
         return new AndroidServiceBinder<>(
-                context, serviceIntentAction, servicePackageSuffixes, converter);
+                context, serviceName, servicePackage, true, converter);
+    }
+
+    /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
+            Context context,
+            String serviceIntentAction,
+            List<String> servicePackage,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceIntentAction, servicePackage, converter);
     }
 
     /** Get the binder service. */
