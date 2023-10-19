@@ -226,6 +226,144 @@ public class CtsOdpManagerTests {
         assertNotNull(receiver.getResult());
     }
 
+    @Test
+    public void testRequestSurfacePackageThrowsIfSurfacePackageTokenMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        null,
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfSurfaceViewHostTokenMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        null,
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfInvalidDisplayId()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        -1,
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfInvalidWidth()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        0,
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfInvalidHeight()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        0,
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfExecutorMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        null,
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfOutcomeReceiverMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        null));
+    }
+
     int getDisplayId() {
         final DisplayManager dm = mContext.getSystemService(DisplayManager.class);
         final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
