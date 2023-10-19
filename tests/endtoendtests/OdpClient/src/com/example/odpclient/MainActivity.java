@@ -39,6 +39,7 @@ import androidx.annotation.NonNull;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -55,8 +56,8 @@ public class MainActivity extends Activity {
     private EditText mReportConversionTextBox;
     private Button mReportConversionButton;
     private SurfaceView mRenderedView;
-
     private Context mContext;
+    private static Executor sCallbackExecutor = Executors.newSingleThreadExecutor();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -114,7 +115,7 @@ public class MainActivity extends Activity {
                         "com.example.odpsamplenetwork",
                         "com.example.odpsamplenetwork.SampleService"),
                     appParams,
-                    Executors.newSingleThreadExecutor(),
+                    sCallbackExecutor,
                     new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
                         @Override
                         public void onResult(List<SurfacePackageToken> result) {
@@ -141,7 +142,7 @@ public class MainActivity extends Activity {
                     getDisplay().getDisplayId(),
                     mRenderedView.getWidth(),
                     mRenderedView.getHeight(),
-                    Executors.newSingleThreadExecutor(),
+                    sCallbackExecutor,
                     new OutcomeReceiver<SurfacePackage, Exception>() {
                         @Override
                         public void onResult(SurfacePackage surfacePackage) {
@@ -188,7 +189,7 @@ public class MainActivity extends Activity {
                             "com.example.odpsamplenetwork",
                             "com.example.odpsamplenetwork.SampleService"),
                     appParams,
-                    Executors.newSingleThreadExecutor(),
+                    sCallbackExecutor,
                     new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
                         @Override
                         public void onResult(List<SurfacePackageToken> result) {
@@ -223,7 +224,7 @@ public class MainActivity extends Activity {
                             "com.example.odpsamplenetwork",
                             "com.example.odpsamplenetwork.SampleService"),
                     appParams,
-                    Executors.newSingleThreadExecutor(),
+                    sCallbackExecutor,
                     new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
                         @Override
                         public void onResult(List<SurfacePackageToken> result) {
@@ -249,7 +250,7 @@ public class MainActivity extends Activity {
         }
         boolean enabled = true;
         mOdpConfigManager.setPersonalizationEnabled(enabled,
-                Executors.newSingleThreadExecutor(),
+                sCallbackExecutor,
                 new OutcomeReceiver<Void, Exception>() {
                     @Override
                     public void onResult(Void result) {
