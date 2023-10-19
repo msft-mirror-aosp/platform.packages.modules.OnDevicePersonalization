@@ -52,6 +52,8 @@ public class MainActivity extends Activity {
     private EditText mScheduleTrainingTextBox;
     private Button mScheduleTrainingButton;
     private Button mSetStatusButton;
+    private EditText mReportConversionTextBox;
+    private Button mReportConversionButton;
     private SurfaceView mRenderedView;
 
     private Context mContext;
@@ -73,11 +75,14 @@ public class MainActivity extends Activity {
         mGetAdButton = findViewById(R.id.get_ad_button);
         mScheduleTrainingButton = findViewById(R.id.schedule_training_button);
         mSetStatusButton = findViewById(R.id.set_status_button);
+        mReportConversionButton = findViewById(R.id.report_conversion_button);
         mTextBox = findViewById(R.id.text_box);
         mScheduleTrainingTextBox = findViewById(R.id.schedule_training_text_box);
+        mReportConversionTextBox = findViewById(R.id.report_conversion_text_box);
         registerGetAdButton();
         registerScheduleTrainingButton();
         registerSetStatusButton();
+        registerReportConversionButton();
     }
 
     private void registerGetAdButton() {
@@ -87,6 +92,10 @@ public class MainActivity extends Activity {
 
     private void registerSetStatusButton() {
         mSetStatusButton.setOnClickListener(v -> setPersonalizationStatus());
+    }
+
+    private void registerReportConversionButton() {
+        mReportConversionButton.setOnClickListener(v -> reportConversion());
     }
 
     private void makeRequest() {
@@ -196,7 +205,41 @@ public class MainActivity extends Activity {
             latch.await();
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
+        }
+    }
 
+    private void reportConversion() {
+        try {
+            if (mOdpManager == null) {
+                makeToast("OnDevicePersonalizationManager is null");
+                return;
+            }
+            CountDownLatch latch = new CountDownLatch(1);
+            Log.i(TAG, "Starting execute()");
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString("conversion_ad_id", mReportConversionTextBox.getText().toString());
+            mOdpManager.execute(
+                    ComponentName.createRelative(
+                            "com.example.odpsamplenetwork",
+                            "com.example.odpsamplenetwork.SampleService"),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
+                        @Override
+                        public void onResult(List<SurfacePackageToken> result) {
+                            Log.i(TAG, "execute() success: " + result.size());
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            makeToast("execute() error: " + e.toString());
+                            latch.countDown();
+                        }
+                    });
+            latch.await();
+        } catch (Exception e) {
+            Log.e(TAG, "Error", e);
         }
     }
 
