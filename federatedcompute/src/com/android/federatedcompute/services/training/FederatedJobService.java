@@ -52,18 +52,18 @@ public class FederatedJobService extends JobService {
                     @Override
                     public void onSuccess(FLRunnerResult flRunnerResult) {
                         LogUtil.d(TAG, "Federated computation job %d is done!", params.getJobId());
+                        jobFinished(params, /* wantsReschedule= */ false);
                         if (flRunnerResult != null) {
                             worker.finish(flRunnerResult);
                         }
-                        jobFinished(params, /* wantsReschedule= */ false);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         LogUtil.e(
                                 TAG, t, "Failed to handle computation job: %d", params.getJobId());
-                        worker.finish(null, ContributionResult.FAIL, false);
                         jobFinished(params, /* wantsReschedule= */ false);
+                        worker.finish(null, ContributionResult.FAIL, false);
                     }
                 },
                 getBackgroundExecutor());
