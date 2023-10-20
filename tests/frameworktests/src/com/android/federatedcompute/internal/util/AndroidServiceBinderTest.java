@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -52,7 +52,7 @@ public class AndroidServiceBinderTest {
     @Test
     public void testOdpServiceBinding() {
         AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         mContext,
                         ODP_MANAGING_SERVICE_INTENT_ACTION,
                         List.of(
@@ -68,7 +68,7 @@ public class AndroidServiceBinderTest {
     @Test
     public void testFcpServiceBinding() {
         AbstractServiceBinder<IFederatedComputeService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         mContext,
                         FEDERATED_COMPUTATION_SERVICE_INTENT_ACTION,
                         List.of(
@@ -83,7 +83,7 @@ public class AndroidServiceBinderTest {
     @Test
     public void testOdpServiceBindingWrongPackage() {
         AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         mContext,
                         ODP_MANAGING_SERVICE_INTENT_ACTION,
                         INCORRECT_PACKAGE,
@@ -95,7 +95,7 @@ public class AndroidServiceBinderTest {
     @Test
     public void testFcpServiceBindingWrongPackage() {
         AbstractServiceBinder<IFederatedComputeService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         mContext,
                         FEDERATED_COMPUTATION_SERVICE_INTENT_ACTION,
                         INCORRECT_PACKAGE,

@@ -41,6 +41,11 @@ public final class TrainingInterval {
     public static final int SCHEDULING_MODE_RECURRENT = 2;
 
 
+    /**
+     * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+     * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+     * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+     */
     @SchedulingMode private int mSchedulingMode = SCHEDULING_MODE_ONE_TIME;
 
     /**
@@ -114,6 +119,11 @@ public final class TrainingInterval {
         // onConstructed(); // You can define this method to get a callback
     }
 
+    /**
+     * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+     * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+     * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+     */
     @DataClass.Generated.Member
     public @SchedulingMode int getSchedulingMode() {
         return mSchedulingMode;
@@ -180,6 +190,11 @@ public final class TrainingInterval {
         public Builder() {
         }
 
+        /**
+         * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+         * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+         * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+         */
         @DataClass.Generated.Member
         public @NonNull Builder setSchedulingMode(@SchedulingMode int value) {
             checkNotUsed();
@@ -234,7 +249,7 @@ public final class TrainingInterval {
     }
 
     @DataClass.Generated(
-            time = 1697576086364L,
+            time = 1697653739724L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingInterval.java",
             inputSignatures = "public static final  int SCHEDULING_MODE_ONE_TIME\npublic static final  int SCHEDULING_MODE_RECURRENT\nprivate @android.adservices.ondevicepersonalization.TrainingInterval.SchedulingMode int mSchedulingMode\nprivate @android.annotation.NonNull java.time.Duration mMinimumInterval\nclass TrainingInterval extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genHiddenConstDefs=true, genEqualsHashCode=true)")
