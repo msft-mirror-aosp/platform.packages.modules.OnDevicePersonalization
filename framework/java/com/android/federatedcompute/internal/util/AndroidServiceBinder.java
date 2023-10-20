@@ -44,6 +44,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     private final Function<IBinder, T> mBinderConverter;
     private final Context mContext;
     private final boolean mEnableLookupByServiceName;
+    private final int mBindFlags;
     // Concurrency mLock.
     private final Object mLock = new Object();
     // A CountDownloadLatch which will be opened when the connection is established or any error
@@ -59,13 +60,9 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     AndroidServiceBinder(
             @NonNull Context context,
             @NonNull String serviceIntentAction,
-            @NonNull String servicePackageSuffix,
+            @NonNull String servicePackage,
             @NonNull Function<IBinder, T> converter) {
-        this.mServiceIntentActionOrName = serviceIntentAction;
-        this.mContext = context;
-        this.mBinderConverter = converter;
-        this.mServicePackages = List.of(servicePackageSuffix);
-        this.mEnableLookupByServiceName = false;
+        this(context, serviceIntentAction,  List.of(servicePackage), converter);
     }
 
     AndroidServiceBinder(
@@ -73,11 +70,21 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
             @NonNull String serviceIntentAction,
             @NonNull List<String> servicePackages,
             @NonNull Function<IBinder, T> converter) {
+        this(context, serviceIntentAction,  servicePackages, 0, converter);
+    }
+
+    AndroidServiceBinder(
+            @NonNull Context context,
+            @NonNull String serviceIntentAction,
+            @NonNull List<String> servicePackages,
+            int bindFlags,
+            @NonNull Function<IBinder, T> converter) {
         this.mServiceIntentActionOrName = serviceIntentAction;
         this.mContext = context;
         this.mBinderConverter = converter;
         this.mServicePackages = servicePackages;
         this.mEnableLookupByServiceName = false;
+        this.mBindFlags = bindFlags;
     }
 
     AndroidServiceBinder(
@@ -91,6 +98,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
         this.mBinderConverter = converter;
         this.mServicePackages = List.of(servicePackage);
         this.mEnableLookupByServiceName = enableLookupByName;
+        this.mBindFlags = 0;
     }
 
     @Override
@@ -109,7 +117,10 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
                 mServiceConnection = new GenericServiceConnection();
                 boolean result =
                         mContext.bindService(
-                                bindIntent, Context.BIND_AUTO_CREATE, executor, mServiceConnection);
+                                bindIntent,
+                                Context.BIND_AUTO_CREATE | mBindFlags,
+                                executor,
+                                mServiceConnection);
                 if (!result) {
                     mServiceConnection = null;
                     throw new IllegalStateException(
