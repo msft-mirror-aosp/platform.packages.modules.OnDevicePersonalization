@@ -181,6 +181,9 @@ public class SampleHandler implements IsolatedWorker {
         try {
             ArrayList<Ad> ads = new ArrayList<>();
             for (var key: remoteData.keySet()) {
+                if (!key.startsWith("ad")) {
+                    continue;
+                }
                 Ad ad = parseAd(key, remoteData.get(key));
                 if (ad != null) {
                     ads.add(ad);
