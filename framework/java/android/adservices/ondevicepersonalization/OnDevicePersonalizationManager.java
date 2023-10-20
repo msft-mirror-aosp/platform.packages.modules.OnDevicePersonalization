@@ -35,6 +35,7 @@ import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.modules.utils.build.SdkLevel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,6 +78,7 @@ public class OnDevicePersonalizationManager {
                         List.of(
                                 ODP_MANAGING_SERVICE_PACKAGE_SUFFIX,
                                 ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX),
+                        SdkLevel.isAtLeastU() ? Context.BIND_ALLOW_ACTIVITY_STARTS : 0,
                         IOnDevicePersonalizationManagingService.Stub::asInterface);
     }
 

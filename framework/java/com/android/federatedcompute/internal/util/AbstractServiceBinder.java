@@ -53,10 +53,21 @@ public abstract class AbstractServiceBinder<T> {
     public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
             Context context,
             String serviceIntentAction,
-            List<String> servicePackage,
+            List<String> servicePackages,
             Function<IBinder, T2> converter) {
         return new AndroidServiceBinder<>(
-                context, serviceIntentAction, servicePackage, converter);
+                context, serviceIntentAction, servicePackages, converter);
+    }
+
+    /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
+            Context context,
+            String serviceIntentAction,
+            List<String> servicePackages,
+            int bindFlags,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceIntentAction, servicePackages, bindFlags, converter);
     }
 
     /** Get the binder service. */
