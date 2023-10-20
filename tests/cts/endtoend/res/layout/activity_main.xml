@@ -15,10 +15,12 @@
   ~ limitations under the License.
   -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.example.odptargetingapp1"
-          android:versionName="1.0.1" >
-    <application
-        android:label="ODP Targeting App 1">
-    </application>
-</manifest>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+              android:orientation="vertical"
+              android:layout_width="match_parent"
+              android:layout_height="match_parent">
+    <SurfaceView
+        android:id="@+id/test_surface_view"
+        android:layout_width="200dp"
+        android:layout_height="200dp" />
+</LinearLayout>

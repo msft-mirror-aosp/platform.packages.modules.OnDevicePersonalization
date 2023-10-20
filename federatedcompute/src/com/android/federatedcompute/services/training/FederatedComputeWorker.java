@@ -545,7 +545,7 @@ public class FederatedComputeWorker {
     @VisibleForTesting
     IExampleStoreService getExampleStoreService(String packageName) {
         mExampleStoreServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         mContext,
                         ClientConstants.EXAMPLE_STORE_ACTION,
                         packageName,
@@ -622,7 +622,7 @@ public class FederatedComputeWorker {
     @Nullable
     IIsolatedTrainingService getIsolatedTrainingService() {
         mIsolatedTrainingServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByServiceName(
                         mContext,
                         ISOLATED_TRAINING_SERVICE_NAME,
                         mContext.getPackageName(),
