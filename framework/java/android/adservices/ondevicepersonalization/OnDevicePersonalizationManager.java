@@ -35,6 +35,7 @@ import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.modules.utils.build.SdkLevel;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,19 +78,8 @@ public class OnDevicePersonalizationManager {
                         List.of(
                                 ODP_MANAGING_SERVICE_PACKAGE_SUFFIX,
                                 ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX),
+                        SdkLevel.isAtLeastU() ? Context.BIND_ALLOW_ACTIVITY_STARTS : 0,
                         IOnDevicePersonalizationManagingService.Stub::asInterface);
-    }
-
-    private static final String VERSION = "1.0";
-
-    /**
-     * Gets OnDevicePersonalization version.
-     * This function is a temporary place holder. It will be removed when new APIs are added.
-     *
-     * @hide
-     */
-    public String getVersion() {
-        return VERSION;
     }
 
     /**

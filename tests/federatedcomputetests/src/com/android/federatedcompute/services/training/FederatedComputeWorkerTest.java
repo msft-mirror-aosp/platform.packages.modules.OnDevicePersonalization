@@ -66,6 +66,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
@@ -513,6 +515,11 @@ public final class FederatedComputeWorkerTest {
                     return exampleList;
                 }
             };
+        }
+
+        @Override
+        ListeningExecutorService getBgExecutor() {
+            return MoreExecutors.newDirectExecutorService();
         }
     }
 
