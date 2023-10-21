@@ -39,9 +39,6 @@ public class TestHelper {
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
     private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
-    private static final String FEDERATED_COMPUTE_TASK_JOB_ID = "1007";
-
-    private static final String FEDERATED_TRAINING_JOB_ID = "109883";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -49,10 +46,19 @@ public class TestHelper {
 
     /** Commands to prepare the device, odp module, fcp module before testing. */
     public static void initialize() {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
         disableGlobalKillSwitch();
         disableFederatedComputeKillSwitch();
         executeShellCommand(
-                "device_config set_sync_disabled_for_tests persistent");
+                "device_config put on_device_personalization "
+                    + "enable_ondevicepersonalization_apis true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_personalization_status_override true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "personalization_status_override_value true");
         executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
         executeShellCommand("setprop log.tag.federatedcompute VERBOSE");
         executeShellCommand(
@@ -95,21 +101,7 @@ public class TestHelper {
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
                     + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
-        SystemClock.sleep(30000);
-    }
-
-    public void scheduleFederatedComputeTask() throws IOException {
-        executeShellCommand(
-                "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
-                        + FEDERATED_COMPUTE_TASK_JOB_ID);
-        SystemClock.sleep(8000);
-    }
-
-    public void scheduleFederatedTrainingTask() throws IOException {
-        executeShellCommand(
-                "cmd jobscheduler run -f com.google.android.federatedcompute "
-                        + FEDERATED_TRAINING_JOB_ID);
-        SystemClock.sleep(8000);
+        SystemClock.sleep(60000);
     }
 
     private static void disableGlobalKillSwitch() {
