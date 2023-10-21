@@ -31,24 +31,18 @@ import java.util.function.Consumer;
  * @hide
  */
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
-public class TrainingExampleInput implements Parcelable {
-    /** Name of the federated compute task. */
-    @NonNull private final String mPopulationName;
+public final class TrainingExampleInput implements Parcelable {
+    /** The name of the federated compute population. */
+    @NonNull private String mPopulationName = "";
 
     /**
-     * One population may have multiple tasks. Task name can be used to uniquely identify the job.
+     * The name of the task within the population. One population may have multiple tasks.
+     * The task name can be used to uniquely identify the job.
      */
-    @NonNull private final String mTaskName;
-
-    /**
-     * The name of data collection to read from, specified by the federated task plan configured at
-     * federated computation server.
-     */
-    @NonNull private final String mCollectionName;
+    @NonNull private String mTaskName = "";
 
     /** Token used to support the resumption of training. */
-    @Nullable
-    private final byte[] mResumptionToken;
+    @Nullable private byte[] mResumptionToken = null;
 
 
 
@@ -69,7 +63,6 @@ public class TrainingExampleInput implements Parcelable {
     /* package-private */ TrainingExampleInput(
             @NonNull String populationName,
             @NonNull String taskName,
-            @NonNull String collectionName,
             @Nullable byte[] resumptionToken) {
         this.mPopulationName = populationName;
         AnnotationValidations.validate(
@@ -77,16 +70,13 @@ public class TrainingExampleInput implements Parcelable {
         this.mTaskName = taskName;
         AnnotationValidations.validate(
                 NonNull.class, null, mTaskName);
-        this.mCollectionName = collectionName;
-        AnnotationValidations.validate(
-                NonNull.class, null, mCollectionName);
         this.mResumptionToken = resumptionToken;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * Name of the federated compute task.
+     * The name of the federated compute population.
      */
     @DataClass.Generated.Member
     public @NonNull String getPopulationName() {
@@ -94,20 +84,12 @@ public class TrainingExampleInput implements Parcelable {
     }
 
     /**
-     * One population may have multiple tasks. Task name can be used to uniquely identify the job.
+     * The name of the task within the population. One population may have multiple tasks.
+     * The task name can be used to uniquely identify the job.
      */
     @DataClass.Generated.Member
     public @NonNull String getTaskName() {
         return mTaskName;
-    }
-
-    /**
-     * The name of data collection to read from, specified by the federated task plan configured at
-     * federated computation server.
-     */
-    @DataClass.Generated.Member
-    public @NonNull String getCollectionName() {
-        return mCollectionName;
     }
 
     /**
@@ -133,7 +115,6 @@ public class TrainingExampleInput implements Parcelable {
         return true
                 && java.util.Objects.equals(mPopulationName, that.mPopulationName)
                 && java.util.Objects.equals(mTaskName, that.mTaskName)
-                && java.util.Objects.equals(mCollectionName, that.mCollectionName)
                 && java.util.Arrays.equals(mResumptionToken, that.mResumptionToken);
     }
 
@@ -146,7 +127,6 @@ public class TrainingExampleInput implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mPopulationName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mTaskName);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mCollectionName);
         _hash = 31 * _hash + java.util.Arrays.hashCode(mResumptionToken);
         return _hash;
     }
@@ -159,7 +139,6 @@ public class TrainingExampleInput implements Parcelable {
 
         dest.writeString(mPopulationName);
         dest.writeString(mTaskName);
-        dest.writeString(mCollectionName);
         dest.writeByteArray(mResumptionToken);
     }
 
@@ -170,13 +149,12 @@ public class TrainingExampleInput implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    protected TrainingExampleInput(@NonNull android.os.Parcel in) {
+    /* package-private */ TrainingExampleInput(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         String populationName = in.readString();
         String taskName = in.readString();
-        String collectionName = in.readString();
         byte[] resumptionToken = in.createByteArray();
 
         this.mPopulationName = populationName;
@@ -185,9 +163,6 @@ public class TrainingExampleInput implements Parcelable {
         this.mTaskName = taskName;
         AnnotationValidations.validate(
                 NonNull.class, null, mTaskName);
-        this.mCollectionName = collectionName;
-        AnnotationValidations.validate(
-                NonNull.class, null, mCollectionName);
         this.mResumptionToken = resumptionToken;
 
         // onConstructed(); // You can define this method to get a callback
@@ -213,49 +188,19 @@ public class TrainingExampleInput implements Parcelable {
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static class Builder {
+    public static final class Builder {
 
         private @NonNull String mPopulationName;
         private @NonNull String mTaskName;
-        private @NonNull String mCollectionName;
         private @Nullable byte[] mResumptionToken;
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {}
-
-        /**
-         * Creates a new Builder.
-         *
-         * @param populationName
-         *   Name of the federated compute task.
-         * @param taskName
-         *   One population may have multiple tasks. Task name can be used to uniquely identify the job.
-         * @param collectionName
-         *   The name of data collection to read from, specified by the federated task plan configured at
-         *   federated computation server.
-         * @param resumptionToken
-         *   Token used to support the resumption of training.
-         */
-        public Builder(
-                @NonNull String populationName,
-                @NonNull String taskName,
-                @NonNull String collectionName,
-                @Nullable byte[] resumptionToken) {
-            mPopulationName = populationName;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mPopulationName);
-            mTaskName = taskName;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mTaskName);
-            mCollectionName = collectionName;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mCollectionName);
-            mResumptionToken = resumptionToken;
+        public Builder() {
         }
 
         /**
-         * Name of the federated compute task.
+         * The name of the federated compute population.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setPopulationName(@NonNull String value) {
@@ -266,7 +211,8 @@ public class TrainingExampleInput implements Parcelable {
         }
 
         /**
-         * One population may have multiple tasks. Task name can be used to uniquely identify the job.
+         * The name of the task within the population. One population may have multiple tasks.
+         * The task name can be used to uniquely identify the job.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setTaskName(@NonNull String value) {
@@ -277,24 +223,12 @@ public class TrainingExampleInput implements Parcelable {
         }
 
         /**
-         * The name of data collection to read from, specified by the federated task plan configured at
-         * federated computation server.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setCollectionName(@NonNull String value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
-            mCollectionName = value;
-            return this;
-        }
-
-        /**
          * Token used to support the resumption of training.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setResumptionToken(@NonNull byte... value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x4;
             mResumptionToken = value;
             return this;
         }
@@ -302,18 +236,26 @@ public class TrainingExampleInput implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull TrainingExampleInput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mPopulationName = "";
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mTaskName = "";
+            }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mResumptionToken = null;
+            }
             TrainingExampleInput o = new TrainingExampleInput(
                     mPopulationName,
                     mTaskName,
-                    mCollectionName,
                     mResumptionToken);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -321,10 +263,10 @@ public class TrainingExampleInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1695743436351L,
+            time = 1697577073626L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleInput.java",
-            inputSignatures = "private final @android.annotation.NonNull java.lang.String mPopulationName\nprivate final @android.annotation.NonNull java.lang.String mTaskName\nprivate final @android.annotation.NonNull java.lang.String mCollectionName\nprivate final @android.annotation.Nullable byte[] mResumptionToken\nclass TrainingExampleInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull java.lang.String mPopulationName\nprivate @android.annotation.NonNull java.lang.String mTaskName\nprivate @android.annotation.Nullable byte[] mResumptionToken\nclass TrainingExampleInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
