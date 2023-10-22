@@ -29,6 +29,7 @@ import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.LogReader;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
@@ -81,12 +82,14 @@ public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
+    public static final int EVENT_TYPE_CONVERSION = 3;
     public static final double COST_RAISING_FACTOR = 2.0;
     private static final String AD_ID_KEY = "adid";
     private static final String BID_PRICE_KEY = "price";
     private static final String AUCTION_SCORE_KEY = "score";
     private static final String CLICK_COST_KEY = "clkcost";
     private static final String EVENT_TYPE_KEY = "type";
+    private static final String SOURCE_TYPE_KEY = "sourcetype";
     private static final int BID_PRICE_OFFSET = 0;
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
@@ -103,13 +106,16 @@ public class SampleHandler implements IsolatedWorker {
     private final EventUrlProvider mEventUrlProvider;
     private final UserData mUserData;
     private final FederatedComputeScheduler mFCScheduler;
+    private final LogReader mLogReader;
 
     SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider,
-            UserData userData, FederatedComputeScheduler fcScheduler) {
+            UserData userData, FederatedComputeScheduler fcScheduler,
+            LogReader logReader) {
         mRemoteData = remoteData;
         mEventUrlProvider = eventUrlProvider;
         mUserData = userData;
         mFCScheduler = fcScheduler;
+        mLogReader = logReader;
         if (mRemoteData == null) {
             Log.e(TAG, "RemoteData missing");
         }
@@ -121,6 +127,9 @@ public class SampleHandler implements IsolatedWorker {
         }
         if (mFCScheduler == null) {
             Log.e(TAG, "Federated Compute Scheduler missing");
+        }
+        if (mLogReader == null) {
+            Log.e(TAG, "LogReader missing");
         }
     }
 
@@ -172,6 +181,9 @@ public class SampleHandler implements IsolatedWorker {
         try {
             ArrayList<Ad> ads = new ArrayList<>();
             for (var key: remoteData.keySet()) {
+                if (!key.startsWith("ad")) {
+                    continue;
+                }
                 Ad ad = parseAd(key, remoteData.get(key));
                 if (ad != null) {
                     ads.add(ad);
@@ -345,8 +357,11 @@ public class SampleHandler implements IsolatedWorker {
     ) {
         try {
             if (input != null && input.getAppParams() != null
-                    && input.getAppParams().getString("schedule_training") != null
-                    && !input.getAppParams().getString("schedule_training").isEmpty()) {
+                    && input.getAppParams().getString("schedule_training") != null) {
+                if (input.getAppParams().getString("schedule_training").isEmpty()) {
+                    consumer.accept(null);
+                    return;
+                }
                 TrainingInterval interval = new TrainingInterval.Builder()
                         .setMinimumInterval(Duration.ofSeconds(10))
                         .setSchedulingMode(2)
@@ -360,6 +375,14 @@ public class SampleHandler implements IsolatedWorker {
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
                 consumer.accept(result);
+            } else if (input != null && input.getAppParams() != null
+                    && input.getAppParams().getString("conversion_ad_id") != null) {
+                try {
+                    consumer.accept(handleConversion(input));
+                } catch (Exception e) {
+                    consumer.accept(null);
+                    return;
+                }
             } else {
                 var unused = FluentFuture.from(readAds(mRemoteData))
                         .transform(
@@ -437,6 +460,45 @@ public class SampleHandler implements IsolatedWorker {
             Log.d(TAG, "content: " + content);
             return new RenderOutput.Builder().setContent(content).build();
         }
+    }
+
+    private ExecuteOutput handleConversion(ExecuteInput input) {
+        String adId = input.getAppParams().getString("conversion_ad_id");
+        if (adId.isEmpty()) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        List<EventLogRecord> logRecords = mLogReader.getJoinedEvents(
+                now - 24 * 60 * 60 * 1000, now);
+        EventLogRecord found = null;
+        // Attribute conversion to most recent impression or click.
+        for (EventLogRecord ev : logRecords) {
+            RequestLogRecord req = ev.getRequestLogRecord();
+            if (req == null || req.getRows() == null
+                    || req.getRows().size() <= ev.getRowIndex()
+                    || req.getRows().get(ev.getRowIndex()) == null) {
+                continue;
+            }
+            String reqAdId = (String) req.getRows().get(ev.getRowIndex()).get(AD_ID_KEY);
+            if (adId.equals(reqAdId)) {
+                if (found == null || found.getTimeMillis() < ev.getTimeMillis()) {
+                    found = ev;
+                }
+            }
+        }
+        var builder = new ExecuteOutput.Builder();
+        if (found != null) {
+            ContentValues values = new ContentValues();
+            values.put(SOURCE_TYPE_KEY, found.getType());
+            EventLogRecord conv = new EventLogRecord.Builder()
+                    .setType(EVENT_TYPE_CONVERSION)
+                    .setData(values)
+                    .setRowIndex(found.getRowIndex())
+                    .setRequestLogRecord(found.getRequestLogRecord())
+                    .build();
+            builder.addEventLogRecord(conv);
+        }
+        return builder.build();
     }
 
     private void handleOnRender(

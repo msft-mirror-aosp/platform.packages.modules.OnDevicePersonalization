@@ -20,6 +20,8 @@ import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedService;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.RenderInput;
+import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.RequestToken;
@@ -40,6 +42,16 @@ public class SampleService extends IsolatedService {
                     )
                     .build();
             consumer.accept(result);
+        }
+
+        @Override public void onRender(RenderInput input, Consumer<RenderOutput> consumer) {
+            var keys = input.getRenderingConfig().getKeys();
+            if (keys.size() > 0) {
+                String html = "<body>" + input.getRenderingConfig().getKeys().get(0) + "</body>";
+                consumer.accept(new RenderOutput.Builder().setContent(html).build());
+            } else {
+                consumer.accept(null);
+            }
         }
     }
 

@@ -125,7 +125,7 @@ public class ResultCallbackHelper {
     @VisibleForTesting
     IResultHandlingService getResultHandlingService(String appPackageName) {
         mResultHandlingServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         this.mContext,
                         RESULT_HANDLING_SERVICE_ACTION,
                         appPackageName,
