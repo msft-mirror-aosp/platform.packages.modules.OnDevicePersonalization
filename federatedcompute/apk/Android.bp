@@ -29,6 +29,11 @@ genrule {
     ],
 }
 
+filegroup {
+    name: "fcp-apk-jarjar",
+    srcs: ["jarjar_rules.txt"]
+}
+
 android_app_certificate {
     name: "com.android.federatedcompute.certificate",
     certificate: "com.android.federatedcompute",
@@ -55,11 +60,12 @@ android_app {
         "androidx.concurrent_concurrent-futures",
         "federated-compute-java-proto-lite",
         "guava",
-        "modules-utils-preconditions",
         "libprotobuf-java-lite",
+        "modules-utils-preconditions",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
+    jarjar_rules: ":fcp-apk-jarjar",
     updatable: true,
     certificate: ":com.android.federatedcompute.certificate",
     apex_available: ["com.android.ondevicepersonalization"],

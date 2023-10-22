@@ -61,10 +61,8 @@ import java.util.concurrent.TimeUnit;
 @RunWith(JUnit4.class)
 public class OdpExampleStoreServiceTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    @Mock
-    Context mMockContext;
-    @InjectMocks
-    OdpExampleStoreService mService;
+    @Mock Context mMockContext;
+    @InjectMocks OdpExampleStoreService mService;
     private CountDownLatch mLatch;
     private boolean mIteratorCallbackOnSuccessCalled = false;
     private boolean mIteratorCallbackOnFailureCalled = false;
@@ -80,7 +78,7 @@ public class OdpExampleStoreServiceTests {
         when(mMockContext.getApplicationContext()).thenReturn(mContext);
         mQueryCallbackOnSuccessCalled = false;
         mQueryCallbackOnFailureCalled = false;
-        mLatch  = new CountDownLatch(1);
+        mLatch = new CountDownLatch(1);
     }
 
     @Test
@@ -89,7 +87,7 @@ public class OdpExampleStoreServiceTests {
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")
                         .setServicePackageName(mContext.getPackageName())
-                        .setToken(new byte[] {})
+                        .setToken()
                         .build());
         mService.onCreate();
         Intent intent = new Intent();
@@ -100,9 +98,8 @@ public class OdpExampleStoreServiceTests {
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
         ContextData contextData = new ContextData(mContext.getPackageName());
-        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
-                ContextData.toByteArray(contextData));
-        input.putString(ClientConstants.EXTRA_COLLECTION_NAME, "CollectionName");
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
         input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
 
@@ -117,7 +114,7 @@ public class OdpExampleStoreServiceTests {
         IExampleStoreIterator iterator = callback.getIterator();
         TestIteratorCallback iteratorCallback = new TestIteratorCallback();
         mLatch = new CountDownLatch(1);
-        iteratorCallback.setExpected(new byte[]{10}, "token1".getBytes());
+        iteratorCallback.setExpected(new byte[] {10}, "token1".getBytes());
         iterator.next(iteratorCallback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
@@ -127,7 +124,7 @@ public class OdpExampleStoreServiceTests {
         mIteratorCallbackOnSuccessCalled = false;
 
         mLatch = new CountDownLatch(1);
-        iteratorCallback.setExpected(new byte[]{20}, "token2".getBytes());
+        iteratorCallback.setExpected(new byte[] {20}, "token2".getBytes());
         iterator.next(iteratorCallback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
@@ -147,9 +144,8 @@ public class OdpExampleStoreServiceTests {
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
         ContextData contextData = new ContextData(mContext.getPackageName());
-        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA,
-                ContextData.toByteArray(contextData));
-        input.putString(ClientConstants.EXTRA_COLLECTION_NAME, "CollectionName");
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
         input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
 
@@ -178,7 +174,7 @@ public class OdpExampleStoreServiceTests {
     @Test
     public void testFailedPermissionCheck() throws Exception {
         when(mMockContext.checkCallingOrSelfPermission(
-                eq("android.permission.BIND_EXAMPLE_STORE_SERVICE")))
+                        eq("android.permission.BIND_EXAMPLE_STORE_SERVICE")))
                 .thenReturn(PackageManager.PERMISSION_DENIED);
         mService.onCreate();
         Intent intent = new Intent();
@@ -206,10 +202,10 @@ public class OdpExampleStoreServiceTests {
 
         @Override
         public void onIteratorNextSuccess(Bundle result) throws RemoteException {
-            assertArrayEquals(mExpectedExample, result.getByteArray(
-                    EXTRA_EXAMPLE_ITERATOR_RESULT));
-            assertArrayEquals(mExpectedResumptionToken, result.getByteArray(
-                    EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
+            assertArrayEquals(mExpectedExample, result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESULT));
+            assertArrayEquals(
+                    mExpectedResumptionToken,
+                    result.getByteArray(EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN));
             mIteratorCallbackOnSuccessCalled = true;
             mLatch.countDown();
         }

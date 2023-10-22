@@ -53,6 +53,22 @@
         style="?android:attr/buttonBarButtonStyle"
         android:text="@string/schedule_training" />
 
+    <EditText
+        android:id="@+id/report_conversion_text_box"
+        android:inputType="text"
+        android:maxLines="1"
+        android:lines="1"
+        android:layout_height="wrap_content"
+        android:layout_width="match_parent"
+	android:hint="SourceAdId" />
+
+    <Button
+        android:id="@+id/report_conversion_button"
+        android:layout_height="wrap_content"
+        android:layout_width="wrap_content"
+        style="?android:attr/buttonBarButtonStyle"
+        android:text="@string/report_conversion" />
+
     <Button
         android:id="@+id/set_status_button"
         android:layout_height="wrap_content"

@@ -28,30 +28,39 @@ import java.time.Duration;
  *
  * @hide
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
-public class TrainingInterval {
+@DataClass(genBuilder = true, genHiddenConstDefs = true, genEqualsHashCode = true)
+public final class TrainingInterval {
     /**
-     * The scheduling modes for a task. Recurrent tasks will be rescheduled after each run. One-off
-     * task will not be rescheduled if the task succeeds.
+     * The scheduling mode for a one-off task.
      */
-    private static final int SCHEDULING_MODE_RECURRENT = 1;
+    public static final int SCHEDULING_MODE_ONE_TIME = 1;
 
-    private static final int SCHEDULING_MODE_ONE_TIME = 2;
-    @SchedulingMode private int mSchedulingMode;
+    /**
+     * The scheduling mode for a task that will be rescheduled after each run.
+     */
+    public static final int SCHEDULING_MODE_RECURRENT = 2;
+
+
+    /**
+     * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+     * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+     * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+     */
+    @SchedulingMode private int mSchedulingMode = SCHEDULING_MODE_ONE_TIME;
 
     /**
      * Sets the minimum time interval between two training runs.
      *
-     * <p>This field will only be used when the scheduling mode is {$link
-     * SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-     * result in IllegalArgumentException.
+     * <p>This field will only be used when the scheduling mode is
+     * {@link #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative
+     * values will result in IllegalArgumentException.
      *
      * <p>Please also note this value is advisory, which does not guarantee the job will be run
      * immediately after the interval expired. Federated compute will still enforce a minimum
      * required interval and training constraints to ensure system health. The current training
      * constraints are device on unmetered network, idle and battery not low.
      */
-    @NonNull private final Duration mMinimumInterval;
+    @NonNull private Duration mMinimumInterval = Duration.ZERO;
 
 
 
@@ -68,21 +77,23 @@ public class TrainingInterval {
     //@formatter:off
 
 
+    /** @hide */
     @android.annotation.IntDef(prefix = "SCHEDULING_MODE_", value = {
-        SCHEDULING_MODE_RECURRENT,
-        SCHEDULING_MODE_ONE_TIME
+        SCHEDULING_MODE_ONE_TIME,
+        SCHEDULING_MODE_RECURRENT
     })
     @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.SOURCE)
     @DataClass.Generated.Member
-    /* package-private */ @interface SchedulingMode {}
+    public @interface SchedulingMode {}
 
+    /** @hide */
     @DataClass.Generated.Member
-    /* package-private */ static String schedulingModeToString(@SchedulingMode int value) {
+    public static String schedulingModeToString(@SchedulingMode int value) {
         switch (value) {
-            case SCHEDULING_MODE_RECURRENT:
-                    return "SCHEDULING_MODE_RECURRENT";
             case SCHEDULING_MODE_ONE_TIME:
                     return "SCHEDULING_MODE_ONE_TIME";
+            case SCHEDULING_MODE_RECURRENT:
+                    return "SCHEDULING_MODE_RECURRENT";
             default: return Integer.toHexString(value);
         }
     }
@@ -93,12 +104,12 @@ public class TrainingInterval {
             @NonNull Duration minimumInterval) {
         this.mSchedulingMode = schedulingMode;
 
-        if (!(mSchedulingMode == SCHEDULING_MODE_RECURRENT)
-                && !(mSchedulingMode == SCHEDULING_MODE_ONE_TIME)) {
+        if (!(mSchedulingMode == SCHEDULING_MODE_ONE_TIME)
+                && !(mSchedulingMode == SCHEDULING_MODE_RECURRENT)) {
             throw new java.lang.IllegalArgumentException(
                     "schedulingMode was " + mSchedulingMode + " but must be one of: "
-                            + "SCHEDULING_MODE_RECURRENT(" + SCHEDULING_MODE_RECURRENT + "), "
-                            + "SCHEDULING_MODE_ONE_TIME(" + SCHEDULING_MODE_ONE_TIME + ")");
+                            + "SCHEDULING_MODE_ONE_TIME(" + SCHEDULING_MODE_ONE_TIME + "), "
+                            + "SCHEDULING_MODE_RECURRENT(" + SCHEDULING_MODE_RECURRENT + ")");
         }
 
         this.mMinimumInterval = minimumInterval;
@@ -108,6 +119,11 @@ public class TrainingInterval {
         // onConstructed(); // You can define this method to get a callback
     }
 
+    /**
+     * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+     * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+     * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+     */
     @DataClass.Generated.Member
     public @SchedulingMode int getSchedulingMode() {
         return mSchedulingMode;
@@ -116,9 +132,9 @@ public class TrainingInterval {
     /**
      * Sets the minimum time interval between two training runs.
      *
-     * <p>This field will only be used when the scheduling mode is {$link
-     * SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-     * result in IllegalArgumentException.
+     * <p>This field will only be used when the scheduling mode is
+     * {@link #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative
+     * values will result in IllegalArgumentException.
      *
      * <p>Please also note this value is advisory, which does not guarantee the job will be run
      * immediately after the interval expired. Federated compute will still enforce a minimum
@@ -164,48 +180,21 @@ public class TrainingInterval {
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static class Builder {
+    public static final class Builder {
 
         private @SchedulingMode int mSchedulingMode;
         private @NonNull Duration mMinimumInterval;
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {}
-
-        /**
-         * Creates a new Builder.
-         *
-         * @param minimumInterval
-         *   Sets the minimum time interval between two training runs.
-         *
-         *   <p>This field will only be used when the scheduling mode is {$link
-         *   SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-         *   result in IllegalArgumentException.
-         *
-         *   <p>Please also note this value is advisory, which does not guarantee the job will be run
-         *   immediately after the interval expired. Federated compute will still enforce a minimum
-         *   required interval and training constraints to ensure system health. The current training
-         *   constraints are device on unmetered network, idle and battery not low.
-         */
-        public Builder(
-                @SchedulingMode int schedulingMode,
-                @NonNull Duration minimumInterval) {
-            mSchedulingMode = schedulingMode;
-
-            if (!(mSchedulingMode == SCHEDULING_MODE_RECURRENT)
-                    && !(mSchedulingMode == SCHEDULING_MODE_ONE_TIME)) {
-                throw new java.lang.IllegalArgumentException(
-                        "schedulingMode was " + mSchedulingMode + " but must be one of: "
-                                + "SCHEDULING_MODE_RECURRENT(" + SCHEDULING_MODE_RECURRENT + "), "
-                                + "SCHEDULING_MODE_ONE_TIME(" + SCHEDULING_MODE_ONE_TIME + ")");
-            }
-
-            mMinimumInterval = minimumInterval;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mMinimumInterval);
+        public Builder() {
         }
 
+        /**
+         * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+         * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+         * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+         */
         @DataClass.Generated.Member
         public @NonNull Builder setSchedulingMode(@SchedulingMode int value) {
             checkNotUsed();
@@ -217,9 +206,9 @@ public class TrainingInterval {
         /**
          * Sets the minimum time interval between two training runs.
          *
-         * <p>This field will only be used when the scheduling mode is {$link
-         * SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-         * result in IllegalArgumentException.
+         * <p>This field will only be used when the scheduling mode is
+         * {@link #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative
+         * values will result in IllegalArgumentException.
          *
          * <p>Please also note this value is advisory, which does not guarantee the job will be run
          * immediately after the interval expired. Federated compute will still enforce a minimum
@@ -239,6 +228,12 @@ public class TrainingInterval {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4; // Mark builder used
 
+            if ((mBuilderFieldsSet & 0x1) == 0) {
+                mSchedulingMode = SCHEDULING_MODE_ONE_TIME;
+            }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mMinimumInterval = Duration.ZERO;
+            }
             TrainingInterval o = new TrainingInterval(
                     mSchedulingMode,
                     mMinimumInterval);
@@ -254,10 +249,10 @@ public class TrainingInterval {
     }
 
     @DataClass.Generated(
-            time = 1695918629783L,
+            time = 1697653739724L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingInterval.java",
-            inputSignatures = "private static final  int SCHEDULING_MODE_RECURRENT\nprivate static final  int SCHEDULING_MODE_ONE_TIME\nprivate @android.adservices.ondevicepersonalization.TrainingInterval.SchedulingMode int mSchedulingMode\nprivate final @android.annotation.NonNull java.time.Duration mMinimumInterval\nclass TrainingInterval extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "public static final  int SCHEDULING_MODE_ONE_TIME\npublic static final  int SCHEDULING_MODE_RECURRENT\nprivate @android.adservices.ondevicepersonalization.TrainingInterval.SchedulingMode int mSchedulingMode\nprivate @android.annotation.NonNull java.time.Duration mMinimumInterval\nclass TrainingInterval extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genHiddenConstDefs=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
