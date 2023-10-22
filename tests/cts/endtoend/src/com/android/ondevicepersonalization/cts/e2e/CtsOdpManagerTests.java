@@ -15,6 +15,8 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static android.view.Display.DEFAULT_DISPLAY;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -26,16 +28,23 @@ import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.hardware.display.DisplayManager;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
+import android.view.Display;
+import android.view.SurfaceControlViewHost.SurfacePackage;
+import android.view.SurfaceView;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.ext.junit.rules.ActivityScenarioRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
@@ -48,7 +57,12 @@ public class CtsOdpManagerTests {
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
+
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    @Rule
+    public final ActivityScenarioRule<TestActivity> mActivityScenarioRule =
+            new ActivityScenarioRule<>(TestActivity.class);
 
     @Test
     public void testExecuteThrowsIfComponentNameMissing() throws InterruptedException {
@@ -190,6 +204,192 @@ public class CtsOdpManagerTests {
         assertEquals(1, results.size());
         SurfacePackageToken token = results.get(0);
         assertNotNull(token);
+    }
+
+    @Test
+    public void testRequestSurfacePackage() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        var receiver = new ResultReceiver<SurfacePackage>();
+        SurfaceView surfaceView = createSurfaceView();
+        manager.requestSurfacePackage(
+                tokens.get(0),
+                surfaceView.getHostToken(),
+                getDisplayId(),
+                surfaceView.getWidth(),
+                surfaceView.getHeight(),
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.await();
+        assertNotNull(receiver.getResult());
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfSurfacePackageTokenMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        null,
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfSurfaceViewHostTokenMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        null,
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfInvalidDisplayId()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        -1,
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfInvalidWidth()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        0,
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfInvalidHeight()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        0,
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfExecutorMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        null,
+                        new ResultReceiver<SurfacePackage>()));
+    }
+
+    @Test
+    public void testRequestSurfacePackageThrowsIfOutcomeReceiverMissing()
+            throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        List<SurfacePackageToken> tokens =
+                runExecute(manager, PersistableBundle.EMPTY);
+        SurfaceView surfaceView = createSurfaceView();
+        assertThrows(
+                NullPointerException.class,
+                () -> manager.requestSurfacePackage(
+                        tokens.get(0),
+                        surfaceView.getHostToken(),
+                        getDisplayId(),
+                        surfaceView.getWidth(),
+                        surfaceView.getHeight(),
+                        Executors.newSingleThreadExecutor(),
+                        null));
+    }
+
+    int getDisplayId() {
+        final DisplayManager dm = mContext.getSystemService(DisplayManager.class);
+        final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
+        final Context windowContext = mContext.createDisplayContext(primaryDisplay);
+        return windowContext.getDisplay().getDisplayId();
+    }
+
+    SurfaceView createSurfaceView() throws InterruptedException {
+        ArrayBlockingQueue<SurfaceView> viewQueue = new ArrayBlockingQueue<>(1);
+        mActivityScenarioRule.getScenario().onActivity(
+                a -> viewQueue.add(a.findViewById(R.id.test_surface_view)));
+        return viewQueue.take();
+    }
+
+    private List<SurfacePackageToken> runExecute(
+            OnDevicePersonalizationManager manager, PersistableBundle params)
+            throws InterruptedException {
+        var receiver = new ResultReceiver<List<SurfacePackageToken>>();
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.await();
+        List<SurfacePackageToken> results = receiver.getResult();
+        return results;
     }
 
     class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {

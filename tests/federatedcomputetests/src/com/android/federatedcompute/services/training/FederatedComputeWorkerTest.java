@@ -66,6 +66,8 @@ import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
@@ -159,10 +161,9 @@ public final class FederatedComputeWorkerTest {
                                                     .build()))
                     .build();
     private static final Any FAKE_CRITERIA = Any.newBuilder().setTypeUrl("baz.com").build();
-    private static final String COLLECTION_URI = "app://com.foo.bar//inapp/collection1";
     private static final ExampleConsumption EXAMPLE_CONSUMPTION_1 =
             new ExampleConsumption.Builder()
-                    .setCollectionName(COLLECTION_URI)
+                    .setTaskName(TASK_NAME)
                     .setSelectionCriteria(FAKE_CRITERIA.toByteArray())
                     .setExampleCount(100)
                     .build();
@@ -514,6 +515,11 @@ public final class FederatedComputeWorkerTest {
                     return exampleList;
                 }
             };
+        }
+
+        @Override
+        ListeningExecutorService getBgExecutor() {
+            return MoreExecutors.newDirectExecutorService();
         }
     }
 
