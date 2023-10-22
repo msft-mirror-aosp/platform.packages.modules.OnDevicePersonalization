@@ -62,7 +62,7 @@ public final class FederatedComputeManager {
     public FederatedComputeManager(Context context) {
         this.mContext = context;
         this.mServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         context,
                         FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME,
                         List.of(

@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The Android Open Source Project
+ * Copyright 2023 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,6 +18,10 @@ package com.android.federatedcompute.internal.util;
 
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.content.Context;
@@ -47,13 +51,13 @@ public class AndroidServiceBinderTest {
             "com.android.federatedcompute.services";
     private static final String GOOGLE_RENAMED_FEDERATED_COMPUTATION_SERVICE_PACKAGE =
             "com.google.android.federatedcompute";
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final Context mSpyContext = spy(ApplicationProvider.getApplicationContext());
 
     @Test
     public void testOdpServiceBinding() {
         AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
-                        mContext,
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        mSpyContext,
                         ODP_MANAGING_SERVICE_INTENT_ACTION,
                         List.of(
                                 ODP_MANAGING_SERVICE_PACKAGE,
@@ -66,10 +70,33 @@ public class AndroidServiceBinderTest {
     }
 
     @Test
+    public void testServiceBindingWithFlags() {
+        AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder =
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        mSpyContext,
+                        ODP_MANAGING_SERVICE_INTENT_ACTION,
+                        List.of(
+                                ODP_MANAGING_SERVICE_PACKAGE,
+                                ALT_ODP_MANAGING_SERVICE_PACKAGE),
+                        Context.BIND_ALLOW_ACTIVITY_STARTS,
+                        IOnDevicePersonalizationManagingService.Stub::asInterface);
+
+        final IOnDevicePersonalizationManagingService service =
+                serviceBinder.getService(Runnable::run);
+        verify(mSpyContext)
+                .bindService(
+                        any(),
+                        eq(Context.BIND_ALLOW_ACTIVITY_STARTS | Context.BIND_AUTO_CREATE),
+                        any(),
+                        any());
+        assertNotNull(service);
+    }
+
+    @Test
     public void testFcpServiceBinding() {
         AbstractServiceBinder<IFederatedComputeService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
-                        mContext,
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        mSpyContext,
                         FEDERATED_COMPUTATION_SERVICE_INTENT_ACTION,
                         List.of(
                                 FEDERATED_COMPUTATION_SERVICE_PACKAGE,
@@ -83,8 +110,8 @@ public class AndroidServiceBinderTest {
     @Test
     public void testOdpServiceBindingWrongPackage() {
         AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
-                        mContext,
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        mSpyContext,
                         ODP_MANAGING_SERVICE_INTENT_ACTION,
                         INCORRECT_PACKAGE,
                         IOnDevicePersonalizationManagingService.Stub::asInterface);
@@ -95,8 +122,8 @@ public class AndroidServiceBinderTest {
     @Test
     public void testFcpServiceBindingWrongPackage() {
         AbstractServiceBinder<IFederatedComputeService> serviceBinder =
-                AbstractServiceBinder.getServiceBinder(
-                        mContext,
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        mSpyContext,
                         FEDERATED_COMPUTATION_SERVICE_INTENT_ACTION,
                         INCORRECT_PACKAGE,
                         IFederatedComputeService.Stub::asInterface);
