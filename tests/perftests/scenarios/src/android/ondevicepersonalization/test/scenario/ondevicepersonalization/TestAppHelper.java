@@ -19,11 +19,15 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import static org.junit.Assert.assertNotNull;
 
+import android.os.RemoteException;
 import android.os.SystemClock;
 
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObject2;
+import androidx.test.uiautomator.UiObjectNotFoundException;
+import androidx.test.uiautomator.UiScrollable;
+import androidx.test.uiautomator.UiSelector;
 import androidx.test.uiautomator.Until;
 
 import org.junit.Assert;
@@ -33,7 +37,9 @@ import java.io.IOException;
 /** Helper class for interacting with OdpClient test app in perf tests. */
 public class TestAppHelper {
     private static final UiDevice sUiDevice = UiDevice.getInstance(getInstrumentation());
+    private static UiScrollable sUiScrollable;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
+    private static final long UI_ROTATE_IDLE_TIMEOUT = 5000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String GET_AD_BUTTON_RESOURCE_ID = "get_ad_button";
     private static final String RENDERED_VIEW_RESOURCE_ID = "rendered_view";
@@ -100,6 +106,20 @@ public class TestAppHelper {
         sUiDevice.pressHome();
     }
 
+    /** Rotate screen to landscape orientation */
+    public void setOrientationLandscape() throws RemoteException {
+        sUiDevice.unfreezeRotation();
+        sUiDevice.setOrientationLandscape();
+        SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
+    }
+
+    /** Rotate screen to portrait orientation */
+    public void setOrientationPortrait() throws RemoteException {
+        sUiDevice.unfreezeRotation();
+        sUiDevice.setOrientationPortrait();
+        SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
+    }
+
     /** Click Get Ad button. */
     public void clickGetAd() {
         UiObject2 getAdButton = getGetAdButton();
@@ -124,15 +144,40 @@ public class TestAppHelper {
             UI_FIND_RESOURCE_TIMEOUT);
     }
 
+    /** Locate the rendered UI element in the scrollable view */
     private UiObject2 getRenderedView() {
-        return sUiDevice.wait(
-            Until.findObject(By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, RENDERED_VIEW_RESOURCE_ID)),
-            UI_FIND_RESOURCE_TIMEOUT);
+        for (int i = 0; i < 2; i++) {
+            // Try finding the renderedView on current screen
+            UiObject2 renderedView = sUiDevice.wait(
+                    Until.findObject(
+                            By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, RENDERED_VIEW_RESOURCE_ID)),
+                    UI_FIND_RESOURCE_TIMEOUT);
+            if (renderedView != null) {
+                return renderedView;
+            }
+
+            // Try scroll to the end
+            try {
+                getUiScrollable().scrollToEnd(5);
+            } catch (UiObjectNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return null;
     }
 
     private UiObject2 getChildSurfaceViewByText(final String text) {
         return sUiDevice.wait(
             Until.findObject(By.desc(text)),
             UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    /** Get a UiScrollable instance configured for vertical scrolling */
+    private static UiScrollable getUiScrollable() {
+        if (sUiScrollable == null) {
+            sUiScrollable = new UiScrollable(new UiSelector().scrollable(true));
+            sUiScrollable.setAsVerticalList();
+        }
+        return sUiScrollable;
     }
 }
