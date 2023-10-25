@@ -48,6 +48,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
@@ -74,6 +75,8 @@ public class OnDevicePersonalizationConfigServiceTest {
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
         mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserData = RawUserData.getInstance();
+        TimeZone pstTime = TimeZone.getTimeZone("GMT-08:00");
+        TimeZone.setDefault(pstTime);
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserDataDao = UserDataDao.getInstanceForTest(mContext);
     }
@@ -105,7 +108,7 @@ public class OnDevicePersonalizationConfigServiceTest {
     public void testSetPersonalizationStatusChanged() throws Exception {
         assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
         populateUserData();
-        assertNotEquals(0, mUserData.timeMillis);
+        assertNotEquals(0, mUserData.utcOffset);
         assertTrue(mUserDataCollector.isInitialized());
 
         CountDownLatch latch = new CountDownLatch(1);
@@ -125,9 +128,8 @@ public class OnDevicePersonalizationConfigServiceTest {
         latch.await();
         assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
 
-        assertEquals(0, mUserData.timeMillis);
+        assertEquals(0, mUserData.utcOffset);
         assertFalse(mUserDataCollector.isInitialized());
-        assertEquals(0, mUserData.timeMillis);
         Cursor appUsageCursor = mUserDataDao.readAppUsageInLastXDays(30);
         assertNotNull(appUsageCursor);
         assertEquals(0, appUsageCursor.getCount());
@@ -148,8 +150,8 @@ public class OnDevicePersonalizationConfigServiceTest {
         mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
 
         populateUserData();
-        assertNotEquals(0, mUserData.timeMillis);
-        long timeMillis = mUserData.timeMillis;
+        assertNotEquals(0, mUserData.utcOffset);
+        int utcOffset = mUserData.utcOffset;
         assertTrue(mUserDataCollector.isInitialized());
         Cursor appUsageCursor = mUserDataDao.readAppUsageInLastXDays(30);
         Cursor locationCursor = mUserDataDao.readLocationInLastXDays(30);
@@ -178,7 +180,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
         assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
         // Adult data should not be roll-back'ed
-        assertEquals(timeMillis, mUserData.timeMillis);
+        assertEquals(utcOffset, mUserData.utcOffset);
         assertTrue(mUserDataCollector.isInitialized());
         Cursor newAppUsageCursor = mUserDataDao.readAppUsageInLastXDays(30);
         Cursor newLocationCursor = mUserDataDao.readLocationInLastXDays(30);
