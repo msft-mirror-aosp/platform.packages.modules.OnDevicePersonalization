@@ -138,6 +138,19 @@ public class TestAppHelper {
         }
     }
 
+    /** Click text on rendered Ad */
+    public void clickAd(final String text) {
+        UiObject2 adUiObject = getUiObjectByText(text);
+        assertNotNull("Could not find Ad UiObject by given text " + text, adUiObject);
+        adUiObject.click();
+        SystemClock.sleep(5000);
+
+        if (sUiDevice.getCurrentPackageName() == null
+                || !sUiDevice.getCurrentPackageName().contains("com.android.chrome")) {
+            Assert.fail("Failed to click ad and jump to landing page in the default browser");
+        }
+    }
+
     private UiObject2 getGetAdButton() {
         return sUiDevice.wait(
             Until.findObject(By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, GET_AD_BUTTON_RESOURCE_ID)),
@@ -166,7 +179,7 @@ public class TestAppHelper {
         return null;
     }
 
-    private UiObject2 getChildSurfaceViewByText(final String text) {
+    private UiObject2 getUiObjectByText(final String text) {
         return sUiDevice.wait(
             Until.findObject(By.desc(text)),
             UI_FIND_RESOURCE_TIMEOUT);
