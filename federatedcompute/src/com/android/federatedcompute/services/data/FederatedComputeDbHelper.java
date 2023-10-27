@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.data;
 
+import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 
 import android.content.Context;
@@ -23,16 +24,17 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 import com.android.internal.annotations.VisibleForTesting;
 
 /** Helper to manage FederatedTrainingTask database. */
-public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
+public class FederatedComputeDbHelper extends SQLiteOpenHelper {
 
-    private static final String TAG = FederatedTrainingTaskDbHelper.class.getSimpleName();
+    private static final String TAG = FederatedComputeDbHelper.class.getSimpleName();
 
     private static final int DATABASE_VERSION = 1;
-    private static final String DATABASE_NAME = "trainingtasks.db";
+    private static final String DATABASE_NAME = "federatedcompute.db";
     private static final String CREATE_TRAINING_TASK_TABLE =
             "CREATE TABLE "
                     + FEDERATED_TRAINING_TASKS_TABLE
@@ -66,19 +68,35 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.SCHEDULING_REASON
                     + " INTEGER )";
 
-    private static volatile FederatedTrainingTaskDbHelper sInstance = null;
+    private static final String CREATE_ENCRYPTION_KEY_TABLE =
+            "CREATE TABLE "
+                    + ENCRYPTION_KEY_TABLE
+                    + " ( "
+                    + FederatedComputeEncryptionColumns.KEY_IDENTIFIER
+                    + " TEXT PRIMARY KEY, "
+                    + FederatedComputeEncryptionColumns.PUBLIC_KEY
+                    + " TEXT NOT NULL, "
+                    + FederatedComputeEncryptionColumns.KEY_TYPE
+                    + " INTEGER, "
+                    + FederatedComputeEncryptionColumns.CREATION_TIME
+                    + " INTEGER NOT NULL, "
+                    + FederatedComputeEncryptionColumns.EXPIRY_TIME
+                    + " INTEGER NOT NULL)";
 
-    private FederatedTrainingTaskDbHelper(Context context, String dbName) {
+    private static volatile FederatedComputeDbHelper sInstance = null;
+
+    private FederatedComputeDbHelper(Context context, String dbName) {
         super(context, dbName, null, DATABASE_VERSION);
     }
 
-    /** Returns an instance of the FederatedTrainingTaskDbHelper given a context. */
-    public static FederatedTrainingTaskDbHelper getInstance(Context context) {
+    /** Returns an instance of the FederatedComputeDbHelper given a context. */
+    public static FederatedComputeDbHelper getInstance(Context context) {
         if (sInstance == null) {
-            synchronized (FederatedTrainingTaskDbHelper.class) {
+            synchronized (FederatedComputeDbHelper.class) {
                 if (sInstance == null) {
-                    sInstance = new FederatedTrainingTaskDbHelper(
-                            context.getApplicationContext(), DATABASE_NAME);
+                    sInstance =
+                            new FederatedComputeDbHelper(
+                                    context.getApplicationContext(), DATABASE_NAME);
                 }
             }
         }
@@ -86,15 +104,15 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Returns an instance of the FederatedTrainingTaskDbHelper given a context. This is used for
-     * testing only.
+     * Returns an instance of the FederatedComputeDbHelper given a context. This is used for testing
+     * only.
      */
     @VisibleForTesting
-    public static FederatedTrainingTaskDbHelper getInstanceForTest(Context context) {
-        synchronized (FederatedTrainingTaskDbHelper.class) {
+    public static FederatedComputeDbHelper getInstanceForTest(Context context) {
+        synchronized (FederatedComputeDbHelper.class) {
             if (sInstance == null) {
                 // Use null database name to make it in-memory
-                sInstance = new FederatedTrainingTaskDbHelper(context, null);
+                sInstance = new FederatedComputeDbHelper(context, null);
             }
             return sInstance;
         }
@@ -103,6 +121,7 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
     @Override
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
+        db.execSQL(CREATE_ENCRYPTION_KEY_TABLE);
     }
 
     @Override
@@ -116,6 +135,7 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
         // Delete and recreate the database.
         // These tables must be dropped in order because of database constraints.
         db.execSQL("DROP TABLE IF EXISTS " + FEDERATED_TRAINING_TASKS_TABLE);
+        db.execSQL("DROP TABLE IF EXISTS " + ENCRYPTION_KEY_TABLE);
         onCreate(db);
     }
 
@@ -127,7 +147,7 @@ public class FederatedTrainingTaskDbHelper extends SQLiteOpenHelper {
     /** It's only public to testing. */
     @VisibleForTesting
     public static void resetInstance() {
-        synchronized (FederatedTrainingTaskDbHelper.class) {
+        synchronized (FederatedComputeDbHelper.class) {
             if (sInstance != null) {
                 sInstance.close();
                 sInstance = null;
