@@ -50,6 +50,11 @@
                 <action android:name="android.OnDevicePersonalizationConfigService" />
             </intent-filter>
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.OnDevicePersonalizationDebugServiceImpl" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.OnDevicePersonalizationService" />
+            </intent-filter>
+        </service>
         <!-- TODO(b/258808270): Set isolated process to true -->
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:exported="false" >

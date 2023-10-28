@@ -17,10 +17,12 @@
 package com.android.federatedcompute.services.data;
 
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
+import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 
@@ -32,8 +34,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.ArrayList;
+
 @RunWith(AndroidJUnit4.class)
-public final class FederatedTrainingTaskDbHelperTest {
+public final class FederatedComputeDbHelperTest {
     private Context mContext;
 
     @Before
@@ -43,17 +47,30 @@ public final class FederatedTrainingTaskDbHelperTest {
 
     @After
     public void cleanUp() throws Exception {
-        FederatedTrainingTaskDbHelper.resetInstance();
+        FederatedComputeDbHelper.resetInstance();
     }
 
     @Test
     public void onCreate() {
-        FederatedTrainingTaskDbHelper dbHelper =
-                FederatedTrainingTaskDbHelper.getInstanceForTest(mContext);
+        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
 
         SQLiteDatabase db = dbHelper.getReadableDatabase();
 
         assertThat(db).isNotNull();
         assertThat(DatabaseUtils.queryNumEntries(db, FEDERATED_TRAINING_TASKS_TABLE)).isEqualTo(0);
+        assertThat(DatabaseUtils.queryNumEntries(db, ENCRYPTION_KEY_TABLE)).isEqualTo(0);
+
+        // query number of tables
+        ArrayList<String> tableNames = new ArrayList<String>();
+        Cursor cursor = db.rawQuery("SELECT name FROM sqlite_master WHERE type='table'", null);
+        if (cursor.moveToFirst()) {
+            while (!cursor.isAfterLast()) {
+                tableNames.add(cursor.getString(cursor.getColumnIndex("name")));
+                cursor.moveToNext();
+            }
+        }
+        String[] expectedTables = {FEDERATED_TRAINING_TASKS_TABLE, ENCRYPTION_KEY_TABLE};
+        // android metadata table also exists in the database
+        assertThat(tableNames).containsAtLeastElementsIn(expectedTables);
     }
 }
