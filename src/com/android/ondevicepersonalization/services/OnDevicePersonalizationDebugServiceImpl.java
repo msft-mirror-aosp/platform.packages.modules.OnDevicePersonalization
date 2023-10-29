@@ -14,11 +14,27 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data.user;
+package com.android.ondevicepersonalization.services;
 
-/** Values for OS versions. */
-public class OSVersion {
-    public int major = 0;
-    public int minor = 0;
-    public int micro = 0;
+import android.app.Service;
+import android.content.Intent;
+import android.os.IBinder;
+
+/**
+ * Service that provides test and debug APIs.
+ */
+public class OnDevicePersonalizationDebugServiceImpl extends Service {
+
+    /** Binder interface. */
+    private OnDevicePersonalizationDebugServiceDelegate mBinder;
+
+    @Override
+    public void onCreate() {
+        mBinder = new OnDevicePersonalizationDebugServiceDelegate(this);
+    }
+
+    @Override
+    public IBinder onBind(Intent intent) {
+        return mBinder;
+    }
 }

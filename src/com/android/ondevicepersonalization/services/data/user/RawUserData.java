@@ -20,8 +20,6 @@ import android.adservices.ondevicepersonalization.UserData;
 import android.content.res.Configuration;
 import android.net.NetworkCapabilities;
 
-import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,11 +30,6 @@ import java.util.List;
 public final class RawUserData {
 
     private static RawUserData sUserData = null;
-    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "UserData";
-
-    // The current system time in milliseconds.
-    public long timeMillis = 0;
 
     // The device time zone +/- offset in minute from UTC.
     public int utcOffset = 0;
@@ -50,24 +43,12 @@ public final class RawUserData {
     // Battery percentage.
     public int batteryPercentage = 0;
 
-    // The 3-letter ISO-3166 country code
-    public Country country = Country.UNKNOWN;
-
-    // The 2-letter ISO-639 language code
-    public Language language = Language.UNKNOWN;
-
     // Mobile carrier.
     public Carrier carrier = Carrier.UNKNOWN;
-
-    // OS versions of the device.
-    public OSVersion osVersions = new OSVersion();
 
     public NetworkCapabilities networkCapabilities;
 
     @UserData.NetworkType public int dataNetworkType;
-
-    // Device metrics values.
-    public DeviceMetrics deviceMetrics = new DeviceMetrics();
 
     // installed packages.
     public List<AppInfo> appsInfo = new ArrayList<>();
