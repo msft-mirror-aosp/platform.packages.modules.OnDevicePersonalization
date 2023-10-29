@@ -33,12 +33,15 @@ import java.io.IOException;
 public class TestHelper {
     private static UiDevice sUiDevice;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
+    private static final long TRAINING_TASK_COMPLETION_TIMEOUT = 120_000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String SCHEDULE_TRAINING_BUTTON_RESOURCE_ID = "schedule_training_button";
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
     private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
+    private static final String FEDERATED_TRAINING_JOB_SUCCESS_LOG =
+            "FederatedJobService - Federated computation job 1586947961 is done";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -97,11 +100,38 @@ public class TestHelper {
     }
 
     /** Force the JobScheduler to execute the training task, bypassing all constraints */
-    public void forceExecuteTrainingTaskForTestApp() {
+    public void forceExecuteTrainingTaskForTestApp() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
                     + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
-        SystemClock.sleep(60000);
+        SystemClock.sleep(10000);
+
+        boolean foundTrainingJobSuccessLog = findLog(
+                FEDERATED_TRAINING_JOB_SUCCESS_LOG,
+                TRAINING_TASK_COMPLETION_TIMEOUT,
+                10000);
+
+        if (!foundTrainingJobSuccessLog) {
+            Assert.fail(String.format(
+                    "Failed to find federated training job success log within test window %d ms",
+                    TRAINING_TASK_COMPLETION_TIMEOUT));
+        }
+    }
+
+    /** Attempt to find a specific log entry within the timeout window */
+    private boolean findLog(final String targetLog, long timeoutMillis,
+            long queryIntervalMillis) throws IOException {
+
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            if (getUiDevice().executeShellCommand("logcat -d").contains(targetLog)) {
+                return true;
+            }
+            SystemClock.sleep(queryIntervalMillis);
+        }
+        return false;
     }
 
     private static void disableGlobalKillSwitch() {

@@ -35,7 +35,6 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
-import com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
 import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
@@ -48,9 +47,7 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.concurrent.Executor;
 
-/**
- * BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers.
- */
+/** BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers. */
 public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
@@ -72,8 +69,8 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
         try {
             context.getPackageManager()
                     .setComponentEnabledSetting(
-                            new ComponentName(context,
-                                    OnDevicePersonalizationBroadcastReceiver.class),
+                            new ComponentName(
+                                    context, OnDevicePersonalizationBroadcastReceiver.class),
                             COMPONENT_ENABLED_STATE_ENABLED,
                             PackageManager.DONT_KILL_APP);
         } catch (IllegalArgumentException e) {
@@ -83,9 +80,7 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
         return true;
     }
 
-    /**
-     * Called when the broadcast is received. OnDevicePersonalization jobs will be started here.
-     */
+    /** Called when the broadcast is received. OnDevicePersonalization jobs will be started here. */
     public void onReceive(Context context, Intent intent) {
         sLogger.d(TAG + ": onReceive() with intent + " + intent.getAction());
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
@@ -95,31 +90,33 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
         // Restore personalization status from the system server on U+ devices.
         if (SdkLevel.isAtLeastU()) {
             OnDevicePersonalizationSystemServiceManager systemServiceManager =
-                    context.getSystemService(
-                            OnDevicePersonalizationSystemServiceManager.class);
+                    context.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
             if (systemServiceManager != null) {
                 IOnDevicePersonalizationSystemService systemService =
-                                systemServiceManager.getService();
+                        systemServiceManager.getService();
                 if (systemService != null) {
                     try {
                         systemService.readPersonalizationStatus(
                                 new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                @Override
-                                public void onResult(Bundle bundle) {
-                                    boolean personalizationStatus = bundle.getBoolean(
-                                                    PERSONALIZATION_STATUS_KEY);
-                                    UserPrivacyStatus.getInstance()
-                                                    .setPersonalizationStatusEnabled(
-                                                                    personalizationStatus);
-                                }
-                                @Override
-                                public void onError(int errorCode) {
-                                    if (errorCode == KEY_NOT_FOUND_ERROR) {
-                                        sLogger.d(TAG + ": Personalization status "
-                                                        + "not found in the system server");
+                                    @Override
+                                    public void onResult(Bundle bundle) {
+                                        boolean personalizationStatus =
+                                                bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
+                                        UserPrivacyStatus.getInstance()
+                                                .setPersonalizationStatusEnabled(
+                                                        personalizationStatus);
                                     }
-                                }
-                            });
+
+                                    @Override
+                                    public void onError(int errorCode) {
+                                        if (errorCode == KEY_NOT_FOUND_ERROR) {
+                                            sLogger.d(
+                                                    TAG
+                                                            + ": Personalization status "
+                                                            + "not found in the system server");
+                                        }
+                                    }
+                                });
                     } catch (RemoteException e) {
                         sLogger.e(TAG + ": Callback error.");
                     }
@@ -138,9 +135,6 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
         // Schedule maintenance task
         OnDevicePersonalizationMaintenanceJobService.schedule(context);
-
-        // Schedule federatedCompute task
-        OdpFederatedComputeJobService.schedule(context);
 
         // Schedule user data collection task
         UserDataCollectionJobService.schedule(context);
