@@ -16,17 +16,21 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.Nullable;
 import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedWorker#onRender()}.
+ * The input data for
+ * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)}.
  *
- * @hide
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class RenderInput implements Parcelable {
     /** The width of the slot. */
     private int mWidth = 0;
@@ -40,7 +44,10 @@ public final class RenderInput implements Parcelable {
      */
     private int mRenderingConfigIndex = 0;
 
-    /** A {@link RenderingConfig} returned by {@link onExecute}. */
+    /**
+     * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     */
     @Nullable RenderingConfig mRenderingConfig = null;
 
 
@@ -98,7 +105,8 @@ public final class RenderInput implements Parcelable {
     }
 
     /**
-     * A {@link RenderingConfig} returned by {@link onExecute}.
+     * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
      */
     @DataClass.Generated.Member
     public @Nullable RenderingConfig getRenderingConfig() {
@@ -194,6 +202,7 @@ public final class RenderInput implements Parcelable {
 
     /**
      * A builder for {@link RenderInput}
+     * @hide
      */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
@@ -244,7 +253,8 @@ public final class RenderInput implements Parcelable {
         }
 
         /**
-         * A {@link RenderingConfig} returned by {@link onExecute}.
+         * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
+         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setRenderingConfig(@android.annotation.NonNull RenderingConfig value) {
@@ -288,10 +298,10 @@ public final class RenderInput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118409407L,
+            time = 1697063555914L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInput.java",
-            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

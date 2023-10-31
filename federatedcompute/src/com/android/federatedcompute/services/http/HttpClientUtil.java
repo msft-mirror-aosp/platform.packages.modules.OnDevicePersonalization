@@ -16,8 +16,9 @@
 
 package com.android.federatedcompute.services.http;
 
-import android.util.Log;
+import com.android.federatedcompute.internal.util.LogUtil;
 
+import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
 
 import java.io.IOException;
@@ -25,7 +26,7 @@ import java.util.zip.GZIPOutputStream;
 
 /** Utility class containing http related variable e.g. headers, method. */
 public final class HttpClientUtil {
-    private static final String TAG = "HttpClientUtil";
+    private static final String TAG = HttpClientUtil.class.getSimpleName();
     public static final String IDENTITY_ENCODING_HDR = "identity";
     public static final String CONTENT_ENCODING_HDR = "Content-Encoding";
     public static final String CONTENT_LENGTH_HDR = "Content-Length";
@@ -35,7 +36,7 @@ public final class HttpClientUtil {
     public static final String PROTOBUF_CONTENT_TYPE = "application/x-protobuf";
     public static final String OCTET_STREAM = "application/octet-stream";
     public static final String CLIENT_DECODE_GZIP_SUFFIX = "+gzip";
-    public static final int HTTP_OK_STATUS = 200;
+    public static final ImmutableSet<Integer> HTTP_OK_STATUS = ImmutableSet.of(200, 201);
     public static final String FAKE_API_KEY = "FAKE_API_KEY";
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final byte[] EMPTY_BODY = new byte[0];
@@ -43,7 +44,8 @@ public final class HttpClientUtil {
     /** The supported http methods. */
     public enum HttpMethod {
         GET,
-        POST
+        POST,
+        PUT,
     }
 
     /** Compresses the input data using Gzip. */
@@ -54,7 +56,7 @@ public final class HttpClientUtil {
             gzipOutputStream.finish();
             return outputStream.toByteString().toByteArray();
         } catch (IOException e) {
-            Log.e(TAG, "Failed to compress using Gzip");
+            LogUtil.e(TAG, "Failed to compress using Gzip");
             throw new IllegalArgumentException("Failed to compress using Gzip", e);
         }
     }

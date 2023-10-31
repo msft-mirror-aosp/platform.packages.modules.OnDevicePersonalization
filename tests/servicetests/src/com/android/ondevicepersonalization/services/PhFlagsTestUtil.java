@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 
 import android.provider.DeviceConfig;
@@ -55,6 +57,35 @@ public class PhFlagsTestUtil {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_GLOBAL_KILL_SWITCH,
+                Boolean.toString(false),
+                /* makeDefault */ false);
+    }
+
+    /** Enable OnDevicePersonalization APIs. */
+    public static void enableOnDevicePersonalizationApis() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
+                Boolean.toString(true),
+                /* makeDefault */ false);
+    }
+
+    /** Disable OnDevicePersonalization APIs. */
+    public static void disableOnDevicePersonalizationApis() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
+                Boolean.toString(false),
+                /* makeDefault */ false);
+    }
+
+    /**
+     * Disable the enable_personalization_status_override to test personalization-related features.
+     */
+    public static void disablePersonalizationStatusOverride() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
                 Boolean.toString(false),
                 /* makeDefault */ false);
     }

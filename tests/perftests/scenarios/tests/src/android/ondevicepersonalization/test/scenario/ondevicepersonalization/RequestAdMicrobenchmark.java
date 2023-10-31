@@ -30,6 +30,6 @@ public class RequestAdMicrobenchmark extends RequestAd {
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(new DropCachesRule())
-            .around(new KillAppsRule("com.android.odpclient"))
+            .around(new KillAppsRule("com.example.odpclient"))
             .around(new PressHomeRule());
 }

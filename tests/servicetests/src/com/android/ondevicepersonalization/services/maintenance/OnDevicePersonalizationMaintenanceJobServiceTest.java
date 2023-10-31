@@ -43,6 +43,7 @@ import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -74,6 +75,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
         // Add vendor data
@@ -108,8 +110,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         EventState eventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
                 .setServicePackageName(packageName)
-                .setQueryId(0)
-                .setEventId(0)
+                .setToken(new byte[]{1})
                 .build();
         mEventsDao.updateOrInsertEventState(eventState);
     }
@@ -118,6 +119,8 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);
         mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext,
@@ -152,6 +155,20 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     @Test
     public void onStartJobTestKillSwitchEnabled() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
+        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        try {
+            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestPersonalizationBlocked() {
+        mPrivacyStatus.setPersonalizationStatusEnabled(false);
         MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
         try {
             doNothing().when(mSpyService).jobFinished(any(), anyBoolean());

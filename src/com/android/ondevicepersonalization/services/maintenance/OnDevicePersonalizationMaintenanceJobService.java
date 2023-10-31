@@ -34,6 +34,7 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -115,7 +116,6 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
             String certDigest = entry.getValue();
             OnDevicePersonalizationVendorDataDao.deleteVendorData(context, packageName, certDigest);
             eventsDao.deleteEventState(entry.getKey());
-            // TODO(296893799): Cancel any tasks scheduled by the uninstalled package with FCP.
         }
 
         // Cleanup event and queries table.
@@ -129,6 +129,11 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
             jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
+        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            jobFinished(params, false);
             return true;
         }
         Context context = this;

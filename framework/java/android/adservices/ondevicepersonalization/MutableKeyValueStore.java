@@ -16,33 +16,42 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.WorkerThread;
 
 /**
- * Data Access Object for the LOCAL_DATA table. The LOCAL_DATA table is a mutable
- * data store that contains data that has been stored locally by the vendor.
+ * An interface to a read-write key-value store.
  *
- * @hide
+ * Used as a Data Access Object for the LOCAL_DATA table.
+ *
+ * @see IsolatedService#getLocalData(RequestToken)
+ *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface MutableKeyValueStore extends KeyValueStore {
     /**
-     * Associates the specified value with the specified key in LOCAL_DATA.
-     * If LOCAL_DATA previously contained a mapping for the key, the old value is replaced.
+     * Associates the specified value with the specified key.
+     * If a value already exists for that key, the old value is replaced.
      *
      * @param key key with which the specified value is to be associated
      * @param value value to be associated with the specified key
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
+    @WorkerThread
     @Nullable byte[] put(@NonNull String key, @NonNull byte[] value);
 
     /**
-     * Removes the mapping for the specified key from LOCAL_DATA if present.
+     * Removes the mapping for the specified key.
      *
-     * @param key key whose mapping is to be removed from the LOCAL_DATA
+     * @param key key whose mapping is to be removed
      *
      * @return the previous value associated with key, or null if there was no mapping for key.
      */
+    @WorkerThread
     @Nullable byte[] remove(@NonNull String key);
 }
