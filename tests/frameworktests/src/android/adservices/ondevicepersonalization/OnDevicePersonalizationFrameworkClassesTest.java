@@ -43,17 +43,18 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     public void testExecuteOutput() {
         ContentValues row = new ContentValues();
         row.put("a", 5);
-        ExecuteOutput result =
+        ExecuteOutput data =
                 new ExecuteOutput.Builder()
                     .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
                     .addRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                     .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
                     .build();
+        ExecuteOutputParcel result = new ExecuteOutputParcel(data);
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        ExecuteOutput result2 = ExecuteOutput.CREATOR.createFromParcel(parcel);
+        ExecuteOutputParcel result2 = ExecuteOutputParcel.CREATOR.createFromParcel(parcel);
 
         assertEquals(
                 5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
@@ -66,12 +67,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      */
     @Test
     public void testRenderOutput() {
-        RenderOutput result = new RenderOutput.Builder().setContent("abc").build();
+        RenderOutput data = new RenderOutput.Builder().setContent("abc").build();
+        RenderOutputParcel result = new RenderOutputParcel(data);
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        RenderOutput result2 = RenderOutput.CREATOR.createFromParcel(parcel);
+        RenderOutputParcel result2 = RenderOutputParcel.CREATOR.createFromParcel(parcel);
 
         assertEquals("abc", result2.getContent());
     }
@@ -81,16 +83,17 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      */
     @Test
     public void teetDownloadCompletedOutput() {
-        DownloadCompletedOutput result = new DownloadCompletedOutput.Builder()
+        DownloadCompletedOutput data = new DownloadCompletedOutput.Builder()
                 .addRetainedKey("abc").addRetainedKey("def").build();
+        DownloadCompletedOutputParcel result =
+                new DownloadCompletedOutputParcel(data);
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        DownloadCompletedOutput result2 =
-                DownloadCompletedOutput.CREATOR.createFromParcel(parcel);
+        DownloadCompletedOutputParcel result2 =
+                DownloadCompletedOutputParcel.CREATOR.createFromParcel(parcel);
 
-        assertEquals(result, result2);
         assertEquals("abc", result2.getRetainedKeys().get(0));
         assertEquals("def", result2.getRetainedKeys().get(1));
     }
@@ -130,7 +133,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     public void testEventOutput() {
         ContentValues data = new ContentValues();
         data.put("a", 3);
-        EventOutput result = new EventOutput.Builder()
+        EventOutput output = new EventOutput.Builder()
                 .setEventLogRecord(
                     new EventLogRecord.Builder()
                         .setType(5)
@@ -138,13 +141,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                         .setData(data)
                         .build())
                 .build();
+        EventOutputParcel result = new EventOutputParcel(output);
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        EventOutput result2 = EventOutput.CREATOR.createFromParcel(parcel);
+        EventOutputParcel result2 = EventOutputParcel.CREATOR.createFromParcel(parcel);
 
-        assertEquals(result, result2);
         assertEquals(5, result2.getEventLogRecord().getType());
         assertEquals(6, result2.getEventLogRecord().getRowIndex());
         assertEquals(3, result2.getEventLogRecord().getData().getAsInteger("a").intValue());

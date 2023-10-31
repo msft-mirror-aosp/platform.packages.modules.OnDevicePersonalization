@@ -18,7 +18,7 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderInput;
-import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -229,7 +229,7 @@ public class RenderFlow {
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
-                                Constants.EXTRA_RESULT, RenderOutput.class);
+                                Constants.EXTRA_RESULT, RenderOutputParcel.class);
                     }, mInjector.getExecutor())
                     .transform(
                             result -> mDisplayHelper.generateHtml(result, mServicePackageName),

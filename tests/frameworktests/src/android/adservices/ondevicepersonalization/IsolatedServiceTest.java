@@ -97,8 +97,8 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
-        ExecuteOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutput.class);
+        ExecuteOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
         assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("123", result.getRenderingConfigs().get(0).getKeys().get(0));
     }
@@ -218,9 +218,9 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
-        DownloadCompletedOutput result =
+        DownloadCompletedOutputParcel result =
                 mCallbackResult.getParcelable(
-                        Constants.EXTRA_RESULT, DownloadCompletedOutput.class);
+                        Constants.EXTRA_RESULT, DownloadCompletedOutputParcel.class);
         assertEquals("12", result.getRetainedKeys().get(0));
     }
 
@@ -308,8 +308,8 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnRenderCalled);
-        RenderOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, RenderOutput.class);
+        RenderOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, RenderOutputParcel.class);
         assertEquals("htmlstring", result.getContent());
     }
 
@@ -394,8 +394,8 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnEventCalled);
-        EventOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventOutput.class);
+        EventOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventOutputParcel.class);
         assertEquals(1, result.getEventLogRecord().getType());
         assertEquals(2, result.getEventLogRecord().getRowIndex());
     }
