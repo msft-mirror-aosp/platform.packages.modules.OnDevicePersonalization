@@ -16,14 +16,17 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.Nullable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  *  The result returned by {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventOutput {
     /**
@@ -96,6 +99,7 @@ public final class EventOutput {
     /**
      * A builder for {@link EventOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -142,7 +146,7 @@ public final class EventOutput {
     }
 
     @DataClass.Generated(
-            time = 1698880143334L,
+            time = 1698882423016L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutput.java",
             inputSignatures = " @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
