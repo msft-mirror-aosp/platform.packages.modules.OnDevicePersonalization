@@ -36,18 +36,15 @@ public class EventStateContract {
         /** Name of the service package for this event */
         public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
 
-        /** The id of the last confirmed event. */
-        public static final String EVENT_ID = "eventId";
+        /** Token representing the event state. */
+        public static final String TOKEN = "token";
 
-        /** The id of the last confirmed query. */
-        public static final String QUERY_ID = "queryId";
 
         public static final String CREATE_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
                     + TASK_IDENTIFIER + " TEXT NOT NULL,"
                     + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
-                    + EVENT_ID + " INTEGER,"
-                    + QUERY_ID + " INTEGER,"
+                    + TOKEN + " BLOB NOT NULL,"
                     + "UNIQUE(" + TASK_IDENTIFIER + ","
                         + SERVICE_PACKAGE_NAME + "))";
 

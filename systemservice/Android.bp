@@ -36,6 +36,7 @@ java_sdk_library {
     defaults: ["framework-system-server-module-defaults"],
     libs: [
         "framework-ondevicepersonalization.impl",
+        "modules-utils-preconditions"
     ],
     visibility: [
         "//packages/modules/OnDevicePersonalization/tests:__subpackages__",

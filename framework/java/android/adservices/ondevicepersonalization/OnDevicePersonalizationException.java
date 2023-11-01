@@ -16,36 +16,48 @@
 
 package android.adservices.ondevicepersonalization;
 
-import android.annotation.NonNull;
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
+import android.annotation.IntDef;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 
 /**
  * Exception thrown by OnDevicePersonalization APIs.
  *
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationException extends Exception {
-    private final int mErrorCode;
+    /**
+     * The {@link IsolatedService} that was invoked failed to run.
+     */
+    public static final int ERROR_ISOLATED_SERVICE_FAILED = 1;
 
-    public OnDevicePersonalizationException(int errorCode) {
-        this(errorCode, "");
-    }
+    /**
+     * Personalization is disabled.
+     * @hide
+     */
+    public static final int ERROR_PERSONALIZATION_DISABLED = 2;
 
-    public OnDevicePersonalizationException(int errorCode, @NonNull String errorMessage) {
-        super("Error code: " + errorCode + " message: " + errorMessage);
+    /** @hide */
+    @IntDef(prefix = "ERROR_", value = {
+            ERROR_ISOLATED_SERVICE_FAILED,
+            ERROR_PERSONALIZATION_DISABLED
+    })
+    @Retention(RetentionPolicy.SOURCE)
+    public @interface ErrorCode {}
+
+    private final @ErrorCode int mErrorCode;
+
+    /** @hide */
+    public OnDevicePersonalizationException(@ErrorCode int errorCode) {
         mErrorCode = errorCode;
     }
 
-    public OnDevicePersonalizationException(int errorCode, @NonNull Throwable cause) {
-        this(errorCode, "", cause);
-    }
-
-    public OnDevicePersonalizationException(
-            int errorCode, @NonNull String errorMessage, @NonNull Throwable cause) {
-        super("Error code: " + errorCode + " message: " + errorMessage, cause);
-        mErrorCode = errorCode;
-    }
-
-    public int getErrorCode() {
+    /** Returns the error code for this exception. */
+    public @ErrorCode int getErrorCode() {
         return mErrorCode;
     }
 }

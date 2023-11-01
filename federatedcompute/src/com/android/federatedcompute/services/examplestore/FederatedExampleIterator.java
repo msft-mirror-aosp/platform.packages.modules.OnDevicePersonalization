@@ -26,11 +26,10 @@ import android.federatedcompute.aidl.IExampleStoreIteratorCallback;
 import android.os.Bundle;
 import android.os.Looper;
 import android.os.RemoteException;
-import android.util.Log;
 import android.util.Pair;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.ErrorStatusException;
-import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
 import com.android.internal.util.Preconditions;
 
@@ -50,14 +49,12 @@ import javax.annotation.Nullable;
  * main thread.
  */
 public final class FederatedExampleIterator implements ExampleIterator {
-    private static final String TAG = "FederatedExampleIterator";
+    private static final String TAG = FederatedExampleIterator.class.getSimpleName();
     // TODO: replace with PH flag.
     private static final long TIMEOUT_SECS = 2L;
 
     private boolean mClosed;
-    private final String mCollection;
-    private final byte[] mCriteria;
-    @Nullable private ProxyIteratorWrapper mIteratorWrapper;
+    @Nullable private final ProxyIteratorWrapper mIteratorWrapper;
     @Nullable private IteratorResult mCurrentResult;
     private byte[] mResumptionToken;
     @Nullable private final SingleQueryRecorder mRecorder;
@@ -78,16 +75,11 @@ public final class FederatedExampleIterator implements ExampleIterator {
     }
 
     private NextResultState mNextResultState;
-    private Flags mFlags;
 
     public FederatedExampleIterator(
             IExampleStoreIterator exampleStoreIterator,
-            String collectionName,
-            byte[] criteria,
             byte[] resumptionToken,
             SingleQueryRecorder recorder) {
-        this.mCollection = collectionName;
-        this.mCriteria = criteria;
         this.mResumptionToken = resumptionToken;
         this.mNextResultState = NextResultState.UNKNOWN;
         this.mCurrentResult = null;
@@ -143,7 +135,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
         mCurrentResult = mIteratorWrapper.next();
         if (mCurrentResult == null) {
             mNextResultState = NextResultState.END_OF_ITERATOR;
-            Log.d(TAG, "App example store returns null, end of iterator.");
+            LogUtil.d(TAG, "App example store returns null, end of iterator.");
         } else {
             mNextResultState = NextResultState.RESULT_AVAILABLE;
         }
@@ -199,8 +191,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 close();
                 throw ErrorStatusException.create(
                         Code.UNAVAILABLE_VALUE,
-                        "OnIteratorNextFailure: %s %s",
-                        mCollection,
+                        "OnIteratorNextFailure: %s",
                         resultOrFailure.second);
             }
             if (resultOrFailure.first == null) {
@@ -219,7 +210,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 try {
                     mExampleStoreIterator.close();
                 } catch (RemoteException e) {
-                    Log.w(TAG, "Exception during call to IExampleStoreIterator.close", e);
+                    LogUtil.w(TAG, e, "Exception during call to IExampleStoreIterator.close");
                 }
             }
         }

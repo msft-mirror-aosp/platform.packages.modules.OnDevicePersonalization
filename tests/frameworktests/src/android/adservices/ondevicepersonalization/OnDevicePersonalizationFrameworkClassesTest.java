@@ -47,6 +47,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                 new ExecuteOutput.Builder()
                     .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
                     .addRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                    .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
                     .build();
 
         Parcel parcel = Parcel.obtain();
@@ -57,6 +58,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(
                 5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("abc", result2.getRenderingConfigs().get(0).getKeys().get(0));
+        assertEquals(1, result2.getEventLogRecords().get(0).getType());
     }
 
     /**
@@ -78,14 +80,15 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      * Tests that the DownloadOutput object serializes correctly.
      */
     @Test
-    public void teetDownloadOutput() {
-        DownloadOutput result = new DownloadOutput.Builder()
+    public void teetDownloadCompletedOutput() {
+        DownloadCompletedOutput result = new DownloadCompletedOutput.Builder()
                 .addRetainedKey("abc").addRetainedKey("def").build();
 
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        DownloadOutput result2 = DownloadOutput.CREATOR.createFromParcel(parcel);
+        DownloadCompletedOutput result2 =
+                DownloadCompletedOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals("abc", result2.getRetainedKeys().get(0));
@@ -93,16 +96,16 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the WebViewEventInput object serializes correctly.
+     * Tests that the EventInput object serializes correctly.
      */
     @Test
-    public void testWebViewEventInput() {
+    public void testEventInput() {
         PersistableBundle params = new PersistableBundle();
         params.putInt("x", 3);
         ArrayList<ContentValues> rows = new ArrayList<>();
         rows.add(new ContentValues());
         rows.get(0).put("a", 5);
-        WebViewEventInput result = new WebViewEventInput.Builder()
+        EventInput result = new EventInput.Builder()
                 .setParameters(params)
                 .setRequestLogRecord(
                     new RequestLogRecord.Builder()
@@ -113,7 +116,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        WebViewEventInput result2 = WebViewEventInput.CREATOR.createFromParcel(parcel);
+        EventInput result2 = EventInput.CREATOR.createFromParcel(parcel);
 
         assertEquals(3, result2.getParameters().getInt("x"));
         assertEquals(
@@ -121,13 +124,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
     }
 
     /**
-     * Tests that the WebViewEventOutput object serializes correctly.
+     * Tests that the EventOutput object serializes correctly.
      */
     @Test
-    public void testWebViewEventOutput() {
+    public void testEventOutput() {
         ContentValues data = new ContentValues();
         data.put("a", 3);
-        WebViewEventOutput result = new WebViewEventOutput.Builder()
+        EventOutput result = new EventOutput.Builder()
                 .setEventLogRecord(
                     new EventLogRecord.Builder()
                         .setType(5)
@@ -139,7 +142,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         Parcel parcel = Parcel.obtain();
         result.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        WebViewEventOutput result2 = WebViewEventOutput.CREATOR.createFromParcel(parcel);
+        EventOutput result2 = EventOutput.CREATOR.createFromParcel(parcel);
 
         assertEquals(result, result2);
         assertEquals(5, result2.getEventLogRecord().getType());
@@ -166,10 +169,12 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         row = new ContentValues();
         row.put("b", 6);
         rows.add(row);
-        RequestLogRecord logRecord = new RequestLogRecord.Builder().setRows(rows).build();
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().setRows(rows)
+                .setRequestId(1).build();
         assertEquals(2, logRecord.getRows().size());
         assertEquals(5, logRecord.getRows().get(0).getAsInteger("a").intValue());
         assertEquals(6, logRecord.getRows().get(1).getAsInteger("b").intValue());
+        assertEquals(1, logRecord.getRequestId());
     }
 
     /** Test for RequestLogRecord class. */
@@ -181,9 +186,12 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                 .setType(1)
                 .setRowIndex(2)
                 .setData(row)
+                .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
                 .build();
         assertEquals(1, logRecord.getType());
         assertEquals(2, logRecord.getRowIndex());
         assertEquals(5, logRecord.getData().getAsInteger("a").intValue());
+        assertEquals(5, logRecord.getRequestLogRecord().getRows()
+                .get(0).getAsInteger("a").intValue());
     }
 }

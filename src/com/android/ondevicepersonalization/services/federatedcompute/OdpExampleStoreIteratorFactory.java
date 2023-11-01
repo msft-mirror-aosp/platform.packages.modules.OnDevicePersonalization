@@ -16,48 +16,36 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
-import android.annotation.NonNull;
-import android.content.Context;
-
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.data.events.EventsDao;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
+import java.util.List;
 
 /**
  * Factory for creating iterators
  */
 public class OdpExampleStoreIteratorFactory {
+    private static volatile OdpExampleStoreIteratorFactory sSingleton;
 
-    private final ListeningExecutorService mExecutor;
-    private final EventsDao mEventsDao;
-    private static OdpExampleStoreIteratorFactory sSingleton;
-
-    private OdpExampleStoreIteratorFactory(
-            @NonNull Context context,
-            @NonNull ListeningExecutorService executor) {
-        mExecutor = executor;
-        mEventsDao = EventsDao.getInstance(context);
+    private OdpExampleStoreIteratorFactory() {
     }
 
     /**
      * Returns an instance of OdpExampleStoreIteratorFactory
      */
-    public static OdpExampleStoreIteratorFactory getInstance(Context context) {
-        synchronized (OdpExampleStoreIteratorFactory.class) {
-            if (null == sSingleton) {
-                sSingleton = new OdpExampleStoreIteratorFactory(context,
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+    public static OdpExampleStoreIteratorFactory getInstance() {
+        if (null == sSingleton) {
+            synchronized (OdpExampleStoreIteratorFactory.class) {
+                if (null == sSingleton) {
+                    sSingleton = new OdpExampleStoreIteratorFactory();
+                }
             }
-            return sSingleton;
         }
+        return sSingleton;
     }
 
     /**
      * Creates an OdpExampleStoreIterator
      */
-    public OdpExampleStoreIterator createIterator() {
-        // TODO(278106108): Implement this method.
-        return new OdpExampleStoreIterator();
+    public OdpExampleStoreIterator createIterator(List<byte[]> exampleList,
+            List<byte[]> resumptionTokens) {
+        return new OdpExampleStoreIterator(exampleList, resumptionTokens);
     }
 }
