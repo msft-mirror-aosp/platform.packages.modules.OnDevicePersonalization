@@ -211,9 +211,9 @@ public abstract class IsolatedService extends Service {
 
             if (operationCode == Constants.OP_EXECUTE) {
 
-                ExecuteInput input =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_INPUT, ExecuteInput.class));
+                ExecuteInputParcel inputParcel = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, ExecuteInputParcel.class));
+                ExecuteInput input = new ExecuteInput(inputParcel);
                 Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -286,9 +286,10 @@ public abstract class IsolatedService extends Service {
 
             } else if (operationCode == Constants.OP_RENDER) {
 
-                RenderInput input =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_INPUT, RenderInput.class));
+                RenderInputParcel inputParcel =
+                        Objects.requireNonNull(params.getParcelable(
+                                Constants.EXTRA_INPUT, RenderInputParcel.class));
+                RenderInput input = new RenderInput(inputParcel);
                 Objects.requireNonNull(input.getRenderingConfig());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -303,10 +304,11 @@ public abstract class IsolatedService extends Service {
 
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
-                EventInput input =
+                EventInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, EventInput.class));
+                                        Constants.EXTRA_INPUT, EventInputParcel.class));
+                EventInput input = new EventInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(

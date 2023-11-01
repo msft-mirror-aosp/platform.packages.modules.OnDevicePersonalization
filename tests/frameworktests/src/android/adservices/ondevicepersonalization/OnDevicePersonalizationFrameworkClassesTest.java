@@ -37,6 +37,28 @@ import java.util.ArrayList;
 @RunWith(AndroidJUnit4.class)
 public class OnDevicePersonalizationFrameworkClassesTest {
     /**
+     * Tests that the ExecuteInput object serializes correctly.
+     */
+    @Test
+    public void testExecuteInput() {
+        PersistableBundle bundle = new PersistableBundle();
+        bundle.putInt("a", 5);
+        ExecuteInputParcel data = new ExecuteInputParcel.Builder()
+                .setAppPackageName("com.example.test")
+                .setAppParams(bundle)
+                .build();
+
+        Parcel parcel = Parcel.obtain();
+        data.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        ExecuteInputParcel data2 = ExecuteInputParcel.CREATOR.createFromParcel(parcel);
+        ExecuteInput result = new ExecuteInput(data2);
+
+        assertEquals("com.example.test", result.getAppPackageName());
+        assertEquals(5, result.getAppParams().getInt("a"));
+    }
+
+    /**
      * Tests that the ExecuteOutput object serializes correctly.
      */
     @Test
@@ -60,6 +82,30 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                 5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("abc", result2.getRenderingConfigs().get(0).getKeys().get(0));
         assertEquals(1, result2.getEventLogRecords().get(0).getType());
+    }
+
+    /**
+     * Tests that the RenderInput object serializes correctly.
+     */
+    @Test
+    public void testRenderInput() {
+        RenderInputParcel data = new RenderInputParcel.Builder()
+                .setWidth(10)
+                .setHeight(20)
+                .setRenderingConfigIndex(5)
+                .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                .build();
+
+        Parcel parcel = Parcel.obtain();
+        data.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        RenderInputParcel data2 = RenderInputParcel.CREATOR.createFromParcel(parcel);
+        RenderInput result = new RenderInput(data2);
+
+        assertEquals(10, result.getWidth());
+        assertEquals(20, result.getHeight());
+        assertEquals(5, result.getRenderingConfigIndex());
+        assertEquals("abc", result.getRenderingConfig().getKeys().get(0));
     }
 
     /**
@@ -108,7 +154,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         ArrayList<ContentValues> rows = new ArrayList<>();
         rows.add(new ContentValues());
         rows.get(0).put("a", 5);
-        EventInput result = new EventInput.Builder()
+        EventInputParcel data = new EventInputParcel.Builder()
                 .setParameters(params)
                 .setRequestLogRecord(
                     new RequestLogRecord.Builder()
@@ -117,13 +163,14 @@ public class OnDevicePersonalizationFrameworkClassesTest {
                 .build();
 
         Parcel parcel = Parcel.obtain();
-        result.writeToParcel(parcel, 0);
+        data.writeToParcel(parcel, 0);
         parcel.setDataPosition(0);
-        EventInput result2 = EventInput.CREATOR.createFromParcel(parcel);
+        EventInputParcel data2 = EventInputParcel.CREATOR.createFromParcel(parcel);
+        EventInput result = new EventInput(data2);
 
-        assertEquals(3, result2.getParameters().getInt("x"));
+        assertEquals(3, result.getParameters().getInt("x"));
         assertEquals(
-                5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+                5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
     }
 
     /**

@@ -17,7 +17,7 @@
 package com.android.ondevicepersonalization.services.display;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.EventInput;
+import android.adservices.ondevicepersonalization.EventInputParcel;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -192,7 +192,7 @@ class OdpWebViewClient extends WebViewClient {
                     /* includeEventData */ true);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
             // TODO(b/259950177): Add Query row to input.
-            EventInput input = new EventInput.Builder()
+            EventInputParcel input = new EventInputParcel.Builder()
                     .setParameters(payload.getEventParams())
                     .setRequestLogRecord(mLogRecord)
                     .build();
