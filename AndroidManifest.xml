@@ -23,12 +23,10 @@
     android:versionName="T-initial">
     <uses-sdk android:minSdkVersion="33"/>
 
-    <uses-permission android:name="android.permission.START_ACTIVITIES_FROM_BACKGROUND"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE"/>
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-    <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS"/>
     <uses-permission android:name="android.permission.READ_PHONE_STATE"/>
 
     <!-- Required for the app to find all packages onboarded to ODP -->
@@ -40,7 +38,9 @@
     <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
-    <permission android:name="android.permission.MODIFY_ONDEVICEPERSONALIZATION_STATE" />
+    <!-- Required for modifying personalization state -->
+    <permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"
+                android:protectionLevel="signature|privileged"/>
 
     <application android:name=".OnDevicePersonalizationApplication"
                  android:forceQueryable="true">
@@ -52,6 +52,11 @@
         <service android:name=".OnDevicePersonalizationConfigServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.OnDevicePersonalizationConfigService" />
+            </intent-filter>
+        </service>
+        <service android:name=".OnDevicePersonalizationDebugServiceImpl" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.OnDevicePersonalizationDebugService" />
             </intent-filter>
         </service>
         <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
@@ -67,10 +72,6 @@
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.services.download.mdd.MddJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
-        </service>
-        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>

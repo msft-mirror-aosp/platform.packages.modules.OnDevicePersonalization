@@ -53,7 +53,7 @@ public class FederatedTrainingTaskDao {
                 if (sSingletonInstance == null) {
                     sSingletonInstance =
                             new FederatedTrainingTaskDao(
-                                    FederatedTrainingTaskDbHelper.getInstance(context));
+                                    FederatedComputeDbHelper.getInstance(context));
                 }
             }
         }
@@ -65,8 +65,8 @@ public class FederatedTrainingTaskDao {
     public static FederatedTrainingTaskDao getInstanceForTest(Context context) {
         synchronized (FederatedTrainingTaskDao.class) {
             if (sSingletonInstance == null) {
-                FederatedTrainingTaskDbHelper dbHelper =
-                        FederatedTrainingTaskDbHelper.getInstanceForTest(context);
+                FederatedComputeDbHelper dbHelper =
+                        FederatedComputeDbHelper.getInstanceForTest(context);
                 sSingletonInstance = new FederatedTrainingTaskDao(dbHelper);
             }
             return sSingletonInstance;

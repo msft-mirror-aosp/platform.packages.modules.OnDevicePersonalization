@@ -21,7 +21,6 @@ import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 import static android.federatedcompute.common.ClientConstants.STATUS_TRAINING_FAILED;
 
 import android.content.Context;
-import android.content.Intent;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
 import android.federatedcompute.common.ClientConstants;
@@ -126,12 +125,12 @@ public class ResultCallbackHelper {
     @VisibleForTesting
     IResultHandlingService getResultHandlingService(String appPackageName) {
         mResultHandlingServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         this.mContext,
                         RESULT_HANDLING_SERVICE_ACTION,
+                        appPackageName,
                         IResultHandlingService.Stub::asInterface);
-        Intent intent = new Intent(RESULT_HANDLING_SERVICE_ACTION).setPackage(appPackageName);
-        return mResultHandlingServiceBinder.getService(Runnable::run, intent);
+        return mResultHandlingServiceBinder.getService(Runnable::run);
     }
 
     @VisibleForTesting

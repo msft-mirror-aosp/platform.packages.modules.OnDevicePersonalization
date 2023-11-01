@@ -14,11 +14,18 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data.user;
+package com.android.ondevicepersonalization.cts.e2e;
 
-/** Values for OS versions. */
-public class OSVersion {
-    public int major = 0;
-    public int minor = 0;
-    public int micro = 0;
+import android.app.Activity;
+import android.os.Bundle;
+
+/**
+ * A simple activity that can contain views.
+ */
+public class TestActivity extends Activity {
+    @Override
+    public void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+    }
 }

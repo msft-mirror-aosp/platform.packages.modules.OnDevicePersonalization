@@ -28,6 +28,7 @@ import android.os.RemoteException;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
 
@@ -49,6 +50,10 @@ public final class FederatedComputeManager {
     private static final String TAG = FederatedComputeManager.class.getSimpleName();
     private static final String FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME =
             "android.federatedcompute.FederatedComputeService";
+    private static final String FEDERATED_COMPUTATION_SERVICE_PACKAGE =
+            "com.android.federatedcompute.services";
+    private static final String ALT_FEDERATED_COMPUTATION_SERVICE_PACKAGE =
+            "com.google.android.federatedcompute";
 
     private final Context mContext;
 
@@ -57,9 +62,12 @@ public final class FederatedComputeManager {
     public FederatedComputeManager(Context context) {
         this.mContext = context;
         this.mServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         context,
                         FEDERATED_COMPUTATION_SERVICE_INTENT_FILTER_NAME,
+                        List.of(
+                                FEDERATED_COMPUTATION_SERVICE_PACKAGE,
+                                ALT_FEDERATED_COMPUTATION_SERVICE_PACKAGE),
                         IFederatedComputeService.Stub::asInterface);
     }
 

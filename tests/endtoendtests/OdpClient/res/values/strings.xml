@@ -19,4 +19,6 @@
     <string name="title_activity_main" description="Launcher title">Odp Test</string>
     <string name="get_ad">Get Ad</string>
     <string name="schedule_training">Schedule Training</string>
+    <string name="report_conversion">Report Conversion</string>
+    <string name="set_status">Set Status</string>
 </resources>

@@ -13,12 +13,13 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.federatedcompute.test.scenario.federatedcompute;
+package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
 
 import android.platform.test.scenario.annotation.Scenario;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -27,23 +28,32 @@ import java.io.IOException;
 
 @Scenario
 @RunWith(JUnit4.class)
-public class ScheduleFederatedComputeTask {
-    private TestHelper mTestHelper = new TestHelper();
+public class RequestAdAndClickAd {
+
+    private TestAppHelper mTestAppHelper = new TestAppHelper();
+
+    /** Prepare the device before entering the test class */
+    @BeforeClass
+    public static void prepareDevice() throws IOException {
+        TestAppHelper.initialize();
+    }
 
     @Before
     public void setup() throws IOException {
-        mTestHelper.pressHome();
-        mTestHelper.initialize();
+        mTestAppHelper.openApp();
     }
 
     @Test
-    public void testScheduleFederatedComputeTask() throws IOException {
-        mTestHelper.scheduleFederatedComputeTask();
-        mTestHelper.scheduleFederatedTrainingTask();
+    public void testRequestAdAndClickAd() {
+        mTestAppHelper.clickGetAd();
+        mTestAppHelper.verifyRenderedView();
+        mTestAppHelper.clickAd("Google!");
     }
 
-    @After
-    public void tearDown() throws IOException {
-        mTestHelper.pressHome();
+    /** Return device to original state after test exeuction */
+    @AfterClass
+    public static void tearDown() throws IOException {
+        TestAppHelper.goToHomeScreen();
+        TestAppHelper.wrapUp();
     }
 }

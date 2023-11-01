@@ -103,12 +103,11 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                 resultCode =
                                         jobManager.onTrainerStartCalled(
                                                 callingPackageName, trainingOptions);
-
-                                sendResult(callback, resultCode);
-                            } catch (RemoteException e) {
+                            } catch (Exception e) {
                                 resultCode = STATUS_INTERNAL_ERROR;
-                                LogUtil.e(TAG, "Fail to send result to callback for schedule()", e);
+                                LogUtil.e(TAG, "Got exception for schedule()", e);
                             } finally {
+                                sendResult(callback, resultCode);
                                 int serviceLatency =
                                         (int) (mClock.elapsedRealtime() - startServiceTime);
                                 mFcStatsdLogger.logApiCallStats(
@@ -147,15 +146,15 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                 resultCode =
                                         jobManager.onTrainerStopCalled(
                                                 callingPackageName, populationName);
-                                sendResult(callback, resultCode);
-                            } catch (RemoteException e) {
+                            } catch (Exception e) {
                                 resultCode = STATUS_INTERNAL_ERROR;
                                 LogUtil.e(
                                         TAG,
                                         e,
-                                        "Fail to send result to callback for cancel %s",
+                                        "Got exception when call Cancel %s",
                                         populationName);
                             } finally {
+                                sendResult(callback, resultCode);
                                 int serviceLatency =
                                         (int) (mClock.elapsedRealtime() - startServiceTime);
                                 mFcStatsdLogger.logApiCallStats(
@@ -169,12 +168,15 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                         });
     }
 
-    private void sendResult(@NonNull IFederatedComputeCallback callback, int resultCode)
-            throws RemoteException {
-        if (resultCode == STATUS_SUCCESS) {
-            callback.onSuccess();
-            return;
+    private void sendResult(@NonNull IFederatedComputeCallback callback, int resultCode) {
+        try {
+            if (resultCode == STATUS_SUCCESS) {
+                callback.onSuccess();
+                return;
+            }
+            callback.onFailure(resultCode);
+        } catch (RemoteException e) {
+            LogUtil.e(TAG, e, "Callback error");
         }
-        callback.onFailure(resultCode);
     }
 }

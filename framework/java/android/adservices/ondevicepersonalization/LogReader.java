@@ -35,8 +35,9 @@ import java.util.concurrent.BlockingQueue;
 /**
  * An interface to a read logs from REQUESTS and EVENTS
  *
- * Used as a Data Access Object for the REQUESTS and EVENTS table
- * {@link IsolatedService#getLogReader}.
+ * Used as a Data Access Object for the REQUESTS and EVENTS table.
+ *
+ * @see IsolatedService#getLogReader(RequestToken)
  *
  * @hide
  */
@@ -80,6 +81,7 @@ public class LogReader {
      * IsolatedService within the specified time range.
      */
     @WorkerThread
+    @NonNull
     public List<EventLogRecord> getJoinedEvents(long startTimeMillis, long endTimeMillis) {
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(

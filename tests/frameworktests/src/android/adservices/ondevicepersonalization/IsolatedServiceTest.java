@@ -407,8 +407,7 @@ public class IsolatedServiceTest {
         eventParams.putInt(EVENT_TYPE_KEY, 9999);
         Bundle params = new Bundle();
         params.putParcelable(
-                Constants.EXTRA_INPUT,
-                new EventInput.Builder().setParameters(eventParams).build());
+                Constants.EXTRA_INPUT, new EventInput.Builder().setParameters(eventParams).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
@@ -471,9 +470,8 @@ public class IsolatedServiceTest {
         TrainingExampleInput input =
                 new TrainingExampleInput.Builder()
                         .setPopulationName("")
-                        .setCollectionName("")
                         .setTaskName("")
-                        .setResumptionToken(new byte[]{0})
+                        .setResumptionToken(new byte[] {0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -482,14 +480,14 @@ public class IsolatedServiceTest {
         mLatch.await();
         assertTrue(mOnTrainingExampleCalled);
         TrainingExampleOutputParcel result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT,
-                        TrainingExampleOutputParcel.class);
+                mCallbackResult.getParcelable(
+                        Constants.EXTRA_RESULT, TrainingExampleOutputParcel.class);
         List<byte[]> examples = result.getTrainingExamples().getList();
         List<byte[]> tokens = result.getResumptionTokens().getList();
         assertEquals(1, examples.size());
         assertEquals(1, tokens.size());
-        assertArrayEquals(new byte[]{12}, examples.get(0));
-        assertArrayEquals(new byte[]{13}, tokens.get(0));
+        assertArrayEquals(new byte[] {12}, examples.get(0));
+        assertArrayEquals(new byte[] {13}, tokens.get(0));
     }
 
     @Test
@@ -508,9 +506,8 @@ public class IsolatedServiceTest {
         TrainingExampleInput input =
                 new TrainingExampleInput.Builder()
                         .setPopulationName("")
-                        .setCollectionName("")
                         .setTaskName("")
-                        .setResumptionToken(new byte[]{0})
+                        .setResumptionToken(new byte[] {0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -528,9 +525,8 @@ public class IsolatedServiceTest {
         TrainingExampleInput input =
                 new TrainingExampleInput.Builder()
                         .setPopulationName("")
-                        .setCollectionName("")
                         .setTaskName("")
-                        .setResumptionToken(new byte[]{0})
+                        .setResumptionToken(new byte[] {0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -545,21 +541,14 @@ public class IsolatedServiceTest {
 
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
-        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {
-        }
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
         @Override
-        public void schedule(
-                TrainingOptions trainingOptions,
-                IFederatedComputeCallback callback) {
-        }
+        public void schedule(TrainingOptions trainingOptions, IFederatedComputeCallback callback) {}
 
-        public void cancel(
-                String populationName,
-                IFederatedComputeCallback callback) {
-        }
+        public void cancel(String populationName, IFederatedComputeCallback callback) {}
     }
 
     class TestHandler implements IsolatedWorker {
@@ -623,9 +612,9 @@ public class IsolatedServiceTest {
                 TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
             mOnTrainingExampleCalled = true;
             List<byte[]> examples = new ArrayList<>();
-            examples.add(new byte[]{12});
+            examples.add(new byte[] {12});
             List<byte[]> tokens = new ArrayList<>();
-            tokens.add(new byte[]{13});
+            tokens.add(new byte[] {13});
             consumer.accept(
                     new TrainingExampleOutput.Builder()
                             .setTrainingExamples(examples)
