@@ -39,6 +39,9 @@ android_test {
     data: [
         ":OdpTestingSampleService",
     ],
+    resource_dirs: [
+        "res",
+    ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
         "general-tests",

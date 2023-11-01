@@ -16,8 +16,8 @@
 
 package com.android.federatedcompute.services.examplestore;
 
-import static android.federatedcompute.common.ClientConstants.EXTRA_COLLECTION_NAME;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
+import static android.federatedcompute.common.ClientConstants.EXTRA_TASK_NAME;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
 import android.annotation.NonNull;
@@ -40,8 +40,7 @@ import java.util.List;
 
 /** A sample ExampleStoreService implementation. */
 public class SampleExampleStoreService extends ExampleStoreService {
-    private static final String EXPECTED_COLLECTION_NAME =
-            "/federatedcompute.examplestoretest/test_collection";
+    private static final String EXPECTED_TASK_NAME = "test_task";
     private static final Example EXAMPLE_PROTO_1 =
             Example.newBuilder()
                     .setFeatures(
@@ -59,8 +58,8 @@ public class SampleExampleStoreService extends ExampleStoreService {
 
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
-        String collection = params.getString(EXTRA_COLLECTION_NAME);
-        if (!collection.equals(EXPECTED_COLLECTION_NAME)) {
+        String collection = params.getString(EXTRA_TASK_NAME);
+        if (!collection.equals(EXPECTED_TASK_NAME)) {
             callback.onStartQueryFailure(STATUS_INTERNAL_ERROR);
             return;
         }

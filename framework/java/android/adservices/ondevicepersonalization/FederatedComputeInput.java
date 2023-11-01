@@ -16,20 +16,17 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
-import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link FederatedComputeScheduler#schedule(FederatedComputeScheduler.Params,
- * FederatedComputeInput)}
+ * The input data for
+ * {@link FederatedComputeScheduler#schedule(FederatedComputeScheduler.Params, FederatedComputeInput)}
  *
+ * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class FederatedComputeInput {
     // TODO(b/300461799): add federated compute server document.
@@ -103,7 +100,6 @@ public final class FederatedComputeInput {
     /**
      * A builder for {@link FederatedComputeInput}
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -149,7 +145,7 @@ public final class FederatedComputeInput {
     }
 
     @DataClass.Generated(
-            time = 1697144633271L,
+            time = 1697578140247L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/FederatedComputeInput.java",
             inputSignatures = "private @android.annotation.NonNull java.lang.String mPopulationName\nclass FederatedComputeInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

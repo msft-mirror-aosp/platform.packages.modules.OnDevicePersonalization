@@ -25,9 +25,7 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.content.ComponentName;
 import android.content.Context;
-import android.content.Intent;
 import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
@@ -61,6 +59,7 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.RetryInfo;
@@ -136,13 +135,51 @@ public class FederatedComputeWorker {
 
     /** Starts a training run with the given job Id. */
     public ListenableFuture<FLRunnerResult> startTrainingRun(int jobId) {
-        LogUtil.d(TAG, "startTrainingRun()");
+        LogUtil.d(TAG, "startTrainingRun() %d", jobId);
+        return FluentFuture.from(
+                        mInjector
+                                .getBgExecutor()
+                                .submit(
+                                        () -> {
+                                            return getTrainableTask(jobId);
+                                        }))
+                .transformAsync(
+                        task -> {
+                            if (task == null) {
+                                return Futures.immediateFuture(null);
+                            }
+                            return startTrainingRun(jobId, task);
+                        },
+                        mInjector.getBgExecutor());
+    }
+
+    private ListenableFuture<FLRunnerResult> startTrainingRun(
+            int jobId, FederatedTrainingTask trainingTask) {
+        synchronized (mLock) {
+            // Only allows one concurrent job running.
+            TrainingRun run = new TrainingRun(jobId, trainingTask);
+            mActiveRun = run;
+            ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
+            var unused =
+                    Futures.whenAllComplete(runCompletedFuture)
+                            .call(
+                                    () -> {
+                                        unBindServicesIfNecessary(run);
+                                        return null;
+                                    },
+                                    mInjector.getBgExecutor());
+            run.mFuture = runCompletedFuture;
+            return runCompletedFuture;
+        }
+    }
+
+    @Nullable
+    private FederatedTrainingTask getTrainableTask(int jobId) {
         FederatedTrainingTask trainingTask = mJobManager.onTrainingStarted(jobId);
         if (trainingTask == null) {
             LogUtil.i(TAG, "Could not find task to run for job ID %s", jobId);
-            return Futures.immediateFuture(null);
+            return null;
         }
-
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             mJobManager.onTrainingCompleted(
                     jobId,
@@ -151,9 +188,8 @@ public class FederatedComputeWorker {
                     /* taskRetry= */ null,
                     ContributionResult.FAIL);
             LogUtil.i(TAG, "Training conditions not satisfied (before bindService)!");
-            return Futures.immediateFuture(null);
+            return null;
         }
-
         synchronized (mLock) {
             // Only allows one concurrent job running.
             if (mActiveRun != null) {
@@ -168,14 +204,9 @@ public class FederatedComputeWorker {
                         trainingTask.getTrainingIntervalOptions(),
                         /* taskRetry= */ null,
                         ContributionResult.FAIL);
-                return Futures.immediateFuture(null);
+                return null;
             }
-
-            TrainingRun run = new TrainingRun(jobId, trainingTask);
-            mActiveRun = run;
-            ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
-            run.mFuture = runCompletedFuture;
-            return runCompletedFuture;
+            return trainingTask;
         }
     }
 
@@ -212,7 +243,7 @@ public class FederatedComputeWorker {
                                                     run.mTask.appPackageName(),
                                                     run.mTaskName,
                                                     selector),
-                                    getBackgroundExecutor());
+                                    mInjector.getBgExecutor());
 
             // 3. Run federated learning or federated analytic depends on task type. Federated
             // learning job will start a new isolated process to run TFLite training.
@@ -224,7 +255,7 @@ public class FederatedComputeWorker {
                                                     Futures.getDone(checkinResultFuture),
                                                     run,
                                                     Futures.getDone(iteratorFuture)),
-                                    getBackgroundExecutor());
+                                    mInjector.getBgExecutor());
 
             // 4. Report computation result to federated compute server.
             ListenableFuture<Void> reportToServerFuture =
@@ -239,14 +270,15 @@ public class FederatedComputeWorker {
                                         ComputationResult result =
                                                 Futures.getDone(computationResultFuture);
                                         var reportToServer = Futures.getDone(reportToServerFuture);
-                                        // 5. Publish computation result and consumed examples to
-                                        // client implemented ResultHandlingService.
+                                        // 5. Publish computation result and consumed
+                                        // examples to client implemented
+                                        // ResultHandlingService.
                                         var unused =
                                                 mResultCallbackHelper.callHandleResult(
                                                         run.mTaskName, run.mTask, result);
                                         return result.getFlRunnerResult();
                                     },
-                                    getBackgroundExecutor()));
+                                    mInjector.getBgExecutor()));
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -293,7 +325,6 @@ public class FederatedComputeWorker {
             }
         }
 
-        unBindServicesIfNecessary(runToFinish);
         mJobManager.onTrainingCompleted(
                 runToFinish.mJobId,
                 runToFinish.mTask.populationName(),
@@ -547,12 +578,12 @@ public class FederatedComputeWorker {
     @VisibleForTesting
     IExampleStoreService getExampleStoreService(String packageName) {
         mExampleStoreServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByIntent(
                         mContext,
                         ClientConstants.EXAMPLE_STORE_ACTION,
+                        packageName,
                         IExampleStoreService.Stub::asInterface);
-        Intent intent = new Intent(ClientConstants.EXAMPLE_STORE_ACTION).setPackage(packageName);
-        return mExampleStoreServiceBinder.getService(Runnable::run, intent);
+        return mExampleStoreServiceBinder.getService(Runnable::run);
     }
 
     @VisibleForTesting
@@ -603,12 +634,10 @@ public class FederatedComputeWorker {
             }
             run.mExampleStoreService = exampleStoreService;
 
-            String collection = exampleSelector.getCollectionUri();
             byte[] criteria = exampleSelector.getCriteria().toByteArray();
             byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_COLLECTION_NAME, collection);
             bundle.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
             bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, run.mTask.contextData());
             bundle.putByteArray(
@@ -626,15 +655,12 @@ public class FederatedComputeWorker {
     @Nullable
     IIsolatedTrainingService getIsolatedTrainingService() {
         mIsolatedTrainingServiceBinder =
-                AbstractServiceBinder.getServiceBinder(
+                AbstractServiceBinder.getServiceBinderByServiceName(
                         mContext,
                         ISOLATED_TRAINING_SERVICE_NAME,
+                        mContext.getPackageName(),
                         IIsolatedTrainingService.Stub::asInterface);
-        Intent intent = new Intent();
-        ComponentName serviceComponent =
-                new ComponentName(mContext.getPackageName(), ISOLATED_TRAINING_SERVICE_NAME);
-        intent.setComponent(serviceComponent);
-        return mIsolatedTrainingServiceBinder.getService(Runnable::run, intent);
+        return mIsolatedTrainingServiceBinder.getService(Runnable::run);
     }
 
     @VisibleForTesting
@@ -646,6 +672,10 @@ public class FederatedComputeWorker {
     static class Injector {
         ExampleConsumptionRecorder getExampleConsumptionRecorder() {
             return new ExampleConsumptionRecorder();
+        }
+
+        ListeningExecutorService getBgExecutor() {
+            return getBackgroundExecutor();
         }
     }
 

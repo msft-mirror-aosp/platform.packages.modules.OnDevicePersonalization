@@ -48,9 +48,18 @@ public class DownloadHelper {
     /** Commands to prepare the device and odp module before testing. */
     public static void initialize() throws IOException {
         executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
+        executeShellCommand(
                 "device_config put on_device_personalization global_kill_switch false");
         executeShellCommand(
-                "device_config set_sync_disabled_for_tests persistent");
+                "device_config put on_device_personalization "
+                    + "enable_ondevicepersonalization_apis true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_personalization_status_override true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "personalization_status_override_value true");
         executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
         executeShellCommand(
                 "am broadcast -a android.intent.action.BOOT_COMPLETED -p "

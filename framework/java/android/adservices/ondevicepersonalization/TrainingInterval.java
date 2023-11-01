@@ -16,9 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
-import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -29,8 +26,8 @@ import java.time.Duration;
 /**
  * Training interval settings required for federated computation jobs.
  *
+ * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genHiddenConstDefs = true, genEqualsHashCode = true)
 public final class TrainingInterval {
     /**
@@ -39,19 +36,24 @@ public final class TrainingInterval {
     public static final int SCHEDULING_MODE_ONE_TIME = 1;
 
     /**
-     * The scheduling modes for a task that will be rescheduled after each run.
+     * The scheduling mode for a task that will be rescheduled after each run.
      */
     public static final int SCHEDULING_MODE_RECURRENT = 2;
 
 
+    /**
+     * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+     * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+     * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+     */
     @SchedulingMode private int mSchedulingMode = SCHEDULING_MODE_ONE_TIME;
 
     /**
      * Sets the minimum time interval between two training runs.
      *
-     * <p>This field will only be used when the scheduling mode is {@link
-     * #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-     * result in IllegalArgumentException.
+     * <p>This field will only be used when the scheduling mode is
+     * {@link #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative
+     * values will result in IllegalArgumentException.
      *
      * <p>Please also note this value is advisory, which does not guarantee the job will be run
      * immediately after the interval expired. Federated compute will still enforce a minimum
@@ -117,6 +119,11 @@ public final class TrainingInterval {
         // onConstructed(); // You can define this method to get a callback
     }
 
+    /**
+     * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+     * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+     * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+     */
     @DataClass.Generated.Member
     public @SchedulingMode int getSchedulingMode() {
         return mSchedulingMode;
@@ -125,9 +132,9 @@ public final class TrainingInterval {
     /**
      * Sets the minimum time interval between two training runs.
      *
-     * <p>This field will only be used when the scheduling mode is {@link
-     * #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-     * result in IllegalArgumentException.
+     * <p>This field will only be used when the scheduling mode is
+     * {@link #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative
+     * values will result in IllegalArgumentException.
      *
      * <p>Please also note this value is advisory, which does not guarantee the job will be run
      * immediately after the interval expired. Federated compute will still enforce a minimum
@@ -171,7 +178,6 @@ public final class TrainingInterval {
     /**
      * A builder for {@link TrainingInterval}
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -184,6 +190,11 @@ public final class TrainingInterval {
         public Builder() {
         }
 
+        /**
+         * The scheduling mode for this task, either {@link #SCHEDULING_MODE_ONE_TIME} or
+         * {@link #SCHEDULING_MODE_RECURRENT}. The default scheduling mode is
+         * {@link #SCHEDULING_MODE_ONE_TIME} if unspecified.
+         */
         @DataClass.Generated.Member
         public @NonNull Builder setSchedulingMode(@SchedulingMode int value) {
             checkNotUsed();
@@ -195,9 +206,9 @@ public final class TrainingInterval {
         /**
          * Sets the minimum time interval between two training runs.
          *
-         * <p>This field will only be used when the scheduling mode is {@link
-         * #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative values will
-         * result in IllegalArgumentException.
+         * <p>This field will only be used when the scheduling mode is
+         * {@link #SCHEDULING_MODE_RECURRENT}. Only positive values are accepted, zero or negative
+         * values will result in IllegalArgumentException.
          *
          * <p>Please also note this value is advisory, which does not guarantee the job will be run
          * immediately after the interval expired. Federated compute will still enforce a minimum
@@ -238,7 +249,7 @@ public final class TrainingInterval {
     }
 
     @DataClass.Generated(
-            time = 1697144026737L,
+            time = 1697653739724L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingInterval.java",
             inputSignatures = "public static final  int SCHEDULING_MODE_ONE_TIME\npublic static final  int SCHEDULING_MODE_RECURRENT\nprivate @android.adservices.ondevicepersonalization.TrainingInterval.SchedulingMode int mSchedulingMode\nprivate @android.annotation.NonNull java.time.Duration mMinimumInterval\nclass TrainingInterval extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genHiddenConstDefs=true, genEqualsHashCode=true)")

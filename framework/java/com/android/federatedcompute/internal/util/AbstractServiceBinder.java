@@ -16,9 +16,9 @@
 package com.android.federatedcompute.internal.util;
 
 import android.content.Context;
-import android.content.Intent;
 import android.os.IBinder;
 
+import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.function.Function;
 
@@ -30,19 +30,48 @@ import java.util.function.Function;
  */
 public abstract class AbstractServiceBinder<T> {
     /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
-    public static <T2> AbstractServiceBinder<T2> getServiceBinder(
-            Context context, String serviceIntentAction, Function<IBinder, T2> converter) {
-        return new AndroidServiceBinder<>(context, serviceIntentAction, converter);
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
+            Context context,
+            String serviceIntentAction,
+            String servicePackage,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceIntentAction, servicePackage, converter);
+    }
+
+    /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByServiceName(
+            Context context,
+            String serviceName,
+            String servicePackage,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceName, servicePackage, true, converter);
+    }
+
+    /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
+            Context context,
+            String serviceIntentAction,
+            List<String> servicePackages,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceIntentAction, servicePackages, converter);
+    }
+
+    /** Get the {@link AbstractServiceBinder} suitable for the configuration. */
+    public static <T2> AbstractServiceBinder<T2> getServiceBinderByIntent(
+            Context context,
+            String serviceIntentAction,
+            List<String> servicePackages,
+            int bindFlags,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceIntentAction, servicePackages, bindFlags, converter);
     }
 
     /** Get the binder service. */
     public abstract T getService(Executor executor);
-
-    /**
-     * Get the binder service based on provided intent. The use case is we already know the package
-     * name and intent action we plan to bind to e.g. ExampleStoreService, ResultHandlingService.
-     */
-    public abstract T getService(Executor executor, Intent intent);
 
     /**
      * The service is in an APK (as opposed to the system service), unbind it from the service to

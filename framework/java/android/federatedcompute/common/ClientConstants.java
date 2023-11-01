@@ -28,8 +28,6 @@ public final class ClientConstants {
     public static final int STATUS_TRAINING_FAILED = 2;
     public static final String EXTRA_POPULATION_NAME = "android.federatedcompute.population_name";
 
-    public static final String EXTRA_COLLECTION_NAME = "android.federatedcompute.collection_name";
-
     public static final String EXTRA_TASK_NAME = "android.federatedcompute.task_name";
 
     public static final String EXTRA_CONTEXT_DATA = "android.federatedcompute.context_data";

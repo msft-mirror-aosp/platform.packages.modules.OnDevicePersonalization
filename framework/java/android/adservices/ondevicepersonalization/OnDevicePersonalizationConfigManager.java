@@ -33,6 +33,7 @@ import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.pm.ResolveInfo;
 import android.content.pm.ServiceInfo;
+import android.os.Binder;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
@@ -119,20 +120,31 @@ public class OnDevicePersonalizationConfigManager {
                     new IOnDevicePersonalizationConfigServiceCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> receiver.onResult(null));
+                            executor.execute(() -> {
+                                Binder.clearCallingIdentity();
+                                receiver.onResult(null);
+                            });
                         }
 
                         @Override
                         public void onFailure(int errorCode) {
-                            sLogger.w(TAG + ": Unexpected failure from ODP config service");
-                            receiver.onError(new IllegalStateException("Unexpected failure."));
+                            executor.execute(() -> {
+                                sLogger.w(TAG + ": Unexpected failure from ODP"
+                                        + "config service with error code: " + errorCode);
+                                Binder.clearCallingIdentity();
+                                receiver.onError(new IllegalStateException("Unexpected failure."));
+                            });
                         }
                     });
         } catch (IllegalStateException | InterruptedException | RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+            executor.execute(() -> {
+                receiver.onError(new IllegalStateException(e));
+            });
         } catch (SecurityException e) {
-            sLogger.w(TAG + ": Unauthorized call to ODP config service.");
-            receiver.onError(e);
+            executor.execute(() -> {
+                sLogger.w(TAG + ": Unauthorized call to ODP config service.");
+                receiver.onError(e);
+            });
         }
     }
 

@@ -33,15 +33,15 @@ import java.io.IOException;
 public class TestHelper {
     private static UiDevice sUiDevice;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
+    private static final long TRAINING_TASK_COMPLETION_TIMEOUT = 120_000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String SCHEDULE_TRAINING_BUTTON_RESOURCE_ID = "schedule_training_button";
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
     private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
-    private static final String FEDERATED_COMPUTE_TASK_JOB_ID = "1007";
-
-    private static final String FEDERATED_TRAINING_JOB_ID = "109883";
+    private static final String FEDERATED_TRAINING_JOB_SUCCESS_LOG =
+            "FederatedJobService - Federated computation job 1586947961 is done";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -49,10 +49,19 @@ public class TestHelper {
 
     /** Commands to prepare the device, odp module, fcp module before testing. */
     public static void initialize() {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
         disableGlobalKillSwitch();
         disableFederatedComputeKillSwitch();
         executeShellCommand(
-                "device_config set_sync_disabled_for_tests persistent");
+                "device_config put on_device_personalization "
+                    + "enable_ondevicepersonalization_apis true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_personalization_status_override true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "personalization_status_override_value true");
         executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
         executeShellCommand("setprop log.tag.federatedcompute VERBOSE");
         executeShellCommand(
@@ -91,25 +100,38 @@ public class TestHelper {
     }
 
     /** Force the JobScheduler to execute the training task, bypassing all constraints */
-    public void forceExecuteTrainingTaskForTestApp() {
+    public void forceExecuteTrainingTaskForTestApp() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
                     + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
-        SystemClock.sleep(30000);
+        SystemClock.sleep(10000);
+
+        boolean foundTrainingJobSuccessLog = findLog(
+                FEDERATED_TRAINING_JOB_SUCCESS_LOG,
+                TRAINING_TASK_COMPLETION_TIMEOUT,
+                10000);
+
+        if (!foundTrainingJobSuccessLog) {
+            Assert.fail(String.format(
+                    "Failed to find federated training job success log within test window %d ms",
+                    TRAINING_TASK_COMPLETION_TIMEOUT));
+        }
     }
 
-    public void scheduleFederatedComputeTask() throws IOException {
-        executeShellCommand(
-                "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
-                        + FEDERATED_COMPUTE_TASK_JOB_ID);
-        SystemClock.sleep(8000);
-    }
+    /** Attempt to find a specific log entry within the timeout window */
+    private boolean findLog(final String targetLog, long timeoutMillis,
+            long queryIntervalMillis) throws IOException {
 
-    public void scheduleFederatedTrainingTask() throws IOException {
-        executeShellCommand(
-                "cmd jobscheduler run -f com.google.android.federatedcompute "
-                        + FEDERATED_TRAINING_JOB_ID);
-        SystemClock.sleep(8000);
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            if (getUiDevice().executeShellCommand("logcat -d").contains(targetLog)) {
+                return true;
+            }
+            SystemClock.sleep(queryIntervalMillis);
+        }
+        return false;
     }
 
     private static void disableGlobalKillSwitch() {
