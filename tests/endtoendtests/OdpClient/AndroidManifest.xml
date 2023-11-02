@@ -17,7 +17,7 @@
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="com.example.odpclient"
-          android:versionName="1.0.2" >
+          android:versionName="1.0.3" >
     <uses-permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"/>
     <application
         android:label="@string/title_activity_main">
