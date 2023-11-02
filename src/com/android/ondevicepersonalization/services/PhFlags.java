@@ -17,10 +17,7 @@
 package com.android.ondevicepersonalization.services;
 
 import android.annotation.NonNull;
-import android.os.SystemProperties;
 import android.provider.DeviceConfig;
-
-import com.android.internal.annotations.VisibleForTesting;
 
 /** Flags Implementation that delegates to DeviceConfig. */
 // TODO(b/228037065): Add validation logics for Feature flags read from PH.
@@ -31,8 +28,17 @@ public final class PhFlags implements Flags {
     // Killswitch keys
     static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
 
-    // SystemProperty prefix. SystemProperty is for overriding OnDevicePersonalization Configs.
-    private static final String SYSTEM_PROPERTY_PREFIX = "debug.ondevicepersonalization.";
+    static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
+            "enable_ondevicepersonalization_apis";
+
+    static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
+            "enable_personalization_status_override";
+
+    static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
+            "personalization_status_override_value";
+
+    static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
+            "isolated_service_deadline_seconds";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -47,18 +53,55 @@ public final class PhFlags implements Flags {
     // Group of All Killswitches
     @Override
     public boolean getGlobalKillSwitch() {
-        // The priority of applying the flag values: SystemProperties, PH (DeviceConfig),
-        // then hard-coded value.
-        return SystemProperties.getBoolean(
-                        getSystemPropertyName(KEY_GLOBAL_KILL_SWITCH),
-                        DeviceConfig.getBoolean(
+        // The priority of applying the flag values: PH (DeviceConfig), then hard-coded value.
+        return DeviceConfig.getBoolean(
                                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                                 /* name= */ KEY_GLOBAL_KILL_SWITCH,
-                                /* defaultValue= */ GLOBAL_KILL_SWITCH));
+                                /* defaultValue= */ GLOBAL_KILL_SWITCH);
     }
 
-    @VisibleForTesting
-    static String getSystemPropertyName(String key) {
-        return SYSTEM_PROPERTY_PREFIX + key;
+    @Override
+    public boolean isOnDevicePersonalizationApisEnabled() {
+        if (getGlobalKillSwitch()) {
+            return false;
+        }
+        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
+        return DeviceConfig.getBoolean(
+                                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                                /* name= */ KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
+                                /* defaultValue= */ ENABLE_ONDEVICEPERSONALIZATION_APIS);
+    }
+
+    @Override
+    public boolean isPersonalizationStatusOverrideEnabled() {
+        if (getGlobalKillSwitch()) {
+            return false;
+        }
+        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
+                /* defaultValue= */ ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
+    }
+
+    @Override
+    public boolean getPersonalizationStatusOverrideValue() {
+        if (getGlobalKillSwitch()) {
+            return false;
+        }
+        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
+                /* defaultValue= */ PERSONALIZATION_STATUS_OVERRIDE_VALUE);
+    }
+
+    @Override
+    public int getIsolatedServiceDeadlineSeconds() {
+        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ISOLATED_SERVICE_DEADLINE_SECONDS,
+                /* defaultValue= */ ISOLATED_SERVICE_DEADLINE_SECONDS);
     }
 }

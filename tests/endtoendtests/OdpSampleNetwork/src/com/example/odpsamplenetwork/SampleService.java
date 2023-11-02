@@ -19,12 +19,14 @@ package com.example.odpsamplenetwork;
 import android.adservices.ondevicepersonalization.IsolatedService;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.RequestToken;
-import android.annotation.NonNull;
+
+import androidx.annotation.NonNull;
 
 public class SampleService extends IsolatedService {
     @NonNull @Override public IsolatedWorker onRequest(
             RequestToken requestToken) {
         return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
-                getUserData(requestToken));
+                getUserData(requestToken), getFederatedComputeScheduler(requestToken),
+                getLogReader(requestToken));
     }
 }

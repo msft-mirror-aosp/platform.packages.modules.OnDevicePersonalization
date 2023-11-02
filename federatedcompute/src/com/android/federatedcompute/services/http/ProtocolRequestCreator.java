@@ -16,9 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.API_KEY_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.FAKE_API_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
@@ -33,17 +31,12 @@ import java.util.HashMap;
  */
 public final class ProtocolRequestCreator {
     private final String mRequestBaseUri;
-    private final String mApiKey;
     private final HashMap<String, String> mHeaderList;
     private boolean mUseCompression;
 
     public ProtocolRequestCreator(
-            String requestBaseUri,
-            String apiKey,
-            HashMap<String, String> headerList,
-            boolean useCompression) {
+            String requestBaseUri, HashMap<String, String> headerList, boolean useCompression) {
         this.mRequestBaseUri = requestBaseUri;
-        this.mApiKey = apiKey;
         this.mHeaderList = headerList;
         this.mUseCompression = useCompression;
     }
@@ -53,14 +46,14 @@ public final class ProtocolRequestCreator {
      * base URI for the subsequent requests.
      */
     public static ProtocolRequestCreator create(
-            String apiKey, ForwardingInfo forwardingInfo, boolean useCompression) {
+            ForwardingInfo forwardingInfo, boolean useCompression) {
         if (forwardingInfo.getTargetUriPrefix().isEmpty()) {
             throw new IllegalArgumentException("Missing `ForwardingInfo.target_uri_prefix`");
         }
         HashMap<String, String> extraHeaders = new HashMap<>();
         extraHeaders.putAll(forwardingInfo.getExtraRequestHeadersMap());
         return new ProtocolRequestCreator(
-                forwardingInfo.getTargetUriPrefix(), apiKey, extraHeaders, useCompression);
+                forwardingInfo.getTargetUriPrefix(), extraHeaders, useCompression);
     }
 
     /** Creates a {@link FederatedComputeHttpRequest} with base uri and compression setting. */
@@ -80,14 +73,11 @@ public final class ProtocolRequestCreator {
             HashMap<String, String> params,
             byte[] requestBody,
             boolean isProtobufEncoded) {
-        HashMap<String, String> requestHeader = mHeaderList;
-        requestHeader.put(API_KEY_HDR, mApiKey.isEmpty() ? FAKE_API_KEY : mApiKey);
+        HashMap<String, String> requestHeader = new HashMap<>();
+        requestHeader.putAll(mHeaderList);
 
-        if (isProtobufEncoded) {
-            if (requestBody.length > 0) {
-                requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
-            }
-            params.put("%24alt", "proto");
+        if (isProtobufEncoded && requestBody.length > 0) {
+            requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         }
 
         String requestUriSuffix = uri;

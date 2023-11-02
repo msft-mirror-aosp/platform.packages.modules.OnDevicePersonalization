@@ -16,24 +16,30 @@
 
 package com.example.odpsamplenetwork;
 
-import android.adservices.ondevicepersonalization.AppInstallInfo;
-import android.adservices.ondevicepersonalization.DownloadInput;
-import android.adservices.ondevicepersonalization.DownloadOutput;
+import android.adservices.ondevicepersonalization.AppInfo;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.EventInput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.LogReader;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleInput;
+import android.adservices.ondevicepersonalization.TrainingExampleOutput;
+import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.UserData;
-import android.adservices.ondevicepersonalization.WebViewEventInput;
-import android.adservices.ondevicepersonalization.WebViewEventOutput;
-import android.annotation.NonNull;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -42,17 +48,28 @@ import android.util.Base64;
 import android.util.JsonReader;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
+
+import com.google.common.base.Strings;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
+import com.google.protobuf.ByteString;
 import com.google.setfilters.cuckoofilter.CuckooFilter;
+
+import org.tensorflow.example.BytesList;
+import org.tensorflow.example.Example;
+import org.tensorflow.example.Feature;
+import org.tensorflow.example.Features;
+import org.tensorflow.example.Int64List;
 
 import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -65,12 +82,14 @@ public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
+    public static final int EVENT_TYPE_CONVERSION = 3;
     public static final double COST_RAISING_FACTOR = 2.0;
     private static final String AD_ID_KEY = "adid";
     private static final String BID_PRICE_KEY = "price";
     private static final String AUCTION_SCORE_KEY = "score";
     private static final String CLICK_COST_KEY = "clkcost";
     private static final String EVENT_TYPE_KEY = "type";
+    private static final String SOURCE_TYPE_KEY = "sourcetype";
     private static final int BID_PRICE_OFFSET = 0;
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
@@ -86,12 +105,17 @@ public class SampleHandler implements IsolatedWorker {
     private final KeyValueStore mRemoteData;
     private final EventUrlProvider mEventUrlProvider;
     private final UserData mUserData;
+    private final FederatedComputeScheduler mFCScheduler;
+    private final LogReader mLogReader;
 
     SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider,
-            UserData userData) {
+            UserData userData, FederatedComputeScheduler fcScheduler,
+            LogReader logReader) {
         mRemoteData = remoteData;
         mEventUrlProvider = eventUrlProvider;
         mUserData = userData;
+        mFCScheduler = fcScheduler;
+        mLogReader = logReader;
         if (mRemoteData == null) {
             Log.e(TAG, "RemoteData missing");
         }
@@ -101,15 +125,21 @@ public class SampleHandler implements IsolatedWorker {
         if (mUserData == null) {
             Log.e(TAG, "UserData missing");
         }
+        if (mFCScheduler == null) {
+            Log.e(TAG, "Federated Compute Scheduler missing");
+        }
+        if (mLogReader == null) {
+            Log.e(TAG, "LogReader missing");
+        }
     }
 
     @Override
-    public void onDownload(
-            @NonNull DownloadInput input,
-            @NonNull Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            @NonNull DownloadCompletedInput input,
+            @NonNull Consumer<DownloadCompletedOutput> consumer) {
         Log.d(TAG, "onDownload() started.");
-        DownloadOutput downloadResult =
-                new DownloadOutput.Builder()
+        DownloadCompletedOutput downloadResult =
+                new DownloadCompletedOutput.Builder()
                         .setRetainedKeys(getFilteredKeys(input.getData()))
                         .build();
         consumer.accept(downloadResult);
@@ -123,6 +153,13 @@ public class SampleHandler implements IsolatedWorker {
         sBackgroundExecutor.execute(() -> handleOnExecute(input, consumer));
     }
 
+    @Override public void onTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
+        Log.d(TAG, "onTrainingExample() started.");
+        sBackgroundExecutor.execute(() -> handleOnTrainingExample(input, consumer));
+    }
+
     @Override public void onRender(
             @NonNull RenderInput input,
             @NonNull Consumer<RenderOutput> consumer
@@ -131,10 +168,10 @@ public class SampleHandler implements IsolatedWorker {
         sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
-    @Override public void onWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer) {
-        Log.d(TAG, "onWebViewEvent() started.");
+    @Override public void onEvent(
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer) {
+        Log.d(TAG, "onEvent() started.");
         sBackgroundExecutor.execute(
                 () -> handleOnWebViewEvent(input, consumer));
     }
@@ -144,6 +181,9 @@ public class SampleHandler implements IsolatedWorker {
         try {
             ArrayList<Ad> ads = new ArrayList<>();
             for (var key: remoteData.keySet()) {
+                if (!key.startsWith("ad")) {
+                    continue;
+                }
                 Ad ad = parseAd(key, remoteData.get(key));
                 if (ad != null) {
                     ads.add(ad);
@@ -242,30 +282,127 @@ public class SampleHandler implements IsolatedWorker {
                 .build();
     }
 
+    static Feature convertStringToFeature(String value) {
+        BytesList.Builder bytesListBuilder = BytesList.newBuilder();
+        String nonNullValue = Strings.nullToEmpty(value);
+        bytesListBuilder.addValue(ByteString.copyFromUtf8(nonNullValue));
+        return Feature.newBuilder().setBytesList(bytesListBuilder.build()).build();
+    }
+
+    static Feature convertLongToFeature(long value) {
+        return Feature.newBuilder()
+            .setInt64List(Int64List.newBuilder().addValue(value).build())
+            .build();
+    }
+
+    private void handleOnTrainingExample(
+            @NonNull TrainingExampleInput input,
+            @NonNull Consumer<TrainingExampleOutput> consumer) {
+        Features.Builder featuresBuilder = Features.newBuilder();
+
+        featuresBuilder.putFeature("int-feature-1", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-2", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-3", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-4", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-5", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-6", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-7", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-8", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-9", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-10", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-11", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-12", convertLongToFeature(0L));
+        featuresBuilder.putFeature("int-feature-13", convertLongToFeature(0L));
+
+        featuresBuilder.putFeature("categorical-feature-14", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-15", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-16", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-17", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-18", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-19", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-20", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-21", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-22", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-23", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-24", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-25", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-26", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-27", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-28", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-29", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-30", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-31", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-32", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-33", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-34", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-35", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-36", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-37", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-38", convertStringToFeature(""));
+        featuresBuilder.putFeature("categorical-feature-39", convertStringToFeature(""));
+
+        featuresBuilder.putFeature("clicked", convertLongToFeature(1L));
+
+        Example example = Example.newBuilder().setFeatures(featuresBuilder.build()).build();
+        TrainingExampleOutput result = new TrainingExampleOutput
+                .Builder()
+                .addTrainingExample(example.toByteArray())
+                .addResumptionToken("token1".getBytes()).build();
+        consumer.accept(result);
+    }
+
     private void handleOnExecute(
             @NonNull ExecuteInput input,
             @NonNull Consumer<ExecuteOutput> consumer
     ) {
         try {
-            var unused = FluentFuture.from(readAds(mRemoteData))
-                    .transform(
-                        ads -> buildResult(runAuction(matchAds(ads, input))),
-                        sBackgroundExecutor)
-                    .transform(
-                        result -> {
-                            consumer.accept(result);
-                            return null;
-                        },
-                        MoreExecutors.directExecutor())
-                    .catching(
-                        Exception.class,
-                        e -> {
-                            Log.e(TAG, "Execution failed.", e);
-                            consumer.accept(null);
-                            return null;
-                        },
-                        MoreExecutors.directExecutor());
+            if (input != null && input.getAppParams() != null
+                    && input.getAppParams().getString("schedule_training") != null) {
+                if (input.getAppParams().getString("schedule_training").isEmpty()) {
+                    consumer.accept(null);
+                    return;
+                }
+                TrainingInterval interval = new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofSeconds(10))
+                        .setSchedulingMode(2)
+                        .build();
+                FederatedComputeScheduler.Params params = new FederatedComputeScheduler
+                        .Params(interval);
+                FederatedComputeInput fcInput = new FederatedComputeInput.Builder()
+                        .setPopulationName(input.getAppParams().getString("schedule_training"))
+                        .build();
+                mFCScheduler.schedule(params, fcInput);
 
+                ExecuteOutput result = new ExecuteOutput.Builder().build();
+                consumer.accept(result);
+            } else if (input != null && input.getAppParams() != null
+                    && input.getAppParams().getString("conversion_ad_id") != null) {
+                try {
+                    consumer.accept(handleConversion(input));
+                } catch (Exception e) {
+                    consumer.accept(null);
+                    return;
+                }
+            } else {
+                var unused = FluentFuture.from(readAds(mRemoteData))
+                        .transform(
+                            ads -> buildResult(runAuction(matchAds(ads, input))),
+                            sBackgroundExecutor)
+                        .transform(
+                            result -> {
+                                consumer.accept(result);
+                                return null;
+                            },
+                            MoreExecutors.directExecutor())
+                        .catching(
+                            Exception.class,
+                            e -> {
+                                Log.e(TAG, "Execution failed.", e);
+                                consumer.accept(null);
+                                return null;
+                            },
+                            MoreExecutors.directExecutor());
+            }
         } catch (Exception e) {
             Log.e(TAG, "handleOnExecute() failed", e);
             consumer.accept(null);
@@ -276,8 +413,8 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
-            String url = mEventUrlProvider.getEventTrackingUrl(
-                    eventParams, TRANSPARENT_PNG_BYTES, "image/png");
+            String url = mEventUrlProvider.createEventTrackingUrlWithResponse(
+                    eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -289,8 +426,8 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
-            String url = mEventUrlProvider.getEventTrackingUrlWithRedirect(
-                    eventParams, landingPage);
+            String url = mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                    eventParams, Uri.parse(landingPage)).toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -323,6 +460,45 @@ public class SampleHandler implements IsolatedWorker {
             Log.d(TAG, "content: " + content);
             return new RenderOutput.Builder().setContent(content).build();
         }
+    }
+
+    private ExecuteOutput handleConversion(ExecuteInput input) {
+        String adId = input.getAppParams().getString("conversion_ad_id");
+        if (adId.isEmpty()) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        List<EventLogRecord> logRecords = mLogReader.getJoinedEvents(
+                now - 24 * 60 * 60 * 1000, now);
+        EventLogRecord found = null;
+        // Attribute conversion to most recent impression or click.
+        for (EventLogRecord ev : logRecords) {
+            RequestLogRecord req = ev.getRequestLogRecord();
+            if (req == null || req.getRows() == null
+                    || req.getRows().size() <= ev.getRowIndex()
+                    || req.getRows().get(ev.getRowIndex()) == null) {
+                continue;
+            }
+            String reqAdId = (String) req.getRows().get(ev.getRowIndex()).get(AD_ID_KEY);
+            if (adId.equals(reqAdId)) {
+                if (found == null || found.getTimeMillis() < ev.getTimeMillis()) {
+                    found = ev;
+                }
+            }
+        }
+        var builder = new ExecuteOutput.Builder();
+        if (found != null) {
+            ContentValues values = new ContentValues();
+            values.put(SOURCE_TYPE_KEY, found.getType());
+            EventLogRecord conv = new EventLogRecord.Builder()
+                    .setType(EVENT_TYPE_CONVERSION)
+                    .setData(values)
+                    .setRowIndex(found.getRowIndex())
+                    .setRequestLogRecord(found.getRequestLogRecord())
+                    .build();
+            builder.addEventLogRecord(conv);
+        }
+        return builder.build();
     }
 
     private void handleOnRender(
@@ -366,14 +542,14 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     public void handleOnWebViewEvent(
-            @NonNull WebViewEventInput input,
-            @NonNull Consumer<WebViewEventOutput> consumer) {
+            @NonNull EventInput input,
+            @NonNull Consumer<EventOutput> consumer) {
         try {
             Log.d(TAG, "handleOnEvent() started.");
             PersistableBundle eventParams = input.getParameters();
             int eventType = eventParams.getInt(EVENT_TYPE_KEY);
             if (eventType <= 0) {
-                consumer.accept(new WebViewEventOutput.Builder().build());
+                consumer.accept(new EventOutput.Builder().build());
                 return;
             }
             ContentValues logData = null;
@@ -392,7 +568,7 @@ public class SampleHandler implements IsolatedWorker {
                 logData = new ContentValues();
                 logData.put(CLICK_COST_KEY, updatedPrice);
             }
-            WebViewEventOutput result = new WebViewEventOutput.Builder()
+            EventOutput result = new EventOutput.Builder()
                     .setEventLogRecord(
                         new EventLogRecord.Builder()
                             .setRowIndex(0)
@@ -412,8 +588,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInstallInfo() == null
-                || mUserData.getAppInstallInfo().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -422,8 +597,8 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInstallInfo().keySet()) {
-            AppInstallInfo value = mUserData.getAppInstallInfo().get(app);
+        for (String app: mUserData.getAppInfos().keySet()) {
+            AppInfo value = mUserData.getAppInfos().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
             }
@@ -438,8 +613,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        if (mUserData.getAppInstallInfo() == null
-                || mUserData.getAppInstallInfo().isEmpty()) {
+        if (mUserData.getAppInfos() == null || mUserData.getAppInfos().isEmpty()) {
             Log.i(TAG, "No installed apps.");
             return false;
         }
@@ -448,7 +622,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInstallInfo().keySet()) {
+        for (String app: mUserData.getAppInfos().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }

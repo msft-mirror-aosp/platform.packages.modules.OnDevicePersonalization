@@ -16,32 +16,39 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.annotation.WorkerThread;
 
 import java.util.Set;
 
 /**
- * Data Access Object for the REMOTE_DATA table. The REMOTE_DATA table is a immutable
- * data store that contains data that has been downloaded by the ODP platform from
- * the vendor endpoint that is declared in the package manifest.
+ * An interface to a read-only key-value store.
  *
- * @hide
+ * Used as a Data Access Object for the REMOTE_DATA table.
+ *
+ * @see IsolatedService#getRemoteData(RequestToken)
+ *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface KeyValueStore {
     /**
-     * Looks up a key in the REMOTE_DATA table.
+     * Looks up a key in a read-only store.
      *
      * @param key The key to look up.
      * @return the value to which the specified key is mapped,
      * or null if there contains no mapping for the key.
+     *
      */
-    @Nullable byte[] get(@NonNull String key) throws OnDevicePersonalizationException;
+    @WorkerThread
+    @Nullable byte[] get(@NonNull String key);
 
     /**
      * Returns a Set view of the keys contained in the REMOTE_DATA table.
-     *
-     * @return a Set view of the keys contained in the REMOTE_DATA table.
      */
-    @NonNull Set<String> keySet() throws OnDevicePersonalizationException;
+    @WorkerThread
+    @NonNull Set<String> keySet();
 }

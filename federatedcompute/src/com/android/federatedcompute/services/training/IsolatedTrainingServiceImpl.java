@@ -16,16 +16,18 @@
 
 package com.android.federatedcompute.services.training;
 
-import android.content.Context;
+import android.annotation.NonNull;
 import android.federatedcompute.aidl.IExampleStoreIterator;
-import android.federatedcompute.aidl.IResultHandlingService;
+import android.federatedcompute.common.ClientConstants;
+import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
+import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
@@ -41,23 +43,22 @@ import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import javax.annotation.Nonnull;
-
 /** The implementation of {@link IsolatedTrainingService}. */
 public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
-    private static final String TAG = "IsolatedTrainingServiceImpl";
+    private static final String TAG = IsolatedTrainingServiceImpl.class.getSimpleName();
     private final AtomicBoolean mInterruptFlag = new AtomicBoolean(false);
 
     @VisibleForTesting
     ListenableSupplier<Boolean> mInterruptState = new ListenableSupplier<>(mInterruptFlag::get);
 
-    private ComputationRunner mComputationRunner;
+    private final ComputationRunner mComputationRunner;
 
-    public IsolatedTrainingServiceImpl(Context context) {
-        mComputationRunner = new ComputationRunner(context);
+    public IsolatedTrainingServiceImpl() {
+        mComputationRunner = new ComputationRunner();
     }
 
     @VisibleForTesting
@@ -66,20 +67,16 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     }
 
     @Override
-    public void runFlTraining(@Nonnull Bundle params, @Nonnull ITrainingResultCallback callback) {
+    public void runFlTraining(@NonNull Bundle params, @NonNull ITrainingResultCallback callback) {
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
+
         IExampleStoreIterator exampleStoreIteratorBinder =
                 IExampleStoreIterator.Stub.asInterface(
                         Objects.requireNonNull(
                                 params.getBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER)));
         Objects.requireNonNull(exampleStoreIteratorBinder);
-        IResultHandlingService resultHandlingServiceBinder =
-                IResultHandlingService.Stub.asInterface(
-                        Objects.requireNonNull(
-                                params.getBinder(Constants.EXTRA_RESULT_HANDLING_SERVICE_BINDER)));
-        Objects.requireNonNull(resultHandlingServiceBinder);
-        ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
+
         byte[] exampleSelectorBytes =
                 Objects.requireNonNull(params.getByteArray(Constants.EXTRA_EXAMPLE_SELECTOR));
         ExampleSelector exampleSelector;
@@ -88,8 +85,11 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         } catch (InvalidProtocolBufferException e) {
             throw new IllegalArgumentException("ExampleSelector proto is invalid", e);
         }
+        ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
         String populationName =
-                Objects.requireNonNull(params.getString(Constants.EXTRA_POPULATION_NAME));
+                Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+        String taskName = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+
         ParcelFileDescriptor inputCheckpointFd =
                 Objects.requireNonNull(
                         params.getParcelable(
@@ -98,9 +98,12 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 Objects.requireNonNull(
                         params.getParcelable(
                                 Constants.EXTRA_OUTPUT_CHECKPOINT_FD, ParcelFileDescriptor.class));
-        int jobId = params.getInt(Constants.EXTRA_JOB_ID);
-        byte[] clientPlanBytes =
-                Objects.requireNonNull(params.getByteArray(Constants.EXTRA_CLIENT_ONLY_PLAN));
+        ParcelFileDescriptor clientPlanFd =
+                Objects.requireNonNull(
+                        params.getParcelable(
+                                Constants.EXTRA_CLIENT_ONLY_PLAN_FD, ParcelFileDescriptor.class));
+
+        byte[] clientPlanBytes = FileUtils.readFileDescriptorAsByteArray(clientPlanFd);
         ClientOnlyPlan clientPlan;
         try {
             clientPlan = ClientOnlyPlan.parseFrom(clientPlanBytes);
@@ -112,7 +115,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 Futures.submit(
                         () ->
                                 mComputationRunner.runTaskWithNativeRunner(
-                                        jobId,
+                                        taskName,
                                         populationName,
                                         getFileDescriptorForTensorflow(inputCheckpointFd),
                                         getFileDescriptorForTensorflow(outputCheckpointFd),
@@ -120,7 +123,6 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                         exampleSelector,
                                         recorder,
                                         exampleStoreIteratorBinder,
-                                        resultHandlingServiceBinder,
                                         mInterruptState),
                         FederatedComputeExecutors.getBackgroundExecutor());
 
@@ -129,17 +131,32 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 new FutureCallback<FLRunnerResult>() {
                     @Override
                     public void onSuccess(FLRunnerResult result) {
-                        sendResult(result, callback);
+                        Bundle bundle = new Bundle();
+                        bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
+                        ArrayList<ExampleConsumption> exampleConsumptionArrayList =
+                                recorder.finishRecordingAndGet();
+                        LogUtil.i(
+                                TAG,
+                                "training task %s: result %s, used %d examples",
+                                populationName,
+                                result.toString(),
+                                exampleConsumptionArrayList.size());
+                        bundle.putParcelableArrayList(
+                                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
+                                exampleConsumptionArrayList);
+                        sendResult(bundle, callback);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to runTaskWithNativeRunner", t);
+                        LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
+                        Bundle bundle = new Bundle();
                         FLRunnerResult result =
                                 FLRunnerResult.newBuilder()
                                         .setContributionResult(ContributionResult.FAIL)
                                         .build();
-                        sendResult(result, callback);
+                        bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
+                        sendResult(bundle, callback);
                     }
                 },
                 FederatedComputeExecutors.getLightweightExecutor());
@@ -151,13 +168,11 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         return "fd:///" + parcelFileDescriptor.getFd();
     }
 
-    private void sendResult(FLRunnerResult result, ITrainingResultCallback callback) {
-        Bundle bundle = new Bundle();
-        bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
+    private void sendResult(Bundle result, ITrainingResultCallback callback) {
         try {
-            callback.onResult(bundle);
+            callback.onResult(result);
         } catch (RemoteException e) {
-            Log.w(TAG + ": Callback failed ", e);
+            LogUtil.w(TAG, e, ": Callback failed ");
         }
     }
 

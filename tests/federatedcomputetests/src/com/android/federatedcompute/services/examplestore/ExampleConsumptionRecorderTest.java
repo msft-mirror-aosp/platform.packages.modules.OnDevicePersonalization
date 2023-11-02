@@ -38,20 +38,20 @@ public final class ExampleConsumptionRecorderTest {
     }
 
     @Test
-    public void testIncrementSameCollectionAndCriteria() {
-        String collection = "collection";
+    public void testIncrementSameTaskNameAndCriteria() {
+        String taskName = "taskName";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
         byte[] token1 = "token1".getBytes(Charset.defaultCharset());
         SingleQueryRecorder singleRecorder =
-                recorder.createRecorderForTracking(collection, selectionCriteria);
+                recorder.createRecorderForTracking(taskName, selectionCriteria);
         singleRecorder.incrementAndUpdateResumptionToken(token1);
         byte[] token2 = "token2".getBytes(Charset.defaultCharset());
         singleRecorder.incrementAndUpdateResumptionToken(token2);
         assertThat(recorder.finishRecordingAndGet())
                 .containsExactly(
                         new ExampleConsumption.Builder()
-                                .setCollectionName(collection)
+                                .setTaskName(taskName)
                                 .setExampleCount(2)
                                 .setSelectionCriteria(selectionCriteria)
                                 .setResumptionToken(token2)
@@ -59,29 +59,29 @@ public final class ExampleConsumptionRecorderTest {
     }
 
     @Test
-    public void testIncrementDifferentCollection() {
-        String collection1 = "collection1";
+    public void testIncrementDifferentTaskName() {
+        String taskName = "taskName";
         byte[] criteria = new byte[] {10, 0, 1};
         ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
         byte[] token1 = "token1".getBytes(Charset.defaultCharset());
         SingleQueryRecorder singleRecorder1 =
-                recorder.createRecorderForTracking(collection1, criteria);
+                recorder.createRecorderForTracking(taskName, criteria);
         singleRecorder1.incrementAndUpdateResumptionToken(token1);
-        String collection2 = "collection2";
+        String taskName2 = "taskName2";
         byte[] token2 = "token2".getBytes(Charset.defaultCharset());
         SingleQueryRecorder singleQueryRecorder2 =
-                recorder.createRecorderForTracking(collection2, criteria);
+                recorder.createRecorderForTracking(taskName2, criteria);
         singleQueryRecorder2.incrementAndUpdateResumptionToken(token2);
         assertThat(recorder.finishRecordingAndGet())
                 .containsExactly(
                         new ExampleConsumption.Builder()
-                                .setCollectionName(collection1)
+                                .setTaskName(taskName)
                                 .setSelectionCriteria(criteria)
                                 .setExampleCount(1)
                                 .setResumptionToken(token1)
                                 .build(),
                         new ExampleConsumption.Builder()
-                                .setCollectionName(collection2)
+                                .setTaskName(taskName2)
                                 .setExampleCount(1)
                                 .setSelectionCriteria(criteria)
                                 .setResumptionToken(token2)

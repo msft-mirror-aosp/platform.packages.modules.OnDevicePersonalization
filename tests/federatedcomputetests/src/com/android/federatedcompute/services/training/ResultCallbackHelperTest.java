@@ -17,64 +17,127 @@
 package com.android.federatedcompute.services.training;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
+import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
+
+import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
+import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingOptions;
+import android.os.Bundle;
 import android.os.RemoteException;
 
+import androidx.test.core.app.ApplicationProvider;
+
+import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
+import com.android.federatedcompute.services.data.fbs.SchedulingReason;
+import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.training.ResultCallbackHelper.CallbackResult;
+import com.android.federatedcompute.services.training.util.ComputationResult;
 
-import com.google.common.collect.ImmutableList;
 import com.google.flatbuffers.FlatBufferBuilder;
+import com.google.intelligence.fcp.client.FLRunnerResult;
+import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mockito;
 
-import java.util.List;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
+import java.util.ArrayList;
 
 @RunWith(JUnit4.class)
 public final class ResultCallbackHelperTest {
+    private static final String PACKAGE_NAME = "app_package_name";
     private static final byte[] SELECTION_CRITERIA = new byte[] {10, 0, 1};
+    private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final String POPULATION_NAME = "population_name";
-    private static final int JOB_ID = 123;
+    private static final String TASK_NAME = "task_name";
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
-    private final CountDownLatch mLatch = new CountDownLatch(1);
-    private static final ImmutableList<ExampleConsumption> EXAMPLE_CONSUMPTIONS =
-            ImmutableList.of(
-                    new ExampleConsumption.Builder()
-                            .setCollectionName("collection")
-                            .setExampleCount(100)
-                            .setSelectionCriteria(SELECTION_CRITERIA)
-                            .build());
+    private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
+    private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
+            FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
+
+    private static final FederatedTrainingTask TRAINING_TASK =
+            FederatedTrainingTask.builder()
+                    .appPackageName(PACKAGE_NAME)
+                    .jobId(123)
+                    .populationName(POPULATION_NAME)
+                    .intervalOptions(INTERVAL_OPTIONS)
+                    .constraints(TRAINING_CONSTRAINTS)
+                    .serverAddress("server_address")
+                    .creationTime(123L)
+                    .lastScheduledTime(123L)
+                    .earliestNextRunTime(123L)
+                    .schedulingReason(SCHEDULING_REASON)
+                    .build();
+    private static final ArrayList<ExampleConsumption> EXAMPLE_CONSUMPTIONS =
+            getExampleConsumptions();
+    private ComputationResult mComputationResult;
+    private ResultCallbackHelper mHelper;
+
+    @Before
+    public void setUp() {
+        Context context = ApplicationProvider.getApplicationContext();
+        mComputationResult =
+                new ComputationResult("output", FL_RUNNER_SUCCESS_RESULT, EXAMPLE_CONSUMPTIONS);
+        mHelper = Mockito.spy(new ResultCallbackHelper(context));
+        doNothing().when(mHelper).unbindFromResultHandlingService();
+    }
 
     @Test
     public void testHandleResult_success() throws Exception {
-        ResultCallbackHelper helper =
-                new ResultCallbackHelper(EXAMPLE_CONSUMPTIONS, new TestResultHandlingService());
+        doReturn(new TestResultHandlingService())
+                .when(mHelper)
+                .getResultHandlingService(eq(PACKAGE_NAME));
 
         CallbackResult result =
-                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
 
         assertThat(result).isEqualTo(CallbackResult.SUCCESS);
     }
 
     @Test
     public void testHandleResult_remoteException() throws Exception {
-        ResultCallbackHelper helper =
-                new ResultCallbackHelper(
-                        EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithRemoteException());
+        doReturn(new ResultHandlingServiceWithRemoteException())
+                .when(mHelper)
+                .getResultHandlingService(eq(PACKAGE_NAME));
 
         CallbackResult result =
-                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
+
+        assertThat(result).isEqualTo(CallbackResult.FAIL);
+    }
+
+    @Test
+    public void testHandleResult_interruptedException() throws Exception {
+        doReturn(new ResultHandlingServiceWithInterruptedException())
+                .when(mHelper)
+                .getResultHandlingService(eq(PACKAGE_NAME));
+
+        CallbackResult result =
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
+
+        assertThat(result).isEqualTo(CallbackResult.FAIL);
+    }
+
+    @Test
+    public void testHandleResult_failed() throws Exception {
+        doReturn(new ResultHandlingServiceWithFail())
+                .when(mHelper)
+                .getResultHandlingService(eq(PACKAGE_NAME));
+
+        CallbackResult result =
+                mHelper.callHandleResult(TASK_NAME, TRAINING_TASK, mComputationResult).get();
 
         assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
@@ -82,88 +145,25 @@ public final class ResultCallbackHelperTest {
     private static final class ResultHandlingServiceWithRemoteException
             extends IResultHandlingService.Stub {
         @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                IFederatedComputeCallback callback)
+        public void handleResult(Bundle input, IFederatedComputeCallback callback)
                 throws RemoteException {
             throw new RemoteException("expected remote exception");
         }
-    }
-
-    @Test
-    public void testHandleResult_timeoutException() throws Exception {
-        ResultCallbackHelper helper =
-                new ResultCallbackHelper(
-                        EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithTimeoutException(), 20);
-
-        CallbackResult result =
-                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
-
-        assertThat(result).isEqualTo(CallbackResult.FAIL);
-    }
-
-    class ResultHandlingServiceWithTimeoutException extends IResultHandlingService.Stub {
-
-        @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                IFederatedComputeCallback callback)
-                throws RemoteException {
-            try {
-                mLatch.await(2000, TimeUnit.MILLISECONDS);
-            } catch (InterruptedException e) {
-            }
-        }
-    }
-
-    @Test
-    public void testHandleResult_interruptedException() throws Exception {
-        ResultCallbackHelper helper =
-                new ResultCallbackHelper(
-                        EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithInterruptedException());
-
-        CallbackResult result =
-                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
-
-        assertThat(result).isEqualTo(CallbackResult.FAIL);
     }
 
     private static class ResultHandlingServiceWithInterruptedException
             extends IResultHandlingService.Stub {
 
         @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                IFederatedComputeCallback callback)
+        public void handleResult(Bundle input, IFederatedComputeCallback callback)
                 throws RemoteException {
             Thread.currentThread().interrupt();
         }
     }
 
-    @Test
-    public void testHandleResult_failed() throws Exception {
-        ResultCallbackHelper helper =
-                new ResultCallbackHelper(EXAMPLE_CONSUMPTIONS, new ResultHandlingServiceWithFail());
-
-        CallbackResult result =
-                helper.callHandleResult(JOB_ID, POPULATION_NAME, INTERVAL_OPTIONS, true);
-
-        assertThat(result).isEqualTo(CallbackResult.FAIL);
-    }
-
     private static final class ResultHandlingServiceWithFail extends IResultHandlingService.Stub {
         @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                IFederatedComputeCallback callback)
+        public void handleResult(Bundle input, IFederatedComputeCallback callback)
                 throws RemoteException {
             callback.onFailure(STATUS_INTERNAL_ERROR);
         }
@@ -171,16 +171,28 @@ public final class ResultCallbackHelperTest {
 
     private static final class TestResultHandlingService extends IResultHandlingService.Stub {
         @Override
-        public void handleResult(
-                TrainingOptions trainingOptions,
-                boolean success,
-                List<ExampleConsumption> exampleConsumptionList,
-                IFederatedComputeCallback callback)
+        public void handleResult(Bundle input, IFederatedComputeCallback callback)
                 throws RemoteException {
-            assertThat(success).isTrue();
-            assertThat(exampleConsumptionList).containsExactlyElementsIn(EXAMPLE_CONSUMPTIONS);
+            assertThat(input.getInt(ClientConstants.EXTRA_COMPUTATION_RESULT))
+                    .isEqualTo(STATUS_SUCCESS);
+            assertThat(
+                            input.getParcelableArrayList(
+                                    ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
+                                    ExampleConsumption.class))
+                    .containsExactlyElementsIn(EXAMPLE_CONSUMPTIONS);
             callback.onSuccess();
         }
+    }
+
+    private static ArrayList<ExampleConsumption> getExampleConsumptions() {
+        ArrayList<ExampleConsumption> exampleList = new ArrayList<>();
+        exampleList.add(
+                new ExampleConsumption.Builder()
+                        .setTaskName("taskName")
+                        .setExampleCount(100)
+                        .setSelectionCriteria(SELECTION_CRITERIA)
+                        .build());
+        return exampleList;
     }
 
     private static byte[] createDefaultTrainingIntervalOptions() {
@@ -188,6 +200,12 @@ public final class ResultCallbackHelperTest {
         builder.finish(
                 TrainingIntervalOptions.createTrainingIntervalOptions(
                         builder, SchedulingMode.ONE_TIME, 0));
+        return builder.sizedByteArray();
+    }
+
+    private static byte[] createDefaultTrainingConstraints() {
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
         return builder.sizedByteArray();
     }
 }
