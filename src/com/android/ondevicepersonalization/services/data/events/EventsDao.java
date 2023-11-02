@@ -36,8 +36,10 @@ import java.util.List;
 public class EventsDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "EventsDao";
+    private static final String JOINED_EVENT_TIME_MILLIS = "eventTimeMillis";
+    private static final String JOINED_QUERY_TIME_MILLIS = "queryTimeMillis";
 
-    private static EventsDao sSingleton;
+    private static volatile EventsDao sSingleton;
 
     private final OnDevicePersonalizationDbHelper mDbHelper;
 
@@ -47,14 +49,16 @@ public class EventsDao {
 
     /** Returns an instance of the EventsDao given a context. */
     public static EventsDao getInstance(@NonNull Context context) {
-        synchronized (EventsDao.class) {
-            if (sSingleton == null) {
-                OnDevicePersonalizationDbHelper dbHelper =
-                        OnDevicePersonalizationDbHelper.getInstance(context);
-                sSingleton = new EventsDao(dbHelper);
+        if (sSingleton == null) {
+            synchronized (EventsDao.class) {
+                if (sSingleton == null) {
+                    OnDevicePersonalizationDbHelper dbHelper =
+                            OnDevicePersonalizationDbHelper.getInstance(context);
+                    sSingleton = new EventsDao(dbHelper);
+                }
             }
-            return sSingleton;
         }
+        return sSingleton;
     }
 
     /**
@@ -97,6 +101,31 @@ public class EventsDao {
         return -1;
     }
 
+
+    /**
+     * Inserts the List of Events into the Events table.
+     *
+     * @return true if all inserts succeeded, false otherwise.
+     */
+    public boolean insertEvents(@NonNull List<Event> events) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            for (Event event : events) {
+                if (insertEvent(event) == -1) {
+                    return false;
+                }
+            }
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            sLogger.e(TAG + ": Failed to insert events", e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
     /**
      * Inserts the Query into the Queries table.
      *
@@ -127,8 +156,7 @@ public class EventsDao {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(EventStateContract.EventStateEntry.EVENT_ID, eventState.getEventId());
-            values.put(EventStateContract.EventStateEntry.QUERY_ID, eventState.getQueryId());
+            values.put(EventStateContract.EventStateEntry.TOKEN, eventState.getToken());
             values.put(EventStateContract.EventStateEntry.SERVICE_PACKAGE_NAME,
                     eventState.getServicePackageName());
             values.put(EventStateContract.EventStateEntry.TASK_IDENTIFIER,
@@ -142,6 +170,31 @@ public class EventsDao {
     }
 
     /**
+     * Updates/inserts a list of EventStates as a transaction
+     *
+     * @return true if the all the update/inserts succeeded, false otherwise
+     */
+    public boolean updateOrInsertEventStatesTransaction(List<EventState> eventStates) {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            for (EventState eventState : eventStates) {
+                if (!updateOrInsertEventState(eventState)) {
+                    return false;
+                }
+            }
+
+            db.setTransactionSuccessful();
+        } catch (Exception e) {
+            sLogger.e(TAG + ": Failed to insert/update eventstates", e);
+            return false;
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
+    /**
      * Gets the eventState for the given package and task
      *
      * @return eventState if found, null otherwise
@@ -151,8 +204,7 @@ public class EventsDao {
         String selection = EventStateContract.EventStateEntry.TASK_IDENTIFIER + " = ? AND "
                 + EventStateContract.EventStateEntry.SERVICE_PACKAGE_NAME + " = ?";
         String[] selectionArgs = {taskIdentifier, packageName};
-        String[] projection = {EventStateContract.EventStateEntry.EVENT_ID,
-                EventStateContract.EventStateEntry.QUERY_ID};
+        String[] projection = {EventStateContract.EventStateEntry.TOKEN};
         try (Cursor cursor = db.query(
                 EventStateContract.EventStateEntry.TABLE_NAME,
                 projection,
@@ -163,14 +215,11 @@ public class EventsDao {
                 /* orderBy= */ null
         )) {
             if (cursor.moveToFirst()) {
-                long eventId = cursor.getLong(cursor.getColumnIndexOrThrow(
-                        EventStateContract.EventStateEntry.EVENT_ID));
-                long queryId = cursor.getLong(cursor.getColumnIndexOrThrow(
-                        EventStateContract.EventStateEntry.QUERY_ID));
+                byte[] token = cursor.getBlob(cursor.getColumnIndexOrThrow(
+                        EventStateContract.EventStateEntry.TOKEN));
 
                 return new EventState.Builder()
-                        .setEventId(eventId)
-                        .setQueryId(queryId)
+                        .setToken(token)
                         .setServicePackageName(packageName)
                         .setTaskIdentifier(taskIdentifier)
                         .build();
@@ -287,9 +336,6 @@ public class EventsDao {
         List<JoinedEvent> joinedEventList = new ArrayList<>();
 
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
-
-        String eventTimeMillisCol = "eventTimeMillis";
-        String queryTimeMillisCol = "queryTimeMillis";
         String select = "SELECT "
                 + EventsContract.EventsEntry.EVENT_ID + ","
                 + EventsContract.EventsEntry.ROW_INDEX + ","
@@ -298,12 +344,12 @@ public class EventsDao {
                 + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + ","
                 + EventsContract.EventsEntry.EVENT_DATA + ","
                 + EventsContract.EventsEntry.TABLE_NAME + "."
-                + EventsContract.EventsEntry.TIME_MILLIS + " AS " + eventTimeMillisCol + ","
+                + EventsContract.EventsEntry.TIME_MILLIS + " AS " + JOINED_EVENT_TIME_MILLIS + ","
                 + EventsContract.EventsEntry.TABLE_NAME + "."
                 + EventsContract.EventsEntry.QUERY_ID + ","
                 + QueriesContract.QueriesEntry.QUERY_DATA + ","
                 + QueriesContract.QueriesEntry.TABLE_NAME + "."
-                + QueriesContract.QueriesEntry.TIME_MILLIS + " AS " + queryTimeMillisCol;
+                + QueriesContract.QueriesEntry.TIME_MILLIS + " AS " + JOINED_QUERY_TIME_MILLIS;
         String from = " FROM " + EventsContract.EventsEntry.TABLE_NAME
                 + " INNER JOIN " + QueriesContract.QueriesEntry.TABLE_NAME
                 + " ON "
@@ -317,7 +363,7 @@ public class EventsDao {
             while (cursor.moveToNext()) {
                 long eventId = cursor.getLong(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_ID));
-                long rowIndex = cursor.getLong(
+                int rowIndex = cursor.getInt(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.ROW_INDEX));
                 int type = cursor.getInt(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.TYPE));
@@ -327,13 +373,13 @@ public class EventsDao {
                 byte[] eventData = cursor.getBlob(
                         cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_DATA));
                 long eventTimeMillis = cursor.getLong(
-                        cursor.getColumnIndexOrThrow(eventTimeMillisCol));
+                        cursor.getColumnIndexOrThrow(JOINED_EVENT_TIME_MILLIS));
                 long queryId = cursor.getLong(
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_ID));
                 byte[] queryData = cursor.getBlob(
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
                 long queryTimeMillis = cursor.getLong(
-                        cursor.getColumnIndexOrThrow(queryTimeMillisCol));
+                        cursor.getColumnIndexOrThrow(JOINED_QUERY_TIME_MILLIS));
                 joinedEventList.add(new JoinedEvent.Builder()
                         .setEventId(eventId)
                         .setRowIndex(rowIndex)
@@ -405,5 +451,180 @@ public class EventsDao {
             db.endTransaction();
         }
         return true;
+    }
+
+    /**
+     * Reads all queries in the query table between the given timestamps.
+     *
+     * @return List of Query in the query table.
+     */
+    public List<Query> readAllQueries(long startTimeMillis, long endTimeMillis,
+            String packageName) {
+        String selection = QueriesContract.QueriesEntry.TIME_MILLIS + " > ?"
+                + " AND " + QueriesContract.QueriesEntry.TIME_MILLIS + " < ?"
+                + " AND " + QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME + " = ?";
+        String[] selectionArgs = {String.valueOf(startTimeMillis), String.valueOf(
+                endTimeMillis), packageName};
+        return readQueryRows(selection, selectionArgs);
+    }
+
+    /**
+     * Reads all ids in the event table between the given timestamps.
+     *
+     * @return List of ids in the event table.
+     */
+    public List<Long> readAllEventIds(long startTimeMillis, long endTimeMillis,
+            String packageName) {
+        List<Long> idList = new ArrayList<>();
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {EventsContract.EventsEntry.EVENT_ID};
+            String selection = EventsContract.EventsEntry.TIME_MILLIS + " > ?"
+                    + " AND " + EventsContract.EventsEntry.TIME_MILLIS + " < ?"
+                    + " AND " + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + " = ?";
+            String[] selectionArgs = {String.valueOf(startTimeMillis), String.valueOf(
+                    endTimeMillis), packageName};
+            String orderBy = EventsContract.EventsEntry.EVENT_ID;
+            try (Cursor cursor = db.query(
+                    EventsContract.EventsEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    orderBy
+            )) {
+                while (cursor.moveToNext()) {
+                    Long id = cursor.getLong(
+                            cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_ID));
+                    idList.add(id);
+                }
+                cursor.close();
+                return idList;
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read event ids", e);
+        }
+        return idList;
+    }
+
+
+    /**
+     * Reads all ids in the event table associated with the specified queryId
+     *
+     * @return List of ids in the event table.
+     */
+    public List<Long> readAllEventIdsForQuery(long queryId, String packageName) {
+        List<Long> idList = new ArrayList<>();
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {EventsContract.EventsEntry.EVENT_ID};
+            String selection = EventsContract.EventsEntry.QUERY_ID + " = ?"
+                    + " AND " + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + " = ?";
+            String[] selectionArgs = {String.valueOf(queryId), packageName};
+            String orderBy = EventsContract.EventsEntry.EVENT_ID;
+            try (Cursor cursor = db.query(
+                    EventsContract.EventsEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    orderBy
+            )) {
+                while (cursor.moveToNext()) {
+                    Long id = cursor.getLong(
+                            cursor.getColumnIndexOrThrow(EventsContract.EventsEntry.EVENT_ID));
+                    idList.add(id);
+                }
+                cursor.close();
+                return idList;
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read event ids for specified queryid", e);
+        }
+        return idList;
+    }
+
+    /**
+     * Reads single row in the query table
+     *
+     * @return Query object for the single row requested
+     */
+    public Query readSingleQueryRow(long queryId, String packageName) {
+        try {
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String selection = QueriesContract.QueriesEntry.QUERY_ID + " = ?"
+                    + " AND " + QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME + " = ?";
+            String[] selectionArgs = {String.valueOf(queryId), packageName};
+            try (Cursor cursor = db.query(
+                    QueriesContract.QueriesEntry.TABLE_NAME,
+                    /* projection= */ null,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    /* orderBy= */ null
+            )) {
+                if (cursor.getCount() < 1) {
+                    sLogger.d(TAG + ": Failed to find requested id: " + queryId);
+                    return null;
+                }
+                cursor.moveToNext();
+                long id = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_ID));
+                byte[] queryData = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
+                long timeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.TIME_MILLIS));
+                String servicePackageName = cursor.getString(
+                        cursor.getColumnIndexOrThrow(
+                                QueriesContract.QueriesEntry.SERVICE_PACKAGE_NAME));
+                return new Query.Builder()
+                        .setQueryId(id)
+                        .setQueryData(queryData)
+                        .setTimeMillis(timeMillis)
+                        .setServicePackageName(servicePackageName)
+                        .build();
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read query row", e);
+        }
+        return null;
+    }
+
+    /**
+     * Reads single row in the event table joined with its corresponding query
+     *
+     * @return JoinedEvent representing the event joined with its query
+     */
+    public JoinedEvent readSingleJoinedTableRow(long eventId, String packageName) {
+        String selection = EventsContract.EventsEntry.EVENT_ID + " = ?"
+                + " AND " + EventsContract.EventsEntry.TABLE_NAME + "."
+                + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + " = ?";
+        String[] selectionArgs = {String.valueOf(eventId), packageName};
+        List<JoinedEvent> joinedEventList = readJoinedTableRows(selection, selectionArgs);
+        if (joinedEventList.size() < 1) {
+            sLogger.d(TAG + ": Failed to find requested id: " + eventId);
+            return null;
+        }
+        return joinedEventList.get(0);
+    }
+
+    /**
+     * Reads all row in the event table joined with its corresponding query within the given time
+     * range.
+     *
+     * @return List of JoinedEvents representing the event joined with its query
+     */
+    public List<JoinedEvent> readJoinedTableRows(long startTimeMillis, long endTimeMillis,
+            String packageName) {
+        String selection = JOINED_EVENT_TIME_MILLIS + " > ?"
+                + " AND " + JOINED_EVENT_TIME_MILLIS + " < ?"
+                + " AND " + EventsContract.EventsEntry.TABLE_NAME + "."
+                + EventsContract.EventsEntry.SERVICE_PACKAGE_NAME + " = ?";
+        String[] selectionArgs = {String.valueOf(startTimeMillis), String.valueOf(
+                endTimeMillis), packageName};
+        return readJoinedTableRows(selection, selectionArgs);
     }
 }

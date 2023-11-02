@@ -60,8 +60,8 @@ public final class FederatedTrainingTaskDaoTest {
 
     @After
     public void cleanUp() throws Exception {
-        FederatedTrainingTaskDbHelper dbHelper =
-                FederatedTrainingTaskDbHelper.getInstanceForTest(mContext);
+        FederatedComputeDbHelper dbHelper =
+                FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();

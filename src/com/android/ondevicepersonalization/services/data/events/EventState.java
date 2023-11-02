@@ -29,11 +29,9 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
         genEqualsHashCode = true
 )
 public class EventState {
-    /** The id of the last confirmed event. */
-    private final long mEventId;
-
-    /** The id of the last confirmed query. */
-    private final long mQueryId;
+    /** Token representing the event state. */
+    @NonNull
+    private final byte[] mToken;
 
     /** Name of the service package for this event */
     @NonNull
@@ -60,12 +58,12 @@ public class EventState {
 
     @DataClass.Generated.Member
     /* package-private */ EventState(
-            long eventId,
-            long queryId,
+            @NonNull byte[] token,
             @NonNull String servicePackageName,
             @NonNull String taskIdentifier) {
-        this.mEventId = eventId;
-        this.mQueryId = queryId;
+        this.mToken = token;
+        AnnotationValidations.validate(
+                NonNull.class, null, mToken);
         this.mServicePackageName = servicePackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mServicePackageName);
@@ -77,19 +75,11 @@ public class EventState {
     }
 
     /**
-     * The id of the last confirmed event.
+     * Token representing the event state.
      */
     @DataClass.Generated.Member
-    public long getEventId() {
-        return mEventId;
-    }
-
-    /**
-     * The id of the last confirmed query.
-     */
-    @DataClass.Generated.Member
-    public long getQueryId() {
-        return mQueryId;
+    public @NonNull byte[] getToken() {
+        return mToken;
     }
 
     /**
@@ -121,8 +111,7 @@ public class EventState {
         EventState that = (EventState) o;
         //noinspection PointlessBooleanExpression
         return true
-                && mEventId == that.mEventId
-                && mQueryId == that.mQueryId
+                && java.util.Arrays.equals(mToken, that.mToken)
                 && java.util.Objects.equals(mServicePackageName, that.mServicePackageName)
                 && java.util.Objects.equals(mTaskIdentifier, that.mTaskIdentifier);
     }
@@ -134,8 +123,7 @@ public class EventState {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + Long.hashCode(mEventId);
-        _hash = 31 * _hash + Long.hashCode(mQueryId);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mToken);
         _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mTaskIdentifier);
         return _hash;
@@ -148,35 +136,31 @@ public class EventState {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private long mEventId;
-        private long mQueryId;
+        private @NonNull byte[] mToken;
         private @NonNull String mServicePackageName;
         private @NonNull String mTaskIdentifier;
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {
-        }
+        public Builder() {}
 
         /**
          * Creates a new Builder.
          *
-         * @param eventId
-         *   The id of the last confirmed event.
-         * @param queryId
-         *   The id of the last confirmed query.
+         * @param token
+         *   Token representing the event state.
          * @param servicePackageName
          *   Name of the service package for this event
          * @param taskIdentifier
          *   Unique identifier of the task for processing this event
          */
         public Builder(
-                long eventId,
-                long queryId,
+                @NonNull byte[] token,
                 @NonNull String servicePackageName,
                 @NonNull String taskIdentifier) {
-            mEventId = eventId;
-            mQueryId = queryId;
+            mToken = token;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mToken);
             mServicePackageName = servicePackageName;
             AnnotationValidations.validate(
                     NonNull.class, null, mServicePackageName);
@@ -186,24 +170,13 @@ public class EventState {
         }
 
         /**
-         * The id of the last confirmed event.
+         * Token representing the event state.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setEventId(long value) {
+        public @NonNull Builder setToken(@NonNull byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mEventId = value;
-            return this;
-        }
-
-        /**
-         * The id of the last confirmed query.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setQueryId(long value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mQueryId = value;
+            mToken = value;
             return this;
         }
 
@@ -213,7 +186,7 @@ public class EventState {
         @DataClass.Generated.Member
         public @NonNull Builder setServicePackageName(@NonNull String value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x2;
             mServicePackageName = value;
             return this;
         }
@@ -224,7 +197,7 @@ public class EventState {
         @DataClass.Generated.Member
         public @NonNull Builder setTaskIdentifier(@NonNull String value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x4;
             mTaskIdentifier = value;
             return this;
         }
@@ -232,18 +205,17 @@ public class EventState {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull EventState build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             EventState o = new EventState(
-                    mEventId,
-                    mQueryId,
+                    mToken,
                     mServicePackageName,
                     mTaskIdentifier);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -251,10 +223,10 @@ public class EventState {
     }
 
     @DataClass.Generated(
-            time = 1692638505171L,
+            time = 1695678195125L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/EventState.java",
-            inputSignatures = "private final  long mEventId\nprivate final  long mQueryId\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull java.lang.String mTaskIdentifier\nclass EventState extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final @android.annotation.NonNull byte[] mToken\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull java.lang.String mTaskIdentifier\nclass EventState extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
