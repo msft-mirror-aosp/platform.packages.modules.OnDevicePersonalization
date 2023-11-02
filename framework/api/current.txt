@@ -12,11 +12,8 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public java.util.Map<java.lang.String,byte[]> getData();
   }
 
-  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class DownloadCompletedOutput implements android.os.Parcelable {
-    method public int describeContents();
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class DownloadCompletedOutput {
     method @NonNull public java.util.List<java.lang.String> getRetainedKeys();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.DownloadCompletedOutput> CREATOR;
   }
 
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static final class DownloadCompletedOutput.Builder {
@@ -48,20 +45,14 @@ package android.adservices.ondevicepersonalization {
     method @NonNull @WorkerThread public android.net.Uri createEventTrackingUrlWithResponse(@NonNull android.os.PersistableBundle, @Nullable byte[], @Nullable String);
   }
 
-  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class ExecuteInput implements android.os.Parcelable {
-    method public int describeContents();
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class ExecuteInput {
     method @NonNull public String getAppPackageName();
     method @NonNull public android.os.PersistableBundle getAppParams();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.ExecuteInput> CREATOR;
   }
 
-  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class ExecuteOutput implements android.os.Parcelable {
-    method public int describeContents();
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class ExecuteOutput {
     method @NonNull public java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> getRenderingConfigs();
     method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.ExecuteOutput> CREATOR;
   }
 
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static final class ExecuteOutput.Builder {
@@ -107,23 +98,17 @@ package android.adservices.ondevicepersonalization {
     method public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
   }
 
-  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class RenderInput implements android.os.Parcelable {
-    method public int describeContents();
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class RenderInput {
     method public int getHeight();
     method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
     method public int getRenderingConfigIndex();
     method public int getWidth();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RenderInput> CREATOR;
   }
 
-  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class RenderOutput implements android.os.Parcelable {
-    method public int describeContents();
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class RenderOutput {
     method @Nullable public String getContent();
     method @Nullable public String getTemplateId();
     method @NonNull public android.os.PersistableBundle getTemplateParams();
-    method public void writeToParcel(@NonNull android.os.Parcel, int);
-    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.RenderOutput> CREATOR;
   }
 
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static final class RenderOutput.Builder {
