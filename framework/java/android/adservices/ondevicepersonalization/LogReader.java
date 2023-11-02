@@ -27,6 +27,7 @@ import android.os.RemoteException;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -60,7 +61,10 @@ public class LogReader {
      */
     @WorkerThread
     @NonNull
-    public List<RequestLogRecord> getRequests(long startTimeMillis, long endTimeMillis) {
+    public List<RequestLogRecord> getRequests(
+            @NonNull Instant startTime, @NonNull Instant endTime) {
+        long startTimeMillis = startTime.toEpochMilli();
+        long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(
                     "endTimeMillis must be greater than startTimeMillis");
@@ -82,7 +86,10 @@ public class LogReader {
      */
     @WorkerThread
     @NonNull
-    public List<EventLogRecord> getJoinedEvents(long startTimeMillis, long endTimeMillis) {
+    public List<EventLogRecord> getJoinedEvents(
+            @NonNull Instant startTime, @NonNull Instant endTime) {
+        long startTimeMillis = startTime.toEpochMilli();
+        long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(
                     "endTimeMillis must be greater than startTimeMillis");
