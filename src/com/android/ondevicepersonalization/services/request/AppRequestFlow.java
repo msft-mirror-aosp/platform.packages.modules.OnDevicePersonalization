@@ -19,7 +19,7 @@ package com.android.ondevicepersonalization.services.request;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.ExecuteInput;
-import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
@@ -178,7 +178,7 @@ public class AppRequestFlow {
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
                         TASK_NAME, mService.getPackageName());
-            ListenableFuture<ExecuteOutput> resultFuture = FluentFuture.from(loadFuture)
+            ListenableFuture<ExecuteOutputParcel> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeAppRequest(result),
                             mInjector.getExecutor()
@@ -186,7 +186,7 @@ public class AppRequestFlow {
                     .transform(
                             result -> {
                                 return result.getParcelable(
-                                        Constants.EXTRA_RESULT, ExecuteOutput.class);
+                                        Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
                             },
                             mInjector.getExecutor()
                     );
@@ -279,7 +279,7 @@ public class AppRequestFlow {
                 );
     }
 
-    private ListenableFuture<Long> logQuery(ExecuteOutput result) {
+    private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
         sLogger.d(TAG + ": logQuery() started.");
         EventsDao eventsDao = EventsDao.getInstance(mContext);
         // Insert query
@@ -335,11 +335,11 @@ public class AppRequestFlow {
     }
 
     private ListenableFuture<List<String>> createTokens(
-            ListenableFuture<ExecuteOutput> resultFuture,
+            ListenableFuture<ExecuteOutputParcel> resultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
             sLogger.d(TAG + ": createTokens() started.");
-            ExecuteOutput result = Futures.getDone(resultFuture);
+            ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
             List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
             Objects.requireNonNull(renderingConfigs);
