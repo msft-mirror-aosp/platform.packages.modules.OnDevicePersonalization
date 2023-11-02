@@ -26,14 +26,11 @@ import com.google.internal.federated.plan.ExampleQuerySpec.OutputVectorSpec.Data
 import com.google.internal.federated.plan.ExampleSelector;
 import com.google.internal.federated.plan.FederatedExampleQueryIORouter;
 import com.google.internal.federated.plan.TFV1CheckpointAggregation;
+import com.google.internal.federated.plan.TensorflowSpec;
+import com.google.protobuf.ByteString;
 
 /** The utility class for federated learning related tests. */
 public class TrainingTestUtil {
-    public static final String CLIENT_PACKAGE_NAME = "de.myselph";
-    public static final long RUN_ID = 12345L;
-    public static final String SESSION_NAME = "session_name";
-    public static final String TASK_NAME = "task_name";
-    public static final String POPULATION_NAME = "population_name";
     public static final String STRING_VECTOR_NAME = "vector1";
     public static final String INT_VECTOR_NAME = "vector2";
     public static final String STRING_TENSOR_NAME = "tensor1";
@@ -82,6 +79,21 @@ public class TrainingTestUtil {
                                                 ExampleQuerySpec.newBuilder()
                                                         .addExampleQueries(exampleQuery)
                                                         .build()))
+                        .build();
+        return clientOnlyPlan;
+    }
+
+    public static ClientOnlyPlan createFakeFederatedLearningClientPlan() {
+        TensorflowSpec tensorflowSpec =
+                TensorflowSpec.newBuilder()
+                        .setDatasetTokenTensorName("dataset")
+                        .addTargetNodeNames("target")
+                        .build();
+        ClientOnlyPlan clientOnlyPlan =
+                ClientOnlyPlan.newBuilder()
+                        .setTfliteGraph(ByteString.copyFromUtf8("tflite_graph"))
+                        .setPhase(
+                                ClientPhase.newBuilder().setTensorflowSpec(tensorflowSpec).build())
                         .build();
         return clientOnlyPlan;
     }
