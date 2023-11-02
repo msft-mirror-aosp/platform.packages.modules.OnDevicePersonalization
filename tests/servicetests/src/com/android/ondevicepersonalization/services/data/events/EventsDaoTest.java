@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
@@ -33,6 +34,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.List;
 
 @RunWith(JUnit4.class)
@@ -57,8 +59,7 @@ public class EventsDaoTest {
     private final EventState mEventState = new EventState.Builder()
             .setTaskIdentifier(TASK_IDENTIFIER)
             .setServicePackageName(mContext.getPackageName())
-            .setQueryId(1L)
-            .setEventId(1L)
+            .setToken(new byte[]{1})
             .build();
     private EventsDao mDao;
 
@@ -92,28 +93,65 @@ public class EventsDaoTest {
     }
 
     @Test
+    public void testInsertEvents() {
+        mDao.insertQuery(mTestQuery);
+        Event testEvent = new Event.Builder()
+                .setType(EVENT_TYPE_CLICK)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(1L)
+                .setTimeMillis(1L)
+                .setRowIndex(0)
+                .build();
+        List<Event> events = new ArrayList<>();
+        events.add(mTestEvent);
+        events.add(testEvent);
+        assertTrue(mDao.insertEvents(events));
+    }
+
+    @Test
+    public void testInsertEventsFalse() {
+        List<Event> events = new ArrayList<>();
+        events.add(mTestEvent);
+        assertFalse(mDao.insertEvents(events));
+    }
+
+    @Test
     public void testInsertAndReadEventState() {
         assertTrue(mDao.updateOrInsertEventState(mEventState));
         assertEquals(mEventState, mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
                 .setServicePackageName(mContext.getPackageName())
-                .setQueryId(5L)
-                .setEventId(7L)
+                .setToken(new byte[]{100})
                 .build();
         assertTrue(mDao.updateOrInsertEventState(testEventState));
         assertEquals(testEventState,
                 mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
     }
 
+
+    @Test
+    public void testInsertAndReadEventStatesTransaction() {
+        EventState testEventState = new EventState.Builder()
+                .setTaskIdentifier(TASK_IDENTIFIER)
+                .setServicePackageName(mContext.getPackageName())
+                .setToken(new byte[]{100})
+                .build();
+        List<EventState> eventStates = new ArrayList<>();
+        eventStates.add(mEventState);
+        eventStates.add(testEventState);
+        assertTrue(mDao.updateOrInsertEventStatesTransaction(eventStates));
+        assertEquals(testEventState,
+                mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+    }
     @Test
     public void testDeleteEventState() {
         mDao.updateOrInsertEventState(mEventState);
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
                 .setServicePackageName("packageA")
-                .setQueryId(5L)
-                .setEventId(7L)
+                .setToken(new byte[]{100})
                 .build();
         mDao.updateOrInsertEventState(testEventState);
         mDao.deleteEventState(mContext.getPackageName());
@@ -267,6 +305,269 @@ public class EventsDaoTest {
         assertEquals(1, joinedEventList.size());
         assertEquals(createExpectedJoinedEvent(null, packageAQuery, 0, queryId3),
                 joinedEventList.get(0));
+    }
+
+    @Test
+    public void testReadAllQueries() {
+        Query query1 = new Query.Builder()
+                .setTimeMillis(1L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId1 = mDao.insertQuery(query1);
+        Query query2 = new Query.Builder()
+                .setTimeMillis(10L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId2 = mDao.insertQuery(query2);
+        Query query3 = new Query.Builder()
+                .setTimeMillis(100L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId3 = mDao.insertQuery(query3);
+        Query query4 = new Query.Builder()
+                .setTimeMillis(100L)
+                .setServicePackageName("package")
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId4 = mDao.insertQuery(query4);
+
+        List<Query> result = mDao.readAllQueries(0, 1000, mContext.getPackageName());
+        assertEquals(3, result.size());
+        assertEquals(queryId1, (long) result.get(0).getQueryId());
+        assertEquals(queryId2, (long) result.get(1).getQueryId());
+        assertEquals(queryId3, (long) result.get(2).getQueryId());
+
+        result = mDao.readAllQueries(0, 1000, "package");
+        assertEquals(1, result.size());
+        assertEquals(queryId4, (long) result.get(0).getQueryId());
+
+        result = mDao.readAllQueries(500, 1000, mContext.getPackageName());
+        assertEquals(0, result.size());
+
+        result = mDao.readAllQueries(5, 1000, mContext.getPackageName());
+        assertEquals(2, result.size());
+        assertEquals(queryId2, (long) result.get(0).getQueryId());
+        assertEquals(queryId3, (long) result.get(1).getQueryId());
+    }
+
+    @Test
+    public void testReadAllEventIds() {
+        Query query1 = new Query.Builder()
+                .setTimeMillis(1L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId1 = mDao.insertQuery(query1);
+        Query query2 = new Query.Builder()
+                .setTimeMillis(10L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId2 = mDao.insertQuery(query2);
+        Query query3 = new Query.Builder()
+                .setTimeMillis(100L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId3 = mDao.insertQuery(query3);
+
+        Event event1 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId1)
+                .setTimeMillis(2L)
+                .setRowIndex(0)
+                .build();
+        long eventId1 = mDao.insertEvent(event1);
+        Event event2 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId2)
+                .setTimeMillis(11L)
+                .setRowIndex(0)
+                .build();
+        long eventId2 = mDao.insertEvent(event2);
+        Event event3 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId3)
+                .setTimeMillis(101L)
+                .setRowIndex(0)
+                .build();
+        long eventId3 = mDao.insertEvent(event3);
+
+        List<Long> result = mDao.readAllEventIds(0, 1000, mContext.getPackageName());
+        assertEquals(3, result.size());
+        assertEquals(eventId1, (long) result.get(0));
+        assertEquals(eventId2, (long) result.get(1));
+        assertEquals(eventId3, (long) result.get(2));
+
+        result = mDao.readAllEventIds(0, 1000, "package");
+        assertEquals(0, result.size());
+
+        result = mDao.readAllEventIds(500, 1000, mContext.getPackageName());
+        assertEquals(0, result.size());
+
+        result = mDao.readAllEventIds(5, 1000, mContext.getPackageName());
+        assertEquals(2, result.size());
+        assertEquals(eventId2, (long) result.get(0));
+        assertEquals(eventId3, (long) result.get(1));
+    }
+
+    @Test
+    public void testReadEventIdsForRequest() {
+        Query query1 = new Query.Builder()
+                .setTimeMillis(1L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId1 = mDao.insertQuery(query1);
+        Query query2 = new Query.Builder()
+                .setTimeMillis(10L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId2 = mDao.insertQuery(query2);
+
+        Event event1 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId1)
+                .setTimeMillis(2L)
+                .setRowIndex(0)
+                .build();
+        long eventId1 = mDao.insertEvent(event1);
+        Event event2 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId2)
+                .setTimeMillis(11L)
+                .setRowIndex(0)
+                .build();
+        long eventId2 = mDao.insertEvent(event2);
+        Event event3 = new Event.Builder()
+                .setType(EVENT_TYPE_CLICK)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId2)
+                .setTimeMillis(101L)
+                .setRowIndex(0)
+                .build();
+        long eventId3 = mDao.insertEvent(event3);
+
+        List<Long> result = mDao.readAllEventIdsForQuery(queryId1, mContext.getPackageName());
+        assertEquals(1, result.size());
+        assertEquals(eventId1, (long) result.get(0));
+
+        result = mDao.readAllEventIdsForQuery(queryId2, mContext.getPackageName());
+        assertEquals(2, result.size());
+        assertEquals(eventId2, (long) result.get(0));
+        assertEquals(eventId3, (long) result.get(1));
+
+        result = mDao.readAllEventIdsForQuery(1000, mContext.getPackageName());
+        assertEquals(0, result.size());
+
+        result = mDao.readAllEventIdsForQuery(queryId1, "package");
+        assertEquals(0, result.size());
+    }
+
+    @Test
+    public void testReadJoinedEvents() {
+        Query query1 = new Query.Builder()
+                .setTimeMillis(1L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId1 = mDao.insertQuery(query1);
+        Query query2 = new Query.Builder()
+                .setTimeMillis(10L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId2 = mDao.insertQuery(query2);
+        Query query3 = new Query.Builder()
+                .setTimeMillis(100L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        long queryId3 = mDao.insertQuery(query3);
+
+        Event event1 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId1)
+                .setTimeMillis(2L)
+                .setRowIndex(0)
+                .build();
+        long eventId1 = mDao.insertEvent(event1);
+        Event event2 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId2)
+                .setTimeMillis(11L)
+                .setRowIndex(0)
+                .build();
+        long eventId2 = mDao.insertEvent(event2);
+        Event event3 = new Event.Builder()
+                .setType(EVENT_TYPE_B2D)
+                .setEventData("event".getBytes(StandardCharsets.UTF_8))
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryId(queryId3)
+                .setTimeMillis(101L)
+                .setRowIndex(0)
+                .build();
+        long eventId3 = mDao.insertEvent(event3);
+
+        List<JoinedEvent> result = mDao.readJoinedTableRows(0, 1000, mContext.getPackageName());
+        assertEquals(3, result.size());
+        assertEquals(createExpectedJoinedEvent(event1, query1, eventId1, queryId1), result.get(0));
+        assertEquals(createExpectedJoinedEvent(event2, query2, eventId2, queryId2), result.get(1));
+        assertEquals(createExpectedJoinedEvent(event3, query3, eventId3, queryId3), result.get(2));
+
+        result = mDao.readJoinedTableRows(0, 1000, "package");
+        assertEquals(0, result.size());
+
+        result = mDao.readJoinedTableRows(500, 1000, mContext.getPackageName());
+        assertEquals(0, result.size());
+
+        result = mDao.readJoinedTableRows(5, 1000, mContext.getPackageName());
+        assertEquals(2, result.size());
+        assertEquals(createExpectedJoinedEvent(event2, query2, eventId2, queryId2), result.get(0));
+        assertEquals(createExpectedJoinedEvent(event3, query3, eventId3, queryId3), result.get(1));
+    }
+
+    @Test
+    public void testReadSingleQuery() {
+        Query query1 = new Query.Builder()
+                .setQueryId(1)
+                .setTimeMillis(1L)
+                .setServicePackageName(mContext.getPackageName())
+                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+                .build();
+        mDao.insertQuery(query1);
+        assertEquals(query1, mDao.readSingleQueryRow(1, mContext.getPackageName()));
+        assertNull(mDao.readSingleQueryRow(100, mContext.getPackageName()));
+        assertNull(mDao.readSingleQueryRow(1, "package"));
+    }
+
+    @Test
+    public void testReadSingleJoinedTableRow() {
+        mDao.insertQuery(mTestQuery);
+        mDao.insertEvent(mTestEvent);
+        assertEquals(createExpectedJoinedEvent(mTestEvent, mTestQuery, 1, 1),
+                mDao.readSingleJoinedTableRow(1, mContext.getPackageName()));
+        assertNull(mDao.readSingleJoinedTableRow(100, mContext.getPackageName()));
+        assertNull(mDao.readSingleJoinedTableRow(1, "package"));
     }
 
     @Test

@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.os.Parcelable;
 import android.os.PersistableBundle;
@@ -24,11 +27,11 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedWorker#onExecute()}.
+ * The input data for {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
  *
- * @hide
  */
-@DataClass(genBuilder = true, genEqualsHashCode = true)
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class ExecuteInput implements Parcelable {
     /**
      * The package name of the calling app.
@@ -40,6 +43,11 @@ public final class ExecuteInput implements Parcelable {
      * defines the expected keys in this {@link PersistableBundle}.
      */
     @NonNull PersistableBundle mAppParams = PersistableBundle.EMPTY;
+
+    /** @hide */
+    public ExecuteInput(@NonNull ExecuteInputParcel parcel) {
+        this(parcel.getAppPackageName(), parcel.getAppParams());
+    }
 
 
 
@@ -56,8 +64,18 @@ public final class ExecuteInput implements Parcelable {
     //@formatter:off
 
 
+    /**
+     * Creates a new ExecuteInput.
+     *
+     * @param appPackageName
+     *   The package name of the calling app.
+     * @param appParams
+     *   The parameters provided by the app to the {@link IsolatedService}. The service
+     *   defines the expected keys in this {@link PersistableBundle}.
+     * @hide
+     */
     @DataClass.Generated.Member
-    /* package-private */ ExecuteInput(
+    public ExecuteInput(
             @NonNull String appPackageName,
             @NonNull PersistableBundle appParams) {
         this.mAppPackageName = appPackageName;
@@ -164,74 +182,11 @@ public final class ExecuteInput implements Parcelable {
         }
     };
 
-    /**
-     * A builder for {@link ExecuteInput}
-     */
-    @SuppressWarnings("WeakerAccess")
-    @DataClass.Generated.Member
-    public static final class Builder {
-
-        private @NonNull String mAppPackageName;
-        private @NonNull PersistableBundle mAppParams;
-
-        private long mBuilderFieldsSet = 0L;
-
-        public Builder() {
-        }
-
-        /**
-         * The package name of the calling app.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setAppPackageName(@NonNull String value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x1;
-            mAppPackageName = value;
-            return this;
-        }
-
-        /**
-         * The parameters provided by the app to the {@link IsolatedService}. The service
-         * defines the expected keys in this {@link PersistableBundle}.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setAppParams(@NonNull PersistableBundle value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mAppParams = value;
-            return this;
-        }
-
-        /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull ExecuteInput build() {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
-
-            if ((mBuilderFieldsSet & 0x1) == 0) {
-                mAppPackageName = "";
-            }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mAppParams = PersistableBundle.EMPTY;
-            }
-            ExecuteInput o = new ExecuteInput(
-                    mAppPackageName,
-                    mAppParams);
-            return o;
-        }
-
-        private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
-                throw new IllegalStateException(
-                        "This Builder should not be reused. Use a new Builder instance instead");
-            }
-        }
-    }
-
     @DataClass.Generated(
-            time = 1692118363539L,
+            time = 1698872215353L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
