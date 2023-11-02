@@ -18,7 +18,7 @@ package com.android.ondevicepersonalization.services.request;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
-import android.adservices.ondevicepersonalization.ExecuteInput;
+import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -239,8 +239,8 @@ public class AppRequestFlow {
             IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": executeAppRequest() started.");
         Bundle serviceParams = new Bundle();
-        ExecuteInput input =
-                new ExecuteInput.Builder()
+        ExecuteInputParcel input =
+                new ExecuteInputParcel.Builder()
                         .setAppPackageName(mCallingPackageName)
                         .setAppParams(mParams)
                         .build();
