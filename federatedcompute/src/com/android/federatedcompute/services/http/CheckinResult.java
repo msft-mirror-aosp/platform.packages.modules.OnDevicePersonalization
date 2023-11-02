@@ -16,23 +16,43 @@
 
 package com.android.federatedcompute.services.http;
 
+import android.annotation.Nullable;
+
+import com.android.internal.util.Preconditions;
+
+import com.google.internal.federated.plan.ClientOnlyPlan;
+import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
+
 /**
  * The result after client calls TaskAssignemnt API. It includes init checkpoint data and plan data.
  */
 public class CheckinResult {
-    private byte[] mCheckpointData;
-    private byte[] mPlanData;
+    private String mInputCheckpoint = null;
+    private ClientOnlyPlan mPlanData = null;
+    private TaskAssignment mTaskAssignment = null;
 
-    public CheckinResult(byte[] checkpointData, byte[] planData) {
-        this.mCheckpointData = checkpointData;
+    public CheckinResult(
+            String inputCheckpoint, ClientOnlyPlan planData, TaskAssignment taskAssignment) {
+        this.mInputCheckpoint = inputCheckpoint;
         this.mPlanData = planData;
+        this.mTaskAssignment = taskAssignment;
     }
 
-    public byte[] getCheckpointData() {
-        return mCheckpointData;
+    @Nullable
+    public String getInputCheckpointFile() {
+        Preconditions.checkArgument(
+                mInputCheckpoint != null && !mInputCheckpoint.isEmpty(),
+                "Input checkpoint file should not be none or empty");
+        return mInputCheckpoint;
     }
 
-    public byte[] getPlanData() {
+    @Nullable
+    public ClientOnlyPlan getPlanData() {
         return mPlanData;
+    }
+
+    @Nullable
+    public TaskAssignment getTaskAssignment() {
+        return mTaskAssignment;
     }
 }

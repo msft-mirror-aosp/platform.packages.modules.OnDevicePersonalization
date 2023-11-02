@@ -103,11 +103,21 @@ public abstract class FederatedTrainingTask {
     @Nullable
     public abstract Long lastRunStartTime();
 
+    @NonNull
+    public long getLastRunStartTime() {
+        return lastRunStartTime() == null ? 0 : lastRunStartTime();
+    }
+
     /**
      * @return the end time of the task's last run.
      */
     @Nullable
     public abstract Long lastRunEndTime();
+
+    @NonNull
+    public long getLastRunEndTime() {
+        return lastRunEndTime() == null ? 0 : lastRunEndTime();
+    }
 
     /**
      * @return the earliest time to run the task by.
@@ -263,7 +273,7 @@ public abstract class FederatedTrainingTask {
                             null
                             /* having= */ ,
                             null
-                            /* orderBy= */);
+                            /* orderBy= */ );
             while (cursor.moveToNext()) {
                 FederatedTrainingTask.Builder trainingTaskBuilder =
                         FederatedTrainingTask.builder()

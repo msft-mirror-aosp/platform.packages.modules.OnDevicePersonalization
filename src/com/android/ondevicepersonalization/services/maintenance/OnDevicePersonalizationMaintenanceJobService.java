@@ -28,12 +28,13 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -53,7 +54,13 @@ import java.util.Set;
 public class OnDevicePersonalizationMaintenanceJobService extends JobService {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationMaintenanceJobService";
+
+    // Every 24hrs.
     private static final long PERIOD_SECONDS = 86400;
+
+    // The maximum deletion timeframe is 63 days.
+    // Set parameter to 60 days to account for job scheduler delays.
+    private static final long MAXIMUM_DELETION_TIMEFRAME_MILLIS = 5184000000L;
     private ListenableFuture<Void> mFuture;
 
     /**
@@ -83,12 +90,50 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         return jobScheduler.schedule(builder.build());
     }
 
+    @VisibleForTesting
+    static void cleanupVendorData(Context context) throws Exception {
+        EventsDao eventsDao = EventsDao.getInstance(context);
+
+        // Set of packageName and cert
+        Set<Map.Entry<String, String>> vendors = new HashSet<>(
+                OnDevicePersonalizationVendorDataDao.getVendors(context));
+
+        // Remove all valid packages from the set
+        for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
+                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
+            String packageName = packageInfo.packageName;
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(
+                    context, packageName)) {
+                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName,
+                        PackageUtils.getCertDigest(context, packageName)));
+            }
+        }
+
+        sLogger.d(TAG + ": Deleting: " + vendors);
+        // Delete the remaining tables for packages not found onboarded
+        for (Map.Entry<String, String> entry : vendors) {
+            String packageName = entry.getKey();
+            String certDigest = entry.getValue();
+            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, packageName, certDigest);
+            eventsDao.deleteEventState(entry.getKey());
+        }
+
+        // Cleanup event and queries table.
+        eventsDao.deleteEventsAndQueries(
+                System.currentTimeMillis() - MAXIMUM_DELETION_TIMEFRAME_MILLIS);
+    }
+
     @Override
     public boolean onStartJob(JobParameters params) {
         sLogger.d(TAG + ": onStartJob()");
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
             jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
+        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            jobFinished(params, false);
             return true;
         }
         Context context = this;
@@ -135,30 +180,5 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         }
         // Reschedule the job since it ended before finishing
         return true;
-    }
-
-    @VisibleForTesting
-    static void cleanupVendorData(Context context) throws Exception {
-        Set<Map.Entry<String, String>> vendors = new HashSet<>(
-                OnDevicePersonalizationVendorDataDao.getVendors(context));
-
-        // Remove all valid packages from the set
-        for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
-                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            String packageName = packageInfo.packageName;
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    context, packageName)) {
-                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName,
-                        PackageUtils.getCertDigest(context, packageName)));
-            }
-        }
-
-        sLogger.d(TAG + ": Deleting: " + vendors.toString());
-        // Delete the remaining tables for packages not found onboarded
-        for (Map.Entry<String, String> entry : vendors) {
-            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, entry.getKey(),
-                    entry.getValue());
-        }
-
     }
 }
