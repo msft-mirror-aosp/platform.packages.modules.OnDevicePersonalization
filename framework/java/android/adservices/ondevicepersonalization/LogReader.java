@@ -16,8 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.os.Bundle;
@@ -27,6 +30,7 @@ import android.os.RemoteException;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
@@ -39,8 +43,8 @@ import java.util.concurrent.BlockingQueue;
  *
  * @see IsolatedService#getLogReader(RequestToken)
  *
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class LogReader {
     private static final String TAG = "LogReader";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -60,7 +64,10 @@ public class LogReader {
      */
     @WorkerThread
     @NonNull
-    public List<RequestLogRecord> getRequests(long startTimeMillis, long endTimeMillis) {
+    public List<RequestLogRecord> getRequests(
+            @NonNull Instant startTime, @NonNull Instant endTime) {
+        long startTimeMillis = startTime.toEpochMilli();
+        long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(
                     "endTimeMillis must be greater than startTimeMillis");
@@ -82,7 +89,10 @@ public class LogReader {
      */
     @WorkerThread
     @NonNull
-    public List<EventLogRecord> getJoinedEvents(long startTimeMillis, long endTimeMillis) {
+    public List<EventLogRecord> getJoinedEvents(
+            @NonNull Instant startTime, @NonNull Instant endTime) {
+        long startTimeMillis = startTime.toEpochMilli();
+        long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(
                     "endTimeMillis must be greater than startTimeMillis");
