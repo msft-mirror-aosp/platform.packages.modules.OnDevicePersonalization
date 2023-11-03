@@ -63,7 +63,6 @@ public final class RequestLogRecord implements Parcelable {
 
     /**
      * Returns the timestamp of this record.
-     * @hide
      */
     @NonNull public Instant getTime() {
         return Instant.ofEpochMilli(getTimeMillis());
