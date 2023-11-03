@@ -20,7 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -156,7 +156,8 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
+        @Override public String generateHtml(
+                RenderOutputParcel renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;
