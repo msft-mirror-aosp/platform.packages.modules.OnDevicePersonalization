@@ -16,8 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.os.Bundle;
@@ -40,8 +43,8 @@ import java.util.concurrent.BlockingQueue;
  *
  * @see IsolatedService#getLogReader(RequestToken)
  *
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class LogReader {
     private static final String TAG = "LogReader";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();

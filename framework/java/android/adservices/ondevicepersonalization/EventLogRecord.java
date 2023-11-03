@@ -82,13 +82,11 @@ public final class EventLogRecord implements Parcelable {
      * this should be set to {@code null} because the payload will be automatically associated with
      * the current {@link RequestLogRecord}.
      *
-     * @hide
      */
     @Nullable RequestLogRecord mRequestLogRecord = null;
 
     /**
      * Returns the timestamp of this record.
-     * @hide
      */
     @NonNull public Instant getTime() {
         return Instant.ofEpochMilli(getTimeMillis());
@@ -187,8 +185,6 @@ public final class EventLogRecord implements Parcelable {
      * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
      * this should be set to {@code null} because the payload will be automatically associated with
      * the current {@link RequestLogRecord}.
-     *
-     * @hide
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -375,8 +371,6 @@ public final class EventLogRecord implements Parcelable {
          * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
          * this should be set to {@code null} because the payload will be automatically associated with
          * the current {@link RequestLogRecord}.
-         *
-         * @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -424,7 +418,7 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1698961395912L,
+            time = 1698963996102L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventLogRecord.java",
             inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\npublic @android.annotation.NonNull java.time.Instant getTime()\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
