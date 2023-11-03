@@ -26,13 +26,12 @@ import static org.mockito.Mockito.when;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 import org.mockito.ArgumentMatchers;
 import org.mockito.Mock;
 import org.mockito.Spy;
@@ -49,7 +48,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(JUnit4.class)
 public final class HttpClientTest {
     @Spy private HttpClient mHttpClient = new HttpClient();
     @Rule public MockitoRule rule = MockitoJUnit.rule();

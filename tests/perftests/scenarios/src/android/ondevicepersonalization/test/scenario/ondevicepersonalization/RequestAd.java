@@ -19,6 +19,7 @@ import android.platform.test.scenario.annotation.Scenario;
 
 import org.junit.AfterClass;
 import org.junit.Before;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -30,6 +31,12 @@ import java.io.IOException;
 public class RequestAd {
 
     private TestAppHelper mTestAppHelper = new TestAppHelper();
+
+    /** Prepare the device before entering the test class */
+    @BeforeClass
+    public static void prepareDevice() throws IOException {
+        TestAppHelper.initialize();
+    }
 
     @Before
     public void setup() throws IOException {
@@ -45,5 +52,6 @@ public class RequestAd {
     @AfterClass
     public static void tearDown() throws IOException {
         TestAppHelper.goToHomeScreen();
+        TestAppHelper.wrapUp();
     }
 }

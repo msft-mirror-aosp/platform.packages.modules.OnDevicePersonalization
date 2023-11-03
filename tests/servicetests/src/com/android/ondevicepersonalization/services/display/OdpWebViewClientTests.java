@@ -48,6 +48,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
 
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
@@ -63,7 +64,6 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @RunWith(JUnit4.class)
@@ -223,8 +223,8 @@ public class OdpWebViewClientTests {
     }
 
     class TestInjector extends OdpWebViewClient.Injector {
-        Executor getExecutor() {
-            return MoreExecutors.directExecutor();
+        ListeningExecutorService getExecutor() {
+            return MoreExecutors.newDirectExecutorService();
         }
 
         void openUrl(String url, Context context) {
