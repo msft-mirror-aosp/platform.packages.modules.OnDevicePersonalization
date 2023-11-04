@@ -19,21 +19,83 @@ import static androidx.test.platform.app.InstrumentationRegistry.getInstrumentat
 
 import static org.junit.Assert.assertNotNull;
 
+import android.os.RemoteException;
+import android.os.SystemClock;
+import android.util.Log;
+
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
 import androidx.test.uiautomator.UiObject2;
+import androidx.test.uiautomator.UiObjectNotFoundException;
+import androidx.test.uiautomator.UiScrollable;
+import androidx.test.uiautomator.UiSelector;
 import androidx.test.uiautomator.Until;
+
+import org.junit.Assert;
 
 import java.io.IOException;
 
 /** Helper class for interacting with OdpClient test app in perf tests. */
 public class TestAppHelper {
+    private static final String TAG = TestAppHelper.class.getSimpleName();
     private static final UiDevice sUiDevice = UiDevice.getInstance(getInstrumentation());
+    private static UiScrollable sUiScrollable;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
-    private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.android.odpclient";
+    private static final long UI_ROTATE_IDLE_TIMEOUT = 2500;
+    private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String GET_AD_BUTTON_RESOURCE_ID = "get_ad_button";
     private static final String RENDERED_VIEW_RESOURCE_ID = "rendered_view";
-    private static final String SURFACE_VIEW_TEXT = "Nest";
+
+    /** Commands to prepare the device and odp module before testing. */
+    public static void initialize() throws IOException {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
+        executeShellCommand(
+                "device_config put on_device_personalization global_kill_switch false");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_ondevicepersonalization_apis true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_personalization_status_override true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "personalization_status_override_value true");
+        executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
+        executeShellCommand(
+                "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
+                    + "com.google.android.ondevicepersonalization.services");
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                    + "com.google.android.ondevicepersonalization.services 1000");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                    + "com.google.android.ondevicepersonalization.services 1006");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                    + "com.google.android.ondevicepersonalization.services 1003");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                    + "com.google.android.ondevicepersonalization.services 1004");
+        SystemClock.sleep(5000);
+    }
+
+    /** Commands to return device to original state */
+    public static void wrapUp() throws IOException {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests none");
+    }
+
+    private static void executeShellCommand(String cmd) {
+        try {
+            sUiDevice.executeShellCommand(cmd);
+        } catch (IOException e) {
+            Assert.fail("Failed to execute shell command: " + cmd + ". error: " + e);
+        }
+    }
 
     /** Open ODP client test app. */
     public static void openApp() throws IOException {
@@ -46,10 +108,27 @@ public class TestAppHelper {
         sUiDevice.pressHome();
     }
 
+    /** Rotate screen to landscape orientation */
+    public void setOrientationLandscape() throws RemoteException {
+        Log.d(TAG, "Rotating screen to landscape orientation");
+        sUiDevice.unfreezeRotation();
+        sUiDevice.setOrientationLandscape();
+        SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
+    }
+
+    /** Rotate screen to portrait orientation */
+    public void setOrientationPortrait() throws RemoteException {
+        Log.d(TAG, "Rotating screen to portrait orientation");
+        sUiDevice.unfreezeRotation();
+        sUiDevice.setOrientationPortrait();
+        SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
+    }
+
     /** Click Get Ad button. */
     public void clickGetAd() {
         UiObject2 getAdButton = getGetAdButton();
         assertNotNull("Get Ad button not found", getAdButton);
+        Log.d(TAG, "Clicking Get Ad button");
         getAdButton.click();
     }
 
@@ -58,8 +137,25 @@ public class TestAppHelper {
         UiObject2 renderedView = getRenderedView();
         assertNotNull("Rendered view not found", renderedView);
 
-        UiObject2 childSurfaceView = getChildSurfaceViewByText(SURFACE_VIEW_TEXT);
-        assertNotNull("Child surface view not found", childSurfaceView);
+        SystemClock.sleep(UI_FIND_RESOURCE_TIMEOUT);
+        if (renderedView.getChildCount() == 0) {
+            Assert.fail("Failed to render child surface view");
+        } else {
+            Log.d(TAG, "Verified child view is rendered");
+        }
+    }
+
+    /** Click text on rendered Ad */
+    public void clickAd(final String text) {
+        UiObject2 adUiObject = getUiObjectByText(text);
+        assertNotNull("Could not find Ad UiObject by given text " + text, adUiObject);
+        adUiObject.click();
+        SystemClock.sleep(5000);
+
+        if (sUiDevice.getCurrentPackageName() == null
+                || !sUiDevice.getCurrentPackageName().contains("com.android.chrome")) {
+            Assert.fail("Failed to click ad and jump to landing page in the default browser");
+        }
     }
 
     private UiObject2 getGetAdButton() {
@@ -68,15 +164,40 @@ public class TestAppHelper {
             UI_FIND_RESOURCE_TIMEOUT);
     }
 
+    /** Locate the rendered UI element in the scrollable view */
     private UiObject2 getRenderedView() {
-        return sUiDevice.wait(
-            Until.findObject(By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, RENDERED_VIEW_RESOURCE_ID)),
-            UI_FIND_RESOURCE_TIMEOUT);
+        for (int i = 0; i < 2; i++) {
+            // Try finding the renderedView on current screen
+            UiObject2 renderedView = sUiDevice.wait(
+                    Until.findObject(
+                            By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, RENDERED_VIEW_RESOURCE_ID)),
+                    UI_FIND_RESOURCE_TIMEOUT);
+            if (renderedView != null) {
+                return renderedView;
+            }
+
+            // Try scroll to the end
+            try {
+                getUiScrollable().scrollToEnd(5);
+            } catch (UiObjectNotFoundException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return null;
     }
 
-    private UiObject2 getChildSurfaceViewByText(final String text) {
+    private UiObject2 getUiObjectByText(final String text) {
         return sUiDevice.wait(
             Until.findObject(By.desc(text)),
             UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    /** Get a UiScrollable instance configured for vertical scrolling */
+    private static UiScrollable getUiScrollable() {
+        if (sUiScrollable == null) {
+            sUiScrollable = new UiScrollable(new UiSelector().scrollable(true));
+            sUiScrollable.setAsVerticalList();
+        }
+        return sUiScrollable;
     }
 }

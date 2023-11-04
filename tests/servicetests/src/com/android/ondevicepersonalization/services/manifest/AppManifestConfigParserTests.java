@@ -32,6 +32,7 @@ public class AppManifestConfigParserTests {
             "<on-device-personalization>"
             + "  <service name=\"com.example.TestService\" >"
             + "    <download-settings url=\"http://example.com/get\" />"
+            + "    <federated-compute-settings url=\"http://google.com/get\" />"
             + "  </service>"
             + "</on-device-personalization>";
 
@@ -45,5 +46,6 @@ public class AppManifestConfigParserTests {
         AppManifestConfig config = AppManifestConfigParser.getConfig(xpp);
         assertEquals("com.example.TestService", config.getServiceName());
         assertEquals("http://example.com/get", config.getDownloadUrl());
+        assertEquals("http://google.com/get", config.getFcRemoteServerUrl());
     }
 }

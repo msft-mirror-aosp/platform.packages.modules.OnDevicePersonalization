@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 
 import android.content.ContentValues;
@@ -97,57 +98,73 @@ public class JoinedTableDaoTest {
                 ColumnSchema.SQL_DATA_TYPE_INTEGER).build());
         columnSchemaList.add(new ColumnSchema.Builder().setName("eventCol2").setType(
                 ColumnSchema.SQL_DATA_TYPE_TEXT).build());
+        columnSchemaList.add(new ColumnSchema.Builder().setName("eventCol4").setType(
+                ColumnSchema.SQL_DATA_TYPE_REAL).build());
         columnSchemaList.add(new ColumnSchema.Builder().setName("queryCol1").setType(
                 ColumnSchema.SQL_DATA_TYPE_INTEGER).build());
 
         JoinedTableDao joinedTableDao = new JoinedTableDao(columnSchemaList, 0, 0, mContext);
         try (Cursor cursor = joinedTableDao.rawQuery(
-                "SELECT * FROM " + JoinedTableDao.TABLE_NAME + " ORDER BY "
-                        + JoinedTableDao.EVENT_TIME_MILLIS_COL)) {
-            // Assert two rows for the two joined events
-            assertEquals(2, cursor.getCount());
-            cursor.moveToNext();
-            String servicePackageName = cursor.getString(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
-            int type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
-            long eventTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
-            long queryTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.QUERY_TIME_MILLIS_COL));
-            int eventCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("eventCol1"));
-            String eventCol2 = cursor.getString(cursor.getColumnIndexOrThrow("eventCol2"));
-            int queryCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("queryCol1"));
-            assertThrows(IllegalArgumentException.class,
-                    () -> cursor.getColumnIndexOrThrow("eventCol3"));
-            assertEquals(mContext.getPackageName(), servicePackageName);
-            assertEquals(EVENT_TYPE_B2D, type);
-            assertEquals(1L, eventTimeMillis);
-            assertEquals(1L, queryTimeMillis);
-            assertEquals(100, eventCol1);
-            assertEquals("helloWorld", eventCol2);
-            assertEquals(1, queryCol1);
-
-            cursor.moveToNext();
-            servicePackageName = cursor.getString(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
-            type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
-            eventTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
-            queryTimeMillis = cursor.getLong(
-                    cursor.getColumnIndexOrThrow(JoinedTableDao.QUERY_TIME_MILLIS_COL));
-            eventCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("eventCol1"));
-            eventCol2 = cursor.getString(cursor.getColumnIndexOrThrow("eventCol2"));
-            queryCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("queryCol1"));
-            assertThrows(IllegalArgumentException.class,
-                    () -> cursor.getColumnIndexOrThrow("eventCol3"));
-            assertEquals(mContext.getPackageName(), servicePackageName);
-            assertEquals(EVENT_TYPE_CLICK, type);
-            assertEquals(2L, eventTimeMillis);
-            assertEquals(1L, queryTimeMillis);
-            assertEquals(50, eventCol1);
-            assertEquals("helloEarth", eventCol2);
-            assertEquals(2, queryCol1);
-
+                "SELECT * FROM " + JoinedTableDao.TABLE_NAME + " ORDER BY ROWID")) {
+            // Assert two rows for the two joined events. two rows for the query.
+            assertEquals(4, cursor.getCount());
+            for (int i = 0; i < 4; i++) {
+                cursor.moveToNext();
+                String servicePackageName = cursor.getString(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
+                int type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
+                long eventTimeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
+                long queryTimeMillis = cursor.getLong(
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.QUERY_TIME_MILLIS_COL));
+                int eventCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("eventCol1"));
+                String eventCol2 = cursor.getString(cursor.getColumnIndexOrThrow("eventCol2"));
+                double eventCol4 = cursor.getDouble(cursor.getColumnIndexOrThrow("eventCol4"));
+                int queryCol1 = cursor.getInt(cursor.getColumnIndexOrThrow("queryCol1"));
+                assertThrows(IllegalArgumentException.class,
+                        () -> cursor.getColumnIndexOrThrow("eventCol3"));
+                assertThrows(IllegalArgumentException.class,
+                        () -> cursor.getColumnIndexOrThrow("random"));
+                assertThrows(IllegalArgumentException.class,
+                        () -> cursor.getColumnIndexOrThrow("someCol"));
+                if (i == 0) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(EVENT_TYPE_B2D, type);
+                    assertEquals(1L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(100, eventCol1);
+                    assertEquals("helloWorld", eventCol2);
+                    assertEquals(0.0, eventCol4, 0.001);
+                    assertEquals(1, queryCol1);
+                } else if (i == 1) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(EVENT_TYPE_CLICK, type);
+                    assertEquals(2L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(50, eventCol1);
+                    assertEquals("helloEarth", eventCol2);
+                    assertEquals(2.0, eventCol4, 0.001);
+                    assertEquals(2, queryCol1);
+                } else if (i == 2) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(0L, type);
+                    assertEquals(0L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(0, eventCol1);
+                    assertNull(eventCol2);
+                    assertEquals(0.0, eventCol4, 0.001);
+                    assertEquals(1, queryCol1);
+                } else if (i == 3) {
+                    assertEquals(mContext.getPackageName(), servicePackageName);
+                    assertEquals(0L, type);
+                    assertEquals(0L, eventTimeMillis);
+                    assertEquals(1L, queryTimeMillis);
+                    assertEquals(0, eventCol1);
+                    assertNull(eventCol2);
+                    assertEquals(0.0, eventCol4, 0.001);
+                    assertEquals(2, queryCol1);
+                }
+            }
         }
     }
 
@@ -171,6 +188,8 @@ public class JoinedTableDaoTest {
         eventData.put("eventCol1", 100);
         eventData.put("eventCol2", "helloWorld");
         eventData.put("eventCol3", "unused");
+        eventData.put("eventCol4", "wrong_type");
+        eventData.put("random", 20);
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(eventData))
@@ -185,6 +204,8 @@ public class JoinedTableDaoTest {
         eventData2.put("eventCol1", 50);
         eventData2.put("eventCol2", "helloEarth");
         eventData2.put("eventCol3", "unused");
+        eventData2.put("eventCol4", 2.0);
+        eventData2.put("someCol", 600);
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(eventData2))

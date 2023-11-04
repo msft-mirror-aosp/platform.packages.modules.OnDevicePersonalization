@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -45,9 +46,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new AppRequestFlow(
-                    callingPackageName, handler, params, callback, context);
+                    callingPackageName, handler, params, callback, context, startTimeMillis);
         }
 
         RenderFlow getRenderFlow(
@@ -57,9 +59,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 int width,
                 int height,
                 IRequestSurfacePackageCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new RenderFlow(
-                    slotResultToken, hostToken, displayId, width, height, callback, context);
+                    slotResultToken, hostToken, displayId, width, height, callback, context,
+                    startTimeMillis);
         }
     }
 
@@ -87,18 +91,18 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull String callingPackageName,
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
+            @NonNull CallerMetadata metadata,
             @NonNull IExecuteCallback callback) {
-        long origId = Binder.clearCallingIdentity();
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+        if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
-        Binder.restoreCallingIdentity(origId);
 
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
         Objects.requireNonNull(handler.getClassName());
         Objects.requireNonNull(params);
+        Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
         if (callingPackageName.isEmpty()) {
             throw new IllegalArgumentException("missing app package name");
@@ -118,7 +122,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 handler,
                 params,
                 callback,
-                mContext);
+                mContext,
+                metadata.getStartTimeMillis());
         flow.run();
     }
 
@@ -129,12 +134,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int displayId,
             int width,
             int height,
+            @NonNull CallerMetadata metadata,
             @NonNull IRequestSurfacePackageCallback callback) {
-        long origId = Binder.clearCallingIdentity();
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+        if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
-        Binder.restoreCallingIdentity(origId);
 
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
@@ -158,10 +162,17 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 width,
                 height,
                 callback,
-                mContext);
+                mContext,
+                metadata.getStartTimeMillis());
         flow.run();
     }
 
+    private boolean getGlobalKillSwitch() {
+        long origId = Binder.clearCallingIdentity();
+        boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
+        Binder.restoreCallingIdentity(origId);
+        return globalKillSwitch;
+    }
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();

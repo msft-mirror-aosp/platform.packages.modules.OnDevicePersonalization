@@ -22,10 +22,14 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.os.IBinder;
 
@@ -38,13 +42,13 @@ import com.android.ondevicepersonalization.services.data.user.UserDataDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
@@ -52,7 +56,7 @@ import java.util.concurrent.TimeoutException;
 public class OnDevicePersonalizationConfigServiceTest {
     @Rule
     public final ServiceTestRule serviceRule = new ServiceTestRule();
-    private Context mContext = ApplicationProvider.getApplicationContext();
+    private Context mContext = spy(ApplicationProvider.getApplicationContext());
     private OnDevicePersonalizationConfigServiceDelegate mBinder;
     private UserPrivacyStatus mUserPrivacyStatus;
     private RawUserData mUserData;
@@ -61,24 +65,55 @@ public class OnDevicePersonalizationConfigServiceTest {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.enableOnDevicePersonalizationApis();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                        .thenReturn(PackageManager.PERMISSION_GRANTED);
         mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserData = RawUserData.getInstance();
+        TimeZone pstTime = TimeZone.getTimeZone("GMT-08:00");
+        TimeZone.setDefault(pstTime);
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mUserDataDao = UserDataDao.getInstanceForTest(mContext);
     }
 
     @Test
+    public void testDisableOnDevicePersonalizationApis() throws Exception {
+        PhFlagsTestUtil.disableOnDevicePersonalizationApis();
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mBinder.setPersonalizationStatus(true, null)
+            );
+        } finally {
+            PhFlagsTestUtil.enableOnDevicePersonalizationApis();
+        }
+    }
+
+    @Test
+    public void testSetPersonalizationStatusNoCallingPermission() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                        .thenReturn(PackageManager.PERMISSION_DENIED);
+        assertThrows(SecurityException.class, () -> {
+            mBinder.setPersonalizationStatus(true, null);
+        });
+    }
+
+    @Test
     public void testSetPersonalizationStatusChanged() throws Exception {
         assertFalse(mUserPrivacyStatus.isPersonalizationStatusEnabled());
-
         populateUserData();
-        assertNotEquals(0, mUserData.timeMillis);
+        assertNotEquals(0, mUserData.utcOffset);
         assertTrue(mUserDataCollector.isInitialized());
 
         CountDownLatch latch = new CountDownLatch(1);
         mBinder.setPersonalizationStatus(true,
-                new IOnDevicePersonalizationConfigServiceCallback() {
+                new IOnDevicePersonalizationConfigServiceCallback.Stub() {
                     @Override
                     public void onSuccess() {
                         latch.countDown();
@@ -86,22 +121,15 @@ public class OnDevicePersonalizationConfigServiceTest {
 
                     @Override
                     public void onFailure(int errorCode) {
-                        Assert.fail();
-                    }
-
-                    @Override
-                    public IBinder asBinder() {
-                        return null;
+                        latch.countDown();
                     }
                 });
 
         latch.await();
-
         assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
 
-        assertEquals(0, mUserData.timeMillis);
+        assertEquals(0, mUserData.utcOffset);
         assertFalse(mUserDataCollector.isInitialized());
-        assertEquals(0, mUserData.timeMillis);
         Cursor appUsageCursor = mUserDataDao.readAppUsageInLastXDays(30);
         assertNotNull(appUsageCursor);
         assertEquals(0, appUsageCursor.getCount());
@@ -122,8 +150,8 @@ public class OnDevicePersonalizationConfigServiceTest {
         mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
 
         populateUserData();
-        assertNotEquals(0, mUserData.timeMillis);
-        long timeMillis = mUserData.timeMillis;
+        assertNotEquals(0, mUserData.utcOffset);
+        int utcOffset = mUserData.utcOffset;
         assertTrue(mUserDataCollector.isInitialized());
         Cursor appUsageCursor = mUserDataDao.readAppUsageInLastXDays(30);
         Cursor locationCursor = mUserDataDao.readLocationInLastXDays(30);
@@ -136,7 +164,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
         CountDownLatch latch = new CountDownLatch(1);
         mBinder.setPersonalizationStatus(true,
-                new IOnDevicePersonalizationConfigServiceCallback() {
+                new IOnDevicePersonalizationConfigServiceCallback.Stub() {
                     @Override
                     public void onSuccess() {
                         latch.countDown();
@@ -144,12 +172,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
                     @Override
                     public void onFailure(int errorCode) {
-                        Assert.fail();
-                    }
-
-                    @Override
-                    public IBinder asBinder() {
-                        return null;
+                        latch.countDown();
                     }
                 });
 
@@ -157,7 +180,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
         assertTrue(mUserPrivacyStatus.isPersonalizationStatusEnabled());
         // Adult data should not be roll-back'ed
-        assertEquals(timeMillis, mUserData.timeMillis);
+        assertEquals(utcOffset, mUserData.utcOffset);
         assertTrue(mUserDataCollector.isInitialized());
         Cursor newAppUsageCursor = mUserDataDao.readAppUsageInLastXDays(30);
         Cursor newLocationCursor = mUserDataDao.readLocationInLastXDays(30);
@@ -177,7 +200,6 @@ public class OnDevicePersonalizationConfigServiceTest {
 
     @After
     public void tearDown() throws Exception {
-        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserDataCollector.clearUserData(mUserData);
         mUserDataCollector.clearMetadata();
         mUserDataCollector.clearDatabase();
