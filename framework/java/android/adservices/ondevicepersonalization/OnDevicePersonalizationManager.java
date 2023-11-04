@@ -111,7 +111,6 @@ public class OnDevicePersonalizationManager {
      *     package is not installed or does not have a valid ODP manifest.
      *     Returns {@link ClassNotFoundException} if the handler class is not found.
      *     Returns an {@link OnDevicePersonalizationException} if execution of the handler fails.
-     * @hide
      */
     public void execute(
             @NonNull ComponentName handler,
