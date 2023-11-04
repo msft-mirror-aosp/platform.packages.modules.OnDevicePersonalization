@@ -49,25 +49,32 @@ public class RequestAdWithTestAppRotations {
         mTestAppHelper.clickGetAd();
         mTestAppHelper.verifyRenderedView();
 
-        // Rotate to landscape layout
+        // Rotate to landscape layout and get Ad
         mTestAppHelper.setOrientationLandscape();
         mTestAppHelper.clickGetAd();
         mTestAppHelper.verifyRenderedView();
 
-        // Rotate to portrait layout
+        // Rotate to portrait layout and get Ad
         mTestAppHelper.setOrientationPortrait();
         mTestAppHelper.clickGetAd();
         mTestAppHelper.verifyRenderedView();
 
-        // Rotate to landscape layout
+        // Rotate to landscape layout and do nothing
+        mTestAppHelper.setOrientationLandscape();
+
+        // Rotate to portrait layout and do nothing
+        mTestAppHelper.setOrientationPortrait();
+
+        // Rotate to landscape layout and get Ad
         mTestAppHelper.setOrientationLandscape();
         mTestAppHelper.clickGetAd();
         mTestAppHelper.verifyRenderedView();
 
-        // Rotate to portrait layout
+        // Rotate to portrait layout and do nothing
         mTestAppHelper.setOrientationPortrait();
-        mTestAppHelper.clickGetAd();
-        mTestAppHelper.verifyRenderedView();
+
+        // Rotate to landscape layout and do nothing
+        mTestAppHelper.setOrientationLandscape();
     }
 
     /** Return device to original state after test exeuction */
