@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
@@ -36,10 +37,11 @@ import java.io.IOException;
 
 /** Helper class for interacting with OdpClient test app in perf tests. */
 public class TestAppHelper {
+    private static final String TAG = TestAppHelper.class.getSimpleName();
     private static final UiDevice sUiDevice = UiDevice.getInstance(getInstrumentation());
     private static UiScrollable sUiScrollable;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
-    private static final long UI_ROTATE_IDLE_TIMEOUT = 5000;
+    private static final long UI_ROTATE_IDLE_TIMEOUT = 2500;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String GET_AD_BUTTON_RESOURCE_ID = "get_ad_button";
     private static final String RENDERED_VIEW_RESOURCE_ID = "rendered_view";
@@ -108,6 +110,7 @@ public class TestAppHelper {
 
     /** Rotate screen to landscape orientation */
     public void setOrientationLandscape() throws RemoteException {
+        Log.d(TAG, "Rotating screen to landscape orientation");
         sUiDevice.unfreezeRotation();
         sUiDevice.setOrientationLandscape();
         SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
@@ -115,6 +118,7 @@ public class TestAppHelper {
 
     /** Rotate screen to portrait orientation */
     public void setOrientationPortrait() throws RemoteException {
+        Log.d(TAG, "Rotating screen to portrait orientation");
         sUiDevice.unfreezeRotation();
         sUiDevice.setOrientationPortrait();
         SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
@@ -124,6 +128,7 @@ public class TestAppHelper {
     public void clickGetAd() {
         UiObject2 getAdButton = getGetAdButton();
         assertNotNull("Get Ad button not found", getAdButton);
+        Log.d(TAG, "Clicking Get Ad button");
         getAdButton.click();
     }
 
@@ -135,6 +140,8 @@ public class TestAppHelper {
         SystemClock.sleep(UI_FIND_RESOURCE_TIMEOUT);
         if (renderedView.getChildCount() == 0) {
             Assert.fail("Failed to render child surface view");
+        } else {
+            Log.d(TAG, "Verified child view is rendered");
         }
     }
 
