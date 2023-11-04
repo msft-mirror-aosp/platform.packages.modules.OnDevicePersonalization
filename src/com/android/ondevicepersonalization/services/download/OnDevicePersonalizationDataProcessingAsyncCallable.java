@@ -17,7 +17,7 @@
 package com.android.ondevicepersonalization.services.download;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
 import android.adservices.ondevicepersonalization.UserData;
 import android.content.Context;
@@ -236,8 +236,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             Map<String, VendorData> vendorDataMap) {
         sLogger.d(TAG + ": Plugin filter code completed successfully");
         List<VendorData> filteredList = new ArrayList<>();
-        DownloadCompletedOutput downloadResult = pluginResult.getParcelable(
-                Constants.EXTRA_RESULT, DownloadCompletedOutput.class);
+        DownloadCompletedOutputParcel downloadResult = pluginResult.getParcelable(
+                Constants.EXTRA_RESULT, DownloadCompletedOutputParcel.class);
         List<String> retainedKeys = downloadResult.getRetainedKeys();
         if (retainedKeys == null) {
             // TODO(b/270710021): Determine how to correctly handle null retainedKeys.

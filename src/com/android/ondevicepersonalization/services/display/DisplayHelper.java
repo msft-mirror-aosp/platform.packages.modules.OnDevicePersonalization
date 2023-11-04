@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.display;
 
-import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
 import android.content.Context;
@@ -58,9 +58,9 @@ public class DisplayHelper {
         mContext = context;
     }
 
-    /** Generates an HTML string from the template data in RenderOutput. */
+    /** Generates an HTML string from the template data in RenderOutputParcel. */
     @NonNull public String generateHtml(
-            @NonNull RenderOutput renderContentResult,
+            @NonNull RenderOutputParcel renderContentResult,
             @NonNull String servicePackageName) {
         // If htmlContent is provided, do not render the template.
         String htmlContent = renderContentResult.getContent();

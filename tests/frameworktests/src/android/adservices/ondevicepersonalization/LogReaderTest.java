@@ -35,6 +35,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -56,7 +57,8 @@ public class LogReaderTest {
 
     @Test
     public void testGetRequestsSuccess() {
-        List<RequestLogRecord> result = mLogReader.getRequests(10, 100);
+        List<RequestLogRecord> result = mLogReader.getRequests(
+                Instant.ofEpochMilli(10), Instant.ofEpochMilli(100));
         assertEquals(2, result.size());
         assertEquals(1, result.get(0).getRows().size());
         assertEquals((int) (result.get(0).getRows().get(0).getAsInteger("a")), 1);
@@ -67,25 +69,38 @@ public class LogReaderTest {
     }
 
     @Test
+    public void testGetRequestsNullTimeError() {
+        assertThrows(NullPointerException.class, () -> mLogReader.getRequests(
+                null, Instant.ofEpochMilli(100)));
+        assertThrows(NullPointerException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(100), null));
+    }
+
+    @Test
     public void testGetRequestsError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getRequests(7, 100));
+        assertThrows(IllegalStateException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(7), Instant.ofEpochMilli(100)));
     }
 
     @Test
     public void testGetRequestsNegativeTimeError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(-1, 100));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(-1), Instant.ofEpochMilli(100)));
     }
 
     @Test
     public void testGetRequestsBadTimeRangeError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(100, 100));
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(1000, 100));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(100), Instant.ofEpochMilli(100)));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(1000), Instant.ofEpochMilli(100)));
     }
 
     @Test
     public void testGetJoinedEventsSuccess() {
-        List<EventLogRecord> result = mLogReader.getJoinedEvents(10, 100);
+        List<EventLogRecord> result = mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(10), Instant.ofEpochMilli(100));
         assertEquals(2, result.size());
         assertEquals(result.get(0).getTimeMillis(), 30);
         assertEquals(result.get(0).getRequestLogRecord().getTimeMillis(), 20);
@@ -102,18 +117,30 @@ public class LogReaderTest {
     @Test
     public void testGetJoinedEventsError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getJoinedEvents(7, 100));
+        assertThrows(IllegalStateException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(7), Instant.ofEpochMilli(100)));
+    }
+
+    @Test
+    public void testGetJoinedEventsNullTimeError() {
+        assertThrows(NullPointerException.class, () -> mLogReader.getJoinedEvents(
+                null, Instant.ofEpochMilli(100)));
+        assertThrows(NullPointerException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(100), null));
     }
 
     @Test
     public void testGetJoinedEventsNegativeTimeError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(-1, 100));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(-1), Instant.ofEpochMilli(100)));
     }
 
     @Test
     public void testGetJoinedEventsInputError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(100, 100));
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(1000, 100));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(100), Instant.ofEpochMilli(100)));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(1000), Instant.ofEpochMilli(100)));
     }
 
     public static class LocalDataService extends IDataAccessService.Stub {
