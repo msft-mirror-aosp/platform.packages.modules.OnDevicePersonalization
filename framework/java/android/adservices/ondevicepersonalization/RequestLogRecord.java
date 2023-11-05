@@ -26,6 +26,7 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 
@@ -59,6 +60,13 @@ public final class RequestLogRecord implements Parcelable {
      * @hide
      */
     private long mTimeMillis = 0;
+
+    /**
+     * Returns the timestamp of this record.
+     */
+    @NonNull public Instant getTime() {
+        return Instant.ofEpochMilli(getTimeMillis());
+    }
 
     abstract static class BaseBuilder {
         /**
@@ -298,10 +306,10 @@ public final class RequestLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696978492795L,
+            time = 1698962042612L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RequestLogRecord.java",
-            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.NonNull java.util.List<android.content.ContentValues> mRows\nprivate  long mRequestId\nprivate  long mTimeMillis\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
+            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"row\") @android.annotation.NonNull java.util.List<android.content.ContentValues> mRows\nprivate  long mRequestId\nprivate  long mTimeMillis\npublic @android.annotation.NonNull java.time.Instant getTime()\nclass RequestLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.RequestLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
     @Deprecated
     private void __metadata() {}
 
