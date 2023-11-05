@@ -45,7 +45,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
-    private OnDevicePersonalizationManager mOdpManager = null;
     private OnDevicePersonalizationConfigManager mOdpConfigManager = null;
 
     private EditText mTextBox;
@@ -61,12 +60,10 @@ public class MainActivity extends Activity {
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
+        Log.d(TAG, "onCreate");
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = getApplicationContext();
-        if (mOdpManager == null) {
-            mOdpManager = mContext.getSystemService(OnDevicePersonalizationManager.class);
-        }
         if (mOdpConfigManager == null) {
             mOdpConfigManager = mContext.getSystemService(
                             OnDevicePersonalizationConfigManager.class);
@@ -99,18 +96,19 @@ public class MainActivity extends Activity {
         mReportConversionButton.setOnClickListener(v -> reportConversion());
     }
 
+    private OnDevicePersonalizationManager getOdpManager() {
+        return mContext.getSystemService(OnDevicePersonalizationManager.class);
+    }
+
     private void makeRequest() {
         try {
-            if (mOdpManager == null) {
-                makeToast("OnDevicePersonalizationManager is null");
-                return;
-            }
+            var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
             Log.i(TAG, "Starting execute()");
             AtomicReference<SurfacePackageToken> slotResultHandle = new AtomicReference<>();
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("keyword", mTextBox.getText().toString());
-            mOdpManager.execute(
+            odpManager.execute(
                     ComponentName.createRelative(
                         "com.example.odpsamplenetwork",
                         "com.example.odpsamplenetwork.SampleService"),
@@ -136,7 +134,7 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "wait success");
-            mOdpManager.requestSurfacePackage(
+            odpManager.requestSurfacePackage(
                     slotResultHandle.get(),
                     mRenderedView.getHostToken(),
                     getDisplay().getDisplayId(),
@@ -176,15 +174,12 @@ public class MainActivity extends Activity {
 
     private void scheduleTraining() {
         try {
-            if (mOdpManager == null) {
-                makeToast("OnDevicePersonalizationManager is null");
-                return;
-            }
+            var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
             Log.i(TAG, "Starting execute()");
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("schedule_training", mScheduleTrainingTextBox.getText().toString());
-            mOdpManager.execute(
+            odpManager.execute(
                     ComponentName.createRelative(
                             "com.example.odpsamplenetwork",
                             "com.example.odpsamplenetwork.SampleService"),
@@ -211,15 +206,12 @@ public class MainActivity extends Activity {
 
     private void reportConversion() {
         try {
-            if (mOdpManager == null) {
-                makeToast("OnDevicePersonalizationManager is null");
-                return;
-            }
+            var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
             Log.i(TAG, "Starting execute()");
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("conversion_ad_id", mReportConversionTextBox.getText().toString());
-            mOdpManager.execute(
+            odpManager.execute(
                     ComponentName.createRelative(
                             "com.example.odpsamplenetwork",
                             "com.example.odpsamplenetwork.SampleService"),
@@ -267,5 +259,34 @@ public class MainActivity extends Activity {
     private void makeToast(String message) {
         Log.i(TAG, message);
         runOnUiThread(() -> Toast.makeText(MainActivity.this, message, Toast.LENGTH_LONG).show());
+    }
+
+    @Override
+    public void onPause() {
+        Log.d(TAG, "onPause");
+        super.onPause();
+    }
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        Log.d(TAG, "onSaveInstanceState");
+        super.onSaveInstanceState(outState);
+    }
+
+    @Override
+    public void onDestroy() {
+        Log.d(TAG, "onDestroy");
+        super.onDestroy();
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle savedInstanceState) {
+        Log.d(TAG, "onRestoreInstanceState");
+        super.onRestoreInstanceState(savedInstanceState);
+    }
+
+    @Override
+    public void onResume() {
+        Log.d(TAG, "onResume");
+        super.onResume();
     }
 }
