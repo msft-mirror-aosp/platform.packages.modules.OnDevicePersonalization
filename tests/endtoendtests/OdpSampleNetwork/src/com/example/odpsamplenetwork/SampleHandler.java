@@ -70,6 +70,7 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -469,7 +470,8 @@ public class SampleHandler implements IsolatedWorker {
         }
         long now = System.currentTimeMillis();
         List<EventLogRecord> logRecords = mLogReader.getJoinedEvents(
-                now - 24 * 60 * 60 * 1000, now);
+                Instant.ofEpochMilli(now - 24 * 60 * 60 * 1000),
+                Instant.ofEpochMilli(now));
         EventLogRecord found = null;
         // Attribute conversion to most recent impression or click.
         for (EventLogRecord ev : logRecords) {
