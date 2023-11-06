@@ -23,6 +23,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
@@ -39,7 +40,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     private static final int DATABASE_VERSION = 1;
     private static final String DATABASE_NAME = "ondevicepersonalization.db";
 
-    private static OnDevicePersonalizationDbHelper sSingleton = null;
+    private static volatile OnDevicePersonalizationDbHelper sSingleton = null;
 
     private OnDevicePersonalizationDbHelper(Context context, String dbName) {
         super(context, dbName, null, DATABASE_VERSION);
@@ -47,12 +48,15 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
     /** Returns an instance of the OnDevicePersonalizationDbHelper given a context. */
     public static OnDevicePersonalizationDbHelper getInstance(Context context) {
-        synchronized (OnDevicePersonalizationDbHelper.class) {
-            if (sSingleton == null) {
-                sSingleton = new OnDevicePersonalizationDbHelper(context, DATABASE_NAME);
+        if (sSingleton == null) {
+            synchronized (OnDevicePersonalizationDbHelper.class) {
+                if (sSingleton == null) {
+                    sSingleton = new OnDevicePersonalizationDbHelper(
+                            context.getApplicationContext(), DATABASE_NAME);
+                }
             }
-            return sSingleton;
         }
+        return sSingleton;
     }
 
     /**
@@ -77,6 +81,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         // Queries and events tables.
         db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
 
         // User data tables and indexes.
         db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);

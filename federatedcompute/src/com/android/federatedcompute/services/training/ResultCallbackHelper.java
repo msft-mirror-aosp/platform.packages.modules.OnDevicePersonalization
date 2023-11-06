@@ -16,33 +16,35 @@
 
 package com.android.federatedcompute.services.training;
 
+import static android.federatedcompute.common.ClientConstants.RESULT_HANDLING_SERVICE_ACTION;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
+import static android.federatedcompute.common.ClientConstants.STATUS_TRAINING_FAILED;
 
+import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IResultHandlingService;
-import android.federatedcompute.common.ExampleConsumption;
-import android.federatedcompute.common.TrainingInterval;
-import android.federatedcompute.common.TrainingOptions;
-import android.os.RemoteException;
-import android.util.Log;
+import android.federatedcompute.common.ClientConstants;
+import android.os.Bundle;
 
-import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.data.FederatedTrainingTask;
+import com.android.federatedcompute.services.training.util.ComputationResult;
 
 import com.google.common.annotations.VisibleForTesting;
-import com.google.common.util.concurrent.SettableFuture;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
 
 /**
  * A helper class for binding to client implemented ResultHandlingService and trigger handleResult.
  */
 public class ResultCallbackHelper {
-    private static final String TAG = "ResultCallbackHelper";
-    private static final long RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS = 60 * 9 + 45;
+    private static final String TAG = ResultCallbackHelper.class.getSimpleName();
+    private static final long RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS = 10;
 
     /** The outcome of the result handling. */
     public enum CallbackResult {
@@ -54,105 +56,85 @@ public class ResultCallbackHelper {
         NEEDS_RESUME,
     }
 
-    private final List<ExampleConsumption> mExampleConsumptions;
-    private final IResultHandlingService mResultHandlingService;
-    private final long mResultHandlingServiceCallbackTimeoutSecs;
+    private final Context mContext;
+    private AbstractServiceBinder<IResultHandlingService> mResultHandlingServiceBinder;
 
-    public ResultCallbackHelper(
-            List<ExampleConsumption> exampleConsumptions,
-            IResultHandlingService resultHandlingService) {
-        this.mExampleConsumptions = exampleConsumptions;
-        this.mResultHandlingService = resultHandlingService;
-        this.mResultHandlingServiceCallbackTimeoutSecs =
-                RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS;
+    public ResultCallbackHelper(Context context) {
+        this.mContext = context.getApplicationContext();
+    }
+
+    /**
+     * Publishes the training result and example list to client implemented ResultHandlingService.
+     */
+    public ListenableFuture<CallbackResult> callHandleResult(
+            String taskName, FederatedTrainingTask task, ComputationResult result) {
+        Bundle input = new Bundle();
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
+        input.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
+        input.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
+        input.putInt(
+                ClientConstants.EXTRA_COMPUTATION_RESULT,
+                result.isResultSuccess() ? STATUS_SUCCESS : STATUS_TRAINING_FAILED);
+        input.putParcelableArrayList(
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, result.getExampleConsumptionList());
+
+        try {
+            IResultHandlingService resultHandlingService =
+                    getResultHandlingService(task.appPackageName());
+            if (resultHandlingService == null) {
+                LogUtil.e(
+                        TAG,
+                        "ResultHandlingService binding died. population name: "
+                                + task.populationName());
+                return Futures.immediateFuture(CallbackResult.FAIL);
+            }
+
+            BlockingQueue<Integer> asyncResult = new ArrayBlockingQueue<>(1);
+            resultHandlingService.handleResult(
+                    input,
+                    new IFederatedComputeCallback.Stub() {
+                        @Override
+                        public void onSuccess() {
+                            asyncResult.add(STATUS_SUCCESS);
+                        }
+
+                        @Override
+                        public void onFailure(int errorCode) {
+                            asyncResult.add(errorCode);
+                        }
+                    });
+            int statusCode =
+                    asyncResult.poll(
+                            RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS, TimeUnit.SECONDS);
+            CallbackResult callbackResult =
+                    statusCode == STATUS_SUCCESS ? CallbackResult.SUCCESS : CallbackResult.FAIL;
+            return Futures.immediateFuture(callbackResult);
+        } catch (Exception e) {
+            LogUtil.e(
+                    TAG,
+                    e,
+                    "ResultHandlingService binding died. population name: %s",
+                    task.populationName());
+            // We publish result to client app with best effort and should not crash flow.
+            return Futures.immediateFuture(CallbackResult.FAIL);
+        } finally {
+            unbindFromResultHandlingService();
+        }
     }
 
     @VisibleForTesting
-    ResultCallbackHelper(
-            List<ExampleConsumption> exampleConsumptions,
-            IResultHandlingService resultHandlingService,
-            long resultHandlingServiceCallbackTimeoutSecs) {
-        this.mExampleConsumptions = exampleConsumptions;
-        this.mResultHandlingService = resultHandlingService;
-        this.mResultHandlingServiceCallbackTimeoutSecs = resultHandlingServiceCallbackTimeoutSecs;
+    IResultHandlingService getResultHandlingService(String appPackageName) {
+        mResultHandlingServiceBinder =
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        this.mContext,
+                        RESULT_HANDLING_SERVICE_ACTION,
+                        appPackageName,
+                        IResultHandlingService.Stub::asInterface);
+        return mResultHandlingServiceBinder.getService(Runnable::run);
     }
 
-    public CallbackResult callHandleResult(
-            int jobId, String populationName, byte[] intervalOptions, boolean success) {
-
-        SettableFuture<Integer> errorCodeFuture = SettableFuture.create();
-        IFederatedComputeCallback callback =
-                new IFederatedComputeCallback.Stub() {
-                    @Override
-                    public void onSuccess() {
-                        errorCodeFuture.set(STATUS_SUCCESS);
-                    }
-
-                    @Override
-                    public void onFailure(int errorCode) {
-                        errorCodeFuture.set(errorCode);
-                    }
-                };
-        try {
-            mResultHandlingService.handleResult(
-                    buildTrainingOptions(jobId, populationName, intervalOptions),
-                    success,
-                    mExampleConsumptions,
-                    callback);
-            int statusCode =
-                    errorCodeFuture.get(
-                            mResultHandlingServiceCallbackTimeoutSecs, TimeUnit.SECONDS);
-            return statusCode == STATUS_SUCCESS ? CallbackResult.SUCCESS : CallbackResult.FAIL;
-        } catch (RemoteException e) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService binding died. population name: %s",
-                            populationName),
-                    e);
-            return CallbackResult.FAIL;
-        } catch (InterruptedException interruptedException) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService callback interrupted. population name: %s",
-                            populationName),
-                    interruptedException);
-            return CallbackResult.FAIL;
-        } catch (ExecutionException e) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService callback failed. population name: %s",
-                            populationName),
-                    e);
-            return CallbackResult.FAIL;
-        } catch (TimeoutException e) {
-            Log.e(
-                    TAG,
-                    String.format(
-                            "ResultHandlingService callback timed out %d population name: %s",
-                            mResultHandlingServiceCallbackTimeoutSecs, populationName),
-                    e);
-        }
-        return CallbackResult.FAIL;
-    }
-
-    private TrainingOptions buildTrainingOptions(
-            int jobId, String populationName, byte[] intervalBytes) {
-        TrainingIntervalOptions intervalOptions =
-                TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
-                        ByteBuffer.wrap(intervalBytes));
-        TrainingOptions.Builder trainingOptionsBuilder = new TrainingOptions.Builder();
-        trainingOptionsBuilder.setPopulationName(populationName);
-        if (intervalOptions != null) {
-            TrainingInterval interval =
-                    new TrainingInterval.Builder()
-                            .setSchedulingMode(intervalOptions.schedulingMode())
-                            .setMinimumIntervalMillis(intervalOptions.minIntervalMillis())
-                            .build();
-            trainingOptionsBuilder.setTrainingInterval(interval);
-        }
-        return trainingOptionsBuilder.build();
+    @VisibleForTesting
+    void unbindFromResultHandlingService() {
+        mResultHandlingServiceBinder.unbindFromService();
     }
 }

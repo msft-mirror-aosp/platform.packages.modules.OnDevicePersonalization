@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Parcelable;
@@ -27,17 +30,19 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedComputationCallback#onExecute()} in response to a call to
- * {@link OnDevicePersonalizationManager#execute()} from a client app.
- *
- * @hide
+ * The result returned by
+ * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)} in response to a call to
+ * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
+ * java.util.concurrent.Executor, OutcomeReceiver)}
+ * from a client app.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput implements Parcelable {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
-     * be written.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * completes. If null, no persistent data will be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
@@ -47,6 +52,18 @@ public final class ExecuteOutput implements Parcelable {
      */
     @DataClass.PluralOf("renderingConfig")
     @NonNull private List<RenderingConfig> mRenderingConfigs = Collections.emptyList();
+
+    /**
+     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
+     * them with requests with the specified corresponding {@link RequestLogRecord} from
+     * {@link EventLogRecord#getRequestLogRecord()}.
+     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
+     * EventLogRecord is not written.
+     *
+     * @hide
+     */
+    @DataClass.PluralOf("eventLogRecord")
+    @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
 
 
 
@@ -66,19 +83,23 @@ public final class ExecuteOutput implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ ExecuteOutput(
             @Nullable RequestLogRecord requestLogRecord,
-            @NonNull List<RenderingConfig> renderingConfigs) {
+            @NonNull List<RenderingConfig> renderingConfigs,
+            @NonNull List<EventLogRecord> eventLogRecords) {
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfigs = renderingConfigs;
         AnnotationValidations.validate(
                 NonNull.class, null, mRenderingConfigs);
+        this.mEventLogRecords = eventLogRecords;
+        AnnotationValidations.validate(
+                NonNull.class, null, mEventLogRecords);
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
-     * be written.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -92,6 +113,20 @@ public final class ExecuteOutput implements Parcelable {
     @DataClass.Generated.Member
     public @NonNull List<RenderingConfig> getRenderingConfigs() {
         return mRenderingConfigs;
+    }
+
+    /**
+     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
+     * them with requests with the specified corresponding {@link RequestLogRecord} from
+     * {@link EventLogRecord#getRequestLogRecord()}.
+     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
+     * EventLogRecord is not written.
+     *
+     * @hide
+     */
+    @DataClass.Generated.Member
+    public @NonNull List<EventLogRecord> getEventLogRecords() {
+        return mEventLogRecords;
     }
 
     @Override
@@ -108,7 +143,8 @@ public final class ExecuteOutput implements Parcelable {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord)
-                && java.util.Objects.equals(mRenderingConfigs, that.mRenderingConfigs);
+                && java.util.Objects.equals(mRenderingConfigs, that.mRenderingConfigs)
+                && java.util.Objects.equals(mEventLogRecords, that.mEventLogRecords);
     }
 
     @Override
@@ -120,6 +156,7 @@ public final class ExecuteOutput implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
         _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingConfigs);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mEventLogRecords);
         return _hash;
     }
 
@@ -134,6 +171,7 @@ public final class ExecuteOutput implements Parcelable {
         dest.writeByte(flg);
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
         dest.writeParcelableList(mRenderingConfigs, flags);
+        dest.writeParcelableList(mEventLogRecords, flags);
     }
 
     @Override
@@ -151,11 +189,16 @@ public final class ExecuteOutput implements Parcelable {
         RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
         List<RenderingConfig> renderingConfigs = new java.util.ArrayList<>();
         in.readParcelableList(renderingConfigs, RenderingConfig.class.getClassLoader());
+        List<EventLogRecord> eventLogRecords = new java.util.ArrayList<>();
+        in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());
 
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfigs = renderingConfigs;
         AnnotationValidations.validate(
                 NonNull.class, null, mRenderingConfigs);
+        this.mEventLogRecords = eventLogRecords;
+        AnnotationValidations.validate(
+                NonNull.class, null, mEventLogRecords);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -177,12 +220,14 @@ public final class ExecuteOutput implements Parcelable {
     /**
      * A builder for {@link ExecuteOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
 
         private @Nullable RequestLogRecord mRequestLogRecord;
         private @NonNull List<RenderingConfig> mRenderingConfigs;
+        private @NonNull List<EventLogRecord> mEventLogRecords;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -191,8 +236,8 @@ public final class ExecuteOutput implements Parcelable {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedComputationCallback#onExecute()} completes. If null, no persistent data will
-         * be written.
+         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+         * completes. If null, no persistent data will be written.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -222,10 +267,38 @@ public final class ExecuteOutput implements Parcelable {
             return this;
         }
 
+        /**
+         * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
+         * them with requests with the specified corresponding {@link RequestLogRecord} from
+         * {@link EventLogRecord#getRequestLogRecord()}.
+         * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
+         * EventLogRecord is not written.
+         *
+         * @hide
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mEventLogRecords = value;
+            return this;
+        }
+
+        /**
+         * @see #setEventLogRecords
+         * @hide
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder addEventLogRecord(@NonNull EventLogRecord value) {
+            if (mEventLogRecords == null) setEventLogRecords(new java.util.ArrayList<>());
+            mEventLogRecords.add(value);
+            return this;
+        }
+
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull ExecuteOutput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRequestLogRecord = null;
@@ -233,14 +306,18 @@ public final class ExecuteOutput implements Parcelable {
             if ((mBuilderFieldsSet & 0x2) == 0) {
                 mRenderingConfigs = Collections.emptyList();
             }
+            if ((mBuilderFieldsSet & 0x4) == 0) {
+                mEventLogRecords = Collections.emptyList();
+            }
             ExecuteOutput o = new ExecuteOutput(
                     mRequestLogRecord,
-                    mRenderingConfigs);
+                    mRenderingConfigs,
+                    mEventLogRecords);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -248,10 +325,10 @@ public final class ExecuteOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692118370720L,
+            time = 1697132452641L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

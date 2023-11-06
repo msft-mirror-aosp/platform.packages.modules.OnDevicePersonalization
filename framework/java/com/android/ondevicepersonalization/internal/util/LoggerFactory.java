@@ -35,7 +35,6 @@ public class LoggerFactory {
         return sLogger;
     }
 
-
     /**
      * Logger for logging to logcat with the various logcat tags.
      *

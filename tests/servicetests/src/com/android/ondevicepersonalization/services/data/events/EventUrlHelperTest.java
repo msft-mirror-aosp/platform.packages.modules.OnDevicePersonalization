@@ -32,13 +32,13 @@ public class EventUrlHelperTest {
 
     @Test
     public void testEncryptDecryptEvent() throws Exception {
-        String url = EventUrlHelper.getEncryptedOdpEventUrl(TEST_EVENT_URL_PAYLOAD);
-        Uri uri = Uri.parse(url);
+        Uri uri = EventUrlHelper.getEncryptedOdpEventUrl(TEST_EVENT_URL_PAYLOAD);
         assertEquals(uri.getScheme(), EventUrlHelper.URI_SCHEME);
         assertEquals(uri.getAuthority(), EventUrlHelper.URI_AUTHORITY);
         assertEquals(uri.getQueryParameterNames().size(), 1);
 
-        EventUrlPayload decryptedEventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
+        EventUrlPayload decryptedEventUrlPayload =
+                EventUrlHelper.getEventFromOdpEventUrl(uri.toString());
         PersistableBundle eventParams = decryptedEventUrlPayload.getEventParams();
         assertEquals(1, eventParams.getInt("x"));
         assertEquals("abc", eventParams.getString("y"));
@@ -47,16 +47,16 @@ public class EventUrlHelperTest {
     @Test
     public void testEncryptDecryptClickTrackingUrlEvent() throws Exception {
         String landingPage = "https://google.com/";
-        String url = EventUrlHelper.getEncryptedClickTrackingUrl(TEST_EVENT_URL_PAYLOAD,
+        Uri uri = EventUrlHelper.getEncryptedClickTrackingUrl(TEST_EVENT_URL_PAYLOAD,
                 landingPage);
-        Uri uri = Uri.parse(url);
         assertEquals(uri.getScheme(), EventUrlHelper.URI_SCHEME);
         assertEquals(uri.getAuthority(), EventUrlHelper.URI_AUTHORITY);
         assertEquals(uri.getQueryParameterNames().size(), 2);
 
         assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), landingPage);
 
-        EventUrlPayload decryptedEventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
+        EventUrlPayload decryptedEventUrlPayload =
+                EventUrlHelper.getEventFromOdpEventUrl(uri.toString());
         PersistableBundle eventParams = decryptedEventUrlPayload.getEventParams();
         assertEquals(1, eventParams.getInt("x"));
         assertEquals("abc", eventParams.getString("y"));

@@ -16,9 +16,9 @@
 
 package com.test;
 
-import android.adservices.ondevicepersonalization.DownloadInput;
-import android.adservices.ondevicepersonalization.DownloadOutput;
-import android.adservices.ondevicepersonalization.IsolatedComputationCallback;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
 import android.util.Log;
 
@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationCallback {
-    public final String TAG = "TestIsolatedComputationCallback";
+public class TestPersonalizationHandler implements IsolatedWorker {
+    public final String TAG = "TestIsolatedWorker";
     private final KeyValueStore mRemoteData;
 
     TestPersonalizationHandler(KeyValueStore remoteData) {
@@ -39,15 +39,17 @@ public class TestPersonalizationHandler implements IsolatedComputationCallback {
     }
 
     @Override
-    public void onDownload(DownloadInput input, Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            DownloadCompletedInput input,
+            Consumer<DownloadCompletedOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Existing keyExtra: "
                     + Arrays.toString(mRemoteData.get("keyExtra")));
             Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
-            DownloadOutput result =
-                    new DownloadOutput.Builder()
+            DownloadCompletedOutput result =
+                    new DownloadCompletedOutput.Builder()
                             .setRetainedKeys(getFilteredKeys(input.getData()))
                             .build();
             consumer.accept(result);
