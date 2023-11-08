@@ -145,8 +145,6 @@ public abstract class IsolatedService extends Service {
      *     The methods in the returned {@link LogReader} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
      * @see #onRequest(RequestToken)
-     *
-     * @hide
      */
     @NonNull
     public final LogReader getLogReader(@NonNull RequestToken requestToken) {
@@ -322,10 +320,11 @@ public abstract class IsolatedService extends Service {
                             resultCallback, requestToken, v -> new EventOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
-                TrainingExampleInput input =
+                TrainingExampleInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, TrainingExampleInput.class));
+                                        Constants.EXTRA_INPUT, TrainingExampleInputParcel.class));
+                TrainingExampleInput input = new TrainingExampleInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
