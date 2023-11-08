@@ -40,6 +40,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
@@ -144,8 +145,6 @@ public abstract class IsolatedService extends Service {
      *     The methods in the returned {@link LogReader} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
      * @see #onRequest(RequestToken)
-     *
-     * @hide
      */
     @NonNull
     public final LogReader getLogReader(@NonNull RequestToken requestToken) {
@@ -181,8 +180,8 @@ public abstract class IsolatedService extends Service {
 
     /**
      * Returns an {@link FederatedComputeScheduler} for the current request. The {@link
-     * FederatedComputeScheduler} can be used to schedule and cancel federated computation jobs. The
-     * federated computation includes federated learning and federated analytic jobs.
+     * FederatedComputeScheduler} can be used to schedule and cancel federated computation jobs.
+     * The federated computation includes federated learning and federated analytic jobs.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
      * @return An {@link FederatedComputeScheduler} that returns a federated computation job
@@ -210,9 +209,9 @@ public abstract class IsolatedService extends Service {
 
             if (operationCode == Constants.OP_EXECUTE) {
 
-                ExecuteInput input =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_INPUT, ExecuteInput.class));
+                ExecuteInputParcel inputParcel = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, ExecuteInputParcel.class));
+                ExecuteInput input = new ExecuteInput(inputParcel);
                 Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -229,8 +228,10 @@ public abstract class IsolatedService extends Service {
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onExecute(input, new WrappedCallback<ExecuteOutput>(
-                        resultCallback, requestToken));
+                implCallback.onExecute(
+                        input,
+                        new WrappedCallback<ExecuteOutput, ExecuteOutputParcel>(
+                            resultCallback, requestToken, v -> new ExecuteOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_DOWNLOAD) {
 
@@ -274,14 +275,19 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onDownloadCompleted(
-                        input, new WrappedCallback<DownloadCompletedOutput>(
-                                resultCallback, requestToken));
+                        input,
+                        new WrappedCallback<DownloadCompletedOutput,
+                                DownloadCompletedOutputParcel>(
+                                resultCallback,
+                                requestToken,
+                                v -> new DownloadCompletedOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_RENDER) {
 
-                RenderInput input =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_INPUT, RenderInput.class));
+                RenderInputParcel inputParcel =
+                        Objects.requireNonNull(params.getParcelable(
+                                Constants.EXTRA_INPUT, RenderInputParcel.class));
+                RenderInput input = new RenderInput(inputParcel);
                 Objects.requireNonNull(input.getRenderingConfig());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -291,15 +297,16 @@ public abstract class IsolatedService extends Service {
                 Objects.requireNonNull(binder);
                 RequestToken requestToken = new RequestToken(binder, null, null);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onRender(input, new WrappedCallback<RenderOutput>(
-                        resultCallback, requestToken));
+                implCallback.onRender(input, new WrappedCallback<RenderOutput, RenderOutputParcel>(
+                        resultCallback, requestToken, v -> new RenderOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
-                EventInput input =
+                EventInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, EventInput.class));
+                                        Constants.EXTRA_INPUT, EventInputParcel.class));
+                EventInput input = new EventInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -309,13 +316,15 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onEvent(
-                        input, new WrappedCallback<EventOutput>(resultCallback, requestToken));
+                        input, new WrappedCallback<EventOutput, EventOutputParcel>(
+                            resultCallback, requestToken, v -> new EventOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
-                TrainingExampleInput input =
+                TrainingExampleInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, TrainingExampleInput.class));
+                                        Constants.EXTRA_INPUT, TrainingExampleInputParcel.class));
+                TrainingExampleInput input = new TrainingExampleInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -367,13 +376,18 @@ public abstract class IsolatedService extends Service {
         }
     }
 
-    private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
+    private static class WrappedCallback<T, U extends Parcelable> implements Consumer<T> {
         @NonNull private final IIsolatedServiceCallback mCallback;
         @NonNull private final RequestToken mRequestToken;
+        @NonNull private final Function<T, U> mConverter;
 
-        WrappedCallback(IIsolatedServiceCallback callback, RequestToken requestToken) {
+        WrappedCallback(
+                IIsolatedServiceCallback callback,
+                RequestToken requestToken,
+                Function<T, U> converter) {
             mCallback = Objects.requireNonNull(callback);
             mRequestToken = Objects.requireNonNull(requestToken);
+            mConverter = Objects.requireNonNull(converter);
         }
 
         @Override
@@ -388,7 +402,8 @@ public abstract class IsolatedService extends Service {
                 }
             } else {
                 Bundle bundle = new Bundle();
-                bundle.putParcelable(Constants.EXTRA_RESULT, result);
+                U wrappedResult = mConverter.apply(result);
+                bundle.putParcelable(Constants.EXTRA_RESULT, wrappedResult);
                 bundle.putParcelable(Constants.EXTRA_CALLEE_METADATA,
                         new CalleeMetadata.Builder()
                             .setElapsedTimeMillis(elapsedTimeMillis)

@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.common;
 
+import java.util.concurrent.TimeUnit;
 /** FederatedCompute feature flags interface. This Flags interface hold the default values */
 public interface Flags {
     /**
@@ -135,4 +136,32 @@ public interface Flags {
     default long getTrainingConditionCheckThrottlePeriodMillis() {
         return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
     }
+
+    // TODO: Add Ph Flag to enable. Current URI is a fake one.
+    String ENCRYPTION_KEY_FETCH_URI =
+            "https://fake-coordinator/v1alpha/publicKeys";
+
+    /**
+     * @return Uri to fetch encryption key for federated compute.
+     */
+    default String getEncryptionKeyFetchUri() {
+        return ENCRYPTION_KEY_FETCH_URI;
+    }
+
+    Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS = TimeUnit.DAYS.toSeconds(
+            14 /* duration = */);
+
+    /**
+     * @return default max age in seconds for federated compute ecryption keys.
+     */
+    default Long getFederatedComputeEncryptionKeyMaxAgeSeconds() {
+        return FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS;
+    }
+
+    Long ENCRYPTION_KEY_FETCH_PERIOD_SECONDS = 60 * 60 * 24L; // every 24 h
+
+    default Long getEncryptionKeyFetchPeriodSeconds() {
+        return ENCRYPTION_KEY_FETCH_PERIOD_SECONDS;
+    }
+
 }
