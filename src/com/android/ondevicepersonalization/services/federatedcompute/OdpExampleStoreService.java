@@ -17,7 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.TrainingExampleInput;
+import android.adservices.ondevicepersonalization.TrainingExampleInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExampleOutputParcel;
 import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
@@ -146,8 +146,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 resumptionToken = eventState.getToken();
             }
 
-            TrainingExampleInput input =
-                    new TrainingExampleInput.Builder()
+            TrainingExampleInputParcel input =
+                    new TrainingExampleInputParcel.Builder()
                             .setResumptionToken(resumptionToken)
                             .setPopulationName(populationName)
                             .setTaskName(taskName)
@@ -221,7 +221,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
     private ListenableFuture<Bundle> executeOnTrainingExample(
             IsolatedServiceInfo isolatedServiceInfo,
-            TrainingExampleInput exampleInput,
+            TrainingExampleInputParcel exampleInput,
             String packageName) {
         sLogger.d(TAG + ": executeOnTrainingExample() started.");
         Bundle serviceParams = new Bundle();

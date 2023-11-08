@@ -320,10 +320,11 @@ public abstract class IsolatedService extends Service {
                             resultCallback, requestToken, v -> new EventOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
-                TrainingExampleInput input =
+                TrainingExampleInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, TrainingExampleInput.class));
+                                        Constants.EXTRA_INPUT, TrainingExampleInputParcel.class));
+                TrainingExampleInput input = new TrainingExampleInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
