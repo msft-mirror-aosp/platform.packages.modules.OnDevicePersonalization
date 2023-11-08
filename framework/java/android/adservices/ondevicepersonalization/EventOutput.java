@@ -16,17 +16,19 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.Nullable;
-import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  *  The result returned by {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
- * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class EventOutput implements Parcelable {
+public final class EventOutput {
     /**
      * An {@link EventLogRecord} to be written to the EVENTS table, if not null. Each
      * {@link EventLogRecord} is associated with a row in an existing {@link RequestLogRecord} that
@@ -94,54 +96,10 @@ public final class EventOutput implements Parcelable {
         return _hash;
     }
 
-    @Override
-    @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
-        // You can override field parcelling by defining methods like:
-        // void parcelFieldName(Parcel dest, int flags) { ... }
-
-        byte flg = 0;
-        if (mEventLogRecord != null) flg |= 0x1;
-        dest.writeByte(flg);
-        if (mEventLogRecord != null) dest.writeTypedObject(mEventLogRecord, flags);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int describeContents() { return 0; }
-
-    /** @hide */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
-    @DataClass.Generated.Member
-    /* package-private */ EventOutput(@android.annotation.NonNull android.os.Parcel in) {
-        // You can override field unparcelling by defining methods like:
-        // static FieldType unparcelFieldName(Parcel in) { ... }
-
-        byte flg = in.readByte();
-        EventLogRecord eventLogRecord = (flg & 0x1) == 0 ? null : (EventLogRecord) in.readTypedObject(EventLogRecord.CREATOR);
-
-        this.mEventLogRecord = eventLogRecord;
-
-        // onConstructed(); // You can define this method to get a callback
-    }
-
-    @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<EventOutput> CREATOR
-            = new Parcelable.Creator<EventOutput>() {
-        @Override
-        public EventOutput[] newArray(int size) {
-            return new EventOutput[size];
-        }
-
-        @Override
-        public EventOutput createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
-            return new EventOutput(in);
-        }
-    };
-
     /**
      * A builder for {@link EventOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -188,10 +146,10 @@ public final class EventOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696369232183L,
+            time = 1698882423016L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutput.java",
-            inputSignatures = " @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

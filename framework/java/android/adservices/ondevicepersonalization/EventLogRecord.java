@@ -28,6 +28,8 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.time.Instant;
+
 // TODO(b/289102463): Add a link to the public doc for the EVENTS table when available.
 /**
  * Data to be logged in the EVENTS table.
@@ -75,15 +77,20 @@ public final class EventLogRecord implements Parcelable {
      * The existing {@link RequestLogRecord} that this payload should be associated with. In an
      * implementation of
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
-     * set to a value returned by {@link LogReader#getRequests(long, long)}. In an implementation
-     * of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}, this should be
-     * set to {@code null} because the payload will be automatically associated with the current
-     * {@link RequestLogRecord}.
+     * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * this should be set to {@code null} because the payload will be automatically associated with
+     * the current {@link RequestLogRecord}.
      *
-     * @hide
      */
     @Nullable RequestLogRecord mRequestLogRecord = null;
 
+    /**
+     * Returns the timestamp of this record.
+     */
+    @NonNull public Instant getTime() {
+        return Instant.ofEpochMilli(getTimeMillis());
+    }
 
     abstract static class BaseBuilder {
         /**
@@ -174,12 +181,10 @@ public final class EventLogRecord implements Parcelable {
      * The existing {@link RequestLogRecord} that this payload should be associated with. In an
      * implementation of
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
-     * set to a value returned by {@link LogReader#getRequests(long, long)}. In an implementation
-     * of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}, this should be
-     * set to {@code null} because the payload will be automatically associated with the current
-     * {@link RequestLogRecord}.
-     *
-     * @hide
+     * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * this should be set to {@code null} because the payload will be automatically associated with
+     * the current {@link RequestLogRecord}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -362,12 +367,10 @@ public final class EventLogRecord implements Parcelable {
          * The existing {@link RequestLogRecord} that this payload should be associated with. In an
          * implementation of
          * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
-         * set to a value returned by {@link LogReader#getRequests(long, long)}. In an implementation
-         * of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}, this should be
-         * set to {@code null} because the payload will be automatically associated with the current
-         * {@link RequestLogRecord}.
-         *
-         * @hide
+         * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+         * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+         * this should be set to {@code null} because the payload will be automatically associated with
+         * the current {@link RequestLogRecord}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -415,10 +418,10 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1697576750150L,
+            time = 1698963996102L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventLogRecord.java",
-            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
+            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\npublic @android.annotation.NonNull java.time.Instant getTime()\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
     @Deprecated
     private void __metadata() {}
 
