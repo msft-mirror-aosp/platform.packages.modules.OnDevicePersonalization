@@ -27,7 +27,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  *
  * @hide
  */
-@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
+@DataClass(genAidl = false, genHiddenBuilder = true, genEqualsHashCode = true)
 public class TrainingExampleOutputParcel implements Parcelable {
     /** List of training examples */
     @Nullable
@@ -220,10 +220,10 @@ public class TrainingExampleOutputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1695743444776L,
+            time = 1699394212826L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleOutputParcel.java",
-            inputSignatures = " @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mTrainingExamples\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mResumptionTokens\nclass TrainingExampleOutputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mTrainingExamples\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mResumptionTokens\nclass TrainingExampleOutputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
