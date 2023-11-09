@@ -76,9 +76,12 @@ import com.google.intelligence.fcp.client.engine.TaskRetry;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ClientPhase;
 import com.google.internal.federated.plan.TensorflowSpec;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
+import com.google.internal.federatedcompute.v1.RetryWindow;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Duration;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -121,6 +124,16 @@ public final class FederatedComputeWorkerTest {
                     createTempFile("input", ".ckp"),
                     TrainingTestUtil.createFederatedAnalyticClientPlan(),
                     TaskAssignment.newBuilder().setTaskName(TASK_NAME).build());
+
+    private static final CheckinResult REJECTION_CHECKIN_RESULT =
+            new CheckinResult(
+                    RejectionInfo.newBuilder()
+                            .setRetryWindow(
+                                    RetryWindow.newBuilder()
+                                            .setDelayMin(
+                                                    Duration.newBuilder().setSeconds(3600).build())
+                                            .build())
+                            .build());
     private static final FLRunnerResult FL_RUNNER_FAILURE_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
 
@@ -275,6 +288,24 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+    }
+
+    @Test
+    public void testCheckinWithRejection() throws Exception {
+        setUpExampleStoreService();
+
+        doReturn(
+                immediateFuture(REJECTION_CHECKIN_RESULT))
+                .when(mMockHttpFederatedProtocol)
+                .issueCheckin();
+
+        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+
+        assertNull(result);
+        verify(mMockJobManager)
+                .onTrainingCompleted(
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        mSpyWorker.finish(null, ContributionResult.FAIL, false);
     }
 
     @Test
