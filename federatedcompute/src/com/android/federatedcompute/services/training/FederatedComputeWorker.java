@@ -66,6 +66,9 @@ import com.google.intelligence.fcp.client.RetryInfo;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
+import com.google.internal.federatedcompute.v1.RetryWindow;
+import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.IOException;
@@ -220,68 +223,90 @@ public class FederatedComputeWorker {
             ListenableFuture<CheckinResult> checkinResultFuture =
                     mHttpFederatedProtocol.issueCheckin();
 
-            // 2. Bind to client app implemented ExampleStoreService based on ExampleSelector.
-            ListenableFuture<IExampleStoreIterator> iteratorFuture =
-                    FluentFuture.from(checkinResultFuture)
-                            .transform(
-                                    result -> {
-                                        // Set active run's task name.
-                                        String taskName = result.getTaskAssignment().getTaskName();
-                                        Preconditions.checkArgument(
-                                                !taskName.isEmpty(),
-                                                "Task name should not be empty");
-                                        synchronized (mLock) {
-                                            mActiveRun.mTaskName = taskName;
-                                        }
-                                        return getExampleSelector(result);
-                                    },
-                                    getLightweightExecutor())
-                            .transformAsync(
-                                    selector ->
-                                            getExampleStoreIterator(
-                                                    run,
-                                                    run.mTask.appPackageName(),
-                                                    run.mTaskName,
-                                                    selector),
-                                    mInjector.getBgExecutor());
-
-            // 3. Run federated learning or federated analytic depends on task type. Federated
-            // learning job will start a new isolated process to run TFLite training.
-            ListenableFuture<ComputationResult> computationResultFuture =
-                    Futures.whenAllSucceed(checkinResultFuture, iteratorFuture)
-                            .callAsync(
-                                    () ->
-                                            runFederatedComputation(
-                                                    Futures.getDone(checkinResultFuture),
-                                                    run,
-                                                    Futures.getDone(iteratorFuture)),
-                                    mInjector.getBgExecutor());
-
-            // 4. Report computation result to federated compute server.
-            ListenableFuture<Void> reportToServerFuture =
-                    FluentFuture.from(computationResultFuture)
-                            .transformAsync(
-                                    result -> mHttpFederatedProtocol.reportResult(result),
-                                    getLightweightExecutor());
-            return FluentFuture.from(
-                    Futures.whenAllSucceed(reportToServerFuture, computationResultFuture)
-                            .call(
-                                    () -> {
-                                        ComputationResult result =
-                                                Futures.getDone(computationResultFuture);
-                                        var reportToServer = Futures.getDone(reportToServerFuture);
-                                        // 5. Publish computation result and consumed
-                                        // examples to client implemented
-                                        // ResultHandlingService.
-                                        var unused =
-                                                mResultCallbackHelper.callHandleResult(
-                                                        run.mTaskName, run.mTask, result);
-                                        return result.getFlRunnerResult();
-                                    },
-                                    mInjector.getBgExecutor()));
+            return FluentFuture.from(checkinResultFuture)
+                    .transformAsync(
+                            checkinResult -> processCheckinAndDoFlTraining(run, checkinResult),
+                            mInjector.getBgExecutor());
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    @androidx.annotation.NonNull
+    private ListenableFuture<FLRunnerResult> processCheckinAndDoFlTraining(
+            TrainingRun run, CheckinResult checkinResult) {
+        // Stop processing if have rejection Info
+        if (checkinResult.getRejectionInfo() != null) {
+            mJobManager.onTrainingCompleted(
+                    run.mTask.jobId(),
+                    run.mTask.populationName(),
+                    run.mTask.getTrainingIntervalOptions(),
+                    buildTaskRetry(checkinResult.getRejectionInfo()),
+                    ContributionResult.FAIL);
+            return Futures.immediateFuture(null);
+        }
+        // 2. Bind to client app implemented ExampleStoreService based on ExampleSelector.
+        // Set active run's task name.
+        String taskName = checkinResult.getTaskAssignment().getTaskName();
+        Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
+        synchronized (mLock) {
+            mActiveRun.mTaskName = taskName;
+        }
+        ListenableFuture<IExampleStoreIterator> iteratorFuture =
+                getExampleStoreIterator(
+                        run,
+                        run.mTask.appPackageName(),
+                        run.mTaskName,
+                        getExampleSelector(checkinResult));
+
+        // 3. Run federated learning or federated analytic depends on task type. Federated
+        // learning job will start a new isolated process to run TFLite training.
+        FluentFuture<ComputationResult> computationResultFuture =
+                FluentFuture.from(iteratorFuture)
+                        .transformAsync(
+                                iterator -> runFederatedComputation(checkinResult, run, iterator),
+                                mInjector.getBgExecutor());
+
+        // 4. Report computation result to federated compute server.
+        ListenableFuture<Void> reportToServerFuture =
+                computationResultFuture.transformAsync(
+                        result -> mHttpFederatedProtocol.reportResult(result),
+                        getLightweightExecutor());
+        return Futures.whenAllSucceed(reportToServerFuture, computationResultFuture)
+                .call(
+                        () -> {
+                            ComputationResult computationResult =
+                                    Futures.getDone(computationResultFuture);
+                            var reportToServer = Futures.getDone(reportToServerFuture);
+                            // 5. Publish computation result and consumed
+                            // examples to client implemented
+                            // ResultHandlingService.
+                            var unused =
+                                    mResultCallbackHelper.callHandleResult(
+                                            run.mTaskName, run.mTask, computationResult);
+                            return computationResult.getFlRunnerResult();
+                        },
+                        mInjector.getBgExecutor());
+    }
+
+    private static TaskRetry buildTaskRetry(RejectionInfo rejectionInfo) {
+        TaskRetry.Builder taskRetryBuilder =
+                TaskRetry.newBuilder();
+        if (rejectionInfo.hasRetryWindow()) {
+            RetryWindow retryWindow =
+                    rejectionInfo.getRetryWindow();
+            Duration delayMin = retryWindow.getDelayMin();
+            // convert rejection info seconds and nanoseconds to
+            // retry milliseconds
+            taskRetryBuilder.setDelayMin(
+                    delayMin.getSeconds() * 1000
+                            + delayMin.getNanos() / 1000000);
+            Duration delayMax = retryWindow.getDelayMax();
+            taskRetryBuilder.setDelayMax(
+                    delayMax.getSeconds() * 1000
+                            + delayMax.getNanos() / 1000000);
+        }
+        return taskRetryBuilder.build();
     }
 
     /**
@@ -290,7 +315,9 @@ public class FederatedComputeWorker {
      */
     public void finish(FLRunnerResult flRunnerResult) {
         TaskRetry taskRetry = null;
+        ContributionResult contributionResult = ContributionResult.UNSPECIFIED;
         if (flRunnerResult != null) {
+            contributionResult = flRunnerResult.getContributionResult();
             if (flRunnerResult.hasRetryInfo()) {
                 RetryInfo retryInfo = flRunnerResult.getRetryInfo();
                 long delay = retryInfo.getMinimumDelay().getSeconds() * 1000L;
@@ -303,7 +330,7 @@ public class FederatedComputeWorker {
                 LogUtil.i(TAG, "Finished with task retry= %s", taskRetry);
             }
         }
-        finish(taskRetry, flRunnerResult.getContributionResult(), true);
+        finish(taskRetry, contributionResult, true);
     }
 
     /**

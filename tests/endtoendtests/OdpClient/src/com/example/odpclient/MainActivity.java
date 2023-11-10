@@ -29,6 +29,7 @@ import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
+import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.Button;
@@ -58,6 +59,19 @@ public class MainActivity extends Activity {
     private Context mContext;
     private static Executor sCallbackExecutor = Executors.newSingleThreadExecutor();
 
+    class SurfaceCallback implements SurfaceHolder.Callback {
+        @Override public void surfaceCreated(SurfaceHolder holder) {
+            Log.d(TAG, "surfaceCreated");
+        }
+        @Override public void surfaceDestroyed(SurfaceHolder holder) {
+            Log.d(TAG, "surfaceDestroyed");
+        }
+        @Override public void surfaceChanged(
+                SurfaceHolder holder, int format, int width, int height) {
+            Log.d(TAG, "surfaceChanged");
+        }
+    }
+
     @Override
     public void onCreate(Bundle savedInstanceState) {
         Log.d(TAG, "onCreate");
@@ -70,6 +84,7 @@ public class MainActivity extends Activity {
         }
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setVisibility(View.INVISIBLE);
+        mRenderedView.getHolder().addCallback(new SurfaceCallback());
         mGetAdButton = findViewById(R.id.get_ad_button);
         mScheduleTrainingButton = findViewById(R.id.schedule_training_button);
         mSetStatusButton = findViewById(R.id.set_status_button);
