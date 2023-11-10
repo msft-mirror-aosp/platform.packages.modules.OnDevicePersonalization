@@ -34,6 +34,7 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
@@ -120,20 +121,29 @@ public final class HttpFederatedProtocol {
     }
 
     /** Helper functions to reporting result and upload result. */
-    public FluentFuture<Void> reportResult(ComputationResult computationResult) {
+    public FluentFuture<RejectionInfo> reportResult(ComputationResult computationResult) {
         if (computationResult != null && computationResult.isResultSuccess()) {
             return FluentFuture.from(performReportResult(computationResult))
                     .transformAsync(
-                            reportResp ->
-                                    processReportResultResponseAndUploadResult(
-                                            reportResp, computationResult),
-                            getBackgroundExecutor())
-                    .transform(
-                            resp -> {
-                                validateHttpResponseStatus("Upload result", resp);
-                                return null;
+                            reportResp -> {
+                                ReportResultResponse reportResultResponse =
+                                        getReportResultResponse(reportResp);
+                                if (reportResultResponse.hasRejectionInfo()) {
+                                    return Futures.immediateFuture(
+                                            reportResultResponse.getRejectionInfo());
+                                }
+                                return FluentFuture.from(
+                                                processReportResultResponseAndUploadResult(
+                                                        reportResultResponse, computationResult))
+                                        .transform(
+                                                resp -> {
+                                                    validateHttpResponseStatus(
+                                                            "Upload result", resp);
+                                                    return null;
+                                                },
+                                                getLightweightExecutor());
                             },
-                            getLightweightExecutor());
+                            getBackgroundExecutor());
         } else {
             return FluentFuture.from(performReportResult(computationResult))
                     .transform(
@@ -252,18 +262,9 @@ public final class HttpFederatedProtocol {
 
     private ListenableFuture<FederatedComputeHttpResponse>
             processReportResultResponseAndUploadResult(
-                    FederatedComputeHttpResponse httpResponse,
+            ReportResultResponse reportResultResponse,
                     ComputationResult computationResult) {
         try {
-            validateHttpResponseStatus("ReportResult", httpResponse);
-            ReportResultResponse reportResultResponse =
-                    ReportResultResponse.parseFrom(httpResponse.getPayload());
-            // TODO(b/297605806): better handle rejection info.
-            if (reportResultResponse.hasRejectionInfo()) {
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException(
-                                "ReportResult got rejection: " + httpResponse.getStatusCode()));
-            }
             Preconditions.checkArgument(
                     !computationResult.getOutputCheckpointFile().isEmpty(),
                     "Output checkpoint file should not be empty");
@@ -297,6 +298,14 @@ public final class HttpFederatedProtocol {
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private ReportResultResponse getReportResultResponse(FederatedComputeHttpResponse httpResponse)
+            throws InvalidProtocolBufferException {
+        validateHttpResponseStatus("ReportResult", httpResponse);
+        ReportResultResponse reportResultResponse =
+                ReportResultResponse.parseFrom(httpResponse.getPayload());
+        return reportResultResponse;
     }
 
     private void validateHttpResponseStatus(
