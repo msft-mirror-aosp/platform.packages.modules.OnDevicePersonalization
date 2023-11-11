@@ -21,6 +21,7 @@ import android.annotation.Nullable;
 import com.android.internal.util.Preconditions;
 
 import com.google.internal.federated.plan.ClientOnlyPlan;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 
 /**
@@ -30,12 +31,16 @@ public class CheckinResult {
     private String mInputCheckpoint = null;
     private ClientOnlyPlan mPlanData = null;
     private TaskAssignment mTaskAssignment = null;
-
+    private RejectionInfo mRejectionInfo = null;
     public CheckinResult(
             String inputCheckpoint, ClientOnlyPlan planData, TaskAssignment taskAssignment) {
         this.mInputCheckpoint = inputCheckpoint;
         this.mPlanData = planData;
         this.mTaskAssignment = taskAssignment;
+    }
+
+    public CheckinResult(RejectionInfo mRejectionInfo) {
+        this.mRejectionInfo = mRejectionInfo;
     }
 
     @Nullable
@@ -54,5 +59,10 @@ public class CheckinResult {
     @Nullable
     public TaskAssignment getTaskAssignment() {
         return mTaskAssignment;
+    }
+
+    @Nullable
+    public RejectionInfo getRejectionInfo() {
+        return mRejectionInfo;
     }
 }
