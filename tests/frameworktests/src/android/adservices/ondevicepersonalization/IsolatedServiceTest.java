@@ -468,8 +468,8 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExample() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExampleInputParcel input =
+                new TrainingExampleInputParcel.Builder()
                         .setPopulationName("")
                         .setTaskName("")
                         .setResumptionToken(new byte[] {0})
@@ -504,8 +504,8 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExampleThrowsIfDataAccessServiceMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExampleInputParcel input =
+                new TrainingExampleInputParcel.Builder()
                         .setPopulationName("")
                         .setTaskName("")
                         .setResumptionToken(new byte[] {0})
@@ -523,8 +523,8 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExampleThrowsIfCallbackMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExampleInputParcel input =
+                new TrainingExampleInputParcel.Builder()
                         .setPopulationName("")
                         .setTaskName("")
                         .setResumptionToken(new byte[] {0})

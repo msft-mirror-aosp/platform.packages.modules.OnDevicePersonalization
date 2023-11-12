@@ -99,6 +99,52 @@ public class FederatedComputeJobManager {
         return sSingletonInstance;
     }
 
+    /** We enforce device idle, battery not low and unmetered network training constraints. */
+    private static byte[] buildTrainingConstraints() {
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(
+                TrainingConstraints.createTrainingConstraints(
+                        builder,
+                        /** requiresSchedulerIdle= */
+                        true,
+                        /** requiresSchedulerBatteryNotLow= */
+                        true,
+                        /** requiresSchedulerUnmeteredNetwork= */
+                        true));
+        return builder.sizedByteArray();
+    }
+
+    private static byte[] buildDefaultTrainingInterval() {
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(
+                TrainingIntervalOptions.createTrainingIntervalOptions(
+                        builder, SchedulingMode.ONE_TIME, 0));
+        return builder.sizedByteArray();
+    }
+
+    private static byte[] buildTrainingIntervalOptions(
+            @Nullable TrainingInterval trainingInterval) {
+        if (trainingInterval == null) {
+            return buildDefaultTrainingInterval();
+        }
+
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(
+                TrainingIntervalOptions.createTrainingIntervalOptions(
+                        builder,
+                        convertSchedulingMode(trainingInterval.getSchedulingMode()),
+                        trainingInterval.getMinimumIntervalMillis()));
+
+        return builder.sizedByteArray();
+    }
+
+    private static boolean trainingIntervalChanged(
+            TrainingOptions newTaskOptions, FederatedTrainingTask existingTask) {
+        byte[] incomingTrainingIntervalOptions =
+                buildTrainingIntervalOptions(newTaskOptions.getTrainingInterval());
+        return !Arrays.equals(incomingTrainingIntervalOptions, existingTask.intervalOptions());
+    }
+
     /**
      * Called when a client indicates via the client API that a task with the given parameters
      * should be scheduled.
@@ -327,45 +373,6 @@ public class FederatedComputeJobManager {
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);
     }
 
-    /** We enforce device idle, battery not low and unmetered network training constraints. */
-    private static byte[] buildTrainingConstraints() {
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-        builder.finish(
-                TrainingConstraints.createTrainingConstraints(
-                        builder,
-                        /** requiresSchedulerIdle= */
-                        true,
-                        /** requiresSchedulerBatteryNotLow= */
-                        true,
-                        /** requiresSchedulerUnmeteredNetwork= */
-                        true));
-        return builder.sizedByteArray();
-    }
-
-    private static byte[] buildDefaultTrainingInterval() {
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-        builder.finish(
-                TrainingIntervalOptions.createTrainingIntervalOptions(
-                        builder, SchedulingMode.ONE_TIME, 0));
-        return builder.sizedByteArray();
-    }
-
-    private static byte[] buildTrainingIntervalOptions(
-            @Nullable TrainingInterval trainingInterval) {
-        if (trainingInterval == null) {
-            return buildDefaultTrainingInterval();
-        }
-
-        FlatBufferBuilder builder = new FlatBufferBuilder();
-        builder.finish(
-                TrainingIntervalOptions.createTrainingIntervalOptions(
-                        builder,
-                        convertSchedulingMode(trainingInterval.getSchedulingMode()),
-                        trainingInterval.getMinimumIntervalMillis()));
-
-        return builder.sizedByteArray();
-    }
-
     private boolean detectKeyParametersChanged(
             TrainingOptions newTaskOptions, FederatedTrainingTask existingTask) {
         // Check if the task previously had a different population name.
@@ -388,12 +395,5 @@ public class FederatedComputeJobManager {
                     newTaskOptions.getTrainingInterval());
         }
         return populationChanged || trainingIntervalChanged;
-    }
-
-    private static boolean trainingIntervalChanged(
-            TrainingOptions newTaskOptions, FederatedTrainingTask existingTask) {
-        byte[] incomingTrainingIntervalOptions =
-                buildTrainingIntervalOptions(newTaskOptions.getTrainingInterval());
-        return !Arrays.equals(incomingTrainingIntervalOptions, existingTask.intervalOptions());
     }
 }
