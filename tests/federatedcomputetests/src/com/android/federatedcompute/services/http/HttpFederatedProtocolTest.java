@@ -168,13 +168,10 @@ public final class HttpFederatedProtocolTest {
                         .build();
         when(mMockHttpClient.performRequestAsync(any())).thenReturn(immediateFuture(httpResponse));
 
-        ExecutionException exception =
-                assertThrows(
-                        ExecutionException.class,
-                        () -> mHttpFederatedProtocol.issueCheckin().get());
+        CheckinResult checkinResult = mHttpFederatedProtocol.issueCheckin().get();
 
-        assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
-        assertThat(exception.getCause()).hasMessageThat().isEqualTo("Device rejected by server.");
+        assertThat(checkinResult.getRejectionInfo()).isNotNull();
+        assertThat(checkinResult.getRejectionInfo()).isEqualTo(RejectionInfo.getDefaultInstance());
     }
 
     @Test

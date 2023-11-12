@@ -241,7 +241,7 @@ public class SampleHandler implements IsolatedWorker {
         String requestKeyword = "";
         if (input != null && input.getAppParams() != null
                 && input.getAppParams().getString("keyword") != null) {
-            requestKeyword = input.getAppParams().getString("keyword");
+            requestKeyword = input.getAppParams().getString("keyword").toLowerCase().strip();
         }
 
         List<Ad> result = new ArrayList<>();
