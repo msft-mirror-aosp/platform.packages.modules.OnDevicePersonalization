@@ -45,6 +45,11 @@ public class TestAppHelper {
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String GET_AD_BUTTON_RESOURCE_ID = "get_ad_button";
     private static final String RENDERED_VIEW_RESOURCE_ID = "rendered_view";
+    private static final String REPORT_CONVERSION_TEXT_BOX_RESOURCE_ID =
+            "report_conversion_text_box";
+    private static final String REPORT_CONVERSION_BUTTON_RESOURCE_ID = "report_conversion_button";
+    private static final String REPORT_CONVERSION_SUCCESS_LOG = "execute() success";
+    private static final long REPORT_CONVERSION_TIMEOUT = 10_000;
 
     /** Commands to prepare the device and odp module before testing. */
     public static void initialize() throws IOException {
@@ -158,6 +163,55 @@ public class TestAppHelper {
         }
     }
 
+    /** Put sourceAdId name down to report conversion */
+    public void inputSourceAdId(final String sourceAdId) {
+        UiObject2 reportConversionTextBox = getReportConversionTextBox();
+        assertNotNull("Report Conversion text box not found", reportConversionTextBox);
+        reportConversionTextBox.setText(sourceAdId);
+    }
+
+    /** Click Report Conversion button */
+    public void clickReportConversion() {
+        UiObject2 reportConversionButton = getReportConversionButton();
+        assertNotNull("Report Conversion button not found", reportConversionButton);
+        reportConversionButton.click();
+        SystemClock.sleep(3000);
+    }
+
+    /** Verify conversion is reported */
+    public void verifyConversionReported() throws IOException {
+        boolean foundReportConversionSuccessLog = findLog(
+                REPORT_CONVERSION_SUCCESS_LOG,
+                REPORT_CONVERSION_TIMEOUT,
+                2000);
+
+        if (!foundReportConversionSuccessLog) {
+            Assert.fail(String.format(
+                    "Failed to find report conversion success log within test window %d ms",
+                    REPORT_CONVERSION_TIMEOUT));
+        }
+    }
+
+    /** Clean log buffer and set a high buffer limit to capture logs for test verification */
+    public void resetLogBuffer() {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
+    }
+
+    /** Attempt to find a specific log entry within the timeout window */
+    private boolean findLog(final String targetLog, long timeoutMillis,
+                            long queryIntervalMillis) throws IOException {
+
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            if (sUiDevice.executeShellCommand("logcat -d").contains(targetLog)) {
+                return true;
+            }
+            SystemClock.sleep(queryIntervalMillis);
+        }
+        return false;
+    }
+
     private UiObject2 getGetAdButton() {
         return sUiDevice.wait(
             Until.findObject(By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, GET_AD_BUTTON_RESOURCE_ID)),
@@ -190,6 +244,20 @@ public class TestAppHelper {
         return sUiDevice.wait(
             Until.findObject(By.desc(text)),
             UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    private UiObject2 getReportConversionTextBox() {
+        return sUiDevice.wait(
+                Until.findObject(By.res(
+                        ODP_CLIENT_TEST_APP_PACKAGE_NAME, REPORT_CONVERSION_TEXT_BOX_RESOURCE_ID)),
+                UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    private UiObject2 getReportConversionButton() {
+        return sUiDevice.wait(
+                Until.findObject(By.res(
+                        ODP_CLIENT_TEST_APP_PACKAGE_NAME, REPORT_CONVERSION_BUTTON_RESOURCE_ID)),
+                UI_FIND_RESOURCE_TIMEOUT);
     }
 
     /** Get a UiScrollable instance configured for vertical scrolling */
