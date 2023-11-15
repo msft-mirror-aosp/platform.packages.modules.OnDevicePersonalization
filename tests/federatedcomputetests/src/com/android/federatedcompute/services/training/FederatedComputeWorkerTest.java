@@ -22,12 +22,15 @@ import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doCallRealMethod;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
@@ -59,6 +62,7 @@ import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.ResultCallbackHelper.CallbackResult;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
+import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
 
@@ -76,15 +80,19 @@ import com.google.intelligence.fcp.client.engine.TaskRetry;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ClientPhase;
 import com.google.internal.federated.plan.TensorflowSpec;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
+import com.google.internal.federatedcompute.v1.RetryWindow;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
+import com.google.protobuf.Duration;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
@@ -121,6 +129,15 @@ public final class FederatedComputeWorkerTest {
                     createTempFile("input", ".ckp"),
                     TrainingTestUtil.createFederatedAnalyticClientPlan(),
                     TaskAssignment.newBuilder().setTaskName(TASK_NAME).build());
+
+    public static final RejectionInfo REJECTION_INFO =
+            RejectionInfo.newBuilder()
+                    .setRetryWindow(
+                            RetryWindow.newBuilder()
+                                    .setDelayMin(Duration.newBuilder().setSeconds(3600).build())
+                                    .build())
+                    .build();
+    private static final CheckinResult REJECTION_CHECKIN_RESULT = new CheckinResult(REJECTION_INFO);
     private static final FLRunnerResult FL_RUNNER_FAILURE_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
 
@@ -174,7 +191,7 @@ public final class FederatedComputeWorkerTest {
     private FederatedComputeWorker mSpyWorker;
     @Mock private HttpFederatedProtocol mMockHttpFederatedProtocol;
     @Mock private ComputationRunner mMockComputationRunner;
-    @Mock private ResultCallbackHelper mMockResultCallbackHelper;
+    private ResultCallbackHelper mSpyResultCallbackHelper;
 
     private static byte[] createTrainingConstraints(
             boolean requiresSchedulerIdle,
@@ -201,6 +218,7 @@ public final class FederatedComputeWorkerTest {
     @Before
     public void doBeforeEachTest() throws Exception {
         mContext = ApplicationProvider.getApplicationContext();
+        mSpyResultCallbackHelper = Mockito.spy(new ResultCallbackHelper(mContext));
         mSpyWorker =
                 Mockito.spy(
                         new FederatedComputeWorker(
@@ -208,12 +226,13 @@ public final class FederatedComputeWorkerTest {
                                 mMockJobManager,
                                 mTrainingConditionsChecker,
                                 mMockComputationRunner,
-                                mMockResultCallbackHelper,
+                                mSpyResultCallbackHelper,
                                 new TestInjector()));
         when(mTrainingConditionsChecker.checkAllConditionsForFlTraining(any()))
                 .thenReturn(EnumSet.noneOf(Condition.class));
-        when(mMockResultCallbackHelper.callHandleResult(eq(TASK_NAME), any(), any()))
-                .thenReturn(Futures.immediateFuture(CallbackResult.SUCCESS));
+        doReturn(Futures.immediateFuture(CallbackResult.SUCCESS))
+                .when(mSpyResultCallbackHelper)
+                .callHandleResult(eq(TASK_NAME), any(), any());
         when(mMockJobManager.onTrainingStarted(anyInt())).thenReturn(FEDERATED_TRAINING_TASK_1);
         doReturn(mMockHttpFederatedProtocol)
                 .when(mSpyWorker)
@@ -275,6 +294,53 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+    }
+
+    @Test
+    public void testCheckinWithRejection() throws Exception {
+        setUpExampleStoreService();
+        doReturn(
+                immediateFuture(REJECTION_CHECKIN_RESULT))
+                .when(mMockHttpFederatedProtocol)
+                .issueCheckin();
+
+        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+
+        assertNull(result);
+        verify(mMockJobManager)
+                .onTrainingCompleted(
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        mSpyWorker.finish(null, ContributionResult.FAIL, false);
+    }
+
+    @Test
+    public void testReportResultWithRejection() throws Exception {
+        setUpExampleStoreService();
+        doReturn(immediateFuture(FA_CHECKIN_RESULT))
+                .when(mMockHttpFederatedProtocol)
+                .issueCheckin();
+        doReturn(FluentFuture.from(immediateFuture(REJECTION_INFO)))
+                .when(mMockHttpFederatedProtocol)
+                .reportResult(any());
+        doCallRealMethod().when(mSpyResultCallbackHelper).callHandleResult(any(), any(), any());
+        ArgumentCaptor<ComputationResult> computationResultCaptor =
+                ArgumentCaptor.forClass(ComputationResult.class);
+
+
+        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+
+        assertNull(result);
+        verify(mMockJobManager)
+                .onTrainingCompleted(
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        verify(mSpyResultCallbackHelper)
+                .callHandleResult(any(), any(), computationResultCaptor.capture());
+        ComputationResult computationResult = computationResultCaptor.getValue();
+        assertNotNull(computationResult.getFlRunnerResult());
+        assertEquals(
+                ContributionResult.FAIL,
+                computationResult.getFlRunnerResult().getContributionResult());
+        mSpyWorker.finish(null, ContributionResult.FAIL, false);
     }
 
     @Test
@@ -354,8 +420,9 @@ public final class FederatedComputeWorkerTest {
 
         // Mock publish to ResultHandlingService fails which is best effort and should not affect
         // final result.
-        when(mMockResultCallbackHelper.callHandleResult(eq(TASK_NAME), any(), any()))
-                .thenReturn(Futures.immediateFuture(CallbackResult.FAIL));
+        doReturn(Futures.immediateFuture(CallbackResult.FAIL))
+                .when(mSpyResultCallbackHelper)
+                .callHandleResult(eq(TASK_NAME), any(), any());
 
         FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
@@ -375,12 +442,12 @@ public final class FederatedComputeWorkerTest {
 
         // Mock publish to ResultHandlingService throws exception which is best effort and should
         // not affect final result.
-        when(mMockResultCallbackHelper.callHandleResult(eq(TASK_NAME), any(), any()))
-                .thenReturn(
-                        immediateFailedFuture(
-                                new ExecutionException(
-                                        "ResultHandlingService fail",
-                                        new IllegalStateException("can't bind to service"))));
+        doReturn(immediateFailedFuture(
+                new ExecutionException(
+                        "ResultHandlingService fail",
+                        new IllegalStateException("can't bind to service"))))
+                .when(mSpyResultCallbackHelper)
+                .callHandleResult(eq(TASK_NAME), any(), any());
 
         FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
@@ -390,7 +457,7 @@ public final class FederatedComputeWorkerTest {
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
         verify(mSpyWorker).unbindFromExampleStoreService();
-        verify(mMockResultCallbackHelper).callHandleResult(eq(TASK_NAME), any(), any());
+        verify(mSpyResultCallbackHelper).callHandleResult(eq(TASK_NAME), any(), any());
     }
 
     @Test

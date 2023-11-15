@@ -29,12 +29,12 @@ import com.android.federatedcompute.services.training.util.ComputationResult;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
@@ -46,6 +46,7 @@ import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstructi
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.util.HashMap;
+import java.util.concurrent.Callable;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
@@ -76,53 +77,73 @@ public final class HttpFederatedProtocol {
 
     /** Helper function to perform check in and download federated task from remote servers. */
     public ListenableFuture<CheckinResult> issueCheckin() {
-        ListenableFuture<TaskAssignment> taskAssignmentFuture =
-                FluentFuture.from(createTaskAssignment())
-                        .transform(
-                                getTaskAssignmentHttpResponse ->
-                                        getTaskAssignment(getTaskAssignmentHttpResponse),
-                                getLightweightExecutor());
-        ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
-                FluentFuture.from(taskAssignmentFuture)
-                        .transformAsync(
-                                taskAssignment -> fetchTaskResource(taskAssignment.getPlan()),
-                                getBackgroundExecutor());
-        ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
-                FluentFuture.from(taskAssignmentFuture)
-                        .transformAsync(
-                                taskAssignment ->
-                                        fetchTaskResource(taskAssignment.getInitCheckpoint()),
-                                getBackgroundExecutor());
-        return Futures.whenAllSucceed(
-                        taskAssignmentFuture, planDataResponseFuture, checkpointDataResponseFuture)
-                .callAsync(
-                        new AsyncCallable<CheckinResult>() {
-                            @Override
-                            public ListenableFuture<CheckinResult> call() {
-                                return getCheckinResult(
-                                        planDataResponseFuture,
-                                        checkpointDataResponseFuture,
-                                        taskAssignmentFuture);
+        return FluentFuture.from(createTaskAssignment())
+                .transformAsync(
+                        federatedComputeHttpResponse -> {
+                            validateHttpResponseStatus(
+                                    "Start task assignment", federatedComputeHttpResponse);
+                            CreateTaskAssignmentResponse taskAssignmentResponse;
+                            try {
+                                taskAssignmentResponse =
+                                        CreateTaskAssignmentResponse.parseFrom(
+                                                federatedComputeHttpResponse.getPayload());
+                            } catch (InvalidProtocolBufferException e) {
+                                throw new IllegalStateException(
+                                        "Could not parse StartTaskAssignmentResponse proto", e);
                             }
+                            if (taskAssignmentResponse.hasRejectionInfo()) {
+                                return Futures.immediateFuture(
+                                        new CheckinResult(
+                                                taskAssignmentResponse.getRejectionInfo()));
+                            }
+                            TaskAssignment taskAssignment =
+                                    getTaskAssignment(taskAssignmentResponse);
+                            ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
+                                    fetchTaskResource(taskAssignment.getPlan());
+                            ListenableFuture<FederatedComputeHttpResponse>
+                                    checkpointDataResponseFuture =
+                                            fetchTaskResource(taskAssignment.getInitCheckpoint());
+                            return Futures.whenAllSucceed(
+                                            planDataResponseFuture, checkpointDataResponseFuture)
+                                    .call(
+                                            new Callable<CheckinResult>() {
+                                                @Override
+                                                public CheckinResult call() throws Exception {
+                                                    return getCheckinResult(
+                                                            planDataResponseFuture,
+                                                            checkpointDataResponseFuture,
+                                                            taskAssignment);
+                                                }
+                                            },
+                                            getBackgroundExecutor());
                         },
                         getBackgroundExecutor());
     }
 
     /** Helper functions to reporting result and upload result. */
-    public FluentFuture<Void> reportResult(ComputationResult computationResult) {
+    public FluentFuture<RejectionInfo> reportResult(ComputationResult computationResult) {
         if (computationResult != null && computationResult.isResultSuccess()) {
             return FluentFuture.from(performReportResult(computationResult))
                     .transformAsync(
-                            reportResp ->
-                                    processReportResultResponseAndUploadResult(
-                                            reportResp, computationResult),
-                            getBackgroundExecutor())
-                    .transform(
-                            resp -> {
-                                validateHttpResponseStatus("Upload result", resp);
-                                return null;
+                            reportResp -> {
+                                ReportResultResponse reportResultResponse =
+                                        getReportResultResponse(reportResp);
+                                if (reportResultResponse.hasRejectionInfo()) {
+                                    return Futures.immediateFuture(
+                                            reportResultResponse.getRejectionInfo());
+                                }
+                                return FluentFuture.from(
+                                                processReportResultResponseAndUploadResult(
+                                                        reportResultResponse, computationResult))
+                                        .transform(
+                                                resp -> {
+                                                    validateHttpResponseStatus(
+                                                            "Upload result", resp);
+                                                    return null;
+                                                },
+                                                getLightweightExecutor());
                             },
-                            getLightweightExecutor());
+                            getBackgroundExecutor());
         } else {
             return FluentFuture.from(performReportResult(computationResult))
                     .transform(
@@ -152,15 +173,7 @@ public final class HttpFederatedProtocol {
         return mHttpClient.performRequestAsync(httpRequest);
     }
 
-    private TaskAssignment getTaskAssignment(FederatedComputeHttpResponse httpResponse) {
-        validateHttpResponseStatus("Start task assignment", httpResponse);
-        CreateTaskAssignmentResponse taskAssignmentResponse;
-        try {
-            taskAssignmentResponse =
-                    CreateTaskAssignmentResponse.parseFrom(httpResponse.getPayload());
-        } catch (InvalidProtocolBufferException e) {
-            throw new IllegalStateException("Could not parse StartTaskAssignmentResponse proto", e);
-        }
+    private TaskAssignment getTaskAssignment(CreateTaskAssignmentResponse taskAssignmentResponse) {
         if (taskAssignmentResponse.hasRejectionInfo()) {
             throw new IllegalStateException("Device rejected by server.");
         }
@@ -194,32 +207,27 @@ public final class HttpFederatedProtocol {
         this.mAssignmentId = taskAssignment.getAssignmentId();
     }
 
-    private ListenableFuture<CheckinResult> getCheckinResult(
+    private CheckinResult getCheckinResult(
             ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture,
             ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture,
-            ListenableFuture<TaskAssignment> taskAssignmentFuture) {
+            TaskAssignment taskAssignment)
+            throws Exception {
+        FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
+        FederatedComputeHttpResponse checkpointDataResponse =
+                Futures.getDone(checkpointDataResponseFuture);
+        validateHttpResponseStatus("Fetch plan", planDataResponse);
+        validateHttpResponseStatus("Fetch checkpoint", checkpointDataResponse);
+        ClientOnlyPlan clientOnlyPlan;
         try {
-            FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
-            FederatedComputeHttpResponse checkpointDataResponse =
-                    Futures.getDone(checkpointDataResponseFuture);
-            TaskAssignment taskAssignment = Futures.getDone(taskAssignmentFuture);
-            validateHttpResponseStatus("Fetch plan", planDataResponse);
-            validateHttpResponseStatus("Fetch checkpoint", checkpointDataResponse);
-            ClientOnlyPlan clientOnlyPlan;
-            try {
-                clientOnlyPlan = ClientOnlyPlan.parseFrom(planDataResponse.getPayload());
-            } catch (InvalidProtocolBufferException e) {
-                LogUtil.e(TAG, e, "Could not parse ClientOnlyPlan proto");
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException("Could not parse ClientOnlyPlan proto", e));
-            }
-            String inputCheckpointFile = createTempFile("input", ".ckp");
-            writeToFile(inputCheckpointFile, checkpointDataResponse.getPayload());
-            return Futures.immediateFuture(
-                    new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment));
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
+            clientOnlyPlan = ClientOnlyPlan.parseFrom(planDataResponse.getPayload());
+
+        } catch (InvalidProtocolBufferException e) {
+            LogUtil.e(TAG, e, "Could not parse ClientOnlyPlan proto");
+            throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
         }
+        String inputCheckpointFile = createTempFile("input", ".ckp");
+        writeToFile(inputCheckpointFile, checkpointDataResponse.getPayload());
+        return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
@@ -254,18 +262,9 @@ public final class HttpFederatedProtocol {
 
     private ListenableFuture<FederatedComputeHttpResponse>
             processReportResultResponseAndUploadResult(
-                    FederatedComputeHttpResponse httpResponse,
+            ReportResultResponse reportResultResponse,
                     ComputationResult computationResult) {
         try {
-            validateHttpResponseStatus("ReportResult", httpResponse);
-            ReportResultResponse reportResultResponse =
-                    ReportResultResponse.parseFrom(httpResponse.getPayload());
-            // TODO(b/297605806): better handle rejection info.
-            if (reportResultResponse.hasRejectionInfo()) {
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException(
-                                "ReportResult got rejection: " + httpResponse.getStatusCode()));
-            }
             Preconditions.checkArgument(
                     !computationResult.getOutputCheckpointFile().isEmpty(),
                     "Output checkpoint file should not be empty");
@@ -299,6 +298,14 @@ public final class HttpFederatedProtocol {
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private ReportResultResponse getReportResultResponse(FederatedComputeHttpResponse httpResponse)
+            throws InvalidProtocolBufferException {
+        validateHttpResponseStatus("ReportResult", httpResponse);
+        ReportResultResponse reportResultResponse =
+                ReportResultResponse.parseFrom(httpResponse.getPayload());
+        return reportResultResponse;
     }
 
     private void validateHttpResponseStatus(
