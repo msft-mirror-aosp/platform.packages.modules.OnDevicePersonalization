@@ -24,6 +24,7 @@ import static com.android.federatedcompute.services.common.FileUtils.writeToFile
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
+import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
 import static com.android.federatedcompute.services.http.HttpClientUtil.uncompressWithGzip;
 
@@ -52,6 +53,7 @@ import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstructi
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.util.HashMap;
+import java.util.UUID;
 import java.util.concurrent.Callable;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
@@ -182,6 +184,9 @@ public final class HttpFederatedProtocol {
                         new HashMap<>(),
                         request.toByteArray(),
                         /* isProtobufEncoded= */ true);
+        httpRequest
+                .getExtraHeaders()
+                .put(ODP_IDEMPOTENCY_KEY, System.currentTimeMillis() + " - " + UUID.randomUUID());
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 

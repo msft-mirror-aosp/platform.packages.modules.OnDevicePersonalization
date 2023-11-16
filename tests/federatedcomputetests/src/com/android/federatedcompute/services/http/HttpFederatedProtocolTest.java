@@ -21,12 +21,14 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
 import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -164,7 +166,13 @@ public final class HttpFederatedProtocolTest {
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(23));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         assertThat(actualStartTaskAssignmentRequest.getExtraHeaders())
-                .containsExactlyEntriesIn(expectedHeaders);
+                .containsAtLeastEntriesIn(expectedHeaders);
+        assertThat(actualStartTaskAssignmentRequest.getExtraHeaders()).hasSize(3);
+        String idempotencyKey =
+                actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_IDEMPOTENCY_KEY);
+        assertNotNull(idempotencyKey);
+        String timestamp = idempotencyKey.split(" - ")[0];
+        assertThat(Long.parseLong(timestamp)).isLessThan(System.currentTimeMillis());
 
         // Verify fetch resource request.
         FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
