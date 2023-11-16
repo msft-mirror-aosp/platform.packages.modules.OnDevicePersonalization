@@ -142,7 +142,8 @@ public final class HttpFederatedProtocolTest {
     public void testCreateTaskAssignmentFailed() throws Exception {
         FederatedComputeHttpResponse httpResponse =
                 new FederatedComputeHttpResponse.Builder().setStatusCode(404).build();
-        when(mMockHttpClient.performRequestAsync(any())).thenReturn(immediateFuture(httpResponse));
+        when(mMockHttpClient.performRequestAsyncWithRetry(any()))
+                .thenReturn(immediateFuture(httpResponse));
 
         ExecutionException exception =
                 assertThrows(
@@ -166,7 +167,8 @@ public final class HttpFederatedProtocolTest {
                         .setStatusCode(200)
                         .setPayload(createTaskAssignmentResponse.toByteArray())
                         .build();
-        when(mMockHttpClient.performRequestAsync(any())).thenReturn(immediateFuture(httpResponse));
+        when(mMockHttpClient.performRequestAsyncWithRetry(any()))
+                .thenReturn(immediateFuture(httpResponse));
 
         CheckinResult checkinResult = mHttpFederatedProtocol.issueCheckin().get();
 
@@ -380,7 +382,7 @@ public final class HttpFederatedProtocolTest {
                             return immediateFuture(SUCCESS_EMPTY_HTTP_RESPONSE);
                         })
                 .when(mMockHttpClient)
-                .performRequestAsync(mHttpRequestCaptor.capture());
+                .performRequestAsyncWithRetry(mHttpRequestCaptor.capture());
     }
 
     private FederatedComputeHttpResponse createReportResultHttpResponse() throws Exception {
