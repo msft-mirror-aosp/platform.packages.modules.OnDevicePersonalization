@@ -21,7 +21,11 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
 import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
+import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
+import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
+import static com.android.federatedcompute.services.http.HttpClientUtil.uncompressWithGzip;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
@@ -36,6 +40,8 @@ import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
+import com.google.internal.federatedcompute.v1.ResourceCapabilities;
+import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
@@ -65,8 +71,7 @@ public final class HttpFederatedProtocol {
         this.mClientVersion = clientVersion;
         this.mPopulationName = populationName;
         this.mHttpClient = httpClient;
-        this.mTaskAssignmentRequestCreator =
-                new ProtocolRequestCreator(entryUri, new HashMap<>(), false);
+        this.mTaskAssignmentRequestCreator = new ProtocolRequestCreator(entryUri, new HashMap<>());
     }
 
     /** Creates a HttpFederatedProtocol object. */
@@ -159,7 +164,13 @@ public final class HttpFederatedProtocol {
         CreateTaskAssignmentRequest request =
                 CreateTaskAssignmentRequest.newBuilder()
                         .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
                         .build();
+
         String taskAssignmentUriSuffix =
                 String.format(
                         "/taskassignment/v1/population/%1$s:create-task-assignment",
@@ -168,6 +179,7 @@ public final class HttpFederatedProtocol {
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         taskAssignmentUriSuffix,
                         HttpMethod.POST,
+                        new HashMap<>(),
                         request.toByteArray(),
                         /* isProtobufEncoded= */ true);
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
@@ -212,21 +224,37 @@ public final class HttpFederatedProtocol {
             ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture,
             TaskAssignment taskAssignment)
             throws Exception {
+
         FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
         FederatedComputeHttpResponse checkpointDataResponse =
                 Futures.getDone(checkpointDataResponseFuture);
         validateHttpResponseStatus("Fetch plan", planDataResponse);
         validateHttpResponseStatus("Fetch checkpoint", checkpointDataResponse);
+
+        // Process download ClientOnlyPlan.
+        byte[] planData = planDataResponse.getPayload();
+        if (taskAssignment.getPlan().getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP
+                || planDataResponse.isResponseCompressed()) {
+            planData = uncompressWithGzip(planData);
+        }
         ClientOnlyPlan clientOnlyPlan;
         try {
-            clientOnlyPlan = ClientOnlyPlan.parseFrom(planDataResponse.getPayload());
-
+            clientOnlyPlan = ClientOnlyPlan.parseFrom(planData);
         } catch (InvalidProtocolBufferException e) {
             LogUtil.e(TAG, e, "Could not parse ClientOnlyPlan proto");
             throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
         }
+
+        // Process download checkpoint resource.
         String inputCheckpointFile = createTempFile("input", ".ckp");
-        writeToFile(inputCheckpointFile, checkpointDataResponse.getPayload());
+        byte[] checkpointData = checkpointDataResponse.getPayload();
+        if (taskAssignment.getInitCheckpoint().getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP
+                || checkpointDataResponse.isResponseCompressed()) {
+            checkpointData = uncompressWithGzip(checkpointData);
+        }
+        writeToFile(inputCheckpointFile, checkpointData);
         return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
     }
 
@@ -268,11 +296,15 @@ public final class HttpFederatedProtocol {
             Preconditions.checkArgument(
                     !computationResult.getOutputCheckpointFile().isEmpty(),
                     "Output checkpoint file should not be empty");
-            byte[] outputBytes = readFileAsByteArray(computationResult.getOutputCheckpointFile());
             UploadInstruction uploadInstruction = reportResultResponse.getUploadInstruction();
             Preconditions.checkArgument(
                     !uploadInstruction.getUploadLocation().isEmpty(),
                     "UploadInstruction.upload_location must not be empty");
+            byte[] outputBytes = readFileAsByteArray(computationResult.getOutputCheckpointFile());
+            if (uploadInstruction.getCompressionFormat()
+                    == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
+                outputBytes = compressWithGzip(outputBytes);
+            }
             HashMap<String, String> requestHeader = new HashMap<>();
             uploadInstruction
                     .getExtraRequestHeadersMap()
@@ -292,8 +324,7 @@ public final class HttpFederatedProtocol {
                             uploadInstruction.getUploadLocation(),
                             HttpMethod.PUT,
                             requestHeader,
-                            outputBytes,
-                            /* useCompression= */ false);
+                            outputBytes);
             return mHttpClient.performRequestAsyncWithRetry(httpUploadRequest);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -322,13 +353,20 @@ public final class HttpFederatedProtocol {
             case URI:
                 Preconditions.checkArgument(
                         !resource.getUri().isEmpty(), "Resource.uri must be non-empty when set");
+                HashMap<String, String> headerList = new HashMap<>();
+                if (resource.getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
+                    // Set this header to disable decompressive transcoding when download from
+                    // Google Cloud Storage.
+                    // https://cloud.google.com/storage/docs/transcoding#decompressive_transcoding
+                    headerList.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
+                }
                 FederatedComputeHttpRequest httpRequest =
                         FederatedComputeHttpRequest.create(
                                 resource.getUri(),
                                 HttpMethod.GET,
-                                new HashMap<String, String>(),
-                                HttpClientUtil.EMPTY_BODY,
-                                /* useCompression= */ false);
+                                headerList,
+                                HttpClientUtil.EMPTY_BODY);
                 return mHttpClient.performRequestAsyncWithRetry(httpRequest);
             case INLINE_RESOURCE:
                 return Futures.immediateFailedFuture(

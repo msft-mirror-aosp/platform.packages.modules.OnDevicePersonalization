@@ -60,8 +60,7 @@ public final class HttpClientTest {
                     "https://google.com",
                     HttpMethod.GET,
                     new HashMap<>(),
-                    HttpClientUtil.EMPTY_BODY,
-                    false);
+                    HttpClientUtil.EMPTY_BODY);
     @Spy private HttpClient mHttpClient = new HttpClient();
     @Rule public MockitoRule rule = MockitoJUnit.rule();
     @Mock private HttpURLConnection mMockHttpURLConnection;
@@ -73,8 +72,7 @@ public final class HttpClientTest {
                         "https://google.com",
                         HttpMethod.POST,
                         new HashMap<>(),
-                        HttpClientUtil.EMPTY_BODY,
-                        false);
+                        HttpClientUtil.EMPTY_BODY);
         doThrow(new IOException()).when(mHttpClient).setup(ArgumentMatchers.any());
 
         assertThrows(IOException.class, () -> mHttpClient.performRequest(request));
@@ -182,8 +180,7 @@ public final class HttpClientTest {
                         "https://google.com",
                         HttpMethod.POST,
                         new HashMap<>(),
-                        "payload".getBytes(UTF_8),
-                        false);
+                        "payload".getBytes(UTF_8));
         Map<String, List<String>> mockHeaders = new HashMap<>();
         mockHeaders.put("Header1", Arrays.asList("Value1"));
         when(mMockHttpURLConnection.getOutputStream()).thenReturn(new ByteArrayOutputStream());
