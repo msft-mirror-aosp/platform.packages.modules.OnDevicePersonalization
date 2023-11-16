@@ -170,7 +170,7 @@ public final class HttpFederatedProtocol {
                         HttpMethod.POST,
                         request.toByteArray(),
                         /* isProtobufEncoded= */ true);
-        return mHttpClient.performRequestAsync(httpRequest);
+        return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
     private TaskAssignment getTaskAssignment(CreateTaskAssignmentResponse taskAssignmentResponse) {
@@ -257,7 +257,7 @@ public final class HttpFederatedProtocol {
                         HttpMethod.PUT,
                         startDataUploadRequest.toByteArray(),
                         /* isProtobufEncoded= */ true);
-        return mHttpClient.performRequestAsync(httpRequest);
+        return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse>
@@ -294,7 +294,7 @@ public final class HttpFederatedProtocol {
                             requestHeader,
                             outputBytes,
                             /* useCompression= */ false);
-            return mHttpClient.performRequestAsync(httpUploadRequest);
+            return mHttpClient.performRequestAsyncWithRetry(httpUploadRequest);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -329,7 +329,7 @@ public final class HttpFederatedProtocol {
                                 new HashMap<String, String>(),
                                 HttpClientUtil.EMPTY_BODY,
                                 /* useCompression= */ false);
-                return mHttpClient.performRequestAsync(httpRequest);
+                return mHttpClient.performRequestAsyncWithRetry(httpRequest);
             case INLINE_RESOURCE:
                 return Futures.immediateFailedFuture(
                         new UnsupportedOperationException("Inline resource is not supported yet."));

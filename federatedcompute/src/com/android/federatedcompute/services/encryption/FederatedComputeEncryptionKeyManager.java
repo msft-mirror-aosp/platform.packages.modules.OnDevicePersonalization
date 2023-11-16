@@ -154,7 +154,7 @@ public class FederatedComputeEncryptionKeyManager {
                         false
                         /* useCompression= */);
 
-        return FluentFuture.from(mHttpClient.performRequestAsync(request))
+        return FluentFuture.from(mHttpClient.performRequestAsyncWithRetry(request))
                 .transform(
                         response ->
                                 parseFetchEncryptionKeyPayload(
@@ -292,27 +292,22 @@ public class FederatedComputeEncryptionKeyManager {
      * is executed on a BlockingExecutor.
      * @return The list of active keys.
      */
-    public List<FederatedComputeEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount,
-                                                                    int retryCount) {
+    public List<FederatedComputeEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount) {
         List<FederatedComputeEncryptionKey> activeKeys = mEncryptionKeyDao
                 .getLatestExpiryNKeys(keyCount);
         if (activeKeys.size() > 0) {
             return activeKeys;
         }
-        while (retryCount > 0)  {
-            try {
-                var fetchedKeysUnused = fetchAndPersistActiveKeys(keyType,
-                        /* isScheduledJob= */ false).get(1, TimeUnit.SECONDS);
-                activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
-                if (activeKeys.size() > 0) {
-                    return activeKeys;
-                }
-            } catch (Exception e) {
-                LogUtil.e(TAG, "Exception encountered when forcing encryption key fetch: "
-                        + e.getMessage());
-            } finally {
-                retryCount -= 1;
+        try {
+            var fetchedKeysUnused = fetchAndPersistActiveKeys(keyType,
+                    /* isScheduledJob= */ false).get(1, TimeUnit.SECONDS);
+            activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
+            if (activeKeys.size() > 0) {
+                return activeKeys;
             }
+        } catch (Exception e) {
+            LogUtil.e(TAG, "Exception encountered when forcing encryption key fetch: "
+                    + e.getMessage());
         }
         return activeKeys;
     }
