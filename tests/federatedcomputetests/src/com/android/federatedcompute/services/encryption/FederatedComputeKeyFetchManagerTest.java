@@ -168,7 +168,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .setStatusCode(200)
                                         .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         List<FederatedComputeEncryptionKey> keys =
                 mFederatedComputeEncryptionKeyManager
@@ -188,7 +188,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                 .setStatusCode(200)
                                 .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         List<FederatedComputeEncryptionKey> keys =
                 mFederatedComputeEncryptionKeyManager
@@ -207,7 +207,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                         "fetchAndPersistActiveKeys keys failed.",
                                         new IllegalStateException("http 404"))))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         assertThrows(
                 ExecutionException.class,
@@ -226,7 +226,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                 "fetchAndPersistActiveKeys keys failed.",
                                 new IllegalStateException("http 404"))))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         assertThrows(
                 ExecutionException.class,
@@ -247,7 +247,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .setStatusCode(200)
                                         .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         mFederatedComputeEncryptionKeyManager.fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION,
             /* isScheduledJob= */ true).get();
@@ -280,7 +280,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                 .setStatusCode(200)
                                 .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         mFederatedComputeEncryptionKeyManager.fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION,
                 /* isScheduledJob= */ false).get();
@@ -314,7 +314,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .setStatusCode(200)
                                         .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
         long currentTime = mClock.currentTimeMillis();
         mEncryptionKeyDao.insertEncryptionKey(
                 new FederatedComputeEncryptionKey.Builder()
@@ -352,7 +352,7 @@ public class FederatedComputeKeyFetchManagerTest {
                                 .setStatusCode(200)
                                 .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
         long currentTime = mClock.currentTimeMillis();
         mEncryptionKeyDao.insertEncryptionKey(
                 new FederatedComputeEncryptionKey.Builder()
@@ -393,12 +393,12 @@ public class FederatedComputeKeyFetchManagerTest {
                                 .setStatusCode(200)
                                 .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         List<FederatedComputeEncryptionKey> keys = mFederatedComputeEncryptionKeyManager
-                .getOrFetchActiveKeys(KEY_TYPE_ENCRYPTION, /* keyCount= */ 2, /*retryCount= */ 1);
+                .getOrFetchActiveKeys(KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
 
-        verify(mMockHttpClient, times(1)).performRequestAsync(any());
+        verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
         assertThat(keys.size()).isEqualTo(1);
     }
 
@@ -421,12 +421,12 @@ public class FederatedComputeKeyFetchManagerTest {
                                 .setStatusCode(200)
                                 .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         List<FederatedComputeEncryptionKey> keys = mFederatedComputeEncryptionKeyManager
-                .getOrFetchActiveKeys(KEY_TYPE_ENCRYPTION, /* keyCount= */ 2, /*retryCount= */ 2);
+                .getOrFetchActiveKeys(KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
 
-        verify(mMockHttpClient, never()).performRequestAsync(any());
+        verify(mMockHttpClient, never()).performRequestAsyncWithRetry(any());
         assertThat(keys.size()).isEqualTo(1);
     }
 
@@ -435,15 +435,13 @@ public class FederatedComputeKeyFetchManagerTest {
         doReturn(
                 Futures.immediateFailedFuture(new InterruptedException()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
-        int retryCount = 2;
+                .performRequestAsyncWithRetry(any());
 
         List<FederatedComputeEncryptionKey> keys = mFederatedComputeEncryptionKeyManager
-                .getOrFetchActiveKeys(KEY_TYPE_ENCRYPTION, /* keyCount= */ 2,
-                        /*retryCount= */ retryCount);
+                .getOrFetchActiveKeys(KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
 
         assertThat(keys.size()).isEqualTo(0);
-        verify(mMockHttpClient, times(retryCount)).performRequestAsync(any());
+        verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
     }
 
 }

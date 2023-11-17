@@ -23,14 +23,13 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.provider.DeviceConfig;
 
-import androidx.test.runner.AndroidJUnit4;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
 /** Unit tests for {@link com.android.ondevicepersonalization.service.PhFlags} */
-@RunWith(AndroidJUnit4.class)
+@RunWith(JUnit4.class)
 public class PhFlagsTest {
     /** Get necessary permissions to access Setting.Config API and set up context */
     @Before
