@@ -61,17 +61,6 @@ public class HttpClient {
         return urlConnection;
     }
 
-    /** Perform HTTP requests based on given information asynchronously. */
-    @NonNull
-    public ListenableFuture<FederatedComputeHttpResponse> performRequestAsync(
-            FederatedComputeHttpRequest request) {
-        try {
-            return getBlockingExecutor().submit(() -> performRequest(request));
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
-        }
-    }
-
     /**
      * Perform HTTP requests based on given information asynchronously with retries in case http
      * will return not OK response code.

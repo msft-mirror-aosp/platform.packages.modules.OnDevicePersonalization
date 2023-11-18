@@ -17,8 +17,8 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.TrainingExampleInputParcel;
-import android.adservices.ondevicepersonalization.TrainingExampleOutputParcel;
+import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
+import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
 import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
 import android.content.Context;
@@ -146,8 +146,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 resumptionToken = eventState.getToken();
             }
 
-            TrainingExampleInputParcel input =
-                    new TrainingExampleInputParcel.Builder()
+            TrainingExamplesInputParcel input =
+                    new TrainingExamplesInputParcel.Builder()
                             .setResumptionToken(resumptionToken)
                             .setPopulationName(populationName)
                             .setTaskName(taskName)
@@ -155,16 +155,16 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(TASK_NAME, packageName);
-            ListenableFuture<TrainingExampleOutputParcel> resultFuture =
+            ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
-                                    result -> executeOnTrainingExample(result, input, packageName),
+                                    result -> executeOnTrainingExamples(result, input, packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
                                         return result.getParcelable(
                                                 Constants.EXTRA_RESULT,
-                                                TrainingExampleOutputParcel.class);
+                                                TrainingExamplesOutputParcel.class);
                                     },
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .withTimeout(
@@ -174,14 +174,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             Futures.addCallback(
                     resultFuture,
-                    new FutureCallback<TrainingExampleOutputParcel>() {
+                    new FutureCallback<TrainingExamplesOutputParcel>() {
                         @Override
                         public void onSuccess(
-                                TrainingExampleOutputParcel trainingExampleOutputParcel) {
+                                TrainingExamplesOutputParcel trainingExamplesOutputParcel) {
                             ByteArrayParceledListSlice trainingExamplesListSlice =
-                                    trainingExampleOutputParcel.getTrainingExamples();
+                                    trainingExamplesOutputParcel.getTrainingExamples();
                             ByteArrayParceledListSlice resumptionTokensListSlice =
-                                    trainingExampleOutputParcel.getResumptionTokens();
+                                    trainingExamplesOutputParcel.getResumptionTokens();
                             if (trainingExamplesListSlice == null
                                     || resumptionTokensListSlice == null) {
                                 callback.onStartQuerySuccess(
@@ -219,11 +219,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         }
     }
 
-    private ListenableFuture<Bundle> executeOnTrainingExample(
+    private ListenableFuture<Bundle> executeOnTrainingExamples(
             IsolatedServiceInfo isolatedServiceInfo,
-            TrainingExampleInputParcel exampleInput,
+            TrainingExamplesInputParcel exampleInput,
             String packageName) {
-        sLogger.d(TAG + ": executeOnTrainingExample() started.");
+        sLogger.d(TAG + ": executeOnTrainingExamples() started.");
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
         DataAccessServiceImpl binder =

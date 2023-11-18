@@ -34,8 +34,8 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
-import android.adservices.ondevicepersonalization.TrainingExampleInput;
-import android.adservices.ondevicepersonalization.TrainingExampleOutput;
+import android.adservices.ondevicepersonalization.TrainingExamplesInput;
+import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.UserData;
 import android.content.ContentValues;
@@ -146,42 +146,37 @@ public class SampleHandler implements IsolatedWorker {
         consumer.accept(downloadResult);
     }
 
-    @Override public void onExecute(
-            @NonNull ExecuteInput input,
-            @NonNull Consumer<ExecuteOutput> consumer
-    ) {
+    @Override
+    public void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
         Log.d(TAG, "onExecute() started.");
         sBackgroundExecutor.execute(() -> handleOnExecute(input, consumer));
     }
 
-    @Override public void onTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
-        Log.d(TAG, "onTrainingExample() started.");
-        sBackgroundExecutor.execute(() -> handleOnTrainingExample(input, consumer));
+    @Override
+    public void onTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+        Log.d(TAG, "onTrainingExamples() started.");
+        sBackgroundExecutor.execute(() -> handleOnTrainingExamples(input, consumer));
     }
 
-    @Override public void onRender(
-            @NonNull RenderInput input,
-            @NonNull Consumer<RenderOutput> consumer
-    ) {
+    @Override
+    public void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
         Log.d(TAG, "onRender() started.");
         sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
-    @Override public void onEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer) {
+    @Override
+    public void onEvent(@NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
         Log.d(TAG, "onEvent() started.");
-        sBackgroundExecutor.execute(
-                () -> handleOnWebViewEvent(input, consumer));
+        sBackgroundExecutor.execute(() -> handleOnWebViewEvent(input, consumer));
     }
 
     private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
         Log.d(TAG, "readAds() called.");
         try {
             ArrayList<Ad> ads = new ArrayList<>();
-            for (var key: remoteData.keySet()) {
+            for (var key : remoteData.keySet()) {
                 if (!key.startsWith("ad")) {
                     continue;
                 }
@@ -292,13 +287,13 @@ public class SampleHandler implements IsolatedWorker {
 
     static Feature convertLongToFeature(long value) {
         return Feature.newBuilder()
-            .setInt64List(Int64List.newBuilder().addValue(value).build())
-            .build();
+                .setInt64List(Int64List.newBuilder().addValue(value).build())
+                .build();
     }
 
-    private void handleOnTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
+    private void handleOnTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
         Features.Builder featuresBuilder = Features.newBuilder();
 
         featuresBuilder.putFeature("int-feature-1", convertLongToFeature(0L));
@@ -345,10 +340,11 @@ public class SampleHandler implements IsolatedWorker {
         featuresBuilder.putFeature("clicked", convertLongToFeature(1L));
 
         Example example = Example.newBuilder().setFeatures(featuresBuilder.build()).build();
-        TrainingExampleOutput result = new TrainingExampleOutput
-                .Builder()
-                .addTrainingExample(example.toByteArray())
-                .addResumptionToken("token1".getBytes()).build();
+        TrainingExamplesOutput result =
+                new TrainingExamplesOutput.Builder()
+                        .addTrainingExample(example.toByteArray())
+                        .addResumptionToken("token1".getBytes())
+                        .build();
         consumer.accept(result);
     }
 

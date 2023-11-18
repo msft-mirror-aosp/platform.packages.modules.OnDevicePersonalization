@@ -36,6 +36,7 @@ public class RequestAdAndClickAd {
     @BeforeClass
     public static void prepareDevice() throws IOException {
         TestAppHelper.initialize();
+        TestAppHelper.killRunningProcess();
     }
 
     @Before

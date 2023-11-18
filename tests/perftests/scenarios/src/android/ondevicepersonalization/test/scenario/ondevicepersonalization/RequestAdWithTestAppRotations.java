@@ -37,6 +37,7 @@ public class RequestAdWithTestAppRotations {
     @BeforeClass
     public static void prepareDevice() throws IOException {
         TestAppHelper.initialize();
+        TestAppHelper.killRunningProcess();
     }
 
     @Before
