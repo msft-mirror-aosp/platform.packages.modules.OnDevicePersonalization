@@ -81,9 +81,30 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
   }
 
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class FederatedComputeInput {
+    method @NonNull public String getPopulationName();
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static final class FederatedComputeInput.Builder {
+    ctor public FederatedComputeInput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeInput build();
+    method @NonNull public android.adservices.ondevicepersonalization.FederatedComputeInput.Builder setPopulationName(@NonNull String);
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public class FederatedComputeScheduler {
+    method @WorkerThread public void cancel(@NonNull String);
+    method @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduler.Params, @NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static class FederatedComputeScheduler.Params {
+    ctor public FederatedComputeScheduler.Params(@NonNull android.adservices.ondevicepersonalization.TrainingInterval);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingInterval getTrainingInterval();
+  }
+
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public abstract class IsolatedService extends android.app.Service {
     ctor public IsolatedService();
     method @NonNull public final android.adservices.ondevicepersonalization.EventUrlProvider getEventUrlProvider(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+    method @NonNull public final android.adservices.ondevicepersonalization.FederatedComputeScheduler getFederatedComputeScheduler(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.MutableKeyValueStore getLocalData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.LogReader getLogReader(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.KeyValueStore getRemoteData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
@@ -97,6 +118,7 @@ package android.adservices.ondevicepersonalization {
     method public default void onEvent(@NonNull android.adservices.ondevicepersonalization.EventInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.EventOutput>);
     method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
     method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
+    method public default void onTrainingExamples(@NonNull android.adservices.ondevicepersonalization.TrainingExamplesInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.TrainingExamplesOutput>);
   }
 
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public interface KeyValueStore {
@@ -178,6 +200,40 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public class SurfacePackageToken {
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class TrainingExamplesInput {
+    method @NonNull public String getPopulationName();
+    method @Nullable public byte[] getResumptionToken();
+    method @NonNull public String getTaskName();
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class TrainingExamplesOutput {
+    method @NonNull public java.util.List<byte[]> getResumptionTokens();
+    method @NonNull public java.util.List<byte[]> getTrainingExamples();
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static final class TrainingExamplesOutput.Builder {
+    ctor public TrainingExamplesOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder addResumptionToken(@NonNull byte[]);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder addTrainingExample(@NonNull byte[]);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder setResumptionTokens(@NonNull java.util.List<byte[]>);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder setTrainingExamples(@NonNull java.util.List<byte[]>);
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class TrainingInterval {
+    method @NonNull public java.time.Duration getMinimumInterval();
+    method public int getSchedulingMode();
+    field public static final int SCHEDULING_MODE_ONE_TIME = 1; // 0x1
+    field public static final int SCHEDULING_MODE_RECURRENT = 2; // 0x2
+  }
+
+  @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public static final class TrainingInterval.Builder {
+    ctor public TrainingInterval.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingInterval build();
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingInterval.Builder setMinimumInterval(@NonNull java.time.Duration);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingInterval.Builder setSchedulingMode(int);
   }
 
   @FlaggedApi(android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS) public final class UserData implements android.os.Parcelable {

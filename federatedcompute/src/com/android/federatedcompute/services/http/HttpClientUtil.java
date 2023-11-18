@@ -21,23 +21,25 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
 /** Utility class containing http related variable e.g. headers, method. */
 public final class HttpClientUtil {
     private static final String TAG = HttpClientUtil.class.getSimpleName();
-    public static final String IDENTITY_ENCODING_HDR = "identity";
     public static final String CONTENT_ENCODING_HDR = "Content-Encoding";
+
+    public static final String ACCEPT_ENCODING_HDR = "Accept-Encoding";
     public static final String CONTENT_LENGTH_HDR = "Content-Length";
     public static final String GZIP_ENCODING_HDR = "gzip";
-    public static final String API_KEY_HDR = "x-goog-api-key";
     public static final String CONTENT_TYPE_HDR = "Content-Type";
     public static final String PROTOBUF_CONTENT_TYPE = "application/x-protobuf";
     public static final String OCTET_STREAM = "application/octet-stream";
-    public static final String CLIENT_DECODE_GZIP_SUFFIX = "+gzip";
     public static final ImmutableSet<Integer> HTTP_OK_STATUS = ImmutableSet.of(200, 201);
-    public static final String FAKE_API_KEY = "FAKE_API_KEY";
+    public static final String ODP_IDEMPOTENCY_KEY = "odp-idempotency-key";
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final byte[] EMPTY_BODY = new byte[0];
 
@@ -57,7 +59,24 @@ public final class HttpClientUtil {
             return outputStream.toByteString().toByteArray();
         } catch (IOException e) {
             LogUtil.e(TAG, "Failed to compress using Gzip");
-            throw new IllegalArgumentException("Failed to compress using Gzip", e);
+            throw new IllegalStateException("Failed to compress using Gzip", e);
+        }
+    }
+
+    /** Uncompresses the input data using Gzip. */
+    public static byte[] uncompressWithGzip(byte[] data) {
+        try (ByteArrayInputStream inputStream = new ByteArrayInputStream(data);
+                GZIPInputStream gzip = new GZIPInputStream(inputStream);
+                ByteArrayOutputStream result = new ByteArrayOutputStream()) {
+            int length;
+            byte[] buffer = new byte[DEFAULT_BUFFER_SIZE];
+            while ((length = gzip.read(buffer, 0, DEFAULT_BUFFER_SIZE)) > 0) {
+                result.write(buffer, 0, length);
+            }
+            return result.toByteArray();
+        } catch (Exception e) {
+            LogUtil.e(TAG, "Failed to decompress the data.", e);
+            throw new IllegalStateException("Failed to unscompress using Gzip", e);
         }
     }
 

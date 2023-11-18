@@ -82,7 +82,8 @@ public class BackgroundKeyFetchJobService extends JobService {
         }
         mInjector
                 .getEncryptionKeyManager(this)
-                .fetchAndPersistActiveKeys(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
+                .fetchAndPersistActiveKeys(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION,
+                        /* isScheduledJob= */ true)
                 .addCallback(
                         new FutureCallback<List<FederatedComputeEncryptionKey>>() {
                             @Override

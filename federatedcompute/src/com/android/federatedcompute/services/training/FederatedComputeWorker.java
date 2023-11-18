@@ -268,7 +268,7 @@ public class FederatedComputeWorker {
                                 mInjector.getBgExecutor());
 
         // 4. Report computation result to federated compute server.
-        ListenableFuture<Void> reportToServerFuture =
+        ListenableFuture<RejectionInfo> reportToServerFuture =
                 computationResultFuture.transformAsync(
                         result -> mHttpFederatedProtocol.reportResult(result),
                         getLightweightExecutor());
@@ -277,7 +277,32 @@ public class FederatedComputeWorker {
                         () -> {
                             ComputationResult computationResult =
                                     Futures.getDone(computationResultFuture);
-                            var reportToServer = Futures.getDone(reportToServerFuture);
+                            RejectionInfo reportToServer = Futures.getDone(reportToServerFuture);
+                            if (reportToServer != null) {
+                                ComputationResult failedReportComputationResult =
+                                        new ComputationResult(
+                                                null,
+                                                FLRunnerResult.newBuilder()
+                                                        .mergeFrom(
+                                                                computationResult
+                                                                        .getFlRunnerResult())
+                                                        .setContributionResult(
+                                                                ContributionResult.FAIL)
+                                                        .build(),
+                                                null);
+                                var unused =
+                                        mResultCallbackHelper.callHandleResult(
+                                                run.mTaskName,
+                                                run.mTask,
+                                                failedReportComputationResult);
+                                mJobManager.onTrainingCompleted(
+                                        run.mTask.jobId(),
+                                        run.mTask.populationName(),
+                                        run.mTask.getTrainingIntervalOptions(),
+                                        buildTaskRetry(reportToServer),
+                                        ContributionResult.FAIL);
+                                return null;
+                            }
                             // 5. Publish computation result and consumed
                             // examples to client implemented
                             // ResultHandlingService.
