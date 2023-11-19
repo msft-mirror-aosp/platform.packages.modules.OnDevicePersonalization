@@ -132,7 +132,7 @@ public class BackgroundKeyFetchJobServiceTest {
         List<FederatedComputeEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION);
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
 
         mSpyService.run(mock(JobParameters.class));
 
@@ -151,7 +151,7 @@ public class BackgroundKeyFetchJobServiceTest {
                                                 " Failed to fetch keys",
                                                 new IllegalStateException("http 404")))))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION);
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
 
         mSpyService.run(mock(JobParameters.class));
 
@@ -202,13 +202,14 @@ public class BackgroundKeyFetchJobServiceTest {
         List<FederatedComputeEncryptionKey> emptyKeyList = List.of();
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
-                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION);
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
 
         mSpyService.run(mock(JobParameters.class));
 
         verify(mSpyService, times(1)).onStartJob(any());
         verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
-        verify(keyManager, never()).fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION);
+        verify(keyManager, never()).fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION,
+                /* isScheduledJob= */ true);
     }
 
     @Test
