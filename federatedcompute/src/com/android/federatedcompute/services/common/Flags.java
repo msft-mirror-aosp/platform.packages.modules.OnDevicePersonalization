@@ -141,14 +141,14 @@ public interface Flags {
         return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
     }
 
-    // TODO: Add Ph Flag to enable. Current URI is a fake one.
-    String ENCRYPTION_KEY_FETCH_URI = "https://fake-coordinator/v1alpha/publicKeys";
+    String ENCRYPTION_KEY_FETCH_URL =
+            "https://fake-coordinator/v1alpha/publicKeys";
 
     /**
-     * @return Uri to fetch encryption key for federated compute.
+     * @return Url to fetch encryption key for federated compute.
      */
-    default String getEncryptionKeyFetchUri() {
-        return ENCRYPTION_KEY_FETCH_URI;
+    default String getEncryptionKeyFetchUrl() {
+        return ENCRYPTION_KEY_FETCH_URL;
     }
 
     Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS =

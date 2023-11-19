@@ -140,9 +140,9 @@ public class FederatedComputeEncryptionKeyManager {
      */
     public FluentFuture<List<FederatedComputeEncryptionKey>> fetchAndPersistActiveKeys(
             @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
-        String fetchUri = mFlags.getEncryptionKeyFetchUri();
+        String fetchUri = mFlags.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
-            throw new IllegalArgumentException("Uri to fetch active encryption keys is null");
+            throw new IllegalArgumentException("Url to fetch active encryption keys is null");
         }
 
         FederatedComputeHttpRequest request =
