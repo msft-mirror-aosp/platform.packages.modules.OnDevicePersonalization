@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /** Class to manage key fetch. */
 public class FederatedComputeEncryptionKeyManager {
@@ -138,10 +139,10 @@ public class FederatedComputeEncryptionKeyManager {
      * deletes expired keys
      */
     public FluentFuture<List<FederatedComputeEncryptionKey>> fetchAndPersistActiveKeys(
-            @FederatedComputeEncryptionKey.KeyType int keyType) {
-        String fetchUri = mFlags.getEncryptionKeyFetchUri();
+            @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
+        String fetchUri = mFlags.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
-            throw new IllegalArgumentException("Uri to fetch active encryption keys is null");
+            throw new IllegalArgumentException("Url to fetch active encryption keys is null");
         }
 
         FederatedComputeHttpRequest request =
@@ -149,11 +150,9 @@ public class FederatedComputeEncryptionKeyManager {
                         fetchUri,
                         HttpClientUtil.HttpMethod.GET,
                         new HashMap<String, String>(),
-                        HttpClientUtil.EMPTY_BODY,
-                        false
-                        /* useCompression= */);
+                        HttpClientUtil.EMPTY_BODY);
 
-        return FluentFuture.from(mHttpClient.performRequestAsync(request))
+        return FluentFuture.from(mHttpClient.performRequestAsyncWithRetry(request))
                 .transform(
                         response ->
                                 parseFetchEncryptionKeyPayload(
@@ -162,7 +161,11 @@ public class FederatedComputeEncryptionKeyManager {
                 .transform(
                         result -> {
                             result.forEach(mEncryptionKeyDao::insertEncryptionKey);
-                            mEncryptionKeyDao.deleteExpiredKeys();
+                            if (isScheduledJob) {
+                                // When the job is a background scheduled job, delete the expired
+                                // keys, otherwise, only fetch from the key server.
+                                mEncryptionKeyDao.deleteExpiredKeys();
+                            }
                             return result;
                         },
                         mBackgroundExecutor); // TODO: Add timeout controlled by Ph flags
@@ -254,7 +257,7 @@ public class FederatedComputeEncryptionKeyManager {
             return 0;
         }
 
-        String[] tokens = cacheControl.split(",", 0 /* limit= */);
+        String[] tokens = cacheControl.split(",", /* limit= */ 0);
         long maxAge = 0;
         for (String s : tokens) {
             String token = s.trim();
@@ -264,10 +267,9 @@ public class FederatedComputeEncryptionKeyManager {
                     maxAge =
                             Long.parseLong(
                                     token.substring(
-                                            EncryptionKeyResponseContract
+                                            /* beginIndex= */ EncryptionKeyResponseContract
                                                     .RESPONSE_HEADER_CACHE_CONTROL_MAX_AGE_LABEL
-                                                    .length()
-                                            /* beginIndex= */)); // in the format of
+                                                    .length())); // in the format of
                     // "max-age=<number>"
                 } catch (NumberFormatException e) {
                     LogUtil.d(TAG, "Failed to parse max-age value");
@@ -280,5 +282,30 @@ public class FederatedComputeEncryptionKeyManager {
             return 0;
         }
         return maxAge - cachedAge;
+    }
+
+    /** Get active keys, if there is no active key, then force a fetch from the key service.
+     * In the case of key fetching from the key service, the http call
+     * is executed on a BlockingExecutor.
+     * @return The list of active keys.
+     */
+    public List<FederatedComputeEncryptionKey> getOrFetchActiveKeys(int keyType, int keyCount) {
+        List<FederatedComputeEncryptionKey> activeKeys = mEncryptionKeyDao
+                .getLatestExpiryNKeys(keyCount);
+        if (activeKeys.size() > 0) {
+            return activeKeys;
+        }
+        try {
+            var fetchedKeysUnused = fetchAndPersistActiveKeys(keyType,
+                    /* isScheduledJob= */ false).get(1, TimeUnit.SECONDS);
+            activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
+            if (activeKeys.size() > 0) {
+                return activeKeys;
+            }
+        } catch (Exception e) {
+            LogUtil.e(TAG, "Exception encountered when forcing encryption key fetch: "
+                    + e.getMessage());
+        }
+        return activeKeys;
     }
 }
