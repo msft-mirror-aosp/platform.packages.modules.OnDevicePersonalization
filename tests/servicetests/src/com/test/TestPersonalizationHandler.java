@@ -29,8 +29,8 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
-import android.adservices.ondevicepersonalization.TrainingExampleInput;
-import android.adservices.ondevicepersonalization.TrainingExampleOutput;
+import android.adservices.ondevicepersonalization.TrainingExamplesInput;
+import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.util.Log;
@@ -140,10 +140,10 @@ public class TestPersonalizationHandler implements IsolatedWorker {
     }
 
     @Override
-    public void onTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
-        Log.d(TAG, "onTrainingExample() started.");
+    public void onTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+        Log.d(TAG, "onTrainingExamples() started.");
         Log.d(TAG, "Population name: " + input.getPopulationName());
         Log.d(TAG, "Task name: " + input.getTaskName());
 
@@ -154,8 +154,8 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         tokens.add("token1".getBytes());
         tokens.add("token2".getBytes());
 
-        TrainingExampleOutput output =
-                new TrainingExampleOutput.Builder()
+        TrainingExamplesOutput output =
+                new TrainingExamplesOutput.Builder()
                         .setTrainingExamples(examples)
                         .setResumptionTokens(tokens)
                         .build();
