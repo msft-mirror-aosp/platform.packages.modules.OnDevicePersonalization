@@ -43,7 +43,7 @@ public final class ProtocolRequestCreatorTest {
     @Test
     public void testCreateProtobufEncodedRequest() {
         ProtocolRequestCreator requestCreator =
-                new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>(), false);
+                new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>());
 
         FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
@@ -63,9 +63,7 @@ public final class ProtocolRequestCreatorTest {
         IllegalArgumentException exception =
                 assertThrows(
                         IllegalArgumentException.class,
-                        () ->
-                                ProtocolRequestCreator.create(
-                                        ForwardingInfo.getDefaultInstance(), false));
+                        () -> ProtocolRequestCreator.create(ForwardingInfo.getDefaultInstance()));
 
         assertThat(exception)
                 .hasMessageThat()
@@ -75,7 +73,7 @@ public final class ProtocolRequestCreatorTest {
     @Test
     public void testCreateProtocolRequestInvalidSuffix() {
         ProtocolRequestCreator requestCreator =
-                new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>(), false);
+                new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>());
 
         IllegalArgumentException exception =
                 assertThrows(
@@ -93,8 +91,7 @@ public final class ProtocolRequestCreatorTest {
     public void testCreateProtocolRequestWithForwardingInfo() {
         ForwardingInfo forwardingInfo =
                 ForwardingInfo.newBuilder().setTargetUriPrefix(AGGREGATION_TARGET_URI).build();
-        ProtocolRequestCreator requestCreator =
-                ProtocolRequestCreator.create(forwardingInfo, false);
+        ProtocolRequestCreator requestCreator = ProtocolRequestCreator.create(forwardingInfo);
 
         FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(
@@ -106,7 +103,7 @@ public final class ProtocolRequestCreatorTest {
     @Test
     public void testCreateProtoRequest() {
         ProtocolRequestCreator requestCreator =
-                new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>(), false);
+                new ProtocolRequestCreator(REQUEST_BASE_URI, new HashMap<String, String>());
 
         FederatedComputeHttpRequest request =
                 requestCreator.createProtoRequest(

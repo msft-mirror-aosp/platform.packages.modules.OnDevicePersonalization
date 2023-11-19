@@ -17,7 +17,7 @@ package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
 
 import android.platform.test.scenario.annotation.Scenario;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -28,34 +28,38 @@ import java.io.IOException;
 
 @Scenario
 @RunWith(JUnit4.class)
-public class DownloadVendorData {
+public class ReportConversion {
 
-    private DownloadHelper mDownloadHelper = new DownloadHelper();
+    private TestAppHelper mTestAppHelper = new TestAppHelper();
 
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
-        DownloadHelper.initialize();
-        DownloadHelper.killRunningProcess();
+        TestAppHelper.initialize();
+        TestAppHelper.killRunningProcess();
     }
+
     @Before
-    public void setUp() throws IOException {
-        mDownloadHelper.pressHome();
+    public void setup() throws IOException {
+        mTestAppHelper.openApp();
     }
 
     @Test
-    public void testDownloadVendorData() throws IOException {
-        mDownloadHelper.downloadVendorData();
-        mDownloadHelper.processDownloadedVendorData();
+    public void testReportConversion() throws IOException {
+        mTestAppHelper.clickGetAd();
+        mTestAppHelper.verifyRenderedView();
+        mTestAppHelper.clickAd("Google!");
+        mTestAppHelper.openApp();
+        mTestAppHelper.inputSourceAdId("ad1");
+        mTestAppHelper.resetLogBuffer();
+        mTestAppHelper.clickReportConversion();
+        mTestAppHelper.verifyConversionReported();
     }
 
-    @After
-    public void tearDown() throws IOException {
-        mDownloadHelper.uninstallVendorApk();
-        mDownloadHelper.cleanupDatabase();
-        mDownloadHelper.cleanupDownloadedMetadata();
-        mDownloadHelper.pressHome();
-        mDownloadHelper.wrapUp();
+    /** Return device to original state after test exeuction */
+    @AfterClass
+    public static void tearDown() throws IOException {
+        TestAppHelper.goToHomeScreen();
+        TestAppHelper.wrapUp();
     }
-
 }

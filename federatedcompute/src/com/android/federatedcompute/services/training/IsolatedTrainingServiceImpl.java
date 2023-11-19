@@ -135,12 +135,16 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
                         ArrayList<ExampleConsumption> exampleConsumptionArrayList =
                                 recorder.finishRecordingAndGet();
+                        int numExamples = 0;
+                        for (ExampleConsumption exampleConsumption : exampleConsumptionArrayList) {
+                            numExamples += exampleConsumption.getExampleCount();
+                        }
                         LogUtil.i(
                                 TAG,
                                 "training task %s: result %s, used %d examples",
                                 populationName,
                                 result.toString(),
-                                exampleConsumptionArrayList.size());
+                                numExamples);
                         bundle.putParcelableArrayList(
                                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
                                 exampleConsumptionArrayList);

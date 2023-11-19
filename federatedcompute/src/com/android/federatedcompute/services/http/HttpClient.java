@@ -45,6 +45,7 @@ import java.util.concurrent.TimeUnit;
  */
 public class HttpClient {
     private static final String TAG = HttpClient.class.getSimpleName();
+    private static final int RETRY_LIMIT = 3;
     private static final int NETWORK_CONNECT_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(5);
     private static final int NETWORK_READ_TIMEOUT_MS = (int) TimeUnit.SECONDS.toMillis(30);
 
@@ -60,15 +61,43 @@ public class HttpClient {
         return urlConnection;
     }
 
-    /** Perform HTTP requests based on given information asynchronously. */
+    /**
+     * Perform HTTP requests based on given information asynchronously with retries in case http
+     * will return not OK response code.
+     */
     @NonNull
-    public ListenableFuture<FederatedComputeHttpResponse> performRequestAsync(
+    public ListenableFuture<FederatedComputeHttpResponse> performRequestAsyncWithRetry(
             FederatedComputeHttpRequest request) {
         try {
-            return getBlockingExecutor().submit(() -> performRequest(request));
+            return getBlockingExecutor().submit(() -> performRequestWithRetry(request));
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    /** Perform HTTP requests based on given information with retries. */
+    @NonNull
+    public FederatedComputeHttpResponse performRequestWithRetry(FederatedComputeHttpRequest request)
+            throws IOException {
+        int count = 0;
+        FederatedComputeHttpResponse response = null;
+        while (count < RETRY_LIMIT) {
+            try {
+                response = performRequest(request);
+                if (HTTP_OK_STATUS.contains(response.getStatusCode())) {
+                    return response;
+                }
+                // we want to continue retry in case it is IO exception.
+            } catch (IOException e) {
+                // propagate IO exception after RETRY_LIMIT times attempt.
+                if (count >= RETRY_LIMIT - 1) {
+                    throw e;
+                }
+            } finally {
+                count++;
+            }
+        }
+        return response;
     }
 
     /** Perform HTTP requests based on given information. */
@@ -93,7 +122,7 @@ public class HttpClient {
             urlConnection = (HttpURLConnection) setup(url);
         } catch (IOException e) {
             LogUtil.e(TAG, e, "Failed to open target URL");
-            throw new IllegalArgumentException("Failed to open target URL", e);
+            throw new IOException("Failed to open target URL", e);
         }
 
         try {

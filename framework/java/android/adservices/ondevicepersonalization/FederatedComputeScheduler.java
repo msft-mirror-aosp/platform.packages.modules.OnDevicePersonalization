@@ -16,8 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.federatedcompute.common.TrainingOptions;
@@ -28,10 +31,10 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Handles scheduling Federated Learning and Federated Analytics jobs.
- *
- * @hide
+ * Handles scheduling federated compute jobs. See {@link
+ * IsolatedService#getFederatedComputeScheduler}.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class FederatedComputeScheduler {
     private static final String TAG = FederatedComputeScheduler.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -44,14 +47,15 @@ public class FederatedComputeScheduler {
     }
 
     // TODO(b/300461799): add federated compute server document.
+    // TODO(b/269665435): add sample code snippet.
     /**
-     * Schedule a federated computation job.
+     * Schedules a federated compute job. In {@link IsolatedService#onRequest}, the app can call
+     * {@link IsolatedService#getFederatedComputeScheduler} to pass scheduler when construct {@link
+     * IsolatedWorker}.
      *
      * @param params parameters related to job scheduling.
-     * @param input the configuration of the federated computation. It should be consistent with
-     *     the federated computation server setup.
-     * @throws IllegalArgumentException caused by caller supplied invalid input argument.
-     * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
+     * @param input the configuration of the federated compute. It should be consistent with the
+     *     federated compute server setup.
      */
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
@@ -94,7 +98,10 @@ public class FederatedComputeScheduler {
     }
 
     /**
-     * Cancel a federated computation job with input training params.
+     * Cancels a federated compute job with input training params. In {@link
+     * IsolatedService#onRequest}, the app can call {@link
+     * IsolatedService#getFederatedComputeScheduler} to pass scheduler when construct {@link
+     * IsolatedWorker}.
      *
      * @param populationName population name of the job that caller wants to cancel
      * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
@@ -141,6 +148,7 @@ public class FederatedComputeScheduler {
     }
 
     /** The parameters related to job scheduling. */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     public static class Params {
         /**
          * If training interval is scheduled for recurrent tasks, the earliest time this task could
