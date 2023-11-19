@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -58,5 +59,19 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getGlobalKillSwitch()).isEqualTo(phOverridingValue);
+    }
+
+    @Test
+    public void testGetEncryptionKeyFetchUrl() {
+        // Now overriding with the value from PH.
+        String overrideUrl = "https://real-coordinator/v1alpha/publicKeys";
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL,
+                overrideUrl,
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getEncryptionKeyFetchUrl()).isEqualTo(overrideUrl);
     }
 }
