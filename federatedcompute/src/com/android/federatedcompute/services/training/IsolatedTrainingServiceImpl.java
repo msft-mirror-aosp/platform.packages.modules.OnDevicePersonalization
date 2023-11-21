@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.federatedcompute.services.common.Constants.TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING;
+
 import android.annotation.NonNull;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.common.ClientConstants;
@@ -23,6 +25,7 @@ import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
+import android.os.Trace;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
@@ -70,6 +73,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     public void runFlTraining(@NonNull Bundle params, @NonNull ITrainingResultCallback callback) {
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
+        Trace.beginAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
 
         IExampleStoreIterator exampleStoreIteratorBinder =
                 IExampleStoreIterator.Stub.asInterface(
@@ -149,6 +153,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
                                 exampleConsumptionArrayList);
                         sendResult(bundle, callback);
+                        Trace.endAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
                     }
 
                     @Override
