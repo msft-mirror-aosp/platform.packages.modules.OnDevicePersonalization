@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_ISSUE_CHECKIN;
+import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_REPORT_RESULT;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
@@ -27,6 +29,8 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
 import static com.android.federatedcompute.services.http.HttpClientUtil.uncompressWithGzip;
+
+import android.os.Trace;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
@@ -84,6 +88,7 @@ public final class HttpFederatedProtocol {
 
     /** Helper function to perform check in and download federated task from remote servers. */
     public ListenableFuture<CheckinResult> issueCheckin() {
+        Trace.beginAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
         return FluentFuture.from(createTaskAssignment())
                 .transformAsync(
                         federatedComputeHttpResponse -> {
@@ -129,6 +134,7 @@ public final class HttpFederatedProtocol {
 
     /** Helper functions to reporting result and upload result. */
     public FluentFuture<RejectionInfo> reportResult(ComputationResult computationResult) {
+        Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
         if (computationResult != null && computationResult.isResultSuccess()) {
             return FluentFuture.from(performReportResult(computationResult))
                     .transformAsync(
@@ -146,6 +152,8 @@ public final class HttpFederatedProtocol {
                                                 resp -> {
                                                     validateHttpResponseStatus(
                                                             "Upload result", resp);
+                                                    Trace.endAsyncSection(
+                                                            TRACE_HTTP_REPORT_RESULT, 0);
                                                     return null;
                                                 },
                                                 getLightweightExecutor());
@@ -260,6 +268,7 @@ public final class HttpFederatedProtocol {
             checkpointData = uncompressWithGzip(checkpointData);
         }
         writeToFile(inputCheckpointFile, checkpointData);
+        Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
         return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
     }
 
@@ -366,6 +375,7 @@ public final class HttpFederatedProtocol {
                     // https://cloud.google.com/storage/docs/transcoding#decompressive_transcoding
                     headerList.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
                 }
+                LogUtil.d(TAG, "start fetch task resources");
                 FederatedComputeHttpRequest httpRequest =
                         FederatedComputeHttpRequest.create(
                                 resource.getUri(),
