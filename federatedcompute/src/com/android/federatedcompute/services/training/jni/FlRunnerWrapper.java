@@ -16,6 +16,10 @@
 
 package com.android.federatedcompute.services.training.jni;
 
+import static com.android.federatedcompute.services.common.Constants.TRACE_NATIVE_RUN_FEDERATED_COMPUTATION;
+
+import android.os.Trace;
+
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.examplestore.ExampleIterator;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
@@ -57,6 +61,7 @@ public final class FlRunnerWrapper implements Closeable {
             ClientOnlyPlan clientOnlyPlan,
             String checkpointInputFileName,
             String checkpointOutputFileName) {
+        Trace.beginAsyncSection(TRACE_NATIVE_RUN_FEDERATED_COMPUTATION, 0);
         SimpleTaskEnvironmentImpl simpleTaskEnv =
                 new SimpleTaskEnvironmentImpl(mInterruptionFlag, mExampleIterator);
         byte[] flRunnerResultSerialized =
@@ -77,6 +82,8 @@ public final class FlRunnerWrapper implements Closeable {
             // recover from it.
             LogUtil.e(TAG, "Cannot parse FLRunnerResult", e);
             throw new IllegalArgumentException(e);
+        } finally {
+            Trace.endAsyncSection(TRACE_NATIVE_RUN_FEDERATED_COMPUTATION, 0);
         }
     }
 

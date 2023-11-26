@@ -18,6 +18,8 @@ package com.android.federatedcompute.services.training;
 
 import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
 import static com.android.federatedcompute.services.common.Constants.ISOLATED_TRAINING_SERVICE_NAME;
+import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_RUN_FL_COMPUTATION;
+import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_START_TRAINING_RUN;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
@@ -33,6 +35,7 @@ import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.os.Trace;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
@@ -160,6 +163,7 @@ public class FederatedComputeWorker {
             int jobId, FederatedTrainingTask trainingTask) {
         synchronized (mLock) {
             // Only allows one concurrent job running.
+            Trace.beginAsyncSection(TRACE_WORKER_START_TRAINING_RUN, jobId);
             TrainingRun run = new TrainingRun(jobId, trainingTask);
             mActiveRun = run;
             ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
@@ -168,6 +172,8 @@ public class FederatedComputeWorker {
                             .call(
                                     () -> {
                                         unBindServicesIfNecessary(run);
+                                        Trace.endAsyncSection(
+                                                TRACE_WORKER_START_TRAINING_RUN, jobId);
                                         return null;
                                     },
                                     mInjector.getBgExecutor());
@@ -445,6 +451,7 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult,
             String outputCheckpointFile,
             IExampleStoreIterator iterator) {
+        Trace.beginAsyncSection(TRACE_WORKER_RUN_FL_COMPUTATION, 0);
         ParcelFileDescriptor outputCheckpointFd =
                 createTempFileDescriptor(
                         outputCheckpointFile, ParcelFileDescriptor.MODE_READ_WRITE);
@@ -510,6 +517,7 @@ public class FederatedComputeWorker {
                                     unbindFromIsolatedTrainingService();
                                     run.mIsolatedTrainingService = null;
                                 }
+                                Trace.endAsyncSection(TRACE_WORKER_RUN_FL_COMPUTATION, 0);
                                 return computationResult;
                             },
                             getLightweightExecutor());
