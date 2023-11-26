@@ -70,6 +70,22 @@ public class TestHelper {
         executeShellCommand(
                 "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
                     + "com.google.android.federatedcompute");
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1000");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1006");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1003");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1004");
+        SystemClock.sleep(5000);
     }
 
     /** Kill running processes to get performance measurement under cold start */
