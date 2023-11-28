@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
@@ -24,6 +25,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_ON
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -132,5 +134,23 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getPersonalizationStatusOverrideValue()).isEqualTo(phOverridingValue);
+    }
+
+    @Test
+    public void testGetTrustedPartnerAppsList() {
+        assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                .isEqualTo(DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+
+        final String testTrustedPartnerAppsList =
+                "trusted_test_app_1, trusted_test_app_2, trusted_test_app_3";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_TRUSTED_PARTNER_APPS_LIST,
+                testTrustedPartnerAppsList,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                .isEqualTo(testTrustedPartnerAppsList);
     }
 }
