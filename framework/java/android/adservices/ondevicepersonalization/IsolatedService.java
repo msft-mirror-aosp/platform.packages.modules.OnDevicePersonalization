@@ -187,7 +187,6 @@ public abstract class IsolatedService extends Service {
      * @return An {@link FederatedComputeScheduler} that returns a federated computation job
      *     scheduler.
      * @see #onRequest(RequestToken)
-     * @hide
      */
     @NonNull
     public final FederatedComputeScheduler getFederatedComputeScheduler(
@@ -320,10 +319,11 @@ public abstract class IsolatedService extends Service {
                             resultCallback, requestToken, v -> new EventOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
-                TrainingExampleInput input =
+                TrainingExamplesInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, TrainingExampleInput.class));
+                                        Constants.EXTRA_INPUT, TrainingExamplesInputParcel.class));
+                TrainingExamplesInput input = new TrainingExamplesInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -333,12 +333,14 @@ public abstract class IsolatedService extends Service {
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onTrainingExample(
-                        input, new Consumer<TrainingExampleOutput>() {
+                implCallback.onTrainingExamples(
+                        input,
+                        new Consumer<TrainingExamplesOutput>() {
                             @Override
-                            public void accept(TrainingExampleOutput result) {
-                                long elapsedTimeMillis = SystemClock.elapsedRealtime()
-                                        - requestToken.getStartTimeMillis();
+                            public void accept(TrainingExamplesOutput result) {
+                                long elapsedTimeMillis =
+                                        SystemClock.elapsedRealtime()
+                                                - requestToken.getStartTimeMillis();
                                 if (result == null) {
                                     try {
                                         resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -346,8 +348,8 @@ public abstract class IsolatedService extends Service {
                                         sLogger.w(TAG + ": Callback failed.", e);
                                     }
                                 } else {
-                                    TrainingExampleOutputParcel parcelResult =
-                                            new TrainingExampleOutputParcel.Builder()
+                                    TrainingExamplesOutputParcel parcelResult =
+                                            new TrainingExamplesOutputParcel.Builder()
                                                     .setTrainingExamples(
                                                             new ByteArrayParceledListSlice(
                                                                     result.getTrainingExamples()))
@@ -357,10 +359,11 @@ public abstract class IsolatedService extends Service {
                                                     .build();
                                     Bundle bundle = new Bundle();
                                     bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
-                                    bundle.putParcelable(Constants.EXTRA_CALLEE_METADATA,
+                                    bundle.putParcelable(
+                                            Constants.EXTRA_CALLEE_METADATA,
                                             new CalleeMetadata.Builder()
-                                                .setElapsedTimeMillis(elapsedTimeMillis)
-                                                .build());
+                                                    .setElapsedTimeMillis(elapsedTimeMillis)
+                                                    .build());
                                     try {
                                         resultCallback.onSuccess(bundle);
                                     } catch (RemoteException e) {
