@@ -54,7 +54,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.CONTEXT_DATA
                     + " BLOB, "
                     + FederatedTrainingTaskColumns.CREATION_TIME
-                    + " INTEGER, "
+                    + " INTEGER NOT NULL, "
                     + FederatedTrainingTaskColumns.LAST_SCHEDULED_TIME
                     + " INTEGER, "
                     + FederatedTrainingTaskColumns.LAST_RUN_START_TIME
@@ -62,11 +62,14 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.LAST_RUN_END_TIME
                     + " INTEGER, "
                     + FederatedTrainingTaskColumns.EARLIEST_NEXT_RUN_TIME
-                    + " INTEGER, "
+                    + " INTEGER NOT NULL, "
                     + FederatedTrainingTaskColumns.CONSTRAINTS
                     + " BLOB, "
                     + FederatedTrainingTaskColumns.SCHEDULING_REASON
-                    + " INTEGER )";
+                    + " INTEGER, "
+                    + "UNIQUE("
+                    + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
+                    + "))";
 
     private static final String CREATE_ENCRYPTION_KEY_TABLE =
             "CREATE TABLE "

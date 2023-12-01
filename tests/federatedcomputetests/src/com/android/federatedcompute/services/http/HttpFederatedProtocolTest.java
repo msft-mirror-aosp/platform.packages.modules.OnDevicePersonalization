@@ -16,31 +16,46 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
+import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFuture;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.nio.file.StandardCopyOption.REPLACE_EXISTING;
+
+import android.content.Context;
+import android.net.Uri;
+
+import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 
-import com.google.common.io.Files;
+import com.google.common.collect.ImmutableList;
+import com.google.common.collect.ImmutableSet;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
-import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
+import com.google.internal.federatedcompute.v1.ResourceCapabilities;
+import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
@@ -53,7 +68,7 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
@@ -61,11 +76,14 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import java.io.File;
+import java.io.InputStream;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public final class HttpFederatedProtocolTest {
     private static final String TASK_ASSIGNMENT_TARGET_URI = "https://test-server.com/";
     private static final String PLAN_URI = "https://fake.uri/plan";
@@ -85,18 +103,21 @@ public final class HttpFederatedProtocolTest {
     private static final String OCTET_STREAM = "application/octet-stream";
     private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
+
     private static final FLRunnerResult FL_RUNNER_FAIL_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
-    private static final FederatedComputeHttpResponse CHECKPOINT_HTTP_RESPONSE =
-            new FederatedComputeHttpResponse.Builder()
-                    .setStatusCode(200)
-                    .setPayload(CHECKPOINT)
-                    .build();
-
-    private static final CreateTaskAssignmentRequest START_TASK_ASSIGNMENT_REQUEST =
-            CreateTaskAssignmentRequest.newBuilder()
-                    .setClientVersion(ClientVersion.newBuilder().setVersionCode(CLIENT_VERSION))
-                    .build();
+    private static final CreateTaskAssignmentRequest
+            START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION =
+                    CreateTaskAssignmentRequest.newBuilder()
+                            .setClientVersion(
+                                    ClientVersion.newBuilder().setVersionCode(CLIENT_VERSION))
+                            .setResourceCapabilities(
+                                    ResourceCapabilities.newBuilder()
+                                            .addSupportedCompressionFormats(
+                                                    ResourceCompressionFormat
+                                                            .RESOURCE_COMPRESSION_FORMAT_GZIP)
+                                            .build())
+                            .build();
 
     private static final FederatedComputeHttpResponse SUCCESS_EMPTY_HTTP_RESPONSE =
             new FederatedComputeHttpResponse.Builder().setStatusCode(200).build();
@@ -105,6 +126,15 @@ public final class HttpFederatedProtocolTest {
 
     @Rule public MockitoRule rule = MockitoJUnit.rule();
     @Mock private HttpClient mMockHttpClient;
+
+    @Parameterized.Parameter(0)
+    public boolean mSupportCompression;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(new Object[][] {{false}, {true}});
+    }
+
     private HttpFederatedProtocol mHttpFederatedProtocol;
 
     @Before
@@ -128,21 +158,39 @@ public final class HttpFederatedProtocolTest {
         // Verify task assignment request.
         FederatedComputeHttpRequest actualStartTaskAssignmentRequest = actualHttpRequests.get(0);
         assertThat(actualStartTaskAssignmentRequest.getUri()).isEqualTo(START_TASK_ASSIGNMENT_URI);
-        assertThat(actualStartTaskAssignmentRequest.getBody())
-                .isEqualTo(START_TASK_ASSIGNMENT_REQUEST.toByteArray());
+
         assertThat(actualStartTaskAssignmentRequest.getHttpMethod()).isEqualTo(HttpMethod.POST);
         HashMap<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(18));
+        assertThat(actualStartTaskAssignmentRequest.getBody())
+                .isEqualTo(START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION.toByteArray());
+        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(23));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         assertThat(actualStartTaskAssignmentRequest.getExtraHeaders())
-                .containsExactlyEntriesIn(expectedHeaders);
+                .containsAtLeastEntriesIn(expectedHeaders);
+        assertThat(actualStartTaskAssignmentRequest.getExtraHeaders()).hasSize(3);
+        String idempotencyKey =
+                actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_IDEMPOTENCY_KEY);
+        assertNotNull(idempotencyKey);
+        String timestamp = idempotencyKey.split(" - ")[0];
+        assertThat(Long.parseLong(timestamp)).isLessThan(System.currentTimeMillis());
+
+        // Verify fetch resource request.
+        FederatedComputeHttpRequest actualFetchResourceRequest = actualHttpRequests.get(1);
+        ImmutableSet<String> resourceUris = ImmutableSet.of(PLAN_URI, CHECKPOINT_URI);
+        assertTrue(resourceUris.contains(actualFetchResourceRequest.getUri()));
+        expectedHeaders = new HashMap<>();
+        if (mSupportCompression) {
+            expectedHeaders.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
+        }
+        assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
     }
 
     @Test
-    public void testCreateTaskAssignmentFailed() throws Exception {
+    public void testCreateTaskAssignmentFailed() {
         FederatedComputeHttpResponse httpResponse =
                 new FederatedComputeHttpResponse.Builder().setStatusCode(404).build();
-        when(mMockHttpClient.performRequestAsync(any())).thenReturn(immediateFuture(httpResponse));
+        when(mMockHttpClient.performRequestAsyncWithRetry(any()))
+                .thenReturn(immediateFuture(httpResponse));
 
         ExecutionException exception =
                 assertThrows(
@@ -166,15 +214,13 @@ public final class HttpFederatedProtocolTest {
                         .setStatusCode(200)
                         .setPayload(createTaskAssignmentResponse.toByteArray())
                         .build();
-        when(mMockHttpClient.performRequestAsync(any())).thenReturn(immediateFuture(httpResponse));
+        when(mMockHttpClient.performRequestAsyncWithRetry(any()))
+                .thenReturn(immediateFuture(httpResponse));
 
-        ExecutionException exception =
-                assertThrows(
-                        ExecutionException.class,
-                        () -> mHttpFederatedProtocol.issueCheckin().get());
+        CheckinResult checkinResult = mHttpFederatedProtocol.issueCheckin().get();
 
-        assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
-        assertThat(exception.getCause()).hasMessageThat().isEqualTo("Device rejected by server.");
+        assertThat(checkinResult.getRejectionInfo()).isNotNull();
+        assertThat(checkinResult.getRejectionInfo()).isEqualTo(RejectionInfo.getDefaultInstance());
     }
 
     @Test
@@ -186,7 +232,7 @@ public final class HttpFederatedProtocolTest {
         setUpHttpFederatedProtocol(
                 createStartTaskAssignmentHttpResponse(),
                 planHttpResponse,
-                CHECKPOINT_HTTP_RESPONSE,
+                checkpointHttpResponse(),
                 /** reportResultHttpResponse= */
                 null,
                 /** uploadResultHttpResponse= */
@@ -276,7 +322,12 @@ public final class HttpFederatedProtocolTest {
         assertThat(actualDataUploadRequest.getUri()).isEqualTo(UPLOAD_LOCATION_URI);
         assertThat(acutalReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
         expectedHeaders = new HashMap<>();
-        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(17));
+        if (mSupportCompression) {
+            expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(339));
+            expectedHeaders.put(CONTENT_ENCODING_HDR, GZIP_ENCODING_HDR);
+        } else {
+            expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(31846));
+        }
         expectedHeaders.put(CONTENT_TYPE_HDR, OCTET_STREAM);
         assertThat(actualDataUploadRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
     }
@@ -291,7 +342,7 @@ public final class HttpFederatedProtocolTest {
         setUpHttpFederatedProtocol(
                 createStartTaskAssignmentHttpResponse(),
                 createPlanHttpResponse(),
-                CHECKPOINT_HTTP_RESPONSE,
+                checkpointHttpResponse(),
                 reportResultHttpResponse,
                 null);
 
@@ -315,7 +366,7 @@ public final class HttpFederatedProtocolTest {
         setUpHttpFederatedProtocol(
                 createStartTaskAssignmentHttpResponse(),
                 createPlanHttpResponse(),
-                CHECKPOINT_HTTP_RESPONSE,
+                checkpointHttpResponse(),
                 createReportResultHttpResponse(),
                 uploadResultHttpResponse);
 
@@ -330,32 +381,42 @@ public final class HttpFederatedProtocolTest {
     }
 
     private String createOutputCheckpointFile() throws Exception {
+        String testUriPrefix =
+                "android.resource://com.android.ondevicepersonalization.federatedcomputetests/raw/";
         File outputCheckpointFile = File.createTempFile("output", ".ckp");
-        Files.write("output checkpoint".getBytes(), outputCheckpointFile);
+        Context context = ApplicationProvider.getApplicationContext();
+        Uri checkpointUri = Uri.parse(testUriPrefix + "federation_test_checkpoint_client");
+        InputStream in = context.getContentResolver().openInputStream(checkpointUri);
+        java.nio.file.Files.copy(in, outputCheckpointFile.toPath(), REPLACE_EXISTING);
+        in.close();
         outputCheckpointFile.deleteOnExit();
         return outputCheckpointFile.getAbsolutePath();
     }
 
     private FederatedComputeHttpResponse createPlanHttpResponse() {
-        ClientOnlyPlan clientOnlyPlan = TrainingTestUtil.createFederatedAnalyticClientPlan();
+        byte[] clientOnlyPlan = TrainingTestUtil.createFederatedAnalyticClientPlan().toByteArray();
         return new FederatedComputeHttpResponse.Builder()
                 .setStatusCode(200)
-                .setPayload(clientOnlyPlan.toByteArray())
+                .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
+                .setPayload(mSupportCompression ? compressWithGzip(clientOnlyPlan) : clientOnlyPlan)
                 .build();
     }
 
-    private void setUpHttpFederatedProtocol() throws Exception {
-        FederatedComputeHttpResponse checkpointHttpResponse =
-                new FederatedComputeHttpResponse.Builder()
-                        .setStatusCode(200)
-                        .setPayload(CHECKPOINT)
-                        .build();
+    private void setUpHttpFederatedProtocol() {
         setUpHttpFederatedProtocol(
                 createStartTaskAssignmentHttpResponse(),
                 createPlanHttpResponse(),
-                checkpointHttpResponse,
+                checkpointHttpResponse(),
                 createReportResultHttpResponse(),
                 SUCCESS_EMPTY_HTTP_RESPONSE);
+    }
+
+    private FederatedComputeHttpResponse checkpointHttpResponse() {
+        return new FederatedComputeHttpResponse.Builder()
+                .setStatusCode(200)
+                .setPayload(mSupportCompression ? compressWithGzip(CHECKPOINT) : CHECKPOINT)
+                .setHeaders(mSupportCompression ? compressionHeaderList() : new HashMap<>())
+                .build();
     }
 
     private void setUpHttpFederatedProtocol(
@@ -363,8 +424,7 @@ public final class HttpFederatedProtocolTest {
             FederatedComputeHttpResponse planHttpResponse,
             FederatedComputeHttpResponse checkpointHttpResponse,
             FederatedComputeHttpResponse reportResultHttpResponse,
-            FederatedComputeHttpResponse uploadResultHttpResponse)
-            throws Exception {
+            FederatedComputeHttpResponse uploadResultHttpResponse) {
         doAnswer(
                         invocation -> {
                             FederatedComputeHttpRequest httpRequest = invocation.getArgument(0);
@@ -383,13 +443,25 @@ public final class HttpFederatedProtocolTest {
                             return immediateFuture(SUCCESS_EMPTY_HTTP_RESPONSE);
                         })
                 .when(mMockHttpClient)
-                .performRequestAsync(mHttpRequestCaptor.capture());
+                .performRequestAsyncWithRetry(mHttpRequestCaptor.capture());
     }
 
-    private FederatedComputeHttpResponse createReportResultHttpResponse() throws Exception {
+    private HashMap<String, List<String>> compressionHeaderList() {
+        HashMap<String, List<String>> headerList = new HashMap<>();
+        headerList.put(CONTENT_ENCODING_HDR, ImmutableList.of(GZIP_ENCODING_HDR));
+        headerList.put(CONTENT_TYPE_HDR, ImmutableList.of(OCTET_STREAM));
+        return headerList;
+    }
+
+    private FederatedComputeHttpResponse createReportResultHttpResponse() {
         UploadInstruction.Builder uploadInstruction =
                 UploadInstruction.newBuilder().setUploadLocation(UPLOAD_LOCATION_URI);
         uploadInstruction.putExtraRequestHeaders(CONTENT_TYPE_HDR, OCTET_STREAM);
+        if (mSupportCompression) {
+            uploadInstruction.putExtraRequestHeaders(CONTENT_ENCODING_HDR, GZIP_ENCODING_HDR);
+            uploadInstruction.setCompressionFormat(
+                    ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP);
+        }
         ReportResultResponse reportResultResponse =
                 ReportResultResponse.newBuilder()
                         .setUploadInstruction(uploadInstruction.build())
@@ -400,11 +472,27 @@ public final class HttpFederatedProtocolTest {
                 .build();
     }
 
-    private FederatedComputeHttpResponse createStartTaskAssignmentHttpResponse() throws Exception {
+    private FederatedComputeHttpResponse createStartTaskAssignmentHttpResponse() {
         CreateTaskAssignmentResponse createTaskAssignmentResponse =
                 createCreateTaskAssignmentResponse(
-                        Resource.newBuilder().setUri(PLAN_URI).build(),
-                        Resource.newBuilder().setUri(CHECKPOINT_URI).build());
+                        Resource.newBuilder()
+                                .setUri(PLAN_URI)
+                                .setCompressionFormat(
+                                        mSupportCompression
+                                                ? ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP
+                                                : ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_UNSPECIFIED)
+                                .build(),
+                        Resource.newBuilder()
+                                .setUri(CHECKPOINT_URI)
+                                .setCompressionFormat(
+                                        mSupportCompression
+                                                ? ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP
+                                                : ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_UNSPECIFIED)
+                                .build());
 
         return new FederatedComputeHttpResponse.Builder()
                 .setStatusCode(200)
