@@ -73,6 +73,15 @@ public class DownloadHelper {
                     + "com.google.android.ondevicepersonalization.services 1006");
         SystemClock.sleep(5000);
     }
+
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        SystemClock.sleep(2000);
+    }
     public static void pressHome() {
         getUiDevice().pressHome();
     }

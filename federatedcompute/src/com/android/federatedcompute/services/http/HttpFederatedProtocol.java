@@ -16,12 +16,21 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_ISSUE_CHECKIN;
+import static com.android.federatedcompute.services.common.Constants.TRACE_HTTP_REPORT_RESULT;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
 import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
+import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
+import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
+import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
+import static com.android.federatedcompute.services.http.HttpClientUtil.uncompressWithGzip;
+
+import android.os.Trace;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
@@ -29,13 +38,15 @@ import com.android.federatedcompute.services.training.util.ComputationResult;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.base.Preconditions;
-import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federatedcompute.v1.ClientVersion;
+import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.Resource;
+import com.google.internal.federatedcompute.v1.ResourceCapabilities;
+import com.google.internal.federatedcompute.v1.ResourceCompressionFormat;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentRequest;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.ReportResultRequest;
@@ -46,10 +57,12 @@ import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstructi
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.util.HashMap;
+import java.util.UUID;
+import java.util.concurrent.Callable;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
-    public static final String TAG = "HttpFederatedProtocol";
+    public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
     private final String mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
@@ -64,8 +77,7 @@ public final class HttpFederatedProtocol {
         this.mClientVersion = clientVersion;
         this.mPopulationName = populationName;
         this.mHttpClient = httpClient;
-        this.mTaskAssignmentRequestCreator =
-                new ProtocolRequestCreator(entryUri, new HashMap<>(), false);
+        this.mTaskAssignmentRequestCreator = new ProtocolRequestCreator(entryUri, new HashMap<>());
     }
 
     /** Creates a HttpFederatedProtocol object. */
@@ -76,53 +88,77 @@ public final class HttpFederatedProtocol {
 
     /** Helper function to perform check in and download federated task from remote servers. */
     public ListenableFuture<CheckinResult> issueCheckin() {
-        ListenableFuture<TaskAssignment> taskAssignmentFuture =
-                FluentFuture.from(createTaskAssignment())
-                        .transform(
-                                getTaskAssignmentHttpResponse ->
-                                        getTaskAssignment(getTaskAssignmentHttpResponse),
-                                getLightweightExecutor());
-        ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
-                FluentFuture.from(taskAssignmentFuture)
-                        .transformAsync(
-                                taskAssignment -> fetchTaskResource(taskAssignment.getPlan()),
-                                getBackgroundExecutor());
-        ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
-                FluentFuture.from(taskAssignmentFuture)
-                        .transformAsync(
-                                taskAssignment ->
-                                        fetchTaskResource(taskAssignment.getInitCheckpoint()),
-                                getBackgroundExecutor());
-        return Futures.whenAllSucceed(
-                        taskAssignmentFuture, planDataResponseFuture, checkpointDataResponseFuture)
-                .callAsync(
-                        new AsyncCallable<CheckinResult>() {
-                            @Override
-                            public ListenableFuture<CheckinResult> call() {
-                                return getCheckinResult(
-                                        planDataResponseFuture,
-                                        checkpointDataResponseFuture,
-                                        taskAssignmentFuture);
+        Trace.beginAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+        return FluentFuture.from(createTaskAssignment())
+                .transformAsync(
+                        federatedComputeHttpResponse -> {
+                            validateHttpResponseStatus(
+                                    "Start task assignment", federatedComputeHttpResponse);
+                            CreateTaskAssignmentResponse taskAssignmentResponse;
+                            try {
+                                taskAssignmentResponse =
+                                        CreateTaskAssignmentResponse.parseFrom(
+                                                federatedComputeHttpResponse.getPayload());
+                            } catch (InvalidProtocolBufferException e) {
+                                throw new IllegalStateException(
+                                        "Could not parse StartTaskAssignmentResponse proto", e);
                             }
+                            if (taskAssignmentResponse.hasRejectionInfo()) {
+                                return Futures.immediateFuture(
+                                        new CheckinResult(
+                                                taskAssignmentResponse.getRejectionInfo()));
+                            }
+                            TaskAssignment taskAssignment =
+                                    getTaskAssignment(taskAssignmentResponse);
+                            ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
+                                    fetchTaskResource(taskAssignment.getPlan());
+                            ListenableFuture<FederatedComputeHttpResponse>
+                                    checkpointDataResponseFuture =
+                                            fetchTaskResource(taskAssignment.getInitCheckpoint());
+                            return Futures.whenAllSucceed(
+                                            planDataResponseFuture, checkpointDataResponseFuture)
+                                    .call(
+                                            new Callable<CheckinResult>() {
+                                                @Override
+                                                public CheckinResult call() throws Exception {
+                                                    return getCheckinResult(
+                                                            planDataResponseFuture,
+                                                            checkpointDataResponseFuture,
+                                                            taskAssignment);
+                                                }
+                                            },
+                                            getBackgroundExecutor());
                         },
                         getBackgroundExecutor());
     }
 
     /** Helper functions to reporting result and upload result. */
-    public FluentFuture<Void> reportResult(ComputationResult computationResult) {
+    public FluentFuture<RejectionInfo> reportResult(ComputationResult computationResult) {
+        Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
         if (computationResult != null && computationResult.isResultSuccess()) {
             return FluentFuture.from(performReportResult(computationResult))
                     .transformAsync(
-                            reportResp ->
-                                    processReportResultResponseAndUploadResult(
-                                            reportResp, computationResult),
-                            getBackgroundExecutor())
-                    .transform(
-                            resp -> {
-                                validateHttpResponseStatus("Upload result", resp);
-                                return null;
+                            reportResp -> {
+                                ReportResultResponse reportResultResponse =
+                                        getReportResultResponse(reportResp);
+                                if (reportResultResponse.hasRejectionInfo()) {
+                                    return Futures.immediateFuture(
+                                            reportResultResponse.getRejectionInfo());
+                                }
+                                return FluentFuture.from(
+                                                processReportResultResponseAndUploadResult(
+                                                        reportResultResponse, computationResult))
+                                        .transform(
+                                                resp -> {
+                                                    validateHttpResponseStatus(
+                                                            "Upload result", resp);
+                                                    Trace.endAsyncSection(
+                                                            TRACE_HTTP_REPORT_RESULT, 0);
+                                                    return null;
+                                                },
+                                                getLightweightExecutor());
                             },
-                            getLightweightExecutor());
+                            getBackgroundExecutor());
         } else {
             return FluentFuture.from(performReportResult(computationResult))
                     .transform(
@@ -138,7 +174,13 @@ public final class HttpFederatedProtocol {
         CreateTaskAssignmentRequest request =
                 CreateTaskAssignmentRequest.newBuilder()
                         .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
                         .build();
+
         String taskAssignmentUriSuffix =
                 String.format(
                         "/taskassignment/v1/population/%1$s:create-task-assignment",
@@ -147,20 +189,16 @@ public final class HttpFederatedProtocol {
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         taskAssignmentUriSuffix,
                         HttpMethod.POST,
+                        new HashMap<>(),
                         request.toByteArray(),
                         /* isProtobufEncoded= */ true);
-        return mHttpClient.performRequestAsync(httpRequest);
+        httpRequest
+                .getExtraHeaders()
+                .put(ODP_IDEMPOTENCY_KEY, System.currentTimeMillis() + " - " + UUID.randomUUID());
+        return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
-    private TaskAssignment getTaskAssignment(FederatedComputeHttpResponse httpResponse) {
-        validateHttpResponseStatus("Start task assignment", httpResponse);
-        CreateTaskAssignmentResponse taskAssignmentResponse;
-        try {
-            taskAssignmentResponse =
-                    CreateTaskAssignmentResponse.parseFrom(httpResponse.getPayload());
-        } catch (InvalidProtocolBufferException e) {
-            throw new IllegalStateException("Could not parse StartTaskAssignmentResponse proto", e);
-        }
+    private TaskAssignment getTaskAssignment(CreateTaskAssignmentResponse taskAssignmentResponse) {
         if (taskAssignmentResponse.hasRejectionInfo()) {
             throw new IllegalStateException("Device rejected by server.");
         }
@@ -194,32 +232,44 @@ public final class HttpFederatedProtocol {
         this.mAssignmentId = taskAssignment.getAssignmentId();
     }
 
-    private ListenableFuture<CheckinResult> getCheckinResult(
+    private CheckinResult getCheckinResult(
             ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture,
             ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture,
-            ListenableFuture<TaskAssignment> taskAssignmentFuture) {
-        try {
-            FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
-            FederatedComputeHttpResponse checkpointDataResponse =
-                    Futures.getDone(checkpointDataResponseFuture);
-            TaskAssignment taskAssignment = Futures.getDone(taskAssignmentFuture);
-            validateHttpResponseStatus("Fetch plan", planDataResponse);
-            validateHttpResponseStatus("Fetch checkpoint", checkpointDataResponse);
-            ClientOnlyPlan clientOnlyPlan;
-            try {
-                clientOnlyPlan = ClientOnlyPlan.parseFrom(planDataResponse.getPayload());
-            } catch (InvalidProtocolBufferException e) {
-                LogUtil.e(TAG, e, "Could not parse ClientOnlyPlan proto");
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException("Could not parse ClientOnlyPlan proto", e));
-            }
-            String inputCheckpointFile = createTempFile("input", ".ckp");
-            writeToFile(inputCheckpointFile, checkpointDataResponse.getPayload());
-            return Futures.immediateFuture(
-                    new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment));
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
+            TaskAssignment taskAssignment)
+            throws Exception {
+
+        FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
+        FederatedComputeHttpResponse checkpointDataResponse =
+                Futures.getDone(checkpointDataResponseFuture);
+        validateHttpResponseStatus("Fetch plan", planDataResponse);
+        validateHttpResponseStatus("Fetch checkpoint", checkpointDataResponse);
+
+        // Process download ClientOnlyPlan.
+        byte[] planData = planDataResponse.getPayload();
+        if (taskAssignment.getPlan().getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP
+                || planDataResponse.isResponseCompressed()) {
+            planData = uncompressWithGzip(planData);
         }
+        ClientOnlyPlan clientOnlyPlan;
+        try {
+            clientOnlyPlan = ClientOnlyPlan.parseFrom(planData);
+        } catch (InvalidProtocolBufferException e) {
+            LogUtil.e(TAG, e, "Could not parse ClientOnlyPlan proto");
+            throw new IllegalStateException("Could not parse ClientOnlyPlan proto", e);
+        }
+
+        // Process download checkpoint resource.
+        String inputCheckpointFile = createTempFile("input", ".ckp");
+        byte[] checkpointData = checkpointDataResponse.getPayload();
+        if (taskAssignment.getInitCheckpoint().getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP
+                || checkpointDataResponse.isResponseCompressed()) {
+            checkpointData = uncompressWithGzip(checkpointData);
+        }
+        writeToFile(inputCheckpointFile, checkpointData);
+        Trace.endAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
+        return new CheckinResult(inputCheckpointFile, clientOnlyPlan, taskAssignment);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
@@ -249,31 +299,26 @@ public final class HttpFederatedProtocol {
                         HttpMethod.PUT,
                         startDataUploadRequest.toByteArray(),
                         /* isProtobufEncoded= */ true);
-        return mHttpClient.performRequestAsync(httpRequest);
+        return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
     private ListenableFuture<FederatedComputeHttpResponse>
             processReportResultResponseAndUploadResult(
-                    FederatedComputeHttpResponse httpResponse,
+            ReportResultResponse reportResultResponse,
                     ComputationResult computationResult) {
         try {
-            validateHttpResponseStatus("ReportResult", httpResponse);
-            ReportResultResponse reportResultResponse =
-                    ReportResultResponse.parseFrom(httpResponse.getPayload());
-            // TODO(b/297605806): better handle rejection info.
-            if (reportResultResponse.hasRejectionInfo()) {
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException(
-                                "ReportResult got rejection: " + httpResponse.getStatusCode()));
-            }
             Preconditions.checkArgument(
                     !computationResult.getOutputCheckpointFile().isEmpty(),
                     "Output checkpoint file should not be empty");
-            byte[] outputBytes = readFileAsByteArray(computationResult.getOutputCheckpointFile());
             UploadInstruction uploadInstruction = reportResultResponse.getUploadInstruction();
             Preconditions.checkArgument(
                     !uploadInstruction.getUploadLocation().isEmpty(),
                     "UploadInstruction.upload_location must not be empty");
+            byte[] outputBytes = readFileAsByteArray(computationResult.getOutputCheckpointFile());
+            if (uploadInstruction.getCompressionFormat()
+                    == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
+                outputBytes = compressWithGzip(outputBytes);
+            }
             HashMap<String, String> requestHeader = new HashMap<>();
             uploadInstruction
                     .getExtraRequestHeadersMap()
@@ -293,12 +338,19 @@ public final class HttpFederatedProtocol {
                             uploadInstruction.getUploadLocation(),
                             HttpMethod.PUT,
                             requestHeader,
-                            outputBytes,
-                            /* useCompression= */ false);
-            return mHttpClient.performRequestAsync(httpUploadRequest);
+                            outputBytes);
+            return mHttpClient.performRequestAsyncWithRetry(httpUploadRequest);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private ReportResultResponse getReportResultResponse(FederatedComputeHttpResponse httpResponse)
+            throws InvalidProtocolBufferException {
+        validateHttpResponseStatus("ReportResult", httpResponse);
+        ReportResultResponse reportResultResponse =
+                ReportResultResponse.parseFrom(httpResponse.getPayload());
+        return reportResultResponse;
     }
 
     private void validateHttpResponseStatus(
@@ -315,14 +367,22 @@ public final class HttpFederatedProtocol {
             case URI:
                 Preconditions.checkArgument(
                         !resource.getUri().isEmpty(), "Resource.uri must be non-empty when set");
+                HashMap<String, String> headerList = new HashMap<>();
+                if (resource.getCompressionFormat()
+                        == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
+                    // Set this header to disable decompressive transcoding when download from
+                    // Google Cloud Storage.
+                    // https://cloud.google.com/storage/docs/transcoding#decompressive_transcoding
+                    headerList.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
+                }
+                LogUtil.d(TAG, "start fetch task resources");
                 FederatedComputeHttpRequest httpRequest =
                         FederatedComputeHttpRequest.create(
                                 resource.getUri(),
                                 HttpMethod.GET,
-                                new HashMap<String, String>(),
-                                HttpClientUtil.EMPTY_BODY,
-                                /* useCompression= */ false);
-                return mHttpClient.performRequestAsync(httpRequest);
+                                headerList,
+                                HttpClientUtil.EMPTY_BODY);
+                return mHttpClient.performRequestAsyncWithRetry(httpRequest);
             case INLINE_RESOURCE:
                 return Futures.immediateFailedFuture(
                         new UnsupportedOperationException("Inline resource is not supported yet."));
