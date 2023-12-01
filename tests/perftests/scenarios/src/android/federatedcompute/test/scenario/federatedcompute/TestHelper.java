@@ -70,6 +70,34 @@ public class TestHelper {
         executeShellCommand(
                 "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
                     + "com.google.android.federatedcompute");
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1000");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1006");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1003");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1004");
+        SystemClock.sleep(5000);
+    }
+
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        executeShellCommand("am kill com.google.android.federatedcompute");
+        executeShellCommand("am kill com.google.android.federatedcompute:"
+                + "com.android.federatedcompute.services.training.IsolatedTrainingService");
+        SystemClock.sleep(2000);
     }
 
     /** Commands to return device to original state */

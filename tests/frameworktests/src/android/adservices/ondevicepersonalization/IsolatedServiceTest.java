@@ -466,10 +466,10 @@ public class IsolatedServiceTest {
     }
 
     @Test
-    public void testOnTrainingExample() throws Exception {
+    public void testOnTrainingExamples() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
                         .setPopulationName("")
                         .setTaskName("")
                         .setResumptionToken(new byte[] {0})
@@ -480,9 +480,9 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnTrainingExampleCalled);
-        TrainingExampleOutputParcel result =
+        TrainingExamplesOutputParcel result =
                 mCallbackResult.getParcelable(
-                        Constants.EXTRA_RESULT, TrainingExampleOutputParcel.class);
+                        Constants.EXTRA_RESULT, TrainingExamplesOutputParcel.class);
         List<byte[]> examples = result.getTrainingExamples().getList();
         List<byte[]> tokens = result.getResumptionTokens().getList();
         assertEquals(1, examples.size());
@@ -504,8 +504,8 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExampleThrowsIfDataAccessServiceMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
                         .setPopulationName("")
                         .setTaskName("")
                         .setResumptionToken(new byte[] {0})
@@ -523,8 +523,8 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExampleThrowsIfCallbackMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
                         .setPopulationName("")
                         .setTaskName("")
                         .setResumptionToken(new byte[] {0})
@@ -609,15 +609,15 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onTrainingExample(
-                TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
+        public void onTrainingExamples(
+                TrainingExamplesInput input, Consumer<TrainingExamplesOutput> consumer) {
             mOnTrainingExampleCalled = true;
             List<byte[]> examples = new ArrayList<>();
             examples.add(new byte[] {12});
             List<byte[]> tokens = new ArrayList<>();
             tokens.add(new byte[] {13});
             consumer.accept(
-                    new TrainingExampleOutput.Builder()
+                    new TrainingExamplesOutput.Builder()
                             .setTrainingExamples(examples)
                             .setResumptionTokens(tokens)
                             .build());
