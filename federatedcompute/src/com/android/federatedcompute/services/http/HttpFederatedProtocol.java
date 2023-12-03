@@ -62,7 +62,7 @@ import java.util.concurrent.Callable;
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
-    public static final String TAG = "HttpFederatedProtocol";
+    public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
     private final String mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
