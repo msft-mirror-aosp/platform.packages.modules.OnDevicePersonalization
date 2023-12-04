@@ -36,6 +36,7 @@ public class DownloadVendorData {
     @BeforeClass
     public static void prepareDevice() throws IOException {
         DownloadHelper.initialize();
+        DownloadHelper.killRunningProcess();
     }
     @Before
     public void setUp() throws IOException {

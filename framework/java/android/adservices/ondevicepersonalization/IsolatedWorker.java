@@ -106,7 +106,6 @@ public interface IsolatedWorker {
      *     an error. If called with <code>null</code>, no data is written to the EVENTS table.
      *     <p>If this method throws a {@link RuntimeException}, no data is written to the EVENTS
      *     table.
-     * @hide
      */
     default void onEvent(
             @NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
@@ -114,18 +113,18 @@ public interface IsolatedWorker {
     }
 
     /**
-     * Generate a single training example used for federated computation job.
+     * Generate a list of training examples used for federated compute job. The platform will call
+     * this function when a federated compute job starts. The federated compute job is scheduled by
+     * an app through {@link FederatedComputeScheduler#schedule}.
      *
      * @param input The parameters needed to generate the training example.
      * @param consumer Callback that receives the result. Should be called with <code>null</code> on
      *     an error. If called with <code>null</code>, no training examples is produced for this
-     *     training session. <p>If this method throws a {@link RuntimeException}, no training
-     *     examples are produced for this training session.
-     * @hide
+     *     training session.
      */
-    default void onTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
+    default void onTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
         consumer.accept(null);
     }
 }

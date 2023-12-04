@@ -16,9 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 
@@ -45,17 +43,9 @@ public final class FederatedComputeHttpRequest {
 
     /** Creates a {@link FederatedComputeHttpRequest} based on given inputs. */
     public static FederatedComputeHttpRequest create(
-            String uri,
-            HttpMethod httpMethod,
-            HashMap<String, String> extraHeaders,
-            byte[] body,
-            boolean useCompression) {
+            String uri, HttpMethod httpMethod, HashMap<String, String> extraHeaders, byte[] body) {
         if (!uri.startsWith(HTTPS_SCHEMA) && !uri.startsWith(LOCAL_HOST_URI)) {
             throw new IllegalArgumentException("Non-HTTPS URIs are not supported: " + uri);
-        }
-        if (useCompression) {
-            body = HttpClientUtil.compressWithGzip(body);
-            extraHeaders.put(CONTENT_ENCODING_HDR, GZIP_ENCODING_HDR);
         }
         if (extraHeaders.containsKey(CONTENT_LENGTH_HDR)) {
             throw new IllegalArgumentException("Content-Length header should not be provided!");
@@ -67,7 +57,6 @@ public final class FederatedComputeHttpRequest {
             }
             extraHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(body.length));
         }
-
         return new FederatedComputeHttpRequest(uri, httpMethod, extraHeaders, body);
     }
 
