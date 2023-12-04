@@ -31,7 +31,7 @@ public class JoinedEventTest {
         String servicePackageName = "servicePackageName";
         long queryId = 1;
         long eventId = 1;
-        long rowIndex = 1;
+        int rowIndex = 1;
         int type = 1;
         long eventTimeMillis = 100;
         long queryTimeMillis = 50;
@@ -73,7 +73,7 @@ public class JoinedEventTest {
         String servicePackageName = "servicePackageName";
         long queryId = 1;
         long eventId = 1;
-        long rowIndex = 1;
+        int rowIndex = 1;
         int type = 1;
         long eventTimeMillis = 100;
         long queryTimeMillis = 50;

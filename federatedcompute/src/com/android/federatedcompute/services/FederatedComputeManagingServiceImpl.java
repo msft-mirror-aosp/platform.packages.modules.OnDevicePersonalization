@@ -20,17 +20,31 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
+import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
+import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
+
 import java.util.Objects;
 
 /** Implementation of FederatedCompute Service */
 public class FederatedComputeManagingServiceImpl extends Service {
     private FederatedComputeManagingServiceDelegate mFcpServiceDelegate;
 
+    private Flags mFlags;
+
+    public FederatedComputeManagingServiceImpl() {
+        mFlags = FlagsFactory.getFlags();
+    }
+
     @Override
     public void onCreate() {
         super.onCreate();
         if (mFcpServiceDelegate == null) {
-            mFcpServiceDelegate = new FederatedComputeManagingServiceDelegate(this);
+            mFcpServiceDelegate =
+                    new FederatedComputeManagingServiceDelegate(
+                            this, FederatedComputeStatsdLogger.getInstance());
+            BackgroundKeyFetchJobService.scheduleJobIfNeeded(this, mFlags);
         }
     }
 

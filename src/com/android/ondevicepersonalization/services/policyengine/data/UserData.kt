@@ -32,16 +32,14 @@ data class UserData (
     val availableStorageBytes: Long,
     val batteryPercentage: Int,
     val carrier: String,
-    val connectionType: Int,
-    val connectionSpeedKbps: Long,
-    val networkMetered: Boolean,
-    val appInstallInfo: List<AppInstallInfo>,
+    val dataNetworkType: Int,
+    val appInfos: List<AppInfo>,
     val appUsageHistory: List<AppUsageStatus>,
     val currentLocation: Location,
     val locationHistory: List<LocationStatus>,
 )
 
-data class AppInstallInfo (
+data class AppInfo (
     val packageName: String,
     val installed: Boolean
 )

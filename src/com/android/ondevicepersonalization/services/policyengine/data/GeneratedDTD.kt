@@ -29,11 +29,9 @@ public val USER_DATA_GENERATED_DTD: DataTypeDescriptor = dataTypeDescriptor(name
       "availableStorageMB" to FieldType.Long
       "batteryPercentage" to FieldType.Integer
       "carrier" to FieldType.String
-      "connectionType" to FieldType.Integer
-      "connectionSpeedKbps" to FieldType.Long
-      "networkMetered" to FieldType.Boolean
-      "appInstallInfo" to FieldType.List(dataTypeDescriptor(name =
-          "chronicle_dtd.AppInstallInfo", cls = AppInstallInfo::class) {
+      "dataNetworkType" to FieldType.Integer
+      "appInfos" to FieldType.List(dataTypeDescriptor(name =
+          "chronicle_dtd.AppInfo", cls = AppInfo::class) {
         "packageName" to FieldType.String
         "installed" to FieldType.Boolean
       })

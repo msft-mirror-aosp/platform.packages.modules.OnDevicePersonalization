@@ -53,3 +53,36 @@ filegroup {
       "//packages/modules/OnDevicePersonalization:__subpackages__"
     ],
 }
+
+cc_library_shared {
+    name: "libfcp_cpp_dep_jni",
+    srcs: [
+        "jni/cpp/*.cc",
+    ],
+    version_script: "jni/jni.lds",
+    whole_static_libs: [
+        "libfederatedcompute",
+    ],
+    static_libs:[
+        "federated-compute-cc-proto-lite",
+        "libprotobuf-cpp-lite-ndk",
+    ],
+    header_libs: [
+        "libnativehelper_header_only",
+        "libeigen",
+    ],
+    shared_libs: [
+        "liblog",
+        "libcrypto",
+    ],
+    stl: "libc++_static",
+    apex_available: ["com.android.ondevicepersonalization"],
+    sdk_version: "current",
+    min_sdk_version: "Tiramisu",
+    visibility: [
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
+    ],
+    cflags: [
+        "-Wno-unused-parameter",
+    ],
+}
