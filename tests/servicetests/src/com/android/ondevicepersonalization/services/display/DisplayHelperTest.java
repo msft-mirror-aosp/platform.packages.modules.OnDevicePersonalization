@@ -23,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 
 import android.Manifest;
 import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
@@ -72,7 +73,8 @@ public class DisplayHelperTest {
         DisplayHelper displayHelper = new DisplayHelper(mContext);
         RenderOutput renderContentResult = new RenderOutput.Builder()
                 .setContent("html").build();
-        assertEquals("html", displayHelper.generateHtml(renderContentResult,
+        RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
+        assertEquals("html", displayHelper.generateHtml(resultParcel,
                 mContext.getPackageName()));
     }
 
@@ -95,8 +97,9 @@ public class DisplayHelperTest {
                 .setTemplateId("templateId")
                 .setTemplateParams(bundle)
                 .build();
+        RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
         String expected = "Hello odp! I am 100.";
-        assertEquals(expected, displayHelper.generateHtml(renderContentResult,
+        assertEquals(expected, displayHelper.generateHtml(resultParcel,
                 mContext.getPackageName()));
     }
 

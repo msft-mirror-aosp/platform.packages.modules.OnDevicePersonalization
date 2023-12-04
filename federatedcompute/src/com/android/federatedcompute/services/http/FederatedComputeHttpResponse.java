@@ -16,16 +16,20 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
+
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /** Class to hold FederatedCompute http response. */
 public class FederatedComputeHttpResponse {
     private Integer mStatusCode;
-    private Map<String, List<String>> mHeaders;
+    private Map<String, List<String>> mHeaders = new HashMap<>();
     private byte[] mPayload;
 
     private FederatedComputeHttpResponse() {}
@@ -43,6 +47,18 @@ public class FederatedComputeHttpResponse {
     @Nullable
     public byte[] getPayload() {
         return mPayload;
+    }
+
+    /** Returns whether http response body is compressed with gzip. */
+    public boolean isResponseCompressed() {
+        if (mHeaders.containsKey(CONTENT_ENCODING_HDR)) {
+            for (String format : mHeaders.get(CONTENT_ENCODING_HDR)) {
+                if (format.contains(GZIP_ENCODING_HDR)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     /** Builder for FederatedComputeHttpResponse. */
@@ -71,6 +87,7 @@ public class FederatedComputeHttpResponse {
             mHttpResponse.mPayload = payload;
             return this;
         }
+
         /** Build {@link FederatedComputeHttpResponse}. */
         public FederatedComputeHttpResponse build() {
             if (mHttpResponse.mStatusCode == null) {
