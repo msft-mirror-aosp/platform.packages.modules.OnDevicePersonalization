@@ -14,6 +14,12 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization;
+package com.android.federatedcompute.services.common;
 
-parcelable TrainingExampleOutputParcel;
+public class FederatedComputeJobInfo {
+
+    private FederatedComputeJobInfo() {}
+
+    /** JOB ID to periodically download encryption key. */
+    public static final int ENCRYPTION_KEY_FETCH_JOB_ID = 1000;
+}

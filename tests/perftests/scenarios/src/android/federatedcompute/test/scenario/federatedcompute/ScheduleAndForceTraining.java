@@ -37,8 +37,9 @@ public class ScheduleAndForceTraining {
 
     /** Prepare the device before entering the test class */
     @BeforeClass
-    public static void prepareDevice() {
+    public static void prepareDevice() throws IOException {
         TestHelper.initialize();
+        TestHelper.killRunningProcess();
     }
 
     @Before
