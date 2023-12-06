@@ -60,6 +60,11 @@ public interface Flags {
      */
     String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
 
+    /**
+     * Default value for the shared isolated process feature.
+     */
+    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
     }
@@ -82,5 +87,9 @@ public interface Flags {
 
     default String getTrustedPartnerAppsList() {
         return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
+    }
+
+    default boolean isSharedIsolatedProcessFeatureEnabled() {
+        return DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
     }
 }
