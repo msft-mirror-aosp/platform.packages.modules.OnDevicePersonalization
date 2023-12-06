@@ -23,6 +23,9 @@ import static com.google.common.truth.Truth.assertThat;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 import android.content.Context;
 
@@ -32,7 +35,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
@@ -47,6 +49,7 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
+import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
@@ -86,14 +89,16 @@ public class FederatedComputeKeyFetchManagerTest {
         mContext = ApplicationProvider.getApplicationContext();
         mClock = MonotonicClock.getInstance();
         mEncryptionKeyDao = FederatedComputeEncryptionKeyDao.getInstanceForTest(mContext);
-        Flags flags = FlagsFactory.getFlags();
+        Flags mockFlags = Mockito.mock(Flags.class);
         mFederatedComputeEncryptionKeyManager =
                 new FederatedComputeEncryptionKeyManager(
                         mClock,
                         mEncryptionKeyDao,
-                        flags,
+                        mockFlags,
                         mMockHttpClient,
                         FederatedComputeExecutors.getBackgroundExecutor());
+        String overrideUrl = "https://real-coordinator/v1alpha/publicKeys";
+        doReturn(overrideUrl).when(mockFlags).getEncryptionKeyFetchUrl();
     }
 
     @After
@@ -156,7 +161,7 @@ public class FederatedComputeKeyFetchManagerTest {
     }
 
     @Test
-    public void testFetchAndPersistActiveKeys_success() throws Exception {
+    public void testFetchAndPersistActiveKeys_scheduled_success() throws Exception {
         doReturn(
                         Futures.immediateFuture(
                                 new FederatedComputeHttpResponse.Builder()
@@ -165,36 +170,18 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .setStatusCode(200)
                                         .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
         List<FederatedComputeEncryptionKey> keys =
                 mFederatedComputeEncryptionKeyManager
-                        .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION)
+                        .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
                         .get();
 
         assertThat(keys.size()).isGreaterThan(0);
     }
 
     @Test
-    public void testFetchAndPersistActiveKeys_throws() {
-        doReturn(
-                        Futures.immediateFailedFuture(
-                                new ExecutionException(
-                                        "fetchAndPersistActiveKeys keys failed.",
-                                        new IllegalStateException("http 404"))))
-                .when(mMockHttpClient)
-                .performRequestAsync(any());
-
-        assertThrows(
-                ExecutionException.class,
-                () ->
-                        mFederatedComputeEncryptionKeyManager
-                                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION)
-                                .get());
-    }
-
-    @Test
-    public void testFetchAndPersistActiveKeys_noDeletion() throws Exception {
+    public void testFetchAndPersistActiveKeys_nonScheduled_success() throws Exception {
         doReturn(
                         Futures.immediateFuture(
                                 new FederatedComputeHttpResponse.Builder()
@@ -203,9 +190,69 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .setStatusCode(200)
                                         .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
 
-        mFederatedComputeEncryptionKeyManager.fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION).get();
+        List<FederatedComputeEncryptionKey> keys =
+                mFederatedComputeEncryptionKeyManager
+                        .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
+                        .get();
+
+        assertThat(keys.size()).isGreaterThan(0);
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_scheduled_throws() {
+        doReturn(
+                        Futures.immediateFailedFuture(
+                                new ExecutionException(
+                                        "fetchAndPersistActiveKeys keys failed.",
+                                        new IllegalStateException("http 404"))))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mFederatedComputeEncryptionKeyManager
+                                .fetchAndPersistActiveKeys(
+                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                                .get());
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_nonScheduled_throws() {
+        doReturn(
+                        Futures.immediateFailedFuture(
+                                new ExecutionException(
+                                        "fetchAndPersistActiveKeys keys failed.",
+                                        new IllegalStateException("http 404"))))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mFederatedComputeEncryptionKeyManager
+                                .fetchAndPersistActiveKeys(
+                                        KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
+                                .get());
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_scheduledNoDeletion() throws Exception {
+        doReturn(
+                        Futures.immediateFuture(
+                                new FederatedComputeHttpResponse.Builder()
+                                        .setHeaders(SAMPLE_RESPONSE_HEADER)
+                                        .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
+                                        .setStatusCode(200)
+                                        .build()))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+
+        mFederatedComputeEncryptionKeyManager
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                .get();
         List<FederatedComputeEncryptionKey> keys =
                 mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
                         ""
@@ -226,7 +273,7 @@ public class FederatedComputeKeyFetchManagerTest {
     }
 
     @Test
-    public void testFetchAndPersistActiveKeys_withDeletion() throws Exception {
+    public void testFetchAndPersistActiveKeys_nonScheduledNoDeletion() throws Exception {
         doReturn(
                         Futures.immediateFuture(
                                 new FederatedComputeHttpResponse.Builder()
@@ -235,7 +282,41 @@ public class FederatedComputeKeyFetchManagerTest {
                                         .setStatusCode(200)
                                         .build()))
                 .when(mMockHttpClient)
-                .performRequestAsync(any());
+                .performRequestAsyncWithRetry(any());
+
+        mFederatedComputeEncryptionKeyManager
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
+                .get();
+        List<FederatedComputeEncryptionKey> keys =
+                mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
+                        ""
+                        /* selection= */ ,
+                        new String[0]
+                        /* selectionArgs= */ ,
+                        ""
+                        /* orderBy= */ ,
+                        -1
+                        /* count= */);
+
+        assertThat(keys.size()).isEqualTo(1);
+        assertThat(
+                        keys.stream()
+                                .map(FederatedComputeEncryptionKey::getKeyIdentifier)
+                                .collect(Collectors.toList()))
+                .containsAtLeastElementsIn(List.of("0cc9b4c9-08bd"));
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_scheduledWithDeletion() throws Exception {
+        doReturn(
+                        Futures.immediateFuture(
+                                new FederatedComputeHttpResponse.Builder()
+                                        .setHeaders(SAMPLE_RESPONSE_HEADER)
+                                        .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
+                                        .setStatusCode(200)
+                                        .build()))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
         long currentTime = mClock.currentTimeMillis();
         mEncryptionKeyDao.insertEncryptionKey(
                 new FederatedComputeEncryptionKey.Builder()
@@ -246,7 +327,9 @@ public class FederatedComputeKeyFetchManagerTest {
                         .setExpiryTime(currentTime)
                         .build());
 
-        mFederatedComputeEncryptionKeyManager.fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION).get();
+        mFederatedComputeEncryptionKeyManager
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true)
+                .get();
 
         List<FederatedComputeEncryptionKey> keys =
                 mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
@@ -260,5 +343,110 @@ public class FederatedComputeKeyFetchManagerTest {
                         /* count= */);
 
         assertThat(keys.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testFetchAndPersistActiveKeys_nonScheduledWithDeletion() throws Exception {
+        doReturn(
+                        Futures.immediateFuture(
+                                new FederatedComputeHttpResponse.Builder()
+                                        .setHeaders(SAMPLE_RESPONSE_HEADER)
+                                        .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
+                                        .setStatusCode(200)
+                                        .build()))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+        long currentTime = mClock.currentTimeMillis();
+        mEncryptionKeyDao.insertEncryptionKey(
+                new FederatedComputeEncryptionKey.Builder()
+                        .setKeyIdentifier("5161e286-63e5")
+                        .setPublicKey("YuOorP14obQLqASrvqbkNxyijjcAUIDx/xeMGZOyykc")
+                        .setKeyType(KEY_TYPE_ENCRYPTION)
+                        .setCreationTime(currentTime)
+                        .setExpiryTime(currentTime)
+                        .build());
+
+        mFederatedComputeEncryptionKeyManager
+                .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ false)
+                .get();
+
+        List<FederatedComputeEncryptionKey> keys =
+                mEncryptionKeyDao.readFederatedComputeEncryptionKeysFromDatabase(
+                        ""
+                        /* selection= */ ,
+                        new String[0]
+                        /* selectionArgs= */ ,
+                        ""
+                        /* orderBy= */ ,
+                        -1
+                        /* count= */);
+
+        assertThat(keys.size()).isEqualTo(2);
+
+        List<FederatedComputeEncryptionKey> activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(2);
+        assertThat(activeKeys.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testGetOrFetchActiveKeys_fetch() {
+        doReturn(
+                        Futures.immediateFuture(
+                                new FederatedComputeHttpResponse.Builder()
+                                        .setHeaders(SAMPLE_RESPONSE_HEADER)
+                                        .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
+                                        .setStatusCode(200)
+                                        .build()))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+
+        List<FederatedComputeEncryptionKey> keys =
+                mFederatedComputeEncryptionKeyManager.getOrFetchActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
+
+        verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
+        assertThat(keys.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testGetOrFetchActiveKeys_noFetch() {
+        long currentTime = mClock.currentTimeMillis();
+        mEncryptionKeyDao.insertEncryptionKey(
+                new FederatedComputeEncryptionKey.Builder()
+                        .setKeyIdentifier("5161e286-63e5")
+                        .setPublicKey("YuOorP14obQLqASrvqbkNxyijjcAUIDx/xeMGZOyykc")
+                        .setKeyType(KEY_TYPE_ENCRYPTION)
+                        .setCreationTime(currentTime)
+                        .setExpiryTime(currentTime + 5000L)
+                        .build());
+        doReturn(
+                        Futures.immediateFuture(
+                                new FederatedComputeHttpResponse.Builder()
+                                        .setHeaders(SAMPLE_RESPONSE_HEADER)
+                                        .setPayload(SAMPLE_RESPONSE_PAYLOAD.getBytes())
+                                        .setStatusCode(200)
+                                        .build()))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+
+        List<FederatedComputeEncryptionKey> keys =
+                mFederatedComputeEncryptionKeyManager.getOrFetchActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
+
+        verify(mMockHttpClient, never()).performRequestAsyncWithRetry(any());
+        assertThat(keys.size()).isEqualTo(1);
+    }
+
+    @Test
+    public void testGetOrFetchActiveKeys_failure() {
+        doReturn(Futures.immediateFailedFuture(new InterruptedException()))
+                .when(mMockHttpClient)
+                .performRequestAsyncWithRetry(any());
+
+        List<FederatedComputeEncryptionKey> keys =
+                mFederatedComputeEncryptionKeyManager.getOrFetchActiveKeys(
+                        KEY_TYPE_ENCRYPTION, /* keyCount= */ 2);
+
+        assertThat(keys.size()).isEqualTo(0);
+        verify(mMockHttpClient, times(1)).performRequestAsyncWithRetry(any());
     }
 }

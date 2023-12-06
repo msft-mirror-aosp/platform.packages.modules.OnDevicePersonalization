@@ -22,6 +22,7 @@ import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -303,5 +304,11 @@ public class MainActivity extends Activity {
     public void onResume() {
         Log.d(TAG, "onResume");
         super.onResume();
+    }
+
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        Log.d(TAG, "onConfigurationChanged");
+        super.onConfigurationChanged(newConfig);
     }
 }
