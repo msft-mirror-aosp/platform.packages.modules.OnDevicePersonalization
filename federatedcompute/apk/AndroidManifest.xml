@@ -20,6 +20,11 @@
     android:versionCode="1"
     android:versionName="T-initial">
 
+    <!-- Define the permission to call federated compute clients implemented ExampleStoreService -->
+    <permission
+        android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE"
+        android:protectionLevel="signature" />
+
     <!-- Required for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Used for scheduling connectivity jobs -->
@@ -27,8 +32,11 @@
     <uses-permission android:name="android.permission.INTERNET" />
      <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
+    <!--  Permission to call federated compute clients implemented ExampleStoreService  -->
+    <uses-permission
+        android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
 
-    <application>
+    <application android:forceQueryable="true">
         <service android:name=".FederatedComputeManagingServiceImpl" android:exported="true" >
             <intent-filter>
                 <action android:name="android.federatedcompute.FederatedComputeService" />
@@ -39,6 +47,10 @@
         <service android:name="com.android.federatedcompute.services.training.FederatedJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
                  android:isolatedProcess="true" android:exported="false" >

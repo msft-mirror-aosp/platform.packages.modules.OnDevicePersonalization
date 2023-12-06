@@ -32,28 +32,23 @@ import java.util.HashMap;
 public final class ProtocolRequestCreator {
     private final String mRequestBaseUri;
     private final HashMap<String, String> mHeaderList;
-    private boolean mUseCompression;
 
-    public ProtocolRequestCreator(
-            String requestBaseUri, HashMap<String, String> headerList, boolean useCompression) {
+    public ProtocolRequestCreator(String requestBaseUri, HashMap<String, String> headerList) {
         this.mRequestBaseUri = requestBaseUri;
         this.mHeaderList = headerList;
-        this.mUseCompression = useCompression;
     }
 
     /**
      * Creates a {@link ProtocolRequestCreator} based on forwarding info. Validates and extracts the
      * base URI for the subsequent requests.
      */
-    public static ProtocolRequestCreator create(
-            ForwardingInfo forwardingInfo, boolean useCompression) {
+    public static ProtocolRequestCreator create(ForwardingInfo forwardingInfo) {
         if (forwardingInfo.getTargetUriPrefix().isEmpty()) {
             throw new IllegalArgumentException("Missing `ForwardingInfo.target_uri_prefix`");
         }
         HashMap<String, String> extraHeaders = new HashMap<>();
         extraHeaders.putAll(forwardingInfo.getExtraRequestHeadersMap());
-        return new ProtocolRequestCreator(
-                forwardingInfo.getTargetUriPrefix(), extraHeaders, useCompression);
+        return new ProtocolRequestCreator(forwardingInfo.getTargetUriPrefix(), extraHeaders);
     }
 
     /** Creates a {@link FederatedComputeHttpRequest} with base uri and compression setting. */
@@ -70,30 +65,21 @@ public final class ProtocolRequestCreator {
     public FederatedComputeHttpRequest createProtoRequest(
             String uri,
             HttpMethod httpMethod,
-            HashMap<String, String> params,
+            HashMap<String, String> extraHeaders,
             byte[] requestBody,
             boolean isProtobufEncoded) {
         HashMap<String, String> requestHeader = new HashMap<>();
         requestHeader.putAll(mHeaderList);
+        requestHeader.putAll(extraHeaders);
 
         if (isProtobufEncoded && requestBody.length > 0) {
             requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         }
-
-        String requestUriSuffix = uri;
-        if (!params.isEmpty()) {
-            requestUriSuffix = uri.concat("?");
-            for (String key : params.keySet()) {
-                requestUriSuffix = requestUriSuffix.concat(String.join("=", key, params.get(key)));
-            }
-        }
-
         return FederatedComputeHttpRequest.create(
-                joinBaseUriWithSuffix(mRequestBaseUri, requestUriSuffix),
+                joinBaseUriWithSuffix(mRequestBaseUri, uri),
                 httpMethod,
                 requestHeader,
-                requestBody,
-                mUseCompression);
+                requestBody);
     }
 
     private String joinBaseUriWithSuffix(String baseUri, String suffix) {

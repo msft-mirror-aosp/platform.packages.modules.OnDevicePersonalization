@@ -16,10 +16,13 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.Service;
@@ -28,6 +31,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Parcelable;
 import android.os.RemoteException;
+import android.os.SystemClock;
 
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -36,18 +40,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
 /**
- * Base class for services that are started by ODP on a call to {@link
- * OnDevicePersonalizationManager#execute} and run in an <a
+ * Base class for services that are started by ODP on a call to
+ * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
+ * java.util.concurrent.Executor, OutcomeReceiver)}
+ * and run in an <a
  * href="https://developer.android.com/guide/topics/manifest/service-element#isolated">isolated
- * process</a>. The service can produce content to be displayed in a {@link SurfaceView} in a
- * calling app and write persistent results to on-device storage, which can be consumed by Federated
- * Analytics for cross-device statistical analysis or by Federated Learning for model training.
+ * process</a>. The service can produce content to be displayed in a
+ * {@link android.view.SurfaceView} in a calling app and write persistent results to on-device
+ * storage, which can be consumed by Federated Analytics for cross-device statistical analysis or
+ * by Federated Learning for model training.
  * Client apps use {@link OnDevicePersonalizationManager} to interact with an {@link
  * IsolatedService}.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public abstract class IsolatedService extends Service {
     private static final String TAG = "IsolatedService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -100,10 +109,10 @@ public abstract class IsolatedService extends Service {
      * }</pre>
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link KeyValueStore} object that provides access to the REMOTE_DATA table. The
      *     methods in the returned {@link KeyValueStore} are blocking operations and should be
      *     called from a worker thread and not the main thread or a binder thread.
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final KeyValueStore getRemoteData(@NonNull RequestToken requestToken) {
@@ -117,10 +126,10 @@ public abstract class IsolatedService extends Service {
      * device.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link MutableKeyValueStore} object that provides access to the LOCAL_DATA table.
      *     The methods in the returned {@link MutableKeyValueStore} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final MutableKeyValueStore getLocalData(@NonNull RequestToken requestToken) {
@@ -132,12 +141,10 @@ public abstract class IsolatedService extends Service {
      * access to the rows that are readable by the IsolatedService.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link LogReader} object that provides access to the REQUESTS and EVENTS table.
      *     The methods in the returned {@link LogReader} are blocking operations and
      *     should be called from a worker thread and not the main thread or a binder thread.
-     *
-     * @hide
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final LogReader getLogReader(@NonNull RequestToken requestToken) {
@@ -146,13 +153,13 @@ public abstract class IsolatedService extends Service {
 
     /**
      * Returns an {@link EventUrlProvider} for the current request. The {@link EventUrlProvider}
-     * provides URLs that can be embedded in HTML. When the HTML is rendered in a {@link WebView},
-     * the platform intercepts requests to these URLs and invokes {@link
-     * IsolatedCmputationCallback#onWebViewEvent()}.
+     * provides URLs that can be embedded in HTML. When the HTML is rendered in an
+     * {@link android.webkit.WebView}, the platform intercepts requests to these URLs and invokes
+     * {@code IsolatedWorker#onEvent(EventInput, Consumer)}.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return An {@link EventUrlProvider} that returns event tracking URLs.
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final EventUrlProvider getEventUrlProvider(@NonNull RequestToken requestToken) {
@@ -163,8 +170,8 @@ public abstract class IsolatedService extends Service {
      * Returns the platform-provided {@link UserData} for the current request.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return A {@link UserData} object.
+     * @see #onRequest(RequestToken)
      */
     @Nullable
     public final UserData getUserData(@NonNull RequestToken requestToken) {
@@ -173,14 +180,13 @@ public abstract class IsolatedService extends Service {
 
     /**
      * Returns an {@link FederatedComputeScheduler} for the current request. The {@link
-     * FederatedComputeScheduler} can be used to schedule and cancel federated computation jobs. The
-     * federated computation includes federated learning and federated analytic jobs.
+     * FederatedComputeScheduler} can be used to schedule and cancel federated computation jobs.
+     * The federated computation includes federated learning and federated analytic jobs.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
-     * @see #onRequest
      * @return An {@link FederatedComputeScheduler} that returns a federated computation job
      *     scheduler.
-     * @hide
+     * @see #onRequest(RequestToken)
      */
     @NonNull
     public final FederatedComputeScheduler getFederatedComputeScheduler(
@@ -202,9 +208,9 @@ public abstract class IsolatedService extends Service {
 
             if (operationCode == Constants.OP_EXECUTE) {
 
-                ExecuteInput input =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_INPUT, ExecuteInput.class));
+                ExecuteInputParcel inputParcel = Objects.requireNonNull(
+                        params.getParcelable(Constants.EXTRA_INPUT, ExecuteInputParcel.class));
+                ExecuteInput input = new ExecuteInput(inputParcel);
                 Objects.requireNonNull(input.getAppPackageName());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -212,10 +218,19 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
+                IFederatedComputeService fcBinder =
+                        IFederatedComputeService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(
+                                                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
+                Objects.requireNonNull(fcBinder);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, null, userData);
+                RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onExecute(input, new WrappedCallback<ExecuteOutput>(resultCallback));
+                implCallback.onExecute(
+                        input,
+                        new WrappedCallback<ExecuteOutput, ExecuteOutputParcel>(
+                            resultCallback, requestToken, v -> new ExecuteOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_DOWNLOAD) {
 
@@ -259,13 +274,19 @@ public abstract class IsolatedService extends Service {
                 RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onDownloadCompleted(
-                        input, new WrappedCallback<DownloadCompletedOutput>(resultCallback));
+                        input,
+                        new WrappedCallback<DownloadCompletedOutput,
+                                DownloadCompletedOutputParcel>(
+                                resultCallback,
+                                requestToken,
+                                v -> new DownloadCompletedOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_RENDER) {
 
-                RenderInput input =
-                        Objects.requireNonNull(
-                                params.getParcelable(Constants.EXTRA_INPUT, RenderInput.class));
+                RenderInputParcel inputParcel =
+                        Objects.requireNonNull(params.getParcelable(
+                                Constants.EXTRA_INPUT, RenderInputParcel.class));
+                RenderInput input = new RenderInput(inputParcel);
                 Objects.requireNonNull(input.getRenderingConfig());
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -275,14 +296,16 @@ public abstract class IsolatedService extends Service {
                 Objects.requireNonNull(binder);
                 RequestToken requestToken = new RequestToken(binder, null, null);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onRender(input, new WrappedCallback<RenderOutput>(resultCallback));
+                implCallback.onRender(input, new WrappedCallback<RenderOutput, RenderOutputParcel>(
+                        resultCallback, requestToken, v -> new RenderOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
-                WebViewEventInput input =
+                EventInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, WebViewEventInput.class));
+                                        Constants.EXTRA_INPUT, EventInputParcel.class));
+                EventInput input = new EventInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -291,14 +314,16 @@ public abstract class IsolatedService extends Service {
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onWebViewEvent(
-                        input, new WrappedCallback<WebViewEventOutput>(resultCallback));
+                implCallback.onEvent(
+                        input, new WrappedCallback<EventOutput, EventOutputParcel>(
+                            resultCallback, requestToken, v -> new EventOutputParcel(v)));
 
             } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
-                TrainingExampleInput input =
+                TrainingExamplesInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, TrainingExampleInput.class));
+                                        Constants.EXTRA_INPUT, TrainingExamplesInputParcel.class));
+                TrainingExamplesInput input = new TrainingExamplesInput(inputParcel);
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
                                 Objects.requireNonNull(
@@ -308,10 +333,14 @@ public abstract class IsolatedService extends Service {
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onTrainingExample(
-                        input, new Consumer<TrainingExampleOutput>() {
+                implCallback.onTrainingExamples(
+                        input,
+                        new Consumer<TrainingExamplesOutput>() {
                             @Override
-                            public void accept(TrainingExampleOutput result) {
+                            public void accept(TrainingExamplesOutput result) {
+                                long elapsedTimeMillis =
+                                        SystemClock.elapsedRealtime()
+                                                - requestToken.getStartTimeMillis();
                                 if (result == null) {
                                     try {
                                         resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -319,8 +348,8 @@ public abstract class IsolatedService extends Service {
                                         sLogger.w(TAG + ": Callback failed.", e);
                                     }
                                 } else {
-                                    TrainingExampleOutputParcel parcelResult =
-                                            new TrainingExampleOutputParcel.Builder()
+                                    TrainingExamplesOutputParcel parcelResult =
+                                            new TrainingExamplesOutputParcel.Builder()
                                                     .setTrainingExamples(
                                                             new ByteArrayParceledListSlice(
                                                                     result.getTrainingExamples()))
@@ -330,6 +359,11 @@ public abstract class IsolatedService extends Service {
                                                     .build();
                                     Bundle bundle = new Bundle();
                                     bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
+                                    bundle.putParcelable(
+                                            Constants.EXTRA_CALLEE_METADATA,
+                                            new CalleeMetadata.Builder()
+                                                    .setElapsedTimeMillis(elapsedTimeMillis)
+                                                    .build());
                                     try {
                                         resultCallback.onSuccess(bundle);
                                     } catch (RemoteException e) {
@@ -344,15 +378,24 @@ public abstract class IsolatedService extends Service {
         }
     }
 
-    private static class WrappedCallback<T extends Parcelable> implements Consumer<T> {
+    private static class WrappedCallback<T, U extends Parcelable> implements Consumer<T> {
         @NonNull private final IIsolatedServiceCallback mCallback;
+        @NonNull private final RequestToken mRequestToken;
+        @NonNull private final Function<T, U> mConverter;
 
-        WrappedCallback(IIsolatedServiceCallback callback) {
+        WrappedCallback(
+                IIsolatedServiceCallback callback,
+                RequestToken requestToken,
+                Function<T, U> converter) {
             mCallback = Objects.requireNonNull(callback);
+            mRequestToken = Objects.requireNonNull(requestToken);
+            mConverter = Objects.requireNonNull(converter);
         }
 
         @Override
         public void accept(T result) {
+            long elapsedTimeMillis =
+                    SystemClock.elapsedRealtime() - mRequestToken.getStartTimeMillis();
             if (result == null) {
                 try {
                     mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -361,7 +404,12 @@ public abstract class IsolatedService extends Service {
                 }
             } else {
                 Bundle bundle = new Bundle();
-                bundle.putParcelable(Constants.EXTRA_RESULT, result);
+                U wrappedResult = mConverter.apply(result);
+                bundle.putParcelable(Constants.EXTRA_RESULT, wrappedResult);
+                bundle.putParcelable(Constants.EXTRA_CALLEE_METADATA,
+                        new CalleeMetadata.Builder()
+                            .setElapsedTimeMillis(elapsedTimeMillis)
+                            .build());
                 try {
                     mCallback.onSuccess(bundle);
                 } catch (RemoteException e) {

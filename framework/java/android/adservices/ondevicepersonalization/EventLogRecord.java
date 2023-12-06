@@ -16,7 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.IntRange;
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.ContentValues;
 import android.os.Parcelable;
@@ -24,18 +28,22 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.time.Instant;
+
 // TODO(b/289102463): Add a link to the public doc for the EVENTS table when available.
 /**
  * Data to be logged in the EVENTS table.
  *
  * Each record in the EVENTS table is associated with one row from an existing
- * {@link RequestRecordRecord} in the requests table (@see RequestLogRecord#getRows).
+ * {@link RequestLogRecord} in the requests table {@link RequestLogRecord#getRows()}.
  * The purpose of the EVENTS table is to add supplemental information to logged data
- * from a prior request, e.g., logging an event when a link in a rendered WebView
- * is clicked (@see IsolatedWorker#onWebViewEvent). The contents of the EVENTS table can be
+ * from a prior request, e.g., logging an event when a link in a rendered WebView is
+ * clicked {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
+ * The contents of the EVENTS table can be
  * consumed by Federated Learning facilitated model training, or Federated Analytics facilitated
  * cross-device statistical analysis.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class EventLogRecord implements Parcelable {
     /**
@@ -49,15 +57,47 @@ public final class EventLogRecord implements Parcelable {
      * {@link RequestLogRecord} can be associated with up to one event of a specified type.
      * The platform drops events if another event with the same type already exists for a row
      * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
-     * written for each row in {@link RequestLogRecord}.
+     * written for each row in {@link RequestLogRecord}. If unspecified, the default is 1.
      */
-    private @IntRange(from = 1, to = 127) int mType;
+    private @IntRange(from = 1, to = 127) int mType = 1;
+
+    /**
+     * Time of the event in milliseconds.
+     * @hide
+     */
+    private long mTimeMillis = 0;
 
     /**
      * Additional data to be logged. Can be null if no additional data needs to be written as part
      * of the event, and only the occurrence of the event needs to be logged.
      */
     @Nullable ContentValues mData = null;
+
+    /**
+     * The existing {@link RequestLogRecord} that this payload should be associated with. In an
+     * implementation of
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+     * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * this should be set to {@code null} because the payload will be automatically associated with
+     * the current {@link RequestLogRecord}.
+     *
+     */
+    @Nullable RequestLogRecord mRequestLogRecord = null;
+
+    /**
+     * Returns the timestamp of this record.
+     */
+    @NonNull public Instant getTime() {
+        return Instant.ofEpochMilli(getTimeMillis());
+    }
+
+    abstract static class BaseBuilder {
+        /**
+         * @hide
+         */
+        public abstract Builder setTimeMillis(long value);
+    }
 
 
 
@@ -78,7 +118,9 @@ public final class EventLogRecord implements Parcelable {
     /* package-private */ EventLogRecord(
             @IntRange(from = 0) int rowIndex,
             @IntRange(from = 1, to = 127) int type,
-            @Nullable ContentValues data) {
+            long timeMillis,
+            @Nullable ContentValues data,
+            @Nullable RequestLogRecord requestLogRecord) {
         this.mRowIndex = rowIndex;
         AnnotationValidations.validate(
                 IntRange.class, null, mRowIndex,
@@ -88,7 +130,9 @@ public final class EventLogRecord implements Parcelable {
                 IntRange.class, null, mType,
                 "from", 1,
                 "to", 127);
+        this.mTimeMillis = timeMillis;
         this.mData = data;
+        this.mRequestLogRecord = requestLogRecord;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -107,11 +151,21 @@ public final class EventLogRecord implements Parcelable {
      * {@link RequestLogRecord} can be associated with up to one event of a specified type.
      * The platform drops events if another event with the same type already exists for a row
      * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
-     * written for each row in {@link RequestLogRecord}.
+     * written for each row in {@link RequestLogRecord}. If unspecified, the default is 1.
      */
     @DataClass.Generated.Member
     public @IntRange(from = 1, to = 127) int getType() {
         return mType;
+    }
+
+    /**
+     * Time of the event in milliseconds.
+     *
+     * @hide
+     */
+    @DataClass.Generated.Member
+    public long getTimeMillis() {
+        return mTimeMillis;
     }
 
     /**
@@ -121,6 +175,20 @@ public final class EventLogRecord implements Parcelable {
     @DataClass.Generated.Member
     public @Nullable ContentValues getData() {
         return mData;
+    }
+
+    /**
+     * The existing {@link RequestLogRecord} that this payload should be associated with. In an
+     * implementation of
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+     * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * this should be set to {@code null} because the payload will be automatically associated with
+     * the current {@link RequestLogRecord}.
+     */
+    @DataClass.Generated.Member
+    public @Nullable RequestLogRecord getRequestLogRecord() {
+        return mRequestLogRecord;
     }
 
     @Override
@@ -138,7 +206,9 @@ public final class EventLogRecord implements Parcelable {
         return true
                 && mRowIndex == that.mRowIndex
                 && mType == that.mType
-                && java.util.Objects.equals(mData, that.mData);
+                && mTimeMillis == that.mTimeMillis
+                && java.util.Objects.equals(mData, that.mData)
+                && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord);
     }
 
     @Override
@@ -150,22 +220,27 @@ public final class EventLogRecord implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + mRowIndex;
         _hash = 31 * _hash + mType;
+        _hash = 31 * _hash + Long.hashCode(mTimeMillis);
         _hash = 31 * _hash + java.util.Objects.hashCode(mData);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
         return _hash;
     }
 
     @Override
     @DataClass.Generated.Member
-    public void writeToParcel(@android.annotation.NonNull android.os.Parcel dest, int flags) {
+    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mData != null) flg |= 0x4;
+        if (mData != null) flg |= 0x8;
+        if (mRequestLogRecord != null) flg |= 0x10;
         dest.writeByte(flg);
         dest.writeInt(mRowIndex);
         dest.writeInt(mType);
+        dest.writeLong(mTimeMillis);
         if (mData != null) dest.writeTypedObject(mData, flags);
+        if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
     }
 
     @Override
@@ -175,14 +250,16 @@ public final class EventLogRecord implements Parcelable {
     /** @hide */
     @SuppressWarnings({"unchecked", "RedundantCast"})
     @DataClass.Generated.Member
-    /* package-private */ EventLogRecord(@android.annotation.NonNull android.os.Parcel in) {
+    /* package-private */ EventLogRecord(@NonNull android.os.Parcel in) {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
         int rowIndex = in.readInt();
         int type = in.readInt();
-        ContentValues data = (flg & 0x4) == 0 ? null : (ContentValues) in.readTypedObject(ContentValues.CREATOR);
+        long timeMillis = in.readLong();
+        ContentValues data = (flg & 0x8) == 0 ? null : (ContentValues) in.readTypedObject(ContentValues.CREATOR);
+        RequestLogRecord requestLogRecord = (flg & 0x10) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
 
         this.mRowIndex = rowIndex;
         AnnotationValidations.validate(
@@ -193,13 +270,15 @@ public final class EventLogRecord implements Parcelable {
                 IntRange.class, null, mType,
                 "from", 1,
                 "to", 127);
+        this.mTimeMillis = timeMillis;
         this.mData = data;
+        this.mRequestLogRecord = requestLogRecord;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     @DataClass.Generated.Member
-    public static final @android.annotation.NonNull Parcelable.Creator<EventLogRecord> CREATOR
+    public static final @NonNull Parcelable.Creator<EventLogRecord> CREATOR
             = new Parcelable.Creator<EventLogRecord>() {
         @Override
         public EventLogRecord[] newArray(int size) {
@@ -207,7 +286,7 @@ public final class EventLogRecord implements Parcelable {
         }
 
         @Override
-        public EventLogRecord createFromParcel(@android.annotation.NonNull android.os.Parcel in) {
+        public EventLogRecord createFromParcel(@NonNull android.os.Parcel in) {
             return new EventLogRecord(in);
         }
     };
@@ -215,13 +294,16 @@ public final class EventLogRecord implements Parcelable {
     /**
      * A builder for {@link EventLogRecord}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
-    public static final class Builder {
+    public static final class Builder extends BaseBuilder {
 
         private @IntRange(from = 0) int mRowIndex;
         private @IntRange(from = 1, to = 127) int mType;
+        private long mTimeMillis;
         private @Nullable ContentValues mData;
+        private @Nullable RequestLogRecord mRequestLogRecord;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -233,7 +315,7 @@ public final class EventLogRecord implements Parcelable {
          * associated with.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRowIndex(@IntRange(from = 0) int value) {
+        public @NonNull Builder setRowIndex(@IntRange(from = 0) int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRowIndex = value;
@@ -245,13 +327,27 @@ public final class EventLogRecord implements Parcelable {
          * {@link RequestLogRecord} can be associated with up to one event of a specified type.
          * The platform drops events if another event with the same type already exists for a row
          * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
-         * written for each row in {@link RequestLogRecord}.
+         * written for each row in {@link RequestLogRecord}. If unspecified, the default is 1.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setType(@IntRange(from = 1, to = 127) int value) {
+        public @NonNull Builder setType(@IntRange(from = 1, to = 127) int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mType = value;
+            return this;
+        }
+
+        /**
+         * Time of the event in milliseconds.
+         *
+         * @hide
+         */
+        @DataClass.Generated.Member
+        @Override
+        public @NonNull Builder setTimeMillis(long value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mTimeMillis = value;
             return this;
         }
 
@@ -260,33 +356,61 @@ public final class EventLogRecord implements Parcelable {
          * of the event, and only the occurrence of the event needs to be logged.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setData(@android.annotation.NonNull ContentValues value) {
+        public @NonNull Builder setData(@NonNull ContentValues value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x8;
             mData = value;
             return this;
         }
 
-        /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull EventLogRecord build() {
+        /**
+         * The existing {@link RequestLogRecord} that this payload should be associated with. In an
+         * implementation of
+         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+         * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+         * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+         * this should be set to {@code null} because the payload will be automatically associated with
+         * the current {@link RequestLogRecord}.
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8; // Mark builder used
+            mBuilderFieldsSet |= 0x10;
+            mRequestLogRecord = value;
+            return this;
+        }
+
+        /** Builds the instance. This builder should not be touched after calling this! */
+        public @NonNull EventLogRecord build() {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x20; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRowIndex = 0;
             }
+            if ((mBuilderFieldsSet & 0x2) == 0) {
+                mType = 1;
+            }
             if ((mBuilderFieldsSet & 0x4) == 0) {
+                mTimeMillis = 0;
+            }
+            if ((mBuilderFieldsSet & 0x8) == 0) {
                 mData = null;
+            }
+            if ((mBuilderFieldsSet & 0x10) == 0) {
+                mRequestLogRecord = null;
             }
             EventLogRecord o = new EventLogRecord(
                     mRowIndex,
                     mType,
-                    mData);
+                    mTimeMillis,
+                    mData,
+                    mRequestLogRecord);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x8) != 0) {
+            if ((mBuilderFieldsSet & 0x20) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -294,10 +418,10 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1694811341710L,
+            time = 1698963996102L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventLogRecord.java",
-            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\n @android.annotation.Nullable android.content.ContentValues mData\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\npublic @android.annotation.NonNull java.time.Instant getTime()\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
     @Deprecated
     private void __metadata() {}
 

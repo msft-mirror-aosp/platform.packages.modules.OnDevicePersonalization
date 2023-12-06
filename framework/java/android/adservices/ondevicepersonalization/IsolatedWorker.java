@@ -16,6 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 import java.util.function.Consumer;
@@ -28,23 +31,26 @@ import java.util.function.Consumer;
  * offload long running operations to a worker thread. The consumer parameter of each method is used
  * to return results.
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface IsolatedWorker {
 
     /**
-     * Handles a request from an app. This method is called when an app calls {@link
-     * OnDevicePersonalizationManager#execute} that refers to a named {@link IsolatedService}.
+     * Handles a request from an app. This method is called when an app calls {@code
+     * OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
+     * java.util.concurrent.Executor, OutcomeReceiver)} that refers to a named
+     * {@link IsolatedService}.
      *
      * @param input Request Parameters from the calling app.
-     * @param consumer Callback that receives the result (@see ExecuteOutput). Should be called with
-     *     <code>null</code> on an error. The error is propagated to the calling app as an {@link
-     *     OnDevicePersonalizationException} with error code {@link
+     * @param consumer Callback that receives the result {@link ExecuteOutput}. Should be called
+     *     with <code>null</code> on an error. The error is propagated to the calling app as an
+     *     {@link OnDevicePersonalizationException} with error code {@link
      *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}. To avoid leaking private
      *     data to the calling app, more detailed error reporting is not available. If the {@link
      *     IsolatedService} needs to report error stats to its backend, it should populate {@link
      *     ExecuteOutput} with error data for logging, and rely on Federated Analytics to aggregate
      *     the error reports.
-     *     <p>If this method throws a {@link RunTimeException}, that is also reported to calling
-     *     apps as an {@link OnDevicePersonalizationException} with error code {@link
+     *     <p>If this method throws a {@link RuntimeException}, that is also reported to
+     *     calling apps as an {@link OnDevicePersonalizationException} with error code {@link
      *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
      */
     default void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
@@ -54,8 +60,8 @@ public interface IsolatedWorker {
     /**
      * Handles a completed download. The platform downloads content using the parameters defined in
      * the package manifest of the {@link IsolatedService}, calls this function after the download
-     * is complete, and updates the REMOTE_DATA table (@see IsolatedService#getRemoteData) with the
-     * result of this method.
+     * is complete, and updates the REMOTE_DATA table from
+     * {@link IsolatedService#getRemoteData(RequestToken)} with the result of this method.
      *
      * @param input Download handler parameters.
      * @param consumer Callback that receives the result. Should be called with <code>null</code> on
@@ -70,9 +76,11 @@ public interface IsolatedWorker {
     }
 
     /**
-     * Generates HTML for the results that were returned as a result of {@link #onExecute()}. Called
-     * when a client app calls {@link OnDevicePersonalizationManager#requestSurfacePackage}. The
-     * platform will render this HTML in a WebView inside a fenced frame.
+     * Generates HTML for the results that were returned as a result of
+     * {@link #onExecute(ExecuteInput, Consumer)}. Called when a client app calls
+     * {@link OnDevicePersonalizationManager#requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, java.util.concurrent.Executor, OutcomeReceiver)}.
+     * The platform will render this HTML in an {@link android.webkit.WebView} inside a fenced
+     * frame.
      *
      * @param input Parameters for the render request.
      * @param consumer Callback that receives the result. Should be called with <code>null</code> on
@@ -89,8 +97,9 @@ public interface IsolatedWorker {
 
     /**
      * Handles an event triggered by a request to a platform-provided tracking URL {@link
-     * EventUrlProvider} that was embedded in the HTML output returned by {@link #onRender()}. The
-     * platform updates the EVENTS table (@see EventLogRecord) with the result of this method.
+     * EventUrlProvider} that was embedded in the HTML output returned by
+     * {@link #onRender(RenderInput, Consumer)}. The platform updates the EVENTS table with
+     * {@link EventOutput#getEventLogRecord()}.
      *
      * @param input The parameters needed to compute event data.
      * @param consumer Callback that receives the result. Should be called with <code>null</code> on
@@ -98,21 +107,24 @@ public interface IsolatedWorker {
      *     <p>If this method throws a {@link RuntimeException}, no data is written to the EVENTS
      *     table.
      */
-    default void onWebViewEvent(
-            @NonNull WebViewEventInput input, @NonNull Consumer<WebViewEventOutput> consumer) {
+    default void onEvent(
+            @NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
         consumer.accept(null);
     }
 
     /**
-     * Generate a single training example used for federated computation job.
+     * Generate a list of training examples used for federated compute job. The platform will call
+     * this function when a federated compute job starts. The federated compute job is scheduled by
+     * an app through {@link FederatedComputeScheduler#schedule}.
      *
      * @param input The parameters needed to generate the training example.
-     * @param consumer Callback to be invoked on completion.
-     * @hide
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. If called with <code>null</code>, no training examples is produced for this
+     *     training session.
      */
-    default void onTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
+    default void onTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
         consumer.accept(null);
     }
 }

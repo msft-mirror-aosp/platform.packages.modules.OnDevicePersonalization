@@ -29,10 +29,14 @@ import android.os.RemoteException;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -52,116 +56,96 @@ public class LogReaderTest {
     }
 
     @Test
-    public void testGetRequestIdsSuccess() {
-        List<Long> result = mLogReader.getRequestIds(10, 100);
-        assertEquals(1L, (long) result.get(0));
-        assertEquals(2L, (long) result.get(1));
-        assertEquals(3L, (long) result.get(2));
+    public void testGetRequestsSuccess() {
+        List<RequestLogRecord> result = mLogReader.getRequests(
+                Instant.ofEpochMilli(10), Instant.ofEpochMilli(100));
+        assertEquals(2, result.size());
+        assertEquals(1, result.get(0).getRows().size());
+        assertEquals((int) (result.get(0).getRows().get(0).getAsInteger("a")), 1);
+        assertEquals((int) (result.get(0).getRows().get(0).getAsInteger("b")), 1);
+        assertEquals(1, result.get(1).getRows().size());
+        assertEquals((int) (result.get(1).getRows().get(0).getAsInteger("a")), 1);
+        assertEquals((int) (result.get(1).getRows().get(0).getAsInteger("b")), 1);
     }
 
     @Test
-    public void testGetRequestIdsError() {
+    public void testGetRequestsNullTimeError() {
+        assertThrows(NullPointerException.class, () -> mLogReader.getRequests(
+                null, Instant.ofEpochMilli(100)));
+        assertThrows(NullPointerException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(100), null));
+    }
+
+    @Test
+    public void testGetRequestsError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getRequestIds(7, 100));
+        assertThrows(IllegalStateException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(7), Instant.ofEpochMilli(100)));
     }
 
     @Test
-    public void testGetRequestIdsNegativeTimeError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequestIds(-1, 100));
+    public void testGetRequestsNegativeTimeError() {
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(-1), Instant.ofEpochMilli(100)));
     }
 
     @Test
-    public void testGetRequestIdsBadTimeRangeError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequestIds(100, 100));
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequestIds(1000, 100));
+    public void testGetRequestsBadTimeRangeError() {
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(100), Instant.ofEpochMilli(100)));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequests(
+                Instant.ofEpochMilli(1000), Instant.ofEpochMilli(100)));
     }
 
     @Test
-    public void testGetEventIdsSuccess() {
-        List<Long> result = mLogReader.getEventIds(10, 100);
-        assertEquals(1L, (long) result.get(0));
-        assertEquals(2L, (long) result.get(1));
-        assertEquals(3L, (long) result.get(2));
+    public void testGetJoinedEventsSuccess() {
+        List<EventLogRecord> result = mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(10), Instant.ofEpochMilli(100));
+        assertEquals(2, result.size());
+        assertEquals(result.get(0).getTimeMillis(), 30);
+        assertEquals(result.get(0).getRequestLogRecord().getTimeMillis(), 20);
+        assertEquals(result.get(0).getType(), 1);
+        assertEquals((int) (result.get(0).getData().getAsInteger("a")), 1);
+        assertEquals((int) (result.get(0).getData().getAsInteger("b")), 1);
+        assertEquals(result.get(1).getTimeMillis(), 40);
+        assertEquals(result.get(1).getRequestLogRecord().getTimeMillis(), 30);
+        assertEquals(result.get(1).getType(), 2);
+        assertEquals((int) (result.get(1).getData().getAsInteger("a")), 1);
+        assertEquals((int) (result.get(1).getData().getAsInteger("b")), 1);
     }
 
     @Test
-    public void testGetEventIdsError() {
+    public void testGetJoinedEventsError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getEventIds(7, 100));
+        assertThrows(IllegalStateException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(7), Instant.ofEpochMilli(100)));
     }
 
     @Test
-    public void testGetEventIdsNegativeTimeError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getEventIds(-1, 100));
+    public void testGetJoinedEventsNullTimeError() {
+        assertThrows(NullPointerException.class, () -> mLogReader.getJoinedEvents(
+                null, Instant.ofEpochMilli(100)));
+        assertThrows(NullPointerException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(100), null));
     }
 
     @Test
-    public void testGetEventIdsInputError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getEventIds(100, 100));
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getEventIds(1000, 100));
+    public void testGetJoinedEventsNegativeTimeError() {
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(-1), Instant.ofEpochMilli(100)));
     }
 
     @Test
-    public void testGetEventIdsForRequestSuccess() {
-        List<Long> result = mLogReader.getEventIdsForRequest(1);
-        assertEquals(1L, (long) result.get(0));
-        assertEquals(2L, (long) result.get(1));
-        assertEquals(3L, (long) result.get(2));
+    public void testGetJoinedEventsInputError() {
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(100), Instant.ofEpochMilli(100)));
+        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(1000), Instant.ofEpochMilli(100)));
     }
-
-    @Test
-    public void testGetEventIdsForRequestError() {
-        // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getEventIdsForRequest(7));
-    }
-
-    @Test
-    public void testGetEventIdsForRequestInputError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getEventIdsForRequest(-1));
-    }
-
-    @Test
-    public void testGetRequestLogRecordSuccess() {
-        RequestLogRecord record = mLogReader.getRequestLogRecord(1);
-        assertEquals(1, (int) (record.getRows().get(0).getAsInteger("x")));
-    }
-
-    @Test
-    public void testGetRequestLogRecordError() {
-        // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getRequestLogRecord(7));
-    }
-
-    @Test
-    public void testGetRequestLogRecordInputError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getRequestLogRecord(-1));
-    }
-
-
-    @Test
-    public void testGetJoinedLogRecordSuccess() {
-        JoinedLogRecord record = mLogReader.getJoinedLogRecord(1);
-        assertEquals(1L, record.getEventTimeMillis());
-        assertEquals(1L, record.getRequestTimeMillis());
-    }
-
-    @Test
-    public void testGetJoinedLogRecordError() {
-        // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLogReader.getJoinedLogRecord(7));
-    }
-
-    @Test
-    public void testGetJoinedLogRecordInputError() {
-        assertThrows(IllegalArgumentException.class, () -> mLogReader.getJoinedLogRecord(-1));
-    }
-
 
     public static class LocalDataService extends IDataAccessService.Stub {
-        long[] mIds;
 
         public LocalDataService() {
-            mIds = new long[]{1L, 2L, 3L};
         }
 
         @Override
@@ -169,8 +153,8 @@ public class LogReaderTest {
                 int operation,
                 Bundle params,
                 IDataAccessServiceCallback callback) {
-            if (operation == Constants.DATA_ACCESS_OP_GET_REQUEST_IDS
-                    || operation == Constants.DATA_ACCESS_OP_EVENT_IDS) {
+            if (operation == Constants.DATA_ACCESS_OP_GET_REQUESTS
+                    || operation == Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS) {
                 long[] timestamps = params.getLongArray(Constants.EXTRA_LOOKUP_KEYS);
                 if (timestamps[0] == 7) {
                     // Raise expected error.
@@ -183,48 +167,51 @@ public class LogReaderTest {
                 }
 
                 Bundle result = new Bundle();
-                result.putLongArray(Constants.EXTRA_RESULT, mIds);
+                ContentValues values = new ContentValues();
+                values.put("a", 1);
+                values.put("b", 1);
+                if (operation == Constants.DATA_ACCESS_OP_GET_REQUESTS) {
+                    List<RequestLogRecord> records = new ArrayList<>();
+                    records.add(new RequestLogRecord.Builder()
+                            .setRequestId(1)
+                            .addRow(values)
+                            .build());
+                    records.add(new RequestLogRecord.Builder()
+                            .setRequestId(2)
+                            .addRow(values)
+                            .build());
+                    result.putParcelable(Constants.EXTRA_RESULT,
+                            new OdpParceledListSlice<RequestLogRecord>(records));
+                } else if (operation == Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS) {
+                    List<EventLogRecord> records = new ArrayList<>();
+                    records.add(new EventLogRecord.Builder()
+                            .setType(1)
+                            .setTimeMillis(30)
+                            .setData(values)
+                            .setRequestLogRecord(new RequestLogRecord.Builder()
+                                    .setRequestId(0)
+                                    .addRow(values)
+                                    .setTimeMillis(20)
+                                    .build())
+                            .build());
+                    records.add(new EventLogRecord.Builder()
+                            .setType(2)
+                            .setTimeMillis(40)
+                            .setData(values)
+                            .setRequestLogRecord(new RequestLogRecord.Builder()
+                                    .setRequestId(0)
+                                    .addRow(values)
+                                    .setTimeMillis(30)
+                                    .build())
+                            .build());
+                    result.putParcelable(Constants.EXTRA_RESULT,
+                            new OdpParceledListSlice<EventLogRecord>(records));
+                }
                 try {
                     callback.onSuccess(result);
                 } catch (RemoteException e) {
                     // Ignored.
                 }
-                return;
-            }
-
-            long id = params.getLong(Constants.EXTRA_LOOKUP_KEYS);
-            if (id == 7) {
-                // Raise expected error.
-                try {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                } catch (RemoteException e) {
-                    // Ignored.
-                }
-                return;
-            }
-            Bundle result = new Bundle();
-            if (operation == Constants.DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST) {
-                result.putSerializable(Constants.EXTRA_RESULT, mIds);
-            }
-            if (operation == Constants.DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD) {
-                ContentValues values = new ContentValues();
-                values.put("x", 1);
-                RequestLogRecord record = new RequestLogRecord.Builder()
-                        .addRow(values)
-                        .build();
-                result.putParcelable(Constants.EXTRA_RESULT, record);
-            }
-            if (operation == Constants.DATA_ACCESS_OP_GET_JOINED_LOG_RECORD) {
-                JoinedLogRecord record = new JoinedLogRecord.Builder()
-                        .setEventTimeMillis(1L)
-                        .setRequestTimeMillis(1L)
-                        .build();
-                result.putParcelable(Constants.EXTRA_RESULT, record);
-            }
-            try {
-                callback.onSuccess(result);
-            } catch (RemoteException e) {
-                // Ignored.
             }
         }
     }

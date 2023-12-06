@@ -16,8 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
-import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
@@ -26,11 +28,13 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by {@link IsolatedWorker#onDownloadCompleted()}.
+ * The result returned by {@link
+ * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
  *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class DownloadCompletedOutput implements Parcelable {
+public final class DownloadCompletedOutput {
     /**
      * The keys to be retained in the REMOTE_DATA table. Any existing keys that are not
      * present in this list are removed from the table.
@@ -99,53 +103,10 @@ public final class DownloadCompletedOutput implements Parcelable {
         return _hash;
     }
 
-    @Override
-    @DataClass.Generated.Member
-    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
-        // You can override field parcelling by defining methods like:
-        // void parcelFieldName(Parcel dest, int flags) { ... }
-
-        dest.writeStringList(mRetainedKeys);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int describeContents() { return 0; }
-
-    /** @hide */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
-    @DataClass.Generated.Member
-    /* package-private */ DownloadCompletedOutput(@NonNull android.os.Parcel in) {
-        // You can override field unparcelling by defining methods like:
-        // static FieldType unparcelFieldName(Parcel in) { ... }
-
-        List<String> retainedKeys = new java.util.ArrayList<>();
-        in.readStringList(retainedKeys);
-
-        this.mRetainedKeys = retainedKeys;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRetainedKeys);
-
-        // onConstructed(); // You can define this method to get a callback
-    }
-
-    @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<DownloadCompletedOutput> CREATOR
-            = new Parcelable.Creator<DownloadCompletedOutput>() {
-        @Override
-        public DownloadCompletedOutput[] newArray(int size) {
-            return new DownloadCompletedOutput[size];
-        }
-
-        @Override
-        public DownloadCompletedOutput createFromParcel(@NonNull android.os.Parcel in) {
-            return new DownloadCompletedOutput(in);
-        }
-    };
-
     /**
      * A builder for {@link DownloadCompletedOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -199,10 +160,10 @@ public final class DownloadCompletedOutput implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1694646057660L,
+            time = 1698862918590L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedOutput.java",
-            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.NonNull java.util.List<java.lang.String> mRetainedKeys\nclass DownloadCompletedOutput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"retainedKey\") @android.annotation.NonNull java.util.List<java.lang.String> mRetainedKeys\nclass DownloadCompletedOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

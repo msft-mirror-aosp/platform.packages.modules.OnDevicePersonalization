@@ -16,14 +16,16 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.federatedcompute.services.common.Constants.TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING;
+
 import android.annotation.NonNull;
-import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.RemoteException;
+import android.os.Trace;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
@@ -58,8 +60,8 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private final ComputationRunner mComputationRunner;
 
-    public IsolatedTrainingServiceImpl(Context context) {
-        mComputationRunner = new ComputationRunner(context);
+    public IsolatedTrainingServiceImpl() {
+        mComputationRunner = new ComputationRunner();
     }
 
     @VisibleForTesting
@@ -71,6 +73,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     public void runFlTraining(@NonNull Bundle params, @NonNull ITrainingResultCallback callback) {
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
+        Trace.beginAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
 
         IExampleStoreIterator exampleStoreIteratorBinder =
                 IExampleStoreIterator.Stub.asInterface(
@@ -89,6 +92,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
         String populationName =
                 Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+        String taskName = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
 
         ParcelFileDescriptor inputCheckpointFd =
                 Objects.requireNonNull(
@@ -115,6 +119,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 Futures.submit(
                         () ->
                                 mComputationRunner.runTaskWithNativeRunner(
+                                        taskName,
                                         populationName,
                                         getFileDescriptorForTensorflow(inputCheckpointFd),
                                         getFileDescriptorForTensorflow(outputCheckpointFd),
@@ -134,16 +139,21 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
                         ArrayList<ExampleConsumption> exampleConsumptionArrayList =
                                 recorder.finishRecordingAndGet();
+                        int numExamples = 0;
+                        for (ExampleConsumption exampleConsumption : exampleConsumptionArrayList) {
+                            numExamples += exampleConsumption.getExampleCount();
+                        }
                         LogUtil.i(
                                 TAG,
                                 "training task %s: result %s, used %d examples",
                                 populationName,
                                 result.toString(),
-                                exampleConsumptionArrayList.size());
+                                numExamples);
                         bundle.putParcelableArrayList(
                                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
                                 exampleConsumptionArrayList);
                         sendResult(bundle, callback);
+                        Trace.endAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
                     }
 
                     @Override

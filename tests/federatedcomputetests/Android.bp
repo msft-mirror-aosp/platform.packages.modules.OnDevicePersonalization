@@ -23,6 +23,7 @@ android_test {
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
         ":statslog-federatedcompute-java-gen",
+        ":fcp_native_wrapper",
     ],
     libs: [
         "android.test.base",
@@ -61,5 +62,6 @@ android_test {
     jni_libs: [
         "libdexmakerjvmtiagent",
         "libstaticjvmtiagent",
+        "libfcp_cpp_dep_jni",
     ],
 }

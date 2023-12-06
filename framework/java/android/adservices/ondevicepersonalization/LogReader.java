@@ -16,31 +16,35 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.os.RemoteException;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
-import java.util.stream.Collectors;
 
 /**
  * An interface to a read logs from REQUESTS and EVENTS
  *
- * Used as a Data Access Object for the REQUESTS and EVENTS table
- * {@link IsolatedService#getLogReader}.
+ * Used as a Data Access Object for the REQUESTS and EVENTS table.
  *
- * @hide
+ * @see IsolatedService#getLogReader(RequestToken)
+ *
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class LogReader {
     private static final String TAG = "LogReader";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -55,12 +59,15 @@ public class LogReader {
 
 
     /**
-     * Retrieves a List of request ids for RequestLogRecords written by this IsolatedService within
+     * Retrieves a List of RequestLogRecords written by this IsolatedService within
      * the specified time range.
      */
     @WorkerThread
     @NonNull
-    public List<Long> getRequestIds(long startTimeMillis, long endTimeMillis) {
+    public List<RequestLogRecord> getRequests(
+            @NonNull Instant startTime, @NonNull Instant endTime) {
+        long startTimeMillis = startTime.toEpochMilli();
+        long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(
                     "endTimeMillis must be greater than startTimeMillis");
@@ -71,17 +78,21 @@ public class LogReader {
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS,
                 new long[]{startTimeMillis, endTimeMillis});
-        return handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_REQUEST_IDS, params);
+        OdpParceledListSlice<RequestLogRecord> result =
+                handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_REQUESTS, params);
+        return result.getList();
     }
 
-
     /**
-     * Return event ids for EventLogRecords written by this
+     * Retrieves a List of EventLogRecord with its corresponding RequestLogRecord written by this
      * IsolatedService within the specified time range.
      */
     @WorkerThread
     @NonNull
-    public List<Long> getEventIds(long startTimeMillis, long endTimeMillis) {
+    public List<EventLogRecord> getJoinedEvents(
+            @NonNull Instant startTime, @NonNull Instant endTime) {
+        long startTimeMillis = startTime.toEpochMilli();
+        long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
             throw new IllegalArgumentException(
                     "endTimeMillis must be greater than startTimeMillis");
@@ -92,63 +103,9 @@ public class LogReader {
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS,
                 new long[]{startTimeMillis, endTimeMillis});
-        return handleListLookupRequest(Constants.DATA_ACCESS_OP_EVENT_IDS, params);
-    }
-
-    /**
-     * Return event ids for EventLogRecords that are associated with the
-     * specified request id.
-     */
-    @WorkerThread
-    @NonNull
-    public List<Long> getEventIdsForRequest(long requestId) {
-        if (requestId <= 0) {
-            throw new IllegalArgumentException("requestId must be greater than 0");
-        }
-        Bundle params = new Bundle();
-        params.putLong(Constants.EXTRA_LOOKUP_KEYS, requestId);
-        return handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_EVENT_IDS_FOR_REQUEST, params);
-    }
-
-    /**
-     * Return the RequestLogRecord with the specified request id.
-     */
-    @WorkerThread
-    public RequestLogRecord getRequestLogRecord(long requestId) {
-        if (requestId <= 0) {
-            throw new IllegalArgumentException("requestId must be greater than 0");
-        }
-        Bundle params = new Bundle();
-        params.putLong(Constants.EXTRA_LOOKUP_KEYS, requestId);
-        Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_GET_REQUEST_LOG_RECORD, params);
-        RequestLogRecord data = result.getParcelable(
-                Constants.EXTRA_RESULT, RequestLogRecord.class);
-        if (null == data) {
-            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
-        }
-        return data;
-    }
-
-    /**
-     * Return the EventLogRecord with the specified event id, joined with
-     * its matching RequestLogRecord.
-     */
-    @WorkerThread
-    public JoinedLogRecord getJoinedLogRecord(long eventId) {
-        if (eventId <= 0) {
-            throw new IllegalArgumentException("eventId must be greater than 0");
-        }
-        Bundle params = new Bundle();
-        params.putLong(Constants.EXTRA_LOOKUP_KEYS, eventId);
-        Bundle result = handleAsyncRequest(Constants.DATA_ACCESS_OP_GET_JOINED_LOG_RECORD, params);
-        JoinedLogRecord data = result.getParcelable(
-                Constants.EXTRA_RESULT, JoinedLogRecord.class);
-        if (null == data) {
-            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
-        }
-        return data;
+        OdpParceledListSlice<EventLogRecord> result =
+                handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS, params);
+        return result.getList();
     }
 
     private Bundle handleAsyncRequest(int op, Bundle params) {
@@ -179,16 +136,19 @@ public class LogReader {
         }
     }
 
-    private List<Long> handleListLookupRequest(int op, Bundle params) {
+    private <T extends Parcelable> OdpParceledListSlice<T> handleListLookupRequest(int op,
+            Bundle params) {
         Bundle result = handleAsyncRequest(op, params);
-        long[] data = result.getLongArray(
-                Constants.EXTRA_RESULT);
-        if (null == data) {
-            sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-            throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
+        try {
+            OdpParceledListSlice<T> data = result.getParcelable(
+                    Constants.EXTRA_RESULT, OdpParceledListSlice.class);
+            if (null == data) {
+                sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
+                throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
+            }
+            return data;
+        } catch (ClassCastException e) {
+            throw new IllegalStateException("Failed to retrieve parceled list");
         }
-        return Arrays.stream(data)
-                .boxed()
-                .collect(Collectors.toCollection(ArrayList::new));
     }
 }

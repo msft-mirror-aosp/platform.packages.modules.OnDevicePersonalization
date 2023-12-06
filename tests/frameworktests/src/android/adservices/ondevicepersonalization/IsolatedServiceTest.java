@@ -83,19 +83,22 @@ public class IsolatedServiceTest {
     public void testOnExecute() throws Exception {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString("x", "y");
-        ExecuteInput input =
-                new ExecuteInput.Builder()
+        ExecuteInputParcel input =
+                new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
                         .setAppParams(appParams)
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
-        ExecuteOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutput.class);
+        ExecuteOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
         assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("123", result.getRenderingConfigs().get(0).getKeys().get(0));
     }
@@ -104,14 +107,17 @@ public class IsolatedServiceTest {
     public void testOnExecutePropagatesError() throws Exception {
         PersistableBundle appParams = new PersistableBundle();
         appParams.putInt("error", 1); // Trigger an error in the service.
-        ExecuteInput input =
-                new ExecuteInput.Builder()
+        ExecuteInputParcel input =
+                new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
                         .setAppParams(appParams)
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -120,10 +126,13 @@ public class IsolatedServiceTest {
 
     @Test
     public void testOnExecuteWithoutAppParams() throws Exception {
-        ExecuteInput input = new ExecuteInput.Builder().setAppPackageName("com.testapp").build();
+        ExecuteInputParcel input = new ExecuteInputParcel.Builder().setAppPackageName("com.testapp").build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -142,6 +151,9 @@ public class IsolatedServiceTest {
     public void testOnExecuteThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -151,8 +163,24 @@ public class IsolatedServiceTest {
 
     @Test
     public void testOnExecuteThrowsIfDataAccessServiceMissing() throws Exception {
-        ExecuteInput input = new ExecuteInput.Builder().setAppPackageName("com.testapp").build();
+        ExecuteInputParcel input = new ExecuteInputParcel.Builder().setAppPackageName("com.testapp").build();
         Bundle params = new Bundle();
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnExecuteThrowsIfFederatedComputeServiceMissing() throws Exception {
+        ExecuteInputParcel input = new ExecuteInputParcel.Builder().setAppPackageName("com.testapp").build();
+        Bundle params = new Bundle();
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         params.putParcelable(Constants.EXTRA_INPUT, input);
         assertThrows(
                 NullPointerException.class,
@@ -163,7 +191,7 @@ public class IsolatedServiceTest {
 
     @Test
     public void testOnExecuteThrowsIfCallbackMissing() throws Exception {
-        ExecuteInput input = new ExecuteInput.Builder().setAppPackageName("com.testapp").build();
+        ExecuteInputParcel input = new ExecuteInputParcel.Builder().setAppPackageName("com.testapp").build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
@@ -190,9 +218,9 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
-        DownloadCompletedOutput result =
+        DownloadCompletedOutputParcel result =
                 mCallbackResult.getParcelable(
-                        Constants.EXTRA_RESULT, DownloadCompletedOutput.class);
+                        Constants.EXTRA_RESULT, DownloadCompletedOutputParcel.class);
         assertEquals("12", result.getRetainedKeys().get(0));
     }
 
@@ -269,8 +297,8 @@ public class IsolatedServiceTest {
 
     @Test
     public void testOnRender() throws Exception {
-        RenderInput input =
-                new RenderInput.Builder()
+        RenderInputParcel input =
+                new RenderInputParcel.Builder()
                         .setRenderingConfig(
                                 new RenderingConfig.Builder().addKey("a").addKey("b").build())
                         .build();
@@ -280,15 +308,15 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnRenderCalled);
-        RenderOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, RenderOutput.class);
+        RenderOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, RenderOutputParcel.class);
         assertEquals("htmlstring", result.getContent());
     }
 
     @Test
     public void testOnRenderPropagatesError() throws Exception {
-        RenderInput input =
-                new RenderInput.Builder()
+        RenderInputParcel input =
+                new RenderInputParcel.Builder()
                         .setRenderingConfig(
                                 new RenderingConfig.Builder()
                                         .addKey("z") // Trigger error in service.
@@ -325,8 +353,8 @@ public class IsolatedServiceTest {
 
     @Test
     public void testOnRenderThrowsIfDataAccessServiceMissing() throws Exception {
-        RenderInput input =
-                new RenderInput.Builder()
+        RenderInputParcel input =
+                new RenderInputParcel.Builder()
                         .setRenderingConfig(
                                 new RenderingConfig.Builder().addKey("a").addKey("b").build())
                         .build();
@@ -341,8 +369,8 @@ public class IsolatedServiceTest {
 
     @Test
     public void testOnRenderThrowsIfCallbackMissing() throws Exception {
-        RenderInput input =
-                new RenderInput.Builder()
+        RenderInputParcel input =
+                new RenderInputParcel.Builder()
                         .setRenderingConfig(
                                 new RenderingConfig.Builder().addKey("a").addKey("b").build())
                         .build();
@@ -357,30 +385,30 @@ public class IsolatedServiceTest {
     }
 
     @Test
-    public void testOnWebViewEvent() throws Exception {
+    public void testOnEvent() throws Exception {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
+                new EventInputParcel.Builder().setParameters(PersistableBundle.EMPTY).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnEventCalled);
-        WebViewEventOutput result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, WebViewEventOutput.class);
+        EventOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, EventOutputParcel.class);
         assertEquals(1, result.getEventLogRecord().getType());
         assertEquals(2, result.getEventLogRecord().getRowIndex());
     }
 
     @Test
-    public void testOnWebViewEventPropagatesError() throws Exception {
+    public void testOnEventPropagatesError() throws Exception {
         PersistableBundle eventParams = new PersistableBundle();
         // Input value 9999 will trigger an error in the mock service.
         eventParams.putInt(EVENT_TYPE_KEY, 9999);
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(eventParams).build());
+                new EventInputParcel.Builder().setParameters(eventParams).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
@@ -414,7 +442,7 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
+                new EventInputParcel.Builder().setParameters(PersistableBundle.EMPTY).build());
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -428,7 +456,7 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
-                new WebViewEventInput.Builder().setParameters(PersistableBundle.EMPTY).build());
+                new EventInputParcel.Builder().setParameters(PersistableBundle.EMPTY).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         assertThrows(
                 NullPointerException.class,
@@ -438,14 +466,13 @@ public class IsolatedServiceTest {
     }
 
     @Test
-    public void testOnTrainingExample() throws Exception {
+    public void testOnTrainingExamples() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
                         .setPopulationName("")
-                        .setCollectionName("")
                         .setTaskName("")
-                        .setResumptionToken(new byte[]{0})
+                        .setResumptionToken(new byte[] {0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -453,15 +480,15 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnTrainingExampleCalled);
-        TrainingExampleOutputParcel result =
-                mCallbackResult.getParcelable(Constants.EXTRA_RESULT,
-                        TrainingExampleOutputParcel.class);
+        TrainingExamplesOutputParcel result =
+                mCallbackResult.getParcelable(
+                        Constants.EXTRA_RESULT, TrainingExamplesOutputParcel.class);
         List<byte[]> examples = result.getTrainingExamples().getList();
         List<byte[]> tokens = result.getResumptionTokens().getList();
         assertEquals(1, examples.size());
         assertEquals(1, tokens.size());
-        assertArrayEquals(new byte[]{12}, examples.get(0));
-        assertArrayEquals(new byte[]{13}, tokens.get(0));
+        assertArrayEquals(new byte[] {12}, examples.get(0));
+        assertArrayEquals(new byte[] {13}, tokens.get(0));
     }
 
     @Test
@@ -477,12 +504,11 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExampleThrowsIfDataAccessServiceMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
                         .setPopulationName("")
-                        .setCollectionName("")
                         .setTaskName("")
-                        .setResumptionToken(new byte[]{0})
+                        .setResumptionToken(new byte[] {0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -497,12 +523,11 @@ public class IsolatedServiceTest {
     @Test
     public void testOnTrainingExampleThrowsIfCallbackMissing() throws Exception {
         JoinedLogRecord joinedLogRecord = new JoinedLogRecord.Builder().build();
-        TrainingExampleInput input =
-                new TrainingExampleInput.Builder()
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
                         .setPopulationName("")
-                        .setCollectionName("")
                         .setTaskName("")
-                        .setResumptionToken(new byte[]{0})
+                        .setResumptionToken(new byte[] {0})
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -517,21 +542,14 @@ public class IsolatedServiceTest {
 
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
-        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {
-        }
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
         @Override
-        public void schedule(
-                TrainingOptions trainingOptions,
-                IFederatedComputeCallback callback) {
-        }
+        public void schedule(TrainingOptions trainingOptions, IFederatedComputeCallback callback) {}
 
-        public void cancel(
-                String populationName,
-                IFederatedComputeCallback callback) {
-        }
+        public void cancel(String populationName, IFederatedComputeCallback callback) {}
     }
 
     class TestHandler implements IsolatedWorker {
@@ -572,14 +590,14 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onWebViewEvent(WebViewEventInput input, Consumer<WebViewEventOutput> consumer) {
+        public void onEvent(EventInput input, Consumer<EventOutput> consumer) {
             mOnEventCalled = true;
             int eventType = input.getParameters().getInt(EVENT_TYPE_KEY);
             if (eventType == 9999) {
                 consumer.accept(null);
             } else {
                 consumer.accept(
-                        new WebViewEventOutput.Builder()
+                        new EventOutput.Builder()
                                 .setEventLogRecord(
                                         new EventLogRecord.Builder()
                                                 .setType(1)
@@ -591,15 +609,15 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onTrainingExample(
-                TrainingExampleInput input, Consumer<TrainingExampleOutput> consumer) {
+        public void onTrainingExamples(
+                TrainingExamplesInput input, Consumer<TrainingExamplesOutput> consumer) {
             mOnTrainingExampleCalled = true;
             List<byte[]> examples = new ArrayList<>();
-            examples.add(new byte[]{12});
+            examples.add(new byte[] {12});
             List<byte[]> tokens = new ArrayList<>();
-            tokens.add(new byte[]{13});
+            tokens.add(new byte[] {13});
             consumer.accept(
-                    new TrainingExampleOutput.Builder()
+                    new TrainingExamplesOutput.Builder()
                             .setTrainingExamples(examples)
                             .setResumptionTokens(tokens)
                             .build());

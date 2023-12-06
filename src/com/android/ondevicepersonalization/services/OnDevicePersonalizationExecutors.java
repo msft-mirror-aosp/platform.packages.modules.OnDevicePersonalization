@@ -24,6 +24,7 @@ import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -51,6 +52,12 @@ public final class OnDevicePersonalizationExecutors {
             MoreExecutors.listeningDecorator(Executors.newCachedThreadPool(
                     createThreadFactory("Blocking Thread", Process.THREAD_PRIORITY_BACKGROUND
                             + Process.THREAD_PRIORITY_LESS_FAVORABLE, Optional.empty())));
+
+    private static final ListeningScheduledExecutorService sScheduledExecutor =
+            MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(
+                    /* nThreads */ 4,
+                    createThreadFactory("SCH Thread", Process.THREAD_PRIORITY_BACKGROUND,
+                            Optional.of(getIoThreadPolicy()))));
 
     private static final HandlerThread sHandlerThread = createHandlerThread();
 
@@ -83,6 +90,14 @@ public final class OnDevicePersonalizationExecutors {
     @NonNull
     public static ListeningExecutorService getBlockingExecutor() {
         return sBlockingExecutor;
+    }
+
+    /**
+     * Returns an executor that can start tasks after a delay.
+     */
+    @NonNull
+    public static ListeningScheduledExecutorService getScheduledExecutor() {
+        return sScheduledExecutor;
     }
 
     /**

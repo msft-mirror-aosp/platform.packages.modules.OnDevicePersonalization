@@ -26,7 +26,6 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -141,14 +140,6 @@ public class FederatedComputeManagerTest {
                                 "testPopulation",
                                 null /* mock will be returned */
                         },
-                        {
-                                "unbind",
-                                new ScheduleFederatedComputeRequest.Builder()
-                                        .setTrainingOptions(new TrainingOptions.Builder().build())
-                                        .build(),
-                                null,
-                                new IFederatedComputeService.Default()
-                        },
                 });
     }
 
@@ -158,7 +149,7 @@ public class FederatedComputeManagerTest {
         ResolveInfo resolveInfo = new ResolveInfo();
         ServiceInfo serviceInfo = new ServiceInfo();
         serviceInfo.name = "TestName";
-        serviceInfo.packageName = "test.package.name";
+        serviceInfo.packageName = "com.android.federatedcompute.services";
         resolveInfo.serviceInfo = serviceInfo;
         when(mMockPackageManager.queryIntentServices(any(), anyInt()))
                 .thenReturn(List.of(resolveInfo));
@@ -224,7 +215,7 @@ public class FederatedComputeManagerTest {
                 manager.schedule(request, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
+                verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             case "cancel-allNull":
@@ -281,7 +272,7 @@ public class FederatedComputeManagerTest {
                 manager.cancel(populationName, Runnable::run, spyCallback);
 
                 verify(mContext, times(1)).bindService(any(), anyInt(), any(), any());
-                verify(spyCallback, times(1)).onError(any(OnDevicePersonalizationException.class));
+                verify(spyCallback, times(1)).onError(any(FederatedComputeException.class));
                 verify(mContext, times(1)).unbindService(any());
                 break;
             default:

@@ -16,7 +16,7 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.google.common.util.concurrent.MoreExecutors.directExecutor;
+import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 
 import android.app.job.JobParameters;
 import android.app.job.JobService;
@@ -52,21 +52,21 @@ public class FederatedJobService extends JobService {
                     @Override
                     public void onSuccess(FLRunnerResult flRunnerResult) {
                         LogUtil.d(TAG, "Federated computation job %d is done!", params.getJobId());
+                        jobFinished(params, /* wantsReschedule= */ false);
                         if (flRunnerResult != null) {
                             worker.finish(flRunnerResult);
                         }
-                        jobFinished(params, /* wantsReschedule= */ false);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         LogUtil.e(
                                 TAG, t, "Failed to handle computation job: %d", params.getJobId());
-                        worker.finish(null, ContributionResult.FAIL, false);
                         jobFinished(params, /* wantsReschedule= */ false);
+                        worker.finish(null, ContributionResult.FAIL, false);
                     }
                 },
-                directExecutor());
+                getBackgroundExecutor());
         return true;
     }
 
