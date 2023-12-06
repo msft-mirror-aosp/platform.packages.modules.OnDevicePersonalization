@@ -91,7 +91,7 @@ public class OdpWebViewClientTests {
         mDao.insertQuery(mTestQuery);
 
         CountDownLatch latch = new CountDownLatch(1);
-        OnDevicePersonalizationExecutors.getHandler().postAtFrontOfQueue(() -> {
+        OnDevicePersonalizationExecutors.getHandlerForMainThread().postAtFrontOfQueue(() -> {
             mWebView = new OdpWebView(mContext);
             latch.countDown();
         });
@@ -156,14 +156,8 @@ public class OdpWebViewClientTests {
 
         CountDownLatch latch = new CountDownLatch(1);
         AtomicBoolean result = new AtomicBoolean(false);
-        OnDevicePersonalizationExecutors.getHandler().postAtFrontOfQueue(() -> {
-            WebViewClient webViewClient = getWebViewClient();
-            result.set(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-            latch.countDown();
-        });
-        latch.await();
-
-        assertTrue(result.get());
+        WebViewClient webViewClient = getWebViewClient();
+        assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
         assertEquals(landingPage, mOpenedUrl);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
