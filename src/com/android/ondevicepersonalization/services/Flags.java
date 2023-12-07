@@ -55,6 +55,11 @@ public interface Flags {
      */
     int ISOLATED_SERVICE_DEADLINE_SECONDS = 30;
 
+    /**
+     * Default value for the list of trusted partner app names.
+     */
+    String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
     }
@@ -73,5 +78,9 @@ public interface Flags {
 
     default int getIsolatedServiceDeadlineSeconds() {
         return ISOLATED_SERVICE_DEADLINE_SECONDS;
+    }
+
+    default String getTrustedPartnerAppsList() {
+        return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
     }
 }
