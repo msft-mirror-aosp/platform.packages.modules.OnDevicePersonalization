@@ -88,6 +88,15 @@ public class TestAppHelper {
         SystemClock.sleep(5000);
     }
 
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        SystemClock.sleep(2000);
+    }
+
     /** Commands to return device to original state */
     public static void wrapUp() throws IOException {
         executeShellCommand(

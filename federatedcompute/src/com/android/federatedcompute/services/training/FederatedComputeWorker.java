@@ -18,6 +18,8 @@ package com.android.federatedcompute.services.training;
 
 import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
 import static com.android.federatedcompute.services.common.Constants.ISOLATED_TRAINING_SERVICE_NAME;
+import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_RUN_FL_COMPUTATION;
+import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_START_TRAINING_RUN;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getBackgroundExecutor;
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
@@ -33,6 +35,7 @@ import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
+import android.os.Trace;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
@@ -57,6 +60,7 @@ import com.android.internal.util.Preconditions;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -160,6 +164,7 @@ public class FederatedComputeWorker {
             int jobId, FederatedTrainingTask trainingTask) {
         synchronized (mLock) {
             // Only allows one concurrent job running.
+            Trace.beginAsyncSection(TRACE_WORKER_START_TRAINING_RUN, jobId);
             TrainingRun run = new TrainingRun(jobId, trainingTask);
             mActiveRun = run;
             ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
@@ -168,6 +173,8 @@ public class FederatedComputeWorker {
                             .call(
                                     () -> {
                                         unBindServicesIfNecessary(run);
+                                        Trace.endAsyncSection(
+                                                TRACE_WORKER_START_TRAINING_RUN, jobId);
                                         return null;
                                     },
                                     mInjector.getBgExecutor());
@@ -258,6 +265,10 @@ public class FederatedComputeWorker {
                         run.mTask.appPackageName(),
                         run.mTaskName,
                         getExampleSelector(checkinResult));
+        // report failure to server if getting iterator failed with any exception.
+        FutureCallback<Object> serverFailureReportCallback = getServerFailureReportCallback();
+        Futures.addCallback(
+                iteratorFuture, serverFailureReportCallback, getLightweightExecutor());
 
         // 3. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
@@ -266,6 +277,9 @@ public class FederatedComputeWorker {
                         .transformAsync(
                                 iterator -> runFederatedComputation(checkinResult, run, iterator),
                                 mInjector.getBgExecutor());
+        // report failure to server if computation failed with any exception.
+        computationResultFuture.addCallback(
+                serverFailureReportCallback, getLightweightExecutor());
 
         // 4. Report computation result to federated compute server.
         ListenableFuture<RejectionInfo> reportToServerFuture =
@@ -278,6 +292,8 @@ public class FederatedComputeWorker {
                             ComputationResult computationResult =
                                     Futures.getDone(computationResultFuture);
                             RejectionInfo reportToServer = Futures.getDone(reportToServerFuture);
+                            // report to Server will hold null in case of success, or rejection info
+                            // in case server answered with rejection
                             if (reportToServer != null) {
                                 ComputationResult failedReportComputationResult =
                                         new ComputationResult(
@@ -312,6 +328,41 @@ public class FederatedComputeWorker {
                             return computationResult.getFlRunnerResult();
                         },
                         mInjector.getBgExecutor());
+    }
+
+    @androidx.annotation.NonNull
+    private FutureCallback<Object> getServerFailureReportCallback() {
+        return new FutureCallback<Object>() {
+            volatile int mNumberOfInvocations = 0;
+
+            @Override
+            public void onSuccess(Object unused) {
+                // do nothing.
+            }
+
+            // We do not want race condition and repeating reporting failures from computation
+            // failed future in right before case Example Store iterator failed.
+            // Thus method is synchronised.
+            @Override
+            public synchronized void onFailure(Throwable throwable) {
+                if (mNumberOfInvocations < 1) {
+                    LogUtil.d(
+                            TAG,
+                            "Training failed. Reporting failure result to server due to exception.",
+                            throwable);
+                    ComputationResult failedReportComputationResult =
+                            new ComputationResult(
+                                    null,
+                                    FLRunnerResult.newBuilder()
+                                            .setContributionResult(ContributionResult.FAIL)
+                                            .setErrorMessage(throwable.getMessage())
+                                            .build(),
+                                    null);
+                    var unused = mHttpFederatedProtocol.reportResult(failedReportComputationResult);
+                }
+                mNumberOfInvocations++;
+            }
+        };
     }
 
     private static TaskRetry buildTaskRetry(RejectionInfo rejectionInfo) {
@@ -445,6 +496,7 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult,
             String outputCheckpointFile,
             IExampleStoreIterator iterator) {
+        Trace.beginAsyncSection(TRACE_WORKER_RUN_FL_COMPUTATION, 0);
         ParcelFileDescriptor outputCheckpointFd =
                 createTempFileDescriptor(
                         outputCheckpointFile, ParcelFileDescriptor.MODE_READ_WRITE);
@@ -510,6 +562,7 @@ public class FederatedComputeWorker {
                                     unbindFromIsolatedTrainingService();
                                     run.mIsolatedTrainingService = null;
                                 }
+                                Trace.endAsyncSection(TRACE_WORKER_RUN_FL_COMPUTATION, 0);
                                 return computationResult;
                             },
                             getLightweightExecutor());
