@@ -358,7 +358,7 @@ public final class HttpFederatedProtocol {
         if (!HTTP_OK_STATUS.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
         } else {
-            LogUtil.d(TAG, stage + " success.");
+            LogUtil.i(TAG, stage + " success.");
         }
     }
 
