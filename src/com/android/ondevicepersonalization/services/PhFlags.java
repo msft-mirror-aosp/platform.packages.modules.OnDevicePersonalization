@@ -42,6 +42,9 @@ public final class PhFlags implements Flags {
 
     static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
 
+    static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
+            "shared_isolated_process_feature_enabled";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
     private static final PhFlags sSingleton = new PhFlags();
@@ -113,5 +116,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
                 /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+    }
+
+    @Override
+    public boolean isSharedIsolatedProcessFeatureEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
     }
 }
