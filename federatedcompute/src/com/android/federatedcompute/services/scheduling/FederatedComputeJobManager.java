@@ -163,8 +163,11 @@ public class FederatedComputeJobManager {
         // Federated server address is required to schedule the job.
         Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
 
+
         if (existingTask == null) {
-            int jobId = mJobIdGenerator.generateJobId(this.mContext, populationName);
+            int jobId =
+                    mJobIdGenerator.generateJobId(
+                            this.mContext, populationName, callingPackageName);
             FederatedTrainingTask.Builder newTaskBuilder =
                     FederatedTrainingTask.builder()
                             .appPackageName(callingPackageName)
