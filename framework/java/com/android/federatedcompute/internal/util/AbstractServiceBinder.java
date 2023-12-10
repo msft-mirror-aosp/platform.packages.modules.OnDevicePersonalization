@@ -70,6 +70,21 @@ public abstract class AbstractServiceBinder<T> {
                 context, serviceIntentAction, servicePackages, bindFlags, converter);
     }
 
+    /** Get the {@link AbstractServiceBinder} suitable for an isolated service by name. */
+    public static <T2> AbstractServiceBinder<T2> getIsolatedServiceBinderByServiceName(
+            Context context,
+            String serviceName,
+            String servicePackage,
+            String isolatedProcessName,
+            int bindFlags,
+            Function<IBinder, T2> converter) {
+        return new AndroidServiceBinder<>(
+                context, serviceName, servicePackage, isolatedProcessName,
+                /* enableLookupByName= */ true,
+                bindFlags,
+                converter);
+    }
+
     /** Get the binder service. */
     public abstract T getService(Executor executor);
 

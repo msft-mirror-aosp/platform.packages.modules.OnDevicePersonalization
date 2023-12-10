@@ -121,7 +121,7 @@ public final class FederatedComputeJobManagerTest {
                 .thenReturn(MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
         when(mMockFlags.getMinSchedulingIntervalSecsForFederatedComputation()).thenReturn(1L);
         when(mMockFlags.getMaxSchedulingPeriodSecs()).thenReturn(MAX_SCHEDULING_PERIOD_SECS);
-        when(mMockJobIdGenerator.generateJobId(any(), anyString()))
+        when(mMockJobIdGenerator.generateJobId(any(), anyString(), anyString()))
                 .thenReturn(JOB_ID1)
                 .thenReturn(JOB_ID2);
     }
