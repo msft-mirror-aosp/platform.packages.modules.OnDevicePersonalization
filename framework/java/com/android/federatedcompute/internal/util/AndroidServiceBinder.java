@@ -44,6 +44,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
     private final Function<IBinder, T> mBinderConverter;
     private final Context mContext;
     private final boolean mEnableLookupByServiceName;
+    private final String mIsolatedProcessName;
     private final int mBindFlags;
     // Concurrency mLock.
     private final Object mLock = new Object();
@@ -85,6 +86,7 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
         this.mServicePackages = servicePackages;
         this.mEnableLookupByServiceName = false;
         this.mBindFlags = bindFlags;
+        this.mIsolatedProcessName = null;
     }
 
     AndroidServiceBinder(
@@ -99,6 +101,24 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
         this.mServicePackages = List.of(servicePackage);
         this.mEnableLookupByServiceName = enableLookupByName;
         this.mBindFlags = 0;
+        this.mIsolatedProcessName = null;
+    }
+
+    AndroidServiceBinder(
+            @NonNull Context context,
+            @NonNull String serviceIntentActionOrName,
+            @NonNull String servicePackage,
+            @NonNull String isolatedProcessName,
+            boolean enableLookupByName,
+            int bindFlags,
+            @NonNull Function<IBinder, T> converter) {
+        this.mServiceIntentActionOrName = serviceIntentActionOrName;
+        this.mContext = context;
+        this.mBinderConverter = converter;
+        this.mServicePackages = List.of(servicePackage);
+        this.mEnableLookupByServiceName = enableLookupByName;
+        this.mBindFlags = bindFlags;
+        this.mIsolatedProcessName = isolatedProcessName;
     }
 
     @Override
@@ -115,12 +135,21 @@ class AndroidServiceBinder<T> extends AbstractServiceBinder<T> {
                 // This latch will open when the connection is established or any error occurs.
                 mConnectionCountDownLatch = new CountDownLatch(1);
                 mServiceConnection = new GenericServiceConnection();
+
                 boolean result =
-                        mContext.bindService(
+                        (mIsolatedProcessName != null)
+                        ?
+                            mContext.bindIsolatedService(
                                 bindIntent,
                                 Context.BIND_AUTO_CREATE | mBindFlags,
-                                executor,
-                                mServiceConnection);
+                                mIsolatedProcessName,
+                                executor, mServiceConnection)
+                        :
+                                mContext.bindService(
+                                        bindIntent,
+                                        Context.BIND_AUTO_CREATE | mBindFlags, executor,
+                                        mServiceConnection);
+
                 if (!result) {
                     mServiceConnection = null;
                     throw new IllegalStateException(
