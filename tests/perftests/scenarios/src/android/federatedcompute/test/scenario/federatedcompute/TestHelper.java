@@ -39,9 +39,9 @@ public class TestHelper {
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
-    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
+    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "-630817781";
     private static final String FEDERATED_TRAINING_JOB_SUCCESS_LOG =
-            "FederatedJobService - Federated computation job 1586947961 is done";
+            "FederatedJobService - Federated computation job -630817781 is done";
 
     public static void pressHome() {
         getUiDevice().pressHome();
