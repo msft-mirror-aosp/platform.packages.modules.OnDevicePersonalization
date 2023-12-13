@@ -31,12 +31,8 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.compress
 import static com.android.federatedcompute.services.http.HttpClientUtil.uncompressWithGzip;
 
 import android.os.Trace;
-import android.util.Base64;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
-import com.android.federatedcompute.services.encryption.Encrypter;
-import com.android.federatedcompute.services.http.HttpClientUtil.FederatedComputePayloadDataContract;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 
@@ -60,12 +56,9 @@ import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.ondevicepersonalization.federatedcompute.proto.UploadInstruction;
 import com.google.protobuf.InvalidProtocolBufferException;
 
-import org.json.JSONObject;
-
 import java.util.HashMap;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-
 
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
@@ -73,31 +66,24 @@ public final class HttpFederatedProtocol {
     private final String mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
-    private final ProtocolRequestCreator mTaskAssignmentRequestCreator;
-    private final Encrypter mEncrypter;
     private String mTaskId;
     private String mAggregationId;
     private String mAssignmentId;
+    private final ProtocolRequestCreator mTaskAssignmentRequestCreator;
 
     @VisibleForTesting
     HttpFederatedProtocol(
-            String entryUri,
-            String clientVersion,
-            String populationName,
-            HttpClient httpClient,
-            Encrypter encrypter) {
+            String entryUri, String clientVersion, String populationName, HttpClient httpClient) {
         this.mClientVersion = clientVersion;
         this.mPopulationName = populationName;
         this.mHttpClient = httpClient;
         this.mTaskAssignmentRequestCreator = new ProtocolRequestCreator(entryUri, new HashMap<>());
-        this.mEncrypter = encrypter;
     }
 
     /** Creates a HttpFederatedProtocol object. */
     public static HttpFederatedProtocol create(
-            String entryUri, String clientVersion, String populationName, Encrypter encrypter) {
-        return new HttpFederatedProtocol(
-                entryUri, clientVersion, populationName, new HttpClient(), encrypter);
+            String entryUri, String clientVersion, String populationName) {
+        return new HttpFederatedProtocol(entryUri, clientVersion, populationName, new HttpClient());
     }
 
     /** Helper function to perform check in and download federated task from remote servers. */
@@ -147,12 +133,9 @@ public final class HttpFederatedProtocol {
     }
 
     /** Helper functions to reporting result and upload result. */
-    public FluentFuture<RejectionInfo> reportResult(
-            ComputationResult computationResult, FederatedComputeEncryptionKey encryptionKey) {
+    public FluentFuture<RejectionInfo> reportResult(ComputationResult computationResult) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
-        if (computationResult != null
-                && computationResult.isResultSuccess()
-                && encryptionKey != null) {
+        if (computationResult != null && computationResult.isResultSuccess()) {
             return FluentFuture.from(performReportResult(computationResult))
                     .transformAsync(
                             reportResp -> {
@@ -164,9 +147,7 @@ public final class HttpFederatedProtocol {
                                 }
                                 return FluentFuture.from(
                                                 processReportResultResponseAndUploadResult(
-                                                        reportResultResponse,
-                                                        computationResult,
-                                                        encryptionKey))
+                                                        reportResultResponse, computationResult))
                                         .transform(
                                                 resp -> {
                                                     validateHttpResponseStatus(
@@ -323,9 +304,8 @@ public final class HttpFederatedProtocol {
 
     private ListenableFuture<FederatedComputeHttpResponse>
             processReportResultResponseAndUploadResult(
-                    ReportResultResponse reportResultResponse,
-                    ComputationResult computationResult,
-                    FederatedComputeEncryptionKey encryptionKey) {
+            ReportResultResponse reportResultResponse,
+                    ComputationResult computationResult) {
         try {
             Preconditions.checkArgument(
                     !computationResult.getOutputCheckpointFile().isEmpty(),
@@ -334,11 +314,7 @@ public final class HttpFederatedProtocol {
             Preconditions.checkArgument(
                     !uploadInstruction.getUploadLocation().isEmpty(),
                     "UploadInstruction.upload_location must not be empty");
-            byte[] outputBytes =
-                    createEncryptedRequestBody(
-                            computationResult.getOutputCheckpointFile(),
-                            encryptionKey);
-            // Apply a top-level compression to the payload.
+            byte[] outputBytes = readFileAsByteArray(computationResult.getOutputCheckpointFile());
             if (uploadInstruction.getCompressionFormat()
                     == ResourceCompressionFormat.RESOURCE_COMPRESSION_FORMAT_GZIP) {
                 outputBytes = compressWithGzip(outputBytes);
@@ -367,31 +343,6 @@ public final class HttpFederatedProtocol {
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
-    }
-
-    private byte[] createEncryptedRequestBody(
-            String filePath,
-            FederatedComputeEncryptionKey encryptionKey)
-            throws Exception {
-        byte[] fileOutputBytes = readFileAsByteArray(filePath);
-        fileOutputBytes = compressWithGzip(fileOutputBytes);
-        // encryption
-        byte[] publicKey = Base64.decode(encryptionKey.getPublicKey(), Base64.NO_WRAP);
-
-        byte[] encryptedOutput =
-                mEncrypter.encrypt(
-                        publicKey, fileOutputBytes,
-                        FederatedComputePayloadDataContract.ASSOCIATED_DATA);
-        // create payload
-        final JSONObject body = new JSONObject();
-        body.put(FederatedComputePayloadDataContract.KEY_ID,
-                encryptionKey.getKeyIdentifier());
-        body.put(FederatedComputePayloadDataContract.ENCRYPTED_PAYLOAD,
-                Base64.encodeToString(encryptedOutput, Base64.NO_WRAP));
-        body.put(FederatedComputePayloadDataContract.ASSOCIATED_DATA_KEY,
-                Base64.encodeToString(FederatedComputePayloadDataContract.ASSOCIATED_DATA,
-                        Base64.NO_WRAP));
-        return body.toString().getBytes();
     }
 
     private ReportResultResponse getReportResultResponse(FederatedComputeHttpResponse httpResponse)

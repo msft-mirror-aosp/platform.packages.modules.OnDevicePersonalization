@@ -43,11 +43,8 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FileUtils;
-import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
-import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
-import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
@@ -80,9 +77,7 @@ import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
-import java.util.Random;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -109,10 +104,6 @@ public class FederatedComputeWorker {
     private AbstractServiceBinder<IExampleStoreService> mExampleStoreServiceBinder;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
 
-    private FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
-
-    private static final int NUM_ACTIVE_KEYS_TO_CHOOSE_FROM = 5;
-
     @VisibleForTesting
     public FederatedComputeWorker(
             Context context,
@@ -120,15 +111,13 @@ public class FederatedComputeWorker {
             TrainingConditionsChecker trainingConditionsChecker,
             ComputationRunner computationRunner,
             ResultCallbackHelper resultCallbackHelper,
-            Injector injector,
-            FederatedComputeEncryptionKeyManager keyManager) {
+            Injector injector) {
         this.mContext = context.getApplicationContext();
         this.mJobManager = jobManager;
         this.mTrainingConditionsChecker = trainingConditionsChecker;
         this.mComputationRunner = computationRunner;
         this.mInjector = injector;
         this.mResultCallbackHelper = resultCallbackHelper;
-        this.mEncryptionKeyManager = keyManager;
     }
 
     /** Gets an instance of {@link FederatedComputeWorker}. */
@@ -144,8 +133,7 @@ public class FederatedComputeWorker {
                                     TrainingConditionsChecker.getInstance(context),
                                     new ComputationRunner(),
                                     new ResultCallbackHelper(context),
-                                    new Injector(),
-                                    FederatedComputeEncryptionKeyManager.getInstance(context));
+                                    new Injector());
                 }
             }
         }
@@ -264,40 +252,13 @@ public class FederatedComputeWorker {
                     ContributionResult.FAIL);
             return Futures.immediateFuture(null);
         }
-
+        // 2. Bind to client app implemented ExampleStoreService based on ExampleSelector.
+        // Set active run's task name.
         String taskName = checkinResult.getTaskAssignment().getTaskName();
         Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
         synchronized (mLock) {
             mActiveRun.mTaskName = taskName;
         }
-        // 2. Fetch Active keys to encrypt the computation result.
-        List<FederatedComputeEncryptionKey> activeKeys = mEncryptionKeyManager
-                .getOrFetchActiveKeys(NUM_ACTIVE_KEYS_TO_CHOOSE_FROM, FederatedComputeEncryptionKey
-                        .KEY_TYPE_ENCRYPTION);
-        // select a random key
-        FederatedComputeEncryptionKey encryptionKey = activeKeys.isEmpty() ? null :
-                activeKeys.get(new Random().nextInt(activeKeys.size()));
-        if (encryptionKey == null) {
-            // no active keys to encrypt the FL/FA computation results, stop the computation run.
-            ComputationResult failedComputationResult = new ComputationResult(
-                    null,
-                    FLRunnerResult.newBuilder()
-                            .setContributionResult(ContributionResult.FAIL)
-                            .setErrorMessage("No active key available on device.")
-                            .build(), null);
-            mJobManager.onTrainingCompleted(
-                    run.mJobId,
-                    run.mTask.populationName(),
-                    run.mTask.getTrainingIntervalOptions(),
-                    buildTaskRetry(RejectionInfo.newBuilder().build()),
-                    ContributionResult.FAIL);
-            var unused = mHttpFederatedProtocol.reportResult(failedComputationResult, null);
-            return Futures.immediateFailedFuture(
-                    new IllegalStateException("No active key available on device."));
-        }
-
-        // 3. Bind to client app implemented ExampleStoreService based on ExampleSelector.
-        // Set active run's task name.
         ListenableFuture<IExampleStoreIterator> iteratorFuture =
                 getExampleStoreIterator(
                         run,
@@ -309,7 +270,7 @@ public class FederatedComputeWorker {
         Futures.addCallback(
                 iteratorFuture, serverFailureReportCallback, getLightweightExecutor());
 
-        // 4. Run federated learning or federated analytic depends on task type. Federated
+        // 3. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
         FluentFuture<ComputationResult> computationResultFuture =
                 FluentFuture.from(iteratorFuture)
@@ -320,11 +281,10 @@ public class FederatedComputeWorker {
         computationResultFuture.addCallback(
                 serverFailureReportCallback, getLightweightExecutor());
 
-
-        // 5. Report computation result to federated compute server.
+        // 4. Report computation result to federated compute server.
         ListenableFuture<RejectionInfo> reportToServerFuture =
                 computationResultFuture.transformAsync(
-                        result -> mHttpFederatedProtocol.reportResult(result, encryptionKey),
+                        result -> mHttpFederatedProtocol.reportResult(result),
                         getLightweightExecutor());
         return Futures.whenAllSucceed(reportToServerFuture, computationResultFuture)
                 .call(
@@ -359,7 +319,7 @@ public class FederatedComputeWorker {
                                         ContributionResult.FAIL);
                                 return null;
                             }
-                            // 6. Publish computation result and consumed
+                            // 5. Publish computation result and consumed
                             // examples to client implemented
                             // ResultHandlingService.
                             var unused =
@@ -398,8 +358,7 @@ public class FederatedComputeWorker {
                                             .setErrorMessage(throwable.getMessage())
                                             .build(),
                                     null);
-                    var unused = mHttpFederatedProtocol.reportResult(failedReportComputationResult,
-                            null);
+                    var unused = mHttpFederatedProtocol.reportResult(failedReportComputationResult);
                 }
                 mNumberOfInvocations++;
             }
@@ -492,8 +451,7 @@ public class FederatedComputeWorker {
 
     @VisibleForTesting
     HttpFederatedProtocol getHttpFederatedProtocol(String serverAddress, String populationName) {
-        return HttpFederatedProtocol.create(serverAddress, "1.0.0.1", populationName,
-                new HpkeJniEncrypter());
+        return HttpFederatedProtocol.create(serverAddress, "1.0.0.1", populationName);
     }
 
     private ExampleSelector getExampleSelector(CheckinResult checkinResult) {
