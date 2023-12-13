@@ -48,11 +48,14 @@ import android.os.RemoteException;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Constants;
+import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
+import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
@@ -104,6 +107,7 @@ import org.tensorflow.example.Features;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RunWith(JUnit4.class)
@@ -193,6 +197,16 @@ public final class FederatedComputeWorkerTest {
     @Mock private ComputationRunner mMockComputationRunner;
     private ResultCallbackHelper mSpyResultCallbackHelper;
 
+    @Mock private FederatedComputeEncryptionKeyManager mMockKeyManager;
+
+    private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
+            new FederatedComputeEncryptionKey.Builder()
+                    .setPublicKey("rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=")
+                    .setKeyIdentifier("0962201a-5abd-4e25-a486-2c7bd1ee1887")
+                    .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
+                    .setCreationTime(1L)
+                    .setExpiryTime(1L).build();
+
     private static byte[] createTrainingConstraints(
             boolean requiresSchedulerIdle,
             boolean requiresSchedulerBatteryNotLow,
@@ -220,7 +234,11 @@ public final class FederatedComputeWorkerTest {
         mContext = ApplicationProvider.getApplicationContext();
         mSpyHttpFederatedProtocol =
                 Mockito.spy(
-                        HttpFederatedProtocol.create(SERVER_ADDRESS, "1.0.0.1", POPULATION_NAME));
+                        HttpFederatedProtocol.create(
+                                SERVER_ADDRESS,
+                                "1.0.0.1",
+                                POPULATION_NAME,
+                                new HpkeJniEncrypter()));
         mSpyResultCallbackHelper = Mockito.spy(new ResultCallbackHelper(mContext));
         mSpyWorker =
                 Mockito.spy(
@@ -230,7 +248,8 @@ public final class FederatedComputeWorkerTest {
                                 mTrainingConditionsChecker,
                                 mMockComputationRunner,
                                 mSpyResultCallbackHelper,
-                                new TestInjector()));
+                                new TestInjector(),
+                                mMockKeyManager));
         when(mTrainingConditionsChecker.checkAllConditionsForFlTraining(any()))
                 .thenReturn(EnumSet.noneOf(Condition.class));
         doReturn(Futures.immediateFuture(CallbackResult.SUCCESS))
@@ -251,6 +270,8 @@ public final class FederatedComputeWorkerTest {
                         any(),
                         any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
+        doReturn(List.of(ENCRYPTION_KEY)).when(mMockKeyManager).getOrFetchActiveKeys(anyInt(),
+                anyInt());
     }
 
     @Test
@@ -289,7 +310,7 @@ public final class FederatedComputeWorkerTest {
                 .issueCheckin();
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
-                .reportResult(any());
+                .reportResult(any(), any());
 
         assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
 
@@ -324,7 +345,7 @@ public final class FederatedComputeWorkerTest {
                 .issueCheckin();
         doReturn(FluentFuture.from(immediateFuture(REJECTION_INFO)))
                 .when(mSpyHttpFederatedProtocol)
-                .reportResult(any());
+                .reportResult(any(), any());
         doCallRealMethod().when(mSpyResultCallbackHelper).callHandleResult(any(), any(), any());
         ArgumentCaptor<ComputationResult> computationResultCaptor =
                 ArgumentCaptor.forClass(ComputationResult.class);
@@ -360,7 +381,7 @@ public final class FederatedComputeWorkerTest {
                                                 "report result failed",
                                                 new IllegalStateException("http 404")))))
                 .when(mSpyHttpFederatedProtocol)
-                .reportResult(any());
+                .reportResult(any(), any());
 
         assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
 
@@ -387,7 +408,7 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
         verify(mSpyWorker, times(0)).unbindFromExampleStoreService();
         verify(mSpyHttpFederatedProtocol, times(1))
-                .reportResult(computationResultCaptor.capture());
+                .reportResult(computationResultCaptor.capture(), any());
         ComputationResult computationResult = computationResultCaptor.getValue();
         assertNotNull(computationResult.getFlRunnerResult());
         assertEquals(
@@ -429,7 +450,7 @@ public final class FederatedComputeWorkerTest {
         setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
-                .reportResult(any());
+                .reportResult(any(), any());
         when(mMockComputationRunner.runTaskWithNativeRunner(
                         anyString(),
                         anyString(),
@@ -452,7 +473,7 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
         verify(mSpyWorker).unbindFromExampleStoreService();
         verify(mSpyHttpFederatedProtocol, times(1))
-                .reportResult(computationResultCaptor.capture());
+                .reportResult(computationResultCaptor.capture(), any());
         ComputationResult computationResult = computationResultCaptor.getValue();
         assertNotNull(computationResult.getFlRunnerResult());
         assertEquals(
@@ -596,6 +617,22 @@ public final class FederatedComputeWorkerTest {
         verify(mSpyWorker).unbindFromExampleStoreService();
     }
 
+    @Test
+    public void testRunFLComputation_noKey_throws() throws Exception {
+        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+        doReturn(new ArrayList<FederatedComputeEncryptionKey>() {}).when(mMockKeyManager)
+                .getOrFetchActiveKeys(anyInt(), anyInt());
+        setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
+
+        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+
+        verify(mMockJobManager)
+                .onTrainingCompleted(
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        verify(mSpyHttpFederatedProtocol).reportResult(
+                any(), eq(null));
+    }
+
     private void setUpExampleStoreService() {
         TestExampleStoreService testExampleStoreService = new TestExampleStoreService();
         doReturn(testExampleStoreService).when(mSpyWorker).getExampleStoreService(anyString());
@@ -606,7 +643,7 @@ public final class FederatedComputeWorkerTest {
         doReturn(immediateFuture(checkinResult)).when(mSpyHttpFederatedProtocol).issueCheckin();
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
-                .reportResult(any());
+                .reportResult(any(), any());
     }
 
     private static class TestExampleStoreService extends IExampleStoreService.Stub {
