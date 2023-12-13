@@ -118,7 +118,7 @@ public class DisplayHelper {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
         try {
             sLogger.d(TAG + ": displayHtml");
-            OnDevicePersonalizationExecutors.getHandler().post(() -> {
+            OnDevicePersonalizationExecutors.getHandlerForMainThread().post(() -> {
                 createWebView(html, logRecord, queryId, servicePackageName,
                         hostToken, displayId, width, height, result);
             });
