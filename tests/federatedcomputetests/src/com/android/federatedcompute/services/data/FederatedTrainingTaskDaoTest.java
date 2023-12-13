@@ -59,9 +59,8 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @After
-    public void cleanUp() throws Exception {
-        FederatedTrainingTaskDbHelper dbHelper =
-                FederatedTrainingTaskDbHelper.getInstanceForTest(mContext);
+    public void cleanUp() {
+        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -96,6 +95,7 @@ public final class FederatedTrainingTaskDaoTest {
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
         FederatedTrainingTask task2 =
                 createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
@@ -122,6 +122,7 @@ public final class FederatedTrainingTaskDaoTest {
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
         FederatedTrainingTask task2 =
                 createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);

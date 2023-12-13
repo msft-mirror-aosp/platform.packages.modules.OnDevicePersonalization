@@ -16,9 +16,9 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import android.adservices.ondevicepersonalization.IsolatedComputationService;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationService;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
+import android.adservices.ondevicepersonalization.IsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.Bundle;
@@ -56,21 +56,21 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         mPluginContext = pluginContext;
 
         try {
-            String className = input.getString(ProcessUtils.PARAM_CLASS_NAME_KEY);
+            String className = input.getString(ProcessRunner.PARAM_CLASS_NAME_KEY);
             if (className == null || className.isEmpty()) {
                 sLogger.e(TAG + ": className missing.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            int operation = input.getInt(ProcessUtils.PARAM_OPERATION_KEY);
+            int operation = input.getInt(ProcessRunner.PARAM_OPERATION_KEY);
             if (operation == 0) {
                 sLogger.e(TAG + ": operation missing or invalid.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            Bundle serviceParams = input.getParcelable(ProcessUtils.PARAM_SERVICE_INPUT,
+            Bundle serviceParams = input.getParcelable(ProcessRunner.PARAM_SERVICE_INPUT,
                     Bundle.class);
             if (serviceParams == null) {
                 sLogger.e(TAG + ": Missing service input.");
@@ -79,15 +79,15 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             }
 
             Class<?> clazz = Class.forName(className, true, mClassLoader);
-            IsolatedComputationService service =
-                    (IsolatedComputationService) clazz.getDeclaredConstructor().newInstance();
+            IsolatedService service =
+                    (IsolatedService) clazz.getDeclaredConstructor().newInstance();
             // TODO(b/249345663): Set the 'Context' for the service.
             service.onCreate();
-            IIsolatedComputationService binder =
-                    (IIsolatedComputationService) service.onBind(null);
+            IIsolatedService binder =
+                    (IIsolatedService) service.onBind(null);
 
             binder.onRequest(operation, serviceParams,
-                    new IIsolatedComputationServiceCallback.Stub() {
+                    new IIsolatedServiceCallback.Stub() {
                         @Override public void onSuccess(Bundle result) {
                             try {
                                 mPluginCallback.onSuccess(result);

@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.common;
 
+import java.util.concurrent.TimeUnit;
+
 /** FederatedCompute feature flags interface. This Flags interface hold the default values */
 public interface Flags {
     /**
@@ -29,7 +31,10 @@ public interface Flags {
         return FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
     }
 
-    /** Flags for {@link FederatedComputeJobManager}. */
+    /**
+     * Flags for {@link
+     * com.android.federatedcompute.services.scheduling.FederatedComputeJobManager}.
+     */
     long DEFAULT_SCHEDULING_PERIOD_SECS = 60 * 5; // 5 minutes
 
     default long getDefaultSchedulingPeriodSecs() {
@@ -80,7 +85,7 @@ public interface Flags {
         return TRANSIENT_ERROR_RETRY_DELAY_SECS;
     }
 
-    /** Flags for {@link FederatedExampleIterator}. */
+    /** Flags for ExampleStoreService. */
     long APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS = 30;
 
     default long getAppHostedExampleStoreTimeoutSecs() {
@@ -129,17 +134,36 @@ public interface Flags {
         return THERMAL_STATUS_TO_THROTTLE;
     }
 
-    /** When false, the min battery level constraint will be ignored during training. */
-    boolean ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK = false;
-
-    default boolean getEnableTrainingMinBatteryLevelCheck() {
-        return ENABLE_TRAINING_MIN_BATTERY_LEVEL_CHECK;
-    }
-
     /** The minimum duration between two training condition checks in milliseconds. */
     long TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS = 1000;
 
     default long getTrainingConditionCheckThrottlePeriodMillis() {
         return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
+    }
+
+    String ENCRYPTION_KEY_FETCH_URL =
+            "https://fake-coordinator/v1alpha/publicKeys";
+
+    /**
+     * @return Url to fetch encryption key for federated compute.
+     */
+    default String getEncryptionKeyFetchUrl() {
+        return ENCRYPTION_KEY_FETCH_URL;
+    }
+
+    Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS =
+            TimeUnit.DAYS.toSeconds(14/* duration= */);
+
+    /**
+     * @return default max age in seconds for federated compute ecryption keys.
+     */
+    default Long getFederatedComputeEncryptionKeyMaxAgeSeconds() {
+        return FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS;
+    }
+
+    Long ENCRYPTION_KEY_FETCH_PERIOD_SECONDS = 60 * 60 * 24L; // every 24 h
+
+    default Long getEncryptionKeyFetchPeriodSeconds() {
+        return ENCRYPTION_KEY_FETCH_PERIOD_SECONDS;
     }
 }

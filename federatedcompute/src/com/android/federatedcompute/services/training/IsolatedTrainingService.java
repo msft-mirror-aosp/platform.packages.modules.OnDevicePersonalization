@@ -33,7 +33,7 @@ public class IsolatedTrainingService extends Service {
 
     @Override
     public void onCreate() {
-        mBinder = new IsolatedTrainingServiceImpl(this);
+        mBinder = new IsolatedTrainingServiceImpl();
     }
 
     @Override

@@ -16,24 +16,26 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.http.HttpClientUtil.OCTET_STREAM;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableMap;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.JUnit4;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(JUnit4.class)
 public final class FederatedComputeHttpResponseTest {
     @Test
     public void testBuildWithAllValues() {
@@ -59,7 +61,7 @@ public final class FederatedComputeHttpResponseTest {
     }
 
     @Test
-    public void testBuildWithMinimalRequiredValues() throws Exception {
+    public void testBuildWithMinimalRequiredValues() {
         final int responseCode = 200;
         FederatedComputeHttpResponse response =
                 new FederatedComputeHttpResponse.Builder().setStatusCode(responseCode).build();
@@ -75,5 +77,21 @@ public final class FederatedComputeHttpResponseTest {
                         new FederatedComputeHttpResponse.Builder()
                                 .setPayload("payload".getBytes(UTF_8))
                                 .build());
+    }
+
+    @Test
+    public void testGetBody_success() {
+        final byte[] uncompressedBody = "payload".getBytes(UTF_8);
+        Map<String, List<String>> expectedHeaders = new HashMap<>();
+        expectedHeaders.put(HttpClientUtil.CONTENT_TYPE_HDR, ImmutableList.of(OCTET_STREAM));
+
+        FederatedComputeHttpResponse response =
+                new FederatedComputeHttpResponse.Builder()
+                        .setStatusCode(200)
+                        .setPayload(uncompressedBody)
+                        .setHeaders(expectedHeaders)
+                        .build();
+
+        assertThat(response.getPayload()).isEqualTo(uncompressedBody);
     }
 }
