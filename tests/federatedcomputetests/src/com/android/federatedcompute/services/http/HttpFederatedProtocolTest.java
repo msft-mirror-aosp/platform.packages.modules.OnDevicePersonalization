@@ -43,12 +43,16 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
+import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 
+import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
+import com.google.common.collect.Range;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.internal.federatedcompute.v1.ClientVersion;
@@ -101,6 +105,14 @@ public final class HttpFederatedProtocolTest {
     private static final String ASSIGNMENT_ID = "assignment-id";
     private static final String AGGREGATION_ID = "aggregation-id";
     private static final String OCTET_STREAM = "application/octet-stream";
+
+    private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
+            new FederatedComputeEncryptionKey.Builder()
+                    .setPublicKey("rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=")
+                    .setKeyIdentifier("0962201a-5abd-4e25-a486-2c7bd1ee1887")
+                    .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
+                    .setCreationTime(1L)
+                    .setExpiryTime(1L).build();
     private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
 
@@ -144,7 +156,8 @@ public final class HttpFederatedProtocolTest {
                         TASK_ASSIGNMENT_TARGET_URI,
                         CLIENT_VERSION,
                         POPULATION_NAME,
-                        mMockHttpClient);
+                        mMockHttpClient,
+                        new HpkeJniEncrypter());
     }
 
     @Test
@@ -280,7 +293,7 @@ public final class HttpFederatedProtocolTest {
         // Setup task id, aggregation id for report result.
         mHttpFederatedProtocol.issueCheckin().get();
 
-        mHttpFederatedProtocol.reportResult(computationResult).get();
+        mHttpFederatedProtocol.reportResult(computationResult, ENCRYPTION_KEY).get();
 
         // Verify ReportResult request.
         List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
@@ -301,7 +314,7 @@ public final class HttpFederatedProtocolTest {
         // Setup task id, aggregation id for report result.
         mHttpFederatedProtocol.issueCheckin().get();
 
-        mHttpFederatedProtocol.reportResult(computationResult).get();
+        mHttpFederatedProtocol.reportResult(computationResult, ENCRYPTION_KEY).get();
 
         // Verify ReportResult request.
         List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
@@ -322,14 +335,23 @@ public final class HttpFederatedProtocolTest {
         assertThat(actualDataUploadRequest.getUri()).isEqualTo(UPLOAD_LOCATION_URI);
         assertThat(acutalReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
         expectedHeaders = new HashMap<>();
-        if (mSupportCompression) {
-            expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(339));
-            expectedHeaders.put(CONTENT_ENCODING_HDR, GZIP_ENCODING_HDR);
-        } else {
-            expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(31846));
-        }
         expectedHeaders.put(CONTENT_TYPE_HDR, OCTET_STREAM);
+        if (mSupportCompression) {
+            expectedHeaders.put(CONTENT_ENCODING_HDR, GZIP_ENCODING_HDR);
+        }
+
+        int actualContentLength = Integer
+                .parseInt(actualDataUploadRequest.getExtraHeaders().remove(CONTENT_LENGTH_HDR));
         assertThat(actualDataUploadRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+        // The encryption is non-deterministic with BoringSSL JNI.
+        // Only check the range of the content.
+        if (mSupportCompression) {
+            assertThat(actualContentLength)
+                    .isIn(Range.range(500, BoundType.CLOSED, 550, BoundType.CLOSED));
+        } else {
+            assertThat(actualContentLength)
+                    .isIn(Range.range(600, BoundType.CLOSED, 650, BoundType.CLOSED));
+        }
     }
 
     @Test
@@ -350,7 +372,8 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.reportResult(computationResult).get());
+                        () -> mHttpFederatedProtocol.reportResult(computationResult,
+                                ENCRYPTION_KEY).get());
 
         assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause()).hasMessageThat().isEqualTo("ReportResult failed: 503");
@@ -374,7 +397,8 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.reportResult(computationResult).get());
+                        () -> mHttpFederatedProtocol.reportResult(computationResult,
+                                ENCRYPTION_KEY).get());
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause()).hasMessageThat().isEqualTo("Upload result failed: 503");
