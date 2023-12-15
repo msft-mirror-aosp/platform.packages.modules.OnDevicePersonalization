@@ -47,6 +47,7 @@ import java.util.List;
 public final class FederatedTrainingTaskTest {
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
@@ -58,12 +59,12 @@ public final class FederatedTrainingTaskTest {
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
 
     private SQLiteDatabase mDatabase;
-    private FederatedTrainingTaskDbHelper mDbHelper;
+    private FederatedComputeDbHelper mDbHelper;
 
     @Before
     public void setUp() {
         Context context = ApplicationProvider.getApplicationContext();
-        mDbHelper = FederatedTrainingTaskDbHelper.getInstanceForTest(context);
+        mDbHelper = FederatedComputeDbHelper.getInstanceForTest(context);
         mDatabase = mDbHelper.getWritableDatabase();
         mDbHelper.resetDatabase(mDatabase);
     }
@@ -140,6 +141,7 @@ public final class FederatedTrainingTaskTest {
         assertThat(trainingTask.jobId()).isEqualTo(JOB_ID);
         assertThat(trainingTask.appPackageName()).isEqualTo(PACKAGE_NAME);
         assertThat(trainingTask.populationName()).isEqualTo(POPULATION_NAME);
+        assertThat(trainingTask.serverAddress()).isEqualTo(SERVER_ADDRESS);
         assertThat(trainingTask.constraints()).isEqualTo(TRAINING_CONSTRAINTS);
         assertThat(trainingTask.intervalOptions()).isEqualTo(INTERVAL_OPTIONS);
         assertThat(trainingTask.creationTime()).isEqualTo(CREATION_TIME);
@@ -169,6 +171,7 @@ public final class FederatedTrainingTaskTest {
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
                 .populationName(POPULATION_NAME)
+                .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
                 .constraints(TRAINING_CONSTRAINTS)
                 .creationTime(CREATION_TIME)
@@ -185,6 +188,7 @@ public final class FederatedTrainingTaskTest {
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
                 .populationName(POPULATION_NAME)
+                .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
                 .constraints(TRAINING_CONSTRAINTS)
                 .creationTime(CREATION_TIME)

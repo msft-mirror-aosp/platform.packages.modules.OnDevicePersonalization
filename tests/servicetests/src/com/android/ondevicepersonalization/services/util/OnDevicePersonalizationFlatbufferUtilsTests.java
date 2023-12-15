@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.util;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.ContentValues;
@@ -31,6 +33,7 @@ import org.junit.runners.JUnit4;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.List;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationFlatbufferUtilsTests {
@@ -70,8 +73,7 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
                 assertEquals(
                         OnDevicePersonalizationFlatbufferUtils.DATA_TYPE_STRING,
                         eventFields.data().entries(i).type());
-                assertTrue(
-                        "abc".equals(eventFields.data().entries(i).stringValue()));
+                assertEquals("abc", eventFields.data().entries(i).stringValue());
             } else if ("d".equals(eventFields.data().entries(i).key())) {
                 found = true;
                 assertEquals(
@@ -104,8 +106,8 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
         QueryData queryData = QueryData.getRootAsQueryData(ByteBuffer.wrap(queryDataBytes));
         assertEquals(1, queryData.queryFieldsLength());
         QueryFields queryFields = queryData.queryFields(0);
-        assertEquals(null, queryFields.owner().packageName());
-        assertEquals(null, queryFields.owner().certDigest());
+        assertNull(queryFields.owner().packageName());
+        assertNull(queryFields.owner().certDigest());
         assertEquals(0, queryFields.rowsLength());
     }
 
@@ -131,5 +133,66 @@ public class OnDevicePersonalizationFlatbufferUtilsTests {
         assertEquals(1, queryFields.rows(0).entries(0).intValue());
         assertEquals("b", queryFields.rows(1).entries(0).key());
         assertEquals(2, queryFields.rows(1).entries(0).intValue());
+    }
+
+    @Test
+    public void testGetContentValuesQueryData() {
+        ArrayList<ContentValues> rows = new ArrayList<>();
+        ContentValues row1 = new ContentValues();
+        row1.put("a", 1);
+        rows.add(row1);
+        ContentValues row2 = new ContentValues();
+        row2.put("b", 2);
+        rows.add(row2);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                "com.example.test", "AABBCCDD", rows);
+
+        List<ContentValues> contentValuesList =
+                OnDevicePersonalizationFlatbufferUtils.getContentValuesFromQueryData(
+                        queryDataBytes);
+        assertEquals(2, contentValuesList.size());
+        assertEquals(row1, contentValuesList.get(0));
+        assertEquals(row2, contentValuesList.get(1));
+
+        assertEquals(row1, OnDevicePersonalizationFlatbufferUtils.getContentValuesRowFromQueryData(
+                queryDataBytes, 0));
+        assertEquals(row2, OnDevicePersonalizationFlatbufferUtils.getContentValuesRowFromQueryData(
+                queryDataBytes, 1));
+    }
+
+    @Test
+    public void testGetContentValuesLengthFromQueryData() {
+        ArrayList<ContentValues> rows = new ArrayList<>();
+        ContentValues row1 = new ContentValues();
+        row1.put("a", 1);
+        rows.add(row1);
+        ContentValues row2 = new ContentValues();
+        row2.put("b", 2);
+        rows.add(row2);
+        byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                "com.example.test", "AABBCCDD", rows);
+
+        assertEquals(2, OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
+                queryDataBytes));
+    }
+
+    @Test
+    public void testGetContentValuesFromEventData() {
+        ContentValues data = new ContentValues();
+        data.put("a", 1);
+        data.put("b", 2.0);
+        data.put("c", "abc");
+        byte[] blob = new byte[2];
+        blob[0] = 1;
+        blob[1] = 2;
+        data.put("d", blob);
+        byte[] eventData = OnDevicePersonalizationFlatbufferUtils.createEventData(data);
+        ContentValues contentValues =
+                OnDevicePersonalizationFlatbufferUtils.getContentValuesFromEventData(eventData);
+        // Compare byte[] separately since ContentValues.equals does not do arrayEquals.
+        assertArrayEquals(data.getAsByteArray("d"), contentValues.getAsByteArray("d"));
+        data.remove("d");
+        contentValues.remove("d");
+        assertEquals(data, contentValues);
     }
 }
