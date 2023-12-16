@@ -120,7 +120,9 @@ public class MainActivity extends Activity {
         try {
             var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
-            Log.i(TAG, "Starting execute()");
+            Log.i(TAG, "Starting execute() " + getResources().getString(R.string.get_ad)
+                    + " with " + mTextBox.getHint().toString() + ": "
+                    + mTextBox.getText().toString());
             AtomicReference<SurfacePackageToken> slotResultHandle = new AtomicReference<>();
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("keyword", mTextBox.getText().toString());
@@ -192,7 +194,9 @@ public class MainActivity extends Activity {
         try {
             var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
-            Log.i(TAG, "Starting execute()");
+            Log.i(TAG, "Starting execute() " + getResources().getString(R.string.schedule_training)
+                    + " with " + mScheduleTrainingTextBox.getHint().toString() + ": "
+                    + mScheduleTrainingTextBox.getText().toString());
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("schedule_training", mScheduleTrainingTextBox.getText().toString());
             odpManager.execute(
@@ -224,7 +228,9 @@ public class MainActivity extends Activity {
         try {
             var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
-            Log.i(TAG, "Starting execute()");
+            Log.i(TAG, "Starting execute() " + getResources().getString(R.string.report_conversion)
+                    + " with " + mReportConversionTextBox.getHint().toString() + ": "
+                    + mReportConversionTextBox.getText().toString());
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("conversion_ad_id", mReportConversionTextBox.getText().toString());
             odpManager.execute(
