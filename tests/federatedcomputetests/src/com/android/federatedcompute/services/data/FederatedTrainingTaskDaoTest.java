@@ -136,9 +136,39 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @Test
+    public void findAndRemoveTaskByPopulationNameAndCallingPackage_success() {
+        FederatedTrainingTask task = createDefaultFederatedTrainingTask();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
+        FederatedTrainingTask task2 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
+                        .appPackageName(PACKAGE_NAME)
+                        .populationName(POPULATION_NAME + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(2);
+
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
+                        POPULATION_NAME, PACKAGE_NAME);
+
+        assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
+    }
+
+    @Test
     public void findAndRemoveTaskByPopulationName_nonExist() {
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationName(POPULATION_NAME);
+
+        assertThat(removedTask).isNull();
+    }
+
+    @Test
+    public void findAndRemoveTaskByPopulationNameAndCallingPackage_nonExist() {
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
+                        POPULATION_NAME, PACKAGE_NAME);
 
         assertThat(removedTask).isNull();
     }
