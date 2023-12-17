@@ -152,8 +152,8 @@ public class FederatedComputeJobManager {
     public synchronized int onTrainerStartCalled(
             String callingPackageName, TrainingOptions trainingOptions) {
         FederatedTrainingTask existingTask =
-                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(
-                        trainingOptions.getPopulationName());
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
+                        trainingOptions.getPopulationName(), callingPackageName);
         Set<FederatedTrainingTask> trainingTasksToCancel = new HashSet<>();
         String populationName = trainingOptions.getPopulationName();
         long nowMs = mClock.currentTimeMillis();
@@ -286,11 +286,16 @@ public class FederatedComputeJobManager {
      */
     public synchronized int onTrainerStopCalled(String callingPackageName, String populationName) {
         FederatedTrainingTask taskToCancel =
-                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationName(populationName);
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
+                        populationName, callingPackageName);
         // If no matching task exists then there's nothing for us to do. This is not an error
         // case though.
         if (taskToCancel == null) {
-            LogUtil.i(TAG, "No matching task exists when cancel the job %s", populationName);
+            LogUtil.i(
+                    TAG,
+                    "No matching task exists when cancel the job (population: %s, ATP: %s",
+                    populationName,
+                    callingPackageName);
             return STATUS_SUCCESS;
         }
 

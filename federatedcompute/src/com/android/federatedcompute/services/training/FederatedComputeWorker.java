@@ -244,6 +244,8 @@ public class FederatedComputeWorker {
             TrainingRun run, CheckinResult checkinResult) {
         // Stop processing if have rejection Info
         if (checkinResult.getRejectionInfo() != null) {
+            LogUtil.d(TAG, "job %d was rejected during check in, reason %s",
+                    run.mTask.jobId(), checkinResult.getRejectionInfo().getReason());
             mJobManager.onTrainingCompleted(
                     run.mTask.jobId(),
                     run.mTask.populationName(),
