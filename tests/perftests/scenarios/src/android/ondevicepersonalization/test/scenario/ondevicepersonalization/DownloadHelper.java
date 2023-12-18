@@ -45,6 +45,43 @@ public class DownloadHelper {
     private static final String DOWNLOAD_PROCESSING_TASK_JOB_ID = "1004";
     private static final String MAINTENANCE_TASK_JOB_ID = "1005";
 
+    /** Commands to prepare the device and odp module before testing. */
+    public static void initialize() throws IOException {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests persistent");
+        executeShellCommand(
+                "device_config put on_device_personalization global_kill_switch false");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_ondevicepersonalization_apis true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_personalization_status_override true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "personalization_status_override_value true");
+        executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
+        executeShellCommand(
+                "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
+                    + "com.google.android.ondevicepersonalization.services");
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                    + "com.google.android.ondevicepersonalization.services 1000");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                    + "com.google.android.ondevicepersonalization.services 1006");
+        SystemClock.sleep(5000);
+    }
+
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        SystemClock.sleep(2000);
+    }
     public static void pressHome() {
         getUiDevice().pressHome();
     }
@@ -91,7 +128,7 @@ public class DownloadHelper {
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
                         + MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
-        SystemClock.sleep(5000);
+        SystemClock.sleep(60000);
     }
 
     public void processDownloadedVendorData() throws IOException {
@@ -101,7 +138,7 @@ public class DownloadHelper {
         SystemClock.sleep(5000);
     }
 
-    private void executeShellCommand(String cmd) {
+    private static void executeShellCommand(String cmd) {
         try {
             getUiDevice().executeShellCommand(cmd);
         } catch (IOException e) {
@@ -114,6 +151,12 @@ public class DownloadHelper {
             sUiDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
         }
         return sUiDevice;
+    }
+
+    /** Commands to return device to original state */
+    public static void wrapUp() throws IOException {
+        executeShellCommand(
+                "device_config set_sync_disabled_for_tests none");
     }
 
 }

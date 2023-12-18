@@ -19,10 +19,11 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
-import android.app.ondevicepersonalization.RenderOutput;
-import android.app.ondevicepersonalization.RenderingConfig;
-import android.app.ondevicepersonalization.RequestLogRecord;
-import android.app.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ContentValues;
 import android.content.Context;
 import android.os.Binder;
@@ -32,6 +33,8 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 
@@ -40,6 +43,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -50,6 +54,7 @@ import java.util.concurrent.CountDownLatch;
 public class RenderFlowTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
+    private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
 
     private String mRenderedContent;
     private boolean mGenerateHtmlCalled;
@@ -57,6 +62,13 @@ public class RenderFlowTest {
     private boolean mDisplayHtmlCalled;
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
+    private int mCallbackErrorCode;
+
+    @Before
+    public void setUp() {
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
+    }
 
     @Test
     public void testRunRenderFlow() throws Exception {
@@ -68,6 +80,7 @@ public class RenderFlowTest {
                 50,
                 new TestCallback(),
                 mContext,
+                100L,
                 new TestInjector(),
                 new TestDisplayHelper());
         flow.run();
@@ -76,6 +89,26 @@ public class RenderFlowTest {
         assertTrue(mDisplayHtmlCalled);
         assertTrue(mRenderedContent.contains("bid1"));
         assertTrue(mGeneratedHtml.contains("bid1"));
+    }
+
+    @Test
+    public void testRunRenderFlowPersonalizationDisabled() throws Exception {
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
+        RenderFlow flow = new RenderFlow(
+                "token",
+                new Binder(),
+                0,
+                100,
+                50,
+                new TestCallback(),
+                mContext,
+                100L,
+                new TestInjector(),
+                new TestDisplayHelper());
+        flow.run();
+        mLatch.await();
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
     }
 
     @Test
@@ -123,7 +156,8 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
+        @Override public String generateHtml(
+                RenderOutputParcel renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;
@@ -146,6 +180,7 @@ public class RenderFlowTest {
         }
         @Override public void onError(int errorCode) {
             mCallbackError = true;
+            mCallbackErrorCode = errorCode;
             mLatch.countDown();
         }
     }
