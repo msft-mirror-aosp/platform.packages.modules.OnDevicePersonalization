@@ -28,6 +28,8 @@ import android.os.Parcelable;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+import java.time.Instant;
+
 // TODO(b/289102463): Add a link to the public doc for the EVENTS table when available.
 /**
  * Data to be logged in the EVENTS table.
@@ -55,12 +57,13 @@ public final class EventLogRecord implements Parcelable {
      * {@link RequestLogRecord} can be associated with up to one event of a specified type.
      * The platform drops events if another event with the same type already exists for a row
      * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
-     * written for each row in {@link RequestLogRecord}.
+     * written for each row in {@link RequestLogRecord}. If unspecified, the default is 1.
      */
     private @IntRange(from = 1, to = 127) int mType = 1;
 
     /**
      * Time of the event in milliseconds.
+     * @hide
      */
     private long mTimeMillis = 0;
 
@@ -71,9 +74,23 @@ public final class EventLogRecord implements Parcelable {
     @Nullable ContentValues mData = null;
 
     /**
-     * The existing {@link RequestLogRecord} that this payload should be associated with.
+     * The existing {@link RequestLogRecord} that this payload should be associated with. In an
+     * implementation of
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+     * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * this should be set to {@code null} because the payload will be automatically associated with
+     * the current {@link RequestLogRecord}.
+     *
      */
     @Nullable RequestLogRecord mRequestLogRecord = null;
+
+    /**
+     * Returns the timestamp of this record.
+     */
+    @NonNull public Instant getTime() {
+        return Instant.ofEpochMilli(getTimeMillis());
+    }
 
     abstract static class BaseBuilder {
         /**
@@ -134,7 +151,7 @@ public final class EventLogRecord implements Parcelable {
      * {@link RequestLogRecord} can be associated with up to one event of a specified type.
      * The platform drops events if another event with the same type already exists for a row
      * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
-     * written for each row in {@link RequestLogRecord}.
+     * written for each row in {@link RequestLogRecord}. If unspecified, the default is 1.
      */
     @DataClass.Generated.Member
     public @IntRange(from = 1, to = 127) int getType() {
@@ -143,6 +160,8 @@ public final class EventLogRecord implements Parcelable {
 
     /**
      * Time of the event in milliseconds.
+     *
+     * @hide
      */
     @DataClass.Generated.Member
     public long getTimeMillis() {
@@ -159,7 +178,13 @@ public final class EventLogRecord implements Parcelable {
     }
 
     /**
-     * The existing {@link RequestLogRecord} that this payload should be associated with.
+     * The existing {@link RequestLogRecord} that this payload should be associated with. In an
+     * implementation of
+     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+     * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * this should be set to {@code null} because the payload will be automatically associated with
+     * the current {@link RequestLogRecord}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -302,7 +327,7 @@ public final class EventLogRecord implements Parcelable {
          * {@link RequestLogRecord} can be associated with up to one event of a specified type.
          * The platform drops events if another event with the same type already exists for a row
          * in {@link RequestLogRecord}. Must be >0 and <128. This allows up to 127 events to be
-         * written for each row in {@link RequestLogRecord}.
+         * written for each row in {@link RequestLogRecord}. If unspecified, the default is 1.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setType(@IntRange(from = 1, to = 127) int value) {
@@ -314,6 +339,7 @@ public final class EventLogRecord implements Parcelable {
 
         /**
          * Time of the event in milliseconds.
+         *
          * @hide
          */
         @DataClass.Generated.Member
@@ -338,7 +364,13 @@ public final class EventLogRecord implements Parcelable {
         }
 
         /**
-         * The existing {@link RequestLogRecord} that this payload should be associated with.
+         * The existing {@link RequestLogRecord} that this payload should be associated with. In an
+         * implementation of
+         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+         * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
+         * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+         * this should be set to {@code null} because the payload will be automatically associated with
+         * the current {@link RequestLogRecord}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
@@ -386,10 +418,10 @@ public final class EventLogRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1697146093263L,
+            time = 1698963996102L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventLogRecord.java",
-            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate final  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
+            inputSignatures = "private @android.annotation.IntRange int mRowIndex\nprivate @android.annotation.IntRange int mType\nprivate  long mTimeMillis\n @android.annotation.Nullable android.content.ContentValues mData\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\npublic @android.annotation.NonNull java.time.Instant getTime()\nclass EventLogRecord extends java.lang.Object implements [android.os.Parcelable]\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)\npublic abstract  android.adservices.ondevicepersonalization.EventLogRecord.Builder setTimeMillis(long)\nclass BaseBuilder extends java.lang.Object implements []")
     @Deprecated
     private void __metadata() {}
 

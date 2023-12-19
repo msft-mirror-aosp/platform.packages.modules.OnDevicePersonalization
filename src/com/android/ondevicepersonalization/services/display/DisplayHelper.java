@@ -16,7 +16,7 @@
 
 package com.android.ondevicepersonalization.services.display;
 
-import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
 import android.content.Context;
@@ -27,6 +27,7 @@ import android.os.PersistableBundle;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
 import android.view.SurfaceControlViewHost.SurfacePackage;
+import android.view.WindowManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 
@@ -58,9 +59,9 @@ public class DisplayHelper {
         mContext = context;
     }
 
-    /** Generates an HTML string from the template data in RenderOutput. */
+    /** Generates an HTML string from the template data in RenderOutputParcel. */
     @NonNull public String generateHtml(
-            @NonNull RenderOutput renderContentResult,
+            @NonNull RenderOutputParcel renderContentResult,
             @NonNull String servicePackageName) {
         // If htmlContent is provided, do not render the template.
         String htmlContent = renderContentResult.getContent();
@@ -117,7 +118,7 @@ public class DisplayHelper {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
         try {
             sLogger.d(TAG + ": displayHtml");
-            OnDevicePersonalizationExecutors.getHandler().post(() -> {
+            OnDevicePersonalizationExecutors.getHandlerForMainThread().post(() -> {
                 createWebView(html, logRecord, queryId, servicePackageName,
                         hostToken, displayId, width, height, result);
             });
@@ -134,7 +135,12 @@ public class DisplayHelper {
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
         try {
             sLogger.d(TAG + ": createWebView() started");
-            WebView webView = new WebView(mContext);
+            Display display = mContext.getSystemService(DisplayManager.class).getDisplay(displayId);
+            Context displayContext = mContext.createDisplayContext(display);
+            Context windowContext = displayContext.createWindowContext(
+                    WindowManager.LayoutParams.TYPE_APPLICATION_PANEL, null);
+
+            WebView webView = new WebView(windowContext);
             webView.setWebViewClient(
                     new OdpWebViewClient(mContext, servicePackageName, queryId, logRecord));
             WebSettings webViewSettings = webView.getSettings();
@@ -143,8 +149,8 @@ public class DisplayHelper {
             webViewSettings.setAllowContentAccess(false);
             webView.loadData(html, "text/html; charset=utf-8", "UTF-8");
 
-            Display display = mContext.getSystemService(DisplayManager.class).getDisplay(displayId);
-            SurfaceControlViewHost host = new SurfaceControlViewHost(mContext, display, hostToken);
+            SurfaceControlViewHost host = new SurfaceControlViewHost(
+                    windowContext, display, hostToken);
             host.setView(webView, width, height);
             SurfacePackage surfacePackage = host.getSurfacePackage();
             sLogger.d(TAG + ": createWebView success: " + surfacePackage);

@@ -54,6 +54,11 @@
                 <action android:name="android.OnDevicePersonalizationConfigService" />
             </intent-filter>
         </service>
+        <service android:name=".OnDevicePersonalizationDebugServiceImpl" android:exported="true" >
+            <intent-filter>
+                <action android:name="android.OnDevicePersonalizationDebugService" />
+            </intent-filter>
+        </service>
         <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
@@ -67,10 +72,6 @@
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.services.download.mdd.MddJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
-        </service>
-        <service android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpFederatedComputeJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>

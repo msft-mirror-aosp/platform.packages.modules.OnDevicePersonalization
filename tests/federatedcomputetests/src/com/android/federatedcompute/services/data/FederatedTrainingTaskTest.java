@@ -59,12 +59,12 @@ public final class FederatedTrainingTaskTest {
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
 
     private SQLiteDatabase mDatabase;
-    private FederatedTrainingTaskDbHelper mDbHelper;
+    private FederatedComputeDbHelper mDbHelper;
 
     @Before
     public void setUp() {
         Context context = ApplicationProvider.getApplicationContext();
-        mDbHelper = FederatedTrainingTaskDbHelper.getInstanceForTest(context);
+        mDbHelper = FederatedComputeDbHelper.getInstanceForTest(context);
         mDatabase = mDbHelper.getWritableDatabase();
         mDbHelper.resetDatabase(mDatabase);
     }

@@ -38,9 +38,9 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
-import com.android.federatedcompute.services.data.FederatedTrainingTaskDbHelper;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
@@ -121,7 +121,7 @@ public final class FederatedComputeJobManagerTest {
                 .thenReturn(MAX_SCHEDULING_INTERVAL_SECS_FOR_FEDERATED_COMPUTATION);
         when(mMockFlags.getMinSchedulingIntervalSecsForFederatedComputation()).thenReturn(1L);
         when(mMockFlags.getMaxSchedulingPeriodSecs()).thenReturn(MAX_SCHEDULING_PERIOD_SECS);
-        when(mMockJobIdGenerator.generateJobId(any(), anyString()))
+        when(mMockJobIdGenerator.generateJobId(any(), anyString(), anyString()))
                 .thenReturn(JOB_ID1)
                 .thenReturn(JOB_ID2);
     }
@@ -130,8 +130,8 @@ public final class FederatedComputeJobManagerTest {
     public void tearDown() {
         // Manually clean up the database.
         mTrainingTaskDao.clearDatabase();
-        FederatedTrainingTaskDbHelper dbHelper =
-                FederatedTrainingTaskDbHelper.getInstanceForTest(mContext);
+        FederatedComputeDbHelper dbHelper =
+                FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();

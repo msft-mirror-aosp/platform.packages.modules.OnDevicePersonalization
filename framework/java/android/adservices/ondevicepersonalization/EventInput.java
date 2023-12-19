@@ -21,7 +21,6 @@ import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ON
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.os.Parcelable;
 import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -32,8 +31,8 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
-@DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
-public final class EventInput implements Parcelable {
+@DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
+public final class EventInput {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
@@ -46,6 +45,11 @@ public final class EventInput implements Parcelable {
      * or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
      */
     @NonNull private PersistableBundle mParameters = PersistableBundle.EMPTY;
+
+    /** @hide */
+    public EventInput(@NonNull EventInputParcel parcel) {
+        this(parcel.getRequestLogRecord(), parcel.getParameters());
+    }
 
 
 
@@ -62,8 +66,20 @@ public final class EventInput implements Parcelable {
     //@formatter:off
 
 
+    /**
+     * Creates a new EventInput.
+     *
+     * @param requestLogRecord
+     *   The {@link RequestLogRecord} that was returned as a result of
+     *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * @param parameters
+     *   The Event URL parameters that the service passed to {@link
+     *   EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
+     *   or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
+     * @hide
+     */
     @DataClass.Generated.Member
-    /* package-private */ EventInput(
+    public EventInput(
             @Nullable RequestLogRecord requestLogRecord,
             @NonNull PersistableBundle parameters) {
         this.mRequestLogRecord = requestLogRecord;
@@ -122,127 +138,11 @@ public final class EventInput implements Parcelable {
         return _hash;
     }
 
-    @Override
-    @DataClass.Generated.Member
-    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
-        // You can override field parcelling by defining methods like:
-        // void parcelFieldName(Parcel dest, int flags) { ... }
-
-        byte flg = 0;
-        if (mRequestLogRecord != null) flg |= 0x1;
-        dest.writeByte(flg);
-        if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
-        dest.writeTypedObject(mParameters, flags);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int describeContents() { return 0; }
-
-    /** @hide */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
-    @DataClass.Generated.Member
-    /* package-private */ EventInput(@NonNull android.os.Parcel in) {
-        // You can override field unparcelling by defining methods like:
-        // static FieldType unparcelFieldName(Parcel in) { ... }
-
-        byte flg = in.readByte();
-        RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
-        PersistableBundle parameters = (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
-
-        this.mRequestLogRecord = requestLogRecord;
-        this.mParameters = parameters;
-        AnnotationValidations.validate(
-                NonNull.class, null, mParameters);
-
-        // onConstructed(); // You can define this method to get a callback
-    }
-
-    @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<EventInput> CREATOR
-            = new Parcelable.Creator<EventInput>() {
-        @Override
-        public EventInput[] newArray(int size) {
-            return new EventInput[size];
-        }
-
-        @Override
-        public EventInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new EventInput(in);
-        }
-    };
-
-    /**
-     * A builder for {@link EventInput}
-     * @hide
-     */
-    @SuppressWarnings("WeakerAccess")
-    @DataClass.Generated.Member
-    public static final class Builder {
-
-        private @Nullable RequestLogRecord mRequestLogRecord;
-        private @NonNull PersistableBundle mParameters;
-
-        private long mBuilderFieldsSet = 0L;
-
-        public Builder() {
-        }
-
-        /**
-         * The {@link RequestLogRecord} that was returned as a result of
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x1;
-            mRequestLogRecord = value;
-            return this;
-        }
-
-        /**
-         * The Event URL parameters that the service passed to {@link
-         * EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
-         * or {@link EventUrlProvider#createEventTrackingUrlWithRedirect(PersistableBundle, Uri)}.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setParameters(@NonNull PersistableBundle value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mParameters = value;
-            return this;
-        }
-
-        /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull EventInput build() {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
-
-            if ((mBuilderFieldsSet & 0x1) == 0) {
-                mRequestLogRecord = null;
-            }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mParameters = PersistableBundle.EMPTY;
-            }
-            EventInput o = new EventInput(
-                    mRequestLogRecord,
-                    mParameters);
-            return o;
-        }
-
-        private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
-                throw new IllegalStateException(
-                        "This Builder should not be reused. Use a new Builder instance instead");
-            }
-        }
-    }
-
     @DataClass.Generated(
-            time = 1697062257720L,
+            time = 1698882321696L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

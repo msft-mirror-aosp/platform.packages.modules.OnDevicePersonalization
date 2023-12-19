@@ -29,12 +29,13 @@ import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.LogReader;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
-import android.adservices.ondevicepersonalization.TrainingExampleInput;
-import android.adservices.ondevicepersonalization.TrainingExampleOutput;
+import android.adservices.ondevicepersonalization.TrainingExamplesInput;
+import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.UserData;
 import android.content.ContentValues;
@@ -69,10 +70,12 @@ import java.io.IOException;
 import java.io.StringReader;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 import java.util.function.Consumer;
@@ -81,12 +84,14 @@ public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
+    public static final int EVENT_TYPE_CONVERSION = 3;
     public static final double COST_RAISING_FACTOR = 2.0;
     private static final String AD_ID_KEY = "adid";
     private static final String BID_PRICE_KEY = "price";
     private static final String AUCTION_SCORE_KEY = "score";
     private static final String CLICK_COST_KEY = "clkcost";
     private static final String EVENT_TYPE_KEY = "type";
+    private static final String SOURCE_TYPE_KEY = "sourcetype";
     private static final int BID_PRICE_OFFSET = 0;
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
@@ -103,13 +108,16 @@ public class SampleHandler implements IsolatedWorker {
     private final EventUrlProvider mEventUrlProvider;
     private final UserData mUserData;
     private final FederatedComputeScheduler mFCScheduler;
+    private final LogReader mLogReader;
 
     SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider,
-            UserData userData, FederatedComputeScheduler fcScheduler) {
+            UserData userData, FederatedComputeScheduler fcScheduler,
+            LogReader logReader) {
         mRemoteData = remoteData;
         mEventUrlProvider = eventUrlProvider;
         mUserData = userData;
         mFCScheduler = fcScheduler;
+        mLogReader = logReader;
         if (mRemoteData == null) {
             Log.e(TAG, "RemoteData missing");
         }
@@ -121,6 +129,9 @@ public class SampleHandler implements IsolatedWorker {
         }
         if (mFCScheduler == null) {
             Log.e(TAG, "Federated Compute Scheduler missing");
+        }
+        if (mLogReader == null) {
+            Log.e(TAG, "LogReader missing");
         }
     }
 
@@ -136,42 +147,40 @@ public class SampleHandler implements IsolatedWorker {
         consumer.accept(downloadResult);
     }
 
-    @Override public void onExecute(
-            @NonNull ExecuteInput input,
-            @NonNull Consumer<ExecuteOutput> consumer
-    ) {
+    @Override
+    public void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
         Log.d(TAG, "onExecute() started.");
         sBackgroundExecutor.execute(() -> handleOnExecute(input, consumer));
     }
 
-    @Override public void onTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
-        Log.d(TAG, "onTrainingExample() started.");
-        sBackgroundExecutor.execute(() -> handleOnTrainingExample(input, consumer));
+    @Override
+    public void onTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+        Log.d(TAG, "onTrainingExamples() started.");
+        sBackgroundExecutor.execute(() -> handleOnTrainingExamples(input, consumer));
     }
 
-    @Override public void onRender(
-            @NonNull RenderInput input,
-            @NonNull Consumer<RenderOutput> consumer
-    ) {
+    @Override
+    public void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
         Log.d(TAG, "onRender() started.");
         sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
     }
 
-    @Override public void onEvent(
-            @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer) {
+    @Override
+    public void onEvent(@NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
         Log.d(TAG, "onEvent() started.");
-        sBackgroundExecutor.execute(
-                () -> handleOnWebViewEvent(input, consumer));
+        sBackgroundExecutor.execute(() -> handleOnWebViewEvent(input, consumer));
     }
 
     private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
         Log.d(TAG, "readAds() called.");
         try {
             ArrayList<Ad> ads = new ArrayList<>();
-            for (var key: remoteData.keySet()) {
+            for (var key : remoteData.keySet()) {
+                if (!key.startsWith("ad")) {
+                    continue;
+                }
                 Ad ad = parseAd(key, remoteData.get(key));
                 if (ad != null) {
                     ads.add(ad);
@@ -228,7 +237,7 @@ public class SampleHandler implements IsolatedWorker {
         String requestKeyword = "";
         if (input != null && input.getAppParams() != null
                 && input.getAppParams().getString("keyword") != null) {
-            requestKeyword = input.getAppParams().getString("keyword");
+            requestKeyword = input.getAppParams().getString("keyword").toLowerCase().strip();
         }
 
         List<Ad> result = new ArrayList<>();
@@ -270,73 +279,55 @@ public class SampleHandler implements IsolatedWorker {
                 .build();
     }
 
-    static Feature convertStringToFeature(String value) {
+    private static Feature convertStringToFeature(String value) {
         BytesList.Builder bytesListBuilder = BytesList.newBuilder();
         String nonNullValue = Strings.nullToEmpty(value);
         bytesListBuilder.addValue(ByteString.copyFromUtf8(nonNullValue));
         return Feature.newBuilder().setBytesList(bytesListBuilder.build()).build();
     }
 
-    static Feature convertLongToFeature(long value) {
+    private static Feature convertLongToFeature(String value) {
+        long lValue = value.isEmpty() ? 0L : Long.parseLong(value);
         return Feature.newBuilder()
-            .setInt64List(Int64List.newBuilder().addValue(value).build())
+            .setInt64List(Int64List.newBuilder().addValue(lValue).build())
             .build();
     }
 
-    private void handleOnTrainingExample(
-            @NonNull TrainingExampleInput input,
-            @NonNull Consumer<TrainingExampleOutput> consumer) {
+    private static Example convertToExample(String serializedExample) {
+        String[] splitExample = serializedExample.split(",", -1);
         Features.Builder featuresBuilder = Features.newBuilder();
+        featuresBuilder.putFeature("clicked", convertLongToFeature(splitExample[0]));
 
-        featuresBuilder.putFeature("int-feature-1", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-2", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-3", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-4", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-5", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-6", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-7", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-8", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-9", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-10", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-11", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-12", convertLongToFeature(0L));
-        featuresBuilder.putFeature("int-feature-13", convertLongToFeature(0L));
+        int count = 1;
+        for (; count < 14; count++) {
+            featuresBuilder.putFeature(
+                    String.format("int-feature-%d", count),
+                    convertLongToFeature(splitExample[count]));
+        }
+        for (; count < 40; count++) {
+            featuresBuilder.putFeature(
+                    String.format("categorical-feature-%d", count),
+                    convertStringToFeature(splitExample[count]));
+        }
+        return Example.newBuilder().setFeatures(featuresBuilder.build()).build();
+    }
 
-        featuresBuilder.putFeature("categorical-feature-14", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-15", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-16", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-17", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-18", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-19", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-20", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-21", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-22", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-23", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-24", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-25", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-26", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-27", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-28", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-29", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-30", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-31", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-32", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-33", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-34", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-35", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-36", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-37", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-38", convertStringToFeature(""));
-        featuresBuilder.putFeature("categorical-feature-39", convertStringToFeature(""));
-
-        featuresBuilder.putFeature("clicked", convertLongToFeature(1L));
-
-        Example example = Example.newBuilder().setFeatures(featuresBuilder.build()).build();
-        TrainingExampleOutput result = new TrainingExampleOutput
-                .Builder()
-                .addTrainingExample(example.toByteArray())
-                .addResumptionToken("token1".getBytes()).build();
-        consumer.accept(result);
+    private void handleOnTrainingExamples(
+            @NonNull TrainingExamplesInput input,
+            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+        TrainingExamplesOutput.Builder resultBuilder = new TrainingExamplesOutput.Builder();
+        Random rand = new Random();
+        int numExample = rand.nextInt(10) + 1;
+        Log.d(TAG, String.format("onTrainingExample() generates %d examples.", numExample));
+        for (int count = 0; count < numExample; count++) {
+            Example example = convertToExample(
+                    new String(mRemoteData.get(String.format("example%d", rand.nextInt(100) + 1)),
+                    StandardCharsets.UTF_8));
+            resultBuilder.addTrainingExample(
+                    example.toByteArray()).addResumptionToken(
+                            String.format("token%d", count).getBytes());
+        }
+        consumer.accept(resultBuilder.build());
     }
 
     private void handleOnExecute(
@@ -345,8 +336,11 @@ public class SampleHandler implements IsolatedWorker {
     ) {
         try {
             if (input != null && input.getAppParams() != null
-                    && input.getAppParams().getString("schedule_training") != null
-                    && !input.getAppParams().getString("schedule_training").isEmpty()) {
+                    && input.getAppParams().getString("schedule_training") != null) {
+                if (input.getAppParams().getString("schedule_training").isEmpty()) {
+                    consumer.accept(null);
+                    return;
+                }
                 TrainingInterval interval = new TrainingInterval.Builder()
                         .setMinimumInterval(Duration.ofSeconds(10))
                         .setSchedulingMode(2)
@@ -360,6 +354,14 @@ public class SampleHandler implements IsolatedWorker {
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
                 consumer.accept(result);
+            } else if (input != null && input.getAppParams() != null
+                    && input.getAppParams().getString("conversion_ad_id") != null) {
+                try {
+                    consumer.accept(handleConversion(input));
+                } catch (Exception e) {
+                    consumer.accept(null);
+                    return;
+                }
             } else {
                 var unused = FluentFuture.from(readAds(mRemoteData))
                         .transform(
@@ -437,6 +439,46 @@ public class SampleHandler implements IsolatedWorker {
             Log.d(TAG, "content: " + content);
             return new RenderOutput.Builder().setContent(content).build();
         }
+    }
+
+    private ExecuteOutput handleConversion(ExecuteInput input) {
+        String adId = input.getAppParams().getString("conversion_ad_id");
+        if (adId.isEmpty()) {
+            return null;
+        }
+        long now = System.currentTimeMillis();
+        List<EventLogRecord> logRecords = mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(now - 24 * 60 * 60 * 1000),
+                Instant.ofEpochMilli(now));
+        EventLogRecord found = null;
+        // Attribute conversion to most recent impression or click.
+        for (EventLogRecord ev : logRecords) {
+            RequestLogRecord req = ev.getRequestLogRecord();
+            if (req == null || req.getRows() == null
+                    || req.getRows().size() <= ev.getRowIndex()
+                    || req.getRows().get(ev.getRowIndex()) == null) {
+                continue;
+            }
+            String reqAdId = (String) req.getRows().get(ev.getRowIndex()).get(AD_ID_KEY);
+            if (adId.equals(reqAdId)) {
+                if (found == null || found.getTimeMillis() < ev.getTimeMillis()) {
+                    found = ev;
+                }
+            }
+        }
+        var builder = new ExecuteOutput.Builder();
+        if (found != null) {
+            ContentValues values = new ContentValues();
+            values.put(SOURCE_TYPE_KEY, found.getType());
+            EventLogRecord conv = new EventLogRecord.Builder()
+                    .setType(EVENT_TYPE_CONVERSION)
+                    .setData(values)
+                    .setRowIndex(found.getRowIndex())
+                    .setRequestLogRecord(found.getRequestLogRecord())
+                    .build();
+            builder.addEventLogRecord(conv);
+        }
+        return builder.build();
     }
 
     private void handleOnRender(
@@ -584,7 +626,7 @@ public class SampleHandler implements IsolatedWorker {
                     if (ad != null && !isBlockedAd(ad)) {
                         filteredKeys.add(key);
                     }
-                } else if (key.startsWith("template")) {
+                } else if (key.startsWith("template") || key.startsWith("example")) {
                     filteredKeys.add(key);
                 }
             }

@@ -35,49 +35,37 @@ import javax.annotation.Nullable;
 public final class ExampleConsumptionTest {
 
     @Test
-    public void testBuilder_emptyCollectionName() {
+    public void testBuilder_emptyTaskName() {
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
                         new ExampleConsumption.Builder()
-                                .setCollectionName("")
+                                .setTaskName("")
                                 .setExampleCount(10)
                                 .setSelectionCriteria(new byte[] {10, 0, 1})
                                 .build());
     }
 
     @Test
-    public void testBuilder_nullCollectionName() {
+    public void testBuilder_nullTaskName() {
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
                         new ExampleConsumption.Builder()
-                                .setCollectionName(null)
+                                .setTaskName(null)
                                 .setExampleCount(10)
                                 .setSelectionCriteria(new byte[] {10, 0, 1})
-                                .build());
-    }
-
-    @Test
-    public void testBuilder_nullSelectionCriteria() {
-        assertThrows(
-                NullPointerException.class,
-                () ->
-                        new ExampleConsumption.Builder()
-                                .setCollectionName("collection_name")
-                                .setExampleCount(10)
-                                .setSelectionCriteria(null)
                                 .build());
     }
 
     @Test
     public void testBuilder_normalCaseWithoutResumptionToken() {
-        String collectionName = "my_collection";
+        String taskName = "my_task";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         int exampleCount = 10;
         ExampleConsumption consumption =
-                createExampleConsumption(collectionName, selectionCriteria, exampleCount, null);
-        assertThat(consumption.getCollectionName()).isEqualTo(collectionName);
+                createExampleConsumption(taskName, selectionCriteria, exampleCount, null);
+        assertThat(consumption.getTaskName()).isEqualTo(taskName);
         assertThat(consumption.getExampleCount()).isEqualTo(exampleCount);
         assertThat(ByteString.copyFrom(consumption.getSelectionCriteria()))
                 .isEqualTo(ByteString.copyFrom(selectionCriteria));
@@ -86,14 +74,14 @@ public final class ExampleConsumptionTest {
 
     @Test
     public void testBuilder_normalCaseWithResumptionToken() {
-        String collectionName = "my_collection";
+        String taskName = "my_task";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         int exampleCount = 10;
         byte[] resumptionToken = new byte[] {25, 10, 4, 56};
         ExampleConsumption consumption =
                 createExampleConsumption(
-                        collectionName, selectionCriteria, exampleCount, resumptionToken);
-        assertThat(consumption.getCollectionName()).isEqualTo(collectionName);
+                        taskName, selectionCriteria, exampleCount, resumptionToken);
+        assertThat(consumption.getTaskName()).isEqualTo(taskName);
         assertThat(consumption.getExampleCount()).isEqualTo(exampleCount);
         assertThat(ByteString.copyFrom(consumption.getSelectionCriteria()))
                 .isEqualTo(ByteString.copyFrom(selectionCriteria));
@@ -103,13 +91,13 @@ public final class ExampleConsumptionTest {
 
     @Test
     public void testWriteToParcel() {
-        String collectionName = "my_collection";
+        String taskName = "my_task";
         byte[] selectionCriteria = new byte[] {10, 0, 1};
         int exampleCount = 10;
         byte[] resumptionToken = new byte[] {25, 10, 4, 56};
         ExampleConsumption consumption =
                 createExampleConsumption(
-                        collectionName, selectionCriteria, exampleCount, resumptionToken);
+                        taskName, selectionCriteria, exampleCount, resumptionToken);
 
         Parcel parcel = Parcel.obtain();
         consumption.writeToParcel(parcel, 0);
@@ -118,7 +106,7 @@ public final class ExampleConsumptionTest {
         parcel.setDataPosition(0);
         ExampleConsumption recoveredConsumption =
                 ExampleConsumption.CREATOR.createFromParcel(parcel);
-        assertThat(recoveredConsumption.getCollectionName()).isEqualTo(collectionName);
+        assertThat(recoveredConsumption.getTaskName()).isEqualTo(taskName);
         assertThat(recoveredConsumption.getExampleCount()).isEqualTo(exampleCount);
         assertThat(ByteString.copyFrom(recoveredConsumption.getSelectionCriteria()))
                 .isEqualTo(ByteString.copyFrom(selectionCriteria));
@@ -127,13 +115,13 @@ public final class ExampleConsumptionTest {
     }
 
     private static ExampleConsumption createExampleConsumption(
-            String collectionName,
+            String taskName,
             byte[] selectionCriteria,
             int exampleCount,
             @Nullable byte[] resumptionToken) {
         ExampleConsumption.Builder builder =
                 new ExampleConsumption.Builder()
-                        .setCollectionName(collectionName)
+                        .setTaskName(taskName)
                         .setSelectionCriteria(selectionCriteria)
                         .setExampleCount(exampleCount);
         if (resumptionToken != null) {

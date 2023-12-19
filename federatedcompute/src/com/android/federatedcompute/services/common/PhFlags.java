@@ -35,6 +35,9 @@ public final class PhFlags implements Flags {
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
+
+    static final String FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL =
+            "fcp_encryption_key_download_url";
     private static final PhFlags sSingleton = new PhFlags();
 
     /** Returns the singleton instance of the PhFlags. */
@@ -59,5 +62,14 @@ public final class PhFlags implements Flags {
     @VisibleForTesting
     static String getSystemPropertyName(String key) {
         return SYSTEM_PROPERTY_PREFIX + key;
+    }
+
+    @Override
+    public String getEncryptionKeyFetchUrl() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL,
+                /* defaultValue= */ ENCRYPTION_KEY_FETCH_URL
+        );
     }
 }

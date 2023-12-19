@@ -36,5 +36,14 @@ public class Constants {
     public static final String ISOLATED_TRAINING_SERVICE_NAME =
             "com.android.federatedcompute.services.training.IsolatedTrainingService";
 
+    public static final String TRACE_HTTP_ISSUE_CHECKIN = "Http#issueCheckin";
+    public static final String TRACE_HTTP_REPORT_RESULT = "Http#reportResult";
+    public static final String TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING =
+            "IsolatedProcess#runFlTraining";
+    public static final String TRACE_NATIVE_RUN_FEDERATED_COMPUTATION =
+            "Native#runFederatedComputation";
+    public static final String TRACE_WORKER_RUN_FL_COMPUTATION = "Worker#runFlComputation";
+    public static final String TRACE_WORKER_START_TRAINING_RUN = "Worker#startTrainingRun";
+
     private Constants() {}
 }

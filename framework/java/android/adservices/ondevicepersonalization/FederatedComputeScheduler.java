@@ -31,8 +31,8 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import java.util.concurrent.CountDownLatch;
 
 /**
- * Handles scheduling federated learning and federated analytic jobs.
- *
+ * Handles scheduling federated compute jobs. See {@link
+ * IsolatedService#getFederatedComputeScheduler}.
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class FederatedComputeScheduler {
@@ -46,15 +46,16 @@ public class FederatedComputeScheduler {
         mFcService = binder;
     }
 
+    // TODO(b/300461799): add federated compute server document.
+    // TODO(b/269665435): add sample code snippet.
     /**
-     * Schedule a federated computation job.
+     * Schedules a federated compute job. In {@link IsolatedService#onRequest}, the app can call
+     * {@link IsolatedService#getFederatedComputeScheduler} to pass scheduler when construct {@link
+     * IsolatedWorker}.
      *
      * @param params parameters related to job scheduling.
-     * @param input the configuration related o federated computation. It should be consistent with
-     *     federated computation server setup. TODO(b/300461799): add federated compute server
-     *     document.
-     * @throws IllegalArgumentException caused by caller supplied invalid input argument.
-     * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
+     * @param input the configuration of the federated compute. It should be consistent with the
+     *     federated compute server setup.
      */
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
@@ -97,7 +98,10 @@ public class FederatedComputeScheduler {
     }
 
     /**
-     * Cancel a federated computation job with input training params.
+     * Cancels a federated compute job with input training params. In {@link
+     * IsolatedService#onRequest}, the app can call {@link
+     * IsolatedService#getFederatedComputeScheduler} to pass scheduler when construct {@link
+     * IsolatedWorker}.
      *
      * @param populationName population name of the job that caller wants to cancel
      * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
