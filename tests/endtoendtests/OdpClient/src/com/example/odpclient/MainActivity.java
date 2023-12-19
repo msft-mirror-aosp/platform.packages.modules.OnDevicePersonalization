@@ -16,7 +16,6 @@
 
 package com.example.odpclient;
 
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationConfigManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.app.Activity;
@@ -37,8 +36,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
-
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
@@ -47,13 +44,11 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
-    private OnDevicePersonalizationConfigManager mOdpConfigManager = null;
 
     private EditText mTextBox;
     private Button mGetAdButton;
     private EditText mScheduleTrainingTextBox;
     private Button mScheduleTrainingButton;
-    private Button mSetStatusButton;
     private EditText mReportConversionTextBox;
     private Button mReportConversionButton;
     private SurfaceView mRenderedView;
@@ -79,33 +74,23 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         mContext = getApplicationContext();
-        if (mOdpConfigManager == null) {
-            mOdpConfigManager = mContext.getSystemService(
-                            OnDevicePersonalizationConfigManager.class);
-        }
         mRenderedView = findViewById(R.id.rendered_view);
         mRenderedView.setVisibility(View.INVISIBLE);
         mRenderedView.getHolder().addCallback(new SurfaceCallback());
         mGetAdButton = findViewById(R.id.get_ad_button);
         mScheduleTrainingButton = findViewById(R.id.schedule_training_button);
-        mSetStatusButton = findViewById(R.id.set_status_button);
         mReportConversionButton = findViewById(R.id.report_conversion_button);
         mTextBox = findViewById(R.id.text_box);
         mScheduleTrainingTextBox = findViewById(R.id.schedule_training_text_box);
         mReportConversionTextBox = findViewById(R.id.report_conversion_text_box);
         registerGetAdButton();
         registerScheduleTrainingButton();
-        registerSetStatusButton();
         registerReportConversionButton();
     }
 
     private void registerGetAdButton() {
         mGetAdButton.setOnClickListener(
                 v -> makeRequest());
-    }
-
-    private void registerSetStatusButton() {
-        mSetStatusButton.setOnClickListener(v -> setPersonalizationStatus());
     }
 
     private void registerReportConversionButton() {
@@ -256,26 +241,6 @@ public class MainActivity extends Activity {
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
-    }
-
-    private void setPersonalizationStatus() {
-        if (mOdpConfigManager == null) {
-            makeToast("OnDevicePersonalizationConfigManager is null");
-        }
-        boolean enabled = true;
-        mOdpConfigManager.setPersonalizationEnabled(enabled,
-                sCallbackExecutor,
-                new OutcomeReceiver<Void, Exception>() {
-                    @Override
-                    public void onResult(Void result) {
-                        makeToast("Personalization status is set to " + enabled);
-                    }
-
-                    @Override
-                    public void onError(@NonNull Exception error) {
-                        makeToast(error.getMessage());
-                    }
-                });
     }
 
     private void makeToast(String message) {
