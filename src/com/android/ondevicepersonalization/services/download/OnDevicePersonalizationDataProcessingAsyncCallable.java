@@ -248,8 +248,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 filteredList.add(vendorDataMap.get(key));
             }
         }
-        mDao.batchUpdateOrInsertVendorDataTransaction(filteredList, retainedKeys,
-                syncToken);
+        boolean transactionResult = mDao.batchUpdateOrInsertVendorDataTransaction(
+                filteredList, retainedKeys, syncToken);
+        sLogger.d(TAG + ": filter and store data completed, transaction successful: "
+                + transactionResult);
         return null;
     }
 
