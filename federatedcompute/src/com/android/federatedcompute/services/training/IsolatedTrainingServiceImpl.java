@@ -50,7 +50,9 @@ import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/** The implementation of {@link IsolatedTrainingService}. */
+/**
+ * The implementation of {@link IsolatedTrainingService}.
+ */
 public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     private static final String TAG = IsolatedTrainingServiceImpl.class.getSimpleName();
     private final AtomicBoolean mInterruptFlag = new AtomicBoolean(false);
@@ -143,12 +145,18 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         for (ExampleConsumption exampleConsumption : exampleConsumptionArrayList) {
                             numExamples += exampleConsumption.getExampleCount();
                         }
-                        LogUtil.i(
-                                TAG,
-                                "training task %s: result %s, used %d examples",
-                                populationName,
-                                result.toString(),
-                                numExamples);
+                        if (result.getContributionResult() == ContributionResult.SUCCESS) {
+                            LogUtil.i(
+                                    TAG,
+                                    "training task %s: result %s, used %d examples",
+                                    populationName,
+                                    result.getContributionResult(),
+                                    numExamples);
+                        } else {
+                            LogUtil.i(TAG, "training task %s: result %s, error message %s",
+                                    populationName, result.getContributionResult(),
+                                    result.getErrorMessage());
+                        }
                         bundle.putParcelableArrayList(
                                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
                                 exampleConsumptionArrayList);
