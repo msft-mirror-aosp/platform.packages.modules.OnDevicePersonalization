@@ -61,6 +61,10 @@ public class BackgroundKeyFetchJobService extends JobService {
 
     private final Injector mInjector;
 
+    public BackgroundKeyFetchJobService() {
+        mInjector = new Injector();
+    }
+
     @VisibleForTesting
     BackgroundKeyFetchJobService(Injector injector) {
         mInjector = injector;
