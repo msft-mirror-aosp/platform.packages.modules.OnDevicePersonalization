@@ -39,7 +39,11 @@ public class JobSchedulerHelper {
     /** Schedules a task using JobScheduler. */
     public boolean scheduleTask(Context context, FederatedTrainingTask newTask) {
         JobInfo jobInfo = convertToJobInfo(context, newTask);
-        LogUtil.i(TAG, "Scheduling job %s", jobInfo.getId());
+        LogUtil.i(
+                TAG,
+                "Scheduling job %s (with minimum latency until next run %d milliseconds)",
+                jobInfo.getId(),
+                jobInfo.getMinLatencyMillis());
         return tryScheduleJob(context, jobInfo);
     }
 
