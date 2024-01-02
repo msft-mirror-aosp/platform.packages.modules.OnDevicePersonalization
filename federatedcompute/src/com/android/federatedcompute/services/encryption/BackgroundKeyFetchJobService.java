@@ -141,6 +141,12 @@ public class BackgroundKeyFetchJobService extends JobService {
 
     /** Schedule the periodic background key fetch and delete job if it is not scheduled. */
     public static boolean scheduleJobIfNeeded(Context context, Flags flags) {
+        if (!flags.getEnableBackgroundEncryptionKeyFetch()) {
+            LogUtil.d(
+                    TAG,
+                    "Schedule encryption key job fetch is not enable in flags.");
+            return false;
+        }
         final JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler == null) {
             LogUtil.e(TAG, "Failed to get job scheduler from system service.");
