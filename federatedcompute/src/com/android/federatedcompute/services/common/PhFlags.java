@@ -38,6 +38,9 @@ public final class PhFlags implements Flags {
 
     static final String FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL =
             "fcp_encryption_key_download_url";
+
+    static final String ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH =
+            "enable_background_encryption_key_fetch";
     private static final PhFlags sSingleton = new PhFlags();
 
     /** Returns the singleton instance of the PhFlags. */
@@ -70,6 +73,15 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL,
                 /* defaultValue= */ ENCRYPTION_KEY_FETCH_URL
+        );
+    }
+
+    @Override
+    public Boolean getEnableBackgroundEncryptionKeyFetch() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                /* defaultValue= */ USE_BACKGROUND_ENCRYPTION_KEY_FETCH
         );
     }
 }
