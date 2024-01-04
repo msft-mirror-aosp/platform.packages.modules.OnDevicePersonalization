@@ -16,9 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.http.HttpClientUtil.API_KEY_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
-import static com.android.federatedcompute.services.http.HttpClientUtil.FAKE_API_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
 
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
@@ -33,34 +31,24 @@ import java.util.HashMap;
  */
 public final class ProtocolRequestCreator {
     private final String mRequestBaseUri;
-    private final String mApiKey;
     private final HashMap<String, String> mHeaderList;
-    private boolean mUseCompression;
 
-    public ProtocolRequestCreator(
-            String requestBaseUri,
-            String apiKey,
-            HashMap<String, String> headerList,
-            boolean useCompression) {
+    public ProtocolRequestCreator(String requestBaseUri, HashMap<String, String> headerList) {
         this.mRequestBaseUri = requestBaseUri;
-        this.mApiKey = apiKey;
         this.mHeaderList = headerList;
-        this.mUseCompression = useCompression;
     }
 
     /**
      * Creates a {@link ProtocolRequestCreator} based on forwarding info. Validates and extracts the
      * base URI for the subsequent requests.
      */
-    public static ProtocolRequestCreator create(
-            String apiKey, ForwardingInfo forwardingInfo, boolean useCompression) {
+    public static ProtocolRequestCreator create(ForwardingInfo forwardingInfo) {
         if (forwardingInfo.getTargetUriPrefix().isEmpty()) {
             throw new IllegalArgumentException("Missing `ForwardingInfo.target_uri_prefix`");
         }
         HashMap<String, String> extraHeaders = new HashMap<>();
         extraHeaders.putAll(forwardingInfo.getExtraRequestHeadersMap());
-        return new ProtocolRequestCreator(
-                forwardingInfo.getTargetUriPrefix(), apiKey, extraHeaders, useCompression);
+        return new ProtocolRequestCreator(forwardingInfo.getTargetUriPrefix(), extraHeaders);
     }
 
     /** Creates a {@link FederatedComputeHttpRequest} with base uri and compression setting. */
@@ -77,33 +65,21 @@ public final class ProtocolRequestCreator {
     public FederatedComputeHttpRequest createProtoRequest(
             String uri,
             HttpMethod httpMethod,
-            HashMap<String, String> params,
+            HashMap<String, String> extraHeaders,
             byte[] requestBody,
             boolean isProtobufEncoded) {
-        HashMap<String, String> requestHeader = mHeaderList;
-        requestHeader.put(API_KEY_HDR, mApiKey.isEmpty() ? FAKE_API_KEY : mApiKey);
+        HashMap<String, String> requestHeader = new HashMap<>();
+        requestHeader.putAll(mHeaderList);
+        requestHeader.putAll(extraHeaders);
 
-        if (isProtobufEncoded) {
-            if (requestBody.length > 0) {
-                requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
-            }
-            params.put("%24alt", "proto");
+        if (isProtobufEncoded && requestBody.length > 0) {
+            requestHeader.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         }
-
-        String requestUriSuffix = uri;
-        if (!params.isEmpty()) {
-            requestUriSuffix = uri.concat("?");
-            for (String key : params.keySet()) {
-                requestUriSuffix = requestUriSuffix.concat(String.join("=", key, params.get(key)));
-            }
-        }
-
         return FederatedComputeHttpRequest.create(
-                joinBaseUriWithSuffix(mRequestBaseUri, requestUriSuffix),
+                joinBaseUriWithSuffix(mRequestBaseUri, uri),
                 httpMethod,
                 requestHeader,
-                requestBody,
-                mUseCompression);
+                requestBody);
     }
 
     private String joinBaseUriWithSuffix(String baseUri, String suffix) {

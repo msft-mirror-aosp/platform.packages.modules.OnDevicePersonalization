@@ -23,18 +23,17 @@ import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
-
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 /**
@@ -46,7 +45,7 @@ public class OnDevicePersonalizationVendorDataDao {
     private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata_";
 
     private static final Map<String, OnDevicePersonalizationVendorDataDao> sVendorDataDaos =
-            new HashMap<>();
+            new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
     private final String mOwner;
     private final String mCertDigest;
@@ -71,19 +70,22 @@ public class OnDevicePersonalizationVendorDataDao {
      */
     public static OnDevicePersonalizationVendorDataDao getInstance(Context context, String owner,
             String certDigest) {
-        synchronized (OnDevicePersonalizationVendorDataDao.class) {
-            // TODO: Validate the owner and certDigest
-            String tableName = getTableName(owner, certDigest);
-            OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
-            if (instance == null) {
-                OnDevicePersonalizationDbHelper dbHelper =
-                        OnDevicePersonalizationDbHelper.getInstance(context);
-                instance = new OnDevicePersonalizationVendorDataDao(
-                        dbHelper, owner, certDigest);
-                sVendorDataDaos.put(tableName, instance);
+        // TODO: Validate the owner and certDigest
+        String tableName = getTableName(owner, certDigest);
+        OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
+        if (instance == null) {
+            synchronized (sVendorDataDaos) {
+                instance = sVendorDataDaos.get(tableName);
+                if (instance == null) {
+                    OnDevicePersonalizationDbHelper dbHelper =
+                            OnDevicePersonalizationDbHelper.getInstance(context);
+                    instance = new OnDevicePersonalizationVendorDataDao(
+                            dbHelper, owner, certDigest);
+                    sVendorDataDaos.put(tableName, instance);
+                }
             }
-            return instance;
         }
+        return instance;
     }
 
     /**

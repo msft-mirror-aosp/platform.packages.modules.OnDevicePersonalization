@@ -18,12 +18,13 @@ package com.android.ondevicepersonalization.services;
 
 import android.annotation.NonNull;
 import android.os.Handler;
-import android.os.HandlerThread;
+import android.os.Looper;
 import android.os.Process;
 import android.os.StrictMode;
 import android.os.StrictMode.ThreadPolicy;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
@@ -52,9 +53,13 @@ public final class OnDevicePersonalizationExecutors {
                     createThreadFactory("Blocking Thread", Process.THREAD_PRIORITY_BACKGROUND
                             + Process.THREAD_PRIORITY_LESS_FAVORABLE, Optional.empty())));
 
-    private static final HandlerThread sHandlerThread = createHandlerThread();
+    private static final ListeningScheduledExecutorService sScheduledExecutor =
+            MoreExecutors.listeningDecorator(Executors.newScheduledThreadPool(
+                    /* nThreads */ 4,
+                    createThreadFactory("SCH Thread", Process.THREAD_PRIORITY_BACKGROUND,
+                            Optional.of(getIoThreadPolicy()))));
 
-    private static final Handler sHandler = new Handler(sHandlerThread.getLooper());
+    private static final Handler sHandlerForMainThread = new Handler(Looper.getMainLooper());
 
     private OnDevicePersonalizationExecutors() {
     }
@@ -86,10 +91,18 @@ public final class OnDevicePersonalizationExecutors {
     }
 
     /**
-     * Returns a Handler that can post messages to a HandlerThread.
+     * Returns an executor that can start tasks after a delay.
      */
-    public static Handler getHandler() {
-        return sHandler;
+    @NonNull
+    public static ListeningScheduledExecutorService getScheduledExecutor() {
+        return sScheduledExecutor;
+    }
+
+    /**
+     * Returns a Handler for the main thread.
+     */
+    public static Handler getHandlerForMainThread() {
+        return sHandlerForMainThread;
     }
 
     private static ThreadFactory createThreadFactory(
@@ -128,11 +141,5 @@ public final class OnDevicePersonalizationExecutors {
                 .detectUnbufferedIo()
                 .penaltyLog()
                 .build();
-    }
-
-    private static HandlerThread createHandlerThread() {
-        HandlerThread handlerThread = new HandlerThread("DisplayThread");
-        handlerThread.start();
-        return handlerThread;
     }
 }

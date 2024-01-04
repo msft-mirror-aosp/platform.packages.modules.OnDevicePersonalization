@@ -39,8 +39,10 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(JUnit4.class)
 public class OdpSystemServiceApiTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    boolean mOnResultCalled = false;
-    CountDownLatch mLatch = new CountDownLatch(1);
+    boolean mOnRequestCalled = false;
+    boolean mSetPersonalizationStatusCalled = false;
+    boolean mReadPersonalizationStatusCalled = false;
+    CountDownLatch mLatch = new CountDownLatch(3);
 
     @Test
     public void testInvokeSystemServerServiceSucceedsOnU() throws Exception {
@@ -58,12 +60,44 @@ public class OdpSystemServiceApiTest {
                 new Bundle(),
                 new IOnDevicePersonalizationSystemServiceCallback.Stub() {
                     @Override public void onResult(Bundle result) {
-                        mOnResultCalled = true;
+                        mOnRequestCalled = true;
+                        mLatch.countDown();
+                    }
+                    @Override
+                    public void onError(int errorCode) {
+                        mOnRequestCalled = true;
+                        mLatch.countDown();
+                    }
+                });
+
+        //TODO(b/302991761): delete the file in system server.
+        service.setPersonalizationStatus(false,
+                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
+                    @Override public void onResult(Bundle result) {
+                        mSetPersonalizationStatusCalled = true;
+                        mLatch.countDown();
+                    }
+                    @Override public void onError(int errorCode) {
+                        mSetPersonalizationStatusCalled = true;
+                        mLatch.countDown();
+                    }
+                });
+
+        service.readPersonalizationStatus(
+                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
+                    @Override public void onResult(Bundle result) {
+                        mReadPersonalizationStatusCalled = true;
+                        mLatch.countDown();
+                    }
+                    @Override public void onError(int errorCode) {
+                        mReadPersonalizationStatusCalled = true;
                         mLatch.countDown();
                     }
                 });
         mLatch.await();
-        assertTrue(mOnResultCalled);
+        assertTrue(mOnRequestCalled);
+        assertTrue(mSetPersonalizationStatusCalled);
+        assertTrue(mReadPersonalizationStatusCalled);
     }
 
     @Test

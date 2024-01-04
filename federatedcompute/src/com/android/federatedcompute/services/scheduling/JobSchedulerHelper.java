@@ -20,14 +20,14 @@ import android.app.job.JobInfo;
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
 import android.content.Context;
-import android.util.Log;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 
 /** The helper class of JobScheduler. */
 public class JobSchedulerHelper {
-    private static final String TAG = "JobSchedulerHelper";
+    private static final String TAG = JobSchedulerHelper.class.getSimpleName();
     private static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.FederatedJobService";
     private Clock mClock;
@@ -39,6 +39,11 @@ public class JobSchedulerHelper {
     /** Schedules a task using JobScheduler. */
     public boolean scheduleTask(Context context, FederatedTrainingTask newTask) {
         JobInfo jobInfo = convertToJobInfo(context, newTask);
+        LogUtil.i(
+                TAG,
+                "Scheduling job %s (with minimum latency until next run %d milliseconds)",
+                jobInfo.getId(),
+                jobInfo.getMinLatencyMillis());
         return tryScheduleJob(context, jobInfo);
     }
 
@@ -55,12 +60,11 @@ public class JobSchedulerHelper {
     private boolean tryScheduleJob(Context context, JobInfo jobInfo) {
         final JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (checkCollidesWithNonFederatedComputationJob(jobScheduler, jobInfo)) {
-            Log.w(
+            LogUtil.w(
                     TAG,
-                    String.format(
-                            "Collision with non-FederatedComputation job with same job ID (%s)"
-                                    + " detected, not scheduling!",
-                            jobInfo.getId()));
+                    "Collision with non-FederatedComputation job with same job ID (%s)"
+                            + " detected, not scheduling!",
+                    jobInfo.getId());
             return false;
         }
 
@@ -84,7 +88,8 @@ public class JobSchedulerHelper {
 
         JobInfo.Builder jobInfo = new JobInfo.Builder(task.jobId(), jobComponent);
         jobInfo.setRequiresDeviceIdle(task.getTrainingConstraints().requiresSchedulerIdle())
-                .setRequiresCharging(task.getTrainingConstraints().requiresSchedulerCharging())
+                .setRequiresBatteryNotLow(
+                        task.getTrainingConstraints().requiresSchedulerBatteryNotLow())
                 .setMinimumLatency(task.earliestNextRunTime() - nowMillis)
                 .setPersisted(true);
 

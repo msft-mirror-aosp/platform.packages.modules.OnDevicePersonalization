@@ -16,7 +16,8 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.example.odpsamplenetwork" >
+          package="com.example.odpsamplenetwork"
+          android:versionName="1.0.3" >
     <application android:label="OdpSampleNetwork"
                  android:debuggable="true">
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"

@@ -39,6 +39,7 @@ import org.junit.runner.RunWith;
 public final class FederatedTrainingTaskDaoTest {
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
@@ -58,9 +59,8 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @After
-    public void cleanUp() throws Exception {
-        FederatedTrainingTaskDbHelper dbHelper =
-                FederatedTrainingTaskDbHelper.getInstanceForTest(mContext);
+    public void cleanUp() {
+        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -95,6 +95,7 @@ public final class FederatedTrainingTaskDaoTest {
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
         FederatedTrainingTask task2 =
                 createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
@@ -121,6 +122,7 @@ public final class FederatedTrainingTaskDaoTest {
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
         FederatedTrainingTask task2 =
                 createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
                         .populationName(POPULATION_NAME + "_2")
                         .build();
         mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
@@ -134,9 +136,39 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @Test
+    public void findAndRemoveTaskByPopulationNameAndCallingPackage_success() {
+        FederatedTrainingTask task = createDefaultFederatedTrainingTask();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
+        FederatedTrainingTask task2 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
+                        .appPackageName(PACKAGE_NAME)
+                        .populationName(POPULATION_NAME + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(2);
+
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
+                        POPULATION_NAME, PACKAGE_NAME);
+
+        assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
+    }
+
+    @Test
     public void findAndRemoveTaskByPopulationName_nonExist() {
         FederatedTrainingTask removedTask =
                 mTrainingTaskDao.findAndRemoveTaskByPopulationName(POPULATION_NAME);
+
+        assertThat(removedTask).isNull();
+    }
+
+    @Test
+    public void findAndRemoveTaskByPopulationNameAndCallingPackage_nonExist() {
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
+                        POPULATION_NAME, PACKAGE_NAME);
 
         assertThat(removedTask).isNull();
     }
@@ -160,6 +192,7 @@ public final class FederatedTrainingTaskDaoTest {
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
                 .populationName(POPULATION_NAME)
+                .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
                 .constraints(TRAINING_CONSTRAINTS)
                 .creationTime(CREATION_TIME)
