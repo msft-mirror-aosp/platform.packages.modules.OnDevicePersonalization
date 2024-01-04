@@ -35,8 +35,8 @@ public class FederatedJobIdGenerator {
     }
 
     /** Generates a new job id used for JobScheduler. */
-    public int generateJobId(Context context, String populationName) {
+    public int generateJobId(Context context, String populationName, String callingPackageName) {
         // TODO(b/295952797): return job id based on storage.
-        return populationName.hashCode();
+        return (populationName + callingPackageName).hashCode();
     }
 }

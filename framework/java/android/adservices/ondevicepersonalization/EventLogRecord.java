@@ -42,6 +42,8 @@ import java.time.Instant;
  * The contents of the EVENTS table can be
  * consumed by Federated Learning facilitated model training, or Federated Analytics facilitated
  * cross-device statistical analysis.
+ *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
