@@ -20,7 +20,6 @@ import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ON
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
-import android.os.Parcelable;
 import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -29,10 +28,11 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
-public final class ExecuteInput implements Parcelable {
+public final class ExecuteInput {
     /**
      * The package name of the calling app.
      */
@@ -134,59 +134,11 @@ public final class ExecuteInput implements Parcelable {
         return _hash;
     }
 
-    @Override
-    @DataClass.Generated.Member
-    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
-        // You can override field parcelling by defining methods like:
-        // void parcelFieldName(Parcel dest, int flags) { ... }
-
-        dest.writeString(mAppPackageName);
-        dest.writeTypedObject(mAppParams, flags);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int describeContents() { return 0; }
-
-    /** @hide */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
-    @DataClass.Generated.Member
-    /* package-private */ ExecuteInput(@NonNull android.os.Parcel in) {
-        // You can override field unparcelling by defining methods like:
-        // static FieldType unparcelFieldName(Parcel in) { ... }
-
-        String appPackageName = in.readString();
-        PersistableBundle appParams = (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
-
-        this.mAppPackageName = appPackageName;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAppPackageName);
-        this.mAppParams = appParams;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAppParams);
-
-        // onConstructed(); // You can define this method to get a callback
-    }
-
-    @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<ExecuteInput> CREATOR
-            = new Parcelable.Creator<ExecuteInput>() {
-        @Override
-        public ExecuteInput[] newArray(int size) {
-            return new ExecuteInput[size];
-        }
-
-        @Override
-        public ExecuteInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new ExecuteInput(in);
-        }
-    };
-
     @DataClass.Generated(
-            time = 1698872215353L,
+            time = 1698879004862L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteInput.java",
-            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull java.lang.String mAppPackageName\n @android.annotation.NonNull android.os.PersistableBundle mAppParams\nclass ExecuteInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

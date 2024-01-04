@@ -21,7 +21,6 @@ import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ON
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -29,10 +28,11 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The input data for
  * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)}.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
-public final class RenderInput implements Parcelable {
+public final class RenderInput {
     /** The width of the slot. */
     private int mWidth = 0;
 
@@ -168,65 +168,11 @@ public final class RenderInput implements Parcelable {
         return _hash;
     }
 
-    @Override
-    @DataClass.Generated.Member
-    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
-        // You can override field parcelling by defining methods like:
-        // void parcelFieldName(Parcel dest, int flags) { ... }
-
-        byte flg = 0;
-        if (mRenderingConfig != null) flg |= 0x8;
-        dest.writeByte(flg);
-        dest.writeInt(mWidth);
-        dest.writeInt(mHeight);
-        dest.writeInt(mRenderingConfigIndex);
-        if (mRenderingConfig != null) dest.writeTypedObject(mRenderingConfig, flags);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int describeContents() { return 0; }
-
-    /** @hide */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
-    @DataClass.Generated.Member
-    /* package-private */ RenderInput(@NonNull android.os.Parcel in) {
-        // You can override field unparcelling by defining methods like:
-        // static FieldType unparcelFieldName(Parcel in) { ... }
-
-        byte flg = in.readByte();
-        int width = in.readInt();
-        int height = in.readInt();
-        int renderingConfigIndex = in.readInt();
-        RenderingConfig renderingConfig = (flg & 0x8) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);
-
-        this.mWidth = width;
-        this.mHeight = height;
-        this.mRenderingConfigIndex = renderingConfigIndex;
-        this.mRenderingConfig = renderingConfig;
-
-        // onConstructed(); // You can define this method to get a callback
-    }
-
-    @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<RenderInput> CREATOR
-            = new Parcelable.Creator<RenderInput>() {
-        @Override
-        public RenderInput[] newArray(int size) {
-            return new RenderInput[size];
-        }
-
-        @Override
-        public RenderInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new RenderInput(in);
-        }
-    };
-
     @DataClass.Generated(
-            time = 1698873113096L,
+            time = 1698879032836L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInput.java",
-            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

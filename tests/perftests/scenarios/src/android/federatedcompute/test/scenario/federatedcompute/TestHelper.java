@@ -34,14 +34,19 @@ public class TestHelper {
     private static UiDevice sUiDevice;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
     private static final long TRAINING_TASK_COMPLETION_TIMEOUT = 120_000;
+    private static final long CHECKIN_REJECTION_COMPLETION_TIMEOUT = 20_000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String SCHEDULE_TRAINING_BUTTON_RESOURCE_ID = "schedule_training_button";
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
-    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "1586947961";
+    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "-630817781";
     private static final String FEDERATED_TRAINING_JOB_SUCCESS_LOG =
-            "FederatedJobService - Federated computation job 1586947961 is done";
+            "FederatedJobService - Federated computation job -630817781 is done";
+    private static final String NON_EXISTENT_POPULATION_NAME = "test_non_existent_population";
+    private static final String NON_EXISTENT_POPULATION_TASK_JOB_ID = "1892833995";
+    private static final String NON_EXISTENT_POPULATION_JOB_FAILURE_LOG =
+            "job 1892833995 was rejected during check in, reason NO_TASK_AVAILABLE";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -70,6 +75,34 @@ public class TestHelper {
         executeShellCommand(
                 "am broadcast -a android.intent.action.BOOT_COMPLETED -p "
                     + "com.google.android.federatedcompute");
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1000");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1006");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1003");
+        SystemClock.sleep(5000);
+        executeShellCommand(
+                "cmd jobscheduler run -f "
+                        + "com.google.android.ondevicepersonalization.services 1004");
+        SystemClock.sleep(5000);
+    }
+
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        executeShellCommand("am kill com.google.android.federatedcompute");
+        executeShellCommand("am kill com.google.android.federatedcompute:"
+                + "com.android.federatedcompute.services.training.IsolatedTrainingService");
+        SystemClock.sleep(2000);
     }
 
     /** Commands to return device to original state */
@@ -89,6 +122,13 @@ public class TestHelper {
         UiObject2 scheduleTrainingTextBox = getScheduleTrainingTextBox();
         assertNotNull("Schedule Training text box not found", scheduleTrainingTextBox);
         scheduleTrainingTextBox.setText(ODP_TEST_APP_POPULATION_NAME);
+    }
+
+    /** Put a test non existent population name down for training */
+    public void inputNonExistentPopulationForScheduleTraining() {
+        UiObject2 scheduleTrainingTextBox = getScheduleTrainingTextBox();
+        assertNotNull("Schedule Training text box not found", scheduleTrainingTextBox);
+        scheduleTrainingTextBox.setText(NON_EXISTENT_POPULATION_NAME);
     }
 
     /** Click Schedule Training button. */
@@ -115,8 +155,31 @@ public class TestHelper {
 
         if (!foundTrainingJobSuccessLog) {
             Assert.fail(String.format(
-                    "Failed to find federated training job success log within test window %d ms",
+                    "Failed to find federated training job success log %s within test window %d ms",
+                    FEDERATED_TRAINING_JOB_SUCCESS_LOG,
                     TRAINING_TASK_COMPLETION_TIMEOUT));
+        }
+    }
+
+    /** Force the JobScheduler to execute the training task for non existent population */
+    public void forceExecuteTrainingForNonExistentPopulation() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
+        executeShellCommand(
+                "cmd jobscheduler run -f com.google.android.federatedcompute "
+                        + NON_EXISTENT_POPULATION_TASK_JOB_ID);
+        SystemClock.sleep(10000);
+
+        boolean foundTrainingFailureLog = findLog(
+                NON_EXISTENT_POPULATION_JOB_FAILURE_LOG,
+                CHECKIN_REJECTION_COMPLETION_TIMEOUT,
+                5000);
+
+        if (!foundTrainingFailureLog) {
+            Assert.fail(String.format(
+                    "Failed to find federated training failure log: %s within test window %d ms",
+                    NON_EXISTENT_POPULATION_JOB_FAILURE_LOG,
+                    CHECKIN_REJECTION_COMPLETION_TIMEOUT));
         }
     }
 

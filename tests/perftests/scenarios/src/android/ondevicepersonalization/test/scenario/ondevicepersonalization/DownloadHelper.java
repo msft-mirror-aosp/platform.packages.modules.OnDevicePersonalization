@@ -27,23 +27,19 @@ import java.io.IOException;
 /** Helper class for interacting with download flow. */
 public class DownloadHelper {
     private static UiDevice sUiDevice;
-
-    // Download Url in APK points to a local location
-    private static final String VENDOR_APK_LOCAL_URL_PATH =
-            "data/temp_files/OdpSampleNetworkLocal.apk";
-    // Download Url in APK points to a public url with file size ~ 100KB
-    private static final String VENDOR_APK_SERVER_SMALL_PATH =
-            "data/temp_files/OdpSampleNetworkSmall.apk";
-    // Download Url in APK points to a public url with file size ~ 1MB
-    private static final String VENDOR_APK_SERVER_MEDIUM_PATH =
-            "data/temp_files/OdpSampleNetworkMedium.apk";
-    // Download Url in APK points to a public url with file size ~ 10MB
-    private static final String VENDOR_APK_SERVER_LARGE_PATH =
-            "data/temp_files/OdpSampleNetworkLarge.apk";
-
     private static final String MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID = "1003";
     private static final String DOWNLOAD_PROCESSING_TASK_JOB_ID = "1004";
     private static final String MAINTENANCE_TASK_JOB_ID = "1005";
+    private static final String DOWNLOAD_JOB_SUCCESS_LOG =
+            "MddJobService: MddJobService.MddHandleTask succeeded!";
+    private static final String PLUGIN_CODE_COMPLETED_LOG =
+            "OnDevicePersonalizationDataProcessingAsyncCallable: "
+                    + "Plugin filter code completed successfully";
+    private static final String FILTER_AND_STORE_DATA_SUCCESS_LOG =
+            "OnDevicePersonalizationDataProcessingAsyncCallable: "
+                    + "filter and store data completed, transaction successful: true";
+    private static final long DOWNLOAD_JOB_COMPLETION_TIMEOUT = 120_000;
+    private static final long DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT = 120_000;
 
     /** Commands to prepare the device and odp module before testing. */
     public static void initialize() throws IOException {
@@ -73,32 +69,17 @@ public class DownloadHelper {
                     + "com.google.android.ondevicepersonalization.services 1006");
         SystemClock.sleep(5000);
     }
+
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        SystemClock.sleep(2000);
+    }
     public static void pressHome() {
         getUiDevice().pressHome();
-    }
-
-    public void installVendorApkWithLocalUrl() throws IOException {
-        installVendorApk(VENDOR_APK_LOCAL_URL_PATH);
-    }
-
-    public void installVendorApkWithServerSmallFile() throws IOException {
-        installVendorApk(VENDOR_APK_SERVER_SMALL_PATH);
-    }
-
-    public void installVendorApkWithServerMediumFile() throws IOException {
-        installVendorApk(VENDOR_APK_SERVER_MEDIUM_PATH);
-    }
-
-    public void installVendorApkWithServerLargeFile() throws IOException {
-        installVendorApk(VENDOR_APK_SERVER_LARGE_PATH);
-    }
-
-    private void installVendorApk(String path) throws IOException {
-        executeShellCommand("pm install -r " + path);
-    }
-
-    public void uninstallVendorApk() throws IOException {
-        executeShellCommand("pm uninstall com.android.odpsamplenetwork");
     }
 
     public void cleanupDatabase() throws IOException {
@@ -116,17 +97,67 @@ public class DownloadHelper {
     }
 
     public void downloadVendorData() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
                         + MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID);
-        SystemClock.sleep(60000);
+
+        boolean foundDownloadJobSuccessLog = findLog(
+                DOWNLOAD_JOB_SUCCESS_LOG,
+                DOWNLOAD_JOB_COMPLETION_TIMEOUT,
+                5000);
+
+        if (!foundDownloadJobSuccessLog) {
+            Assert.fail(String.format(
+                    "Failed to find download job success log %s within test window %d ms",
+                    DOWNLOAD_JOB_SUCCESS_LOG,
+                    DOWNLOAD_JOB_COMPLETION_TIMEOUT));
+        }
     }
 
     public void processDownloadedVendorData() throws IOException {
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
                         + DOWNLOAD_PROCESSING_TASK_JOB_ID);
-        SystemClock.sleep(5000);
+
+        boolean foundPlugInCodeCompletionLog = findLog(
+                PLUGIN_CODE_COMPLETED_LOG,
+                DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT,
+                5000);
+
+        if (!foundPlugInCodeCompletionLog) {
+            Assert.fail(String.format(
+                    "Failed to find plugin code completion log %s within test window %d ms",
+                    PLUGIN_CODE_COMPLETED_LOG,
+                    DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT));
+        }
+
+        boolean foundFilterAndStoreDataSuccessLog = findLog(
+                FILTER_AND_STORE_DATA_SUCCESS_LOG,
+                DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT,
+                5000);
+
+        if (!foundFilterAndStoreDataSuccessLog) {
+            Assert.fail(String.format(
+                    "Failed to find filter and store data success log %s within test window %d ms",
+                    foundFilterAndStoreDataSuccessLog,
+                    DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT));
+        }
+    }
+
+    /** Attempt to find a specific log entry within the timeout window */
+    private boolean findLog(final String targetLog, long timeoutMillis,
+                            long queryIntervalMillis) throws IOException {
+
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            if (getUiDevice().executeShellCommand("logcat -d").contains(targetLog)) {
+                return true;
+            }
+            SystemClock.sleep(queryIntervalMillis);
+        }
+        return false;
     }
 
     private static void executeShellCommand(String cmd) {

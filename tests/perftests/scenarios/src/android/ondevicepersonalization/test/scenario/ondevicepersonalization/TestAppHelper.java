@@ -21,6 +21,7 @@ import static org.junit.Assert.assertNotNull;
 
 import android.os.RemoteException;
 import android.os.SystemClock;
+import android.util.Log;
 
 import androidx.test.uiautomator.By;
 import androidx.test.uiautomator.UiDevice;
@@ -36,13 +37,19 @@ import java.io.IOException;
 
 /** Helper class for interacting with OdpClient test app in perf tests. */
 public class TestAppHelper {
+    private static final String TAG = TestAppHelper.class.getSimpleName();
     private static final UiDevice sUiDevice = UiDevice.getInstance(getInstrumentation());
     private static UiScrollable sUiScrollable;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
-    private static final long UI_ROTATE_IDLE_TIMEOUT = 5000;
+    private static final long UI_ROTATE_IDLE_TIMEOUT = 2500;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String GET_AD_BUTTON_RESOURCE_ID = "get_ad_button";
     private static final String RENDERED_VIEW_RESOURCE_ID = "rendered_view";
+    private static final String REPORT_CONVERSION_TEXT_BOX_RESOURCE_ID =
+            "report_conversion_text_box";
+    private static final String REPORT_CONVERSION_BUTTON_RESOURCE_ID = "report_conversion_button";
+    private static final String REPORT_CONVERSION_SUCCESS_LOG = "execute() success";
+    private static final long REPORT_CONVERSION_TIMEOUT = 10_000;
 
     /** Commands to prepare the device and odp module before testing. */
     public static void initialize() throws IOException {
@@ -81,6 +88,15 @@ public class TestAppHelper {
         SystemClock.sleep(5000);
     }
 
+    /** Kill running processes to get performance measurement under cold start */
+    public static void killRunningProcess() throws IOException {
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
+        SystemClock.sleep(2000);
+    }
+
     /** Commands to return device to original state */
     public static void wrapUp() throws IOException {
         executeShellCommand(
@@ -108,6 +124,7 @@ public class TestAppHelper {
 
     /** Rotate screen to landscape orientation */
     public void setOrientationLandscape() throws RemoteException {
+        Log.d(TAG, "Rotating screen to landscape orientation");
         sUiDevice.unfreezeRotation();
         sUiDevice.setOrientationLandscape();
         SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
@@ -115,6 +132,7 @@ public class TestAppHelper {
 
     /** Rotate screen to portrait orientation */
     public void setOrientationPortrait() throws RemoteException {
+        Log.d(TAG, "Rotating screen to portrait orientation");
         sUiDevice.unfreezeRotation();
         sUiDevice.setOrientationPortrait();
         SystemClock.sleep(UI_ROTATE_IDLE_TIMEOUT);
@@ -124,6 +142,7 @@ public class TestAppHelper {
     public void clickGetAd() {
         UiObject2 getAdButton = getGetAdButton();
         assertNotNull("Get Ad button not found", getAdButton);
+        Log.d(TAG, "Clicking Get Ad button");
         getAdButton.click();
     }
 
@@ -135,6 +154,8 @@ public class TestAppHelper {
         SystemClock.sleep(UI_FIND_RESOURCE_TIMEOUT);
         if (renderedView.getChildCount() == 0) {
             Assert.fail("Failed to render child surface view");
+        } else {
+            Log.d(TAG, "Verified child view is rendered");
         }
     }
 
@@ -149,6 +170,55 @@ public class TestAppHelper {
                 || !sUiDevice.getCurrentPackageName().contains("com.android.chrome")) {
             Assert.fail("Failed to click ad and jump to landing page in the default browser");
         }
+    }
+
+    /** Put sourceAdId name down to report conversion */
+    public void inputSourceAdId(final String sourceAdId) {
+        UiObject2 reportConversionTextBox = getReportConversionTextBox();
+        assertNotNull("Report Conversion text box not found", reportConversionTextBox);
+        reportConversionTextBox.setText(sourceAdId);
+    }
+
+    /** Click Report Conversion button */
+    public void clickReportConversion() {
+        UiObject2 reportConversionButton = getReportConversionButton();
+        assertNotNull("Report Conversion button not found", reportConversionButton);
+        reportConversionButton.click();
+        SystemClock.sleep(3000);
+    }
+
+    /** Verify conversion is reported */
+    public void verifyConversionReported() throws IOException {
+        boolean foundReportConversionSuccessLog = findLog(
+                REPORT_CONVERSION_SUCCESS_LOG,
+                REPORT_CONVERSION_TIMEOUT,
+                2000);
+
+        if (!foundReportConversionSuccessLog) {
+            Assert.fail(String.format(
+                    "Failed to find report conversion success log within test window %d ms",
+                    REPORT_CONVERSION_TIMEOUT));
+        }
+    }
+
+    /** Clean log buffer and set a high buffer limit to capture logs for test verification */
+    public void resetLogBuffer() {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
+    }
+
+    /** Attempt to find a specific log entry within the timeout window */
+    private boolean findLog(final String targetLog, long timeoutMillis,
+                            long queryIntervalMillis) throws IOException {
+
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            if (sUiDevice.executeShellCommand("logcat -d").contains(targetLog)) {
+                return true;
+            }
+            SystemClock.sleep(queryIntervalMillis);
+        }
+        return false;
     }
 
     private UiObject2 getGetAdButton() {
@@ -183,6 +253,20 @@ public class TestAppHelper {
         return sUiDevice.wait(
             Until.findObject(By.desc(text)),
             UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    private UiObject2 getReportConversionTextBox() {
+        return sUiDevice.wait(
+                Until.findObject(By.res(
+                        ODP_CLIENT_TEST_APP_PACKAGE_NAME, REPORT_CONVERSION_TEXT_BOX_RESOURCE_ID)),
+                UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    private UiObject2 getReportConversionButton() {
+        return sUiDevice.wait(
+                Until.findObject(By.res(
+                        ODP_CLIENT_TEST_APP_PACKAGE_NAME, REPORT_CONVERSION_BUTTON_RESOURCE_ID)),
+                UI_FIND_RESOURCE_TIMEOUT);
     }
 
     /** Get a UiScrollable instance configured for vertical scrolling */

@@ -32,8 +32,12 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
         <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
-                 android:isolatedProcess="true" android:exported="false" >
+                 android:isolatedProcess="true" android:allowSharedIsolatedProcess="true" android:exported="false" >
         </service>
         <service
             android:name="com.android.federatedcompute.services.examplestore.SampleExampleStoreService"

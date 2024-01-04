@@ -21,6 +21,7 @@ import static com.android.federatedcompute.services.data.FederatedTraningTaskCon
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
@@ -84,11 +85,20 @@ public class FederatedTrainingTaskDao {
 
     /** Insert a training task or update it if task already exists. */
     public boolean updateOrInsertFederatedTrainingTask(FederatedTrainingTask trainingTask) {
-        SQLiteDatabase db = getWritableDatabase();
-        if (db == null) {
-            throw new SQLiteException("Failed to open database.");
+        try {
+            SQLiteDatabase db = getWritableDatabase();
+            if (db == null) {
+                return false;
+            }
+            return trainingTask.addToDatabase(db);
+        } catch (SQLException e) {
+            LogUtil.e(
+                    TAG,
+                    e,
+                    "Failed to persist federated training task %s",
+                    trainingTask.populationName());
+            return false;
         }
-        return trainingTask.addToDatabase(db);
     }
 
     /** Get the list of tasks that match select conditions. */
@@ -109,10 +119,15 @@ public class FederatedTrainingTaskDao {
         String[] selectionArgs = selectionArgs(jobId);
         FederatedTrainingTask task =
                 Iterables.getOnlyElement(getFederatedTrainingTask(selection, selectionArgs), null);
-        if (task != null) {
-            deleteFederatedTrainingTask(selection, selectionArgs);
+        try {
+            if (task != null) {
+                deleteFederatedTrainingTask(selection, selectionArgs);
+            }
+            return task;
+        } catch (SQLException e) {
+            LogUtil.e(TAG, e, "Failed to delete federated training task by job id %d", jobId);
+            return null;
         }
-        return task;
     }
 
     /** Delete a task from table based on population name. */
@@ -121,10 +136,46 @@ public class FederatedTrainingTaskDao {
         String[] selectionArgs = {populationName};
         FederatedTrainingTask task =
                 Iterables.getOnlyElement(getFederatedTrainingTask(selection, selectionArgs), null);
-        if (task != null) {
-            deleteFederatedTrainingTask(selection, selectionArgs);
+        try {
+            if (task != null) {
+                deleteFederatedTrainingTask(selection, selectionArgs);
+            }
+            return task;
+        } catch (SQLException e) {
+            LogUtil.e(
+                    TAG,
+                    e,
+                    "Failed to delete federated training task by population name %s",
+                    populationName);
+            return null;
         }
-        return task;
+    }
+
+    /** Delete a task from table based on population name and calling package. */
+    public FederatedTrainingTask findAndRemoveTaskByPopulationNameAndCallingPackage(
+            String populationName, String callingPackage) {
+        String selection =
+                FederatedTrainingTaskColumns.POPULATION_NAME
+                        + " = ? AND "
+                        + FederatedTrainingTaskColumns.APP_PACKAGE_NAME
+                        + " = ?";
+        String[] selectionArgs = {populationName, callingPackage};
+        FederatedTrainingTask task =
+                Iterables.getOnlyElement(getFederatedTrainingTask(selection, selectionArgs), null);
+        try {
+            if (task != null) {
+                deleteFederatedTrainingTask(selection, selectionArgs);
+            }
+            return task;
+        } catch (SQLException e) {
+            LogUtil.e(
+                    TAG,
+                    e,
+                    "Failed to delete federated training task by population name %s and ATP: %s",
+                    populationName,
+                    callingPackage);
+            return null;
+        }
     }
 
     /** Delete a task from table based on population name and job scheduler id. */
@@ -138,10 +189,20 @@ public class FederatedTrainingTaskDao {
         String[] selectionArgs = {populationName, String.valueOf(jobId)};
         FederatedTrainingTask task =
                 Iterables.getOnlyElement(getFederatedTrainingTask(selection, selectionArgs), null);
-        if (task != null) {
-            deleteFederatedTrainingTask(selection, selectionArgs);
+        try {
+            if (task != null) {
+                deleteFederatedTrainingTask(selection, selectionArgs);
+            }
+            return task;
+        } catch (SQLException e) {
+            LogUtil.e(
+                    TAG,
+                    e,
+                    "Failed to delete federated training task by population name %s and job id %d",
+                    populationName,
+                    jobId);
+            return null;
         }
-        return task;
     }
 
     private String[] selectionArgs(Number... args) {

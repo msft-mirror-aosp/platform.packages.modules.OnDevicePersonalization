@@ -16,9 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.os.Parcelable;
 import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -29,8 +31,9 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
  * @hide
  */
+@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
-public final class EventInput implements Parcelable {
+public final class EventInput {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
@@ -136,61 +139,11 @@ public final class EventInput implements Parcelable {
         return _hash;
     }
 
-    @Override
-    @DataClass.Generated.Member
-    public void writeToParcel(@NonNull android.os.Parcel dest, int flags) {
-        // You can override field parcelling by defining methods like:
-        // void parcelFieldName(Parcel dest, int flags) { ... }
-
-        byte flg = 0;
-        if (mRequestLogRecord != null) flg |= 0x1;
-        dest.writeByte(flg);
-        if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
-        dest.writeTypedObject(mParameters, flags);
-    }
-
-    @Override
-    @DataClass.Generated.Member
-    public int describeContents() { return 0; }
-
-    /** @hide */
-    @SuppressWarnings({"unchecked", "RedundantCast"})
-    @DataClass.Generated.Member
-    /* package-private */ EventInput(@NonNull android.os.Parcel in) {
-        // You can override field unparcelling by defining methods like:
-        // static FieldType unparcelFieldName(Parcel in) { ... }
-
-        byte flg = in.readByte();
-        RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
-        PersistableBundle parameters = (PersistableBundle) in.readTypedObject(PersistableBundle.CREATOR);
-
-        this.mRequestLogRecord = requestLogRecord;
-        this.mParameters = parameters;
-        AnnotationValidations.validate(
-                NonNull.class, null, mParameters);
-
-        // onConstructed(); // You can define this method to get a callback
-    }
-
-    @DataClass.Generated.Member
-    public static final @NonNull Parcelable.Creator<EventInput> CREATOR
-            = new Parcelable.Creator<EventInput>() {
-        @Override
-        public EventInput[] newArray(int size) {
-            return new EventInput[size];
-        }
-
-        @Override
-        public EventInput createFromParcel(@NonNull android.os.Parcel in) {
-            return new EventInput(in);
-        }
-    };
-
     @DataClass.Generated(
-            time = 1698875332901L,
+            time = 1698882321696L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventInput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.NonNull android.os.PersistableBundle mParameters\nclass EventInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

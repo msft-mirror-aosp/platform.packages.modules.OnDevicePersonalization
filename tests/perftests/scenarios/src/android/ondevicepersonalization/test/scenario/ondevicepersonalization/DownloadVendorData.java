@@ -36,6 +36,7 @@ public class DownloadVendorData {
     @BeforeClass
     public static void prepareDevice() throws IOException {
         DownloadHelper.initialize();
+        DownloadHelper.killRunningProcess();
     }
     @Before
     public void setUp() throws IOException {
@@ -50,7 +51,6 @@ public class DownloadVendorData {
 
     @After
     public void tearDown() throws IOException {
-        mDownloadHelper.uninstallVendorApk();
         mDownloadHelper.cleanupDatabase();
         mDownloadHelper.cleanupDownloadedMetadata();
         mDownloadHelper.pressHome();

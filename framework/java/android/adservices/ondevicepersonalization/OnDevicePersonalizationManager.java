@@ -52,6 +52,8 @@ import java.util.concurrent.Executor;
  * persistent results to on-device storage which can be consumed by Federated Analytics for
  * cross-device statistical analysis or by Federated Learning for model training. The displayed
  * content and the persistent output are both not directly accessible by the calling app.
+ *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationManager {
@@ -111,7 +113,6 @@ public class OnDevicePersonalizationManager {
      *     package is not installed or does not have a valid ODP manifest.
      *     Returns {@link ClassNotFoundException} if the handler class is not found.
      *     Returns an {@link OnDevicePersonalizationException} if execution of the handler fails.
-     * @hide
      */
     public void execute(
             @NonNull ComponentName handler,
