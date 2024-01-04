@@ -30,6 +30,7 @@ import android.annotation.WorkerThread;
  *
  * @see IsolatedService#getLocalData(RequestToken)
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface MutableKeyValueStore extends KeyValueStore {
