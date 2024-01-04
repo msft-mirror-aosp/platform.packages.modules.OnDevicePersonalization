@@ -54,6 +54,7 @@ import com.android.federatedcompute.services.examplestore.ExampleConsumptionReco
 import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
+import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ComputationResult;
@@ -111,6 +112,7 @@ public class FederatedComputeWorker {
     private HttpFederatedProtocol mHttpFederatedProtocol;
     private AbstractServiceBinder<IExampleStoreService> mExampleStoreServiceBinder;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
+    private KeyAttestation mKeyAttestation;
     private FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
 
     @VisibleForTesting
@@ -127,6 +129,7 @@ public class FederatedComputeWorker {
         this.mTrainingConditionsChecker = trainingConditionsChecker;
         this.mComputationRunner = computationRunner;
         this.mResultCallbackHelper = resultCallbackHelper;
+        this.mKeyAttestation = injector.getKeyAttestationHelper(this.mContext);
         this.mEncryptionKeyManager = keyManager;
         this.mInjector = injector;
     }
@@ -247,13 +250,34 @@ public class FederatedComputeWorker {
                             run.mTask.serverAddress(),
                             run.mTask.populationName(),
                             run.mTrainingEventLogger);
+            // By default, the 401 (UNAUTHENTICATED) response is allowed. When receiving 401
+            // (UNAUTHENTICATED). The second would not allow 401 (UNAUTHENTICATED).
             ListenableFuture<CheckinResult> checkinResultFuture =
                     mHttpFederatedProtocol.issueCheckin(
-                            run.mTask.ownerId(), run.mTask.ownerIdCertDigest());
-
+                            run.mTask.ownerId(),
+                            run.mTask.ownerIdCertDigest(),
+                            /* allowUnauthenticated= */ true);
             return FluentFuture.from(checkinResultFuture)
                     .transformAsync(
-                            checkinResult -> processCheckinAndDoFlTraining(run, checkinResult),
+                            checkinResult -> {
+                                if (checkinResult.getRejectionInfo() != null) {
+                                    LogUtil.d(
+                                            TAG,
+                                            "job %d was rejected during check in, reason %s",
+                                            run.mTask.jobId(),
+                                            checkinResult.getRejectionInfo().getReason());
+                                    if (checkinResult.getRejectionInfo().hasAuthMetadata()) {
+                                        return handleUnauthenticatedRejection(run, checkinResult);
+                                    } else if (checkinResult.getRejectionInfo().hasRetryWindow()) {
+                                        return handleRetryRejection(run, checkinResult);
+                                    }
+                                    return Futures.immediateFailedFuture(
+                                            new IllegalStateException(
+                                                    "Unknown rejection Info from FCP server"));
+                                } else {
+                                    return processCheckinAndDoFlTraining(run, checkinResult);
+                                }
+                            },
                             mInjector.getBgExecutor());
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -261,24 +285,66 @@ public class FederatedComputeWorker {
     }
 
     @androidx.annotation.NonNull
+    private ListenableFuture<FLRunnerResult> handleUnauthenticatedRejection(
+            TrainingRun run, CheckinResult checkinResult) {
+        List<String> attestationRecord =
+                getKeyAttestationRecord(
+                        checkinResult
+                                .getRejectionInfo()
+                                .getAuthMetadata()
+                                .getKeyAttestationMetadata()
+                                .getChallenge()
+                                .toByteArray(),
+                        run.mTask.ownerId());
+        // Make the 2nd issueCheckin again to include the attestation record and does not allow
+        // 401 (UNAUTHENTICATED).
+        ListenableFuture<CheckinResult> checkinResultFuture =
+                mHttpFederatedProtocol.issueCheckin(
+                        run.mTask.ownerId(),
+                        run.mTask.ownerIdCertDigest(),
+                        /* allowUnauthenticated= */ false,
+                        attestationRecord);
+        return FluentFuture.from(checkinResultFuture)
+                .transformAsync(
+                        checkinResultOnUnauthenticated -> {
+                            if (checkinResultOnUnauthenticated.getRejectionInfo() != null) {
+                                // This function is called only when the device received
+                                // 401 (unauthenticated). Only retry rejection is allowed.
+                                if (checkinResultOnUnauthenticated
+                                        .getRejectionInfo()
+                                        .hasRetryWindow()) {
+                                    return handleRetryRejection(
+                                            run, checkinResultOnUnauthenticated);
+                                } else {
+                                    return Futures.immediateFailedFuture(
+                                            new IllegalStateException(
+                                                    "Unknown rejection Info from FCP server when "
+                                                            + "solving authentication challenge"));
+                                }
+                            } else {
+                                return processCheckinAndDoFlTraining(
+                                        run, checkinResultOnUnauthenticated);
+                            }
+                        },
+                        mInjector.getBgExecutor());
+    }
+
+    @androidx.annotation.NonNull
+    private ListenableFuture<FLRunnerResult> handleRetryRejection(
+            TrainingRun run, CheckinResult checkinResult) {
+
+        mJobManager.onTrainingCompleted(
+                run.mTask.jobId(),
+                run.mTask.populationName(),
+                run.mTask.getTrainingIntervalOptions(),
+                buildTaskRetry(checkinResult.getRejectionInfo()),
+                ContributionResult.FAIL);
+        return Futures.immediateFuture(null);
+    }
+
+    @androidx.annotation.NonNull
     private ListenableFuture<FLRunnerResult> processCheckinAndDoFlTraining(
             TrainingRun run, CheckinResult checkinResult) {
-        // Stop processing if have rejection Info
-        if (checkinResult.getRejectionInfo() != null) {
-            LogUtil.d(
-                    TAG,
-                    "job %d was rejected during check in, reason %s",
-                    run.mTask.jobId(),
-                    checkinResult.getRejectionInfo().getReason());
-            mJobManager.onTrainingCompleted(
-                    run.mTask.jobId(),
-                    run.mTask.populationName(),
-                    run.mTask.getTrainingIntervalOptions(),
-                    buildTaskRetry(checkinResult.getRejectionInfo()),
-                    ContributionResult.FAIL);
-            return Futures.immediateFuture(null);
-        }
-
         String taskName = checkinResult.getTaskAssignment().getTaskName();
         Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
         synchronized (mLock) {
@@ -501,6 +567,7 @@ public class FederatedComputeWorker {
     HttpFederatedProtocol getHttpFederatedProtocol(
             String serverAddress, String populationName, TrainingEventLogger trainingEventLogger) {
         return HttpFederatedProtocol.create(
+                mContext,
                 serverAddress,
                 "1.0.0.1",
                 populationName,
@@ -841,6 +908,10 @@ public class FederatedComputeWorker {
         }
     }
 
+    private List<String> getKeyAttestationRecord(byte[] challenge, String ownerId) {
+        return mKeyAttestation.generateAttestationRecord(challenge, ownerId);
+    }
+
     @VisibleForTesting
     @Nullable
     IIsolatedTrainingService getIsolatedTrainingService() {
@@ -870,6 +941,10 @@ public class FederatedComputeWorker {
 
         TrainingEventLogger getTrainingEventLogger() {
             return new TrainingEventLogger();
+        }
+
+        KeyAttestation getKeyAttestationHelper(Context context) {
+            return KeyAttestation.getInstance(context);
         }
     }
 
