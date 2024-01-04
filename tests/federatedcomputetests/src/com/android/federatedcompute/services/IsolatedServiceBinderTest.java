@@ -45,4 +45,42 @@ public class IsolatedServiceBinderTest {
         final IIsolatedTrainingService service = serviceBinder.getService(Runnable::run);
         assertNotNull(service);
     }
+
+    /**
+     * Test the isolated service binding implementation, specifically, we bind to services through
+     * the bindIsolatedService() API but with the shared isolated process flag omitted.
+     */
+    @Test
+    public void testIsolatedProcessBinding() {
+        AbstractServiceBinder<IIsolatedTrainingService> serviceBinder =
+                AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
+                        mContext,
+                        ISOLATED_TRAINING_SERVICE_NAME,
+                        mContext.getPackageName(),
+                        "testSharedIsolatedProcessBinding",
+                        0,
+                        IIsolatedTrainingService.Stub::asInterface);
+
+        final IIsolatedTrainingService service = serviceBinder.getService(Runnable::run);
+        assertNotNull(service);
+    }
+
+    /**
+     * Test the isolated service binding implementation, specifically, we bind to services through
+     * the bindIsolatedService() API but with the shared isolated process flag included.
+     */
+    @Test
+    public void testSharedIsolatedProcessBinding() {
+        AbstractServiceBinder<IIsolatedTrainingService> serviceBinder =
+                AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
+                        mContext,
+                        ISOLATED_TRAINING_SERVICE_NAME,
+                        mContext.getPackageName(),
+                        "testSharedIsolatedProcessBinding",
+                        Context.BIND_SHARED_ISOLATED_PROCESS,
+                        IIsolatedTrainingService.Stub::asInterface);
+
+        final IIsolatedTrainingService service = serviceBinder.getService(Runnable::run);
+        assertNotNull(service);
+    }
 }

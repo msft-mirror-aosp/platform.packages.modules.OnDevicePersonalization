@@ -13,11 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
+package android.federatedcompute.test.scenario.federatedcompute;
 
 import android.platform.test.scenario.annotation.Scenario;
 
-import org.junit.After;
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -28,33 +28,37 @@ import java.io.IOException;
 
 @Scenario
 @RunWith(JUnit4.class)
-public class DownloadVendorData {
-
-    private DownloadHelper mDownloadHelper = new DownloadHelper();
+/**
+ * Schedule a non-existent population training task from Odp Test app UI
+ * Force the task execution through ADB commands and verify error handling and exit behavior
+ */
+public class ScheduleNonExistentPopulationForTraining {
+    private TestHelper mTestHelper = new TestHelper();
 
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
-        DownloadHelper.initialize();
-        DownloadHelper.killRunningProcess();
+        TestHelper.initialize();
+        TestHelper.killRunningProcess();
     }
+
     @Before
-    public void setUp() throws IOException {
-        mDownloadHelper.pressHome();
+    public void setup() throws IOException {
+        mTestHelper.pressHome();
+        mTestHelper.openTestApp();
+        mTestHelper.inputNonExistentPopulationForScheduleTraining();
     }
 
     @Test
-    public void testDownloadVendorData() throws IOException {
-        mDownloadHelper.downloadVendorData();
-        mDownloadHelper.processDownloadedVendorData();
+    public void testScheduleNonExistentPopulationForTraining() throws IOException {
+        mTestHelper.clickScheduleTraining();
+        mTestHelper.forceExecuteTrainingForNonExistentPopulation();
     }
 
-    @After
-    public void tearDown() throws IOException {
-        mDownloadHelper.cleanupDatabase();
-        mDownloadHelper.cleanupDownloadedMetadata();
-        mDownloadHelper.pressHome();
-        mDownloadHelper.wrapUp();
+    /** Return device to original state after test exeuction */
+    @AfterClass
+    public static void tearDown() throws IOException {
+        TestHelper.pressHome();
+        TestHelper.wrapUp();
     }
-
 }

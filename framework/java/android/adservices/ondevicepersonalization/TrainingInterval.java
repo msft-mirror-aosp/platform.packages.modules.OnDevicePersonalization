@@ -26,7 +26,11 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 import java.time.Duration;
 
-/** Training interval settings required for federated computation jobs. */
+/**
+ * Training interval settings required for federated computation jobs.
+ *
+ * @hide
+ */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genHiddenConstDefs = true, genEqualsHashCode = true)
 public final class TrainingInterval {
