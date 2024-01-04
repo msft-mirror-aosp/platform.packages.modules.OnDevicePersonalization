@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
@@ -24,6 +26,8 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_ON
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -132,5 +136,53 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getPersonalizationStatusOverrideValue()).isEqualTo(phOverridingValue);
+    }
+
+    @Test
+    public void testGetTrustedPartnerAppsList() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_TRUSTED_PARTNER_APPS_LIST,
+                DEFAULT_TRUSTED_PARTNER_APPS_LIST,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                .isEqualTo(DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+
+        final String testTrustedPartnerAppsList =
+                "trusted_test_app_1, trusted_test_app_2, trusted_test_app_3";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_TRUSTED_PARTNER_APPS_LIST,
+                testTrustedPartnerAppsList,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                .isEqualTo(testTrustedPartnerAppsList);
+    }
+
+    @Test
+    public void testSharedIsolatedProcessFeature() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                Boolean.toString(DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
+                .isEqualTo(DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+
+        final boolean testIsolatedProcessFeatureEnabled =
+                !DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                Boolean.toString(testIsolatedProcessFeatureEnabled),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
+                .isEqualTo(testIsolatedProcessFeatureEnabled);
     }
 }
