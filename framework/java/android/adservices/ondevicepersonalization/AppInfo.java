@@ -28,6 +28,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * Information about apps.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)

@@ -28,6 +28,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
