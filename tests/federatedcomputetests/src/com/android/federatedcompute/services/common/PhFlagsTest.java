@@ -17,6 +17,8 @@
 package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
@@ -73,5 +75,30 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getEncryptionKeyFetchUrl()).isEqualTo(overrideUrl);
+    }
+
+    @Test
+    public void testEnableBackgroundEncryptionKeyFetch() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                Boolean.toString(USE_BACKGROUND_ENCRYPTION_KEY_FETCH),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getEnableBackgroundEncryptionKeyFetch())
+                .isEqualTo(USE_BACKGROUND_ENCRYPTION_KEY_FETCH);
+
+        // Now overriding the value from PH.
+        boolean overrideEnableBackgroundKeyFetch = false;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                Boolean.toString(overrideEnableBackgroundKeyFetch),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getEnableBackgroundEncryptionKeyFetch())
+                .isEqualTo(overrideEnableBackgroundKeyFetch);
+
     }
 }
