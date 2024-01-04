@@ -43,6 +43,7 @@ import java.util.concurrent.BlockingQueue;
  *
  * @see IsolatedService#getLogReader(RequestToken)
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class LogReader {
