@@ -28,7 +28,10 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 import java.util.Collections;
 import java.util.List;
 
-/** The output data of {@link IsolatedWorker#onTrainingExamples} */
+/**
+ * The output data of {@link IsolatedWorker#onTrainingExamples}
+ * @hide
+ */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class TrainingExamplesOutput {
