@@ -39,6 +39,7 @@ import java.util.List;
  * the REQUESTS table can be consumed by Federated Learning facilitated model training,
  * or Federated Analytics facilitated cross-device statistical analysis.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
