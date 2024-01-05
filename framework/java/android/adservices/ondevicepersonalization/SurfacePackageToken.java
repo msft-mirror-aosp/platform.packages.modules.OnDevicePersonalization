@@ -25,6 +25,7 @@ import android.annotation.NonNull;
  * An opaque reference to content that can be displayed in a {@link android.view.SurfaceView}. This
  * maps to a {@link RenderingConfig} returned by an {@link IsolatedService}.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class SurfacePackageToken {

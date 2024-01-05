@@ -40,6 +40,11 @@ public final class PhFlags implements Flags {
     static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
             "isolated_service_deadline_seconds";
 
+    static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
+
+    static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
+            "shared_isolated_process_feature_enabled";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
     private static final PhFlags sSingleton = new PhFlags();
@@ -55,9 +60,9 @@ public final class PhFlags implements Flags {
     public boolean getGlobalKillSwitch() {
         // The priority of applying the flag values: PH (DeviceConfig), then hard-coded value.
         return DeviceConfig.getBoolean(
-                                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                                /* name= */ KEY_GLOBAL_KILL_SWITCH,
-                                /* defaultValue= */ GLOBAL_KILL_SWITCH);
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_GLOBAL_KILL_SWITCH,
+                /* defaultValue= */ GLOBAL_KILL_SWITCH);
     }
 
     @Override
@@ -67,9 +72,9 @@ public final class PhFlags implements Flags {
         }
         // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
         return DeviceConfig.getBoolean(
-                                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                                /* name= */ KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
-                                /* defaultValue= */ ENABLE_ONDEVICEPERSONALIZATION_APIS);
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
+                /* defaultValue= */ ENABLE_ONDEVICEPERSONALIZATION_APIS);
     }
 
     @Override
@@ -103,5 +108,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ISOLATED_SERVICE_DEADLINE_SECONDS,
                 /* defaultValue= */ ISOLATED_SERVICE_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public String getTrustedPartnerAppsList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
+                /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+    }
+
+    @Override
+    public boolean isSharedIsolatedProcessFeatureEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
     }
 }

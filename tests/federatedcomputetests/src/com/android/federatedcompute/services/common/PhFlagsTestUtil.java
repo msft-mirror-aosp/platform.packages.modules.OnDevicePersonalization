@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.common;
 
+import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import android.provider.DeviceConfig;
@@ -59,4 +61,27 @@ public class PhFlagsTestUtil {
                 Boolean.toString(false),
                 /* makeDefault */ false);
     }
+
+    /**
+     * Enable scheduling the background key fetch job.
+     */
+    public static void enableScheduleBackgroundKeyFetchJob() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                Boolean.toString(USE_BACKGROUND_ENCRYPTION_KEY_FETCH),
+                /* makeDefault= */ false);
+    }
+
+    /**
+     * Disable scheduling the background key fetch job.
+     */
+    public static void disableScheduleBackgroundKeyFetchJob() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                Boolean.toString(false),
+                /* makeDefault= */ false);
+    }
+
 }
