@@ -347,9 +347,11 @@ public class SampleHandler implements IsolatedWorker {
                         .build();
                 FederatedComputeScheduler.Params params = new FederatedComputeScheduler
                         .Params(interval);
-                FederatedComputeInput fcInput = new FederatedComputeInput.Builder()
-                        .setPopulationName(input.getAppParams().getString("schedule_training"))
-                        .build();
+                FederatedComputeInput fcInput =
+                        new FederatedComputeInput.Builder()
+                                .setPopulationName(
+                                        input.getAppParams().getString("schedule_training"))
+                                .build();
                 mFCScheduler.schedule(params, fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();

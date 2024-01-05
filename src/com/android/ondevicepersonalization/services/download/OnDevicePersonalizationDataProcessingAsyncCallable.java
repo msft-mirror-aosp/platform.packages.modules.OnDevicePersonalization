@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
 import android.adservices.ondevicepersonalization.UserData;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -263,8 +264,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 mPackageName, mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
-                mPackageName, mContext);
+        FederatedComputeServiceImpl fcpBinder =
+                new FederatedComputeServiceImpl(
+                        ComponentName.createRelative(
+                                mPackageName,
+                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                                        mContext, mPackageName)),
+                        mContext);
         pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
 
         List<String> keys = new ArrayList<>();
