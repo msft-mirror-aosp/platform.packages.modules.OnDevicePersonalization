@@ -61,6 +61,7 @@ public class IsolatedServiceTest {
     private boolean mOnRenderCalled;
     private boolean mOnEventCalled;
     private boolean mOnTrainingExampleCalled;
+    private boolean mOnWebTriggerCalled;
     private Bundle mCallbackResult;
     private int mCallbackErrorCode;
 
@@ -540,6 +541,89 @@ public class IsolatedServiceTest {
                 });
     }
 
+    @Test
+    public void testOnWebTrigger() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+        mLatch.await();
+        assertTrue(mOnWebTriggerCalled);
+        WebTriggerOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, WebTriggerOutputParcel.class);
+        assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+    }
+
+    @Test
+    public void testOnWebTriggerPropagatesError() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        "http://desturl", "http://regUrl", "com.browser", "error")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+        mLatch.await();
+        assertTrue(mOnWebTriggerCalled);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfParamsMissing() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, null, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfInputMissing() throws Exception {
+        Bundle params = new Bundle();
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfDataAccessServiceMissing() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfCallbackMissing() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, null);
+                });
+    }
+
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
@@ -621,6 +705,23 @@ public class IsolatedServiceTest {
                             .setTrainingExamples(examples)
                             .setResumptionTokens(tokens)
                             .build());
+        }
+
+        @Override
+        public void onWebTrigger(
+                WebTriggerInput input, Consumer<WebTriggerOutput> consumer) {
+            mOnWebTriggerCalled = true;
+            if (input.getData().equals("error")) {
+                consumer.accept(null);
+            } else {
+                ContentValues row = new ContentValues();
+                row.put("a", 5);
+                consumer.accept(
+                        new WebTriggerOutput.Builder()
+                            .setRequestLogRecord(
+                                    new RequestLogRecord.Builder().addRow(row).build())
+                            .build());
+            }
         }
     }
 
