@@ -34,6 +34,7 @@ import java.util.List;
  * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
  * java.util.concurrent.Executor, OutcomeReceiver)}
  * from a client app.
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)

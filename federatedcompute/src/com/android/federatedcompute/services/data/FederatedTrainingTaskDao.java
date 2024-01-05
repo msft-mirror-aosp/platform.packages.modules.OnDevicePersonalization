@@ -151,6 +151,33 @@ public class FederatedTrainingTaskDao {
         }
     }
 
+    /** Delete a task from table based on population name and calling package. */
+    public FederatedTrainingTask findAndRemoveTaskByPopulationNameAndCallingPackage(
+            String populationName, String callingPackage) {
+        String selection =
+                FederatedTrainingTaskColumns.POPULATION_NAME
+                        + " = ? AND "
+                        + FederatedTrainingTaskColumns.APP_PACKAGE_NAME
+                        + " = ?";
+        String[] selectionArgs = {populationName, callingPackage};
+        FederatedTrainingTask task =
+                Iterables.getOnlyElement(getFederatedTrainingTask(selection, selectionArgs), null);
+        try {
+            if (task != null) {
+                deleteFederatedTrainingTask(selection, selectionArgs);
+            }
+            return task;
+        } catch (SQLException e) {
+            LogUtil.e(
+                    TAG,
+                    e,
+                    "Failed to delete federated training task by population name %s and ATP: %s",
+                    populationName,
+                    callingPackage);
+            return null;
+        }
+    }
+
     /** Delete a task from table based on population name and job scheduler id. */
     public FederatedTrainingTask findAndRemoveTaskByPopulationAndJobId(
             String populationName, int jobId) {
