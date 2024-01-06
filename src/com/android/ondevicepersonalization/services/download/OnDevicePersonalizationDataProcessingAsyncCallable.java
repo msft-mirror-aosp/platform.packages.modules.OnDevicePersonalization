@@ -41,6 +41,7 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -87,7 +88,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunner.getInstance();
+            return ProcessRunnerImpl.getInstance();
         }
     }
 
