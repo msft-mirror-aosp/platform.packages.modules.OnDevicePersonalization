@@ -128,4 +128,18 @@ public interface IsolatedWorker {
             @NonNull Consumer<TrainingExamplesOutput> consumer) {
         consumer.accept(null);
     }
+
+    /**
+     * Handles a Web Trigger registration from a browser.
+     *
+     * @param input The parameters needed to process Web Trigger registrations.
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. If called with <code>null</code>, no data is written to the REQUESTS or EVENTS
+     *     tables.
+     */
+    default void onWebTrigger(
+            @NonNull WebTriggerInput input,
+            @NonNull Consumer<WebTriggerOutput> consumer) {
+        consumer.accept(null);
+    }
 }
