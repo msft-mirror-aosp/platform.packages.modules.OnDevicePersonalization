@@ -40,6 +40,7 @@ import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -88,7 +89,7 @@ public class RenderFlow {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunner.getInstance();
+            return ProcessRunnerImpl.getInstance();
         }
     }
 
