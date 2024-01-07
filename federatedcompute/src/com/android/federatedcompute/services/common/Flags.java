@@ -166,4 +166,10 @@ public interface Flags {
     default Long getEncryptionKeyFetchPeriodSeconds() {
         return ENCRYPTION_KEY_FETCH_PERIOD_SECONDS;
     }
+
+    Boolean USE_BACKGROUND_ENCRYPTION_KEY_FETCH = true;
+
+    default Boolean getEnableBackgroundEncryptionKeyFetch() {
+        return USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+    }
 }
