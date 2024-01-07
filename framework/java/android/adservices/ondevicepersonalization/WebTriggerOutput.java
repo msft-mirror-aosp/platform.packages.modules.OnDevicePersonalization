@@ -30,37 +30,27 @@ import java.util.List;
 
 /**
  * The result returned by
- * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)} in response to a call to
- * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
- * java.util.concurrent.Executor, OutcomeReceiver)}
- * from a client app.
+ * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}.
+ *
  * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
-public final class ExecuteOutput {
+public final class WebTriggerOutput {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
      * completes. If null, no persistent data will be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
-     * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     * calling app. The calling app and the service must agree on the expected size of this list.
-     */
-    @DataClass.PluralOf("renderingConfig")
-    @NonNull private List<RenderingConfig> mRenderingConfigs = Collections.emptyList();
-
-    /**
      * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
      * them with requests with the specified corresponding {@link RequestLogRecord} from
      * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-     * EventLogRecord is not written.
+     * If the event does not contain a {@link RequestLogRecord} that was previously written
+     * by this service, the {@link EventLogRecord} is not written.
      *
-     * @hide
      */
     @DataClass.PluralOf("eventLogRecord")
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
@@ -73,7 +63,7 @@ public final class ExecuteOutput {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java
+    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutput.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
@@ -81,14 +71,10 @@ public final class ExecuteOutput {
 
 
     @DataClass.Generated.Member
-    /* package-private */ ExecuteOutput(
+    /* package-private */ WebTriggerOutput(
             @Nullable RequestLogRecord requestLogRecord,
-            @NonNull List<RenderingConfig> renderingConfigs,
             @NonNull List<EventLogRecord> eventLogRecords) {
         this.mRequestLogRecord = requestLogRecord;
-        this.mRenderingConfigs = renderingConfigs;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRenderingConfigs);
         this.mEventLogRecords = eventLogRecords;
         AnnotationValidations.validate(
                 NonNull.class, null, mEventLogRecords);
@@ -98,7 +84,7 @@ public final class ExecuteOutput {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
      * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member
@@ -107,22 +93,11 @@ public final class ExecuteOutput {
     }
 
     /**
-     * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     * calling app. The calling app and the service must agree on the expected size of this list.
-     */
-    @DataClass.Generated.Member
-    public @NonNull List<RenderingConfig> getRenderingConfigs() {
-        return mRenderingConfigs;
-    }
-
-    /**
      * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
      * them with requests with the specified corresponding {@link RequestLogRecord} from
      * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-     * EventLogRecord is not written.
-     *
-     * @hide
+     * If the event does not contain a {@link RequestLogRecord} that was previously written
+     * by this service, the {@link EventLogRecord} is not written.
      */
     @DataClass.Generated.Member
     public @NonNull List<EventLogRecord> getEventLogRecords() {
@@ -133,17 +108,16 @@ public final class ExecuteOutput {
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
-        // boolean fieldNameEquals(ExecuteOutput other) { ... }
+        // boolean fieldNameEquals(WebTriggerOutput other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
 
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         @SuppressWarnings("unchecked")
-        ExecuteOutput that = (ExecuteOutput) o;
+        WebTriggerOutput that = (WebTriggerOutput) o;
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord)
-                && java.util.Objects.equals(mRenderingConfigs, that.mRenderingConfigs)
                 && java.util.Objects.equals(mEventLogRecords, that.mEventLogRecords);
     }
 
@@ -155,13 +129,12 @@ public final class ExecuteOutput {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingConfigs);
         _hash = 31 * _hash + java.util.Objects.hashCode(mEventLogRecords);
         return _hash;
     }
 
     /**
-     * A builder for {@link ExecuteOutput}
+     * A builder for {@link WebTriggerOutput}
      */
     @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
@@ -169,7 +142,6 @@ public final class ExecuteOutput {
     public static final class Builder {
 
         private @Nullable RequestLogRecord mRequestLogRecord;
-        private @NonNull List<RenderingConfig> mRenderingConfigs;
         private @NonNull List<EventLogRecord> mEventLogRecords;
 
         private long mBuilderFieldsSet = 0L;
@@ -179,7 +151,7 @@ public final class ExecuteOutput {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+         * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
          * completes. If null, no persistent data will be written.
          */
         @DataClass.Generated.Member
@@ -191,43 +163,21 @@ public final class ExecuteOutput {
         }
 
         /**
-         * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-         * calling app. The calling app and the service must agree on the expected size of this list.
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setRenderingConfigs(@NonNull List<RenderingConfig> value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mRenderingConfigs = value;
-            return this;
-        }
-
-        /** @see #setRenderingConfigs */
-        @DataClass.Generated.Member
-        public @NonNull Builder addRenderingConfig(@NonNull RenderingConfig value) {
-            if (mRenderingConfigs == null) setRenderingConfigs(new java.util.ArrayList<>());
-            mRenderingConfigs.add(value);
-            return this;
-        }
-
-        /**
          * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
          * them with requests with the specified corresponding {@link RequestLogRecord} from
          * {@link EventLogRecord#getRequestLogRecord()}.
-         * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-         * EventLogRecord is not written.
-         *
-         * @hide
+         * If the event does not contain a {@link RequestLogRecord} that was previously written
+         * by this service, the {@link EventLogRecord} is not written.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x2;
             mEventLogRecords = value;
             return this;
         }
 
-        /** @see #setEventLogRecords @hide */
+        /** @see #setEventLogRecords */
         @DataClass.Generated.Member
         public @NonNull Builder addEventLogRecord(@NonNull EventLogRecord value) {
             if (mEventLogRecords == null) setEventLogRecords(new java.util.ArrayList<>());
@@ -236,28 +186,24 @@ public final class ExecuteOutput {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull ExecuteOutput build() {
+        public @NonNull WebTriggerOutput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8; // Mark builder used
+            mBuilderFieldsSet |= 0x4; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRequestLogRecord = null;
             }
             if ((mBuilderFieldsSet & 0x2) == 0) {
-                mRenderingConfigs = Collections.emptyList();
-            }
-            if ((mBuilderFieldsSet & 0x4) == 0) {
                 mEventLogRecords = Collections.emptyList();
             }
-            ExecuteOutput o = new ExecuteOutput(
+            WebTriggerOutput o = new WebTriggerOutput(
                     mRequestLogRecord,
-                    mRenderingConfigs,
                     mEventLogRecords);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x8) != 0) {
+            if ((mBuilderFieldsSet & 0x4) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -265,10 +211,10 @@ public final class ExecuteOutput {
     }
 
     @DataClass.Generated(
-            time = 1698880049845L,
+            time = 1704482032122L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutput.java",
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass WebTriggerOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
