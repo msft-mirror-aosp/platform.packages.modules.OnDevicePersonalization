@@ -144,7 +144,6 @@ public class FederatedComputeEncryptionKeyManager {
         if (fetchUri == null) {
             throw new IllegalArgumentException("Url to fetch active encryption keys is null");
         }
-
         FederatedComputeHttpRequest request =
                 FederatedComputeHttpRequest.create(
                         fetchUri,
