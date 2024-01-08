@@ -52,6 +52,7 @@ public class JobSchedulerHelperTest {
     private static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.FederatedJobService";
     private static final String POPULATION_NAME = "population";
+    private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 10281993;
     private static final long CURRENT_TIME_MILLIS = 80000;
     private static final long NEXT_RUNTIME_MILLSECONDS = 100000;
@@ -59,7 +60,7 @@ public class JobSchedulerHelperTest {
     private static final byte[] TRAINING_CONSTRAINTS =
             createTrainingConstraints(
                     /* requiresSchedulerIdle= */ true,
-                    /* requiresSchedulerCharging= */ true,
+                    /* requiresBatteryNotLow= */ true,
                     /* requiresSchedulerUnmeteredNetwork= */ true);
     private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final FederatedTrainingTask TRAINING_TASK =
@@ -71,6 +72,7 @@ public class JobSchedulerHelperTest {
                     .lastScheduledTime(CURRENT_TIME_MILLIS)
                     .schedulingReason(SCHEDULING_REASON)
                     .jobId(JOB_ID)
+                    .serverAddress(SERVER_ADDRESS)
                     .earliestNextRunTime(NEXT_RUNTIME_MILLSECONDS)
                     .constraints(TRAINING_CONSTRAINTS)
                     .build();
@@ -113,7 +115,7 @@ public class JobSchedulerHelperTest {
                         .constraints(
                                 createTrainingConstraints(
                                         /* requiresSchedulerIdle= */ false,
-                                        /* requiresSchedulerCharging= */ true,
+                                        /* requiresBatteryNotLow= */ true,
                                         /* requiresSchedulerUnmeteredNetwork= */ true))
                         .build();
 
@@ -122,7 +124,7 @@ public class JobSchedulerHelperTest {
         JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
 
         assertThat(jobInfo.isRequireDeviceIdle()).isFalse();
-        assertThat(jobInfo.isRequireCharging()).isTrue();
+        assertThat(jobInfo.isRequireBatteryNotLow()).isTrue();
         assertThat(jobInfo.getNetworkType()).isEqualTo(NETWORK_TYPE_UNMETERED);
     }
 
@@ -133,7 +135,7 @@ public class JobSchedulerHelperTest {
                         .constraints(
                                 createTrainingConstraints(
                                         /* requiresSchedulerIdle= */ true,
-                                        /* requiresSchedulerCharging= */ true,
+                                        /* requiresBatteryNotLow= */ true,
                                         /* requiresSchedulerUnmeteredNetwork= */ false))
                         .build();
 
@@ -142,7 +144,7 @@ public class JobSchedulerHelperTest {
         JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
 
         assertThat(jobInfo.isRequireDeviceIdle()).isTrue();
-        assertThat(jobInfo.isRequireCharging()).isTrue();
+        assertThat(jobInfo.isRequireBatteryNotLow()).isTrue();
         assertThat(jobInfo.getNetworkType()).isEqualTo(NETWORK_TYPE_ANY);
     }
 
@@ -153,7 +155,7 @@ public class JobSchedulerHelperTest {
                         .constraints(
                                 createTrainingConstraints(
                                         /* requiresSchedulerIdle= */ true,
-                                        /* requiresSchedulerCharging= */ false,
+                                        /* requiresBatteryNotLow= */ false,
                                         /* requiresSchedulerUnmeteredNetwork= */ true))
                         .build();
 
@@ -162,7 +164,7 @@ public class JobSchedulerHelperTest {
         JobInfo jobInfo = Iterables.getOnlyElement(mJobScheduler.getAllPendingJobs());
 
         assertThat(jobInfo.isRequireDeviceIdle()).isTrue();
-        assertThat(jobInfo.isRequireCharging()).isFalse();
+        assertThat(jobInfo.isRequireBatteryNotLow()).isFalse();
         assertThat(jobInfo.getNetworkType()).isEqualTo(NETWORK_TYPE_UNMETERED);
     }
 
@@ -184,20 +186,20 @@ public class JobSchedulerHelperTest {
         assertThat(jobInfo.getService())
                 .isEqualTo(new ComponentName(mContext, TRAINING_JOB_SERVICE));
         assertThat(jobInfo.isRequireDeviceIdle()).isTrue();
-        assertThat(jobInfo.isRequireCharging()).isTrue();
+        assertThat(jobInfo.isRequireBatteryNotLow()).isTrue();
         assertThat(jobInfo.getNetworkType()).isEqualTo(NETWORK_TYPE_UNMETERED);
     }
 
     private static byte[] createTrainingConstraints(
             boolean requiresSchedulerIdle,
-            boolean requiresSchedulerCharging,
+            boolean requiresBatteryNotLow,
             boolean requiresSchedulerUnmeteredNetwork) {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         builder.finish(
                 TrainingConstraints.createTrainingConstraints(
                         builder,
                         requiresSchedulerIdle,
-                        requiresSchedulerCharging,
+                        requiresBatteryNotLow,
                         requiresSchedulerUnmeteredNetwork));
         return builder.sizedByteArray();
     }
