@@ -28,12 +28,13 @@ public class Constants {
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
-    // Operations implemented by personalization services.
+    // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
     public static final int OP_RENDER = 3;
     public static final int OP_WEB_VIEW_EVENT = 4;
     public static final int OP_TRAINING_EXAMPLE = 5;
+    public static final int OP_WEB_TRIGGER = 6;
 
     // Keys for Bundle objects passed between processes.
     public static final String EXTRA_CALLEE_METADATA =
