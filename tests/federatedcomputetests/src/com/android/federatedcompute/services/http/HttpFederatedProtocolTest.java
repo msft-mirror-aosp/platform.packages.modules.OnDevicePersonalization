@@ -34,6 +34,8 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
@@ -44,6 +46,8 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.federatedcompute.services.common.NetworkStats;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.http.HttpClientUtil.HttpMethod;
@@ -94,7 +98,8 @@ public final class HttpFederatedProtocolTest {
     private static final String PLAN_URI = "https://fake.uri/plan";
     private static final String CHECKPOINT_URI = "https://fake.uri/checkpoint";
     private static final String START_TASK_ASSIGNMENT_URI =
-            "https://test-server.com/taskassignment/v1/population/test_population:create-task-assignment";
+            "https://test-server.com/taskassignment/v1/population/test_population:create-task"
+                    + "-assignment";
     private static final String REPORT_RESULT_URI =
             "https://test-server.com/taskassignment/v1/population/test_population/task/task-id/"
                     + "aggregation/aggregation-id/task-assignment/assignment-id:report-result";
@@ -106,8 +111,7 @@ public final class HttpFederatedProtocolTest {
     private static final String ASSIGNMENT_ID = "assignment-id";
     private static final String AGGREGATION_ID = "aggregation-id";
     private static final String OCTET_STREAM = "application/octet-stream";
-    private static final String OWNER_ID =
-            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
 
     private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
@@ -116,7 +120,8 @@ public final class HttpFederatedProtocolTest {
                     .setKeyIdentifier("0962201a-5abd-4e25-a486-2c7bd1ee1887")
                     .setKeyType(FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION)
                     .setCreationTime(1L)
-                    .setExpiryTime(1L).build();
+                    .setExpiryTime(1L)
+                    .build();
     private static final FLRunnerResult FL_RUNNER_SUCCESS_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.SUCCESS).build();
 
@@ -153,6 +158,10 @@ public final class HttpFederatedProtocolTest {
 
     private HttpFederatedProtocol mHttpFederatedProtocol;
 
+    @Mock private TrainingEventLogger mTrainingEventLogger;
+    private ArgumentCaptor<NetworkStats> mNetworkStatsArgumentCaptor =
+            ArgumentCaptor.forClass(NetworkStats.class);
+
     @Before
     public void setUp() throws Exception {
         mHttpFederatedProtocol =
@@ -161,7 +170,8 @@ public final class HttpFederatedProtocolTest {
                         CLIENT_VERSION,
                         POPULATION_NAME,
                         mMockHttpClient,
-                        new HpkeJniEncrypter());
+                        new HpkeJniEncrypter(),
+                        mTrainingEventLogger);
     }
 
     @Test
@@ -201,6 +211,12 @@ public final class HttpFederatedProtocolTest {
             expectedHeaders.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
         }
         assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+        verify(mTrainingEventLogger).logCheckinStarted();
+        verify(mTrainingEventLogger)
+                .logCheckinPlanUriReceived(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(121);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(348);
     }
 
     @Test
@@ -222,6 +238,8 @@ public final class HttpFederatedProtocolTest {
         assertThat(exception.getCause())
                 .hasMessageThat()
                 .isEqualTo("Start task assignment failed: 404");
+        verify(mTrainingEventLogger).logCheckinStarted();
+        verify(mTrainingEventLogger, times(0)).logCheckinPlanUriReceived(any());
     }
 
     @Test
@@ -243,6 +261,11 @@ public final class HttpFederatedProtocolTest {
 
         assertThat(checkinResult.getRejectionInfo()).isNotNull();
         assertThat(checkinResult.getRejectionInfo()).isEqualTo(RejectionInfo.getDefaultInstance());
+        verify(mTrainingEventLogger).logCheckinStarted();
+        verify(mTrainingEventLogger).logCheckinRejected(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(2);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(348);
     }
 
     @Test
@@ -270,6 +293,9 @@ public final class HttpFederatedProtocolTest {
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause()).hasMessageThat().isEqualTo("Fetch plan failed: 404");
+        verify(mTrainingEventLogger).logCheckinStarted();
+        verify(mTrainingEventLogger)
+                .logCheckinPlanUriReceived(mNetworkStatsArgumentCaptor.capture());
     }
 
     @Test
@@ -318,6 +344,12 @@ public final class HttpFederatedProtocolTest {
                 ReportResultRequest.newBuilder().setResult(Result.FAILED).build();
         assertThat(acutalReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
+        verify(mTrainingEventLogger).logFailureResultUploadStarted();
+        verify(mTrainingEventLogger)
+                .logFailureResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(mSupportCompression ? 96 : 68);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(226);
     }
 
     @Test
@@ -355,8 +387,9 @@ public final class HttpFederatedProtocolTest {
             expectedHeaders.put(CONTENT_ENCODING_HDR, GZIP_ENCODING_HDR);
         }
 
-        int actualContentLength = Integer
-                .parseInt(actualDataUploadRequest.getExtraHeaders().remove(CONTENT_LENGTH_HDR));
+        int actualContentLength =
+                Integer.parseInt(
+                        actualDataUploadRequest.getExtraHeaders().remove(CONTENT_LENGTH_HDR));
         assertThat(actualDataUploadRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
         // The encryption is non-deterministic with BoringSSL JNI.
         // Only check the range of the content.
@@ -367,6 +400,13 @@ public final class HttpFederatedProtocolTest {
             assertThat(actualContentLength)
                     .isIn(Range.range(600, BoundType.CLOSED, 650, BoundType.CLOSED));
         }
+        verify(mTrainingEventLogger).logResultUploadStarted();
+        verify(mTrainingEventLogger)
+                .logResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
+        NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        // The upload result size is non-deterministic so we only check it's positive value.
+        assertTrue(networkStats.getTotalBytesDownloaded() > 0);
+        assertTrue(networkStats.getTotalBytesUploaded() > 0);
     }
 
     @Test
@@ -387,11 +427,14 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.reportResult(computationResult,
-                                ENCRYPTION_KEY).get());
+                        () ->
+                                mHttpFederatedProtocol
+                                        .reportResult(computationResult, ENCRYPTION_KEY)
+                                        .get());
 
         assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause()).hasMessageThat().isEqualTo("ReportResult failed: 503");
+        verify(mTrainingEventLogger).logResultUploadStarted();
     }
 
     @Test
@@ -412,8 +455,10 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.reportResult(computationResult,
-                                ENCRYPTION_KEY).get());
+                        () ->
+                                mHttpFederatedProtocol
+                                        .reportResult(computationResult, ENCRYPTION_KEY)
+                                        .get());
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause()).hasMessageThat().isEqualTo("Upload result failed: 503");
