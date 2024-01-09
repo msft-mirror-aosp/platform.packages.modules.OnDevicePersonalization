@@ -83,7 +83,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         ExecuteOutput result =
                 new ExecuteOutput.Builder()
                         .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                        .addRenderingConfig(new RenderingConfig.Builder().addKey("bid1").build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("bid1").build())
                         .addEventLogRecord(
                                 new EventLogRecord.Builder()
                                         .setData(logData)

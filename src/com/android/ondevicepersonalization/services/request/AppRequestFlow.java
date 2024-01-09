@@ -287,21 +287,16 @@ public class AppRequestFlow {
             sLogger.d(TAG + ": createTokens() started.");
             ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
-            Objects.requireNonNull(renderingConfigs);
+            RenderingConfig renderingConfig = result.getRenderingConfig();
 
             List<String> tokens = new ArrayList<String>();
-            int slotIndex = 0;
-            for (RenderingConfig renderingConfig : renderingConfigs) {
-                if (renderingConfig == null) {
-                    tokens.add(null);
-                } else {
-                    SlotWrapper wrapper = new SlotWrapper(
-                            result.getRequestLogRecord(), slotIndex, renderingConfig,
-                            mService.getPackageName(), queryId);
-                    tokens.add(CryptUtils.encrypt(wrapper));
-                }
-                ++slotIndex;
+            if (renderingConfig == null) {
+                tokens.add(null);
+            } else {
+                SlotWrapper wrapper = new SlotWrapper(
+                        result.getRequestLogRecord(), renderingConfig,
+                        mService.getPackageName(), queryId);
+                tokens.add(CryptUtils.encrypt(wrapper));
             }
 
             return Futures.immediateFuture(tokens);
