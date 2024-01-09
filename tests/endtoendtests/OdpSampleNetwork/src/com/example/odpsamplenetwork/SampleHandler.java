@@ -275,7 +275,7 @@ public class SampleHandler implements IsolatedWorker {
         ContentValues logData = createLogRecord(ad.mId, ad.mPrice, ad.mPrice * 10.0);
         return new ExecuteOutput.Builder()
                 .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                .addRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
+                .setRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
                 .build();
     }
 

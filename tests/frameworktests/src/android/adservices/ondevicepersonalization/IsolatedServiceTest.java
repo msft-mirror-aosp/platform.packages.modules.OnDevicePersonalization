@@ -101,7 +101,7 @@ public class IsolatedServiceTest {
         ExecuteOutputParcel result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
         assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
-        assertEquals("123", result.getRenderingConfigs().get(0).getKeys().get(0));
+        assertEquals("123", result.getRenderingConfig().getKeys().get(0));
     }
 
     @Test
@@ -649,7 +649,7 @@ public class IsolatedServiceTest {
                         new ExecuteOutput.Builder()
                                 .setRequestLogRecord(
                                         new RequestLogRecord.Builder().addRow(row).build())
-                                .addRenderingConfig(
+                                .setRenderingConfig(
                                         new RenderingConfig.Builder().addKey("123").build())
                                 .build());
             }

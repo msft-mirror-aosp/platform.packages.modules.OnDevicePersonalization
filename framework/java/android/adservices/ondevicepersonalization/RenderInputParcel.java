@@ -34,12 +34,6 @@ public final class RenderInputParcel implements Parcelable {
     private int mHeight = 0;
 
     /**
-     * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
-     * request is for.
-     */
-    private int mRenderingConfigIndex = 0;
-
-    /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
      */
@@ -64,11 +58,9 @@ public final class RenderInputParcel implements Parcelable {
     /* package-private */ RenderInputParcel(
             int width,
             int height,
-            int renderingConfigIndex,
             @Nullable RenderingConfig renderingConfig) {
         this.mWidth = width;
         this.mHeight = height;
-        this.mRenderingConfigIndex = renderingConfigIndex;
         this.mRenderingConfig = renderingConfig;
 
         // onConstructed(); // You can define this method to get a callback
@@ -91,15 +83,6 @@ public final class RenderInputParcel implements Parcelable {
     }
 
     /**
-     * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
-     * request is for.
-     */
-    @DataClass.Generated.Member
-    public int getRenderingConfigIndex() {
-        return mRenderingConfigIndex;
-    }
-
-    /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
      */
@@ -115,11 +98,10 @@ public final class RenderInputParcel implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mRenderingConfig != null) flg |= 0x8;
+        if (mRenderingConfig != null) flg |= 0x4;
         dest.writeByte(flg);
         dest.writeInt(mWidth);
         dest.writeInt(mHeight);
-        dest.writeInt(mRenderingConfigIndex);
         if (mRenderingConfig != null) dest.writeTypedObject(mRenderingConfig, flags);
     }
 
@@ -137,12 +119,10 @@ public final class RenderInputParcel implements Parcelable {
         byte flg = in.readByte();
         int width = in.readInt();
         int height = in.readInt();
-        int renderingConfigIndex = in.readInt();
-        RenderingConfig renderingConfig = (flg & 0x8) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);
+        RenderingConfig renderingConfig = (flg & 0x4) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);
 
         this.mWidth = width;
         this.mHeight = height;
-        this.mRenderingConfigIndex = renderingConfigIndex;
         this.mRenderingConfig = renderingConfig;
 
         // onConstructed(); // You can define this method to get a callback
@@ -172,7 +152,6 @@ public final class RenderInputParcel implements Parcelable {
 
         private int mWidth;
         private int mHeight;
-        private int mRenderingConfigIndex;
         private @Nullable RenderingConfig mRenderingConfig;
 
         private long mBuilderFieldsSet = 0L;
@@ -203,25 +182,13 @@ public final class RenderInputParcel implements Parcelable {
         }
 
         /**
-         * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
-         * request is for.
-         */
-        @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setRenderingConfigIndex(int value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
-            mRenderingConfigIndex = value;
-            return this;
-        }
-
-        /**
          * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
          * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
          */
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setRenderingConfig(@android.annotation.NonNull RenderingConfig value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x4;
             mRenderingConfig = value;
             return this;
         }
@@ -229,7 +196,7 @@ public final class RenderInputParcel implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull RenderInputParcel build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mWidth = 0;
@@ -238,21 +205,17 @@ public final class RenderInputParcel implements Parcelable {
                 mHeight = 0;
             }
             if ((mBuilderFieldsSet & 0x4) == 0) {
-                mRenderingConfigIndex = 0;
-            }
-            if ((mBuilderFieldsSet & 0x8) == 0) {
                 mRenderingConfig = null;
             }
             RenderInputParcel o = new RenderInputParcel(
                     mWidth,
                     mHeight,
-                    mRenderingConfigIndex,
                     mRenderingConfig);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -260,10 +223,10 @@ public final class RenderInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1698872925083L,
+            time = 1704831939599L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInputParcel.java",
-            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
     @Deprecated
     private void __metadata() {}
 
