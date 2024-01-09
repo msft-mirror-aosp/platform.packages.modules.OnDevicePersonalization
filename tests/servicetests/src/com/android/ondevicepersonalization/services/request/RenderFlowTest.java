@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.os.Binder;
@@ -164,7 +165,7 @@ public class RenderFlowTest {
         }
 
         @Override public ListenableFuture<SurfacePackage> displayHtml(
-                String html, RequestLogRecord logRecord, long queryId, String servicePackageName,
+                String html, RequestLogRecord logRecord, long queryId, ComponentName service,
                 IBinder hostToken, int displayId, int width, int height) {
             mGeneratedHtml = html;
             mDisplayHtmlCalled = true;
