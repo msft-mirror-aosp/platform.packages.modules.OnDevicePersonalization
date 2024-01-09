@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
+package android.federatedcompute.test.scenario.federatedcompute;
 
 import android.platform.test.microbenchmark.Microbenchmark;
 import android.platform.test.rule.DropCachesRule;
+import android.platform.test.rule.KillAppsRule;
 import android.platform.test.rule.PressHomeRule;
 
 import org.junit.Rule;
@@ -25,10 +26,11 @@ import org.junit.rules.RuleChain;
 import org.junit.runner.RunWith;
 
 @RunWith(Microbenchmark.class)
-public class DownloadVendorDataFromServerSmallFileMicrobenchmark
-        extends DownloadVendorDataFromServerSmallFile {
+public class ScheduleNonExistentPopulationForTrainingMicrobenchmark
+        extends ScheduleNonExistentPopulationForTraining {
 
     @Rule
     public RuleChain rules = RuleChain.outerRule(new DropCachesRule())
+            .around(new KillAppsRule("com.example.odpclient"))
             .around(new PressHomeRule());
 }

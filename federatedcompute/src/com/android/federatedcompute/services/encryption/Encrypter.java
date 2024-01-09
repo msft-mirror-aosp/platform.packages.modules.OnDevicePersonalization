@@ -14,20 +14,19 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
+package com.android.federatedcompute.services.encryption;
 
-import android.platform.test.microbenchmark.Microbenchmark;
-import android.platform.test.rule.DropCachesRule;
-import android.platform.test.rule.PressHomeRule;
+/** Interface for crypto libraries to encrypt data */
+public interface Encrypter {
 
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
+    /**
+     * encrypt {@code plainText} to cipher text {@code byte[]}.
+     *
+     * @param publicKey the public key used for encryption
+     * @param plainText the plain text string to encrypt
+     * @param associatedData additional data used for encryption
+     * @return the encrypted ciphertext
+     */
+    byte[] encrypt(byte[] publicKey, byte[] plainText, byte[] associatedData);
 
-@RunWith(Microbenchmark.class)
-public class DownloadVendorDataFromLocalUrlMicrobenchmark extends DownloadVendorDataFromLocalUrl {
-
-    @Rule
-    public RuleChain rules = RuleChain.outerRule(new DropCachesRule())
-            .around(new PressHomeRule());
 }

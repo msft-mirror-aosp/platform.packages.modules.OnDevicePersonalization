@@ -30,6 +30,7 @@ import java.util.function.Consumer;
  * IsolatedService} calls the method on a Binder thread and the {@link IsolatedWorker} should
  * offload long running operations to a worker thread. The consumer parameter of each method is used
  * to return results.
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface IsolatedWorker {
@@ -125,6 +126,20 @@ public interface IsolatedWorker {
     default void onTrainingExamples(
             @NonNull TrainingExamplesInput input,
             @NonNull Consumer<TrainingExamplesOutput> consumer) {
+        consumer.accept(null);
+    }
+
+    /**
+     * Handles a Web Trigger registration from a browser.
+     *
+     * @param input The parameters needed to process Web Trigger registrations.
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. If called with <code>null</code>, no data is written to the REQUESTS or EVENTS
+     *     tables.
+     */
+    default void onWebTrigger(
+            @NonNull WebTriggerInput input,
+            @NonNull Consumer<WebTriggerOutput> consumer) {
         consumer.accept(null);
     }
 }

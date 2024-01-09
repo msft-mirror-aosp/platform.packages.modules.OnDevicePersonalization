@@ -55,6 +55,8 @@ import java.util.function.Function;
  * by Federated Learning for model training.
  * Client apps use {@link OnDevicePersonalizationManager} to interact with an {@link
  * IsolatedService}.
+ *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public abstract class IsolatedService extends Service {
@@ -372,6 +374,24 @@ public abstract class IsolatedService extends Service {
                                 }
                             }
                         });
+
+            } else if (operationCode == Constants.OP_WEB_TRIGGER) {
+                WebTriggerInputParcel inputParcel =
+                        Objects.requireNonNull(
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, WebTriggerInputParcel.class));
+                WebTriggerInput input = new WebTriggerInput(inputParcel);
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(
+                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
+                RequestToken requestToken = new RequestToken(binder, null, userData);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onWebTrigger(
+                        input, new WrappedCallback<WebTriggerOutput, WebTriggerOutputParcel>(
+                            resultCallback, requestToken, v -> new WebTriggerOutputParcel(v)));
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }

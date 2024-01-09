@@ -66,7 +66,6 @@ public final class FederatedTrainingTaskTest {
         Context context = ApplicationProvider.getApplicationContext();
         mDbHelper = FederatedComputeDbHelper.getInstanceForTest(context);
         mDatabase = mDbHelper.getWritableDatabase();
-        mDbHelper.resetDatabase(mDatabase);
     }
 
     @After
