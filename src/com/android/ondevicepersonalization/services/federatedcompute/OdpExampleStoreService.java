@@ -21,6 +21,7 @@ import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
 import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.ExampleStoreService;
 import android.federatedcompute.FederatedComputeManager;
@@ -154,8 +155,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setTaskName(taskName)
                             .build();
 
+            String className = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                    getContext(), packageName);
             ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(TASK_NAME, packageName);
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, ComponentName.createRelative(packageName, className));
             ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
@@ -242,8 +246,6 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         .getProcessRunner()
                         .runIsolatedService(
                                 isolatedServiceInfo,
-                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                                        getContext(), packageName),
                                 Constants.OP_TRAINING_EXAMPLE,
                                 serviceParams);
         return FluentFuture.from(result)
