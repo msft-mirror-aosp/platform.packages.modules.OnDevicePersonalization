@@ -23,6 +23,7 @@ import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -110,9 +111,7 @@ public class RenderFlow {
     @NonNull
     private final DisplayHelper mDisplayHelper;
     @NonNull
-    private String mServicePackageName;
-    @NonNull
-    private String mServiceClassName;
+    private ComponentName mService;
 
     public RenderFlow(
             @NonNull String slotResultToken,
@@ -168,15 +167,16 @@ public class RenderFlow {
             }
             SlotWrapper slotWrapper = Objects.requireNonNull(
                     mInjector.decryptToken(mSlotResultToken));
-            mServicePackageName = Objects.requireNonNull(
+            String servicePackageName = Objects.requireNonNull(
                     slotWrapper.getServicePackageName());
-            mServiceClassName = Objects.requireNonNull(
+            String serviceClassName = Objects.requireNonNull(
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                        mContext, mServicePackageName));
+                        mContext, servicePackageName));
+            mService = ComponentName.createRelative(servicePackageName, serviceClassName);
 
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                            TASK_NAME, mServicePackageName);
+                            TASK_NAME, mService);
             ListenableFuture<SurfacePackage> surfacePackageFuture =
                     FluentFuture.from(renderContentForSlot(loadFuture, slotWrapper))
                     .withTimeout(
@@ -233,14 +233,15 @@ public class RenderFlow {
                                 Constants.EXTRA_RESULT, RenderOutputParcel.class);
                     }, mInjector.getExecutor())
                     .transform(
-                            result -> mDisplayHelper.generateHtml(result, mServicePackageName),
+                            result -> mDisplayHelper.generateHtml(
+                                    result, mService.getPackageName()),
                             mInjector.getExecutor())
                     .transformAsync(
                             result -> mDisplayHelper.displayHtml(
                                     result,
                                     logRecord,
                                     queryId,
-                                    mServicePackageName,
+                                    mService,
                                     mHostToken,
                                     mDisplayId,
                                     mWidth,
@@ -265,12 +266,11 @@ public class RenderFlow {
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mServicePackageName, mContext, /* includeLocalData */ false,
+                mService.getPackageName(), mContext, /* includeLocalData */ false,
                 /* includeEventData */ false);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_RENDER,
-                serviceParams);
+                isolatedServiceInfo, Constants.OP_RENDER, serviceParams);
         return FluentFuture.from(result)
                 .transform(
                     val -> {

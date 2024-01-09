@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.os.Bundle;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -24,12 +25,11 @@ import com.google.common.util.concurrent.ListenableFuture;
 public interface ProcessRunner {
     /** Loads a service in an isolated process */
     @NonNull public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
-            @NonNull String taskName, @NonNull String packageName);
+            @NonNull String taskName, @NonNull ComponentName componentName);
 
     /** Executes a service loaded in an isolated process */
     @NonNull public ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo,
-            @NonNull String className,
             int operationCode,
             @NonNull Bundle serviceParams);
 
