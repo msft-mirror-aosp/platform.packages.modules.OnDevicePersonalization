@@ -82,8 +82,6 @@ public class AppRequestFlow {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
-    @NonNull
-    private String mServiceClassName;
 
     @VisibleForTesting
     static class Injector {
@@ -169,10 +167,9 @@ public class AppRequestFlow {
                 sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
                 return;
             }
-            mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mService.getPackageName());
+                        TASK_NAME, mService);
             ListenableFuture<ExecuteOutputParcel> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeAppRequest(result),
@@ -251,7 +248,7 @@ public class AppRequestFlow {
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
+                isolatedServiceInfo, Constants.OP_EXECUTE, serviceParams);
         return FluentFuture.from(result)
                 .transform(
                     val -> {
@@ -290,21 +287,16 @@ public class AppRequestFlow {
             sLogger.d(TAG + ": createTokens() started.");
             ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
-            Objects.requireNonNull(renderingConfigs);
+            RenderingConfig renderingConfig = result.getRenderingConfig();
 
             List<String> tokens = new ArrayList<String>();
-            int slotIndex = 0;
-            for (RenderingConfig renderingConfig : renderingConfigs) {
-                if (renderingConfig == null) {
-                    tokens.add(null);
-                } else {
-                    SlotWrapper wrapper = new SlotWrapper(
-                            result.getRequestLogRecord(), slotIndex, renderingConfig,
-                            mService.getPackageName(), queryId);
-                    tokens.add(CryptUtils.encrypt(wrapper));
-                }
-                ++slotIndex;
+            if (renderingConfig == null) {
+                tokens.add(null);
+            } else {
+                SlotWrapper wrapper = new SlotWrapper(
+                        result.getRequestLogRecord(), renderingConfig,
+                        mService.getPackageName(), queryId);
+                tokens.add(CryptUtils.encrypt(wrapper));
             }
 
             return Futures.immediateFuture(tokens);

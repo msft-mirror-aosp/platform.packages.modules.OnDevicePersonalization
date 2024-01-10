@@ -37,7 +37,7 @@ public class SampleService extends IsolatedService {
             logData.put("pr", 5.0);
             ExecuteOutput result = new ExecuteOutput.Builder()
                     .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                    .addRenderingConfig(
+                    .setRenderingConfig(
                         new RenderingConfig.Builder().addKey("bid1").build()
                     )
                     .build();
