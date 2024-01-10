@@ -17,16 +17,13 @@
 package com.android.ondevicepersonalization.services.request;
 
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
-import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
-import android.content.ContentValues;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.PersistableBundle;
@@ -38,9 +35,6 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
-import com.android.ondevicepersonalization.services.data.events.Event;
-import com.android.ondevicepersonalization.services.data.events.EventsDao;
-import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
@@ -48,12 +42,13 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
+import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
-import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.AsyncCallable;
@@ -87,8 +82,6 @@ public class AppRequestFlow {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
-    @NonNull
-    private String mServiceClassName;
 
     @VisibleForTesting
     static class Injector {
@@ -109,7 +102,7 @@ public class AppRequestFlow {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunner.getInstance();
+            return ProcessRunnerImpl.getInstance();
         }
     }
 
@@ -174,10 +167,9 @@ public class AppRequestFlow {
                 sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
                 return;
             }
-            mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mService.getPackageName());
+                        TASK_NAME, mService);
             ListenableFuture<ExecuteOutputParcel> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeAppRequest(result),
@@ -256,7 +248,7 @@ public class AppRequestFlow {
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
+                isolatedServiceInfo, Constants.OP_EXECUTE, serviceParams);
         return FluentFuture.from(result)
                 .transform(
                     val -> {
@@ -281,57 +273,11 @@ public class AppRequestFlow {
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
         sLogger.d(TAG + ": logQuery() started.");
-        EventsDao eventsDao = EventsDao.getInstance(mContext);
-        // Insert query
-        List<ContentValues> rows = null;
-        if (result.getRequestLogRecord() != null) {
-            rows = result.getRequestLogRecord().getRows();
-        }
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                mService.getPackageName(), null, rows);
-        Query query = new Query.Builder()
-                .setServicePackageName(mService.getPackageName())
-                .setQueryData(queryData)
-                .setTimeMillis(System.currentTimeMillis())
-                .build();
-        long queryId = eventsDao.insertQuery(query);
-        if (queryId == -1) {
-            return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
-        }
-        // Insert events
-        List<Event> events = new ArrayList<>();
-        List<EventLogRecord> eventLogRecords = result.getEventLogRecords();
-        for (EventLogRecord eventLogRecord : eventLogRecords) {
-            RequestLogRecord requestLogRecord = eventLogRecord.getRequestLogRecord();
-            // Verify requestLogRecord exists and has the corresponding rowIndex
-            if (requestLogRecord == null || requestLogRecord.getRequestId() == 0
-                    || eventLogRecord.getRowIndex() >= requestLogRecord.getRows().size()) {
-                continue;
-            }
-            // Make sure query exists for package in QUERY table
-            Query queryRow = eventsDao.readSingleQueryRow(requestLogRecord.getRequestId(),
-                    mService.getPackageName());
-            if (queryRow == null || eventLogRecord.getRowIndex()
-                    >= OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
-                    queryRow.getQueryData())) {
-                continue;
-            }
-            Event event = new Event.Builder()
-                    .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(
-                            eventLogRecord.getData()))
-                    .setQueryId(requestLogRecord.getRequestId())
-                    .setRowIndex(eventLogRecord.getRowIndex())
-                    .setServicePackageName(mService.getPackageName())
-                    .setTimeMillis(System.currentTimeMillis())
-                    .setType(eventLogRecord.getType())
-                    .build();
-            events.add(event);
-        }
-        if (!eventsDao.insertEvents(events)) {
-            return Futures.immediateFailedFuture(new RuntimeException("Failed to log events."));
-        }
-
-        return Futures.immediateFuture(queryId);
+        return LogUtils.writeLogRecords(
+                mContext,
+                mService.getPackageName(),
+                result.getRequestLogRecord(),
+                result.getEventLogRecords());
     }
 
     private ListenableFuture<List<String>> createTokens(
@@ -341,21 +287,16 @@ public class AppRequestFlow {
             sLogger.d(TAG + ": createTokens() started.");
             ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
-            Objects.requireNonNull(renderingConfigs);
+            RenderingConfig renderingConfig = result.getRenderingConfig();
 
             List<String> tokens = new ArrayList<String>();
-            int slotIndex = 0;
-            for (RenderingConfig renderingConfig : renderingConfigs) {
-                if (renderingConfig == null) {
-                    tokens.add(null);
-                } else {
-                    SlotWrapper wrapper = new SlotWrapper(
-                            result.getRequestLogRecord(), slotIndex, renderingConfig,
-                            mService.getPackageName(), queryId);
-                    tokens.add(CryptUtils.encrypt(wrapper));
-                }
-                ++slotIndex;
+            if (renderingConfig == null) {
+                tokens.add(null);
+            } else {
+                SlotWrapper wrapper = new SlotWrapper(
+                        result.getRequestLogRecord(), renderingConfig,
+                        mService.getPackageName(), queryId);
+                tokens.add(CryptUtils.encrypt(wrapper));
             }
 
             return Futures.immediateFuture(tokens);
