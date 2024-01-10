@@ -102,11 +102,11 @@ public class FederatedComputeScheduler {
      * IsolatedService#getFederatedComputeScheduler} to pass scheduler when construct {@link
      * IsolatedWorker}.
      *
-     * @param populationName population name of the job that caller wants to cancel
-     * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
+     * @param input the configuration of the federated compute. It should be consistent with the
+     *     federated compute server setup.
      */
     @WorkerThread
-    public void cancel(@NonNull String populationName) {
+    public void cancel(@NonNull FederatedComputeInput input) {
         if (mFcService == null) {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
@@ -115,7 +115,7 @@ public class FederatedComputeScheduler {
         final int[] err = {0};
         try {
             mFcService.cancel(
-                    populationName,
+                    input.getPopulationName(),
                     new IFederatedComputeCallback.Stub() {
                         @Override
                         public void onSuccess() {
