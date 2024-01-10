@@ -48,21 +48,22 @@ public class LogUtils {
         sLogger.d(TAG + ": writeLogRecords() started.");
         EventsDao eventsDao = EventsDao.getInstance(context);
         // Insert query
-        List<ContentValues> rows = null;
+        long queryId = -1;
         if (requestLogRecord != null) {
-            rows = requestLogRecord.getRows();
+            List<ContentValues> rows = requestLogRecord.getRows();
+            byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                    servicePackageName, null, rows);
+            Query query = new Query.Builder()
+                    .setServicePackageName(servicePackageName)
+                    .setQueryData(queryData)
+                    .setTimeMillis(System.currentTimeMillis())
+                    .build();
+            queryId = eventsDao.insertQuery(query);
+            if (queryId == -1) {
+                return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
+            }
         }
-        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                servicePackageName, null, rows);
-        Query query = new Query.Builder()
-                .setServicePackageName(servicePackageName)
-                .setQueryData(queryData)
-                .setTimeMillis(System.currentTimeMillis())
-                .build();
-        long queryId = eventsDao.insertQuery(query);
-        if (queryId == -1) {
-            return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
-        }
+
         // Insert events
         List<Event> events = new ArrayList<>();
         for (EventLogRecord eventLogRecord : eventLogRecords) {
