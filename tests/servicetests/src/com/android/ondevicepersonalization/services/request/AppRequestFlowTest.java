@@ -47,7 +47,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -126,7 +125,7 @@ public class AppRequestFlowTest {
 
     class TestCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(List<String> tokens) {
+        public void onSuccess(String token) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }

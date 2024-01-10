@@ -21,6 +21,7 @@ import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
 import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.ExampleStoreService;
 import android.federatedcompute.FederatedComputeManager;
@@ -40,6 +41,7 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -77,7 +79,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunner.getInstance();
+            return ProcessRunnerImpl.getInstance();
         }
     }
 
@@ -153,8 +155,11 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setTaskName(taskName)
                             .build();
 
+            String className = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                    getContext(), packageName);
             ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(TASK_NAME, packageName);
+                    mInjector.getProcessRunner().loadIsolatedService(
+                        TASK_NAME, ComponentName.createRelative(packageName, className));
             ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
@@ -241,8 +246,6 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         .getProcessRunner()
                         .runIsolatedService(
                                 isolatedServiceInfo,
-                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                                        getContext(), packageName),
                                 Constants.OP_TRAINING_EXAMPLE,
                                 serviceParams);
         return FluentFuture.from(result)

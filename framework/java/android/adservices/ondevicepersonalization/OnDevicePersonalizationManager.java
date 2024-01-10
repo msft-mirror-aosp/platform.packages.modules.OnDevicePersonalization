@@ -37,7 +37,6 @@ import android.view.SurfaceControlViewHost;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.modules.utils.build.SdkLevel;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -52,6 +51,8 @@ import java.util.concurrent.Executor;
  * persistent results to on-device storage which can be consumed by Federated Analytics for
  * cross-device statistical analysis or by Federated Learning for model training. The displayed
  * content and the persistent output are both not directly accessible by the calling app.
+ *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationManager {
@@ -96,15 +97,14 @@ public class OnDevicePersonalizationManager {
      *     {@link IsolatedService}. The expected contents of this parameter are defined
      *     by the{@link IsolatedService}. The platform does not interpret this parameter.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This returns a list of {@link SurfacePackageToken} objects, each of which is
+     * @param receiver This returns a {@link SurfacePackageToken} object, which is
      *     an opaque reference to a {@link RenderingConfig} returned by an
      *     {@link IsolatedService}, or an {@link Exception} on failure. The returned
      *     {@link SurfacePackageToken} objects can be used in a subsequent
      *     {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, Executor,
-     *     OutcomeReceiver)} call to display the result in a view. The calling app and
-     *     the {@link IsolatedService} must agree on the expected size of this list.
-     *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
-     *     indicate that the service has no output for that specific surface.
+     *     OutcomeReceiver)} call to display the result in a view. The returned
+     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
+     *     displayed for this request.
      *
      *     In case of an error, the receiver returns one of the following exceptions:
      *     Returns a {@link android.content.pm.PackageManager.NameNotFoundException} if the handler
@@ -116,7 +116,7 @@ public class OnDevicePersonalizationManager {
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<List<SurfacePackageToken>, Exception> receiver
+            @NonNull OutcomeReceiver<SurfacePackageToken, Exception> receiver
     ) {
         Objects.requireNonNull(handler);
         Objects.requireNonNull(params);
@@ -131,19 +131,16 @@ public class OnDevicePersonalizationManager {
             IExecuteCallback callbackWrapper = new IExecuteCallback.Stub() {
                 @Override
                 public void onSuccess(
-                        @NonNull List<String> tokenStrings) {
+                        String tokenString) {
                     executor.execute(() -> {
                         try {
-                            ArrayList<SurfacePackageToken> tokens =
-                                    new ArrayList<>(tokenStrings.size());
-                            for (String tokenString : tokenStrings) {
-                                if (tokenString == null) {
-                                    tokens.add(null);
-                                } else {
-                                    tokens.add(new SurfacePackageToken(tokenString));
-                                }
+                            SurfacePackageToken token;
+                            if (tokenString == null || tokenString.isBlank()) {
+                                token = null;
+                            } else {
+                                token = new SurfacePackageToken(tokenString);
                             }
-                            receiver.onResult(tokens);
+                            receiver.onResult(token);
                         } catch (Exception e) {
                             receiver.onError(e);
                         }
