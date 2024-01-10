@@ -101,6 +101,11 @@ public class AppRequestFlow {
         ProcessRunner getProcessRunner() {
             return ProcessRunnerImpl.getInstance();
         }
+
+        boolean isPersonalizationStatusEnabled() {
+            UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
+            return privacyStatus.isPersonalizationStatusEnabled();
+        }
     }
 
     @NonNull
@@ -144,7 +149,7 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            if (!isPersonalizationStatusEnabled()) {
+            if (!mInjector.isPersonalizationStatusEnabled()) {
                 sLogger.d(TAG + ": Personalization is disabled.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return;
@@ -340,11 +345,6 @@ public class AppRequestFlow {
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
-    private boolean isPersonalizationStatusEnabled() {
-        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
-        return privacyStatus.isPersonalizationStatusEnabled();
     }
 }
 
