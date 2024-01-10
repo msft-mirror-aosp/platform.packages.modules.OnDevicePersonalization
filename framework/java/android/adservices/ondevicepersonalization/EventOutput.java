@@ -25,6 +25,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  *  The result returned by {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)

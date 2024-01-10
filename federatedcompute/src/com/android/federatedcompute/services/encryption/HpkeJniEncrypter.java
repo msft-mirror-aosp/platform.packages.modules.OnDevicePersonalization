@@ -14,21 +14,18 @@
  * limitations under the License.
  */
 
-package android.ondevicepersonalization.test.scenario.ondevicepersonalization;
+package com.android.federatedcompute.services.encryption;
 
-import android.platform.test.microbenchmark.Microbenchmark;
-import android.platform.test.rule.DropCachesRule;
-import android.platform.test.rule.PressHomeRule;
+import com.android.federatedcompute.services.encryption.jni.HpkeJni;
 
-import org.junit.Rule;
-import org.junit.rules.RuleChain;
-import org.junit.runner.RunWith;
 
-@RunWith(Microbenchmark.class)
-public class DownloadVendorDataFromServerLargeFileMicrobenchmark
-        extends DownloadVendorDataFromServerLargeFile {
+/**
+ * The implementation of HPKE (Hybrid Public Key Encryption) using BoringSSL JNI.
+ */
+public class HpkeJniEncrypter implements Encrypter {
 
-    @Rule
-    public RuleChain rules = RuleChain.outerRule(new DropCachesRule())
-            .around(new PressHomeRule());
+    @Override
+    public byte[] encrypt(byte[] publicKey, byte[] plainText, byte[] associatedData) {
+        return HpkeJni.encrypt(publicKey, plainText, associatedData);
+    }
 }

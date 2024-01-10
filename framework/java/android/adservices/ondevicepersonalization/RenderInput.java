@@ -28,6 +28,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  * The input data for
  * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)}.
  *
+ * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
@@ -39,12 +40,6 @@ public final class RenderInput {
     private int mHeight = 0;
 
     /**
-     * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
-     * request is for.
-     */
-    private int mRenderingConfigIndex = 0;
-
-    /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
      * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
      */
@@ -52,8 +47,7 @@ public final class RenderInput {
 
     /** @hide */
     public RenderInput(@NonNull RenderInputParcel parcel) {
-        this(parcel.getWidth(), parcel.getHeight(), parcel.getRenderingConfigIndex(),
-                parcel.getRenderingConfig());
+        this(parcel.getWidth(), parcel.getHeight(), parcel.getRenderingConfig());
     }
 
 
@@ -78,9 +72,6 @@ public final class RenderInput {
      *   The width of the slot.
      * @param height
      *   The height of the slot.
-     * @param renderingConfigIndex
-     *   The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
-     *   request is for.
      * @param renderingConfig
      *   A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
      *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
@@ -90,11 +81,9 @@ public final class RenderInput {
     public RenderInput(
             int width,
             int height,
-            int renderingConfigIndex,
             @Nullable RenderingConfig renderingConfig) {
         this.mWidth = width;
         this.mHeight = height;
-        this.mRenderingConfigIndex = renderingConfigIndex;
         this.mRenderingConfig = renderingConfig;
 
         // onConstructed(); // You can define this method to get a callback
@@ -114,15 +103,6 @@ public final class RenderInput {
     @DataClass.Generated.Member
     public int getHeight() {
         return mHeight;
-    }
-
-    /**
-     * The index of the {@link RenderingConfig} in {@link ExecuteOutput} that this render
-     * request is for.
-     */
-    @DataClass.Generated.Member
-    public int getRenderingConfigIndex() {
-        return mRenderingConfigIndex;
     }
 
     /**
@@ -149,7 +129,6 @@ public final class RenderInput {
         return true
                 && mWidth == that.mWidth
                 && mHeight == that.mHeight
-                && mRenderingConfigIndex == that.mRenderingConfigIndex
                 && java.util.Objects.equals(mRenderingConfig, that.mRenderingConfig);
     }
 
@@ -162,16 +141,15 @@ public final class RenderInput {
         int _hash = 1;
         _hash = 31 * _hash + mWidth;
         _hash = 31 * _hash + mHeight;
-        _hash = 31 * _hash + mRenderingConfigIndex;
         _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingConfig);
         return _hash;
     }
 
     @DataClass.Generated(
-            time = 1698879032836L,
+            time = 1704831946167L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderInput.java",
-            inputSignatures = "private  int mWidth\nprivate  int mHeight\nprivate  int mRenderingConfigIndex\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mWidth\nprivate  int mHeight\n @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nclass RenderInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

@@ -31,6 +31,8 @@ import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInput;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
+import android.adservices.ondevicepersonalization.WebTriggerInput;
+import android.adservices.ondevicepersonalization.WebTriggerOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.util.Log;
@@ -81,7 +83,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         ExecuteOutput result =
                 new ExecuteOutput.Builder()
                         .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                        .addRenderingConfig(new RenderingConfig.Builder().addKey("bid1").build())
+                        .setRenderingConfig(new RenderingConfig.Builder().addKey("bid1").build())
                         .addEventLogRecord(
                                 new EventLogRecord.Builder()
                                         .setData(logData)
@@ -158,6 +160,32 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                 new TrainingExamplesOutput.Builder()
                         .setTrainingExamples(examples)
                         .setResumptionTokens(tokens)
+                        .build();
+        consumer.accept(output);
+    }
+
+    @Override
+    public void onWebTrigger(
+            @NonNull WebTriggerInput input,
+            @NonNull Consumer<WebTriggerOutput> consumer) {
+        Log.d(TAG, "onWebTrigger() started.");
+        ContentValues logData = new ContentValues();
+        logData.put("id", "trig1");
+        logData.put("val", 10.0);
+        WebTriggerOutput output =
+                new WebTriggerOutput.Builder()
+                        .addEventLogRecord(
+                                new EventLogRecord.Builder()
+                                        .setData(logData)
+                                        .setRequestLogRecord(
+                                                new RequestLogRecord.Builder()
+                                                        .addRow(logData)
+                                                        .addRow(logData)
+                                                        .setRequestId(1)
+                                                        .build())
+                                        .setType(10)
+                                        .setRowIndex(1)
+                                        .build())
                         .build();
         consumer.accept(output);
     }
