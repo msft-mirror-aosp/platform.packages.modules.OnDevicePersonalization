@@ -178,7 +178,7 @@ public class RenderFlow {
                     mInjector.getProcessRunner().loadIsolatedService(
                             TASK_NAME, mService);
             ListenableFuture<SurfacePackage> surfacePackageFuture =
-                    FluentFuture.from(renderContentForSlot(loadFuture, slotWrapper))
+                    FluentFuture.from(renderContent(loadFuture, slotWrapper))
                     .withTimeout(
                             mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
                             TimeUnit.SECONDS,
@@ -211,7 +211,7 @@ public class RenderFlow {
         }
     }
 
-    private ListenableFuture<SurfacePackage> renderContentForSlot(
+    private ListenableFuture<SurfacePackage> renderContent(
             @NonNull ListenableFuture<IsolatedServiceInfo> loadFuture,
             @NonNull SlotWrapper slotWrapper
     ) {
@@ -226,7 +226,7 @@ public class RenderFlow {
             return FluentFuture.from(loadFuture)
                     .transformAsync(
                             loadResult -> executeRenderContentRequest(
-                                    loadResult, slotWrapper.getSlotIndex(), renderingConfig),
+                                    loadResult, renderingConfig),
                             mInjector.getExecutor())
                     .transform(result -> {
                         return result.getParcelable(
@@ -253,7 +253,7 @@ public class RenderFlow {
     }
 
     private ListenableFuture<Bundle> executeRenderContentRequest(
-            IsolatedServiceInfo isolatedServiceInfo, int slotIndex,
+            IsolatedServiceInfo isolatedServiceInfo,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
         Bundle serviceParams = new Bundle();
@@ -261,7 +261,6 @@ public class RenderFlow {
                 new RenderInputParcel.Builder()
                     .setHeight(mHeight)
                     .setWidth(mWidth)
-                    .setRenderingConfigIndex(slotIndex)
                     .setRenderingConfig(renderingConfig)
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
