@@ -123,11 +123,10 @@ public class RenderFlowTest {
         RenderingConfig info =
                 new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
         SlotWrapper data = new SlotWrapper(
-                logRecord, 0, info, mContext.getPackageName(), 0);
+                logRecord, info, mContext.getPackageName(), 0);
         String encrypted = CryptUtils.encrypt(data);
         SlotWrapper decrypted = injector.decryptToken(encrypted);
         assertEquals(data.getLogRecord(), decrypted.getLogRecord());
-        assertEquals(data.getSlotIndex(), decrypted.getSlotIndex());
         assertEquals(data.getQueryId(), decrypted.getQueryId());
         assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
         assertEquals(data.getRenderingConfig(), decrypted.getRenderingConfig());
@@ -144,7 +143,7 @@ public class RenderFlowTest {
                 RenderingConfig info =
                         new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
                 SlotWrapper data = new SlotWrapper(
-                        logRecord, 0, info, mContext.getPackageName(), 0);
+                        logRecord, info, mContext.getPackageName(), 0);
                 return data;
             } else {
                 return null;
