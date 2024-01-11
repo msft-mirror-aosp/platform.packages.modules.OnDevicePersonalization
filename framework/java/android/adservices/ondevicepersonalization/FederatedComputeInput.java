@@ -52,7 +52,7 @@ public final class FederatedComputeInput {
     // @formatter:off
 
     @DataClass.Generated.Member
-    /* package-private */ FederatedComputeInput(@NonNull String populationName) {
+        /* package-private */ FederatedComputeInput(@NonNull String populationName) {
         this.mPopulationName = populationName;
         AnnotationValidations.validate(NonNull.class, null, mPopulationName);
 

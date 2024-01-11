@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.federatedcompute.FederatedComputeManager;
@@ -59,7 +60,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     @NonNull
     private final Context mApplicationContext;
     @NonNull
-    private final String mServicePackageName;
+    private ComponentName mCallingService;
     @NonNull
     private final Injector mInjector;
 
@@ -68,20 +69,20 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
 
     @VisibleForTesting
     public FederatedComputeServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             @NonNull Injector injector) {
         this.mApplicationContext = Objects.requireNonNull(applicationContext);
-        this.mServicePackageName = Objects.requireNonNull(servicePackageName);
+        this.mCallingService = Objects.requireNonNull(service);
         this.mInjector = Objects.requireNonNull(injector);
         this.mFederatedComputeManager = Objects.requireNonNull(
                 injector.getFederatedComputeManager(mApplicationContext));
     }
 
     public FederatedComputeServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext) {
-        this(servicePackageName, applicationContext, new Injector());
+        this(service, applicationContext, new Injector());
     }
 
     @Override
@@ -89,34 +90,42 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
             IFederatedComputeCallback callback) {
         try {
             String url = AppManifestConfigHelper.getFcRemoteServerUrlFromOdpSettings(
-                    mApplicationContext, mServicePackageName);
+                    mApplicationContext, mCallingService.getPackageName());
 
             // Check for override manifest url property, if package is debuggable
-            if (PackageUtils.isPackageDebuggable(mApplicationContext, mServicePackageName)) {
+            if (PackageUtils.isPackageDebuggable(
+                    mApplicationContext, mCallingService.getPackageName())) {
                 if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "").equals(
-                        mServicePackageName)) {
+                        mCallingService.getPackageName())) {
                     String overrideManifestUrl = SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
                     if (!overrideManifestUrl.isEmpty()) {
                         sLogger.d(TAG + ": Overriding fc server URL for package "
-                                + mServicePackageName + " to " + overrideManifestUrl);
+                                + mCallingService.getPackageName() + " to " + overrideManifestUrl);
                         url = overrideManifestUrl;
                     }
                 }
             }
 
             if (url == null) {
-                sLogger.d("Missing remote server URL for package: " + mServicePackageName);
+                sLogger.d(
+                        "Missing remote server URL for package: "
+                                + mCallingService.getPackageName());
                 sendError(callback);
                 return;
             }
 
-            ContextData contextData = new ContextData(mServicePackageName);
-            TrainingOptions trainingOptionsWithContext = new TrainingOptions.Builder()
-                    .setContextData(ContextData.toByteArray(contextData))
-                    .setTrainingInterval(trainingOptions.getTrainingInterval())
-                    .setPopulationName(trainingOptions.getPopulationName())
-                    .setServerAddress(url)
-                    .build();
+            ContextData contextData = new ContextData(mCallingService.getPackageName());
+            TrainingOptions trainingOptionsWithContext =
+                    new TrainingOptions.Builder()
+                            .setContextData(ContextData.toByteArray(contextData))
+                            .setTrainingInterval(trainingOptions.getTrainingInterval())
+                            .setPopulationName(trainingOptions.getPopulationName())
+                            .setServerAddress(url)
+                            .setOwnerComponentName(mCallingService)
+                            .setOwnerIdentifierCertDigest(
+                                    PackageUtils.getCertDigest(
+                                            mApplicationContext, mCallingService.getPackageName()))
+                            .build();
             ScheduleFederatedComputeRequest request =
                     new ScheduleFederatedComputeRequest.Builder()
                             .setTrainingOptions(trainingOptionsWithContext)
@@ -129,7 +138,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                         public void onResult(Object result) {
                             mInjector.getEventsDao(mApplicationContext).updateOrInsertEventState(
                                     new EventState.Builder()
-                                            .setServicePackageName(mServicePackageName)
+                                            .setServicePackageName(mCallingService.getPackageName())
                                             .setTaskIdentifier(trainingOptions.getPopulationName())
                                             .setToken(new byte[]{})
                                             .build());
@@ -152,9 +161,9 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     public void cancel(String populationName,
             IFederatedComputeCallback callback) {
         EventState eventState = mInjector.getEventsDao(mApplicationContext).getEventState(
-                populationName, mServicePackageName);
+                populationName, mCallingService.getPackageName());
         if (eventState == null) {
-            sLogger.d("No population registered for package: " + mServicePackageName);
+            sLogger.d("No population registered for package: " + mCallingService.getPackageName());
             sendSuccess(callback);
             return;
         }
