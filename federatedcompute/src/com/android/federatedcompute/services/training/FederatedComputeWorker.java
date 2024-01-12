@@ -240,7 +240,8 @@ public class FederatedComputeWorker {
             mHttpFederatedProtocol =
                     getHttpFederatedProtocol(run.mTask.serverAddress(), run.mTask.populationName());
             ListenableFuture<CheckinResult> checkinResultFuture =
-                    mHttpFederatedProtocol.issueCheckin();
+                    mHttpFederatedProtocol.issueCheckin(
+                            run.mTask.ownerId(), run.mTask.ownerIdCertDigest());
 
             return FluentFuture.from(checkinResultFuture)
                     .transformAsync(
