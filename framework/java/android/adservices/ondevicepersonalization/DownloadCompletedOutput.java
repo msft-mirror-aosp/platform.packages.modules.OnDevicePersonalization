@@ -31,7 +31,6 @@ import java.util.List;
  * The result returned by {@link
  * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
  *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)

@@ -25,11 +25,7 @@ import android.annotation.Nullable;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
-/**
- * The input data for {@link IsolatedWorker#onTrainingExamples}.
- *
- * @hide
- */
+/** The input data for {@link IsolatedWorker#onTrainingExamples}. */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class TrainingExamplesInput {
