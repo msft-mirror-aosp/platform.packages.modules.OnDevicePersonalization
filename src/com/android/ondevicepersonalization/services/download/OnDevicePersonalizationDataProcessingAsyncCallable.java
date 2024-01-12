@@ -267,8 +267,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 mPackageName, mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
-                mPackageName, mContext);
+        FederatedComputeServiceImpl fcpBinder =
+                new FederatedComputeServiceImpl(
+                        ComponentName.createRelative(
+                                mPackageName,
+                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                                        mContext, mPackageName)),
+                        mContext);
         pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
 
         List<String> keys = new ArrayList<>();
