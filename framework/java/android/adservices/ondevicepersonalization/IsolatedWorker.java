@@ -30,7 +30,6 @@ import java.util.function.Consumer;
  * IsolatedService} calls the method on a Binder thread and the {@link IsolatedWorker} should
  * offload long running operations to a worker thread. The consumer parameter of each method is used
  * to return results.
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface IsolatedWorker {
