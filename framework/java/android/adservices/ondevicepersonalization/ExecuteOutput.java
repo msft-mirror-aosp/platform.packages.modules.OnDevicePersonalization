@@ -58,7 +58,7 @@ public final class ExecuteOutput {
      * {@link EventLogRecord#getRequestLogRecord()}.
      * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      * EventLogRecord is not written.
-     *
+     * @hide
      */
     @DataClass.PluralOf("eventLogRecord")
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
@@ -117,6 +117,8 @@ public final class ExecuteOutput {
      * {@link EventLogRecord#getRequestLogRecord()}.
      * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      * EventLogRecord is not written.
+     *
+     * @hide
      */
     @DataClass.Generated.Member
     public @NonNull List<EventLogRecord> getEventLogRecords() {
@@ -157,6 +159,7 @@ public final class ExecuteOutput {
     /**
      * A builder for {@link ExecuteOutput}
      */
+    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
@@ -201,6 +204,8 @@ public final class ExecuteOutput {
          * {@link EventLogRecord#getRequestLogRecord()}.
          * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
          * EventLogRecord is not written.
+         *
+         * @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
@@ -210,7 +215,7 @@ public final class ExecuteOutput {
             return this;
         }
 
-        /** @see #setEventLogRecords */
+        /** @see #setEventLogRecords @hide */
         @DataClass.Generated.Member
         public @NonNull Builder addEventLogRecord(@NonNull EventLogRecord value) {
             if (mEventLogRecords == null) setEventLogRecords(new java.util.ArrayList<>());
@@ -248,7 +253,7 @@ public final class ExecuteOutput {
     }
 
     @DataClass.Generated(
-            time = 1704831744922L,
+            time = 1705026369283L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
             inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
