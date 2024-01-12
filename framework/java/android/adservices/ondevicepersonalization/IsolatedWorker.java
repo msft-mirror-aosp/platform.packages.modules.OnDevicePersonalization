@@ -136,6 +136,8 @@ public interface IsolatedWorker {
      * @param consumer Callback that receives the result. Should be called with <code>null</code> on
      *     an error. If called with <code>null</code>, no data is written to the REQUESTS or EVENTS
      *     tables.
+     *
+     * @hide
      */
     default void onWebTrigger(
             @NonNull WebTriggerInput input,
