@@ -118,6 +118,9 @@ public final class FederatedComputeWorkerTest {
     private static final long CREATION_TIME_MS = 10000L;
     private static final long TASK_EARLIEST_NEXT_RUN_TIME_MS = 1234567L;
     private static final String PACKAGE_NAME = "com.android.federatedcompute.services.training";
+    private static final String OWNER_ID =
+            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String SERVER_ADDRESS = "https://server.com/";
     private static final byte[] DEFAULT_TRAINING_CONSTRAINTS =
             createTrainingConstraints(true, true, true);
@@ -162,6 +165,8 @@ public final class FederatedComputeWorkerTest {
                     .serverAddress(SERVER_ADDRESS)
                     .populationName(POPULATION_NAME)
                     .jobId(JOB_ID)
+                    .ownerId(OWNER_ID)
+                    .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                     .intervalOptions(INTERVAL_OPTIONS)
                     .constraints(DEFAULT_TRAINING_CONSTRAINTS)
                     .earliestNextRunTime(TASK_EARLIEST_NEXT_RUN_TIME_MS)

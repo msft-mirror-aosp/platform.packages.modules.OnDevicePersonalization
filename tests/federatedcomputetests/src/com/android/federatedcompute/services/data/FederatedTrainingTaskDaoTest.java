@@ -41,6 +41,9 @@ public final class FederatedTrainingTaskDaoTest {
     private static final String POPULATION_NAME = "population_name";
     private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
+    private static final String OWNER_ID =
+            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
     private static final Long LAST_RUN_START_TIME = 1200L;
@@ -191,6 +194,8 @@ public final class FederatedTrainingTaskDaoTest {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
+                .ownerId(OWNER_ID)
+                .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                 .populationName(POPULATION_NAME)
                 .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
