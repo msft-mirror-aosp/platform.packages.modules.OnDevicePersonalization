@@ -28,7 +28,6 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -47,7 +46,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -81,8 +79,6 @@ public class AppRequestFlowTest {
                 new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
-        PhFlagsTestUtil.disablePersonalizationStatusOverride();
-        mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
     }
 
     @After
@@ -112,12 +108,16 @@ public class AppRequestFlowTest {
 
     @Test
     public void testRunAppRequestFlowPersonalizationDisabled() throws Exception {
-        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 PersistableBundle.EMPTY,
-                new TestCallback(), mContext, 100L, new TestInjector());
+                new TestCallback(), mContext, 100L,
+                new TestInjector() {
+                    @Override boolean isPersonalizationStatusEnabled() {
+                        return false;
+                    }
+                });
         appRequestFlow.run();
         mLatch.await();
         assertTrue(mCallbackError);
@@ -126,7 +126,7 @@ public class AppRequestFlowTest {
 
     class TestCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(List<String> tokens) {
+        public void onSuccess(String token) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
@@ -140,8 +140,11 @@ public class AppRequestFlowTest {
     }
 
     class TestInjector extends AppRequestFlow.Injector {
-        ListeningExecutorService getExecutor() {
+        @Override ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
+        }
+        @Override boolean isPersonalizationStatusEnabled() {
+            return true;
         }
     }
 }
