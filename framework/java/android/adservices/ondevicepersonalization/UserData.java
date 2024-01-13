@@ -43,7 +43,7 @@ import java.util.Map;
 
 /**
  * User data provided by the platform to an {@link IsolatedService}.
- * @hide
+ *
  */
 // This class should be updated with the Kotlin mirror
 // {@link com.android.ondevicepersonalization.services.policyengine.data.UserData}.

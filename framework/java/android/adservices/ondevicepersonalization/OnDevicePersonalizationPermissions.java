@@ -20,6 +20,7 @@ import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ON
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.SystemApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
 
@@ -28,6 +29,7 @@ import android.content.pm.PackageManager;
  *
  * @hide
 */
+@SystemApi
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationPermissions {
     private OnDevicePersonalizationPermissions() {}

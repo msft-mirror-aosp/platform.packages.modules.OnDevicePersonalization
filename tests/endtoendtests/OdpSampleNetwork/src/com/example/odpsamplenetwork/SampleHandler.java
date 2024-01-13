@@ -275,7 +275,7 @@ public class SampleHandler implements IsolatedWorker {
         ContentValues logData = createLogRecord(ad.mId, ad.mPrice, ad.mPrice * 10.0);
         return new ExecuteOutput.Builder()
                 .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                .addRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
+                .setRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
                 .build();
     }
 
@@ -347,9 +347,11 @@ public class SampleHandler implements IsolatedWorker {
                         .build();
                 FederatedComputeScheduler.Params params = new FederatedComputeScheduler
                         .Params(interval);
-                FederatedComputeInput fcInput = new FederatedComputeInput.Builder()
-                        .setPopulationName(input.getAppParams().getString("schedule_training"))
-                        .build();
+                FederatedComputeInput fcInput =
+                        new FederatedComputeInput.Builder()
+                                .setPopulationName(
+                                        input.getAppParams().getString("schedule_training"))
+                                .build();
                 mFCScheduler.schedule(params, fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();

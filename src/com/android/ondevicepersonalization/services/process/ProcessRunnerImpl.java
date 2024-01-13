@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.process;
 import android.adservices.ondevicepersonalization.Constants;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 
@@ -91,11 +92,13 @@ public class ProcessRunnerImpl implements ProcessRunner {
 
     /** Loads a service in an isolated process */
     @Override @NonNull public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
-            @NonNull String taskName, @NonNull String packageName) {
+            @NonNull String taskName, @NonNull ComponentName componentName) {
         try {
+            String packageName = Objects.requireNonNull(componentName.getPackageName());
             sLogger.d(TAG + ": loadIsolatedService: " + packageName);
             return loadPlugin(
                     mInjector.getClock().elapsedRealtime(),
+                    componentName,
                     createPluginController(
                         createPluginId(packageName, taskName),
                         getPluginManager(mApplicationContext),
@@ -108,12 +111,14 @@ public class ProcessRunnerImpl implements ProcessRunner {
     /** Executes a service loaded in an isolated process */
     @Override @NonNull public ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo,
-            @NonNull String className,
             int operationCode,
             @NonNull Bundle serviceParams) {
-        sLogger.d(TAG + ": runIsolatedService: " + className + " op: " + operationCode);
+        sLogger.d(TAG + ": runIsolatedService: " + isolatedProcessInfo.getComponentName()
+                + " op: " + operationCode);
         Bundle pluginParams = new Bundle();
-        pluginParams.putString(PARAM_CLASS_NAME_KEY, className);
+        pluginParams.putString(
+                PARAM_CLASS_NAME_KEY,
+                isolatedProcessInfo.getComponentName().getClassName());
         pluginParams.putInt(PARAM_OPERATION_KEY, operationCode);
         pluginParams.putParcelable(PARAM_SERVICE_INPUT, serviceParams);
         return executePlugin(isolatedProcessInfo.getPluginController(), pluginParams);
@@ -147,6 +152,7 @@ public class ProcessRunnerImpl implements ProcessRunner {
 
     @NonNull static ListenableFuture<IsolatedServiceInfo> loadPlugin(
             long startTimeMillis,
+            @NonNull ComponentName componentName,
             @NonNull PluginController pluginController) {
         return CallbackToFutureAdapter.getFuture(
             completer -> {
@@ -155,7 +161,7 @@ public class ProcessRunnerImpl implements ProcessRunner {
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
                             completer.set(new IsolatedServiceInfo(
-                                    startTimeMillis, pluginController));
+                                    startTimeMillis, componentName, pluginController));
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OdpServiceException(

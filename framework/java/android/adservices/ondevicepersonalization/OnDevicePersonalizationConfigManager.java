@@ -26,6 +26,7 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
+import android.annotation.SystemApi;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -50,6 +51,7 @@ import java.util.concurrent.TimeUnit;
  *
  * @hide
  */
+@SystemApi
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationConfigManager {
     /** @hide */

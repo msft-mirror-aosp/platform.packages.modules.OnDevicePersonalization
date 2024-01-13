@@ -21,6 +21,8 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.google.common.collect.ImmutableSet;
 import com.google.protobuf.ByteString;
 
+import org.json.JSONObject;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -48,6 +50,15 @@ public final class HttpClientUtil {
         GET,
         POST,
         PUT,
+    }
+    public static final class FederatedComputePayloadDataContract {
+        public static final String KEY_ID = "keyId";
+
+        public static final String ENCRYPTED_PAYLOAD = "encryptedPayload";
+
+        public static final String ASSOCIATED_DATA_KEY = "associatedData";
+
+        public static final byte[] ASSOCIATED_DATA = new JSONObject().toString().getBytes();
     }
 
     /** Compresses the input data using Gzip. */

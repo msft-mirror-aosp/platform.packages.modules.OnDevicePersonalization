@@ -25,6 +25,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -69,6 +70,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 @RunWith(JUnit4.class)
 public class OdpWebViewClientTests {
     private static final long QUERY_ID = 1L;
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private final EventUrlPayload mTestEventPayload =
@@ -198,7 +200,8 @@ public class OdpWebViewClientTests {
     @Test
     public void testDefaultInjector() {
         // Assert constructor using default injector succeeds.
-        new OdpWebViewClient(mContext, mContext.getPackageName(), 0,
+        new OdpWebViewClient(mContext,
+                ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS), 0,
                 new RequestLogRecord.Builder().build());
 
         // Mock context for default injector tests.
@@ -233,8 +236,9 @@ public class OdpWebViewClientTests {
     }
 
     private WebViewClient getWebViewClient(long queryId, RequestLogRecord logRecord) {
-        return new OdpWebViewClient(mContext, mContext.getPackageName(), queryId, logRecord,
-                new TestInjector());
+        return new OdpWebViewClient(mContext,
+                ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
+                queryId, logRecord, new TestInjector());
     }
 
     private static PersistableBundle createEventParameters() {

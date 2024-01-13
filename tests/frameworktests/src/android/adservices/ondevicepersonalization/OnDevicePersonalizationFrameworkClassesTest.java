@@ -68,7 +68,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         ExecuteOutput data =
                 new ExecuteOutput.Builder()
                     .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
-                    .addRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                    .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                     .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
                     .build();
         ExecuteOutputParcel result = new ExecuteOutputParcel(data);
@@ -80,7 +80,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
 
         assertEquals(
                 5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
-        assertEquals("abc", result2.getRenderingConfigs().get(0).getKeys().get(0));
+        assertEquals("abc", result2.getRenderingConfig().getKeys().get(0));
         assertEquals(1, result2.getEventLogRecords().get(0).getType());
     }
 
@@ -92,7 +92,6 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         RenderInputParcel data = new RenderInputParcel.Builder()
                 .setWidth(10)
                 .setHeight(20)
-                .setRenderingConfigIndex(5)
                 .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                 .build();
 
@@ -104,7 +103,6 @@ public class OnDevicePersonalizationFrameworkClassesTest {
 
         assertEquals(10, result.getWidth());
         assertEquals(20, result.getHeight());
-        assertEquals(5, result.getRenderingConfigIndex());
         assertEquals("abc", result.getRenderingConfig().getKeys().get(0));
     }
 
