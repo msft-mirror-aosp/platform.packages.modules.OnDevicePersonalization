@@ -42,6 +42,7 @@ public final class FederatedTrainingTaskDaoTest {
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
     private static final String TASK_NAME = "task_name";
+    private static final String TASK_ID = "task_id";
     private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
     private static final String OWNER_ID =
@@ -57,7 +58,7 @@ public final class FederatedTrainingTaskDaoTest {
     private static final TaskHistory TASK_HISTORY =
             new TaskHistory.Builder()
                     .setJobId(JOB_ID)
-                    .setTaskName(TASK_NAME)
+                    .setTaskId(TASK_ID)
                     .setPopulationName(POPULATION_NAME)
                     .setContributionTime(100L)
                     .setContributionRound(10)
@@ -200,8 +201,7 @@ public final class FederatedTrainingTaskDaoTest {
     public void insertTaskHistory_success() {
         assertTrue(mTrainingTaskDao.updateOrInsertTaskHistory(TASK_HISTORY));
 
-        TaskHistory taskHistory =
-                mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_NAME);
+        TaskHistory taskHistory = mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
 
         assertThat(taskHistory).isEqualTo(TASK_HISTORY);
     }
@@ -215,14 +215,13 @@ public final class FederatedTrainingTaskDaoTest {
                 new TaskHistory.Builder()
                         .setJobId(JOB_ID)
                         .setPopulationName(POPULATION_NAME)
-                        .setTaskName(TASK_NAME)
+                        .setTaskId(TASK_ID)
                         .setContributionRound(15)
                         .setTotalParticipation(3)
                         .setContributionTime(500L)
                         .build());
 
-        TaskHistory taskHistory =
-                mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_NAME);
+        TaskHistory taskHistory = mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
         assertThat(taskHistory.getContributionRound()).isEqualTo(15);
         assertThat(taskHistory.getTotalParticipation()).isEqualTo(3);
         assertThat(taskHistory.getContributionTime()).isEqualTo(500L);

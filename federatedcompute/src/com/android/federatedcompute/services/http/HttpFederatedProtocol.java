@@ -416,9 +416,7 @@ public final class HttpFederatedProtocol {
     private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
             ComputationResult computationResult, NetworkStats networkStats) {
         Result result =
-                (computationResult != null && computationResult.isResultSuccess())
-                        ? Result.COMPLETED
-                        : Result.FAILED;
+                computationResult == null ? Result.FAILED : computationResult.convertToResult();
         if (result == Result.COMPLETED) {
             mTrainingEventLogger.logResultUploadStarted();
         } else {
