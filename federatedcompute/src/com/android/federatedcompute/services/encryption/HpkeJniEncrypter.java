@@ -14,10 +14,18 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization.aidl;
+package com.android.federatedcompute.services.encryption;
 
-/** @hide */
-oneway interface IExecuteCallback {
-    void onSuccess(in String result);
-    void onError(int errorCode);
+import com.android.federatedcompute.services.encryption.jni.HpkeJni;
+
+
+/**
+ * The implementation of HPKE (Hybrid Public Key Encryption) using BoringSSL JNI.
+ */
+public class HpkeJniEncrypter implements Encrypter {
+
+    @Override
+    public byte[] encrypt(byte[] publicKey, byte[] plainText, byte[] associatedData) {
+        return HpkeJni.encrypt(publicKey, plainText, associatedData);
+    }
 }

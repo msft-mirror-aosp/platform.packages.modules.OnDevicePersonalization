@@ -32,7 +32,6 @@ import java.util.Set;
  *
  * @see IsolatedService#getRemoteData(RequestToken)
  *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public interface KeyValueStore {
