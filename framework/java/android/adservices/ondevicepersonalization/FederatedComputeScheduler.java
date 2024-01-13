@@ -33,7 +33,6 @@ import java.util.concurrent.CountDownLatch;
 /**
  * Handles scheduling federated compute jobs. See {@link
  * IsolatedService#getFederatedComputeScheduler}.
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class FederatedComputeScheduler {
