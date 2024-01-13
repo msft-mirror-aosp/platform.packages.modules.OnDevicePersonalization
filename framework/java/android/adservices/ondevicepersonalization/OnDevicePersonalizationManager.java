@@ -51,8 +51,6 @@ import java.util.concurrent.Executor;
  * persistent results to on-device storage which can be consumed by Federated Analytics for
  * cross-device statistical analysis or by Federated Learning for model training. The displayed
  * content and the persistent output are both not directly accessible by the calling app.
- *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationManager {

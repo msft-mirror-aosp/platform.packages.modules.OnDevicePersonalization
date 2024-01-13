@@ -240,8 +240,7 @@ public class AppRequestFlow {
                 mService.getPackageName(), mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
-                mService.getPackageName(), mContext);
+        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(mService, mContext);
         serviceParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();

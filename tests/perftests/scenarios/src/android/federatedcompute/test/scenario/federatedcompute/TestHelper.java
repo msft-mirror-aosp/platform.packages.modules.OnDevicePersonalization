@@ -40,13 +40,13 @@ public class TestHelper {
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
             "schedule_training_text_box";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
-    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "-630817781";
+    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "-1098789278";
     private static final String FEDERATED_TRAINING_JOB_SUCCESS_LOG =
-            "FederatedJobService - Federated computation job -630817781 is done";
+            "FederatedJobService - Federated computation job -1098789278 is done";
     private static final String NON_EXISTENT_POPULATION_NAME = "test_non_existent_population";
-    private static final String NON_EXISTENT_POPULATION_TASK_JOB_ID = "1892833995";
+    private static final String NON_EXISTENT_POPULATION_TASK_JOB_ID = "-777082974";
     private static final String NON_EXISTENT_POPULATION_JOB_FAILURE_LOG =
-            "job 1892833995 was rejected during check in, reason NO_TASK_AVAILABLE";
+            "job -777082974 was rejected during check in, reason NO_TASK_AVAILABLE";
 
     public static void pressHome() {
         getUiDevice().pressHome();

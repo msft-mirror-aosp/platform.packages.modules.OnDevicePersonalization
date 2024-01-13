@@ -65,6 +65,8 @@ import javax.annotation.Nullable;
 @RunWith(MockitoJUnitRunner.class)
 public final class FederatedComputeJobManagerTest {
     private static final String CALLING_PACKAGE_NAME = "callingPkg";
+    private static final String CALLING_CLASS_NAME = "callingClss";
+    private static final String CALLING_CERT_DIGEST = "callingCert";
     private static final String POPULATION_NAME1 = "population1";
     private static final String POPULATION_NAME2 = "population2";
     private static final String SERVER_ADDRESS = "https://server.uri/";
@@ -80,15 +82,21 @@ public final class FederatedComputeJobManagerTest {
             "com.android.federatedcompute.services.training.FederatedJobService";
     private static final long CURRENT_TIME_MILLIS = 1000L;
     private static final byte[] DEFAULT_CONSTRAINTS = createDefaultTrainingConstraints();
+    public static final ComponentName OWNER_COMPONENT_NAME =
+            ComponentName.createRelative(CALLING_PACKAGE_NAME, CALLING_CLASS_NAME);
     private static final TrainingOptions OPTIONS1 =
             new TrainingOptions.Builder()
                     .setPopulationName(POPULATION_NAME1)
                     .setServerAddress(SERVER_ADDRESS)
+                    .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                    .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
                     .build();
     private static final TrainingOptions OPTIONS2 =
             new TrainingOptions.Builder()
                     .setPopulationName(POPULATION_NAME2)
                     .setServerAddress(SERVER_ADDRESS)
+                    .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                    .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
                     .build();
     private static final TaskRetry TASK_RETRY =
             TaskRetry.newBuilder().setDelayMin(5000000).setDelayMax(6000000).build();
@@ -537,6 +545,8 @@ public final class FederatedComputeJobManagerTest {
                 new TrainingOptions.Builder()
                         .setPopulationName(POPULATION_NAME1)
                         .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
                         .build();
         mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
 
@@ -547,6 +557,8 @@ public final class FederatedComputeJobManagerTest {
                 new TrainingOptions.Builder()
                         .setPopulationName(POPULATION_NAME2)
                         .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
                         .build();
         mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options2);
 
@@ -585,6 +597,8 @@ public final class FederatedComputeJobManagerTest {
                 new TrainingOptions.Builder()
                         .setPopulationName(POPULATION_NAME1)
                         .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
                         .build();
         mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
 
@@ -594,6 +608,8 @@ public final class FederatedComputeJobManagerTest {
                 new TrainingOptions.Builder()
                         .setPopulationName(POPULATION_NAME1)
                         .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
                         .build();
         mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options2);
 
@@ -1016,7 +1032,9 @@ public final class FederatedComputeJobManagerTest {
     private static TrainingOptions.Builder basicFLOptionsBuilder(int jobId, String population) {
         return new TrainingOptions.Builder()
                 .setPopulationName(population)
-                .setServerAddress(SERVER_ADDRESS);
+                .setServerAddress(SERVER_ADDRESS)
+                .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST);
     }
 
     private JobInfo buildExpectedJobInfo(int jobId, long minLatencyMillis) {
