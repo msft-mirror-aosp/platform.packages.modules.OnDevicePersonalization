@@ -19,6 +19,7 @@ package com.android.federatedcompute.services.data;
 import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
+import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -141,6 +142,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
         db.execSQL(CREATE_ENCRYPTION_KEY_TABLE);
         db.execSQL(CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
+        db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
     }
 
     @Override

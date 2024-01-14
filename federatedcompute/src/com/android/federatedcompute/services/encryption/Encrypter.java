@@ -14,10 +14,19 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization.aidl;
+package com.android.federatedcompute.services.encryption;
 
-/** @hide */
-oneway interface IExecuteCallback {
-    void onSuccess(in String result);
-    void onError(int errorCode);
+/** Interface for crypto libraries to encrypt data */
+public interface Encrypter {
+
+    /**
+     * encrypt {@code plainText} to cipher text {@code byte[]}.
+     *
+     * @param publicKey the public key used for encryption
+     * @param plainText the plain text string to encrypt
+     * @param associatedData additional data used for encryption
+     * @return the encrypted ciphertext
+     */
+    byte[] encrypt(byte[] publicKey, byte[] plainText, byte[] associatedData);
+
 }
