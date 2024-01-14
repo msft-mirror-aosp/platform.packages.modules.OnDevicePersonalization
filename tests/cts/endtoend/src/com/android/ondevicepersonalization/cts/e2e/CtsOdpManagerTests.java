@@ -17,7 +17,6 @@ package com.android.ondevicepersonalization.cts.e2e;
 
 import static android.view.Display.DEFAULT_DISPLAY;
 
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -43,7 +42,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -76,7 +74,7 @@ public class CtsOdpManagerTests {
                         null,
                         PersistableBundle.EMPTY,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<List<SurfacePackageToken>>()));
+                        new ResultReceiver<SurfacePackageToken>()));
     }
 
     @Test
@@ -91,7 +89,7 @@ public class CtsOdpManagerTests {
                         new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                         null,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<List<SurfacePackageToken>>()));
+                        new ResultReceiver<SurfacePackageToken>()));
     }
 
     @Test
@@ -106,7 +104,7 @@ public class CtsOdpManagerTests {
                         new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                         PersistableBundle.EMPTY,
                         null,
-                        new ResultReceiver<List<SurfacePackageToken>>()));
+                        new ResultReceiver<SurfacePackageToken>()));
     }
 
     @Test
@@ -136,7 +134,7 @@ public class CtsOdpManagerTests {
                     new ComponentName("", SERVICE_CLASS),
                         PersistableBundle.EMPTY,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<List<SurfacePackageToken>>()));
+                        new ResultReceiver<SurfacePackageToken>()));
     }
 
     @Test
@@ -151,7 +149,7 @@ public class CtsOdpManagerTests {
                     new ComponentName(SERVICE_PACKAGE, ""),
                         PersistableBundle.EMPTY,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<List<SurfacePackageToken>>()));
+                        new ResultReceiver<SurfacePackageToken>()));
     }
 
     @Test
@@ -159,7 +157,7 @@ public class CtsOdpManagerTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
-        var receiver = new ResultReceiver<List<SurfacePackageToken>>();
+        var receiver = new ResultReceiver<SurfacePackageToken>();
         manager.execute(
                 new ComponentName("somepackage", "someclass"),
                 PersistableBundle.EMPTY,
@@ -176,7 +174,7 @@ public class CtsOdpManagerTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
-        var receiver = new ResultReceiver<List<SurfacePackageToken>>();
+        var receiver = new ResultReceiver<SurfacePackageToken>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, "someclass"),
                 PersistableBundle.EMPTY,
@@ -192,17 +190,14 @@ public class CtsOdpManagerTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
-        var receiver = new ResultReceiver<List<SurfacePackageToken>>();
+        var receiver = new ResultReceiver<SurfacePackageToken>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.await();
-        List<SurfacePackageToken> results = receiver.getResult();
-        assertNotNull(results);
-        assertEquals(1, results.size());
-        SurfacePackageToken token = results.get(0);
+        SurfacePackageToken token = receiver.getResult();
         assertNotNull(token);
     }
 
@@ -210,12 +205,11 @@ public class CtsOdpManagerTests {
     public void testRequestSurfacePackage() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         var receiver = new ResultReceiver<SurfacePackage>();
         SurfaceView surfaceView = createSurfaceView();
         manager.requestSurfacePackage(
-                tokens.get(0),
+                token,
                 surfaceView.getHostToken(),
                 getDisplayId(),
                 surfaceView.getWidth(),
@@ -249,13 +243,12 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
                 NullPointerException.class,
                 () -> manager.requestSurfacePackage(
-                        tokens.get(0),
+                        token,
                         null,
                         getDisplayId(),
                         surfaceView.getWidth(),
@@ -269,13 +262,12 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
                 IllegalArgumentException.class,
                 () -> manager.requestSurfacePackage(
-                        tokens.get(0),
+                        token,
                         surfaceView.getHostToken(),
                         -1,
                         surfaceView.getWidth(),
@@ -289,13 +281,12 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
                 IllegalArgumentException.class,
                 () -> manager.requestSurfacePackage(
-                        tokens.get(0),
+                        token,
                         surfaceView.getHostToken(),
                         getDisplayId(),
                         0,
@@ -309,13 +300,12 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
                 IllegalArgumentException.class,
                 () -> manager.requestSurfacePackage(
-                        tokens.get(0),
+                        token,
                         surfaceView.getHostToken(),
                         getDisplayId(),
                         surfaceView.getWidth(),
@@ -329,13 +319,12 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
                 NullPointerException.class,
                 () -> manager.requestSurfacePackage(
-                        tokens.get(0),
+                        token,
                         surfaceView.getHostToken(),
                         getDisplayId(),
                         surfaceView.getWidth(),
@@ -349,13 +338,12 @@ public class CtsOdpManagerTests {
             throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
-        List<SurfacePackageToken> tokens =
-                runExecute(manager, PersistableBundle.EMPTY);
+        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
         SurfaceView surfaceView = createSurfaceView();
         assertThrows(
                 NullPointerException.class,
                 () -> manager.requestSurfacePackage(
-                        tokens.get(0),
+                        token,
                         surfaceView.getHostToken(),
                         getDisplayId(),
                         surfaceView.getWidth(),
@@ -378,18 +366,17 @@ public class CtsOdpManagerTests {
         return viewQueue.take();
     }
 
-    private List<SurfacePackageToken> runExecute(
+    private SurfacePackageToken runExecute(
             OnDevicePersonalizationManager manager, PersistableBundle params)
             throws InterruptedException {
-        var receiver = new ResultReceiver<List<SurfacePackageToken>>();
+        var receiver = new ResultReceiver<SurfacePackageToken>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.await();
-        List<SurfacePackageToken> results = receiver.getResult();
-        return results;
+        return receiver.getResult();
     }
 
     class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {

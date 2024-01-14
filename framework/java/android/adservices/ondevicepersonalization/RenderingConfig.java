@@ -35,7 +35,6 @@ import java.util.List;
  * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)} to identify the
  * content to be displayed in a single {@link android.view.View}.
  *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 @DataClass(genBuilder = true, genEqualsHashCode = true)

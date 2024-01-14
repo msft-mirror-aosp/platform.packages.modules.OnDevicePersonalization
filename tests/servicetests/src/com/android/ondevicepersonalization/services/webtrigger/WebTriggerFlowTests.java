@@ -14,20 +14,16 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.request;
+package com.android.ondevicepersonalization.services.webtrigger;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
 
-import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
-import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
-import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -46,22 +42,12 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
-import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
-public class AppRequestFlowTest {
+public class WebTriggerFlowTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
-    private final CountDownLatch mLatch = new CountDownLatch(1);
     private OnDevicePersonalizationDbHelper mDbHelper;
     private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
-
-    private String mRenderedContent;
-    private boolean mGenerateHtmlCalled;
-    private String mGeneratedHtml;
-    private boolean mDisplayHtmlCalled;
-    private boolean mCallbackSuccess;
-    private boolean mCallbackError;
-    private int mCallbackErrorCode;
 
     @Before
     public void setup() {
@@ -78,7 +64,6 @@ public class AppRequestFlowTest {
         EventsDao.getInstanceForTest(mContext).insertQuery(
                 new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
-        EventsDao.getInstanceForTest(mContext);
     }
 
     @After
@@ -89,62 +74,39 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testRunAppRequestFlow() throws Exception {
-        AppRequestFlow appRequestFlow = new AppRequestFlow(
-                "abc",
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
-                new TestCallback(), mContext, 100L, new TestInjector());
-        appRequestFlow.run();
-        mLatch.await();
-        assertTrue(mCallbackSuccess);
-        assertEquals(2,
+    public void testRunWebTriggerFlow() throws Exception {
+        assertEquals(1,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+                    null, null, null, null, null).getCount());
+        assertEquals(0,
+                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
+                    null, null, null, null, null).getCount());
+        String triggerHeader = String.format(
+                "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
+                mContext.getPackageName());
+        WebTriggerFlow flow = new WebTriggerFlow(
+                "http://landingpage", "http://regurl", triggerHeader, mContext,
+                new TestInjector());
+        var unused = flow.run().get();
+        assertEquals(1,
+                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
+                    null, null, null, null, null).getCount());
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+                    null, null, null, null, null).getCount());
     }
 
-    @Test
-    public void testRunAppRequestFlowPersonalizationDisabled() throws Exception {
-        AppRequestFlow appRequestFlow = new AppRequestFlow(
-                "abc",
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
-                new TestCallback(), mContext, 100L,
-                new TestInjector() {
-                    @Override boolean isPersonalizationStatusEnabled() {
-                        return false;
-                    }
-                });
-        appRequestFlow.run();
-        mLatch.await();
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
-    }
-
-    class TestCallback extends IExecuteCallback.Stub {
-        @Override
-        public void onSuccess(String token) {
-            mCallbackSuccess = true;
-            mLatch.countDown();
-        }
-
-        @Override
-        public void onError(int errorCode) {
-            mCallbackError = true;
-            mCallbackErrorCode = errorCode;
-            mLatch.countDown();
-        }
-    }
-
-    class TestInjector extends AppRequestFlow.Injector {
+    class TestInjector extends WebTriggerFlow.Injector {
         @Override ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
         }
-        @Override boolean isPersonalizationStatusEnabled() {
-            return true;
+
+        @Override Flags getFlags() {
+            return new Flags() {
+                @Override public boolean getGlobalKillSwitch() {
+                    return false;
+                }
+            };
         }
     }
 }

@@ -55,8 +55,6 @@ import java.util.function.Function;
  * by Federated Learning for model training.
  * Client apps use {@link OnDevicePersonalizationManager} to interact with an {@link
  * IsolatedService}.
- *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public abstract class IsolatedService extends Service {

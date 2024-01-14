@@ -24,10 +24,7 @@ import android.annotation.NonNull;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
-/**
- * The input data for {@link FederatedComputeScheduler#schedule}.
- * @hide
- */
+/** The input data for {@link FederatedComputeScheduler#schedule}. */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public final class FederatedComputeInput {
@@ -52,7 +49,7 @@ public final class FederatedComputeInput {
     // @formatter:off
 
     @DataClass.Generated.Member
-    /* package-private */ FederatedComputeInput(@NonNull String populationName) {
+        /* package-private */ FederatedComputeInput(@NonNull String populationName) {
         this.mPopulationName = populationName;
         AnnotationValidations.validate(NonNull.class, null, mPopulationName);
 

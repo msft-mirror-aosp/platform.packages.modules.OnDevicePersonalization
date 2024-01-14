@@ -51,7 +51,6 @@ import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
-import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -59,8 +58,6 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -82,8 +79,6 @@ public class AppRequestFlow {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
-    @NonNull
-    private String mServiceClassName;
 
     @VisibleForTesting
     static class Injector {
@@ -105,6 +100,11 @@ public class AppRequestFlow {
 
         ProcessRunner getProcessRunner() {
             return ProcessRunnerImpl.getInstance();
+        }
+
+        boolean isPersonalizationStatusEnabled() {
+            UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
+            return privacyStatus.isPersonalizationStatusEnabled();
         }
     }
 
@@ -149,7 +149,7 @@ public class AppRequestFlow {
 
     private void processRequest() {
         try {
-            if (!isPersonalizationStatusEnabled()) {
+            if (!mInjector.isPersonalizationStatusEnabled()) {
                 sLogger.d(TAG + ": Personalization is disabled.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return;
@@ -169,10 +169,9 @@ public class AppRequestFlow {
                 sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
                 return;
             }
-            mServiceClassName = Objects.requireNonNull(config.getServiceName());
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mService.getPackageName());
+                        TASK_NAME, mService);
             ListenableFuture<ExecuteOutputParcel> resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeAppRequest(result),
@@ -189,15 +188,12 @@ public class AppRequestFlow {
             ListenableFuture<Long> queryIdFuture = FluentFuture.from(resultFuture)
                     .transformAsync(input -> logQuery(input), mInjector.getExecutor());
 
-            ListenableFuture<List<String>> slotResultTokensFuture =
+            ListenableFuture<String> resultTokenFuture =
                     FluentFuture.from(
                             Futures.whenAllSucceed(resultFuture, queryIdFuture)
-                                .callAsync(new AsyncCallable<List<String>>() {
-                                    @Override
-                                    public ListenableFuture<List<String>> call() {
-                                        return createTokens(resultFuture, queryIdFuture);
-                                    }
-                                }, mInjector.getExecutor()))
+                                .callAsync(
+                                        () -> createToken(resultFuture, queryIdFuture),
+                                        mInjector.getExecutor()))
                             .withTimeout(
                                 mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
                                 TimeUnit.SECONDS,
@@ -205,11 +201,11 @@ public class AppRequestFlow {
                             );
 
             Futures.addCallback(
-                    slotResultTokensFuture,
-                    new FutureCallback<List<String>>() {
+                    resultTokenFuture,
+                    new FutureCallback<String>() {
                         @Override
-                        public void onSuccess(List<String> slotResultTokens) {
-                            sendResult(slotResultTokens);
+                        public void onSuccess(String token) {
+                            sendSuccessResult(token);
                         }
 
                         @Override
@@ -220,7 +216,7 @@ public class AppRequestFlow {
                     },
                     mInjector.getExecutor());
 
-            var unused = Futures.whenAllComplete(loadFuture, slotResultTokensFuture)
+            var unused = Futures.whenAllComplete(loadFuture, resultTokenFuture)
                     .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
                             loadFuture.get()),
                     mInjector.getExecutor());
@@ -244,14 +240,13 @@ public class AppRequestFlow {
                 mService.getPackageName(), mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
-                mService.getPackageName(), mContext);
+        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(mService, mContext);
         serviceParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, mServiceClassName, Constants.OP_EXECUTE, serviceParams);
+                isolatedServiceInfo, Constants.OP_EXECUTE, serviceParams);
         return FluentFuture.from(result)
                 .transform(
                     val -> {
@@ -283,49 +278,35 @@ public class AppRequestFlow {
                 result.getEventLogRecords());
     }
 
-    private ListenableFuture<List<String>> createTokens(
+    private ListenableFuture<String> createToken(
             ListenableFuture<ExecuteOutputParcel> resultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
-            sLogger.d(TAG + ": createTokens() started.");
+            sLogger.d(TAG + ": createToken() started.");
             ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
-            List<RenderingConfig> renderingConfigs = result.getRenderingConfigs();
-            Objects.requireNonNull(renderingConfigs);
+            RenderingConfig renderingConfig = result.getRenderingConfig();
 
-            List<String> tokens = new ArrayList<String>();
-            int slotIndex = 0;
-            for (RenderingConfig renderingConfig : renderingConfigs) {
-                if (renderingConfig == null) {
-                    tokens.add(null);
-                } else {
-                    SlotWrapper wrapper = new SlotWrapper(
-                            result.getRequestLogRecord(), slotIndex, renderingConfig,
-                            mService.getPackageName(), queryId);
-                    tokens.add(CryptUtils.encrypt(wrapper));
-                }
-                ++slotIndex;
+            String token;
+            if (renderingConfig == null) {
+                token = null;
+            } else {
+                SlotWrapper wrapper = new SlotWrapper(
+                        result.getRequestLogRecord(), renderingConfig,
+                        mService.getPackageName(), queryId);
+                token = CryptUtils.encrypt(wrapper);
             }
 
-            return Futures.immediateFuture(tokens);
+            return Futures.immediateFuture(token);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
     }
 
-    private void sendResult(List<String> slotResultTokens) {
-        if (slotResultTokens != null) {
-            sendSuccessResult(slotResultTokens);
-        } else {
-            sLogger.w(TAG + ": slotResultTokens is null or empty");
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-        }
-    }
-
-    private void sendSuccessResult(List<String> slotResultTokens) {
+    private void sendSuccessResult(String resultToken) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            mCallback.onSuccess(slotResultTokens);
+            mCallback.onSuccess(resultToken);
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
@@ -363,11 +344,6 @@ public class AppRequestFlow {
                 .setResponseCode(responseCode)
                 .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
-    private boolean isPersonalizationStatusEnabled() {
-        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
-        return privacyStatus.isPersonalizationStatusEnabled();
     }
 }
 
