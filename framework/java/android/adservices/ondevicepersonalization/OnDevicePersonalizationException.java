@@ -27,7 +27,6 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Exception thrown by OnDevicePersonalization APIs.
  *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class OnDevicePersonalizationException extends Exception {

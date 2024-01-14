@@ -40,7 +40,6 @@ import java.util.concurrent.BlockingQueue;
  * {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}, and log the returned
  * output in the EVENTS table.
  *
- * @hide
  */
 @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
 public class EventUrlProvider {

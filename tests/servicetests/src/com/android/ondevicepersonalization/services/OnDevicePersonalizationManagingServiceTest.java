@@ -45,7 +45,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
 
@@ -446,12 +445,12 @@ public class OnDevicePersonalizationManagingServiceTest {
     static class ExecuteCallback extends IExecuteCallback.Stub {
         public boolean mError = false;
         public int mErrorCode = 0;
-        public List<String> mTokens = null;
+        public String mToken = null;
         private CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess(List<String> tokens) {
-            mTokens = tokens;
+        public void onSuccess(String token) {
+            mToken = token;
             mLatch.countDown();
         }
 
