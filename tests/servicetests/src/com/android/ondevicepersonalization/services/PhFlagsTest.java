@@ -18,11 +18,9 @@ package com.android.ondevicepersonalization.services;
 
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
-import static com.android.ondevicepersonalization.services.Flags.ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION_STATUS_OVERRIDE_VALUE;
-import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
@@ -70,28 +68,6 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getGlobalKillSwitch()).isEqualTo(phOverridingValue);
-    }
-
-    @Test
-    public void testIsOnDevicePersonalizationApisEnabled() {
-        PhFlagsTestUtil.disableGlobalKillSwitch();
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
-                Boolean.toString(ENABLE_ONDEVICEPERSONALIZATION_APIS),
-                /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().isOnDevicePersonalizationApisEnabled()).isEqualTo(
-                ENABLE_ONDEVICEPERSONALIZATION_APIS);
-
-        final boolean phOverridingValue = true;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
-                Boolean.toString(phOverridingValue),
-                /* makeDefault */ false);
-
-        Flags phFlags = FlagsFactory.getFlags();
-        assertThat(phFlags.isOnDevicePersonalizationApisEnabled()).isEqualTo(phOverridingValue);
     }
 
     @Test
