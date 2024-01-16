@@ -312,7 +312,7 @@ public final class FederatedComputeWorkerTest {
                                         "issue checkin failed",
                                         new IllegalStateException("http 404"))))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any());
@@ -331,7 +331,7 @@ public final class FederatedComputeWorkerTest {
         doReturn(
                 immediateFuture(REJECTION_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
 
         FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
 
@@ -347,7 +347,7 @@ public final class FederatedComputeWorkerTest {
         setUpExampleStoreService();
         doReturn(immediateFuture(FA_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         doReturn(FluentFuture.from(immediateFuture(REJECTION_INFO)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any());
@@ -378,7 +378,7 @@ public final class FederatedComputeWorkerTest {
 
         doReturn(immediateFuture(FA_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         doReturn(
                         FluentFuture.from(
                                 immediateFailedFuture(
@@ -549,7 +549,7 @@ public final class FederatedComputeWorkerTest {
     public void testBindToIsolatedTrainingServiceFail_returnsFail() throws Exception {
         doReturn(immediateFuture(FL_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         setUpExampleStoreService();
 
         // Mock failure bind to IsolatedTrainingService.
@@ -642,7 +642,9 @@ public final class FederatedComputeWorkerTest {
     }
 
     private void setUpHttpFederatedProtocol(CheckinResult checkinResult) {
-        doReturn(immediateFuture(checkinResult)).when(mSpyHttpFederatedProtocol).issueCheckin();
+        doReturn(immediateFuture(checkinResult))
+                .when(mSpyHttpFederatedProtocol)
+                .issueCheckin(any(), any());
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any());
