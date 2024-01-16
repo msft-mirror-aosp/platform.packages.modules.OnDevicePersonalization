@@ -105,7 +105,7 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                                 callingPackageName, trainingOptions);
                             } catch (Exception e) {
                                 resultCode = STATUS_INTERNAL_ERROR;
-                                LogUtil.e(TAG, "Got exception for schedule()", e);
+                                LogUtil.e(TAG, e, "Got exception for schedule()");
                             } finally {
                                 sendResult(callback, resultCode);
                                 int serviceLatency =
