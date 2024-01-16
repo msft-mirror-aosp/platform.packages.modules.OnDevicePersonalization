@@ -37,7 +37,7 @@ import java.util.List;
 /** Contains the details of a training task. */
 @AutoValue
 public abstract class FederatedTrainingTask {
-    private static final String TAG = "FederatedTrainingTask";
+    private static final String TAG = FederatedTrainingTask.class.getSimpleName();
 
     /**
      * @return client app package name
@@ -48,6 +48,16 @@ public abstract class FederatedTrainingTask {
      * @return the ID to use for the JobScheduler job that will run the training for this session.
      */
     public abstract int jobId();
+
+    /**
+     * @return owner identifier package and class name
+     */
+    public abstract String ownerId();
+
+    /**
+     * @return owner identifier cert digest
+     */
+    public abstract String ownerIdCertDigest();
 
     /**
      * @return the population name to uniquely identify the training job by.
@@ -152,6 +162,12 @@ public abstract class FederatedTrainingTask {
         /** Set job scheduler Id. */
         public abstract Builder jobId(int jobId);
 
+        /** Set owner ID which consists of a package name and class name. */
+        public abstract Builder ownerId(String ownerId);
+
+        /** Set owner identifier cert digest. */
+        public abstract Builder ownerIdCertDigest(String ownerIdCertDigest);
+
         /** Set population name which uniquely identify the job. */
         public abstract Builder populationName(String populationName);
 
@@ -210,6 +226,8 @@ public abstract class FederatedTrainingTask {
         ContentValues values = new ContentValues();
         values.put(FederatedTrainingTaskColumns.APP_PACKAGE_NAME, appPackageName());
         values.put(FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID, jobId());
+        values.put(FederatedTrainingTaskColumns.OWNER_ID, ownerId());
+        values.put(FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST, ownerIdCertDigest());
 
         values.put(FederatedTrainingTaskColumns.POPULATION_NAME, populationName());
         values.put(FederatedTrainingTaskColumns.SERVER_ADDRESS, serverAddress());
@@ -247,6 +265,8 @@ public abstract class FederatedTrainingTask {
         String[] selectColumns = {
             FederatedTrainingTaskColumns.APP_PACKAGE_NAME,
             FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID,
+            FederatedTrainingTaskColumns.OWNER_ID,
+            FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST,
             FederatedTrainingTaskColumns.POPULATION_NAME,
             FederatedTrainingTaskColumns.SERVER_ADDRESS,
             FederatedTrainingTaskColumns.INTERVAL_OPTIONS,
@@ -287,6 +307,14 @@ public abstract class FederatedTrainingTask {
                                                 cursor.getColumnIndexOrThrow(
                                                         FederatedTrainingTaskColumns
                                                                 .JOB_SCHEDULER_JOB_ID)))
+                                .ownerId(cursor.getString(
+                                        cursor.getColumnIndexOrThrow(
+                                                FederatedTrainingTaskColumns
+                                                        .OWNER_ID)))
+                                .ownerIdCertDigest(cursor.getString(
+                                        cursor.getColumnIndexOrThrow(
+                                                FederatedTrainingTaskColumns
+                                                        .OWNER_ID_CERT_DIGEST)))
                                 .populationName(
                                         cursor.getString(
                                                 cursor.getColumnIndexOrThrow(
