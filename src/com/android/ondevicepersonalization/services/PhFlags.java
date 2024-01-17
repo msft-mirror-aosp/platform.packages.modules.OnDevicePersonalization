@@ -28,9 +28,6 @@ public final class PhFlags implements Flags {
     // Killswitch keys
     static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
 
-    static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
-            "enable_ondevicepersonalization_apis";
-
     static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
             "enable_personalization_status_override";
 
@@ -63,18 +60,6 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_GLOBAL_KILL_SWITCH,
                 /* defaultValue= */ GLOBAL_KILL_SWITCH);
-    }
-
-    @Override
-    public boolean isOnDevicePersonalizationApisEnabled() {
-        if (getGlobalKillSwitch()) {
-            return false;
-        }
-        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
-                /* defaultValue= */ ENABLE_ONDEVICEPERSONALIZATION_APIS);
     }
 
     @Override
