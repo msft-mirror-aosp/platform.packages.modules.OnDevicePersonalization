@@ -26,6 +26,8 @@ import org.json.JSONObject;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.List;
+import java.util.Map;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
 
@@ -52,6 +54,7 @@ public final class HttpClientUtil {
         POST,
         PUT,
     }
+
     public static final class FederatedComputePayloadDataContract {
         public static final String KEY_ID = "keyId";
 
@@ -90,6 +93,52 @@ public final class HttpClientUtil {
             LogUtil.e(TAG, "Failed to decompress the data.", e);
             throw new IllegalStateException("Failed to unscompress using Gzip", e);
         }
+    }
+
+    /** Calculates total bytes are sent via network based on provided http request. */
+    public static long getTotalSentBytes(FederatedComputeHttpRequest request) {
+        long totalBytes = 0;
+        totalBytes +=
+                request.getHttpMethod().name().length()
+                        + " ".length()
+                        + request.getUri().length()
+                        + " HTTP/1.1\r\n".length();
+        for (String key : request.getExtraHeaders().keySet()) {
+            totalBytes +=
+                    key.length()
+                            + ": ".length()
+                            + request.getExtraHeaders().get(key).length()
+                            + "\r\n".length();
+        }
+        if (request.getExtraHeaders().containsKey(CONTENT_LENGTH_HDR)) {
+            totalBytes += Long.parseLong(request.getExtraHeaders().get(CONTENT_LENGTH_HDR));
+        }
+        return totalBytes;
+    }
+
+    /** Calculates total bytes are received via network based on provided http response. */
+    public static long getTotalReceivedBytes(FederatedComputeHttpResponse response) {
+        long totalBytes = 0;
+        boolean foundContentLengthHdr = false;
+        for (Map.Entry<String, List<String>> header : response.getHeaders().entrySet()) {
+            if (header.getKey() == null) {
+                continue;
+            }
+            for (String headerValue : header.getValue()) {
+                totalBytes += header.getKey().length() + ": ".length();
+                totalBytes += headerValue == null ? 0 : headerValue.length();
+            }
+            // Uses Content-Length header to estimate total received bytes which is the most
+            // accurate.
+            if (header.getKey().equals(CONTENT_LENGTH_HDR)) {
+                totalBytes += Long.parseLong(header.getValue().get(0));
+                foundContentLengthHdr = true;
+            }
+        }
+        if (!foundContentLengthHdr && response.getPayload() != null) {
+            totalBytes += response.getPayload().length;
+        }
+        return totalBytes;
     }
 
     private HttpClientUtil() {}
