@@ -114,7 +114,9 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                 return;
             }
 
-            ContextData contextData = new ContextData(mCallingService.getPackageName());
+            ContextData contextData =
+                    new ContextData(
+                            mCallingService.getPackageName(), mCallingService.getClassName());
             TrainingOptions trainingOptionsWithContext =
                     new TrainingOptions.Builder()
                             .setContextData(ContextData.toByteArray(contextData))
@@ -122,9 +124,6 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                             .setPopulationName(trainingOptions.getPopulationName())
                             .setServerAddress(url)
                             .setOwnerComponentName(mCallingService)
-                            .setOwnerIdentifierCertDigest(
-                                    PackageUtils.getCertDigest(
-                                            mApplicationContext, mCallingService.getPackageName()))
                             .build();
             ScheduleFederatedComputeRequest request =
                     new ScheduleFederatedComputeRequest.Builder()
@@ -168,6 +167,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
             return;
         }
         mFederatedComputeManager.cancel(
+                mCallingService,
                 populationName,
                 mInjector.getExecutor(),
                 new OutcomeReceiver<>() {
