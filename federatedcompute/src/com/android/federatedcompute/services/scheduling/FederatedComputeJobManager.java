@@ -178,6 +178,9 @@ public class FederatedComputeJobManager {
                     FederatedTrainingTask.builder()
                             .appPackageName(callingPackageName)
                             .jobId(jobId)
+                            .ownerId(
+                                    trainingOptions.getOwnerComponentName().flattenToString())
+                            .ownerIdCertDigest(trainingOptions.getOwnerIdentifierCertDigest())
                             .creationTime(nowMs)
                             .lastScheduledTime(nowMs)
                             .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)

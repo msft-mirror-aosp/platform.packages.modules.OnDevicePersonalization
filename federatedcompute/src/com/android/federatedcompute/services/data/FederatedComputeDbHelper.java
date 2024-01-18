@@ -48,6 +48,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + " INTEGER, "
+                    + FederatedTrainingTaskColumns.OWNER_ID
+                    + " TEXT NOT NULL, "
+                    + FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST
+                    + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.POPULATION_NAME
                     + " TEXT NOT NULL,"
                     + FederatedTrainingTaskColumns.SERVER_ADDRESS

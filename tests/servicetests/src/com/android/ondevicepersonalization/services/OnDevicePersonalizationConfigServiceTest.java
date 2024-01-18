@@ -67,7 +67,6 @@ public class OnDevicePersonalizationConfigServiceTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        PhFlagsTestUtil.enableOnDevicePersonalizationApis();
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
         when(mContext.checkCallingOrSelfPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_GRANTED);
@@ -82,8 +81,8 @@ public class OnDevicePersonalizationConfigServiceTest {
     }
 
     @Test
-    public void testDisableOnDevicePersonalizationApis() throws Exception {
-        PhFlagsTestUtil.disableOnDevicePersonalizationApis();
+    public void testThrowIfGlobalKillSwitchEnabled() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
             assertThrows(
                     IllegalStateException.class,
@@ -91,7 +90,7 @@ public class OnDevicePersonalizationConfigServiceTest {
                             mBinder.setPersonalizationStatus(true, null)
             );
         } finally {
-            PhFlagsTestUtil.enableOnDevicePersonalizationApis();
+            PhFlagsTestUtil.disableGlobalKillSwitch();
         }
     }
 

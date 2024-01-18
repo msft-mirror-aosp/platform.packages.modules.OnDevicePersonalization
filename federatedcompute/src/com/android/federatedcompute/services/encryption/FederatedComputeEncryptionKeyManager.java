@@ -34,6 +34,7 @@ import com.android.federatedcompute.services.http.HttpClientUtil;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.Futures;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -142,14 +143,21 @@ public class FederatedComputeEncryptionKeyManager {
             @FederatedComputeEncryptionKey.KeyType int keyType, boolean isScheduledJob) {
         String fetchUri = mFlags.getEncryptionKeyFetchUrl();
         if (fetchUri == null) {
-            throw new IllegalArgumentException("Url to fetch active encryption keys is null");
+            return FluentFuture.from(Futures.immediateFailedFuture(
+                    new IllegalArgumentException("Url to fetch active encryption keys is null")));
         }
-        FederatedComputeHttpRequest request =
-                FederatedComputeHttpRequest.create(
-                        fetchUri,
-                        HttpClientUtil.HttpMethod.GET,
-                        new HashMap<String, String>(),
-                        HttpClientUtil.EMPTY_BODY);
+
+        FederatedComputeHttpRequest request;
+        try {
+            request =
+                    FederatedComputeHttpRequest.create(
+                            fetchUri,
+                            HttpClientUtil.HttpMethod.GET,
+                            new HashMap<String, String>(),
+                            HttpClientUtil.EMPTY_BODY);
+        } catch (Exception e) {
+            return FluentFuture.from(Futures.immediateFailedFuture(e));
+        }
 
         return FluentFuture.from(mHttpClient.performRequestAsyncWithRetry(request))
                 .transform(
@@ -161,8 +169,8 @@ public class FederatedComputeEncryptionKeyManager {
                         result -> {
                             result.forEach(mEncryptionKeyDao::insertEncryptionKey);
                             if (isScheduledJob) {
-                                // When the job is a background scheduled job, delete the expired
-                                // keys, otherwise, only fetch from the key server.
+                                // When the job is a background scheduled job, delete the
+                                // expired keys, otherwise, only fetch from the key server.
                                 mEncryptionKeyDao.deleteExpiredKeys();
                             }
                             return result;

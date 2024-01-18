@@ -118,6 +118,9 @@ public final class FederatedComputeWorkerTest {
     private static final long CREATION_TIME_MS = 10000L;
     private static final long TASK_EARLIEST_NEXT_RUN_TIME_MS = 1234567L;
     private static final String PACKAGE_NAME = "com.android.federatedcompute.services.training";
+    private static final String OWNER_ID =
+            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String SERVER_ADDRESS = "https://server.com/";
     private static final byte[] DEFAULT_TRAINING_CONSTRAINTS =
             createTrainingConstraints(true, true, true);
@@ -162,6 +165,8 @@ public final class FederatedComputeWorkerTest {
                     .serverAddress(SERVER_ADDRESS)
                     .populationName(POPULATION_NAME)
                     .jobId(JOB_ID)
+                    .ownerId(OWNER_ID)
+                    .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                     .intervalOptions(INTERVAL_OPTIONS)
                     .constraints(DEFAULT_TRAINING_CONSTRAINTS)
                     .earliestNextRunTime(TASK_EARLIEST_NEXT_RUN_TIME_MS)
@@ -307,7 +312,7 @@ public final class FederatedComputeWorkerTest {
                                         "issue checkin failed",
                                         new IllegalStateException("http 404"))))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any());
@@ -326,7 +331,7 @@ public final class FederatedComputeWorkerTest {
         doReturn(
                 immediateFuture(REJECTION_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
 
         FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
 
@@ -342,7 +347,7 @@ public final class FederatedComputeWorkerTest {
         setUpExampleStoreService();
         doReturn(immediateFuture(FA_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         doReturn(FluentFuture.from(immediateFuture(REJECTION_INFO)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any());
@@ -373,7 +378,7 @@ public final class FederatedComputeWorkerTest {
 
         doReturn(immediateFuture(FA_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         doReturn(
                         FluentFuture.from(
                                 immediateFailedFuture(
@@ -544,7 +549,7 @@ public final class FederatedComputeWorkerTest {
     public void testBindToIsolatedTrainingServiceFail_returnsFail() throws Exception {
         doReturn(immediateFuture(FL_CHECKIN_RESULT))
                 .when(mSpyHttpFederatedProtocol)
-                .issueCheckin();
+                .issueCheckin(any(), any());
         setUpExampleStoreService();
 
         // Mock failure bind to IsolatedTrainingService.
@@ -637,7 +642,9 @@ public final class FederatedComputeWorkerTest {
     }
 
     private void setUpHttpFederatedProtocol(CheckinResult checkinResult) {
-        doReturn(immediateFuture(checkinResult)).when(mSpyHttpFederatedProtocol).issueCheckin();
+        doReturn(immediateFuture(checkinResult))
+                .when(mSpyHttpFederatedProtocol)
+                .issueCheckin(any(), any());
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any());
