@@ -97,7 +97,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
             "CREATE TABLE "
                     + ODP_AUTHORIZATION_TOKEN_TABLE
                     + " ( "
-                    + ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER
+                    + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
                     + " TEXT PRIMARY KEY, "
                     + ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN
                     + " TEXT NOT NULL, "

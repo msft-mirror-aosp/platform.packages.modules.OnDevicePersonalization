@@ -43,8 +43,22 @@ public final class HttpClientUtil {
     public static final String PROTOBUF_CONTENT_TYPE = "application/x-protobuf";
     public static final String OCTET_STREAM = "application/octet-stream";
     public static final ImmutableSet<Integer> HTTP_OK_STATUS = ImmutableSet.of(200, 201);
+
+    public static final Integer HTTP_UNAUTHENTICATED_STATUS = 401;
+
+    public static final ImmutableSet<Integer> HTTP_OK_OR_UNAUTHENTICATED_STATUS =
+            ImmutableSet.of(200, 201, 401);
+
+    // This key indicates the key attestation record used for authentication.
+    public static final String ODP_AUTHENTICATION_KEY = "odp-authentication-key";
+
+    // This key indicates a UUID as a verified token for the device.
+    public static final String ODP_AUTHORIZATION_KEY = "odp-authorization-key";
+
     public static final String ODP_IDEMPOTENCY_KEY = "odp-idempotency-key";
+
     public static final String FCP_OWNER_ID_DIGEST = "fcp-owner-id-digest";
+
     public static final int DEFAULT_BUFFER_SIZE = 1024;
     public static final byte[] EMPTY_BODY = new byte[0];
 
