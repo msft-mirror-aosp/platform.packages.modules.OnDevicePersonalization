@@ -20,6 +20,7 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_E
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_TYPE_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.PROTOBUF_CONTENT_TYPE;
@@ -105,6 +106,9 @@ public final class HttpFederatedProtocolTest {
     private static final String ASSIGNMENT_ID = "assignment-id";
     private static final String AGGREGATION_ID = "aggregation-id";
     private static final String OCTET_STREAM = "application/octet-stream";
+    private static final String OWNER_ID =
+            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
 
     private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
             new FederatedComputeEncryptionKey.Builder()
@@ -164,7 +168,7 @@ public final class HttpFederatedProtocolTest {
     public void testIssueCheckinSuccess() throws Exception {
         setUpHttpFederatedProtocol();
 
-        mHttpFederatedProtocol.issueCheckin().get();
+        mHttpFederatedProtocol.issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST).get();
 
         List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
 
@@ -178,9 +182,10 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION.toByteArray());
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(23));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
+        expectedHeaders.put(FCP_OWNER_ID_DIGEST, OWNER_ID + "-" + OWNER_ID_CERT_DIGEST);
         assertThat(actualStartTaskAssignmentRequest.getExtraHeaders())
                 .containsAtLeastEntriesIn(expectedHeaders);
-        assertThat(actualStartTaskAssignmentRequest.getExtraHeaders()).hasSize(3);
+        assertThat(actualStartTaskAssignmentRequest.getExtraHeaders()).hasSize(4);
         String idempotencyKey =
                 actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_IDEMPOTENCY_KEY);
         assertNotNull(idempotencyKey);
@@ -208,7 +213,10 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.issueCheckin().get());
+                        () ->
+                                mHttpFederatedProtocol
+                                        .issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST)
+                                        .get());
 
         assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause())
@@ -230,7 +238,8 @@ public final class HttpFederatedProtocolTest {
         when(mMockHttpClient.performRequestAsyncWithRetry(any()))
                 .thenReturn(immediateFuture(httpResponse));
 
-        CheckinResult checkinResult = mHttpFederatedProtocol.issueCheckin().get();
+        CheckinResult checkinResult =
+                mHttpFederatedProtocol.issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST).get();
 
         assertThat(checkinResult.getRejectionInfo()).isNotNull();
         assertThat(checkinResult.getRejectionInfo()).isEqualTo(RejectionInfo.getDefaultInstance());
@@ -254,7 +263,10 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.issueCheckin().get());
+                        () ->
+                                mHttpFederatedProtocol
+                                        .issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST)
+                                        .get());
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause()).hasMessageThat().isEqualTo("Fetch plan failed: 404");
@@ -279,7 +291,10 @@ public final class HttpFederatedProtocolTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
-                        () -> mHttpFederatedProtocol.issueCheckin().get());
+                        () ->
+                                mHttpFederatedProtocol
+                                        .issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST)
+                                        .get());
 
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
     }
@@ -291,7 +306,7 @@ public final class HttpFederatedProtocolTest {
 
         setUpHttpFederatedProtocol();
         // Setup task id, aggregation id for report result.
-        mHttpFederatedProtocol.issueCheckin().get();
+        mHttpFederatedProtocol.issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST).get();
 
         mHttpFederatedProtocol.reportResult(computationResult, ENCRYPTION_KEY).get();
 
@@ -312,7 +327,7 @@ public final class HttpFederatedProtocolTest {
 
         setUpHttpFederatedProtocol();
         // Setup task id, aggregation id for report result.
-        mHttpFederatedProtocol.issueCheckin().get();
+        mHttpFederatedProtocol.issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST).get();
 
         mHttpFederatedProtocol.reportResult(computationResult, ENCRYPTION_KEY).get();
 
@@ -368,7 +383,7 @@ public final class HttpFederatedProtocolTest {
                 reportResultHttpResponse,
                 null);
 
-        mHttpFederatedProtocol.issueCheckin().get();
+        mHttpFederatedProtocol.issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST).get();
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
@@ -393,7 +408,7 @@ public final class HttpFederatedProtocolTest {
                 createReportResultHttpResponse(),
                 uploadResultHttpResponse);
 
-        mHttpFederatedProtocol.issueCheckin().get();
+        mHttpFederatedProtocol.issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST).get();
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,

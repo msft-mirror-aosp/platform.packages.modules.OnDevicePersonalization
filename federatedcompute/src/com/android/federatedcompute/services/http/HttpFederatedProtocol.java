@@ -24,6 +24,7 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
 import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
+import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
@@ -101,9 +102,9 @@ public final class HttpFederatedProtocol {
     }
 
     /** Helper function to perform check in and download federated task from remote servers. */
-    public ListenableFuture<CheckinResult> issueCheckin() {
+    public ListenableFuture<CheckinResult> issueCheckin(String ownerId, String ownerIdCertDigest) {
         Trace.beginAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
-        return FluentFuture.from(createTaskAssignment())
+        return FluentFuture.from(createTaskAssignment(ownerId, ownerIdCertDigest))
                 .transformAsync(
                         federatedComputeHttpResponse -> {
                             validateHttpResponseStatus(
@@ -189,7 +190,8 @@ public final class HttpFederatedProtocol {
         }
     }
 
-    private ListenableFuture<FederatedComputeHttpResponse> createTaskAssignment() {
+    private ListenableFuture<FederatedComputeHttpResponse> createTaskAssignment(
+            String ownerId, String ownerIdCertDigest) {
         CreateTaskAssignmentRequest request =
                 CreateTaskAssignmentRequest.newBuilder()
                         .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
@@ -214,6 +216,8 @@ public final class HttpFederatedProtocol {
         httpRequest
                 .getExtraHeaders()
                 .put(ODP_IDEMPOTENCY_KEY, System.currentTimeMillis() + " - " + UUID.randomUUID());
+        httpRequest.getExtraHeaders().put(FCP_OWNER_ID_DIGEST, ownerId + "-" + ownerIdCertDigest);
+
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
