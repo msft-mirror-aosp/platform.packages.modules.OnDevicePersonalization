@@ -200,8 +200,7 @@ public final class HttpFederatedProtocol {
                             mTrainingEventLogger.setTaskId(taskAssignment.getTaskName().hashCode());
                             mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
                             NetworkStats resourceStats = new NetworkStats();
-                            return checkinSuccessfulTaskAssignment(
-                                    taskAssignment, resourceStats);
+                            return checkinSuccessfulTaskAssignment(taskAssignment, resourceStats);
                         },
                         getBackgroundExecutor());
     }
@@ -533,6 +532,9 @@ public final class HttpFederatedProtocol {
             ImmutableSet<Integer> acceptableStatuses) {
         if (!acceptableStatuses.contains(httpResponse.getStatusCode())) {
             throw new IllegalStateException(stage + " failed: " + httpResponse.getStatusCode());
+        } else if (HTTP_OK_STATUS.contains(httpResponse.getStatusCode())) {
+            // Don't change %s success because the automated testing would rely on this log.
+            LogUtil.i(TAG, stage + " success.");
         } else {
             LogUtil.i(TAG, "%s response status validated: %d", stage, httpResponse.getStatusCode());
         }
