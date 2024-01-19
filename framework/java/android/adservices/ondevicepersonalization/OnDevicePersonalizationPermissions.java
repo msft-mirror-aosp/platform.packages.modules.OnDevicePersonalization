@@ -16,13 +16,13 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.SystemApi;
 import android.content.Context;
 import android.content.pm.PackageManager;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 /**
  * OnDevicePersonalization permission settings.
@@ -30,14 +30,13 @@ import android.content.pm.PackageManager;
  * @hide
 */
 @SystemApi
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationPermissions {
     private OnDevicePersonalizationPermissions() {}
 
     /**
      * The permission that lets it modify ODP's enablement state.
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     public static final String MODIFY_ONDEVICEPERSONALIZATION_STATE =
             "android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE";
 
