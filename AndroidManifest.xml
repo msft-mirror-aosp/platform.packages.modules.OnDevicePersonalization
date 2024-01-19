@@ -76,7 +76,9 @@
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
-                 android:isolatedProcess="true" android:exported="false" >
+                 android:isolatedProcess="true"
+                 android:process=":plugin_disable_art_image_"
+                 android:exported="false" >
         </service>
         <service
             android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
