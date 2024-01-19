@@ -153,6 +153,12 @@ public final class HttpFederatedProtocolTest {
 
     private static final FLRunnerResult FL_RUNNER_FAIL_RESULT =
             FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
+
+    private static final FLRunnerResult FL_RUNNER_NOT_ELIGIBLE_RESULT =
+            FLRunnerResult.newBuilder()
+                    .setContributionResult(ContributionResult.FAIL)
+                    .setErrorStatus(FLRunnerResult.ErrorStatus.NOT_ELIGIBLE)
+                    .build();
     private static final CreateTaskAssignmentRequest
             START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION =
                     CreateTaskAssignmentRequest.newBuilder()
@@ -562,10 +568,34 @@ public final class HttpFederatedProtocolTest {
         // Verify ReportResult request.
         List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
         assertThat(actualHttpRequests).hasSize(4);
-        FederatedComputeHttpRequest acutalReportResultRequest = actualHttpRequests.get(3);
+        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder().setResult(Result.FAILED).build();
-        assertThat(acutalReportResultRequest.getBody())
+        assertThat(actualReportResultRequest.getBody())
+                .isEqualTo(reportResultRequest.toByteArray());
+    }
+
+    @Test
+    public void testReportNotEligibleTrainingResult_returnSuccess() throws Exception {
+        ComputationResult computationResult =
+                new ComputationResult(
+                        createOutputCheckpointFile(), FL_RUNNER_NOT_ELIGIBLE_RESULT, null);
+
+        setUpHttpFederatedProtocol();
+        // Setup task id, aggregation id for report result.
+        mHttpFederatedProtocol
+                .issueCheckin(OWNER_ID, OWNER_ID_CERT_DIGEST, DEFAULT_ALLOW_UNAUTHENTICATED)
+                .get();
+
+        mHttpFederatedProtocol.reportResult(computationResult, ENCRYPTION_KEY).get();
+
+        // Verify ReportResult request.
+        List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
+        assertThat(actualHttpRequests).hasSize(4);
+        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        ReportResultRequest reportResultRequest =
+                ReportResultRequest.newBuilder().setResult(Result.NOT_ELIGIBLE).build();
+        assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
         verify(mTrainingEventLogger).logFailureResultUploadStarted();
         verify(mTrainingEventLogger)
@@ -590,22 +620,22 @@ public final class HttpFederatedProtocolTest {
 
         // Verify ReportResult request.
         List<FederatedComputeHttpRequest> actualHttpRequests = mHttpRequestCaptor.getAllValues();
-        FederatedComputeHttpRequest acutalReportResultRequest = actualHttpRequests.get(3);
-        assertThat(acutalReportResultRequest.getUri()).isEqualTo(REPORT_RESULT_URI);
-        assertThat(acutalReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
+        FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
+        assertThat(actualReportResultRequest.getUri()).isEqualTo(REPORT_RESULT_URI);
+        assertThat(actualReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
         ReportResultRequest reportResultRequest =
                 ReportResultRequest.newBuilder().setResult(Result.COMPLETED).build();
-        assertThat(acutalReportResultRequest.getBody())
+        assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
         HashMap<String, String> expectedHeaders = new HashMap<>();
         expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(2));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
-        assertThat(acutalReportResultRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+        assertThat(actualReportResultRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
 
         // Verify upload data request.
         FederatedComputeHttpRequest actualDataUploadRequest = actualHttpRequests.get(4);
         assertThat(actualDataUploadRequest.getUri()).isEqualTo(UPLOAD_LOCATION_URI);
-        assertThat(acutalReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
+        assertThat(actualReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
         expectedHeaders = new HashMap<>();
         expectedHeaders.put(CONTENT_TYPE_HDR, OCTET_STREAM);
         if (mSupportCompression) {

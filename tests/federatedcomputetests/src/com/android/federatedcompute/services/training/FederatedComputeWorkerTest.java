@@ -55,6 +55,8 @@ import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
+import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
+import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
@@ -93,6 +95,9 @@ import com.google.internal.federatedcompute.v1.AuthenticationMetadata;
 import com.google.internal.federatedcompute.v1.KeyAttestationAuthMetadata;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.RetryWindow;
+import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityPolicyEvalSpec;
+import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityTaskInfo;
+import com.google.ondevicepersonalization.federatedcompute.proto.MinimumSeparationPolicy;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.protobuf.Any;
 import com.google.protobuf.ByteString;
@@ -106,7 +111,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.Mockito;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.tensorflow.example.BytesList;
@@ -123,7 +127,8 @@ import java.util.concurrent.ExecutionException;
 public final class FederatedComputeWorkerTest {
     private static final int JOB_ID = 1234;
     private static final String POPULATION_NAME = "barPopulation";
-    private static final String TASK_NAME = "task-id";
+    private static final String TASK_NAME = "barPopulation/task-id";
+    private static final String TASK_ID = "task-id";
     private static final long CREATION_TIME_MS = 10000L;
     private static final long TASK_EARLIEST_NEXT_RUN_TIME_MS = 1234567L;
     private static final String PACKAGE_NAME = "com.android.federatedcompute.services.training";
@@ -135,11 +140,29 @@ public final class FederatedComputeWorkerTest {
 
     private static final TaskRetry TASK_RETRY =
             TaskRetry.newBuilder().setRetryToken("foobar").build();
+
+    private static final MinimumSeparationPolicy MIN_SEP_POLICY =
+            MinimumSeparationPolicy.newBuilder()
+                    .setMinimumSeparation(6)
+                    .setCurrentIndex(10)
+                    .build();
+    private static final EligibilityTaskInfo ELIGIBILITY_TASK_INFO =
+            EligibilityTaskInfo.newBuilder()
+                    .addEligibilityPolicies(
+                            EligibilityPolicyEvalSpec.newBuilder()
+                                    .setMinSepPolicy(MIN_SEP_POLICY)
+                                    .build())
+                    .build();
     private static final CheckinResult FL_CHECKIN_RESULT =
             new CheckinResult(
                     createTempFile("input", ".ckp"),
                     TrainingTestUtil.createFakeFederatedLearningClientPlan(),
-                    TaskAssignment.newBuilder().setTaskName(TASK_NAME).build());
+                    TaskAssignment.newBuilder()
+                            .setTaskName(TASK_NAME)
+                            .setTaskId(TASK_ID)
+                            .setEligibilityTaskInfo(ELIGIBILITY_TASK_INFO)
+                            .build());
+
     private static final CheckinResult FA_CHECKIN_RESULT =
             new CheckinResult(
                     createTempFile("input", ".ckp"),
@@ -235,7 +258,8 @@ public final class FederatedComputeWorkerTest {
     @Mock private ComputationRunner mMockComputationRunner;
 
     @Mock private TrainingEventLogger mMockTrainingEventLogger;
-    @Mock private ResultCallbackHelper mSpyResultCallbackHelper;
+    private ResultCallbackHelper mSpyResultCallbackHelper;
+    private FederatedTrainingTaskDao mTrainingTaskDao;
 
     @Mock private FederatedComputeEncryptionKeyManager mMockKeyManager;
 
@@ -276,7 +300,7 @@ public final class FederatedComputeWorkerTest {
     public void doBeforeEachTest() throws Exception {
         mContext = ApplicationProvider.getApplicationContext();
         mSpyHttpFederatedProtocol =
-                Mockito.spy(
+                spy(
                         HttpFederatedProtocol.create(
                                 mContext,
                                 SERVER_ADDRESS,
@@ -284,10 +308,11 @@ public final class FederatedComputeWorkerTest {
                                 POPULATION_NAME,
                                 new HpkeJniEncrypter(),
                                 mMockTrainingEventLogger));
-        mSpyResultCallbackHelper = Mockito.spy(new ResultCallbackHelper(mContext));
+        mSpyResultCallbackHelper = spy(new ResultCallbackHelper(mContext));
+        mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
         sSpyKeyAttestation = spy(KeyAttestation.getInstance(mContext));
         mSpyWorker =
-                Mockito.spy(
+                spy(
                         new FederatedComputeWorker(
                                 mContext,
                                 mMockJobManager,
@@ -302,9 +327,6 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyResultCallbackHelper)
                 .callHandleResult(eq(TASK_NAME), any(), any());
         when(mMockJobManager.onTrainingStarted(anyInt())).thenReturn(FEDERATED_TRAINING_TASK_1);
-        doReturn(mSpyHttpFederatedProtocol)
-                .when(mSpyWorker)
-                .getHttpFederatedProtocol(anyString(), anyString(), any());
         when(mMockComputationRunner.runTaskWithNativeRunner(
                         anyString(),
                         anyString(),
@@ -322,10 +344,8 @@ public final class FederatedComputeWorkerTest {
     }
 
     @After
-    public void cleanUp() {
-        FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(
-                        ApplicationProvider.getApplicationContext());
+    public void tearDown() {
+        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -735,6 +755,53 @@ public final class FederatedComputeWorkerTest {
     }
 
     @Test
+    public void testRunFLComputationNotEligible_returnsFail() throws Exception {
+        mTrainingTaskDao.updateOrInsertTaskHistory(
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setTaskId(TASK_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setContributionRound(9)
+                        .setContributionTime(120L)
+                        .build());
+        setUpExampleStoreService();
+        doReturn(immediateFuture(FL_CHECKIN_RESULT))
+                .when(mSpyHttpFederatedProtocol)
+                .issueCheckin(any(), any(), anyBoolean());
+        ArgumentCaptor<ComputationResult> captor = ArgumentCaptor.forClass(ComputationResult.class);
+        doReturn(FluentFuture.from(immediateFuture(null)))
+                .when(mSpyHttpFederatedProtocol)
+                .reportResult(captor.capture(), any());
+
+        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        assertNull(result);
+        ComputationResult actualResult = captor.getValue();
+        assertThat(actualResult.getFlRunnerResult().getErrorStatus())
+                .isEqualTo(FLRunnerResult.ErrorStatus.NOT_ELIGIBLE);
+    }
+
+    @Test
+    public void testRunFLComputationEligible_returnsSuccess() throws Exception {
+        mTrainingTaskDao.updateOrInsertTaskHistory(
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setTaskId(TASK_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setContributionRound(1)
+                        .setContributionTime(120L)
+                        .build());
+        setUpExampleStoreService();
+        setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
+
+        // Mock bind to IsolatedTrainingService.
+        doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
+        doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
+
+        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
+    }
+
+    @Test
     public void testRunFLComputation_noKey_throws() throws Exception {
         setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
         doReturn(new ArrayList<FederatedComputeEncryptionKey>() {})
@@ -796,6 +863,20 @@ public final class FederatedComputeWorkerTest {
 
         KeyAttestation getKeyAttestationHelper(Context context) {
             return sSpyKeyAttestation;
+        }
+
+        @Override
+        HttpFederatedProtocol getHttpFederatedProtocol(
+                Context context,
+                String serverAddress,
+                String populationName,
+                TrainingEventLogger trainingEventLogger) {
+            return mSpyHttpFederatedProtocol;
+        }
+
+        @Override
+        EligibilityDecider getEligibilityDecider(Context context) {
+            return new EligibilityDecider(mTrainingTaskDao);
         }
     }
 
