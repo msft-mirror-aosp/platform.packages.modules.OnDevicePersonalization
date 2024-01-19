@@ -16,10 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.function.Consumer;
 
@@ -31,7 +31,7 @@ import java.util.function.Consumer;
  * offload long running operations to a worker thread. The consumer parameter of each method is used
  * to return results.
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public interface IsolatedWorker {
 
     /**
