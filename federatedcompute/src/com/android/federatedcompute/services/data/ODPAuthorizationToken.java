@@ -23,7 +23,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public class ODPAuthorizationToken {
-    @NonNull private final String mAdopterIdentifier;
+    @NonNull private final String mOwnerIdentifier;
 
     @NonNull private final String mAuthorizationToken;
 
@@ -49,13 +49,13 @@ public class ODPAuthorizationToken {
 
     @DataClass.Generated.Member
     /* package-private */ ODPAuthorizationToken(
-            @NonNull String adopterIdentifier,
+            @NonNull String ownerIdentifier,
             @NonNull String authorizationToken,
             @NonNull long creationTime,
             @NonNull long expiryTime) {
-        this.mAdopterIdentifier = adopterIdentifier;
+        this.mOwnerIdentifier = ownerIdentifier;
         AnnotationValidations.validate(
-                NonNull.class, null, mAdopterIdentifier);
+                NonNull.class, null, mOwnerIdentifier);
         this.mAuthorizationToken = authorizationToken;
         AnnotationValidations.validate(
                 NonNull.class, null, mAuthorizationToken);
@@ -70,8 +70,8 @@ public class ODPAuthorizationToken {
     }
 
     @DataClass.Generated.Member
-    public @NonNull String getAdopterIdentifier() {
-        return mAdopterIdentifier;
+    public @NonNull String getOwnerIdentifier() {
+        return mOwnerIdentifier;
     }
 
     @DataClass.Generated.Member
@@ -102,7 +102,7 @@ public class ODPAuthorizationToken {
         ODPAuthorizationToken that = (ODPAuthorizationToken) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mAdopterIdentifier, that.mAdopterIdentifier)
+                && java.util.Objects.equals(mOwnerIdentifier, that.mOwnerIdentifier)
                 && java.util.Objects.equals(mAuthorizationToken, that.mAuthorizationToken)
                 && mCreationTime == that.mCreationTime
                 && mExpiryTime == that.mExpiryTime;
@@ -115,7 +115,7 @@ public class ODPAuthorizationToken {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mAdopterIdentifier);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mOwnerIdentifier);
         _hash = 31 * _hash + java.util.Objects.hashCode(mAuthorizationToken);
         _hash = 31 * _hash + Long.hashCode(mCreationTime);
         _hash = 31 * _hash + Long.hashCode(mExpiryTime);
@@ -130,7 +130,7 @@ public class ODPAuthorizationToken {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @NonNull String mAdopterIdentifier;
+        private @NonNull String mOwnerIdentifier;
         private @NonNull String mAuthorizationToken;
         private @NonNull long mCreationTime;
         private @NonNull long mExpiryTime;
@@ -140,13 +140,13 @@ public class ODPAuthorizationToken {
         public Builder() {}
 
         public Builder(
-                @NonNull String adopterIdentifier,
+                @NonNull String ownerIdentifier,
                 @NonNull String authorizationToken,
                 @NonNull long creationTime,
                 @NonNull long expiryTime) {
-            mAdopterIdentifier = adopterIdentifier;
+            mOwnerIdentifier = ownerIdentifier;
             AnnotationValidations.validate(
-                    NonNull.class, null, mAdopterIdentifier);
+                    NonNull.class, null, mOwnerIdentifier);
             mAuthorizationToken = authorizationToken;
             AnnotationValidations.validate(
                     NonNull.class, null, mAuthorizationToken);
@@ -159,10 +159,10 @@ public class ODPAuthorizationToken {
         }
 
         @DataClass.Generated.Member
-        public @NonNull Builder setAdopterIdentifier(@NonNull String value) {
+        public @NonNull Builder setOwnerIdentifier(@NonNull String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mAdopterIdentifier = value;
+            mOwnerIdentifier = value;
             return this;
         }
 
@@ -196,7 +196,7 @@ public class ODPAuthorizationToken {
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
             ODPAuthorizationToken o = new ODPAuthorizationToken(
-                    mAdopterIdentifier,
+                    mOwnerIdentifier,
                     mAuthorizationToken,
                     mCreationTime,
                     mExpiryTime);
@@ -212,10 +212,10 @@ public class ODPAuthorizationToken {
     }
 
     @DataClass.Generated(
-            time = 1704310796248L,
+            time = 1705438009708L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/data/ODPAuthorizationToken.java",
-            inputSignatures = "private final @android.annotation.NonNull java.lang.String mAdopterIdentifier\nprivate final @android.annotation.NonNull java.lang.String mAuthorizationToken\nprivate final @android.annotation.NonNull long mCreationTime\nprivate final @android.annotation.NonNull long mExpiryTime\nclass ODPAuthorizationToken extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final @android.annotation.NonNull java.lang.String mOwnerIdentifier\nprivate final @android.annotation.NonNull java.lang.String mAuthorizationToken\nprivate final @android.annotation.NonNull long mCreationTime\nprivate final @android.annotation.NonNull long mExpiryTime\nclass ODPAuthorizationToken extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

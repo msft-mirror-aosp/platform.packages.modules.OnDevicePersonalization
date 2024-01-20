@@ -16,7 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
@@ -38,6 +37,7 @@ import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.List;
@@ -52,7 +52,7 @@ import java.util.concurrent.TimeUnit;
  * @hide
  */
 @SystemApi
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationConfigManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE =
@@ -107,7 +107,6 @@ public class OnDevicePersonalizationConfigManager {
      *     Returns a {@link SecurityException} if the caller is unauthorized to modify
      *     personalization status.
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
     public void setPersonalizationEnabled(boolean enabled,
                                           @NonNull @CallbackExecutor Executor executor,
