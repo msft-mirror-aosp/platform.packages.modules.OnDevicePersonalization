@@ -47,6 +47,7 @@ import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
+import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
@@ -78,6 +79,7 @@ import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.RetryWindow;
+import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 
@@ -246,7 +248,8 @@ public class FederatedComputeWorker {
             // download client plan and initial model checkpoint. Note: use bLocking executors for
             // http requests.
             mHttpFederatedProtocol =
-                    getHttpFederatedProtocol(
+                    mInjector.getHttpFederatedProtocol(
+                            this.mContext,
                             run.mTask.serverAddress(),
                             run.mTask.populationName(),
                             run.mTrainingEventLogger);
@@ -350,7 +353,52 @@ public class FederatedComputeWorker {
         synchronized (mLock) {
             mActiveRun.mTaskName = taskName;
         }
-        // 2. Fetch Active keys to encrypt the computation result.
+
+        // 2. Execute eligibility task if applicable.
+        if (checkinResult.getTaskAssignment().hasEligibilityTaskInfo()) {
+            TaskAssignment taskAssignment = checkinResult.getTaskAssignment();
+            LogUtil.d(
+                    TAG,
+                    "start eligibility task %s %s ",
+                    run.mTask.populationName(),
+                    taskAssignment.getTaskId());
+            EligibilityDecider eligibilityDecider = mInjector.getEligibilityDecider(this.mContext);
+            boolean eligibleResult =
+                    eligibilityDecider.computeEligibility(
+                            run.mTask.populationName(),
+                            taskAssignment.getTaskId(),
+                            run.mJobId,
+                            taskAssignment.getEligibilityTaskInfo());
+            LogUtil.i(
+                    TAG,
+                    "eligibility task result %s %b",
+                    taskAssignment.getTaskId(),
+                    eligibleResult);
+            // If device is not eligible to execute task, report failure result to server.
+            if (!eligibleResult) {
+                var unused =
+                        mHttpFederatedProtocol.reportResult(
+                                new ComputationResult(
+                                        null,
+                                        FLRunnerResult.newBuilder()
+                                                .setContributionResult(ContributionResult.FAIL)
+                                                .setErrorStatus(
+                                                        FLRunnerResult.ErrorStatus.NOT_ELIGIBLE)
+                                                .build(),
+                                        null),
+                                null);
+                // Reschedule the job.
+                mJobManager.onTrainingCompleted(
+                        run.mTask.jobId(),
+                        run.mTask.populationName(),
+                        run.mTask.getTrainingIntervalOptions(),
+                        null,
+                        ContributionResult.FAIL);
+                return Futures.immediateFuture(null);
+            }
+        }
+
+        // 3. Fetch Active keys to encrypt the computation result.
         List<FederatedComputeEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
                         FederatedComputeEncryptionKey.KEY_TYPE_ENCRYPTION,
@@ -375,7 +423,7 @@ public class FederatedComputeWorker {
                     new IllegalStateException("No active key available on device."));
         }
 
-        // 3. Bind to client app implemented ExampleStoreService based on ExampleSelector.
+        // 4. Bind to client app implemented ExampleStoreService based on ExampleSelector.
         // Set active run's task name.
         ListenableFuture<IExampleStoreIterator> iteratorFuture =
                 getExampleStoreIterator(
@@ -387,7 +435,7 @@ public class FederatedComputeWorker {
         FutureCallback<Object> serverFailureReportCallback = getServerFailureReportCallback();
         Futures.addCallback(iteratorFuture, serverFailureReportCallback, getLightweightExecutor());
 
-        // 4. Run federated learning or federated analytic depends on task type. Federated
+        // 5. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
         FluentFuture<ComputationResult> computationResultFuture =
                 FluentFuture.from(iteratorFuture)
@@ -397,7 +445,7 @@ public class FederatedComputeWorker {
         // report failure to server if computation failed with any exception.
         computationResultFuture.addCallback(serverFailureReportCallback, getLightweightExecutor());
 
-        // 5. Report computation result to federated compute server.
+        // 6. Report computation result to federated compute server.
         ListenableFuture<RejectionInfo> reportToServerFuture =
                 computationResultFuture.transformAsync(
                         result -> mHttpFederatedProtocol.reportResult(result, encryptionKey),
@@ -435,7 +483,18 @@ public class FederatedComputeWorker {
                                         ContributionResult.FAIL);
                                 return null;
                             }
-                            // 6. Publish computation result and consumed
+
+                            // 7. store success contribution in TaskHistory table. It will be used
+                            // in evaluation eligibility task.
+                            if (computationResult.getFlRunnerResult().getContributionResult()
+                                    == ContributionResult.SUCCESS) {
+                                mJobManager.recordSuccessContribution(
+                                        run.mJobId,
+                                        run.mTask.populationName(),
+                                        checkinResult.getTaskAssignment());
+                            }
+
+                            // 8. Publish computation result and consumed
                             // examples to client implemented
                             // ResultHandlingService.
                             var unused =
@@ -561,18 +620,6 @@ public class FederatedComputeWorker {
             unbindFromExampleStoreService();
             runToFinish.mExampleStoreService = null;
         }
-    }
-
-    @VisibleForTesting
-    HttpFederatedProtocol getHttpFederatedProtocol(
-            String serverAddress, String populationName, TrainingEventLogger trainingEventLogger) {
-        return HttpFederatedProtocol.create(
-                mContext,
-                serverAddress,
-                "1.0.0.1",
-                populationName,
-                new HpkeJniEncrypter(),
-                trainingEventLogger);
     }
 
     private ExampleSelector getExampleSelector(CheckinResult checkinResult) {
@@ -945,6 +992,24 @@ public class FederatedComputeWorker {
 
         KeyAttestation getKeyAttestationHelper(Context context) {
             return KeyAttestation.getInstance(context);
+        }
+
+        HttpFederatedProtocol getHttpFederatedProtocol(
+                Context context,
+                String serverAddress,
+                String populationName,
+                TrainingEventLogger trainingEventLogger) {
+            return HttpFederatedProtocol.create(
+                    context,
+                    serverAddress,
+                    "1.0.0.1",
+                    populationName,
+                    new HpkeJniEncrypter(),
+                    trainingEventLogger);
+        }
+
+        EligibilityDecider getEligibilityDecider(Context context) {
+            return new EligibilityDecider(FederatedTrainingTaskDao.getInstance(context));
         }
     }
 
