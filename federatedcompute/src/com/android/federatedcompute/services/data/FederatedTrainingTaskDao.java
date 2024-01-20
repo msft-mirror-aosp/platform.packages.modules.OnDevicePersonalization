@@ -216,7 +216,7 @@ public class FederatedTrainingTaskDao {
             values.put(
                     TaskHistoryContract.TaskHistoryEntry.POPULATION_NAME,
                     taskHistory.getPopulationName());
-            values.put(TaskHistoryContract.TaskHistoryEntry.TASK_NAME, taskHistory.getTaskName());
+            values.put(TaskHistoryContract.TaskHistoryEntry.TASK_ID, taskHistory.getTaskId());
             values.put(
                     TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
                     taskHistory.getContributionRound());
@@ -237,22 +237,22 @@ public class FederatedTrainingTaskDao {
                     TAG,
                     "Failed to update or insert task history %s %s",
                     taskHistory.getPopulationName(),
-                    taskHistory.getTaskName());
+                    taskHistory.getTaskId());
         }
         return false;
     }
 
     /** Get a task history based on job id, population name and task name. */
-    public TaskHistory getTaskHistory(int jobId, String populationName, String taskName) {
+    public TaskHistory getTaskHistory(int jobId, String populationName, String taskId) {
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String selection =
                 TaskHistoryContract.TaskHistoryEntry.JOB_ID
                         + " = ? AND "
                         + TaskHistoryContract.TaskHistoryEntry.POPULATION_NAME
                         + " = ? AND "
-                        + TaskHistoryContract.TaskHistoryEntry.TASK_NAME
+                        + TaskHistoryContract.TaskHistoryEntry.TASK_ID
                         + " = ?";
-        String[] selectionArgs = {String.valueOf(jobId), populationName, taskName};
+        String[] selectionArgs = {String.valueOf(jobId), populationName, taskId};
         String[] projection = {
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME,
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
@@ -283,7 +283,7 @@ public class FederatedTrainingTaskDao {
 
                 return new TaskHistory.Builder()
                         .setJobId(jobId)
-                        .setTaskName(taskName)
+                        .setTaskId(taskId)
                         .setPopulationName(populationName)
                         .setContributionRound(contributionRound)
                         .setContributionTime(contributionTime)

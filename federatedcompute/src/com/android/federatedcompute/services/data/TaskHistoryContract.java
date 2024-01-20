@@ -30,7 +30,7 @@ public class TaskHistoryContract {
         public static final String TABLE_NAME = "task_history";
         public static final String JOB_ID = "job_id";
         public static final String POPULATION_NAME = "population_name";
-        public static final String TASK_NAME = "task_name";
+        public static final String TASK_ID = "task_id";
         // The timestamp when device uploads training result to GCS bucket done.
         public static final String CONTRIBUTION_TIME = "contribution_time";
         // The round number that device contribute training result successfully. The round number is
@@ -48,7 +48,7 @@ public class TaskHistoryContract {
                         + " INTEGER NOT NULL,"
                         + POPULATION_NAME
                         + " TEXT NOT NULL,"
-                        + TASK_NAME
+                        + TASK_ID
                         + " TEXT NOT NULL,"
                         + CONTRIBUTION_TIME
                         + " INTEGER NOT NULL,"
@@ -61,7 +61,7 @@ public class TaskHistoryContract {
                         + ","
                         + POPULATION_NAME
                         + ","
-                        + TASK_NAME
+                        + TASK_ID
                         + "))";
     }
 }

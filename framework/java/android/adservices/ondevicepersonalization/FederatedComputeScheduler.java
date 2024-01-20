@@ -16,8 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.FlaggedApi;
@@ -26,6 +24,7 @@ import android.annotation.WorkerThread;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
@@ -34,7 +33,7 @@ import java.util.concurrent.CountDownLatch;
  * Handles scheduling federated compute jobs. See {@link
  * IsolatedService#getFederatedComputeScheduler}.
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class FederatedComputeScheduler {
     private static final String TAG = FederatedComputeScheduler.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -148,7 +147,6 @@ public class FederatedComputeScheduler {
     }
 
     /** The parameters related to job scheduling. */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     public static class Params {
         /**
          * If training interval is scheduled for recurrent tasks, the earliest time this task could
