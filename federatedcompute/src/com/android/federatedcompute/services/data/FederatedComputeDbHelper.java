@@ -48,6 +48,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + " INTEGER, "
+                    + FederatedTrainingTaskColumns.OWNER_ID
+                    + " TEXT NOT NULL, "
+                    + FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST
+                    + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.POPULATION_NAME
                     + " TEXT NOT NULL,"
                     + FederatedTrainingTaskColumns.SERVER_ADDRESS
@@ -93,7 +97,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
             "CREATE TABLE "
                     + ODP_AUTHORIZATION_TOKEN_TABLE
                     + " ( "
-                    + ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER
+                    + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
                     + " TEXT PRIMARY KEY, "
                     + ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN
                     + " TEXT NOT NULL, "

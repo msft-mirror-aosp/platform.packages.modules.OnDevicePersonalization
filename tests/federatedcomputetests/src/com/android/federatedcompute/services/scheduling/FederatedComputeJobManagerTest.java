@@ -1063,6 +1063,8 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunEndTime(0L)
                         .constraints(DEFAULT_CONSTRAINTS)
                         .serverAddress(SERVER_ADDRESS)
+                        .ownerId(OWNER_COMPONENT_NAME.flattenToString())
+                        .ownerIdCertDigest(CALLING_CERT_DIGEST)
                         .appPackageName(CALLING_PACKAGE_NAME);
         if (trainingIntervalOptions != null) {
             builder.intervalOptions(trainingIntervalOptions);
