@@ -28,6 +28,7 @@ import androidx.test.uiautomator.Until;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.util.Locale;
 
 /** Helper class for interacting with federatedcompute in perf tests. */
 public class TestHelper {
@@ -35,6 +36,7 @@ public class TestHelper {
     private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
     private static final long TRAINING_TASK_COMPLETION_TIMEOUT = 120_000;
     private static final long CHECKIN_REJECTION_COMPLETION_TIMEOUT = 20_000;
+    private static final long ENCRYPTION_KEY_FETCH_TIMEOUT = 30_000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String SCHEDULE_TRAINING_BUTTON_RESOURCE_ID = "schedule_training_button";
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
@@ -47,6 +49,9 @@ public class TestHelper {
     private static final String NON_EXISTENT_POPULATION_TASK_JOB_ID = "-777082974";
     private static final String NON_EXISTENT_POPULATION_JOB_FAILURE_LOG =
             "job -777082974 was rejected during check in, reason NO_TASK_AVAILABLE";
+    private static final String ENCRYPTION_KEY_FETCH_JOB_ID = "1000";
+    private static final String ENCRYPTION_KEY_FETCH_JOB_SUCCESS_LOG =
+            "BackgroundKeyFetchJobService 1000 is done";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -67,6 +72,9 @@ public class TestHelper {
         executeShellCommand(
                 "device_config put on_device_personalization "
                     + "personalization_status_override_value true");
+        executeShellCommand(
+                "device_config put on_device_personalization "
+                    + "enable_background_encryption_key_fetch true");
         executeShellCommand("setprop log.tag.ondevicepersonalization VERBOSE");
         executeShellCommand("setprop log.tag.federatedcompute VERBOSE");
         executeShellCommand(
@@ -154,7 +162,7 @@ public class TestHelper {
                 10000);
 
         if (!foundTrainingJobSuccessLog) {
-            Assert.fail(String.format(
+            Assert.fail(String.format(Locale.ENGLISH,
                     "Failed to find federated training job success log %s within test window %d ms",
                     FEDERATED_TRAINING_JOB_SUCCESS_LOG,
                     TRAINING_TASK_COMPLETION_TIMEOUT));
@@ -176,10 +184,32 @@ public class TestHelper {
                 5000);
 
         if (!foundTrainingFailureLog) {
-            Assert.fail(String.format(
+            Assert.fail(String.format(Locale.ENGLISH,
                     "Failed to find federated training failure log: %s within test window %d ms",
                     NON_EXISTENT_POPULATION_JOB_FAILURE_LOG,
                     CHECKIN_REJECTION_COMPLETION_TIMEOUT));
+        }
+    }
+
+    /** Force the JobScheduler to execute the encryption key fetch job, bypassing all constraints */
+    public void forceExecuteEncryptionKeyFetchJob() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
+        executeShellCommand(
+                "cmd jobscheduler run -f com.google.android.federatedcompute "
+                        + ENCRYPTION_KEY_FETCH_JOB_ID);
+        SystemClock.sleep(2000);
+
+        boolean foundEncryptionKeyFetchJobSuccessLog = findLog(
+                ENCRYPTION_KEY_FETCH_JOB_SUCCESS_LOG,
+                ENCRYPTION_KEY_FETCH_TIMEOUT,
+                5000);
+
+        if (!foundEncryptionKeyFetchJobSuccessLog) {
+            Assert.fail(String.format(Locale.ENGLISH,
+                    "Failed to find encrption key fetch job success log %s in test window %d ms",
+                    ENCRYPTION_KEY_FETCH_JOB_SUCCESS_LOG,
+                    ENCRYPTION_KEY_FETCH_TIMEOUT));
         }
     }
 

@@ -16,11 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.internal.util.Preconditions;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
@@ -29,7 +28,7 @@ import java.util.Collections;
 import java.util.List;
 
 /** The output data of {@link IsolatedWorker#onTrainingExamples} */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class TrainingExamplesOutput {
     /**
@@ -130,7 +129,6 @@ public final class TrainingExamplesOutput {
     }
 
     /** A builder for {@link TrainingExamplesOutput} */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static final class Builder {
