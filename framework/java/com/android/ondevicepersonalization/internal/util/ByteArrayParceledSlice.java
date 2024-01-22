@@ -17,13 +17,13 @@
 package com.android.ondevicepersonalization.internal.util;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.os.IBinder;
 import android.os.Parcel;
 import android.os.Parcelable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
  * Transfer a large byte[] object across an IPC.  Splits into
@@ -36,23 +36,28 @@ public final class ByteArrayParceledSlice implements Parcelable {
 
     @NonNull private final ByteArrayParceledListSlice mContents;
 
-    public ByteArrayParceledSlice(@NonNull byte[] input) {
-        Objects.requireNonNull(input);
-        final int numSlices = (input.length + MAX_SLICE_SIZE - 1) / MAX_SLICE_SIZE;
-        ArrayList<byte[]> slices = new ArrayList<>(numSlices);
-        for (int i = 0; i < numSlices; ++i) {
-            int startOffset = i * MAX_SLICE_SIZE;
-            int count = Math.min(MAX_SLICE_SIZE, input.length - startOffset);
-            byte[] slice = new byte[count];
-            System.arraycopy(input, startOffset, slice, 0, count);
-            slices.add(slice);
+    public ByteArrayParceledSlice(@Nullable byte[] input) {
+        ArrayList<byte[]> slices = null;
+        if (input != null) {
+            final int numSlices = (input.length + MAX_SLICE_SIZE - 1) / MAX_SLICE_SIZE;
+            slices = new ArrayList<>(numSlices);
+            for (int i = 0; i < numSlices; ++i) {
+                int startOffset = i * MAX_SLICE_SIZE;
+                int count = Math.min(MAX_SLICE_SIZE, input.length - startOffset);
+                byte[] slice = new byte[count];
+                System.arraycopy(input, startOffset, slice, 0, count);
+                slices.add(slice);
+            }
         }
         mContents = new ByteArrayParceledListSlice(slices);
     }
 
     /** Returns the byte array. */
-    @NonNull public byte[] getByteArray() {
+    @Nullable public byte[] getByteArray() {
         List<byte[]> slices = mContents.getList();
+        if (slices == null) {
+            return null;
+        }
         int totalCount = 0;
         for (int i = 0; i < slices.size(); ++i) {
             totalCount += slices.get(i).length;
