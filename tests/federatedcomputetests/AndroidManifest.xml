@@ -36,6 +36,10 @@
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.federatedcompute.services.security.AuthorizationTokenDeletionJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
         <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
                  android:isolatedProcess="true" android:allowSharedIsolatedProcess="true" android:exported="false" >
         </service>
