@@ -44,8 +44,8 @@ public final class TrainingExamplesInput {
     /**
      * Token used to support the resumption of training. If client app wants to use resumption token
      * to track what examples are already used in previous federated compute jobs, it need set
-     * {@link TrainingExamplesOutput.Builder#setResumptionTokens}, OnDevicePersonalization will
-     * store it and pass it here for generating new training examples.
+     * {@link TrainingExampleRecord.Builder#setResumptionToken}, OnDevicePersonalization will store
+     * it and pass it here for generating new training examples.
      */
     @Nullable private byte[] mResumptionToken = null;
 
@@ -112,8 +112,8 @@ public final class TrainingExamplesInput {
     /**
      * Token used to support the resumption of training. If client app wants to use resumption token
      * to track what examples are already used in previous federated compute jobs, it need set
-     * {@link TrainingExamplesOutput.Builder#setResumptionTokens}, OnDevicePersonalization will
-     * store it and pass it here for generating new training examples.
+     * {@link TrainingExampleRecord.Builder#setResumptionToken}, OnDevicePersonalization will store
+     * it and pass it here for generating new training examples.
      */
     @DataClass.Generated.Member
     public @Nullable byte[] getResumptionToken() {
