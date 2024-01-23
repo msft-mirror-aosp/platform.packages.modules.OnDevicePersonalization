@@ -29,6 +29,7 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInput;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.WebTriggerInput;
@@ -149,17 +150,23 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         Log.d(TAG, "Population name: " + input.getPopulationName());
         Log.d(TAG, "Task name: " + input.getTaskName());
 
-        List<byte[]> examples = new ArrayList<>();
-        List<byte[]> tokens = new ArrayList<>();
-        examples.add(new byte[] {10});
-        examples.add(new byte[] {20});
-        tokens.add("token1".getBytes());
-        tokens.add("token2".getBytes());
+        List<TrainingExampleRecord> exampleRecordList = new ArrayList<>();
+        TrainingExampleRecord record1 =
+                new TrainingExampleRecord.Builder()
+                        .setTrainingExample(new byte[] {10})
+                        .setResumptionToken("token1".getBytes())
+                        .build();
+        TrainingExampleRecord record2 =
+                new TrainingExampleRecord.Builder()
+                        .setTrainingExample(new byte[] {20})
+                        .setResumptionToken("token2".getBytes())
+                        .build();
+        exampleRecordList.add(record1);
+        exampleRecordList.add(record2);
 
         TrainingExamplesOutput output =
                 new TrainingExamplesOutput.Builder()
-                        .setTrainingExamples(examples)
-                        .setResumptionTokens(tokens)
+                        .setTrainingExampleRecords(exampleRecordList)
                         .build();
         consumer.accept(output);
     }

@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutputParcel;
 import android.adservices.ondevicepersonalization.UserData;
@@ -29,8 +30,8 @@ import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -155,11 +156,15 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             .setTaskName(taskName)
                             .build();
 
-            String className = AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                    getContext(), packageName);
+            String className =
+                    AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                            getContext(), packageName);
             ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, ComponentName.createRelative(packageName, className));
+                    mInjector
+                            .getProcessRunner()
+                            .loadIsolatedService(
+                                    TASK_NAME,
+                                    ComponentName.createRelative(packageName, className));
             ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
@@ -183,22 +188,19 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         @Override
                         public void onSuccess(
                                 TrainingExamplesOutputParcel trainingExamplesOutputParcel) {
-                            ByteArrayParceledListSlice trainingExamplesListSlice =
-                                    trainingExamplesOutputParcel.getTrainingExamples();
-                            ByteArrayParceledListSlice resumptionTokensListSlice =
-                                    trainingExamplesOutputParcel.getResumptionTokens();
-                            if (trainingExamplesListSlice == null
-                                    || resumptionTokensListSlice == null) {
+                            OdpParceledListSlice<TrainingExampleRecord> trainingExampleRecordList =
+                                    trainingExamplesOutputParcel.getTrainingExampleRecords();
+
+                            if (trainingExampleRecordList == null
+                                    || trainingExampleRecordList.getList().isEmpty()) {
                                 callback.onStartQuerySuccess(
                                         OdpExampleStoreIteratorFactory.getInstance()
-                                                .createIterator(
-                                                        new ArrayList<>(), new ArrayList<>()));
+                                                .createIterator(new ArrayList<>()));
                             } else {
                                 callback.onStartQuerySuccess(
                                         OdpExampleStoreIteratorFactory.getInstance()
                                                 .createIterator(
-                                                        trainingExamplesListSlice.getList(),
-                                                        resumptionTokensListSlice.getList()));
+                                                        trainingExampleRecordList.getList()));
                             }
                         }
 
@@ -245,9 +247,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 mInjector
                         .getProcessRunner()
                         .runIsolatedService(
-                                isolatedServiceInfo,
-                                Constants.OP_TRAINING_EXAMPLE,
-                                serviceParams);
+                                isolatedServiceInfo, Constants.OP_TRAINING_EXAMPLE, serviceParams);
         return FluentFuture.from(result)
                 .transform(
                         val -> {
