@@ -172,17 +172,14 @@ public class FederatedComputeJobManager {
         // Federated server address is required to schedule the job.
         Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
 
-
         if (existingTask == null) {
             int jobId =
-                    mJobIdGenerator.generateJobId(
-                            this.mContext, populationName, ownerIdentifier);
+                    mJobIdGenerator.generateJobId(this.mContext, populationName, ownerIdentifier);
             FederatedTrainingTask.Builder newTaskBuilder =
                     FederatedTrainingTask.builder()
                             .appPackageName(callingPackageName)
                             .jobId(jobId)
-                            .ownerId(
-                                    trainingOptions.getOwnerComponentName().flattenToString())
+                            .ownerId(trainingOptions.getOwnerComponentName().flattenToString())
                             .ownerIdCertDigest(trainingOptions.getOwnerIdentifierCertDigest())
                             .creationTime(nowMs)
                             .lastScheduledTime(nowMs)
@@ -363,7 +360,9 @@ public class FederatedComputeJobManager {
                                 .setContributionRound(roundNumber)
                                 .setContributionTime(mClock.currentTimeMillis())
                                 .setTotalParticipation(
-                                        existingTaskHistory.getTotalParticipation() + 1)
+                                        existingTaskHistory == null
+                                                ? 1
+                                                : existingTaskHistory.getTotalParticipation() + 1)
                                 .build());
         if (!result) {
             LogUtil.e(
