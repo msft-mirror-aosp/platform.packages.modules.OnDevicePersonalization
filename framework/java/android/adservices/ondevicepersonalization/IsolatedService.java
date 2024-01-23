@@ -34,6 +34,7 @@ import android.os.SystemClock;
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
 import java.util.HashMap;
 import java.util.List;
@@ -349,12 +350,11 @@ public abstract class IsolatedService extends Service {
                                 } else {
                                     TrainingExamplesOutputParcel parcelResult =
                                             new TrainingExamplesOutputParcel.Builder()
-                                                    .setTrainingExamples(
-                                                            new ByteArrayParceledListSlice(
-                                                                    result.getTrainingExamples()))
-                                                    .setResumptionTokens(
-                                                            new ByteArrayParceledListSlice(
-                                                                    result.getResumptionTokens()))
+                                                    .setTrainingExampleRecords(
+                                                            new OdpParceledListSlice<
+                                                                    TrainingExampleRecord>(
+                                                                    result
+                                                                            .getTrainingExampleRecords()))
                                                     .build();
                                     Bundle bundle = new Bundle();
                                     bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
