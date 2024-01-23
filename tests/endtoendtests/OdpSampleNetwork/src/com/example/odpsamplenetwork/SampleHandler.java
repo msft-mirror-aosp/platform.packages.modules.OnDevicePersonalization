@@ -74,7 +74,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -143,7 +142,7 @@ public class SampleHandler implements IsolatedWorker {
         Log.d(TAG, "onDownload() started.");
         DownloadCompletedOutput downloadResult =
                 new DownloadCompletedOutput.Builder()
-                        .setRetainedKeys(getFilteredKeys(input.getData()))
+                        .setRetainedKeys(getFilteredKeys(input.getDownloadedContents()))
                         .build();
         consumer.accept(downloadResult);
     }
@@ -621,7 +620,7 @@ public class SampleHandler implements IsolatedWorker {
         return isInstalledAppFound(ad.mExcludeFilter) || isInstalledAppFound(ad.mExcludes);
     }
 
-    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+    private List<String> getFilteredKeys(KeyValueStore data) {
         Log.d(TAG, "getFilteredKeys() called.");
         List<String> filteredKeys = new ArrayList<String>();
         // Add all keys from the file into the list
