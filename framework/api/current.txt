@@ -69,13 +69,16 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class ExecuteOutput {
+    method @NonNull public java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> getEventLogRecords();
     method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
     method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
   }
 
   public static final class ExecuteOutput.Builder {
     ctor public ExecuteOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder addEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setEventLogRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord>);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfig(@NonNull android.adservices.ondevicepersonalization.RenderingConfig);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
   }
