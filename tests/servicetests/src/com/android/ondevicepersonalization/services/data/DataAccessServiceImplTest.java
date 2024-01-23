@@ -37,6 +37,7 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
@@ -60,7 +61,6 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
@@ -111,34 +111,34 @@ public class DataAccessServiceImplTest {
     public void testRemoteDataLookup() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"key"});
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, "key");
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP,
                 params,
                 new TestCallback());
         mLatch.await();
         assertNotNull(mResult);
-        HashMap<String, byte[]> data = mResult.getSerializable(
-                Constants.EXTRA_RESULT, HashMap.class);
+        ByteArrayParceledSlice data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
         assertNotNull(data);
-        assertNotNull(data.get("key"));
+        assertNotNull(data.getByteArray());
     }
 
     @Test
     public void testLocalDataLookup() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, "localkey");
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP,
                 params,
                 new TestCallback());
         mLatch.await();
         assertNotNull(mResult);
-        HashMap<String, byte[]> data = mResult.getSerializable(
-                Constants.EXTRA_RESULT, HashMap.class);
+        ByteArrayParceledSlice data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
         assertNotNull(data);
-        assertNotNull(data.get("localkey"));
+        assertNotNull(data.getByteArray());
     }
 
     @Test
@@ -181,20 +181,20 @@ public class DataAccessServiceImplTest {
     public void testLocalDataPut() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, "localkey");
         byte[] arr = new byte[100];
-        params.putByteArray(Constants.EXTRA_VALUE, arr);
+        params.putParcelable(Constants.EXTRA_VALUE, new ByteArrayParceledSlice(arr));
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
                 params,
                 new TestCallback());
         mLatch.await();
         assertNotNull(mResult);
-        HashMap<String, byte[]> data = mResult.getSerializable(
-                Constants.EXTRA_RESULT, HashMap.class);
+        ByteArrayParceledSlice data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
         assertNotNull(data);
         // Contains previous value
-        assertNotNull(data.get("localkey"));
+        assertNotNull(data.getByteArray());
         assertArrayEquals(mLocalDao.readSingleLocalDataRow("localkey"), arr);
     }
 
@@ -202,18 +202,18 @@ public class DataAccessServiceImplTest {
     public void testLocalDataRemove() throws Exception {
         addTestData();
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, "localkey");
         mServiceProxy.onRequest(
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback());
         mLatch.await();
         assertNotNull(mResult);
-        HashMap<String, byte[]> data = mResult.getSerializable(
-                Constants.EXTRA_RESULT, HashMap.class);
+        ByteArrayParceledSlice data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
         assertNotNull(data);
         // Contains previous value
-        assertNotNull(data.get("localkey"));
+        assertNotNull(data.getByteArray());
         assertNull(mLocalDao.readSingleLocalDataRow("localkey"));
     }
 
