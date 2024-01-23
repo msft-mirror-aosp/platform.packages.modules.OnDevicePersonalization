@@ -17,7 +17,10 @@
 package com.android.ondevicepersonalization.internal.util;
 
 import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.os.Bundle;
@@ -30,6 +33,7 @@ import androidx.test.filters.SmallTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
@@ -58,19 +62,7 @@ public class ByteArrayParceledSliceTest {
         Bundle input = new Bundle();
         input.putParcelable(INPUT_KEY, new ByteArrayParceledSlice(data));
         Executors.newSingleThreadExecutor().submit(() -> service.echo(
-                input,
-                new IEchoServiceCallback.Stub() {
-                    @Override
-                    public void onResult(Bundle result) {
-                        mSuccess = true;
-                        mEchoResult = result;
-                        mLatch.countDown();
-                    }
-                    public void onError() {
-                        mFailure = true;
-                        mLatch.countDown();
-                    }
-                }));
+                input, new EchoServiceCallback()));
         mLatch.await();
         assertTrue(mSuccess);
         assertFalse(mFailure);
@@ -78,6 +70,54 @@ public class ByteArrayParceledSliceTest {
                 RESULT_KEY, ByteArrayParceledSlice.class);
         byte[] result = parceledByteArray.getByteArray();
         assertArrayEquals(data, result);
+    }
+
+    @Test
+    public void runTestForNullArray() throws Exception {
+        EchoService service = new EchoService();
+        Bundle input = new Bundle();
+        input.putParcelable(INPUT_KEY, new ByteArrayParceledSlice(null));
+        Executors.newSingleThreadExecutor().submit(() -> service.echo(
+                input, new EchoServiceCallback()));
+        mLatch.await();
+        assertTrue(mSuccess);
+        assertFalse(mFailure);
+        ByteArrayParceledSlice parceledByteArray = mEchoResult.getParcelable(
+                RESULT_KEY, ByteArrayParceledSlice.class);
+        byte[] result = parceledByteArray.getByteArray();
+        assertNull(result);
+    }
+
+    @Test
+    public void runTestForEmptyArray() throws Exception {
+        byte[] data = new byte[0];
+        EchoService service = new EchoService();
+        Bundle input = new Bundle();
+        input.putParcelable(INPUT_KEY, new ByteArrayParceledSlice(data));
+        Executors.newSingleThreadExecutor().submit(() -> service.echo(
+                input, new EchoServiceCallback()));
+        mLatch.await();
+        assertTrue(mSuccess);
+        assertFalse(mFailure);
+        ByteArrayParceledSlice parceledByteArray = mEchoResult.getParcelable(
+                RESULT_KEY, ByteArrayParceledSlice.class);
+        byte[] result = parceledByteArray.getByteArray();
+        assertNotNull(result);
+        assertEquals(0, result.length);
+    }
+
+    class EchoServiceCallback extends IEchoServiceCallback.Stub {
+        @Override
+        public void onResult(Bundle result) {
+            mSuccess = true;
+            mEchoResult = result;
+            mLatch.countDown();
+        }
+        @Override
+        public void onError() {
+            mFailure = true;
+            mLatch.countDown();
+        }
     }
 
     class EchoService extends IEchoService.Stub {
@@ -89,15 +129,8 @@ public class ByteArrayParceledSliceTest {
             try {
                 ByteArrayParceledSlice parceledByteArray = input.getParcelable(
                         INPUT_KEY, ByteArrayParceledSlice.class);
+                Objects.requireNonNull(parceledByteArray);
                 byte[] contents = parceledByteArray.getByteArray();
-                if (contents.length != SIZE) {
-                    throw new IllegalArgumentException("Incorrect size " + contents.length);
-                }
-                for (int i = 0; i < contents.length; ++i) {
-                    if (contents[i] != (byte) (i % 256)) {
-                        throw new IllegalArgumentException("Mismatch at offset " + i);
-                    }
-                }
                 Bundle result = new Bundle();
                 result.putParcelable(RESULT_KEY, new ByteArrayParceledSlice(contents));
                 try {
