@@ -19,6 +19,7 @@ package android.adservices.ondevicepersonalization.aidl;
 import android.content.ComponentName;
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Bundle;
 
@@ -40,4 +41,12 @@ interface IOnDevicePersonalizationManagingService {
         int height,
         in CallerMetadata metadata,
         in IRequestSurfacePackageCallback callback);
+
+    void registerWebTrigger(
+        in String destinationUrl,
+        in String registrationUrl,
+        in String triggerHeader,
+        in String appPackageName,
+        in CallerMetadata metadata,
+        in IRegisterWebTriggerCallback callback);
 }
