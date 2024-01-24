@@ -21,7 +21,10 @@ package {
 
 android_test {
     name: "FrameworkOnDevicePersonalizationTests",
-    srcs: ["**/*.java"],
+    srcs: [
+        "**/*.java",
+        "**/*.aidl"
+    ],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
     sdk_version: "module_current",

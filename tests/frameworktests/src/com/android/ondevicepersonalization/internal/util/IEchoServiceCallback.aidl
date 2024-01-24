@@ -14,12 +14,10 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package com.android.ondevicepersonalization.internal.util;
 
-public class FederatedComputeJobInfo {
-
-    private FederatedComputeJobInfo() {}
-
-    /** JOB ID to periodically download encryption key. */
-    public static final int ENCRYPTION_KEY_FETCH_JOB_ID = 1000;
+/** @hide */
+oneway interface IEchoServiceCallback {
+    void onResult(in Bundle result);
+    void onError();
 }

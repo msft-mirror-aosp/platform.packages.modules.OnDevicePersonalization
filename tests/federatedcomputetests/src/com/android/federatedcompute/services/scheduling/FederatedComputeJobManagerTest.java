@@ -41,6 +41,7 @@ import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
+import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
@@ -49,6 +50,10 @@ import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
+import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityPolicyEvalSpec;
+import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityTaskInfo;
+import com.google.ondevicepersonalization.federatedcompute.proto.MinimumSeparationPolicy;
+import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 
 import org.junit.After;
 import org.junit.Before;
@@ -70,6 +75,7 @@ public final class FederatedComputeJobManagerTest {
     private static final String POPULATION_NAME1 = "population1";
     private static final String POPULATION_NAME2 = "population2";
     private static final String SERVER_ADDRESS = "https://server.uri/";
+    private static final String TASK_ID = "task-id";
     private static final int JOB_ID1 = 700000001;
     private static final int JOB_ID2 = 700000002;
     private static final long DEFAULT_SCHEDULING_PERIOD_SECS = 1234;
@@ -97,6 +103,21 @@ public final class FederatedComputeJobManagerTest {
                     .setServerAddress(SERVER_ADDRESS)
                     .setOwnerComponentName(OWNER_COMPONENT_NAME)
                     .setOwnerIdentifierCertDigest(CALLING_CERT_DIGEST)
+                    .build();
+    private static final MinimumSeparationPolicy MIN_SEP_POLICY =
+            MinimumSeparationPolicy.newBuilder()
+                    .setMinimumSeparation(6)
+                    .setCurrentIndex(10)
+                    .build();
+    private static final TaskAssignment TASK_ASSIGNMENT =
+            TaskAssignment.newBuilder()
+                    .setTaskId(TASK_ID)
+                    .setEligibilityTaskInfo(
+                            EligibilityTaskInfo.newBuilder()
+                                    .addEligibilityPolicies(
+                                            EligibilityPolicyEvalSpec.newBuilder()
+                                                    .setMinSepPolicy(MIN_SEP_POLICY)
+                                                    .build()))
                     .build();
     private static final TaskRetry TASK_RETRY =
             TaskRetry.newBuilder().setDelayMin(5000000).setDelayMax(6000000).build();
@@ -138,8 +159,7 @@ public final class FederatedComputeJobManagerTest {
     public void tearDown() {
         // Manually clean up the database.
         mTrainingTaskDao.clearDatabase();
-        FederatedComputeDbHelper dbHelper =
-                FederatedComputeDbHelper.getInstanceForTest(mContext);
+        FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
@@ -997,6 +1017,42 @@ public final class FederatedComputeJobManagerTest {
         // No task should exist, nor should a job be scheduled anymore
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
         assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
+    @Test
+    public void testRecordSuccessContribution_noTaskHistory_success() throws Exception {
+        when(mClock.currentTimeMillis()).thenReturn(1000L);
+
+        mJobManager.recordSuccessContribution(JOB_ID1, POPULATION_NAME1, TASK_ASSIGNMENT);
+
+        // Verify task history is recorded.
+        TaskHistory taskHistory =
+                mTrainingTaskDao.getTaskHistory(JOB_ID1, POPULATION_NAME1, TASK_ID);
+        assertThat(taskHistory.getContributionRound()).isEqualTo(10);
+        assertThat(taskHistory.getTotalParticipation()).isEqualTo(1);
+        assertThat(taskHistory.getContributionTime()).isEqualTo(1000);
+    }
+
+    @Test
+    public void testRecordSuccessContribution_updateTaskHistory_success() throws Exception {
+        when(mClock.currentTimeMillis()).thenReturn(1000L);
+        mTrainingTaskDao.updateOrInsertTaskHistory(
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID1)
+                        .setTaskId(TASK_ID)
+                        .setPopulationName(POPULATION_NAME1)
+                        .setContributionRound(9)
+                        .setContributionTime(120L)
+                        .build());
+
+        mJobManager.recordSuccessContribution(JOB_ID1, POPULATION_NAME1, TASK_ASSIGNMENT);
+
+        // Verify task history is updated.
+        TaskHistory taskHistory =
+                mTrainingTaskDao.getTaskHistory(JOB_ID1, POPULATION_NAME1, TASK_ID);
+        assertThat(taskHistory.getContributionRound()).isEqualTo(10);
+        assertThat(taskHistory.getTotalParticipation()).isEqualTo(1);
+        assertThat(taskHistory.getContributionTime()).isEqualTo(1000);
     }
 
     /**
