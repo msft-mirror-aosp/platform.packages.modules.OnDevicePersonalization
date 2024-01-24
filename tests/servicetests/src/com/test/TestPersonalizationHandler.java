@@ -40,7 +40,9 @@ import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -137,6 +139,8 @@ public class TestPersonalizationHandler implements IsolatedWorker {
 
     private List<String> getFilteredKeys(KeyValueStore data) {
         Set<String> filteredKeys = data.keySet();
+        Log.d(TAG, "key3 size: " + Base64.getDecoder()
+                .decode(Objects.requireNonNull(data.get("key3"))).length);
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);
     }
