@@ -61,8 +61,10 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -101,7 +103,7 @@ public class DataAccessServiceImplTest {
         mEventsDao = mInjector.getEventsDao(mApplicationContext);
 
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext,
+                mApplicationContext.getPackageName(), mApplicationContext, null,
                 true, true, mInjector);
 
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
@@ -125,6 +127,30 @@ public class DataAccessServiceImplTest {
     }
 
     @Test
+    public void testRemoteDataLookupWithOverride() throws Exception {
+        Map<String, byte[]> overrideData = new HashMap<>();
+        overrideData.put("key1", "helloworld1".getBytes());
+        overrideData.put("key2", "helloworld2".getBytes());
+        mServiceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext, overrideData,
+                true, true, mInjector);
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        addTestData();
+        Bundle params = new Bundle();
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, "key1");
+        mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        ByteArrayParceledSlice data = mResult.getParcelable(
+                Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
+        assertNotNull(data);
+        assertArrayEquals("helloworld1".getBytes(), data.getByteArray());
+    }
+
+    @Test
     public void testLocalDataLookup() throws Exception {
         addTestData();
         Bundle params = new Bundle();
@@ -139,6 +165,31 @@ public class DataAccessServiceImplTest {
                 Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
         assertNotNull(data);
         assertNotNull(data.getByteArray());
+    }
+
+    @Test
+    public void testRemoteDataKeysetWithOverride() throws Exception {
+        Map<String, byte[]> overrideData = new HashMap<>();
+        overrideData.put("key1", "helloworld1".getBytes());
+        overrideData.put("key2", "helloworld2".getBytes());
+        mServiceImpl = new DataAccessServiceImpl(
+                mApplicationContext.getPackageName(), mApplicationContext, overrideData,
+                true, true, mInjector);
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        addTestData();
+        Bundle params = new Bundle();
+        mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET,
+                params,
+                new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        HashSet<String> resultSet =
+                mResult.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
+        assertNotNull(resultSet);
+        assertEquals(2, resultSet.size());
+        assertTrue(resultSet.contains("key1"));
+        assertTrue(resultSet.contains("key2"));
     }
 
     @Test
@@ -270,7 +321,8 @@ public class DataAccessServiceImplTest {
     @Test
     public void testLocalDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, false, true, mInjector);
+                mApplicationContext.getPackageName(), mApplicationContext, null, false, true,
+                mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
         params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
@@ -360,7 +412,8 @@ public class DataAccessServiceImplTest {
     @Test
     public void testEventDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, true, false, mInjector);
+                mApplicationContext.getPackageName(), mApplicationContext, null, true, false,
+                mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
         params.putLongArray(Constants.EXTRA_LOOKUP_KEYS, new long[]{1L, 2L});

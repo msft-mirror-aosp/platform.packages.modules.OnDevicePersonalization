@@ -49,8 +49,10 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -64,7 +66,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final Context mApplicationContext;
     @NonNull
     private final String mServicePackageName;
-    private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
+    @Nullable
+    private OnDevicePersonalizationVendorDataDao mVendorDataDao = null;
     @Nullable
     private final OnDevicePersonalizationLocalDataDao mLocalDataDao;
     @Nullable
@@ -73,13 +76,24 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final boolean mIncludeEventData;
     @NonNull
     private final Injector mInjector;
+    private Map<String, byte[]> mRemoteData = null;
 
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeLocalData,
             boolean includeEventData) {
-        this(servicePackageName, applicationContext, includeLocalData, includeEventData,
+        this(servicePackageName, applicationContext, null, includeLocalData, includeEventData,
+                new Injector());
+    }
+
+    public DataAccessServiceImpl(
+            @NonNull String servicePackageName,
+            @NonNull Context applicationContext,
+            @NonNull Map<String, byte[]> remoteData,
+            boolean includeLocalData,
+            boolean includeEventData) {
+        this(servicePackageName, applicationContext, remoteData, includeLocalData, includeEventData,
                 new Injector());
     }
 
@@ -87,6 +101,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
+            Map<String, byte[]> remoteData,
             boolean includeLocalData,
             boolean includeEventData,
             @NonNull Injector injector) {
@@ -94,9 +109,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         mServicePackageName = Objects.requireNonNull(servicePackageName, "servicePackageName");
         mInjector = Objects.requireNonNull(injector, "injector");
         try {
-            mVendorDataDao = mInjector.getVendorDataDao(
-                    mApplicationContext, servicePackageName,
-                    PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+            if (remoteData != null) {
+                // Use provided remoteData instead of vendorData
+                mRemoteData = new HashMap<>(remoteData);
+            } else {
+                mVendorDataDao = mInjector.getVendorDataDao(
+                        mApplicationContext, servicePackageName,
+                        PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+            }
             mIncludeLocalData = includeLocalData;
             if (includeLocalData) {
                 mLocalDataDao = mInjector.getLocalDataDao(
@@ -227,8 +247,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
 
     private void remoteDataKeyset(@NonNull IDataAccessServiceCallback callback) {
         Bundle result = new Bundle();
-        result.putSerializable(Constants.EXTRA_RESULT,
-                new HashSet<>(mVendorDataDao.readAllVendorDataKeys()));
+        HashSet<String> keyset;
+        if (mRemoteData != null) {
+            keyset = new HashSet<>(mRemoteData.keySet());
+        } else {
+            keyset = new HashSet<>(mVendorDataDao.readAllVendorDataKeys());
+        }
+        result.putSerializable(Constants.EXTRA_RESULT, keyset);
         sendResult(result, callback);
     }
 
@@ -241,7 +266,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
 
     private void remoteDataLookup(String key, @NonNull IDataAccessServiceCallback callback) {
         try {
-            byte[] data = mVendorDataDao.readSingleVendorDataRow(key);
+            byte[] data;
+            if (mRemoteData != null) {
+                data = mRemoteData.get(key);
+            } else {
+                data = mVendorDataDao.readSingleVendorDataRow(key);
+            }
             Bundle result = new Bundle();
             result.putParcelable(
                     Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));

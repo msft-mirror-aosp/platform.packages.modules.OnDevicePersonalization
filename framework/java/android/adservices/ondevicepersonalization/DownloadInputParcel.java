@@ -17,10 +17,9 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.Nullable;
+import android.os.IBinder;
 import android.os.Parcelable;
 
-import com.android.modules.utils.StringParceledListSlice;
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
@@ -30,13 +29,9 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public class DownloadInputParcel implements Parcelable {
-    /** List of downloaded keys */
+    /** DataAccessService binder for downloaded content */
     @Nullable
-    StringParceledListSlice mDownloadedKeys = null;
-
-    /** List of downloaded values */
-    @Nullable
-    ByteArrayParceledListSlice mDownloadedValues = null;
+    IBinder mDataAccessServiceBinder = null;
 
 
 
@@ -55,28 +50,18 @@ public class DownloadInputParcel implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ DownloadInputParcel(
-            @Nullable StringParceledListSlice downloadedKeys,
-            @Nullable ByteArrayParceledListSlice downloadedValues) {
-        this.mDownloadedKeys = downloadedKeys;
-        this.mDownloadedValues = downloadedValues;
+            @Nullable IBinder dataAccessServiceBinder) {
+        this.mDataAccessServiceBinder = dataAccessServiceBinder;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
     /**
-     * List of downloaded keys
+     * DataAccessService binder for downloaded content
      */
     @DataClass.Generated.Member
-    public @Nullable StringParceledListSlice getDownloadedKeys() {
-        return mDownloadedKeys;
-    }
-
-    /**
-     * List of downloaded values
-     */
-    @DataClass.Generated.Member
-    public @Nullable ByteArrayParceledListSlice getDownloadedValues() {
-        return mDownloadedValues;
+    public @Nullable IBinder getDataAccessServiceBinder() {
+        return mDataAccessServiceBinder;
     }
 
     @Override
@@ -92,8 +77,7 @@ public class DownloadInputParcel implements Parcelable {
         DownloadInputParcel that = (DownloadInputParcel) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mDownloadedKeys, that.mDownloadedKeys)
-                && java.util.Objects.equals(mDownloadedValues, that.mDownloadedValues);
+                && java.util.Objects.equals(mDataAccessServiceBinder, that.mDataAccessServiceBinder);
     }
 
     @Override
@@ -103,8 +87,7 @@ public class DownloadInputParcel implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mDownloadedKeys);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mDownloadedValues);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mDataAccessServiceBinder);
         return _hash;
     }
 
@@ -115,11 +98,9 @@ public class DownloadInputParcel implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mDownloadedKeys != null) flg |= 0x1;
-        if (mDownloadedValues != null) flg |= 0x2;
+        if (mDataAccessServiceBinder != null) flg |= 0x1;
         dest.writeByte(flg);
-        if (mDownloadedKeys != null) dest.writeTypedObject(mDownloadedKeys, flags);
-        if (mDownloadedValues != null) dest.writeTypedObject(mDownloadedValues, flags);
+        if (mDataAccessServiceBinder != null) dest.writeStrongBinder(mDataAccessServiceBinder);
     }
 
     @Override
@@ -134,11 +115,9 @@ public class DownloadInputParcel implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         byte flg = in.readByte();
-        StringParceledListSlice downloadedKeys = (flg & 0x1) == 0 ? null : (StringParceledListSlice) in.readTypedObject(StringParceledListSlice.CREATOR);
-        ByteArrayParceledListSlice downloadedValues = (flg & 0x2) == 0 ? null : (ByteArrayParceledListSlice) in.readTypedObject(ByteArrayParceledListSlice.CREATOR);
+        IBinder dataAccessServiceBinder = (flg & 0x1) == 0 ? null : (IBinder) in.readStrongBinder();
 
-        this.mDownloadedKeys = downloadedKeys;
-        this.mDownloadedValues = downloadedValues;
+        this.mDataAccessServiceBinder = dataAccessServiceBinder;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -164,8 +143,7 @@ public class DownloadInputParcel implements Parcelable {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @Nullable StringParceledListSlice mDownloadedKeys;
-        private @Nullable ByteArrayParceledListSlice mDownloadedValues;
+        private @Nullable IBinder mDataAccessServiceBinder;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -173,46 +151,31 @@ public class DownloadInputParcel implements Parcelable {
         }
 
         /**
-         * List of downloaded keys
+         * DataAccessService binder for downloaded content
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setDownloadedKeys(@android.annotation.NonNull StringParceledListSlice value) {
+        public @android.annotation.NonNull Builder setDataAccessServiceBinder(@android.annotation.NonNull IBinder value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mDownloadedKeys = value;
-            return this;
-        }
-
-        /**
-         * List of downloaded values
-         */
-        @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setDownloadedValues(@android.annotation.NonNull ByteArrayParceledListSlice value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mDownloadedValues = value;
+            mDataAccessServiceBinder = value;
             return this;
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull DownloadInputParcel build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4; // Mark builder used
+            mBuilderFieldsSet |= 0x2; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
-                mDownloadedKeys = null;
-            }
-            if ((mBuilderFieldsSet & 0x2) == 0) {
-                mDownloadedValues = null;
+                mDataAccessServiceBinder = null;
             }
             DownloadInputParcel o = new DownloadInputParcel(
-                    mDownloadedKeys,
-                    mDownloadedValues);
+                    mDataAccessServiceBinder);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x4) != 0) {
+            if ((mBuilderFieldsSet & 0x2) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -220,10 +183,10 @@ public class DownloadInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1692121838009L,
+            time = 1705968510939L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadInputParcel.java",
-            inputSignatures = " @android.annotation.Nullable com.android.modules.utils.StringParceledListSlice mDownloadedKeys\n @android.annotation.Nullable com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice mDownloadedValues\nclass DownloadInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.Nullable android.adservices.ondevicepersonalization.IBinder mDataAccessServiceBinder\nclass DownloadInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
