@@ -64,6 +64,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -334,6 +335,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private VendorData readContent(JsonReader reader) throws IOException {
         String key = null;
         byte[] data = null;
+        String encoding = null;
         reader.beginObject();
         while (reader.hasNext()) {
             String name = reader.nextName();
@@ -341,6 +343,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 key = reader.nextString();
             } else if (name.equals("data")) {
                 data = reader.nextString().getBytes(StandardCharsets.UTF_8);
+            } else if (name.equals("encoding")) {
+                encoding = reader.nextString();
             } else {
                 reader.skipValue();
             }
@@ -348,6 +352,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         reader.endObject();
         if (key == null || data == null) {
             return null;
+        }
+        if (encoding != null && !encoding.isBlank()) {
+            if (encoding.strip().equalsIgnoreCase("base64")) {
+                data = Base64.getDecoder().decode(data);
+            } else if (!encoding.strip().equalsIgnoreCase("utf8")) {
+                return null;
+            }
         }
         return new VendorData.Builder().setKey(key).setData(data).build();
     }
