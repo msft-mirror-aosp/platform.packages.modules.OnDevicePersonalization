@@ -27,10 +27,7 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.JsonReader;
 
-
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -141,9 +138,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             // be caught by MDD maintenance based on stale and expiration settings.
             return FluentFuture.from(processDownloadedJsonFile(androidUri))
                     .transformAsync(unused -> mdd.removeFileGroup(
-                    RemoveFileGroupRequest.newBuilder().setGroupName(
-                            fileGroupName).build()),
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                                    RemoveFileGroupRequest.newBuilder().setGroupName(
+                                            fileGroupName).build()),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
         } catch (PackageManager.NameNotFoundException e) {
             sLogger.d(TAG + ": NameNotFoundException for package: " + mPackageName);
         } catch (ExecutionException e) {
@@ -208,7 +205,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                     mContext, mPackageName);
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, ComponentName.createRelative(mPackageName, className));
+                            TASK_NAME, ComponentName.createRelative(mPackageName, className));
             var resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeDownloadHandler(result, finalVendorDataMap),
@@ -226,8 +223,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
 
             var unused = Futures.whenAllComplete(loadFuture, resultFuture)
                     .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor());
+                                    loadFuture.get()),
+                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             return resultFuture;
         } catch (Exception e) {
@@ -276,21 +273,17 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                         mContext);
         pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
 
-        List<String> keys = new ArrayList<>();
-        List<byte[]> values = new ArrayList<>();
+        Map<String, byte[]> downloadedContent = new HashMap<>();
         for (String key : vendorDataMap.keySet()) {
-            keys.add(key);
-            values.add(vendorDataMap.get(key).getData());
+            downloadedContent.put(key, vendorDataMap.get(key).getData());
         }
-        StringParceledListSlice keysListSlice = new StringParceledListSlice(keys);
-        // This needs to be set to a small number >0 for the parcel.
-        keysListSlice.setInlineCountLimit(1);
-        ByteArrayParceledListSlice valuesListSlice = new ByteArrayParceledListSlice(values);
-        valuesListSlice.setInlineCountLimit(1);
+
+        DataAccessServiceImpl downloadedContentBinder = new DataAccessServiceImpl(
+                mPackageName, mContext, /* remoteData */ downloadedContent,
+                /* includeLocalData */ false, /* includeEventData */ false);
 
         DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
-                .setDownloadedKeys(keysListSlice)
-                .setDownloadedValues(valuesListSlice)
+                .setDataAccessServiceBinder(downloadedContentBinder)
                 .build();
 
         pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
@@ -304,23 +297,23 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 pluginParams);
         return FluentFuture.from(result)
                 .transform(
-                    val -> {
-                        writeServiceRequestMetrics(
-                                val, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_SUCCESS);
-                        return val;
-                    },
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                        val -> {
+                            writeServiceRequestMetrics(
+                                    val, isolatedServiceInfo.getStartTimeMillis(),
+                                    Constants.STATUS_SUCCESS);
+                            return val;
+                        },
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor()
                 )
                 .catchingAsync(
-                    Exception.class,
-                    e -> {
-                        writeServiceRequestMetrics(
-                                null, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_INTERNAL_ERROR);
-                        return Futures.immediateFailedFuture(e);
-                    },
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                        Exception.class,
+                        e -> {
+                            writeServiceRequestMetrics(
+                                    null, isolatedServiceInfo.getStartTimeMillis(),
+                                    Constants.STATUS_INTERNAL_ERROR);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        OnDevicePersonalizationExecutors.getBackgroundExecutor()
                 );
     }
 
@@ -365,10 +358,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
         ApiCallStats callStats =
                 new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_DOWNLOAD_COMPLETED)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
+                        .setLatencyMillis(latencyMillis)
+                        .setOverheadLatencyMillis(overheadLatencyMillis)
+                        .setResponseCode(responseCode)
+                        .build();
         OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }

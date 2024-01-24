@@ -41,7 +41,6 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -59,12 +58,12 @@ public class TestPersonalizationHandler implements IsolatedWorker {
             DownloadCompletedInput input, Consumer<DownloadCompletedOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
-            Log.d(TAG, "Data: " + input.getData());
+            Log.d(TAG, "Data keys: " + input.getDownloadedContents().keySet());
 
             Log.d(TAG, "Existing keyExtra: " + Arrays.toString(mRemoteData.get("keyExtra")));
             Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
-            List<String> keysToRetain = getFilteredKeys(input.getData());
+            List<String> keysToRetain = getFilteredKeys(input.getDownloadedContents());
             keysToRetain.add("keyExtra");
             // Get the keys to keep from the downloaded data
             DownloadCompletedOutput result =
@@ -136,7 +135,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         consumer.accept(result);
     }
 
-    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+    private List<String> getFilteredKeys(KeyValueStore data) {
         Set<String> filteredKeys = data.keySet();
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);
