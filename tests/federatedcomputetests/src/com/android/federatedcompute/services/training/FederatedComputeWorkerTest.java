@@ -135,6 +135,7 @@ public final class FederatedComputeWorkerTest {
     private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String SERVER_ADDRESS = "https://server.com/";
+    private static final long APK_VERSION_CODE = 1;
     private static final byte[] DEFAULT_TRAINING_CONSTRAINTS =
             createTrainingConstraints(true, true, true);
 
@@ -304,7 +305,7 @@ public final class FederatedComputeWorkerTest {
                         HttpFederatedProtocol.create(
                                 mContext,
                                 SERVER_ADDRESS,
-                                "1.0.0.1",
+                                String.valueOf(APK_VERSION_CODE),
                                 POPULATION_NAME,
                                 new HpkeJniEncrypter(),
                                 mMockTrainingEventLogger));
@@ -870,6 +871,7 @@ public final class FederatedComputeWorkerTest {
                 Context context,
                 String serverAddress,
                 String populationName,
+                String clientVersion,
                 TrainingEventLogger trainingEventLogger) {
             return mSpyHttpFederatedProtocol;
         }

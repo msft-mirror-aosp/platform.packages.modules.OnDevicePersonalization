@@ -28,6 +28,7 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
@@ -252,6 +253,7 @@ public class FederatedComputeWorker {
                             this.mContext,
                             run.mTask.serverAddress(),
                             run.mTask.populationName(),
+                            getClientVersion(),
                             run.mTrainingEventLogger);
             // By default, the 401 (UNAUTHENTICATED) response is allowed. When receiving 401
             // (UNAUTHENTICATED). The second would not allow 401 (UNAUTHENTICATED).
@@ -998,11 +1000,12 @@ public class FederatedComputeWorker {
                 Context context,
                 String serverAddress,
                 String populationName,
+                String clientVersion,
                 TrainingEventLogger trainingEventLogger) {
             return HttpFederatedProtocol.create(
                     context,
                     serverAddress,
-                    "1.0.0.1",
+                    clientVersion,
                     populationName,
                     new HpkeJniEncrypter(),
                     trainingEventLogger);
@@ -1011,6 +1014,19 @@ public class FederatedComputeWorker {
         EligibilityDecider getEligibilityDecider(Context context) {
             return new EligibilityDecider(FederatedTrainingTaskDao.getInstance(context));
         }
+    }
+
+    private String getClientVersion() {
+        long versionCode = -1;
+        try {
+            versionCode =
+                    mContext.getPackageManager()
+                            .getPackageInfo(mContext.getPackageName(), 0)
+                            .getLongVersionCode();
+        } catch (PackageManager.NameNotFoundException ignored) {
+            LogUtil.e(TAG, "Cannot fetch FCP version code.");
+        }
+        return String.valueOf(versionCode);
     }
 
     private static final class TrainingRun {
