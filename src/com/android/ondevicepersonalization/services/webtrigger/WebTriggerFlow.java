@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.webtrigger;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
 import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
@@ -141,6 +142,12 @@ public class WebTriggerFlow {
         if (getGlobalKillSwitch()) {
             return Futures.immediateFailedFuture(
                     new IllegalStateException("Disabled by kill switch"));
+        }
+        try {
+            OnDevicePersonalizationPermissions.enforceCallingPermission(
+                    mContext, OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
         }
 
         return Futures.submitAsync(() -> this.processRequest(), mInjector.getExecutor());
