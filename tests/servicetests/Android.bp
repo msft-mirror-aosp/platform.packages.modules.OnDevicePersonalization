@@ -24,6 +24,7 @@ android_test {
         ":ondevicepersonalization-sources",
         ":ondevicepersonalization-fbs",
         ":chronicle-sources",
+        ":statslog-ondevicepersonalization-java-gen",
     ],
     libs: [
         "android.test.base",
@@ -31,9 +32,11 @@ android_test {
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
+        "framework-location.stubs.module_lib",
         "kotlin-annotations",
         "truth",
         "framework-ondevicepersonalization.impl",
+        "framework-statsd.stubs.module_lib", // For WW logging
     ],
     static_libs: [
         "androidx.test.ext.junit",
@@ -50,6 +53,7 @@ android_test {
         "apache-velocity-engine-core",
         "flatbuffers-java",
         "owasp-java-encoder",
+        "compatibility-device-util-axt",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",

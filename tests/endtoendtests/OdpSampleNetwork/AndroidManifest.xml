@@ -16,12 +16,13 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.odpsamplenetwork" >
+          package="com.example.odpsamplenetwork"
+          android:versionName="1.0.3" >
     <application android:label="OdpSampleNetwork"
                  android:debuggable="true">
         <property android:name="android.ondevicepersonalization.ON_DEVICE_PERSONALIZATION_CONFIG"
                   android:resource="@xml/OdpSettings"></property>
-        <service android:name="com.android.odpsamplenetwork.SampleService"
+        <service android:name="com.example.odpsamplenetwork.SampleService"
                 android:exported="true" android:isolatedProcess="true" />
     </application>
 </manifest>

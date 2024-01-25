@@ -18,7 +18,7 @@ package {
 
 android_test_helper_app {
     name: "OdpSampleNetwork",
-    defaults: ["platform_app_defaults"],
+    defaults: ["framework-ondevicepersonalization-test-defaults"],
     platform_apis: true,
     srcs: [
         "src/**/*.java",
@@ -30,11 +30,15 @@ android_test_helper_app {
         "androidx.annotation_annotation",
         "androidx.concurrent_concurrent-futures",
         "androidx.core_core",
+        "cuckoofilter",
         "guava",
+        "tensorflow_core_proto_java_lite",
     ],
     resource_dirs: [
         "res",
     ],
+    target_sdk_version: "current",
+    min_sdk_version: "Tiramisu",
     manifest: "AndroidManifest.xml",
     certificate: "platform",
 }

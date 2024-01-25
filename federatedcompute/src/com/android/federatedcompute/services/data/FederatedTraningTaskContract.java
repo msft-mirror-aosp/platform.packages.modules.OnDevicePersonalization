@@ -41,7 +41,12 @@ public final class FederatedTraningTaskContract {
         // server during check in. Must be non-empty.
         public static final String POPULATION_NAME = "population_name";
 
+        /** The remote federated compute server address that client provided. */
+        public static final String SERVER_ADDRESS = "server_address";
+
         public static final String INTERVAL_OPTIONS = "interval_options";
+
+        public static final String CONTEXT_DATA = "context_data";
 
         // The time the task was originally created.
         public static final String CREATION_TIME = "creation_time";

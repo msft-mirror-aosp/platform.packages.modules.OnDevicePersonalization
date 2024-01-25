@@ -34,6 +34,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import com.google.common.util.concurrent.MoreExecutors;
@@ -51,9 +52,14 @@ public class UserDataCollectionJobServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private UserDataCollector mUserDataCollector;
     private UserDataCollectionJobService mService;
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mService = spy(new UserDataCollectionJobService());
     }
@@ -71,6 +77,34 @@ public class UserDataCollectionJobServiceTest {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
 
+            boolean result = mService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+            verify(mService, times(1)).jobFinished(any(), eq(false));
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestKillSwitchEnabled() {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        try {
+            doNothing().when(mService).jobFinished(any(), anyBoolean());
+            boolean result = mService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+            verify(mService, times(1)).jobFinished(any(), eq(false));
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestPersonalizationBlocked() {
+        mPrivacyStatus.setPersonalizationStatusEnabled(false);
+        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        try {
+            doNothing().when(mService).jobFinished(any(), anyBoolean());
             boolean result = mService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
             verify(mService, times(1)).jobFinished(any(), eq(false));

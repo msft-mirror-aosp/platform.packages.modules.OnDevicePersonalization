@@ -84,7 +84,7 @@ abstract class FlavoredPoliciesBuilder<FlavorT : FlavorConfigurator>(
   /** Builds the [FlavoredPolicies]. */
   fun buildAll(): FlavoredPolicies {
     val flavoredPolicies: Map<Flavor, Policy> =
-      flavorBlocks.mapValues { (flavor, flavorBlock) ->
+      flavorBlocks.mapValues { (_, flavorBlock) ->
         // Clone the basePolicyBuilder and then let the flavor mutate it.
         val policyBuilder = PolicyBuilder(basePolicyBuilder)
         newFlavorConfigurator(policyBuilder).apply(flavorBlock)

@@ -16,12 +16,14 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.adservices.ondevicepersonalization.CallerMetadata;
+import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.aidl.IExecuteCallback;
-import android.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -41,12 +43,13 @@ public class OnDevicePersonalizationManagingServiceDelegate
     static class Injector {
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
-                String servicePackageName,
+                ComponentName handler,
                 PersistableBundle params,
                 IExecuteCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new AppRequestFlow(
-                    callingPackageName, servicePackageName, params, callback, context);
+                    callingPackageName, handler, params, callback, context, startTimeMillis);
         }
 
         RenderFlow getRenderFlow(
@@ -56,9 +59,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 int width,
                 int height,
                 IRequestSurfacePackageCallback callback,
-                Context context) {
+                Context context,
+                long startTimeMillis) {
             return new RenderFlow(
-                    slotResultToken, hostToken, displayId, width, height, callback, context);
+                    slotResultToken, hostToken, displayId, width, height, callback, context,
+                    startTimeMillis);
         }
     }
 
@@ -84,23 +89,41 @@ public class OnDevicePersonalizationManagingServiceDelegate
     @Override
     public void execute(
             @NonNull String callingPackageName,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
+            @NonNull CallerMetadata metadata,
             @NonNull IExecuteCallback callback) {
+        if (getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
         Objects.requireNonNull(callingPackageName);
-        Objects.requireNonNull(servicePackageName);
+        Objects.requireNonNull(handler);
+        Objects.requireNonNull(handler.getPackageName());
+        Objects.requireNonNull(handler.getClassName());
         Objects.requireNonNull(params);
+        Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
+        if (callingPackageName.isEmpty()) {
+            throw new IllegalArgumentException("missing app package name");
+        }
+        if (handler.getPackageName().isEmpty()) {
+            throw new IllegalArgumentException("missing service package name");
+        }
+        if (handler.getClassName().isEmpty()) {
+            throw new IllegalArgumentException("missing service class name");
+        }
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
 
         AppRequestFlow flow = mInjector.getAppRequestFlow(
                 callingPackageName,
-                servicePackageName,
+                handler,
                 params,
                 callback,
-                mContext);
+                mContext,
+                metadata.getStartTimeMillis());
         flow.run();
     }
 
@@ -111,7 +134,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
             int displayId,
             int width,
             int height,
+            @NonNull CallerMetadata metadata,
             @NonNull IRequestSurfacePackageCallback callback) {
+        if (getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
         Objects.requireNonNull(callback);
@@ -134,10 +162,17 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 width,
                 height,
                 callback,
-                mContext);
+                mContext,
+                metadata.getStartTimeMillis());
         flow.run();
     }
 
+    private boolean getGlobalKillSwitch() {
+        long origId = Binder.clearCallingIdentity();
+        boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
+        Binder.restoreCallingIdentity(origId);
+        return globalKillSwitch;
+    }
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();

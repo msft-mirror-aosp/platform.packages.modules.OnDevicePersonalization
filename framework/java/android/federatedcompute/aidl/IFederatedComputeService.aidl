@@ -21,5 +21,13 @@ import android.federatedcompute.aidl.IFederatedComputeCallback;
 
 /** @hide */
 interface IFederatedComputeService {
-  void scheduleFederatedCompute(in TrainingOptions trainingOptions, in IFederatedComputeCallback callback);
+  void schedule(
+    in String callingPackageName,
+    in TrainingOptions trainingOptions,
+    in IFederatedComputeCallback callback);
+
+  void cancel(
+    in String callingPackageName,
+    in String populationName,
+    in IFederatedComputeCallback callback);
 }

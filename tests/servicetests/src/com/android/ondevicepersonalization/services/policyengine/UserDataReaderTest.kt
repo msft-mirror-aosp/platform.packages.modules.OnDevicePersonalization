@@ -26,14 +26,15 @@ import org.junit.Test
 
 import android.util.Log
 
-import android.ondevicepersonalization.AppInstallStatus
-import android.ondevicepersonalization.AppUsageStatus
-import android.ondevicepersonalization.DeviceMetrics
-import android.ondevicepersonalization.OSVersion
-import android.ondevicepersonalization.Location
-import android.ondevicepersonalization.LocationStatus
-import android.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.AppInfo
+import android.adservices.ondevicepersonalization.AppUsageStatus
+import android.adservices.ondevicepersonalization.DeviceMetrics
+import android.adservices.ondevicepersonalization.OSVersion
+import android.adservices.ondevicepersonalization.Location
+import android.adservices.ondevicepersonalization.LocationStatus
+import android.adservices.ondevicepersonalization.UserData
 import android.os.Parcel
+import android.util.ArrayMap
 
 import com.android.libraries.pcc.chronicle.util.MutableTypedMap
 import com.android.libraries.pcc.chronicle.util.TypedMap
@@ -141,15 +142,14 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     @Test
-    fun testAppInstallStatus() {
-        var appInstallStatus1 = AppInstallStatus.Builder()
-                .setPackageName("package")
+    fun testAppInstallInfo() {
+        var appInstallStatus1 = AppInfo.Builder()
                 .setInstalled(true)
                 .build()
         var parcel = Parcel.obtain()
         appInstallStatus1.writeToParcel(parcel, 0)
         parcel.setDataPosition(0);
-        var appInstallStatus2 = AppInstallStatus.CREATOR.createFromParcel(parcel)
+        var appInstallStatus2 = AppInfo.CREATOR.createFromParcel(parcel)
         assertThat(appInstallStatus1).isEqualTo(appInstallStatus2)
         assertThat(appInstallStatus1.hashCode()).isEqualTo(appInstallStatus2.hashCode())
         assertThat(appInstallStatus1.describeContents()).isEqualTo(0)
@@ -193,7 +193,7 @@ class UserDataReaderTest : ProcessorNode {
     @Test
     fun testLocation() {
         var location1 = Location.Builder()
-                .setTimeSec(111111)
+                .setTimestampSeconds(111111)
                 .setLatitude(0.1)
                 .setLongitude(0.2)
                 .setLocationProvider(1)
@@ -242,24 +242,10 @@ class UserDataReaderTest : ProcessorNode {
 
     @Test
     fun testUserData() {
-        var oSVersion = OSVersion.Builder()
-                .setMajor(111)
-                .setMinor(222)
-                .setMicro(333)
-                .build()
-        var deviceMetrics = DeviceMetrics.Builder()
-                .setMake(111)
-                .setModel(222)
-                .setScreenHeights(333)
-                .setScreenWidth(444)
-                .setXdpi(0.1f)
-                .setYdpi(0.2f)
-                .setPxRatio(0.5f)
-                .build()
-        val appInstalledHistory: List<AppInstallStatus> = listOf();
+        val appInstalledHistory: Map<String, AppInfo> = mapOf<String, AppInfo>();
         val appUsageHistory: List<AppUsageStatus> = listOf();
         var location = Location.Builder()
-                .setTimeSec(111111)
+                .setTimestampSeconds(111111)
                 .setLatitude(0.1)
                 .setLongitude(0.2)
                 .setLocationProvider(1)
@@ -267,20 +253,13 @@ class UserDataReaderTest : ProcessorNode {
                 .build()
         val locationHistory: List<LocationStatus> = listOf();
         var userData1 = UserData.Builder()
-                .setTimeSec(111)
-                .setTimezone(1)
+                .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
-                .setAvailableBytesMB(222)
-                .setBatteryPct(33)
-                .setCountry(123)
-                .setLanguage(34)
-                .setCarrier(55)
-                .setOsVersions(oSVersion)
-                .setConnectionType(2)
-                .setConnectionSpeedKbps(666)
-                .setNetworkMetered(true)
-                .setDeviceMetrics(deviceMetrics)
-                .setAppInstalledHistory(appInstalledHistory)
+                .setAvailableStorageBytes(222)
+                .setBatteryPercentage(33)
+                .setCarrier("AT_T")
+                .setDataNetworkType(1)
+                .setAppInfos(appInstalledHistory)
                 .setAppUsageHistory(appUsageHistory)
                 .setCurrentLocation(location)
                 .setLocationHistory(locationHistory)
@@ -295,51 +274,24 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     private fun verifyData(userData: UserData, ref: RawUserData) {
-        assertThat(userData.getTimeSec()).isEqualTo(ref.timeMillis / 1000)
-        assertThat(userData.getTimezone()).isEqualTo(ref.utcOffset)
+        assertThat(userData.getTimezoneUtcOffsetMins()).isEqualTo(ref.utcOffset)
         assertThat(userData.getOrientation()).isEqualTo(ref.orientation)
-        assertThat(userData.getAvailableBytesMB()).isEqualTo(ref.availableBytesMB)
-        assertThat(userData.getBatteryPct()).isEqualTo(ref.batteryPct)
-        assertThat(userData.getCountry()).isEqualTo(ref.country.ordinal)
-        assertThat(userData.getLanguage()).isEqualTo(ref.language.ordinal)
-        assertThat(userData.getCarrier()).isEqualTo(ref.carrier.ordinal)
+        assertThat(userData.getAvailableStorageBytes()).isEqualTo(ref.availableStorageBytes)
+        assertThat(userData.getBatteryPercentage()).isEqualTo(ref.batteryPercentage)
+        assertThat(userData.getCarrier()).isEqualTo(ref.carrier.toString())
 
-        val osVersion: OSVersion = userData.getOsVersions()
-        assertThat(osVersion.getMajor()).isEqualTo(ref.osVersions.major)
-        assertThat(osVersion.getMinor()).isEqualTo(ref.osVersions.minor)
-        assertThat(osVersion.getMicro()).isEqualTo(ref.osVersions.micro)
-
-        assertThat(userData.getConnectionType()).isEqualTo(ref.connectionType.ordinal)
-        assertThat(userData.getConnectionSpeedKbps()).isEqualTo(ref.connectionSpeedKbps)
-        assertThat(userData.isNetworkMetered()).isEqualTo(ref.networkMeteredStatus)
-
-        val deviceMetrics: DeviceMetrics = userData.getDeviceMetrics()
-
-        assertThat(deviceMetrics.getMake()).isEqualTo(ref.deviceMetrics.make.ordinal)
-        assertThat(deviceMetrics.getModel()).isEqualTo(ref.deviceMetrics.model.ordinal)
-        assertThat(deviceMetrics.getScreenHeights()).isEqualTo(ref.deviceMetrics.screenHeight)
-        assertThat(deviceMetrics.getScreenWidth()).isEqualTo(ref.deviceMetrics.screenWidth)
-        assertThat(deviceMetrics.getXdpi()).isEqualTo(ref.deviceMetrics.xdpi)
-        assertThat(deviceMetrics.getYdpi()).isEqualTo(ref.deviceMetrics.ydpi)
-        assertThat(deviceMetrics.getPxRatio()).isEqualTo(ref.deviceMetrics.pxRatio)
-        assertThat(deviceMetrics.describeContents()).isEqualTo(0)
+        assertThat(userData.getNetworkCapabilities()).isEqualTo(ref.networkCapabilities)
+        assertThat(userData.getDataNetworkType()).isEqualTo(ref.dataNetworkType)
 
         val currentLocation: Location = userData.getCurrentLocation()
 
-        assertThat(currentLocation.getTimeSec()).isEqualTo(rawUserData.currentLocation.timeMillis / 1000)
+        assertThat(currentLocation.getTimestampSeconds()).isEqualTo(rawUserData.currentLocation.timeMillis / 1000)
         assertThat(currentLocation.getLatitude()).isEqualTo(rawUserData.currentLocation.latitude)
         assertThat(currentLocation.getLongitude()).isEqualTo(rawUserData.currentLocation.longitude)
         assertThat(currentLocation.getLocationProvider()).isEqualTo(rawUserData.currentLocation.provider.ordinal)
         assertThat(currentLocation.isPreciseLocation()).isEqualTo(rawUserData.currentLocation.isPreciseLocation)
 
-        assertThat(userData.getAppInstalledHistory().size).isEqualTo(rawUserData.appsInfo.size)
-
-        for ((index, appStatus) in userData.getAppInstalledHistory().withIndex()) {
-            assertThat(appStatus.getPackageName()).isEqualTo(rawUserData.appsInfo[index].packageName)
-            assertThat(appStatus.isInstalled()).isEqualTo(rawUserData.appsInfo[index].installed)
-            assertThat(appStatus.describeContents()).isEqualTo(0)
-        }
-
+        assertThat(userData.getAppInfos().size).isEqualTo(rawUserData.appsInfo.size)
         assertThat(userData.getAppUsageHistory().size).isEqualTo(rawUserData.appUsageHistory.size)
         assertThat(userData.getLocationHistory().size).isEqualTo(rawUserData.locationHistory.size)
     }

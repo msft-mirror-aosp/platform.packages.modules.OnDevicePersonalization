@@ -16,12 +16,15 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.odpclient" >
+          package="com.example.odpclient"
+          android:versionName="1.0.3" >
+    <uses-permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"/>
     <application
         android:label="@string/title_activity_main">
 
         <activity
-            android:name="com.android.odpclient.MainActivity"
+            android:name="com.example.odpclient.MainActivity"
+            android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

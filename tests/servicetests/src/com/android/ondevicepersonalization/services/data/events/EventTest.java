@@ -26,45 +26,36 @@ import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class EventTest {
+    private static final int EVENT_TYPE = 2;
+
     @Test
     public void testBuilderAndEquals() {
-        int type = EventType.B2D.getValue();
         byte[] eventData = "data".getBytes();
-        String bidId = "bidId";
         String servicePackageName = "servicePackageName";
-        String slotId = "slotId";
-        int slotPosition = 1;
         long queryId = 1;
         long timeMillis = 1;
         long eventId = 1;
-        long slotIndex = 1;
+        int rowIndex = 1;
         Event event1 = new Event.Builder()
-                .setType(type)
+                .setType(EVENT_TYPE)
                 .setEventData(eventData)
-                .setBidId(bidId)
                 .setServicePackageName(servicePackageName)
-                .setSlotId(slotId)
-                .setSlotPosition(slotPosition)
                 .setQueryId(queryId)
                 .setTimeMillis(timeMillis)
-                .setSlotIndex(slotIndex)
+                .setRowIndex(rowIndex)
                 .setEventId(eventId)
                 .build();
 
-        assertEquals(event1.getType(), type);
+        assertEquals(event1.getType(), EVENT_TYPE);
         assertArrayEquals(event1.getEventData(), eventData);
-        assertEquals(event1.getBidId(), bidId);
         assertEquals(event1.getServicePackageName(), servicePackageName);
-        assertEquals(event1.getSlotId(), slotId);
-        assertEquals(event1.getSlotPosition(), slotPosition);
         assertEquals(event1.getQueryId(), queryId);
         assertEquals(event1.getTimeMillis(), timeMillis);
-        assertEquals(event1.getSlotIndex(), slotIndex);
+        assertEquals(event1.getRowIndex(), rowIndex);
         assertEquals(event1.getEventId(), eventId);
 
         Event event2 = new Event.Builder(
-                eventId, queryId, slotIndex, bidId, servicePackageName, slotPosition,
-                type, timeMillis, slotId, eventData)
+                eventId, queryId, rowIndex, servicePackageName, EVENT_TYPE, timeMillis, eventData)
                 .build();
         assertEquals(event1, event2);
         assertEquals(event1.hashCode(), event2.hashCode());
@@ -72,26 +63,19 @@ public class EventTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        int type = EventType.B2D.getValue();
         byte[] eventData = "data".getBytes();
-        String bidId = "bidId";
         String servicePackageName = "servicePackageName";
-        String slotId = "slotId";
-        int slotPosition = 1;
         long queryId = 1;
         long timeMillis = 1;
         long eventId = 1;
-        long slotIndex = 1;
+        int rowIndex = 1;
         Event.Builder builder = new Event.Builder()
-                .setType(type)
+                .setType(EVENT_TYPE)
                 .setEventData(eventData)
-                .setBidId(bidId)
                 .setServicePackageName(servicePackageName)
-                .setSlotId(slotId)
-                .setSlotPosition(slotPosition)
                 .setQueryId(queryId)
                 .setTimeMillis(timeMillis)
-                .setSlotIndex(slotIndex)
+                .setRowIndex(rowIndex)
                 .setEventId(eventId);
 
         builder.build();

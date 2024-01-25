@@ -49,7 +49,8 @@ public final class AppManifestConfigHelper {
         return true;
     }
 
-    static AppManifestConfig getAppManifestConfig(Context context,
+    /** Returns the ODP manifest config for a package. */
+    public static AppManifestConfig getAppManifestConfig(Context context,
             String packageName) {
         if (!manifestContainsOdpSettings(context, packageName)) {
             // TODO(b/241941021) Determine correct exception to throw
@@ -90,5 +91,16 @@ public final class AppManifestConfigHelper {
     public static String getServiceNameFromOdpSettings(Context context,
             String packageName) {
         return getAppManifestConfig(context, packageName).getServiceName();
+    }
+
+    /**
+     * Gets the federated compute service remote server url from package's ODP settings config
+     *
+     * @param context     the context of the API call.
+     * @param packageName the packageName of the package whose manifest config will be read
+     */
+    public static String getFcRemoteServerUrlFromOdpSettings(Context context,
+            String packageName) {
+        return getAppManifestConfig(context, packageName).getFcRemoteServerUrl();
     }
 }

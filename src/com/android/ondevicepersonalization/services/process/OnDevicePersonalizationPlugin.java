@@ -16,15 +16,16 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import android.adservices.ondevicepersonalization.IsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.ondevicepersonalization.IsolatedComputationService;
-import android.ondevicepersonalization.aidl.IIsolatedComputationService;
-import android.ondevicepersonalization.aidl.IIsolatedComputationServiceCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.util.Log;
 
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.libraries.plugin.FailureType;
 import com.android.ondevicepersonalization.libraries.plugin.Plugin;
 import com.android.ondevicepersonalization.libraries.plugin.PluginCallback;
@@ -32,6 +33,7 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginContext;
 
 /** Plugin that runs in an isolated process. */
 public class OnDevicePersonalizationPlugin implements Plugin {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationPlugin";
     private Bundle mInput;
     private PluginCallback mPluginCallback;
@@ -48,63 +50,63 @@ public class OnDevicePersonalizationPlugin implements Plugin {
             @NonNull Bundle input,
             @NonNull PluginCallback callback,
             @Nullable PluginContext pluginContext) {
-        Log.d(TAG, "Executing plugin: " + input.toString());
+        sLogger.d(TAG + ": Executing plugin: " + input.toString());
         mInput = input;
         mPluginCallback = callback;
         mPluginContext = pluginContext;
 
         try {
-            String className = input.getString(ProcessUtils.PARAM_CLASS_NAME_KEY);
+            String className = input.getString(ProcessRunner.PARAM_CLASS_NAME_KEY);
             if (className == null || className.isEmpty()) {
-                Log.e(TAG, "className missing.");
+                sLogger.e(TAG + ": className missing.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            int operation = input.getInt(ProcessUtils.PARAM_OPERATION_KEY);
+            int operation = input.getInt(ProcessRunner.PARAM_OPERATION_KEY);
             if (operation == 0) {
-                Log.e(TAG, "operation missing or invalid.");
+                sLogger.e(TAG + ": operation missing or invalid.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
-            Bundle serviceParams = input.getParcelable(ProcessUtils.PARAM_SERVICE_INPUT,
+            Bundle serviceParams = input.getParcelable(ProcessRunner.PARAM_SERVICE_INPUT,
                     Bundle.class);
             if (serviceParams == null) {
-                Log.e(TAG, "Missing service input.");
+                sLogger.e(TAG + ": Missing service input.");
                 sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
                 return;
             }
 
             Class<?> clazz = Class.forName(className, true, mClassLoader);
-            IsolatedComputationService service =
-                    (IsolatedComputationService) clazz.getDeclaredConstructor().newInstance();
+            IsolatedService service =
+                    (IsolatedService) clazz.getDeclaredConstructor().newInstance();
             // TODO(b/249345663): Set the 'Context' for the service.
             service.onCreate();
-            IIsolatedComputationService binder =
-                    (IIsolatedComputationService) service.onBind(null);
+            IIsolatedService binder =
+                    (IIsolatedService) service.onBind(null);
 
             binder.onRequest(operation, serviceParams,
-                    new IIsolatedComputationServiceCallback.Stub() {
+                    new IIsolatedServiceCallback.Stub() {
                         @Override public void onSuccess(Bundle result) {
                             try {
                                 mPluginCallback.onSuccess(result);
                             } catch (RemoteException e) {
-                                Log.e(TAG, "Callback error.", e);
+                                sLogger.e(TAG + ": Callback error.", e);
                             }
                         }
                         @Override public void onError(int errorCode) {
                             try {
                                 mPluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                             } catch (RemoteException e) {
-                                Log.e(TAG, "Callback error.", e);
+                                sLogger.e(TAG + ": Callback error.", e);
                             }
                         }
                     }
             );
 
         } catch (Exception e) {
-            Log.e(TAG, "Plugin failed. ", e);
+            sLogger.e(TAG + ": Plugin failed. ", e);
             sendErrorResult(FailureType.ERROR_EXECUTING_PLUGIN);
         }
     }
@@ -113,7 +115,7 @@ public class OnDevicePersonalizationPlugin implements Plugin {
         try {
             mPluginCallback.onFailure(failure);
         } catch (RemoteException e) {
-            Log.e(TAG, "Callback error.", e);
+            sLogger.e(TAG + ": Callback error.", e);
         }
     }
 }

@@ -16,13 +16,14 @@
   -->
 
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-          package="com.android.federatedcompute.servicetests" >
+          package="com.android.ondevicepersonalization.federatedcomputetests" >
 
     <!-- Used for scheduling connectivity jobs -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Used for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <uses-permission android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE" />
 
     <application android:label="FederatedComputeServicesTests"
                  android:debuggable="true">
@@ -31,12 +32,19 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.federatedcompute.services.examplestore.SampleExampleStoreService"
-                 android:enabled="true"
-                 android:exported="true">
+        <service android:name="com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
+                 android:isolatedProcess="true" android:allowSharedIsolatedProcess="true" android:exported="false" >
+        </service>
+        <service
+            android:name="com.android.federatedcompute.services.examplestore.SampleExampleStoreService"
+            android:enabled="true"
+            android:exported="true">
                  <intent-filter>
                     <action android:name="android.federatedcompute.EXAMPLE_STORE" />
-                    <data android:scheme="app" />
                  </intent-filter>
         </service>
         <service android:name="com.android.federatedcompute.services.training.SampleResultHandlingService"
@@ -44,11 +52,15 @@
                  android:exported="true">
                  <intent-filter>
                     <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
-                    <data android:scheme="app" />
                  </intent-filter>
         </service>
+        <service android:name="com.android.federatedcompute.services.training.FederatedIsolatedTrainingService"
+                android:exported="false"
+                android:process=":remote"
+                android:isolatedProcess="true">
+       </service>
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
-                     android:targetPackage="com.android.federatedcompute.servicetests"
+                     android:targetPackage="com.android.ondevicepersonalization.federatedcomputetests"
                      android:label="Tests of FederatedComputeManagingService"/>
 </manifest>
