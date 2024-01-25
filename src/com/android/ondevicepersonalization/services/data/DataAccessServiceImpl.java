@@ -31,6 +31,7 @@ import android.os.PersistableBundle;
 import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -48,7 +49,6 @@ import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
@@ -127,13 +127,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         sLogger.d(TAG + ": onRequest: op=" + operation + " params: " + params.toString());
         switch (operation) {
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
-                String[] lookupKeys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                if (lookupKeys == null) {
-                    throw new IllegalArgumentException("Missing lookup keys.");
+                String lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                if (lookupKey == null || lookupKey.isEmpty()) {
+                    throw new IllegalArgumentException("Missing lookup key.");
                 }
                 mInjector.getExecutor().execute(
                         () -> remoteDataLookup(
-                                lookupKeys, callback));
+                                lookupKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET:
                 mInjector.getExecutor().execute(
@@ -143,13 +143,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 if (!mIncludeLocalData) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
-                lookupKeys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                if (lookupKeys == null) {
-                    throw new IllegalArgumentException("Missing lookup keys.");
+                lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                if (lookupKey == null || lookupKey.isEmpty()) {
+                    throw new IllegalArgumentException("Missing lookup key.");
                 }
                 mInjector.getExecutor().execute(
                         () -> localDataLookup(
-                                lookupKeys, callback));
+                                lookupKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET:
                 if (!mIncludeLocalData) {
@@ -162,25 +162,26 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 if (!mIncludeLocalData) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
-                String[] putKey = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                byte[] value = params.getByteArray(Constants.EXTRA_VALUE);
-                if (value == null
-                        || putKey == null || putKey.length != 1 || putKey[0] == null) {
+                String putKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                ByteArrayParceledSlice parceledValue = params.getParcelable(
+                        Constants.EXTRA_VALUE, ByteArrayParceledSlice.class);
+                if (parceledValue == null
+                        || putKey == null || putKey.isEmpty()) {
                     throw new IllegalArgumentException("Invalid key or value for put.");
                 }
                 mInjector.getExecutor().execute(
-                        () -> localDataPut(putKey[0], value, callback));
+                        () -> localDataPut(putKey, parceledValue, callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE:
                 if (!mIncludeLocalData) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
-                String[] deleteKey = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                if (deleteKey == null || deleteKey.length != 1 || deleteKey[0] == null) {
+                String deleteKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                if (deleteKey == null || deleteKey.isEmpty()) {
                     throw new IllegalArgumentException("Invalid key provided for delete.");
                 }
                 mInjector.getExecutor().execute(
-                        () -> localDataDelete(deleteKey[0], callback));
+                        () -> localDataDelete(deleteKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_EVENT_URL:
                 PersistableBundle eventParams = Objects.requireNonNull(params.getParcelable(
@@ -238,45 +239,42 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         sendResult(result, callback);
     }
 
-    private void remoteDataLookup(String[] keys, @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> vendorData = new HashMap<>();
+    private void remoteDataLookup(String key, @NonNull IDataAccessServiceCallback callback) {
         try {
-            for (String key : keys) {
-                vendorData.put(key, mVendorDataDao.readSingleVendorDataRow(key));
-            }
+            byte[] data = mVendorDataDao.readSingleVendorDataRow(key);
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, vendorData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
         }
     }
 
-    private void localDataLookup(String[] keys, @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> localData = new HashMap<>();
+    private void localDataLookup(String key, @NonNull IDataAccessServiceCallback callback) {
         try {
-            for (String key : keys) {
-                localData.put(key, mLocalDataDao.readSingleLocalDataRow(key));
-            }
+            byte[] data = mLocalDataDao.readSingleLocalDataRow(key);
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, localData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
         }
     }
 
-    private void localDataPut(String key, byte[] data,
+    private void localDataPut(String key, ByteArrayParceledSlice parceledData,
             @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> localData = new HashMap<>();
         try {
-            localData.put(key, mLocalDataDao.readSingleLocalDataRow(key));
+            byte[] data = parceledData.getByteArray();
+            byte[] existingData = mLocalDataDao.readSingleLocalDataRow(key);
             if (!mLocalDataDao.updateOrInsertLocalData(
                     new LocalData.Builder().setKey(key).setData(data).build())) {
                 sendError(callback);
             }
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, localData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingData));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
@@ -284,12 +282,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     }
 
     private void localDataDelete(String key, @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> localData = new HashMap<>();
         try {
-            localData.put(key, mLocalDataDao.readSingleLocalDataRow(key));
+            byte[] existingData = mLocalDataDao.readSingleLocalDataRow(key);
             mLocalDataDao.deleteLocalDataRow(key);
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, localData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingData));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
