@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
 import android.adservices.ondevicepersonalization.UserData;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -41,6 +42,7 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
@@ -87,7 +89,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunner.getInstance();
+            return ProcessRunnerImpl.getInstance();
         }
     }
 
@@ -202,9 +204,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
         try {
+            String className = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                    mContext, mPackageName);
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mPackageName);
+                        TASK_NAME, ComponentName.createRelative(mPackageName, className));
             var resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeDownloadHandler(result, finalVendorDataMap),
@@ -263,8 +267,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                 mPackageName, mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(
-                mPackageName, mContext);
+        FederatedComputeServiceImpl fcpBinder =
+                new FederatedComputeServiceImpl(
+                        ComponentName.createRelative(
+                                mPackageName,
+                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                                        mContext, mPackageName)),
+                        mContext);
         pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
 
         List<String> keys = new ArrayList<>();
@@ -291,7 +300,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         pluginParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo,
-                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName),
                 Constants.OP_DOWNLOAD,
                 pluginParams);
         return FluentFuture.from(result)

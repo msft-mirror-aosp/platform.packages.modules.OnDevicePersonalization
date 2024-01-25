@@ -17,19 +17,25 @@
 package com.android.ondevicepersonalization.services.process;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 
 import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 
+import java.util.Objects;
+
 /** Wraps an instance of a loaded isolated service */
 public class IsolatedServiceInfo {
-    @NonNull private final long mStartTimeMillis;
+    private final long mStartTimeMillis;
+    @NonNull private final ComponentName mComponentName;
     @NonNull private final PluginController mPluginController;
 
     IsolatedServiceInfo(
             long startTimeMillis,
+            @NonNull ComponentName componentName,
             @NonNull PluginController pluginController) {
         mStartTimeMillis = startTimeMillis;
-        mPluginController = pluginController;
+        mComponentName = Objects.requireNonNull(componentName);
+        mPluginController = Objects.requireNonNull(pluginController);
     }
 
     PluginController getPluginController() {
@@ -39,5 +45,10 @@ public class IsolatedServiceInfo {
     /** Returns the service start time. */
     public long getStartTimeMillis() {
         return mStartTimeMillis;
+    }
+
+    /** Returns the ComponentName to be loaded. */
+    @NonNull public ComponentName getComponentName() {
+        return mComponentName;
     }
 }

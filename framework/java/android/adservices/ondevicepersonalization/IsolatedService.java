@@ -16,8 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
@@ -33,8 +31,10 @@ import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.SystemClock;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
 import java.util.HashMap;
 import java.util.List;
@@ -56,7 +56,7 @@ import java.util.function.Function;
  * Client apps use {@link OnDevicePersonalizationManager} to interact with an {@link
  * IsolatedService}.
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public abstract class IsolatedService extends Service {
     private static final String TAG = "IsolatedService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -350,12 +350,11 @@ public abstract class IsolatedService extends Service {
                                 } else {
                                     TrainingExamplesOutputParcel parcelResult =
                                             new TrainingExamplesOutputParcel.Builder()
-                                                    .setTrainingExamples(
-                                                            new ByteArrayParceledListSlice(
-                                                                    result.getTrainingExamples()))
-                                                    .setResumptionTokens(
-                                                            new ByteArrayParceledListSlice(
-                                                                    result.getResumptionTokens()))
+                                                    .setTrainingExampleRecords(
+                                                            new OdpParceledListSlice<
+                                                                    TrainingExampleRecord>(
+                                                                    result
+                                                                            .getTrainingExampleRecords()))
                                                     .build();
                                     Bundle bundle = new Bundle();
                                     bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
@@ -372,6 +371,24 @@ public abstract class IsolatedService extends Service {
                                 }
                             }
                         });
+
+            } else if (operationCode == Constants.OP_WEB_TRIGGER) {
+                WebTriggerInputParcel inputParcel =
+                        Objects.requireNonNull(
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, WebTriggerInputParcel.class));
+                WebTriggerInput input = new WebTriggerInput(inputParcel);
+                IDataAccessService binder =
+                        IDataAccessService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(
+                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
+                RequestToken requestToken = new RequestToken(binder, null, userData);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onWebTrigger(
+                        input, new WrappedCallback<WebTriggerOutput, WebTriggerOutputParcel>(
+                            resultCallback, requestToken, v -> new WebTriggerOutputParcel(v)));
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
             }

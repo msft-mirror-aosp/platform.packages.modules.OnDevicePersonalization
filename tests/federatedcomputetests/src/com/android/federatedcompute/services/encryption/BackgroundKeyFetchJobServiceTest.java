@@ -88,6 +88,7 @@ public class BackgroundKeyFetchJobServiceTest {
     public void setUp() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.enableScheduleBackgroundKeyFetchJob();
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         mInjector = new TestInjector();
@@ -187,6 +188,15 @@ public class BackgroundKeyFetchJobServiceTest {
                         BackgroundKeyFetchJobService.scheduleJobIfNeeded(
                                 mContext, FlagsFactory.getFlags()))
                 .isEqualTo(false);
+    }
+
+    @Test
+    public void testScheduleJob_notEnabled() {
+        PhFlagsTestUtil.disableScheduleBackgroundKeyFetchJob();
+
+        assertThat(BackgroundKeyFetchJobService.scheduleJobIfNeeded(
+                mContext, FlagsFactory.getFlags()
+        )).isEqualTo(false);
     }
 
     @Test

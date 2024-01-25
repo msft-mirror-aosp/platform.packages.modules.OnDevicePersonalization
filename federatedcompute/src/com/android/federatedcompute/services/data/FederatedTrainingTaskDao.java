@@ -20,7 +20,9 @@ import static com.android.federatedcompute.services.data.FederatedTraningTaskCon
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
@@ -203,6 +205,95 @@ public class FederatedTrainingTaskDao {
                     jobId);
             return null;
         }
+    }
+
+    /** Insert a training task history record or update it if task already exists. */
+    public boolean updateOrInsertTaskHistory(TaskHistory taskHistory) {
+        try {
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            ContentValues values = new ContentValues();
+            values.put(TaskHistoryContract.TaskHistoryEntry.JOB_ID, taskHistory.getJobId());
+            values.put(
+                    TaskHistoryContract.TaskHistoryEntry.POPULATION_NAME,
+                    taskHistory.getPopulationName());
+            values.put(TaskHistoryContract.TaskHistoryEntry.TASK_ID, taskHistory.getTaskId());
+            values.put(
+                    TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
+                    taskHistory.getContributionRound());
+            values.put(
+                    TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME,
+                    taskHistory.getContributionTime());
+            values.put(
+                    TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION,
+                    taskHistory.getTotalParticipation());
+            return db.insertWithOnConflict(
+                            TaskHistoryContract.TaskHistoryEntry.TABLE_NAME,
+                            null,
+                            values,
+                            SQLiteDatabase.CONFLICT_REPLACE)
+                    != -1;
+        } catch (SQLException e) {
+            LogUtil.e(
+                    TAG,
+                    "Failed to update or insert task history %s %s",
+                    taskHistory.getPopulationName(),
+                    taskHistory.getTaskId());
+        }
+        return false;
+    }
+
+    /** Get a task history based on job id, population name and task name. */
+    public TaskHistory getTaskHistory(int jobId, String populationName, String taskId) {
+        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        String selection =
+                TaskHistoryContract.TaskHistoryEntry.JOB_ID
+                        + " = ? AND "
+                        + TaskHistoryContract.TaskHistoryEntry.POPULATION_NAME
+                        + " = ? AND "
+                        + TaskHistoryContract.TaskHistoryEntry.TASK_ID
+                        + " = ?";
+        String[] selectionArgs = {String.valueOf(jobId), populationName, taskId};
+        String[] projection = {
+            TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME,
+            TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
+            TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION
+        };
+        try (Cursor cursor =
+                db.query(
+                        TaskHistoryContract.TaskHistoryEntry.TABLE_NAME,
+                        projection,
+                        selection,
+                        selectionArgs,
+                        /* groupBy= */ null,
+                        /* having= */ null,
+                        /* orderBy= */ null)) {
+            if (cursor.moveToFirst()) {
+                long contributionTime =
+                        cursor.getLong(
+                                cursor.getColumnIndexOrThrow(
+                                        TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME));
+                long contributionRound =
+                        cursor.getLong(
+                                cursor.getColumnIndexOrThrow(
+                                        TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND));
+                long totalParticipation =
+                        cursor.getLong(
+                                cursor.getColumnIndexOrThrow(
+                                        TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION));
+
+                return new TaskHistory.Builder()
+                        .setJobId(jobId)
+                        .setTaskId(taskId)
+                        .setPopulationName(populationName)
+                        .setContributionRound(contributionRound)
+                        .setContributionTime(contributionTime)
+                        .setTotalParticipation(totalParticipation)
+                        .build();
+            }
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, "Failed to read TaskHistory db", e);
+        }
+        return null;
     }
 
     private String[] selectionArgs(Number... args) {

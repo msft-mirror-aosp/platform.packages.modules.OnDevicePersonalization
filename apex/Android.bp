@@ -69,6 +69,7 @@ bootclasspath_fragment {
         package_prefixes: [
             "android.adservices.ondevicepersonalization",
             "android.ondevicepersonalization",
+            "com.android.adservices.ondevicepersonalization",
             "com.android.ondevicepersonalization.internal",
             "android.federatedcompute",
             "com.android.federatedcompute.internal",

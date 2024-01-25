@@ -18,6 +18,8 @@ package com.android.federatedcompute.services.data;
 
 import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
+import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
+import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -26,6 +28,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
 import com.android.internal.annotations.VisibleForTesting;
 
 /** Helper to manage FederatedTrainingTask database. */
@@ -45,6 +48,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + " INTEGER, "
+                    + FederatedTrainingTaskColumns.OWNER_ID
+                    + " TEXT NOT NULL, "
+                    + FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST
+                    + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.POPULATION_NAME
                     + " TEXT NOT NULL,"
                     + FederatedTrainingTaskColumns.SERVER_ADDRESS
@@ -86,6 +93,19 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + FederatedComputeEncryptionColumns.EXPIRY_TIME
                     + " INTEGER NOT NULL)";
 
+    private static final String CREATE_ODP_AUTHORIZATION_TOKEN_TABLE =
+            "CREATE TABLE "
+                    + ODP_AUTHORIZATION_TOKEN_TABLE
+                    + " ( "
+                    + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
+                    + " TEXT PRIMARY KEY, "
+                    + ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN
+                    + " TEXT NOT NULL, "
+                    + ODPAuthorizationTokenColumns.CREATION_TIME
+                    + " INTEGER NOT NULL, "
+                    + ODPAuthorizationTokenColumns.EXPIRY_TIME
+                    + " INTEGER NOT NULL)";
+
     private static volatile FederatedComputeDbHelper sInstance = null;
 
     private FederatedComputeDbHelper(Context context, String dbName) {
@@ -125,21 +145,14 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
     public void onCreate(SQLiteDatabase db) {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
         db.execSQL(CREATE_ENCRYPTION_KEY_TABLE);
+        db.execSQL(CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
+        db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
         LogUtil.d(TAG, "DB upgrade from %d to %d", oldVersion, newVersion);
-    }
-
-    @VisibleForTesting
-    void resetDatabase(SQLiteDatabase db) {
-        // Delete and recreate the database.
-        // These tables must be dropped in order because of database constraints.
-        db.execSQL("DROP TABLE IF EXISTS " + FEDERATED_TRAINING_TASKS_TABLE);
-        db.execSQL("DROP TABLE IF EXISTS " + ENCRYPTION_KEY_TABLE);
-        onCreate(db);
     }
 
     @Override

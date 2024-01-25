@@ -21,6 +21,7 @@ import static com.android.ondevicepersonalization.services.download.mdd.MddTaskS
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
 
 import android.app.job.JobParameters;
+import android.app.job.JobScheduler;
 import android.app.job.JobService;
 import android.content.Context;
 import android.os.PersistableBundle;
@@ -51,8 +52,7 @@ public class MddJobService extends JobService {
         sLogger.d(TAG + ": onStartJob()");
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
-            jobFinished(params, /* wantsReschedule = */ false);
-            return true;
+            return cancelAndFinishJob(params);
         }
 
         if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
@@ -61,13 +61,7 @@ public class MddJobService extends JobService {
             return true;
         }
 
-        // Get the mddTaskTag from input.
-        PersistableBundle extras = params.getExtras();
-        if (null == extras) {
-            sLogger.e(TAG + ": can't find MDD task tag");
-            throw new IllegalArgumentException("Can't find MDD Tasks Tag!");
-        }
-        mMddTaskTag = extras.getString(MDD_TASK_TAG_KEY);
+        mMddTaskTag = getMddTaskTag(params);
 
         ListenableFuture<Void> handleTaskFuture =
                 PropagatedFutures.submitAsync(
@@ -111,5 +105,30 @@ public class MddJobService extends JobService {
         }
         // Reschedule the job since it ended before finishing
         return true;
+    }
+
+    private boolean cancelAndFinishJob(final JobParameters params) {
+        JobScheduler jobScheduler = this.getSystemService(JobScheduler.class);
+        if (jobScheduler != null) {
+            int jobId = getMddTaskJobId(params);
+            jobScheduler.cancel(jobId);
+        }
+        jobFinished(params, /* wantsReschedule = */ false);
+        return true;
+    }
+
+    private int getMddTaskJobId(final JobParameters params) {
+        mMddTaskTag = getMddTaskTag(params);
+        return MddTaskScheduler.getMddTaskJobId(mMddTaskTag);
+    }
+
+    private String getMddTaskTag(final JobParameters params) {
+        // Get the MddTaskTag from input.
+        PersistableBundle extras = params.getExtras();
+        if (null == extras) {
+            sLogger.e(TAG + ": can't find MDD task tag");
+            throw new IllegalArgumentException("Can't find MDD Tasks Tag!");
+        }
+        return extras.getString(MDD_TASK_TAG_KEY);
     }
 }
