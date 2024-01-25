@@ -83,6 +83,6 @@ public class EligibilityDecider {
                 minSepPolicy.getCurrentIndex(),
                 taskHistory.getContributionRound());
         return minSepPolicy.getMinimumSeparation()
-                < minSepPolicy.getCurrentIndex() - taskHistory.getContributionRound();
+                <= minSepPolicy.getCurrentIndex() - taskHistory.getContributionRound();
     }
 }
