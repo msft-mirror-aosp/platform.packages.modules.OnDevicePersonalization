@@ -36,8 +36,8 @@ public class OnDevicePersonalizationException extends Exception {
     public static final int ERROR_ISOLATED_SERVICE_FAILED = 1;
 
     /**
-     * Personalization is disabled.
-     * @hide
+     * The {@link IsolatedService} was not started because personalization is disabled by
+     * device configuration.
      */
     public static final int ERROR_PERSONALIZATION_DISABLED = 2;
 
