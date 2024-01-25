@@ -23,6 +23,7 @@ import android.os.IBinder;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
+import com.android.federatedcompute.services.security.AuthorizationTokenDeletionJobService;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
 
 import java.util.Objects;
@@ -45,6 +46,7 @@ public class FederatedComputeManagingServiceImpl extends Service {
                     new FederatedComputeManagingServiceDelegate(
                             this, FederatedComputeStatsdLogger.getInstance());
             BackgroundKeyFetchJobService.scheduleJobIfNeeded(this, mFlags);
+            AuthorizationTokenDeletionJobService.scheduleJobIfNeeded(this, mFlags);
         }
     }
 
