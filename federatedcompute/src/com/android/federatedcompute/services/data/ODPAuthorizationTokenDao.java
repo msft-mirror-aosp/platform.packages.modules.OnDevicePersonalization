@@ -134,6 +134,22 @@ public class ODPAuthorizationTokenDao {
     }
 
 
+    /** Batch delete all expired authorization tokens.
+     * @return the number of rows deleted. */
+    public int deleteExpiredAuthorizationTokens() {
+        SQLiteDatabase db = getWritableDatabase();
+        if (db == null) {
+            throw new SQLiteException(TAG + ": Failed to open database.");
+        }
+        String whereClause = ODPAuthorizationTokenColumns.EXPIRY_TIME + " < ?";
+        String[] whereArgs = { String.valueOf(mClock.currentTimeMillis()) };
+        int deletedRows = db.delete(ODP_AUTHORIZATION_TOKEN_TABLE, whereClause, whereArgs);
+        LogUtil.d(TAG, "Deleted %s expired tokens for %s from database", deletedRows);
+        return deletedRows;
+    }
+
+
+
     private ODPAuthorizationToken readTokenFromDatabase(
             String selection, String[] selectionArgs, String orderBy) {
         SQLiteDatabase db = getReadableDatabase();

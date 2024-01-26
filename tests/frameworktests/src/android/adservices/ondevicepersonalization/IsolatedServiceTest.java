@@ -38,9 +38,6 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
-import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
-
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -209,8 +206,7 @@ public class IsolatedServiceTest {
     public void testOnDownload() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -251,8 +247,7 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -267,8 +262,7 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfFederatedComputeServiceMissing() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -285,8 +279,7 @@ public class IsolatedServiceTest {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
