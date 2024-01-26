@@ -25,6 +25,8 @@
         android:name="android.permission.BIND_EXAMPLE_STORE_SERVICE"
         android:protectionLevel="signature" />
 
+    <!-- Required for finding calling package info -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"/>
     <!-- Required for persisting scheduled jobs -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <!-- Used for scheduling connectivity jobs -->
