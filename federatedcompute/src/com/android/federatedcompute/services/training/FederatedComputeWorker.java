@@ -44,6 +44,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
@@ -251,6 +252,7 @@ public class FederatedComputeWorker {
                     mInjector.getHttpFederatedProtocol(
                             this.mContext,
                             run.mTask.serverAddress(),
+                            PackageUtils.getApexVersion(mContext),
                             run.mTask.populationName(),
                             run.mTrainingEventLogger);
             // By default, the 401 (UNAUTHENTICATED) response is allowed. When receiving 401
@@ -997,12 +999,13 @@ public class FederatedComputeWorker {
         HttpFederatedProtocol getHttpFederatedProtocol(
                 Context context,
                 String serverAddress,
+                String clientVersion,
                 String populationName,
                 TrainingEventLogger trainingEventLogger) {
             return HttpFederatedProtocol.create(
                     context,
                     serverAddress,
-                    "1.0.0.1",
+                    clientVersion,
                     populationName,
                     new HpkeJniEncrypter(),
                     trainingEventLogger);

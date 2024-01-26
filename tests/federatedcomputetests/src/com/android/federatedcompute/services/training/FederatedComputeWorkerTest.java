@@ -304,7 +304,7 @@ public final class FederatedComputeWorkerTest {
                         HttpFederatedProtocol.create(
                                 mContext,
                                 SERVER_ADDRESS,
-                                "1.0.0.1",
+                                "349990000",
                                 POPULATION_NAME,
                                 new HpkeJniEncrypter(),
                                 mMockTrainingEventLogger));
@@ -869,6 +869,7 @@ public final class FederatedComputeWorkerTest {
         HttpFederatedProtocol getHttpFederatedProtocol(
                 Context context,
                 String serverAddress,
+                String clientVersion,
                 String populationName,
                 TrainingEventLogger trainingEventLogger) {
             return mSpyHttpFederatedProtocol;
