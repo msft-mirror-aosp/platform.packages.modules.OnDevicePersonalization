@@ -29,6 +29,7 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInput;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.WebTriggerInput;
@@ -40,7 +41,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -58,12 +59,12 @@ public class TestPersonalizationHandler implements IsolatedWorker {
             DownloadCompletedInput input, Consumer<DownloadCompletedOutput> consumer) {
         try {
             Log.d(TAG, "Starting filterData.");
-            Log.d(TAG, "Data: " + input.getData());
+            Log.d(TAG, "Data keys: " + input.getDownloadedContents().keySet());
 
             Log.d(TAG, "Existing keyExtra: " + Arrays.toString(mRemoteData.get("keyExtra")));
             Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
-            List<String> keysToRetain = getFilteredKeys(input.getData());
+            List<String> keysToRetain = getFilteredKeys(input.getDownloadedContents());
             keysToRetain.add("keyExtra");
             // Get the keys to keep from the downloaded data
             DownloadCompletedOutput result =
@@ -135,8 +136,9 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         consumer.accept(result);
     }
 
-    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+    private List<String> getFilteredKeys(KeyValueStore data) {
         Set<String> filteredKeys = data.keySet();
+        Log.d(TAG, "key3 size: " + Objects.requireNonNull(data.get("key3")).length);
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);
     }
@@ -149,17 +151,23 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         Log.d(TAG, "Population name: " + input.getPopulationName());
         Log.d(TAG, "Task name: " + input.getTaskName());
 
-        List<byte[]> examples = new ArrayList<>();
-        List<byte[]> tokens = new ArrayList<>();
-        examples.add(new byte[] {10});
-        examples.add(new byte[] {20});
-        tokens.add("token1".getBytes());
-        tokens.add("token2".getBytes());
+        List<TrainingExampleRecord> exampleRecordList = new ArrayList<>();
+        TrainingExampleRecord record1 =
+                new TrainingExampleRecord.Builder()
+                        .setTrainingExample(new byte[] {10})
+                        .setResumptionToken("token1".getBytes())
+                        .build();
+        TrainingExampleRecord record2 =
+                new TrainingExampleRecord.Builder()
+                        .setTrainingExample(new byte[] {20})
+                        .setResumptionToken("token2".getBytes())
+                        .build();
+        exampleRecordList.add(record1);
+        exampleRecordList.add(record2);
 
         TrainingExamplesOutput output =
                 new TrainingExamplesOutput.Builder()
-                        .setTrainingExamples(examples)
-                        .setResumptionTokens(tokens)
+                        .setTrainingExampleRecords(exampleRecordList)
                         .build();
         consumer.accept(output);
     }

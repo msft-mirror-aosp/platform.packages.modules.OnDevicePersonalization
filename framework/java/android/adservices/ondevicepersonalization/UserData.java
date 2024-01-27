@@ -38,7 +38,6 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
 import java.time.Duration;
 import java.util.Collections;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -135,15 +134,6 @@ public final class UserData implements Parcelable {
     @DataClass.PluralOf("appInfo")
     @NonNull Map<String, AppInfo> mAppInfos = Collections.emptyMap();
 
-    /** The app usage history in the last 30 days, sorted by total time spent. @hide */
-    @NonNull List<AppUsageStatus> mAppUsageHistory = Collections.emptyList();
-
-    /** The most recently known location. @hide */
-    @NonNull Location mCurrentLocation = Location.EMPTY;
-
-    /** The location history in last 30 days, sorted by the stay duration. @hide */
-    @NonNull List<LocationStatus> mLocationHistory = Collections.emptyList();
-
     /** The device timezone +/- offset from UTC in {@link Duration}. @hide */
     @NonNull public Duration getTimezoneUtcOffset() {
         return Duration.ofMinutes(mTimezoneUtcOffsetMins);
@@ -173,10 +163,7 @@ public final class UserData implements Parcelable {
             @NonNull String carrier,
             @Nullable NetworkCapabilities networkCapabilities,
             @NetworkType int dataNetworkType,
-            @NonNull Map<String,AppInfo> appInfos,
-            @NonNull List<AppUsageStatus> appUsageHistory,
-            @NonNull Location currentLocation,
-            @NonNull List<LocationStatus> locationHistory) {
+            @NonNull Map<String,AppInfo> appInfos) {
         this.mTimezoneUtcOffsetMins = timezoneUtcOffsetMins;
         this.mOrientation = orientation;
         AnnotationValidations.validate(
@@ -200,15 +187,6 @@ public final class UserData implements Parcelable {
         this.mAppInfos = appInfos;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppInfos);
-        this.mAppUsageHistory = appUsageHistory;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAppUsageHistory);
-        this.mCurrentLocation = currentLocation;
-        AnnotationValidations.validate(
-                NonNull.class, null, mCurrentLocation);
-        this.mLocationHistory = locationHistory;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLocationHistory);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -287,30 +265,6 @@ public final class UserData implements Parcelable {
         return mAppInfos;
     }
 
-    /**
-     * The app usage history in the last 30 days, sorted by total time spent. @hide
-     */
-    @DataClass.Generated.Member
-    public @NonNull List<AppUsageStatus> getAppUsageHistory() {
-        return mAppUsageHistory;
-    }
-
-    /**
-     * The most recently known location. @hide
-     */
-    @DataClass.Generated.Member
-    public @NonNull Location getCurrentLocation() {
-        return mCurrentLocation;
-    }
-
-    /**
-     * The location history in last 30 days, sorted by the stay duration. @hide
-     */
-    @DataClass.Generated.Member
-    public @NonNull List<LocationStatus> getLocationHistory() {
-        return mLocationHistory;
-    }
-
     @Override
     @DataClass.Generated.Member
     public boolean equals(@Nullable Object o) {
@@ -331,10 +285,7 @@ public final class UserData implements Parcelable {
                 && java.util.Objects.equals(mCarrier, that.mCarrier)
                 && java.util.Objects.equals(mNetworkCapabilities, that.mNetworkCapabilities)
                 && mDataNetworkType == that.mDataNetworkType
-                && java.util.Objects.equals(mAppInfos, that.mAppInfos)
-                && java.util.Objects.equals(mAppUsageHistory, that.mAppUsageHistory)
-                && java.util.Objects.equals(mCurrentLocation, that.mCurrentLocation)
-                && java.util.Objects.equals(mLocationHistory, that.mLocationHistory);
+                && java.util.Objects.equals(mAppInfos, that.mAppInfos);
     }
 
     @Override
@@ -352,9 +303,6 @@ public final class UserData implements Parcelable {
         _hash = 31 * _hash + java.util.Objects.hashCode(mNetworkCapabilities);
         _hash = 31 * _hash + mDataNetworkType;
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppInfos);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mAppUsageHistory);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mCurrentLocation);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mLocationHistory);
         return _hash;
     }
 
@@ -375,9 +323,6 @@ public final class UserData implements Parcelable {
         if (mNetworkCapabilities != null) dest.writeTypedObject(mNetworkCapabilities, flags);
         dest.writeInt(mDataNetworkType);
         dest.writeMap(mAppInfos);
-        dest.writeParcelableList(mAppUsageHistory, flags);
-        dest.writeTypedObject(mCurrentLocation, flags);
-        dest.writeParcelableList(mLocationHistory, flags);
     }
 
     @Override
@@ -401,11 +346,6 @@ public final class UserData implements Parcelable {
         int dataNetworkType = in.readInt();
         Map<String,AppInfo> appInfos = new java.util.LinkedHashMap<>();
         in.readMap(appInfos, AppInfo.class.getClassLoader());
-        List<AppUsageStatus> appUsageHistory = new java.util.ArrayList<>();
-        in.readParcelableList(appUsageHistory, AppUsageStatus.class.getClassLoader());
-        Location currentLocation = (Location) in.readTypedObject(Location.CREATOR);
-        List<LocationStatus> locationHistory = new java.util.ArrayList<>();
-        in.readParcelableList(locationHistory, LocationStatus.class.getClassLoader());
 
         this.mTimezoneUtcOffsetMins = timezoneUtcOffsetMins;
         this.mOrientation = orientation;
@@ -430,15 +370,6 @@ public final class UserData implements Parcelable {
         this.mAppInfos = appInfos;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppInfos);
-        this.mAppUsageHistory = appUsageHistory;
-        AnnotationValidations.validate(
-                NonNull.class, null, mAppUsageHistory);
-        this.mCurrentLocation = currentLocation;
-        AnnotationValidations.validate(
-                NonNull.class, null, mCurrentLocation);
-        this.mLocationHistory = locationHistory;
-        AnnotationValidations.validate(
-                NonNull.class, null, mLocationHistory);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -473,9 +404,6 @@ public final class UserData implements Parcelable {
         private @Nullable NetworkCapabilities mNetworkCapabilities;
         private @NetworkType int mDataNetworkType;
         private @NonNull Map<String,AppInfo> mAppInfos;
-        private @NonNull List<AppUsageStatus> mAppUsageHistory;
-        private @NonNull Location mCurrentLocation;
-        private @NonNull List<LocationStatus> mLocationHistory;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -588,65 +516,10 @@ public final class UserData implements Parcelable {
             return this;
         }
 
-        /**
-         * The app usage history in the last 30 days, sorted by total time spent. @hide
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setAppUsageHistory(@NonNull List<AppUsageStatus> value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x100;
-            mAppUsageHistory = value;
-            return this;
-        }
-
-        /** @see #setAppUsageHistory */
-        @DataClass.Generated.Member
-        public @NonNull Builder addAppUsageHistory(@NonNull AppUsageStatus value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mAppUsageHistory == null) setAppUsageHistory(new java.util.ArrayList<>());
-            mAppUsageHistory.add(value);
-            return this;
-        }
-
-        /**
-         * The most recently known location. @hide
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setCurrentLocation(@NonNull Location value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x200;
-            mCurrentLocation = value;
-            return this;
-        }
-
-        /**
-         * The location history in last 30 days, sorted by the stay duration. @hide
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setLocationHistory(@NonNull List<LocationStatus> value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x400;
-            mLocationHistory = value;
-            return this;
-        }
-
-        /** @see #setLocationHistory */
-        @DataClass.Generated.Member
-        public @NonNull Builder addLocationHistory(@NonNull LocationStatus value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mLocationHistory == null) setLocationHistory(new java.util.ArrayList<>());
-            mLocationHistory.add(value);
-            return this;
-        }
-
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull UserData build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x800; // Mark builder used
+            mBuilderFieldsSet |= 0x100; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mTimezoneUtcOffsetMins = 0;
@@ -672,15 +545,6 @@ public final class UserData implements Parcelable {
             if ((mBuilderFieldsSet & 0x80) == 0) {
                 mAppInfos = Collections.emptyMap();
             }
-            if ((mBuilderFieldsSet & 0x100) == 0) {
-                mAppUsageHistory = Collections.emptyList();
-            }
-            if ((mBuilderFieldsSet & 0x200) == 0) {
-                mCurrentLocation = Location.EMPTY;
-            }
-            if ((mBuilderFieldsSet & 0x400) == 0) {
-                mLocationHistory = Collections.emptyList();
-            }
             UserData o = new UserData(
                     mTimezoneUtcOffsetMins,
                     mOrientation,
@@ -689,15 +553,12 @@ public final class UserData implements Parcelable {
                     mCarrier,
                     mNetworkCapabilities,
                     mDataNetworkType,
-                    mAppInfos,
-                    mAppUsageHistory,
-                    mCurrentLocation,
-                    mLocationHistory);
+                    mAppInfos);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x800) != 0) {
+            if ((mBuilderFieldsSet & 0x100) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -705,10 +566,10 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1697063796387L,
+            time = 1706220855610L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
-            inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n @android.annotation.Nullable android.net.NetworkCapabilities mNetworkCapabilities\n @android.adservices.ondevicepersonalization.UserData.NetworkType int mDataNetworkType\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.AppUsageStatus> mAppUsageHistory\n @android.annotation.NonNull android.adservices.ondevicepersonalization.Location mCurrentLocation\n @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.LocationStatus> mLocationHistory\npublic @android.annotation.NonNull java.time.Duration getTimezoneUtcOffset()\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")
+            inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n @android.annotation.Nullable android.net.NetworkCapabilities mNetworkCapabilities\n @android.adservices.ondevicepersonalization.UserData.NetworkType int mDataNetworkType\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\npublic @android.annotation.NonNull java.time.Duration getTimezoneUtcOffset()\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")
     @Deprecated
     private void __metadata() {}
 

@@ -79,8 +79,7 @@ public class UserDataCollectionJobService extends JobService {
         sLogger.d(TAG + ": onStartJob()");
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
-            jobFinished(params, /* wantsReschedule = */ false);
-            return true;
+            return cancelAndFinishJob(params);
         }
         if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
@@ -130,6 +129,15 @@ public class UserDataCollectionJobService extends JobService {
             mFuture.cancel(true);
         }
         // Reschedule the job since it ended before finishing
+        return true;
+    }
+
+    private boolean cancelAndFinishJob(final JobParameters params) {
+        JobScheduler jobScheduler = this.getSystemService(JobScheduler.class);
+        if (jobScheduler != null) {
+            jobScheduler.cancel(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID);
+        }
+        jobFinished(params, /* wantsReschedule = */ false);
         return true;
     }
 }

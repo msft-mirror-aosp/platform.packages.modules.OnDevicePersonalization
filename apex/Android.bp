@@ -87,6 +87,7 @@ systemserverclasspath_fragment {
 
 apex {
     name: "com.android.ondevicepersonalization",
+    androidManifest: ":com.android.ondevicepersonalization-androidManifest",
     manifest: "manifest.json",
     apps: ["OnDevicePersonalization", "FederatedCompute"],
     file_contexts: ":com.android.ondevicepersonalization-file_contexts",
@@ -96,4 +97,9 @@ apex {
     defaults: ["t-launched-apex-module"],
     prebuilts: ["current_sdkinfo"],
     jni_libs: ["libfcp_cpp_dep_jni"],
+}
+
+filegroup {
+    name: "com.android.ondevicepersonalization-androidManifest",
+    srcs: ["AndroidManifest.xml"],
 }

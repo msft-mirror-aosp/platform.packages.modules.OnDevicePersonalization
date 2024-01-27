@@ -27,7 +27,7 @@ interface IFederatedComputeService {
     in IFederatedComputeCallback callback);
 
   void cancel(
-    in String callingPackageName,
+    in ComponentName ownerComponent,
     in String populationName,
     in IFederatedComputeCallback callback);
 }

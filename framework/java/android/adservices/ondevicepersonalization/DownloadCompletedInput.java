@@ -24,9 +24,6 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
-import java.util.Collections;
-import java.util.Map;
-
 /**
  * The input data for {@link
  * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
@@ -35,8 +32,10 @@ import java.util.Map;
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genHiddenBuilder = true, genEqualsHashCode = true)
 public final class DownloadCompletedInput {
-    /** Map containing downloaded keys and values */
-    @NonNull Map<String, byte[]> mData = Collections.emptyMap();
+    /**
+     * A {@link KeyValueStore} that contains the downloaded content.
+     */
+    @NonNull KeyValueStore mDownloadedContents;
 
 
 
@@ -55,10 +54,10 @@ public final class DownloadCompletedInput {
 
     @DataClass.Generated.Member
     /* package-private */ DownloadCompletedInput(
-            @NonNull Map<String,byte[]> data) {
-        this.mData = data;
+            @NonNull KeyValueStore downloadedContents) {
+        this.mDownloadedContents = downloadedContents;
         AnnotationValidations.validate(
-                NonNull.class, null, mData);
+                NonNull.class, null, mDownloadedContents);
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -67,8 +66,8 @@ public final class DownloadCompletedInput {
      * Map containing downloaded keys and values
      */
     @DataClass.Generated.Member
-    public @NonNull Map<String,byte[]> getData() {
-        return mData;
+    public @NonNull KeyValueStore getDownloadedContents() {
+        return mDownloadedContents;
     }
 
     @Override
@@ -84,7 +83,7 @@ public final class DownloadCompletedInput {
         DownloadCompletedInput that = (DownloadCompletedInput) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mData, that.mData);
+                && java.util.Objects.equals(mDownloadedContents, that.mDownloadedContents);
     }
 
     @Override
@@ -94,7 +93,7 @@ public final class DownloadCompletedInput {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mData);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mDownloadedContents);
         return _hash;
     }
 
@@ -106,7 +105,7 @@ public final class DownloadCompletedInput {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull Map<String,byte[]> mData;
+        private @NonNull KeyValueStore mDownloadedContents;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -114,24 +113,26 @@ public final class DownloadCompletedInput {
         }
 
         /**
+         * Creates a new Builder.
+         *
+         * @param downloadedContents
+         *   Map containing downloaded keys and values
+         */
+        public Builder(
+                @NonNull KeyValueStore downloadedContents) {
+            mDownloadedContents = downloadedContents;
+            AnnotationValidations.validate(
+                    NonNull.class, null, mDownloadedContents);
+        }
+
+        /**
          * Map containing downloaded keys and values
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setData(@NonNull Map<String,byte[]> value) {
+        public @NonNull Builder setDownloadedContents(@NonNull KeyValueStore value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
-            mData = value;
-            return this;
-        }
-
-        /** @see #setData */
-        @DataClass.Generated.Member
-        public @NonNull Builder addData(@NonNull String key, @NonNull byte[] value) {
-            // You can refine this method's name by providing item's singular name, e.g.:
-            // @DataClass.PluralOf("item")) mItems = ...
-
-            if (mData == null) setData(new java.util.LinkedHashMap());
-            mData.put(key, value);
+            mDownloadedContents = value;
             return this;
         }
 
@@ -140,11 +141,8 @@ public final class DownloadCompletedInput {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2; // Mark builder used
 
-            if ((mBuilderFieldsSet & 0x1) == 0) {
-                mData = Collections.emptyMap();
-            }
             DownloadCompletedInput o = new DownloadCompletedInput(
-                    mData);
+                    mDownloadedContents);
             return o;
         }
 
@@ -157,10 +155,10 @@ public final class DownloadCompletedInput {
     }
 
     @DataClass.Generated(
-            time = 1695492633750L,
+            time = 1706205792643L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/DownloadCompletedInput.java",
-            inputSignatures = " @android.annotation.NonNull java.util.Map<java.lang.String,byte[]> mData\nclass DownloadCompletedInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @android.annotation.NonNull android.adservices.ondevicepersonalization.KeyValueStore mDownloadedContents\nclass DownloadCompletedInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

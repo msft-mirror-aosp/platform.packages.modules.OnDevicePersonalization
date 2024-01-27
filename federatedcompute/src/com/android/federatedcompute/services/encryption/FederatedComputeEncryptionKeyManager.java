@@ -47,6 +47,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /** Class to manage key fetch. */
 public class FederatedComputeEncryptionKeyManager {
@@ -304,11 +305,14 @@ public class FederatedComputeEncryptionKeyManager {
         }
         try {
             var fetchedKeysUnused = fetchAndPersistActiveKeys(keyType,
-                    /* isScheduledJob= */ false).get(1, TimeUnit.SECONDS);
+                    /* isScheduledJob= */ false).get(/* timeout= */ 5, TimeUnit.SECONDS);
             activeKeys = mEncryptionKeyDao.getLatestExpiryNKeys(keyCount);
             if (activeKeys.size() > 0) {
                 return activeKeys;
             }
+        } catch (TimeoutException e) {
+            LogUtil.e(TAG, "Time out when forcing encryption key fetch: "
+                    + e.getMessage());
         } catch (Exception e) {
             LogUtil.e(TAG, "Exception encountered when forcing encryption key fetch: "
                     + e.getMessage());
