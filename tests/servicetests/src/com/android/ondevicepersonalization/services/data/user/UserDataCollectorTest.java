@@ -16,13 +16,16 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
+import android.net.NetworkCapabilities;
 import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -86,6 +89,24 @@ public class UserDataCollectorTest {
         TimeZone.setDefault(tzGmt4);
         mCollector.getRealTimeData(mUserData);
         assertEquals(mUserData.utcOffset, 240);
+    }
+
+    @Test
+    public void testFilterNetworkCapabilities() {
+        NetworkCapabilities cap = new NetworkCapabilities.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_TRUSTED)
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)
+                .setLinkDownstreamBandwidthKbps(100)
+                .setLinkUpstreamBandwidthKbps(10)
+                .setSsid("myssid")
+                .build();
+        NetworkCapabilities filteredCap = UserDataCollector.getFilteredNetworkCapabilities(cap);
+        assertEquals(100, filteredCap.getLinkDownstreamBandwidthKbps());
+        assertEquals(10, filteredCap.getLinkUpstreamBandwidthKbps());
+        assertNull(filteredCap.getSsid());
+        assertArrayEquals(
+                new int[]{NetworkCapabilities.NET_CAPABILITY_NOT_METERED},
+                filteredCap.getCapabilities());
     }
 
     @Test

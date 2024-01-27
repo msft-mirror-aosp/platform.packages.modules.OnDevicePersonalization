@@ -30,6 +30,7 @@ import android.database.Cursor;
 import android.location.Location;
 import android.location.LocationManager;
 import android.net.ConnectivityManager;
+import android.net.NetworkCapabilities;
 import android.os.BatteryManager;
 import android.os.Environment;
 import android.os.StatFs;
@@ -309,8 +310,9 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getNetworkCapabilities(RawUserData userData) {
         try {
-            userData.networkCapabilities = mConnectivityManager.getNetworkCapabilities(
-                            mConnectivityManager.getActiveNetwork());
+            NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(
+                    mConnectivityManager.getActiveNetwork());
+            userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
             sLogger.w(TAG + ": Failed to collect networkCapabilities.");
         }
@@ -695,6 +697,22 @@ public class UserDataCollector {
     @VisibleForTesting
     public Deque<LocationInfo> getAllowedLocationEntries() {
         return mAllowedLocationEntries;
+    }
+
+    @VisibleForTesting
+    static NetworkCapabilities getFilteredNetworkCapabilities(
+            NetworkCapabilities networkCapabilities) {
+        NetworkCapabilities.Builder builder =
+                NetworkCapabilities.Builder.withoutDefaultCapabilities()
+                    .setLinkDownstreamBandwidthKbps(
+                            networkCapabilities.getLinkDownstreamBandwidthKbps())
+                    .setLinkUpstreamBandwidthKbps(
+                            networkCapabilities.getLinkUpstreamBandwidthKbps());
+        if (networkCapabilities.hasCapability(
+                NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
+            builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
+        }
+        return builder.build();
     }
 
     /**

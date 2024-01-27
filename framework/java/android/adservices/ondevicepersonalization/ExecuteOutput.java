@@ -51,12 +51,12 @@ public final class ExecuteOutput {
     @Nullable private RenderingConfig mRenderingConfig = null;
 
     /**
-     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord} from
-     * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-     * EventLogRecord is not written.
-     * @hide
+     * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+     * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+     * the REQUESTS table, specified using
+     * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+     * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+     * written.
      */
     @DataClass.PluralOf("eventLogRecord")
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
@@ -110,13 +110,12 @@ public final class ExecuteOutput {
     }
 
     /**
-     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord} from
-     * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-     * EventLogRecord is not written.
-     *
-     * @hide
+     * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+     * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+     * the REQUESTS table, specified using
+     * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+     * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+     * written.
      */
     @DataClass.Generated.Member
     public @NonNull List<EventLogRecord> getEventLogRecords() {
@@ -196,13 +195,12 @@ public final class ExecuteOutput {
         }
 
         /**
-         * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-         * them with requests with the specified corresponding {@link RequestLogRecord} from
-         * {@link EventLogRecord#getRequestLogRecord()}.
-         * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-         * EventLogRecord is not written.
-         *
-         * @hide
+         * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+         * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+         * the REQUESTS table, specified using
+         * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+         * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+         * written.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
@@ -212,7 +210,7 @@ public final class ExecuteOutput {
             return this;
         }
 
-        /** @see #setEventLogRecords @hide */
+        /** @see #setEventLogRecords */
         @DataClass.Generated.Member
         public @NonNull Builder addEventLogRecord(@NonNull EventLogRecord value) {
             if (mEventLogRecords == null) setEventLogRecords(new java.util.ArrayList<>());
@@ -250,7 +248,7 @@ public final class ExecuteOutput {
     }
 
     @DataClass.Generated(
-            time = 1705026369283L,
+            time = 1705959458240L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
             inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

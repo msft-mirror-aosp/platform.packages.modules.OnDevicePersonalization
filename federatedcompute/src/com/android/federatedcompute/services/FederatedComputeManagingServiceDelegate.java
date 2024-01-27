@@ -23,6 +23,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
@@ -123,7 +124,9 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
 
     @Override
     public void cancel(
-            String callingPackageName, String populationName, IFederatedComputeCallback callback) {
+            ComponentName ownerComponent,
+            String populationName,
+            IFederatedComputeCallback callback) {
         // Use FederatedCompute instead of caller permission to read experiment flags. It requires
         // READ_DEVICE_CONFIG permission.
         long origId = Binder.clearCallingIdentity();
@@ -132,7 +135,7 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         }
         Binder.restoreCallingIdentity(origId);
 
-        Objects.requireNonNull(callingPackageName);
+        Objects.requireNonNull(ownerComponent);
         Objects.requireNonNull(callback);
         Objects.requireNonNull(populationName);
 
@@ -145,14 +148,16 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                             try {
                                 resultCode =
                                         jobManager.onTrainerStopCalled(
-                                                callingPackageName, populationName);
+                                                ownerComponent, populationName);
                             } catch (Exception e) {
                                 resultCode = STATUS_INTERNAL_ERROR;
                                 LogUtil.e(
                                         TAG,
                                         e,
-                                        "Got exception when call Cancel %s",
-                                        populationName);
+                                        "Got exception when call Cancel population: %s, "
+                                                + "owner: %s",
+                                        populationName,
+                                        ownerComponent.flattenToString());
                             } finally {
                                 sendResult(callback, resultCode);
                                 int serviceLatency =
