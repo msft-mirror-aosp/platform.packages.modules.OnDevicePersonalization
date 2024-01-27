@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,20 +14,12 @@
  * limitations under the License.
  */
 
-package android.federatedcompute.aidl;
+package android.adservices.ondevicepersonalization.aidl;
 
-import android.federatedcompute.common.TrainingOptions;
-import android.federatedcompute.aidl.IFederatedComputeCallback;
+import android.view.SurfaceControlViewHost.SurfacePackage;
 
 /** @hide */
-interface IFederatedComputeService {
-  void schedule(
-    in String callingPackageName,
-    in TrainingOptions trainingOptions,
-    in IFederatedComputeCallback callback);
-
-  void cancel(
-    in ComponentName ownerComponent,
-    in String populationName,
-    in IFederatedComputeCallback callback);
+oneway interface IRegisterWebTriggerCallback {
+    void onSuccess();
+    void onError(int errorCode);
 }

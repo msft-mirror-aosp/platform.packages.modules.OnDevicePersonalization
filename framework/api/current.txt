@@ -9,7 +9,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedInput {
-    method @NonNull public java.util.Map<java.lang.String,byte[]> getData();
+    method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getDownloadedContents();
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedOutput {
@@ -141,6 +141,7 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationException extends java.lang.Exception {
     method public int getErrorCode();
     field public static final int ERROR_ISOLATED_SERVICE_FAILED = 1; // 0x1
+    field public static final int ERROR_PERSONALIZATION_DISABLED = 2; // 0x2
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationManager {
