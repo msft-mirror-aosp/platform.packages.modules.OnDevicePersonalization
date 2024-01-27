@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.scheduling;
 
+import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -73,7 +74,6 @@ public final class FederatedComputeJobManagerTest {
     private static final String CALLING_PACKAGE_NAME = "callingPkg";
     private static final String CALLING_CLASS_NAME = "callingClass";
     private static final String CALLING_CLASS_NAME_2 = "anotherCallingClass";
-    private static final String CALLING_CERT_DIGEST = "callingCert";
     private static final String POPULATION_NAME1 = "population1";
     private static final String POPULATION_NAME2 = "population2";
     private static final String SERVER_ADDRESS = "https://server.uri/";
@@ -90,6 +90,7 @@ public final class FederatedComputeJobManagerTest {
             "com.android.federatedcompute.services.training.FederatedJobService";
     private static final long CURRENT_TIME_MILLIS = 1000L;
     private static final byte[] DEFAULT_CONSTRAINTS = createDefaultTrainingConstraints();
+    public static final String FAULTY_PACKAGE = "faultyPackage";
     private ComponentName mOwnerComponentName;
     private ComponentName mOwnerComponentName2;
     private TrainingOptions mOptions1;
@@ -189,6 +190,28 @@ public final class FederatedComputeJobManagerTest {
                                 .intervalOptions(createDefaultTrainingInterval())
                                 .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
                                 .build());
+    }
+
+    @Test
+    public void testOnTrainerStartCalledFailureDueToFaultyOwnerPackage() throws Exception {
+        when(mClock.currentTimeMillis()).thenReturn(1000L).thenReturn(2000L);
+
+        TrainingOptions faultyOptions =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME1)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(
+                                ComponentName.createRelative(FAULTY_PACKAGE, CALLING_CLASS_NAME))
+                        .build();
+
+        int resultCode = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, faultyOptions);
+
+        assertThat(resultCode).isEqualTo(STATUS_INTERNAL_ERROR);
+        // No task should be found.
+        List<FederatedTrainingTask> taskList =
+                mTrainingTaskDao.getFederatedTrainingTask(null, null);
+        assertThat(taskList).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
     }
 
     @Test
@@ -1000,6 +1023,19 @@ public final class FederatedComputeJobManagerTest {
 
         // No task should exist, nor should a job have been scheduled.
         assertThat(resultCode).isEqualTo(STATUS_SUCCESS);
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
+    @Test
+    public void testOnTrainerStopCalled_withFaultyOwnerPackage() throws Exception {
+        ComponentName faultyComponentName =
+                ComponentName.createRelative(FAULTY_PACKAGE, CALLING_CLASS_NAME);
+
+        int resultCode = mJobManager.onTrainerStopCalled(faultyComponentName, POPULATION_NAME1);
+
+        // No task should exist, nor should a job have been scheduled.
+        assertThat(resultCode).isEqualTo(STATUS_INTERNAL_ERROR);
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
         assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
     }
