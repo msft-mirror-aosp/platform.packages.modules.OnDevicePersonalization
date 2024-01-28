@@ -16,6 +16,8 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -35,9 +37,6 @@ import android.os.PersistableBundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
-
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
-import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -207,8 +206,7 @@ public class IsolatedServiceTest {
     public void testOnDownload() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -249,8 +247,7 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -265,8 +262,7 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfFederatedComputeServiceMissing() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -283,8 +279,7 @@ public class IsolatedServiceTest {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -484,12 +479,10 @@ public class IsolatedServiceTest {
         TrainingExamplesOutputParcel result =
                 mCallbackResult.getParcelable(
                         Constants.EXTRA_RESULT, TrainingExamplesOutputParcel.class);
-        List<byte[]> examples = result.getTrainingExamples().getList();
-        List<byte[]> tokens = result.getResumptionTokens().getList();
-        assertEquals(1, examples.size());
-        assertEquals(1, tokens.size());
-        assertArrayEquals(new byte[] {12}, examples.get(0));
-        assertArrayEquals(new byte[] {13}, tokens.get(0));
+        List<TrainingExampleRecord> examples = result.getTrainingExampleRecords().getList();
+        assertThat(examples).hasSize(1);
+        assertArrayEquals(new byte[] {12}, examples.get(0).getTrainingExample());
+        assertArrayEquals(new byte[] {13}, examples.get(0).getResumptionToken());
     }
 
     @Test
@@ -696,14 +689,16 @@ public class IsolatedServiceTest {
         public void onTrainingExamples(
                 TrainingExamplesInput input, Consumer<TrainingExamplesOutput> consumer) {
             mOnTrainingExampleCalled = true;
-            List<byte[]> examples = new ArrayList<>();
-            examples.add(new byte[] {12});
-            List<byte[]> tokens = new ArrayList<>();
-            tokens.add(new byte[] {13});
+            List<TrainingExampleRecord> exampleRecordList = new ArrayList<>();
+            TrainingExampleRecord record =
+                    new TrainingExampleRecord.Builder()
+                            .setTrainingExample(new byte[] {12})
+                            .setResumptionToken(new byte[] {13})
+                            .build();
+            exampleRecordList.add(record);
             consumer.accept(
                     new TrainingExamplesOutput.Builder()
-                            .setTrainingExamples(examples)
-                            .setResumptionTokens(tokens)
+                            .setTrainingExampleRecords(exampleRecordList)
                             .build());
         }
 

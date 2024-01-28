@@ -32,6 +32,7 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.common.TrainingOptions;
@@ -60,6 +61,12 @@ import java.util.concurrent.TimeUnit;
 @RunWith(JUnit4.class)
 public final class FederatedComputeManagingServiceDelegateTest {
     private static final int BINDER_CONNECTION_TIMEOUT_MS = 10_000;
+
+    private static final String CALLING_PACKAGE_NAME = "callingPkg";
+    private static final String CALLING_CLASS_NAME = "callingClass";
+
+    public static final ComponentName OWNER_COMPONENT_NAME =
+            ComponentName.createRelative(CALLING_PACKAGE_NAME, CALLING_CLASS_NAME);
 
     private FederatedComputeManagingServiceDelegate mFcpService;
     private Context mContext;
@@ -150,12 +157,12 @@ public final class FederatedComputeManagingServiceDelegateTest {
     public void testCancelMissingCallback_throwsException() {
         assertThrows(
                 NullPointerException.class,
-                () -> mFcpService.cancel(mContext.getPackageName(), "fake-population", null));
+                () -> mFcpService.cancel(OWNER_COMPONENT_NAME, "fake-population", null));
     }
 
     @Test
     public void testCancel_returnsSuccess() throws Exception {
-        when(mMockJobManager.onTrainerStopCalled(anyString(), anyString()))
+        when(mMockJobManager.onTrainerStopCalled(any(), anyString()))
                 .thenReturn(STATUS_SUCCESS);
 
         invokeCancelAndVerifyLogging("fake-population", STATUS_SUCCESS);
@@ -163,7 +170,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     @Test
     public void testCancelFails() throws Exception {
-        when(mMockJobManager.onTrainerStopCalled(anyString(), anyString()))
+        when(mMockJobManager.onTrainerStopCalled(any(), any()))
                 .thenReturn(STATUS_INTERNAL_ERROR);
 
         invokeCancelAndVerifyLogging("fake-population", STATUS_INTERNAL_ERROR);
@@ -177,7 +184,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
                     IllegalStateException.class,
                     () ->
                             mFcpService.cancel(
-                                    mContext.getPackageName(),
+                                    OWNER_COMPONENT_NAME,
                                     "fake-population",
                                     new FederatedComputeCallback()));
         } finally {
@@ -216,8 +223,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     private void invokeCancelAndVerifyLogging(String populationName, int expectedResultCode)
             throws InterruptedException {
-        mFcpService.cancel(
-                mContext.getPackageName(), populationName, new FederatedComputeCallback());
+        mFcpService.cancel(OWNER_COMPONENT_NAME, populationName, new FederatedComputeCallback());
 
         final CountDownLatch logOperationCalledLatch = new CountDownLatch(1);
         doAnswer(

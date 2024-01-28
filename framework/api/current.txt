@@ -9,7 +9,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedInput {
-    method @NonNull public java.util.Map<java.lang.String,byte[]> getData();
+    method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getDownloadedContents();
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedOutput {
@@ -69,13 +69,16 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class ExecuteOutput {
+    method @NonNull public java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> getEventLogRecords();
     method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
     method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
   }
 
   public static final class ExecuteOutput.Builder {
     ctor public ExecuteOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder addEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setEventLogRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord>);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfig(@NonNull android.adservices.ondevicepersonalization.RenderingConfig);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
   }
@@ -91,7 +94,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class FederatedComputeScheduler {
-    method @WorkerThread public void cancel(@NonNull String);
+    method @WorkerThread public void cancel(@NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
     method @WorkerThread public void schedule(@NonNull android.adservices.ondevicepersonalization.FederatedComputeScheduler.Params, @NonNull android.adservices.ondevicepersonalization.FederatedComputeInput);
   }
 
@@ -138,6 +141,7 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationException extends java.lang.Exception {
     method public int getErrorCode();
     field public static final int ERROR_ISOLATED_SERVICE_FAILED = 1; // 0x1
+    field public static final int ERROR_PERSONALIZATION_DISABLED = 2; // 0x2
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationManager {
@@ -200,6 +204,21 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class SurfacePackageToken {
   }
 
+  @FlaggedApi("enable_ondevicepersonalization_apis") public final class TrainingExampleRecord implements android.os.Parcelable {
+    method public int describeContents();
+    method @Nullable public byte[] getResumptionToken();
+    method @Nullable public byte[] getTrainingExample();
+    method public void writeToParcel(@NonNull android.os.Parcel, int);
+    field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.TrainingExampleRecord> CREATOR;
+  }
+
+  @FlaggedApi("enable_ondevicepersonalization_apis") public static final class TrainingExampleRecord.Builder {
+    ctor public TrainingExampleRecord.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord build();
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setResumptionToken(@NonNull byte...);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setTrainingExample(@NonNull byte...);
+  }
+
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExamplesInput {
     method @NonNull public String getPopulationName();
     method @Nullable public byte[] getResumptionToken();
@@ -207,17 +226,14 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExamplesOutput {
-    method @NonNull public java.util.List<byte[]> getResumptionTokens();
-    method @NonNull public java.util.List<byte[]> getTrainingExamples();
+    method @NonNull public java.util.List<android.adservices.ondevicepersonalization.TrainingExampleRecord> getTrainingExampleRecords();
   }
 
   public static final class TrainingExamplesOutput.Builder {
     ctor public TrainingExamplesOutput.Builder();
-    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder addResumptionToken(@NonNull byte[]);
-    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder addTrainingExample(@NonNull byte[]);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder addTrainingExampleRecord(@NonNull android.adservices.ondevicepersonalization.TrainingExampleRecord);
     method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput build();
-    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder setResumptionTokens(@NonNull java.util.List<byte[]>);
-    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder setTrainingExamples(@NonNull java.util.List<byte[]>);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExamplesOutput.Builder setTrainingExampleRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.TrainingExampleRecord>);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingInterval {

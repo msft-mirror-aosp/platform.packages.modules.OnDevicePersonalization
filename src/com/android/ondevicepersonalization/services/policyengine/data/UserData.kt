@@ -34,31 +34,9 @@ data class UserData (
     val carrier: String,
     val dataNetworkType: Int,
     val appInfos: List<AppInfo>,
-    val appUsageHistory: List<AppUsageStatus>,
-    val currentLocation: Location,
-    val locationHistory: List<LocationStatus>,
 )
 
 data class AppInfo (
     val packageName: String,
     val installed: Boolean
-)
-
-data class AppUsageStatus (
-    val packageName: String,
-    val totalTimeUsedMillis: Long
-)
-
-data class Location (
-    val timestampSeconds: Long,
-    val latitude: Double,
-    val longitude: Double,
-    val locationProvider: Int,
-    val preciseLocation: Boolean
-)
-
-data class LocationStatus (
-    val latitude: Double,
-    val longitude: Double,
-    val durationMillis: Long
 )

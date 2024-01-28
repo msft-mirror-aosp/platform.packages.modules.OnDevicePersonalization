@@ -35,6 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.util.UUID;
+
 @RunWith(AndroidJUnit4.class)
 public class ODPAuthorizationTokenDaoTest {
 
@@ -53,7 +55,6 @@ public class ODPAuthorizationTokenDaoTest {
 
     private static final long ONE_HOUR = 60 * 60 * 60 * 1000L;
 
-
     @Before
     public void setUp() {
         mContext = ApplicationProvider.getApplicationContext();
@@ -70,35 +71,40 @@ public class ODPAuthorizationTokenDaoTest {
 
     @Test
     public void testInsertAuthToken_notExist_success() {
-        SQLiteDatabase db = FederatedComputeDbHelper.getInstanceForTest(mContext)
-                .getReadableDatabase();
-        assertThat(DatabaseUtils.queryNumEntries(db, ODPAuthorizationTokenContract
-                .ODP_AUTHORIZATION_TOKEN_TABLE)).isEqualTo(0);
+        SQLiteDatabase db =
+                FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
+        assertThat(
+                        DatabaseUtils.queryNumEntries(
+                                db, ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                .isEqualTo(0);
 
         ODPAuthorizationToken authToken1 = createAuthToken(OWNER_IDENTIFIER1, TOKEN1, ONE_HOUR);
         ODPAuthorizationToken authToken2 = createAuthToken(OWNER_IDENTIFIER2, TOKEN2, ONE_HOUR);
 
         mODPAuthorizationTokenDao.insertAuthorizationToken(authToken1);
         mODPAuthorizationTokenDao.insertAuthorizationToken(authToken2);
-        assertThat(DatabaseUtils.queryNumEntries(db, ODPAuthorizationTokenContract
-                .ODP_AUTHORIZATION_TOKEN_TABLE)).isEqualTo(2);
+        assertThat(
+                        DatabaseUtils.queryNumEntries(
+                                db, ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                .isEqualTo(2);
     }
 
     @Test
     public void testInsertAuthToken_preExist_success() {
-        SQLiteDatabase db = FederatedComputeDbHelper.getInstanceForTest(mContext)
-                .getReadableDatabase();
+        SQLiteDatabase db =
+                FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
         ODPAuthorizationToken authToken1 = createAuthToken(OWNER_IDENTIFIER1, TOKEN1, ONE_HOUR);
         ODPAuthorizationToken authToken2 = createAuthToken(OWNER_IDENTIFIER1, TOKEN2, ONE_HOUR);
         mODPAuthorizationTokenDao.insertAuthorizationToken(authToken1);
         mODPAuthorizationTokenDao.insertAuthorizationToken(authToken2);
 
+        assertThat(
+                        DatabaseUtils.queryNumEntries(
+                                db, ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                .isEqualTo(1);
 
-        assertThat(DatabaseUtils.queryNumEntries(db, ODPAuthorizationTokenContract
-                .ODP_AUTHORIZATION_TOKEN_TABLE)).isEqualTo(1);
-
-        ODPAuthorizationToken storedToken = mODPAuthorizationTokenDao
-                .getUnexpiredAuthorizationToken(OWNER_IDENTIFIER1);
+        ODPAuthorizationToken storedToken =
+                mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_IDENTIFIER1);
         assertThat(storedToken).isEqualTo(authToken2);
     }
 
@@ -108,18 +114,19 @@ public class ODPAuthorizationTokenDaoTest {
     }
 
     private void insertNullAuthToken() throws Exception {
-        ODPAuthorizationToken authToken = new ODPAuthorizationToken.Builder()
-                .setOwnerIdentifier(OWNER_IDENTIFIER1)
-                .setCreationTime(mClock.currentTimeMillis())
-                .setExpiryTime(mClock.currentTimeMillis() + ONE_HOUR)
-                .build();
+        ODPAuthorizationToken authToken =
+                new ODPAuthorizationToken.Builder()
+                        .setOwnerIdentifier(OWNER_IDENTIFIER1)
+                        .setCreationTime(mClock.currentTimeMillis())
+                        .setExpiryTime(mClock.currentTimeMillis() + ONE_HOUR)
+                        .build();
         mODPAuthorizationTokenDao.insertAuthorizationToken(authToken);
     }
 
     @Test
     public void testGetAuthToken_notExist_success() {
-        ODPAuthorizationToken authToken = mODPAuthorizationTokenDao
-                .getUnexpiredAuthorizationToken(OWNER_IDENTIFIER1);
+        ODPAuthorizationToken authToken =
+                mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(OWNER_IDENTIFIER1);
         assertThat(authToken).isEqualTo(null);
     }
 
@@ -157,35 +164,51 @@ public class ODPAuthorizationTokenDaoTest {
 
     @Test
     public void testDeleteAuthToken_exist_success() {
-        SQLiteDatabase db = FederatedComputeDbHelper.getInstanceForTest(mContext)
-                .getReadableDatabase();
+        SQLiteDatabase db =
+                FederatedComputeDbHelper.getInstanceForTest(mContext).getReadableDatabase();
         ODPAuthorizationToken authToken1 = createAuthToken(OWNER_IDENTIFIER1, TOKEN1, ONE_HOUR);
         mODPAuthorizationTokenDao.insertAuthorizationToken(authToken1);
 
         int deletedRows = mODPAuthorizationTokenDao.deleteAuthorizationToken(OWNER_IDENTIFIER1);
 
-        assertThat(DatabaseUtils.queryNumEntries(db, ODPAuthorizationTokenContract
-                .ODP_AUTHORIZATION_TOKEN_TABLE)).isEqualTo(0);
+        assertThat(
+                        DatabaseUtils.queryNumEntries(
+                                db, ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE))
+                .isEqualTo(0);
         assertThat(deletedRows).isEqualTo(1);
-
     }
 
     @Test
     public void testDeleteAuthToken_notExist_success() {
-        int deletedRows =  mODPAuthorizationTokenDao.deleteAuthorizationToken(OWNER_IDENTIFIER1);
+        int deletedRows = mODPAuthorizationTokenDao.deleteAuthorizationToken(OWNER_IDENTIFIER1);
         assertThat(deletedRows).isEqualTo(0);
+    }
 
+    @Test
+    public void testDeleteAuthTokensEmpty_success() {
+        long rowsDeleted = mODPAuthorizationTokenDao.deleteExpiredAuthorizationTokens();
+
+        assertThat(rowsDeleted).isEqualTo(0);
+    }
+
+    @Test
+    public void testDeleteAuthTokens_success() {
+        mODPAuthorizationTokenDao.insertAuthorizationToken(
+                createAuthToken(/* owner= */ "o1", UUID.randomUUID().toString(), /* ttl= */ 0L));
+        mODPAuthorizationTokenDao.insertAuthorizationToken(
+                createAuthToken(/* owner= */ "o2", UUID.randomUUID().toString(), /* ttl= */ 0L));
+        mODPAuthorizationTokenDao.insertAuthorizationToken(
+                createAuthToken(/* owner= */ "o3", UUID.randomUUID().toString(), ONE_HOUR));
+
+        long rowsDeleted = mODPAuthorizationTokenDao.deleteExpiredAuthorizationTokens();
+
+        assertThat(rowsDeleted).isEqualTo(2);
     }
 
     private ODPAuthorizationToken createAuthToken(String owner, String token, Long ttl) {
+        long now = mClock.currentTimeMillis();
         return new ODPAuthorizationToken.Builder(
-                owner,
-                token,
-                mClock.currentTimeMillis(),
-                mClock.currentTimeMillis() + ttl
-        ).build();
-
-
+                        owner, token, now, now + ttl)
+                .build();
     }
-
 }
