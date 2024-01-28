@@ -90,19 +90,25 @@ public class FederatedComputeSchedulerTest {
 
     @Test
     public void testCancelSuccess() {
-        mFederatedComputeScheduler.cancel("population");
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("population").build();
+        mFederatedComputeScheduler.cancel(input);
         assertTrue(mCancelCalled);
     }
 
     @Test
     public void testCancelNull() {
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("population").build();
         FederatedComputeScheduler fcs = new FederatedComputeScheduler(null);
-        assertThrows(IllegalStateException.class, () -> fcs.cancel("population"));
+        assertThrows(IllegalStateException.class, () -> fcs.cancel(input));
     }
 
     @Test
     public void testCancelErr() {
-        assertThrows(IllegalStateException.class, () -> mFederatedComputeScheduler.cancel("err"));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("err").build();
+        assertThrows(IllegalStateException.class, () -> mFederatedComputeScheduler.cancel(input));
     }
 
     class FederatedComputeService extends IFederatedComputeService.Stub {

@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
@@ -38,6 +39,12 @@ import androidx.test.rule.ServiceTestRule;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
+import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
+
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -53,9 +60,11 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Rule
     public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
+    private TestInjector mTestInjector = new TestInjector();
     private OnDevicePersonalizationManagingServiceDelegate mService;
     private boolean mAppRequestFlowStarted = false;
     private boolean mRenderFlowStarted = false;
+    private boolean mWebTriggerFlowStarted = false;
     private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     @Before
@@ -64,7 +73,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         PhFlagsTestUtil.disableGlobalKillSwitch();
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mService = new OnDevicePersonalizationManagingServiceDelegate(
-                mContext, new TestInjector());
+                mContext, mTestInjector);
     }
     @Test
     public void testVersion() throws Exception {
@@ -372,6 +381,54 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
+    public void testEnabledGlobalKillSwitchOnRegisterWebTrigger() throws Exception {
+        PhFlagsTestUtil.enableGlobalKillSwitch();
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                    mService.registerWebTrigger(
+                        "http://desturl",
+                        "http://regurl",
+                        "header",
+                        "com.example.browser",
+                        new CallerMetadata.Builder().build(),
+                        new RegisterWebTriggerCallback()));
+        } finally {
+            PhFlagsTestUtil.disableGlobalKillSwitch();
+        }
+    }
+
+    @Test
+    public void testRegisterWebTriggerInvokesWebTriggerFlow() throws Exception {
+        mService.registerWebTrigger(
+                "http://desturl",
+                "http://regurl",
+                "header",
+                "com.example.browser",
+                new CallerMetadata.Builder().build(),
+                new RegisterWebTriggerCallback());
+        assertTrue(mWebTriggerFlowStarted);
+    }
+
+    @Test
+    public void testRegisterWebTriggerPropagatesError() throws Exception {
+        mTestInjector.mWebTriggerFlowResult =
+                Futures.immediateFailedFuture(new IllegalStateException());
+        var callback = new RegisterWebTriggerCallback();
+        mService.registerWebTrigger(
+                "http://desturl",
+                "http://regurl",
+                "header",
+                "com.example.browser",
+                new CallerMetadata.Builder().build(),
+                callback);
+        assertTrue(mWebTriggerFlowStarted);
+        callback.await();
+        assertTrue(callback.mError);
+    }
+
+    @Test
     public void testDefaultInjector() {
         var executeCallback = new ExecuteCallback();
         var renderCallback = new RequestSurfacePackageCallback();
@@ -397,6 +454,14 @@ public class OnDevicePersonalizationManagingServiceTest {
                 mContext,
                 0L
         ));
+
+        assertNotNull(injector.getWebTriggerFlow(
+                "http://example.com",
+                "http://regurl.com",
+                "header",
+                "com.example.browser",
+                mContext,
+                0L));
     }
 
     @Test
@@ -408,6 +473,8 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     class TestInjector extends OnDevicePersonalizationManagingServiceDelegate.Injector {
+        ListenableFuture<Void> mWebTriggerFlowResult = Futures.immediateFuture(null);
+
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
                 ComponentName handler,
@@ -439,6 +506,26 @@ public class OnDevicePersonalizationManagingServiceTest {
                     mRenderFlowStarted = true;
                 }
             };
+        }
+
+        WebTriggerFlow getWebTriggerFlow(
+                String destinationUrl,
+                String registrationUrl,
+                String triggerHeader,
+                String appPackageName,
+                Context context,
+                long startTimeMillis) {
+            return new WebTriggerFlow(destinationUrl, registrationUrl, appPackageName,
+                    triggerHeader, context) {
+                @Override public ListenableFuture<Void> run() {
+                    mWebTriggerFlowStarted = true;
+                    return mWebTriggerFlowResult;
+                }
+            };
+        }
+
+        @Override ListeningExecutorService getExecutor() {
+            return MoreExecutors.newDirectExecutorService();
         }
     }
 
@@ -473,6 +560,28 @@ public class OnDevicePersonalizationManagingServiceTest {
 
         @Override
         public void onSuccess(SurfaceControlViewHost.SurfacePackage s) {
+            mLatch.countDown();
+        }
+
+        @Override
+        public void onError(int errorCode) {
+            mError = true;
+            mErrorCode = errorCode;
+            mLatch.countDown();
+        }
+
+        public void await() throws Exception {
+            mLatch.await();
+        }
+    }
+
+    static class RegisterWebTriggerCallback extends IRegisterWebTriggerCallback.Stub {
+        public boolean mError = false;
+        public int mErrorCode = 0;
+        private CountDownLatch mLatch = new CountDownLatch(1);
+
+        @Override
+        public void onSuccess() {
             mLatch.countDown();
         }
 
