@@ -100,6 +100,71 @@ public class EligibilityDeciderTest {
     }
 
     @Test
+    public void testMinSepPolicy_joinSameRound_notEligible() {
+        // Device joins iteration round 1.
+        mTrainingTaskDao.updateOrInsertTaskHistory(
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setTaskId(TASK_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setContributionRound(1)
+                        .setContributionTime(120L)
+                        .build());
+        MinimumSeparationPolicy minimumSeparationPolicy =
+                MinimumSeparationPolicy.newBuilder()
+                        .setMinimumSeparation(1)
+                        .setCurrentIndex(1)
+                        .build();
+        EligibilityTaskInfo eligibilityTaskInfo =
+                EligibilityTaskInfo.newBuilder()
+                        .addEligibilityPolicies(
+                                EligibilityPolicyEvalSpec.newBuilder()
+                                        .setMinSepPolicy(minimumSeparationPolicy)
+                                        .build())
+                        .build();
+
+        // Device should not be able to join same round since min separate policy is 1.
+        boolean eligible =
+                mEligibilityDecider.computeEligibility(
+                        POPULATION_NAME, TASK_ID, JOB_ID, eligibilityTaskInfo);
+
+        assertFalse(eligible);
+    }
+
+    @Test
+    public void testMinSepPolicy_joinNextRound_eligible() {
+        // Device joins iteration round 1.
+        mTrainingTaskDao.updateOrInsertTaskHistory(
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setTaskId(TASK_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setContributionRound(1)
+                        .setContributionTime(120L)
+                        .build());
+        // Current iteration round is 2 and min separation policy is 1.
+        MinimumSeparationPolicy minimumSeparationPolicy =
+                MinimumSeparationPolicy.newBuilder()
+                        .setMinimumSeparation(1)
+                        .setCurrentIndex(2)
+                        .build();
+        EligibilityTaskInfo eligibilityTaskInfo =
+                EligibilityTaskInfo.newBuilder()
+                        .addEligibilityPolicies(
+                                EligibilityPolicyEvalSpec.newBuilder()
+                                        .setMinSepPolicy(minimumSeparationPolicy)
+                                        .build())
+                        .build();
+
+        // Device should be able to join iteration 2.
+        boolean eligible =
+                mEligibilityDecider.computeEligibility(
+                        POPULATION_NAME, TASK_ID, JOB_ID, eligibilityTaskInfo);
+
+        assertTrue(eligible);
+    }
+
+    @Test
     public void testMinSepPolicy_notEligible() {
         mTrainingTaskDao.updateOrInsertTaskHistory(
                 new TaskHistory.Builder()

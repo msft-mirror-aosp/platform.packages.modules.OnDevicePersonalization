@@ -27,11 +27,7 @@ import org.junit.Test
 import android.util.Log
 
 import android.adservices.ondevicepersonalization.AppInfo
-import android.adservices.ondevicepersonalization.AppUsageStatus
-import android.adservices.ondevicepersonalization.DeviceMetrics
 import android.adservices.ondevicepersonalization.OSVersion
-import android.adservices.ondevicepersonalization.Location
-import android.adservices.ondevicepersonalization.LocationStatus
 import android.adservices.ondevicepersonalization.UserData
 import android.os.Parcel
 import android.util.ArrayMap
@@ -156,75 +152,6 @@ class UserDataReaderTest : ProcessorNode {
     }
 
     @Test
-    fun testAppUsageStatus() {
-        var appUsageStatus1 = AppUsageStatus.Builder()
-                .setPackageName("package")
-                .setTotalTimeUsedInMillis(1000)
-                .build()
-        var parcel = Parcel.obtain()
-        appUsageStatus1.writeToParcel(parcel, 0)
-        parcel.setDataPosition(0);
-        var appUsageStatus2 = AppUsageStatus.CREATOR.createFromParcel(parcel)
-        assertThat(appUsageStatus1).isEqualTo(appUsageStatus2)
-        assertThat(appUsageStatus1.hashCode()).isEqualTo(appUsageStatus2.hashCode())
-        assertThat(appUsageStatus1.describeContents()).isEqualTo(0)
-    }
-
-    @Test
-    fun testDeviceMetrics() {
-        var deviceMetrics1 = DeviceMetrics.Builder()
-                .setMake(111)
-                .setModel(222)
-                .setScreenHeights(333)
-                .setScreenWidth(444)
-                .setXdpi(0.1f)
-                .setYdpi(0.2f)
-                .setPxRatio(0.5f)
-                .build()
-        var parcel = Parcel.obtain()
-        deviceMetrics1.writeToParcel(parcel, 0)
-        parcel.setDataPosition(0);
-        var deviceMetrics2 = DeviceMetrics.CREATOR.createFromParcel(parcel)
-        assertThat(deviceMetrics1).isEqualTo(deviceMetrics2)
-        assertThat(deviceMetrics1.hashCode()).isEqualTo(deviceMetrics2.hashCode())
-        assertThat(deviceMetrics1.describeContents()).isEqualTo(0)
-    }
-
-    @Test
-    fun testLocation() {
-        var location1 = Location.Builder()
-                .setTimestampSeconds(111111)
-                .setLatitude(0.1)
-                .setLongitude(0.2)
-                .setLocationProvider(1)
-                .setPreciseLocation(true)
-                .build()
-        var parcel = Parcel.obtain()
-        location1.writeToParcel(parcel, 0)
-        parcel.setDataPosition(0);
-        var location2 = Location.CREATOR.createFromParcel(parcel)
-        assertThat(location1).isEqualTo(location2)
-        assertThat(location1.hashCode()).isEqualTo(location2.hashCode())
-        assertThat(location1.describeContents()).isEqualTo(0)
-    }
-
-    @Test
-    fun testLocationStatus() {
-        var locationStatus1 = LocationStatus.Builder()
-                .setLatitude(0.1)
-                .setLongitude(0.2)
-                .setDurationMillis(111111)
-                .build()
-        var parcel = Parcel.obtain()
-        locationStatus1.writeToParcel(parcel, 0)
-        parcel.setDataPosition(0);
-        var locationStatus2 = LocationStatus.CREATOR.createFromParcel(parcel)
-        assertThat(locationStatus1).isEqualTo(locationStatus2)
-        assertThat(locationStatus1.hashCode()).isEqualTo(locationStatus2.hashCode())
-        assertThat(locationStatus1.describeContents()).isEqualTo(0)
-    }
-
-    @Test
     fun testOSVersion() {
         var oSVersion1 = OSVersion.Builder()
                 .setMajor(111)
@@ -243,15 +170,6 @@ class UserDataReaderTest : ProcessorNode {
     @Test
     fun testUserData() {
         val appInstalledHistory: Map<String, AppInfo> = mapOf<String, AppInfo>();
-        val appUsageHistory: List<AppUsageStatus> = listOf();
-        var location = Location.Builder()
-                .setTimestampSeconds(111111)
-                .setLatitude(0.1)
-                .setLongitude(0.2)
-                .setLocationProvider(1)
-                .setPreciseLocation(true)
-                .build()
-        val locationHistory: List<LocationStatus> = listOf();
         var userData1 = UserData.Builder()
                 .setTimezoneUtcOffsetMins(1)
                 .setOrientation(1)
@@ -260,9 +178,6 @@ class UserDataReaderTest : ProcessorNode {
                 .setCarrier("AT_T")
                 .setDataNetworkType(1)
                 .setAppInfos(appInstalledHistory)
-                .setAppUsageHistory(appUsageHistory)
-                .setCurrentLocation(location)
-                .setLocationHistory(locationHistory)
                 .build()
         var parcel = Parcel.obtain()
         userData1.writeToParcel(parcel, 0)
@@ -283,17 +198,7 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(userData.getNetworkCapabilities()).isEqualTo(ref.networkCapabilities)
         assertThat(userData.getDataNetworkType()).isEqualTo(ref.dataNetworkType)
 
-        val currentLocation: Location = userData.getCurrentLocation()
-
-        assertThat(currentLocation.getTimestampSeconds()).isEqualTo(rawUserData.currentLocation.timeMillis / 1000)
-        assertThat(currentLocation.getLatitude()).isEqualTo(rawUserData.currentLocation.latitude)
-        assertThat(currentLocation.getLongitude()).isEqualTo(rawUserData.currentLocation.longitude)
-        assertThat(currentLocation.getLocationProvider()).isEqualTo(rawUserData.currentLocation.provider.ordinal)
-        assertThat(currentLocation.isPreciseLocation()).isEqualTo(rawUserData.currentLocation.isPreciseLocation)
-
         assertThat(userData.getAppInfos().size).isEqualTo(rawUserData.appsInfo.size)
-        assertThat(userData.getAppUsageHistory().size).isEqualTo(rawUserData.appUsageHistory.size)
-        assertThat(userData.getLocationHistory().size).isEqualTo(rawUserData.locationHistory.size)
     }
 
     private fun ConnectionResult<*>.expectFailure(cls: Class<out ChronicleError>) {

@@ -72,8 +72,7 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getString(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL,
-                /* defaultValue= */ ENCRYPTION_KEY_FETCH_URL
-        );
+                /* defaultValue= */ ENCRYPTION_KEY_FETCH_URL);
     }
 
     @Override
@@ -81,7 +80,6 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
-                /* defaultValue= */ USE_BACKGROUND_ENCRYPTION_KEY_FETCH
-        );
+                /* defaultValue= */ USE_BACKGROUND_ENCRYPTION_KEY_FETCH);
     }
 }
