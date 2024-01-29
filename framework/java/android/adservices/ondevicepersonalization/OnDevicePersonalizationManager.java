@@ -34,6 +34,7 @@ import android.view.SurfaceControlViewHost;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 
 import java.util.List;
@@ -68,8 +69,8 @@ public class OnDevicePersonalizationManager {
 
     /** @hide */
     public OnDevicePersonalizationManager(Context context) {
-        mContext = context;
-        this.mServiceBinder =
+        this(
+                context,
                 AbstractServiceBinder.getServiceBinderByIntent(
                         context,
                         INTENT_FILTER_ACTION,
@@ -77,7 +78,16 @@ public class OnDevicePersonalizationManager {
                                 ODP_MANAGING_SERVICE_PACKAGE_SUFFIX,
                                 ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX),
                         SdkLevel.isAtLeastU() ? Context.BIND_ALLOW_ACTIVITY_STARTS : 0,
-                        IOnDevicePersonalizationManagingService.Stub::asInterface);
+                        IOnDevicePersonalizationManagingService.Stub::asInterface));
+    }
+
+    /** @hide */
+    @VisibleForTesting
+    public OnDevicePersonalizationManager(
+            Context context,
+            AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder) {
+        mContext = context;
+        mServiceBinder = serviceBinder;
     }
 
     /**
