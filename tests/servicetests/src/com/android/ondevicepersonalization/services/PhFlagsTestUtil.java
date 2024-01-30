@@ -16,8 +16,10 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
 
 import android.provider.DeviceConfig;
 
@@ -68,6 +70,28 @@ public class PhFlagsTestUtil {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
                 Boolean.toString(false),
+                /* makeDefault */ false);
+    }
+
+    /**
+     * Set up caller app allow list in device config
+     */
+    public static void setCallerAppAllowList(final String callerAppAllowList) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_CALLER_APP_ALLOW_LIST,
+                callerAppAllowList,
+                /* makeDefault */ false);
+    }
+
+    /**
+     * Set up isolated service allow list in device config
+     */
+    public static void setIsolatedServiceAllowList(final String isolatedServiceAllowList) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                isolatedServiceAllowList,
                 /* makeDefault */ false);
     }
 }
