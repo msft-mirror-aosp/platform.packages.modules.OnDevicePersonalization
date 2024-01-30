@@ -73,6 +73,7 @@ public class AuthorizationTokenDeletionJobServiceTest {
     public void setUp() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.enableAuthentication();
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         mSpyAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
@@ -101,7 +102,7 @@ public class AuthorizationTokenDeletionJobServiceTest {
     }
 
     @Test
-    public void testOnStartJob() {
+    public void testOnStartJob_enableAuthentication() {
         mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired1"));
         mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired2"));
         mSpyAuthTokenDao.insertAuthorizationToken(createUnexpiredAuthToken("unexpired"));
@@ -143,6 +144,17 @@ public class AuthorizationTokenDeletionJobServiceTest {
     @Test
     public void testOnStartJob_enableKillSwitch() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
+
+        mSpyService.run(mock(JobParameters.class));
+
+        verify(mSpyService).onStartJob(any());
+        verify(mSpyService).jobFinished(any(), eq(false));
+        verify(mSpyAuthTokenDao, never()).deleteExpiredAuthorizationTokens();
+    }
+
+    @Test
+    public void testOnStartJob_disableAuthentication() {
+        PhFlagsTestUtil.disableAuthentication();
 
         mSpyService.run(mock(JobParameters.class));
 
