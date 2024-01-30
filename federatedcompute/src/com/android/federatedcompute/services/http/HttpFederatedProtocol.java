@@ -228,18 +228,31 @@ public final class HttpFederatedProtocol {
 
     /** Helper functions to reporting result and upload result. */
     public FluentFuture<RejectionInfo> reportResult(
-            ComputationResult computationResult, FederatedComputeEncryptionKey encryptionKey) {
+            ComputationResult computationResult,
+            FederatedComputeEncryptionKey encryptionKey,
+            String ownerId,
+            Boolean allowUnauthenticated,
+            List<String> attestationRecord) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
         NetworkStats uploadStats = new NetworkStats();
         if (computationResult != null
                 && computationResult.isResultSuccess()
                 && encryptionKey != null) {
-            return FluentFuture.from(performReportResult(computationResult, uploadStats))
+            return FluentFuture.from(
+                            performReportResult(
+                                    computationResult, ownerId, attestationRecord, uploadStats))
                     .transformAsync(
                             reportResp -> {
                                 uploadStats.addBytesDownloaded(getTotalReceivedBytes(reportResp));
+                                if (reportResp.getStatusCode() == HTTP_UNAUTHENTICATED_STATUS) {
+                                    mODPAuthorizationTokenDao.deleteAuthorizationToken(ownerId);
+                                }
+                                ImmutableSet<Integer> acceptableStatuses =
+                                        allowUnauthenticated
+                                                ? HTTP_OK_OR_UNAUTHENTICATED_STATUS
+                                                : HTTP_OK_STATUS;
                                 ReportResultResponse reportResultResponse =
-                                        getReportResultResponse(reportResp);
+                                        getReportResultResponse(reportResp, acceptableStatuses);
                                 if (reportResultResponse.hasRejectionInfo()) {
                                     mTrainingEventLogger.logResultUploadRejected(uploadStats);
                                     return Futures.immediateFuture(
@@ -265,7 +278,9 @@ public final class HttpFederatedProtocol {
                             },
                             getBackgroundExecutor());
         } else {
-            return FluentFuture.from(performReportResult(computationResult, uploadStats))
+            return FluentFuture.from(
+                            performReportResult(
+                                    computationResult, ownerId, attestationRecord, uploadStats))
                     .transform(
                             resp -> {
                                 validateHttpResponseStatus(
@@ -298,30 +313,10 @@ public final class HttpFederatedProtocol {
                         "/taskassignment/v1/population/%1$s:create-task-assignment",
                         mPopulationName);
 
-        HashMap<String, String> headers = new HashMap<>();
+        HashMap<String, String> headers =
+                constructRequestHeader(attestationRecord, ownerIdentifier);
         headers.put(ODP_IDEMPOTENCY_KEY, System.currentTimeMillis() + " - " + UUID.randomUUID());
         headers.put(FCP_OWNER_ID_DIGEST, ownerIdentifier + "-" + ownerIdCertDigest);
-        if (attestationRecord != null) {
-            // Only when the device is solving challenge, the attestation record is not null.
-            JSONArray attestationArr = new JSONArray(attestationRecord);
-            headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());
-            // generate a UUID and the UUID would serve as the authorization token.
-            String authTokenUUID = UUID.randomUUID().toString();
-            headers.put(ODP_AUTHORIZATION_KEY, authTokenUUID);
-            mODPAuthorizationTokenDao.insertAuthorizationToken(
-                    new ODPAuthorizationToken.Builder()
-                            .setAuthorizationToken(authTokenUUID)
-                            .setOwnerIdentifier(ownerIdentifier)
-                            .setCreationTime(mClock.currentTimeMillis())
-                            .setExpiryTime(mClock.currentTimeMillis() + ODP_AUTHORIZATION_TOKEN_TTL)
-                            .build());
-        } else {
-            ODPAuthorizationToken authToken =
-                    mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(ownerIdentifier);
-            if (authToken != null) {
-                headers.put(ODP_AUTHORIZATION_KEY, authToken.getAuthorizationToken());
-            }
-        }
         FederatedComputeHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         taskAssignmentUriSuffix,
@@ -413,7 +408,10 @@ public final class HttpFederatedProtocol {
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> performReportResult(
-            ComputationResult computationResult, NetworkStats networkStats) {
+            ComputationResult computationResult,
+            String ownerIdentifier,
+            List<String> attestationRecord,
+            NetworkStats networkStats) {
         Result result =
                 computationResult == null ? Result.FAILED : computationResult.convertToResult();
         if (result == Result.COMPLETED) {
@@ -436,10 +434,13 @@ public final class HttpFederatedProtocol {
                 mTaskId,
                 mAssignmentId,
                 result.toString());
+        HashMap<String, String> headers =
+                constructRequestHeader(attestationRecord, ownerIdentifier);
         FederatedComputeHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         startDataUploadUri,
                         HttpMethod.PUT,
+                        headers,
                         startDataUploadRequest.toByteArray(),
                         /* isProtobufEncoded= */ true);
         networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
@@ -520,9 +521,10 @@ public final class HttpFederatedProtocol {
         return body.toString().getBytes();
     }
 
-    private ReportResultResponse getReportResultResponse(FederatedComputeHttpResponse httpResponse)
+    private ReportResultResponse getReportResultResponse(
+            FederatedComputeHttpResponse httpResponse, ImmutableSet<Integer> acceptableStatuses)
             throws InvalidProtocolBufferException {
-        validateHttpResponseStatus("ReportResult", httpResponse, HTTP_OK_STATUS);
+        validateHttpResponseStatus("ReportResult", httpResponse, acceptableStatuses);
         return ReportResultResponse.parseFrom(httpResponse.getPayload());
     }
 
@@ -570,5 +572,32 @@ public final class HttpFederatedProtocol {
                 return Futures.immediateFailedFuture(
                         new UnsupportedOperationException("Unknown Resource type"));
         }
+    }
+
+    private HashMap<String, String> constructRequestHeader(
+            List<String> attestationRecord, String ownerIdentifier) {
+        HashMap<String, String> headers = new HashMap<>();
+        if (attestationRecord != null) {
+            // Only when the device is solving challenge, the attestation record is not null.
+            JSONArray attestationArr = new JSONArray(attestationRecord);
+            headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());
+            // generate a UUID and the UUID would serve as the authorization token.
+            String authTokenUUID = UUID.randomUUID().toString();
+            headers.put(ODP_AUTHORIZATION_KEY, authTokenUUID);
+            mODPAuthorizationTokenDao.insertAuthorizationToken(
+                    new ODPAuthorizationToken.Builder()
+                            .setAuthorizationToken(authTokenUUID)
+                            .setOwnerIdentifier(ownerIdentifier)
+                            .setCreationTime(mClock.currentTimeMillis())
+                            .setExpiryTime(mClock.currentTimeMillis() + ODP_AUTHORIZATION_TOKEN_TTL)
+                            .build());
+        } else {
+            ODPAuthorizationToken authToken =
+                    mODPAuthorizationTokenDao.getUnexpiredAuthorizationToken(ownerIdentifier);
+            if (authToken != null) {
+                headers.put(ODP_AUTHORIZATION_KEY, authToken.getAuthorizationToken());
+            }
+        }
+        return headers;
     }
 }
