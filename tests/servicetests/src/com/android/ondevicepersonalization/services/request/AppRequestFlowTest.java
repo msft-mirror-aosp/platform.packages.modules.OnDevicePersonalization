@@ -76,7 +76,7 @@ public class AppRequestFlowTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 "com.example.test", "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
     }
