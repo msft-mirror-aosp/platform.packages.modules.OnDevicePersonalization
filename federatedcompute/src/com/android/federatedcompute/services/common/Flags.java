@@ -178,4 +178,10 @@ public interface Flags {
     default Long getAuthorizationTokenDeletionPeriodSeconds() {
         return ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs;
     }
+
+    int HTTP_REQUEST_RETRY_LIMIT = 3;
+
+    default int getHttpRequestRetryLimit() {
+        return HTTP_REQUEST_RETRY_LIMIT;
+    }
 }
