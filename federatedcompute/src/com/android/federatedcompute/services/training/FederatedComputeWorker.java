@@ -320,6 +320,7 @@ public class FederatedComputeWorker {
                                     return handleRetryRejection(
                                             run, checkinResultOnUnauthenticated);
                                 } else {
+                                    // TODO: b/322880077 Cancel job when it fails authentication
                                     return Futures.immediateFailedFuture(
                                             new IllegalStateException(
                                                     "Unknown rejection Info from FCP server when "
@@ -983,6 +984,7 @@ public class FederatedComputeWorker {
                                             /* allowUnauthenticated= */ false,
                                             attestationRecordToUse);
                                 } else {
+                                    // TODO: b/322880077 Cancel job when it fails authentication
                                     return Futures.immediateFailedFuture(
                                             new IllegalStateException(
                                                     "Unknown rejection Info from FCP server when "
