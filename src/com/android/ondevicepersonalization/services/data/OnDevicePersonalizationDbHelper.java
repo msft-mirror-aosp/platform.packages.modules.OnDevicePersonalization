@@ -101,6 +101,14 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     }
 
     @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        sLogger.d(TAG + ": DB downgrade from " + newVersion + " to " + oldVersion);
+        // All data is retained for the package between upgrades and rollbacks. Update the
+        // DB version to the oldVersion, but maintain the data and schema from the new Version. It
+        // is assumed that the new version will be fully backward compatible.
+    }
+
+    @Override
     public void onConfigure(SQLiteDatabase db) {
         db.setForeignKeyConstraintsEnabled(true);
         db.enableWriteAheadLogging();
