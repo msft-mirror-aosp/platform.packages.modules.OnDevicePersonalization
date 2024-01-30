@@ -30,6 +30,7 @@ import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -124,6 +125,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        Trace.beginSection("OdpManagingServiceDelegate#Execute");
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
@@ -152,6 +154,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 mContext,
                 metadata.getStartTimeMillis());
         flow.run();
+        Trace.endSection();
     }
 
     @Override
@@ -167,6 +170,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        Trace.beginSection("OdpManagingServiceDelegate#RequestSurfacePackage");
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
         Objects.requireNonNull(callback);
@@ -192,6 +196,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 mContext,
                 metadata.getStartTimeMillis());
         flow.run();
+        Trace.endSection();
     }
 
     @Override
@@ -206,6 +211,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
+
+        Trace.beginSection("OdpManagingServiceDelegate#RegisterWebTrigger");
         Objects.requireNonNull(destinationUrl);
         Objects.requireNonNull(registrationUrl);
         Objects.requireNonNull(triggerHeader);
@@ -242,6 +249,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
                     }
                 },
                 mInjector.getExecutor());
+        Trace.endSection();
     }
 
     private boolean getGlobalKillSwitch() {
