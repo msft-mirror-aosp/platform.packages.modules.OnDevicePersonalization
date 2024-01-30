@@ -192,7 +192,7 @@ public class ODPAuthorizationTokenDaoTest {
     }
 
     @Test
-    public void testDeleteAuthTokens_success() {
+    public void testDeleteAuthTokens_success() throws Exception {
         mODPAuthorizationTokenDao.insertAuthorizationToken(
                 createAuthToken(/* owner= */ "o1", UUID.randomUUID().toString(), /* ttl= */ 0L));
         mODPAuthorizationTokenDao.insertAuthorizationToken(
@@ -200,6 +200,7 @@ public class ODPAuthorizationTokenDaoTest {
         mODPAuthorizationTokenDao.insertAuthorizationToken(
                 createAuthToken(/* owner= */ "o3", UUID.randomUUID().toString(), ONE_HOUR));
 
+        Thread.sleep(10L);
         long rowsDeleted = mODPAuthorizationTokenDao.deleteExpiredAuthorizationTokens();
 
         assertThat(rowsDeleted).isEqualTo(2);
