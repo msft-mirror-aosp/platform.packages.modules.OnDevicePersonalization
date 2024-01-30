@@ -80,6 +80,7 @@ import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Callable;
 
@@ -313,8 +314,7 @@ public final class HttpFederatedProtocol {
                         "/taskassignment/v1/population/%1$s:create-task-assignment",
                         mPopulationName);
 
-        HashMap<String, String> headers =
-                constructRequestHeader(attestationRecord, ownerIdentifier);
+        Map<String, String> headers = constructRequestHeader(attestationRecord, ownerIdentifier);
         headers.put(ODP_IDEMPOTENCY_KEY, System.currentTimeMillis() + " - " + UUID.randomUUID());
         headers.put(FCP_OWNER_ID_DIGEST, ownerIdentifier + "-" + ownerIdCertDigest);
         FederatedComputeHttpRequest httpRequest =
@@ -434,8 +434,7 @@ public final class HttpFederatedProtocol {
                 mTaskId,
                 mAssignmentId,
                 result.toString());
-        HashMap<String, String> headers =
-                constructRequestHeader(attestationRecord, ownerIdentifier);
+        Map<String, String> headers = constructRequestHeader(attestationRecord, ownerIdentifier);
         FederatedComputeHttpRequest httpRequest =
                 mTaskAssignmentRequestCreator.createProtoRequest(
                         startDataUploadUri,
@@ -574,9 +573,9 @@ public final class HttpFederatedProtocol {
         }
     }
 
-    private HashMap<String, String> constructRequestHeader(
+    private Map<String, String> constructRequestHeader(
             List<String> attestationRecord, String ownerIdentifier) {
-        HashMap<String, String> headers = new HashMap<>();
+        Map<String, String> headers = new HashMap<>();
         if (attestationRecord != null) {
             // Only when the device is solving challenge, the attestation record is not null.
             JSONArray attestationArr = new JSONArray(attestationRecord);
