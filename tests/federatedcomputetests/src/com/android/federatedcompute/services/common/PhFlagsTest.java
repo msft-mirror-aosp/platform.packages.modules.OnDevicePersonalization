@@ -17,15 +17,18 @@
 package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
+import static com.android.federatedcompute.services.common.Flags.HTTP_REQUEST_RETRY_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
+import static com.android.federatedcompute.services.common.PhFlags.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import static com.google.common.truth.Truth.assertThat;
 
 import android.provider.DeviceConfig;
 
+import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,6 +43,24 @@ public class PhFlagsTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
     }
 
+    /**
+     * Roll flags back to their default values.
+     */
+    @AfterClass
+    public static void tearDown() {
+        // roll back to default value.
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
+                Integer.toString(HTTP_REQUEST_RETRY_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
+                Boolean.toString(USE_BACKGROUND_ENCRYPTION_KEY_FETCH),
+                /* makeDefault= */ false);
+    }
+
     @Test
     public void testGetGlobalKillSwitch() {
         // Without any overriding, the value is the hard coded constant.
@@ -52,7 +73,7 @@ public class PhFlagsTest {
                 .isEqualTo(FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH);
 
         // Now overriding with the value from PH.
-        final boolean phOverridingValue = true;
+        final boolean phOverridingValue = !FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_FEDERATED_COMPUTE_KILL_SWITCH,
@@ -89,7 +110,7 @@ public class PhFlagsTest {
                 .isEqualTo(USE_BACKGROUND_ENCRYPTION_KEY_FETCH);
 
         // Now overriding the value from PH.
-        boolean overrideEnableBackgroundKeyFetch = false;
+        boolean overrideEnableBackgroundKeyFetch = !USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
@@ -100,5 +121,29 @@ public class PhFlagsTest {
         assertThat(phFlags.getEnableBackgroundEncryptionKeyFetch())
                 .isEqualTo(overrideEnableBackgroundKeyFetch);
 
+    }
+
+    @Test
+    public void testGetHttpRequestRetryLimit() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
+                Integer.toString(HTTP_REQUEST_RETRY_LIMIT),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getHttpRequestRetryLimit())
+                .isEqualTo(HTTP_REQUEST_RETRY_LIMIT);
+
+        // Now overriding the value from PH.
+        int overrideHttpRequestRetryLimit = 4;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
+                Integer.toString(overrideHttpRequestRetryLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getHttpRequestRetryLimit())
+                .isEqualTo(overrideHttpRequestRetryLimit);
     }
 }

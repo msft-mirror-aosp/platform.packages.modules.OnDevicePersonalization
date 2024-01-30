@@ -41,6 +41,9 @@ public final class PhFlags implements Flags {
 
     static final String ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH =
             "enable_background_encryption_key_fetch";
+
+    static final String HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME =
+            "http_request_retry_limit";
     private static final PhFlags sSingleton = new PhFlags();
 
     /** Returns the singleton instance of the PhFlags. */
@@ -81,5 +84,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
                 /* defaultValue= */ USE_BACKGROUND_ENCRYPTION_KEY_FETCH);
+    }
+
+    @Override
+    public int getHttpRequestRetryLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
+                /* defaultValue= */ HTTP_REQUEST_RETRY_LIMIT);
     }
 }
