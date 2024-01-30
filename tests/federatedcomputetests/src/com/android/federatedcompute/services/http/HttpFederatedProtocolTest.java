@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.http;
 
+import static com.android.federatedcompute.services.common.PhFlagsTestUtil.enableEncryption;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
@@ -213,6 +214,7 @@ public final class HttpFederatedProtocolTest {
                         mTrainingEventLogger,
                         mODPAuthorizationTokenDao,
                         mClock);
+        enableEncryption();
     }
 
     @After

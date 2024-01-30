@@ -43,6 +43,7 @@ import android.util.Base64;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -498,6 +499,10 @@ public final class HttpFederatedProtocol {
     private byte[] createEncryptedRequestBody(
             String filePath, FederatedComputeEncryptionKey encryptionKey) throws Exception {
         byte[] fileOutputBytes = readFileAsByteArray(filePath);
+        if (!FlagsFactory.getFlags().isEncryptionEnabled()) {
+            // encryption not enabled, upload the file contents directly
+            return fileOutputBytes;
+        }
         fileOutputBytes = compressWithGzip(fileOutputBytes);
         // encryption
         byte[] publicKey = Base64.decode(encryptionKey.getPublicKey(), Base64.NO_WRAP);
