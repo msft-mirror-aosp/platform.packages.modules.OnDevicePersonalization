@@ -86,7 +86,7 @@ public class OdpExampleStoreServiceTests {
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")
-                        .setServicePackageName(mContext.getPackageName())
+                        .setServiceName(mContext.getPackageName())
                         .setToken()
                         .build());
         mService.onCreate();

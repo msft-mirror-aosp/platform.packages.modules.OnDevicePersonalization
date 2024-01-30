@@ -269,7 +269,7 @@ class OdpWebViewClient extends WebViewClient {
             Event event = new Event.Builder()
                     .setType(eventData.getType())
                     .setQueryId(mQueryId)
-                    .setServicePackageName(mService.getPackageName())
+                    .setServiceName(mService.getPackageName())
                     .setTimeMillis(mInjector.getClock().currentTimeMillis())
                     .setRowIndex(eventData.getRowIndex())
                     .setEventData(data)
