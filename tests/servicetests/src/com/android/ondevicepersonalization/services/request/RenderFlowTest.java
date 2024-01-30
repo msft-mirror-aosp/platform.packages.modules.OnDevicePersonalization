@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.os.Binder;
@@ -122,11 +123,10 @@ public class RenderFlowTest {
         RenderingConfig info =
                 new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
         SlotWrapper data = new SlotWrapper(
-                logRecord, 0, info, mContext.getPackageName(), 0);
+                logRecord, info, mContext.getPackageName(), 0);
         String encrypted = CryptUtils.encrypt(data);
         SlotWrapper decrypted = injector.decryptToken(encrypted);
         assertEquals(data.getLogRecord(), decrypted.getLogRecord());
-        assertEquals(data.getSlotIndex(), decrypted.getSlotIndex());
         assertEquals(data.getQueryId(), decrypted.getQueryId());
         assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
         assertEquals(data.getRenderingConfig(), decrypted.getRenderingConfig());
@@ -143,7 +143,7 @@ public class RenderFlowTest {
                 RenderingConfig info =
                         new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
                 SlotWrapper data = new SlotWrapper(
-                        logRecord, 0, info, mContext.getPackageName(), 0);
+                        logRecord, info, mContext.getPackageName(), 0);
                 return data;
             } else {
                 return null;
@@ -164,7 +164,7 @@ public class RenderFlowTest {
         }
 
         @Override public ListenableFuture<SurfacePackage> displayHtml(
-                String html, RequestLogRecord logRecord, long queryId, String servicePackageName,
+                String html, RequestLogRecord logRecord, long queryId, ComponentName service,
                 IBinder hostToken, int displayId, int width, int height) {
             mGeneratedHtml = html;
             mDisplayHtmlCalled = true;

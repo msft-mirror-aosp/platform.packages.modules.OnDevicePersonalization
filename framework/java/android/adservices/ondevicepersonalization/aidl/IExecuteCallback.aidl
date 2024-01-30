@@ -16,10 +16,8 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
-import android.os.Bundle;
-
 /** @hide */
 oneway interface IExecuteCallback {
-    void onSuccess(in List<String> slotResultTokens);
+    void onSuccess(in String result);
     void onError(int errorCode);
 }

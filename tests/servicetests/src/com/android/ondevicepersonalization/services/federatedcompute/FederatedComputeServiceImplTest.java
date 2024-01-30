@@ -25,6 +25,7 @@ import static org.mockito.Mockito.verify;
 
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.FederatedComputeManager;
 import android.federatedcompute.common.ClientConstants;
@@ -39,6 +40,7 @@ import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -56,8 +58,7 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class FederatedComputeServiceImplTest {
-    private static final String FC_SERVER_URL =
-            "https://google.com";
+    private static final String FC_SERVER_URL = "https://google.com";
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     ArgumentCaptor<OutcomeReceiver<Object, Exception>> mCallbackCapture;
     ArgumentCaptor<ScheduleFederatedComputeRequest> mRequestCapture;
@@ -76,28 +77,37 @@ public class FederatedComputeServiceImplTest {
         mMockManager = Mockito.mock(FederatedComputeManager.class);
         mCallbackCapture = ArgumentCaptor.forClass(OutcomeReceiver.class);
         mRequestCapture = ArgumentCaptor.forClass(ScheduleFederatedComputeRequest.class);
-        doNothing().when(mMockManager).cancel(any(), any(), mCallbackCapture.capture());
-        doNothing().when(mMockManager).schedule(mRequestCapture.capture(), any(),
-                mCallbackCapture.capture());
+        doNothing()
+                .when(mMockManager)
+                .cancel(any(), any(), any(), mCallbackCapture.capture());
+        doNothing()
+                .when(mMockManager)
+                .schedule(mRequestCapture.capture(), any(), mCallbackCapture.capture());
 
-        mServiceImpl = new FederatedComputeServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, mInjector);
+        mServiceImpl =
+                new FederatedComputeServiceImpl(
+                        ComponentName.createRelative(
+                                mApplicationContext.getPackageName(),
+                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                                        mApplicationContext, mApplicationContext.getPackageName())),
+                        mApplicationContext,
+                        mInjector);
         mServiceProxy = IFederatedComputeService.Stub.asInterface(mServiceImpl);
     }
 
     @Test
     public void testSchedule() throws Exception {
-        TrainingInterval interval = new TrainingInterval.Builder()
-                .setMinimumIntervalMillis(100)
-                .setSchedulingMode(1)
-                .build();
-        TrainingOptions options = new TrainingOptions.Builder()
-                .setPopulationName("population")
-                .setTrainingInterval(interval)
-                .build();
-        mServiceProxy.schedule(
-                options,
-                new TestCallback());
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(100)
+                        .setSchedulingMode(1)
+                        .build();
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName("population")
+                        .setTrainingInterval(interval)
+                        .build();
+        mServiceProxy.schedule(options, new TestCallback());
         mCallbackCapture.getValue().onResult(null);
         var request = mRequestCapture.getValue();
         mLatch.await(1000, TimeUnit.MILLISECONDS);
@@ -114,17 +124,17 @@ public class FederatedComputeServiceImplTest {
         String overrideUrl = "https://android.com";
         ShellUtils.runShellCommand(
                 "setprop debug.ondevicepersonalization.override_fc_server_url " + overrideUrl);
-        TrainingInterval interval = new TrainingInterval.Builder()
-                .setMinimumIntervalMillis(100)
-                .setSchedulingMode(1)
-                .build();
-        TrainingOptions options = new TrainingOptions.Builder()
-                .setPopulationName("population")
-                .setTrainingInterval(interval)
-                .build();
-        mServiceProxy.schedule(
-                options,
-                new TestCallback());
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(100)
+                        .setSchedulingMode(1)
+                        .build();
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName("population")
+                        .setTrainingInterval(interval)
+                        .build();
+        mServiceProxy.schedule(options, new TestCallback());
         mCallbackCapture.getValue().onResult(null);
         var request = mRequestCapture.getValue();
         mLatch.await(1000, TimeUnit.MILLISECONDS);
@@ -135,17 +145,17 @@ public class FederatedComputeServiceImplTest {
 
     @Test
     public void testScheduleErr() throws Exception {
-        TrainingInterval interval = new TrainingInterval.Builder()
-                .setMinimumIntervalMillis(100)
-                .setSchedulingMode(1)
-                .build();
-        TrainingOptions options = new TrainingOptions.Builder()
-                .setPopulationName("population")
-                .setTrainingInterval(interval)
-                .build();
-        mServiceProxy.schedule(
-                options,
-                new TestCallback());
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(100)
+                        .setSchedulingMode(1)
+                        .build();
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName("population")
+                        .setTrainingInterval(interval)
+                        .build();
+        mServiceProxy.schedule(options, new TestCallback());
         mCallbackCapture.getValue().onError(new Exception());
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mOnErrorCalled);
@@ -154,16 +164,14 @@ public class FederatedComputeServiceImplTest {
 
     @Test
     public void testCancel() throws Exception {
-        EventsDao.getInstanceForTest(mApplicationContext).updateOrInsertEventState(
-                new EventState.Builder()
-                        .setServicePackageName(mApplicationContext.getPackageName())
-                        .setTaskIdentifier("population")
-                        .setToken(new byte[]{})
-                        .build()
-        );
-        mServiceProxy.cancel(
-                "population",
-                new TestCallback());
+        EventsDao.getInstanceForTest(mApplicationContext)
+                .updateOrInsertEventState(
+                        new EventState.Builder()
+                                .setServicePackageName(mApplicationContext.getPackageName())
+                                .setTaskIdentifier("population")
+                                .setToken(new byte[] {})
+                                .build());
+        mServiceProxy.cancel("population", new TestCallback());
         mCallbackCapture.getValue().onResult(null);
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mOnSuccessCalled);
@@ -171,26 +179,22 @@ public class FederatedComputeServiceImplTest {
 
     @Test
     public void testCancelNoPopulation() throws Exception {
-        mServiceProxy.cancel(
-                "population",
-                new TestCallback());
+        mServiceProxy.cancel("population", new TestCallback());
         mLatch.await(1000, TimeUnit.MILLISECONDS);
-        verify(mMockManager, times(0)).cancel(any(), any(), any());
+        verify(mMockManager, times(0)).cancel(any(), any(), any(), any());
         assertTrue(mOnSuccessCalled);
     }
 
     @Test
     public void testCancelErr() throws Exception {
-        EventsDao.getInstanceForTest(mApplicationContext).updateOrInsertEventState(
-                new EventState.Builder()
-                        .setServicePackageName(mApplicationContext.getPackageName())
-                        .setTaskIdentifier("population")
-                        .setToken(new byte[]{})
-                        .build()
-        );
-        mServiceProxy.cancel(
-                "population",
-                new TestCallback());
+        EventsDao.getInstanceForTest(mApplicationContext)
+                .updateOrInsertEventState(
+                        new EventState.Builder()
+                                .setServicePackageName(mApplicationContext.getPackageName())
+                                .setTaskIdentifier("population")
+                                .setToken(new byte[] {})
+                                .build());
+        mServiceProxy.cancel("population", new TestCallback());
         mCallbackCapture.getValue().onError(new Exception());
         mLatch.await(1000, TimeUnit.MILLISECONDS);
         assertTrue(mOnErrorCalled);
@@ -235,9 +239,7 @@ public class FederatedComputeServiceImplTest {
             return mMockManager;
         }
 
-        EventsDao getEventsDao(
-                Context context
-        ) {
+        EventsDao getEventsDao(Context context) {
             return EventsDao.getInstanceForTest(context);
         }
     }

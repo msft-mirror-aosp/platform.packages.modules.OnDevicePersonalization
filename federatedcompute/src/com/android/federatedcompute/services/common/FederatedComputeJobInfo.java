@@ -22,4 +22,6 @@ public class FederatedComputeJobInfo {
 
     /** JOB ID to periodically download encryption key. */
     public static final int ENCRYPTION_KEY_FETCH_JOB_ID = 1000;
+
+    public static final int ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID = 1001;
 }

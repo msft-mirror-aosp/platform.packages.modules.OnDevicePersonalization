@@ -36,7 +36,6 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -117,12 +116,12 @@ public class MainActivity extends Activity {
                         "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     sCallbackExecutor,
-                    new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
+                    new OutcomeReceiver<SurfacePackageToken, Exception>() {
                         @Override
-                        public void onResult(List<SurfacePackageToken> result) {
-                            Log.i(TAG, "execute() success: " + result.size());
-                            if (result.size() > 0) {
-                                slotResultHandle.set(result.get(0));
+                        public void onResult(SurfacePackageToken result) {
+                            Log.i(TAG, "execute() success: " + result);
+                            if (result != null) {
+                                slotResultHandle.set(result);
                             } else {
                                 Log.e(TAG, "No results!");
                             }
@@ -190,10 +189,10 @@ public class MainActivity extends Activity {
                             "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     sCallbackExecutor,
-                    new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
+                    new OutcomeReceiver<SurfacePackageToken, Exception>() {
                         @Override
-                        public void onResult(List<SurfacePackageToken> result) {
-                            Log.i(TAG, "execute() success: " + result.size());
+                        public void onResult(SurfacePackageToken result) {
+                            Log.i(TAG, "execute() success: " + result);
                             latch.countDown();
                         }
 
@@ -224,10 +223,10 @@ public class MainActivity extends Activity {
                             "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     sCallbackExecutor,
-                    new OutcomeReceiver<List<SurfacePackageToken>, Exception>() {
+                    new OutcomeReceiver<SurfacePackageToken, Exception>() {
                         @Override
-                        public void onResult(List<SurfacePackageToken> result) {
-                            Log.i(TAG, "execute() success: " + result.size());
+                        public void onResult(SurfacePackageToken result) {
+                            Log.i(TAG, "execute() success: " + result);
                             latch.countDown();
                         }
 

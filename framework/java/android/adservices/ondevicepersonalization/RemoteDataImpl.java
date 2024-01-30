@@ -23,10 +23,9 @@ import android.annotation.Nullable;
 import android.os.Bundle;
 import android.os.RemoteException;
 
-
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -51,7 +50,7 @@ public class RemoteDataImpl implements KeyValueStore {
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
-            params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
+            params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
             mDataAccessService.onRequest(
                     Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP,
                     params,
@@ -71,13 +70,13 @@ public class RemoteDataImpl implements KeyValueStore {
                         }
                     });
             Bundle result = asyncResult.take();
-            HashMap<String, byte[]> data = result.getSerializable(
-                            Constants.EXTRA_RESULT, HashMap.class);
+            ByteArrayParceledSlice data = result.getParcelable(
+                            Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
             if (null == data) {
                 sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
                 throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
             }
-            return data.get(key);
+            return data.getByteArray();
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve key from remoteData", e);
             throw new IllegalStateException(e);

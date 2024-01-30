@@ -31,13 +31,6 @@ public interface Flags {
     boolean GLOBAL_KILL_SWITCH = true;
 
     /**
-     * P/H flag to enable all APIs under OnDevicePersonalization (ODP).
-     * The default value is false, which means all APIs are disabled.
-     * This flag is used for ramp-up and emergency turning off ODP API.
-     */
-    boolean ENABLE_ONDEVICEPERSONALIZATION_APIS = false;
-
-    /**
      * P/H flag to override the personalization status for end-to-end tests.
      * The default value is false, which means UserPrivacyStatus#personalizationStatus is not
      * override by PERSONALIZATION_STATUS_OVERRIDE_VALUE. If true, returns the personalization
@@ -67,10 +60,6 @@ public interface Flags {
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
-    }
-
-    default boolean isOnDevicePersonalizationApisEnabled() {
-        return ENABLE_ONDEVICEPERSONALIZATION_APIS;
     }
 
     default boolean isPersonalizationStatusOverrideEnabled() {

@@ -18,6 +18,8 @@ package com.android.federatedcompute.services.data;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static junit.framework.Assert.assertTrue;
+
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -39,8 +41,13 @@ import org.junit.runner.RunWith;
 public final class FederatedTrainingTaskDaoTest {
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
+    private static final String TASK_NAME = "task_name";
+    private static final String TASK_ID = "task_id";
     private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
+    private static final String OWNER_ID =
+            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
     private static final Long LAST_RUN_START_TIME = 1200L;
@@ -48,6 +55,15 @@ public final class FederatedTrainingTaskDaoTest {
     private static final Long EARLIEST_NEXT_RUN_TIME = 1290L;
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
+    private static final TaskHistory TASK_HISTORY =
+            new TaskHistory.Builder()
+                    .setJobId(JOB_ID)
+                    .setTaskId(TASK_ID)
+                    .setPopulationName(POPULATION_NAME)
+                    .setContributionTime(100L)
+                    .setContributionRound(10)
+                    .setTotalParticipation(2)
+                    .build();
 
     private FederatedTrainingTaskDao mTrainingTaskDao;
     private Context mContext;
@@ -173,6 +189,85 @@ public final class FederatedTrainingTaskDaoTest {
         assertThat(removedTask).isNull();
     }
 
+    @Test
+    public void findAndRemoveTaskByPopulationNameAndAndOwnerId_success() {
+        FederatedTrainingTask task = createDefaultFederatedTrainingTask();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
+        FederatedTrainingTask task2 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
+                        .populationName(POPULATION_NAME + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
+        FederatedTrainingTask task3 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(457)
+                        .ownerId(OWNER_ID + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task3);
+        FederatedTrainingTask task4 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(458)
+                        .ownerIdCertDigest(OWNER_ID_CERT_DIGEST + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task4);
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(4);
+
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+
+        assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(3);
+    }
+
+    @Test
+    public void findAndRemoveTaskByPopulationNameAndOwnerId_nonExist() {
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+
+        assertThat(removedTask).isNull();
+    }
+
+    @Test
+    public void getTaskHistory_nonExist() {
+        TaskHistory taskHistory =
+                mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_NAME);
+
+        assertThat(taskHistory).isNull();
+    }
+
+    @Test
+    public void insertTaskHistory_success() {
+        assertTrue(mTrainingTaskDao.updateOrInsertTaskHistory(TASK_HISTORY));
+
+        TaskHistory taskHistory = mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
+
+        assertThat(taskHistory).isEqualTo(TASK_HISTORY);
+    }
+
+    @Test
+    public void updateTaskHistory_success() {
+        mTrainingTaskDao.updateOrInsertTaskHistory(TASK_HISTORY);
+
+        // Update the same task.
+        mTrainingTaskDao.updateOrInsertTaskHistory(
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setTaskId(TASK_ID)
+                        .setContributionRound(15)
+                        .setTotalParticipation(3)
+                        .setContributionTime(500L)
+                        .build());
+
+        TaskHistory taskHistory = mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
+        assertThat(taskHistory.getContributionRound()).isEqualTo(15);
+        assertThat(taskHistory.getTotalParticipation()).isEqualTo(3);
+        assertThat(taskHistory.getContributionTime()).isEqualTo(500L);
+    }
+
     private static byte[] createDefaultTrainingConstraints() {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         builder.finish(TrainingConstraints.createTrainingConstraints(builder, true, true, true));
@@ -191,6 +286,8 @@ public final class FederatedTrainingTaskDaoTest {
         return FederatedTrainingTask.builder()
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
+                .ownerId(OWNER_ID)
+                .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                 .populationName(POPULATION_NAME)
                 .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
