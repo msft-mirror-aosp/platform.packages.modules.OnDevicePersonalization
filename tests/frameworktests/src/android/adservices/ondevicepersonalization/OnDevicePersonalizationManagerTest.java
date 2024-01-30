@@ -25,6 +25,7 @@ import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallba
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
+import android.net.Uri;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
@@ -112,8 +113,8 @@ public final class OnDevicePersonalizationManagerTest {
 
         @Override
         public void registerWebTrigger(
-                String destinationUrl,
-                String registrationUrl,
+                Uri destinationUrl,
+                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 CallerMetadata metadata,
