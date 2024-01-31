@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.statsd;
 
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
 import com.android.federatedcompute.services.stats.FederatedComputeStatsLog;
 
@@ -44,5 +45,22 @@ public class FederatedComputeStatsdLogger {
                 apiCallStats.getApiName(),
                 apiCallStats.getLatencyMillis(),
                 apiCallStats.getResponseCode());
+    }
+
+    /**
+     * Log FederatedComputeTrainingEventReported to track each stage of federated computation job
+     * execution.
+     */
+    public void logTrainingEventReported(TrainingEventReported trainingEvent) {
+        FederatedComputeStatsLog.write(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED,
+                trainingEvent.getClientVersion(),
+                trainingEvent.getEventKind(),
+                trainingEvent.getTaskId(),
+                trainingEvent.getDurationInMillis(),
+                trainingEvent.getExampleSize(),
+                trainingEvent.getDataTransferDurationMillis(),
+                trainingEvent.getBytesDownloaded(),
+                trainingEvent.getBytesDownloaded());
     }
 }

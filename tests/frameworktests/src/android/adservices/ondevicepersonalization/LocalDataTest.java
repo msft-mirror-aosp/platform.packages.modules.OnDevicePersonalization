@@ -29,12 +29,15 @@ import android.os.RemoteException;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 
 /**
@@ -129,9 +132,9 @@ public class LocalDataTest {
                 return;
             }
 
-            String[] keys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-            byte[] value = params.getByteArray(Constants.EXTRA_VALUE);
-            if (keys.length == 1 && keys[0].equals("z")) {
+            String key = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+            Objects.requireNonNull(key);
+            if (key.equals("z")) {
                 // Raise expected error.
                 try {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -140,24 +143,29 @@ public class LocalDataTest {
                 }
                 return;
             }
+            ByteArrayParceledSlice parceledByteArray = params.getParcelable(
+                    Constants.EXTRA_VALUE, ByteArrayParceledSlice.class);
+            byte[] value = null;
+            if (parceledByteArray != null) {
+                value = parceledByteArray.getByteArray();
+            }
 
             if (operation == Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP
                     || operation == Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT
                     || operation == Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE) {
-                HashMap<String, byte[]> dict = new HashMap<String, byte[]>();
-                for (int i = 0; i < keys.length; ++i) {
-                    if (mContents.containsKey(keys[i])) {
-                        dict.put(keys[i], mContents.get(keys[i]));
-                    }
+                byte[] existingValue = null;
+                if (mContents.containsKey(key)) {
+                    existingValue = mContents.get(key);
                 }
                 if (operation == Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE) {
-                    mContents.remove(keys[0]);
+                    mContents.remove(key);
                 }
                 if (operation == Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT) {
-                    mContents.put(keys[0], value);
+                    mContents.put(key, value);
                 }
                 Bundle result = new Bundle();
-                result.putSerializable(Constants.EXTRA_RESULT, dict);
+                result.putParcelable(
+                        Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingValue));
                 try {
                     callback.onSuccess(result);
                 } catch (RemoteException e) {

@@ -141,8 +141,7 @@ public interface Flags {
         return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
     }
 
-    String ENCRYPTION_KEY_FETCH_URL =
-            "https://fake-coordinator/v1alpha/publicKeys";
+    String ENCRYPTION_KEY_FETCH_URL = "https://fake-coordinator/v1alpha/publicKeys";
 
     /**
      * @return Url to fetch encryption key for federated compute.
@@ -152,7 +151,7 @@ public interface Flags {
     }
 
     Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS =
-            TimeUnit.DAYS.toSeconds(14/* duration= */);
+            TimeUnit.DAYS.toSeconds(14 /* duration= */);
 
     /**
      * @return default max age in seconds for federated compute ecryption keys.
@@ -171,5 +170,24 @@ public interface Flags {
 
     default Boolean getEnableBackgroundEncryptionKeyFetch() {
         return USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+    }
+
+    Long ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs =
+            TimeUnit.DAYS.toSeconds(1 /* duration= */);
+
+    default Long getAuthorizationTokenDeletionPeriodSeconds() {
+        return ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs;
+    }
+
+    int HTTP_REQUEST_RETRY_LIMIT = 3;
+
+    default int getHttpRequestRetryLimit() {
+        return HTTP_REQUEST_RETRY_LIMIT;
+    }
+
+    Boolean AUTHENTICATION_ENABLED = false;
+    /** Whether to enable authentication when uploading results. */
+    default Boolean isAuthenticationEnabled() {
+        return AUTHENTICATION_ENABLED;
     }
 }
