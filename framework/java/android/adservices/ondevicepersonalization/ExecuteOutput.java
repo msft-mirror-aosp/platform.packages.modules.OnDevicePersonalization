@@ -62,13 +62,13 @@ public final class ExecuteOutput {
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
 
     /**
-     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
-     * this array is returned to the caller of
+     * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
+     * by setting this field to a non-null value.
+     * The contents of this array will be returned to the caller of
      * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-     * if the (calling app package, isolated service package) pair is present in an allow list
-     * that permits data to be returned to the caller.
-     *
-     * @hide
+     * if returning data from isolated processes is allowed by policy and the
+     * (calling app package, isolated service package) pair is present in an allowlist that
+     * permits data to be returned.
      */
     @Nullable private byte[] mOutputData = null;
 
@@ -136,13 +136,13 @@ public final class ExecuteOutput {
     }
 
     /**
-     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
-     * this array is returned to the caller of
+     * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
+     * by setting this field to a non-null value.
+     * The contents of this array will be returned to the caller of
      * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-     * if the (calling app package, isolated service package) pair is present in an allow list
-     * that permits data to be returned to the caller.
-     *
-     * @hide
+     * if returning data from isolated processes is allowed by policy and the
+     * (calling app package, isolated service package) pair is present in an allowlist that
+     * permits data to be returned.
      */
     @DataClass.Generated.Member
     public @Nullable byte[] getOutputData() {
@@ -249,13 +249,13 @@ public final class ExecuteOutput {
         }
 
         /**
-         * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
-         * this array is returned to the caller of
+         * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
+         * by setting this field to a non-null value.
+         * The contents of this array will be returned to the caller of
          * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-         * if the (calling app package, isolated service package) pair is present in an allow list
-         * that permits data to be returned to the caller.
-         *
-         * @hide
+         * if returning data from isolated processes is allowed by policy and the
+         * (calling app package, isolated service package) pair is present in an allowlist that
+         * permits data to be returned.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setOutputData(@NonNull byte... value) {
@@ -299,7 +299,7 @@ public final class ExecuteOutput {
     }
 
     @DataClass.Generated(
-            time = 1706683855882L,
+            time = 1706771895902L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
             inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nprivate @android.annotation.Nullable byte[] mOutputData\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")

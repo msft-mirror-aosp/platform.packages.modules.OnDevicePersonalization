@@ -16,12 +16,14 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
@@ -62,7 +64,7 @@ public final class OnDevicePersonalizationManagerTest {
     public void testExecuteSuccess() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "ok");
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 params,
@@ -72,14 +74,15 @@ public final class OnDevicePersonalizationManagerTest {
         assertTrue(receiver.mCallbackSuccess);
         assertFalse(receiver.mCallbackError);
         assertNotNull(receiver.mResult);
-        assertEquals(receiver.mResult.getTokenString(), "aaaa");
+        assertEquals(receiver.mResult.getSurfacePackageToken().getTokenString(), "aaaa");
+        assertArrayEquals(receiver.mResult.getOutputData(), new byte[]{1, 2, 3});
     }
 
     @Test
     public void testExecuteError() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 params,
@@ -100,7 +103,7 @@ public final class OnDevicePersonalizationManagerTest {
                         ComponentName.createRelative("com.example.service", ".Example"),
                         params,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -113,14 +116,14 @@ public final class OnDevicePersonalizationManagerTest {
                         ComponentName.createRelative("com.example.service", ".Example"),
                         params,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
     public void testExecuteCatchesOtherExceptions() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "ise");
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 params,
@@ -241,6 +244,7 @@ public final class OnDevicePersonalizationManagerTest {
                 if (op.equals("ok")) {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
+                    bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
                     callback.onSuccess(bundle);
                 } else if (op.equals("error")) {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);

@@ -17,7 +17,7 @@
 package com.example.odpclient;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
-import android.adservices.ondevicepersonalization.SurfacePackageToken;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
@@ -107,7 +107,7 @@ public class MainActivity extends Activity {
             Log.i(TAG, "Starting execute() " + getResources().getString(R.string.get_ad)
                     + " with " + mTextBox.getHint().toString() + ": "
                     + mTextBox.getText().toString());
-            AtomicReference<SurfacePackageToken> slotResultHandle = new AtomicReference<>();
+            AtomicReference<ExecuteResult> slotResultHandle = new AtomicReference<>();
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("keyword", mTextBox.getText().toString());
             odpManager.execute(
@@ -116,9 +116,9 @@ public class MainActivity extends Activity {
                         "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     sCallbackExecutor,
-                    new OutcomeReceiver<SurfacePackageToken, Exception>() {
+                    new OutcomeReceiver<ExecuteResult, Exception>() {
                         @Override
-                        public void onResult(SurfacePackageToken result) {
+                        public void onResult(ExecuteResult result) {
                             Log.i(TAG, "execute() success: " + result);
                             if (result != null) {
                                 slotResultHandle.set(result);
@@ -137,7 +137,7 @@ public class MainActivity extends Activity {
             latch.await();
             Log.d(TAG, "wait success");
             odpManager.requestSurfacePackage(
-                    slotResultHandle.get(),
+                    slotResultHandle.get().getSurfacePackageToken(),
                     mRenderedView.getHostToken(),
                     getDisplay().getDisplayId(),
                     mRenderedView.getWidth(),
@@ -189,9 +189,9 @@ public class MainActivity extends Activity {
                             "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     sCallbackExecutor,
-                    new OutcomeReceiver<SurfacePackageToken, Exception>() {
+                    new OutcomeReceiver<ExecuteResult, Exception>() {
                         @Override
-                        public void onResult(SurfacePackageToken result) {
+                        public void onResult(ExecuteResult result) {
                             Log.i(TAG, "execute() success: " + result);
                             latch.countDown();
                         }
@@ -223,9 +223,9 @@ public class MainActivity extends Activity {
                             "com.example.odpsamplenetwork.SampleService"),
                     appParams,
                     sCallbackExecutor,
-                    new OutcomeReceiver<SurfacePackageToken, Exception>() {
+                    new OutcomeReceiver<ExecuteResult, Exception>() {
                         @Override
-                        public void onResult(SurfacePackageToken result) {
+                        public void onResult(ExecuteResult result) {
                             Log.i(TAG, "execute() success: " + result);
                             latch.countDown();
                         }

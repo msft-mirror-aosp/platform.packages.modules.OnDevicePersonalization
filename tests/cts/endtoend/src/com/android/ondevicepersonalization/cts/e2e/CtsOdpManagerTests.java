@@ -23,6 +23,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
@@ -102,7 +103,7 @@ public class CtsOdpManagerTests {
                         null,
                         PersistableBundle.EMPTY,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -117,7 +118,7 @@ public class CtsOdpManagerTests {
                         new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                         null,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -132,7 +133,7 @@ public class CtsOdpManagerTests {
                         new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                         PersistableBundle.EMPTY,
                         null,
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -162,7 +163,7 @@ public class CtsOdpManagerTests {
                     new ComponentName("", SERVICE_CLASS),
                         PersistableBundle.EMPTY,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -177,7 +178,7 @@ public class CtsOdpManagerTests {
                     new ComponentName(SERVICE_PACKAGE, ""),
                         PersistableBundle.EMPTY,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -185,7 +186,7 @@ public class CtsOdpManagerTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         manager.execute(
                 new ComponentName("somepackage", "someclass"),
                 PersistableBundle.EMPTY,
@@ -202,7 +203,7 @@ public class CtsOdpManagerTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, "someclass"),
                 PersistableBundle.EMPTY,
@@ -218,14 +219,14 @@ public class CtsOdpManagerTests {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.await();
-        SurfacePackageToken token = receiver.getResult();
+        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
     }
 
@@ -397,14 +398,14 @@ public class CtsOdpManagerTests {
     private SurfacePackageToken runExecute(
             OnDevicePersonalizationManager manager, PersistableBundle params)
             throws InterruptedException {
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.await();
-        return receiver.getResult();
+        return receiver.getResult().getSurfacePackageToken();
     }
 
     class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
