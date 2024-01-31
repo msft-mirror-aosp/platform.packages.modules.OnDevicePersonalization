@@ -25,7 +25,6 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -50,7 +49,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
 
             DownloadCompletedOutput result =
                     new DownloadCompletedOutput.Builder()
-                            .setRetainedKeys(getFilteredKeys(input.getData()))
+                            .setRetainedKeys(getFilteredKeys(input.getDownloadedContents()))
                             .build();
             consumer.accept(result);
         } catch (Exception e) {
@@ -58,7 +57,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
         }
     }
 
-    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+    private List<String> getFilteredKeys(KeyValueStore data) {
         Set<String> filteredKeys = data.keySet();
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);

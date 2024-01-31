@@ -17,26 +17,40 @@
 package com.android.ondevicepersonalization.services;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
+import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
+import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
+
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.Objects;
 
 /** Implementation of OnDevicePersonalizationManagingService */
 public class OnDevicePersonalizationManagingServiceDelegate
         extends IOnDevicePersonalizationManagingService.Stub {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "OnDevicePersonalizationManagingServiceDelegate";
     @NonNull private final Context mContext;
 
     @VisibleForTesting
@@ -64,6 +78,21 @@ public class OnDevicePersonalizationManagingServiceDelegate
             return new RenderFlow(
                     slotResultToken, hostToken, displayId, width, height, callback, context,
                     startTimeMillis);
+        }
+
+        WebTriggerFlow getWebTriggerFlow(
+                Uri destinationUrl,
+                Uri registrationUrl,
+                String triggerHeader,
+                String appPackageName,
+                Context context,
+                long startTimeMillis) {
+            return new WebTriggerFlow(destinationUrl, registrationUrl,
+                    triggerHeader, appPackageName, context);
+        }
+
+        ListeningExecutorService getExecutor() {
+            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
     }
 
@@ -97,6 +126,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        Trace.beginSection("OdpManagingServiceDelegate#Execute");
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
@@ -125,6 +155,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 mContext,
                 metadata.getStartTimeMillis());
         flow.run();
+        Trace.endSection();
     }
 
     @Override
@@ -140,6 +171,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        Trace.beginSection("OdpManagingServiceDelegate#RequestSurfacePackage");
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
         Objects.requireNonNull(callback);
@@ -165,6 +197,60 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 mContext,
                 metadata.getStartTimeMillis());
         flow.run();
+        Trace.endSection();
+    }
+
+    @Override
+    public void registerWebTrigger(
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
+            @NonNull String triggerHeader,
+            @NonNull String appPackageName,
+            @NonNull CallerMetadata metadata,
+            @NonNull IRegisterWebTriggerCallback callback
+    ) {
+        if (getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        Trace.beginSection("OdpManagingServiceDelegate#RegisterWebTrigger");
+        Objects.requireNonNull(destinationUrl);
+        Objects.requireNonNull(registrationUrl);
+        Objects.requireNonNull(triggerHeader);
+        Objects.requireNonNull(appPackageName);
+        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(callback);
+        WebTriggerFlow flow = mInjector.getWebTriggerFlow(
+                destinationUrl,
+                registrationUrl,
+                triggerHeader,
+                appPackageName,
+                mContext,
+                metadata.getStartTimeMillis());
+        ListenableFuture<Void> result = flow.run();
+        Futures.addCallback(
+                result,
+                new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void unused) {
+                        try {
+                            callback.onSuccess();
+                        } catch (RemoteException e) {
+                            sLogger.w(e, TAG + ": Callback failed");
+                        }
+                    }
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.w(t, TAG + ": Request failed.");
+                        try {
+                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                        } catch (RemoteException e) {
+                            sLogger.w(e, TAG + ": Callback failed");
+                        }
+                    }
+                },
+                mInjector.getExecutor());
+        Trace.endSection();
     }
 
     private boolean getGlobalKillSwitch() {
@@ -173,6 +259,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
     }
+
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();
