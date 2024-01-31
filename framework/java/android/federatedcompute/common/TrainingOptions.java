@@ -18,6 +18,7 @@ package android.federatedcompute.common;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.os.Parcelable;
 
 import com.android.internal.util.Preconditions;
@@ -42,6 +43,12 @@ public final class TrainingOptions implements Parcelable {
      * The field is required and should not be empty.
      */
     @NonNull private String mServerAddress = "";
+
+    /**
+     * Indicated the component of the application requesting federated learning. The field is
+     * required and should not be empty.
+     */
+    @Nullable private ComponentName mOwnerComponentName = null;
 
     @Nullable private TrainingInterval mTrainingInterval = null;
 
@@ -68,19 +75,24 @@ public final class TrainingOptions implements Parcelable {
     /* package-private */ TrainingOptions(
             @NonNull String populationName,
             @NonNull String serverAddress,
+            @Nullable ComponentName ownerComponentName,
             @Nullable TrainingInterval trainingInterval,
             @Nullable byte[] contextData) {
         this.mPopulationName = populationName;
         AnnotationValidations.validate(NonNull.class, null, mPopulationName);
         this.mServerAddress = serverAddress;
         AnnotationValidations.validate(NonNull.class, null, mServerAddress);
+        this.mOwnerComponentName = ownerComponentName;
         this.mTrainingInterval = trainingInterval;
         this.mContextData = contextData;
 
         // onConstructed(); // You can define this method to get a callback
     }
 
-    /** The task name to be provided to the federated compute server during checkin. */
+    /**
+     * The task name to be provided to the federated compute server during checkin. The field is
+     * required and should not be empty.
+     */
     @DataClass.Generated.Member
     public @NonNull String getPopulationName() {
         return mPopulationName;
@@ -88,11 +100,20 @@ public final class TrainingOptions implements Parcelable {
 
     /**
      * The remote federated compute server address that federated compute client need to checkin.
-     * It's required when you first time schedule the job.
+     * The field is required and should not be empty.
      */
     @DataClass.Generated.Member
     public @NonNull String getServerAddress() {
         return mServerAddress;
+    }
+
+    /**
+     * Indicated the component of the application requesting federated learning. The field is
+     * required and should not be empty.
+     */
+    @DataClass.Generated.Member
+    public @Nullable ComponentName getOwnerComponentName() {
+        return mOwnerComponentName;
     }
 
     @DataClass.Generated.Member
@@ -124,6 +145,7 @@ public final class TrainingOptions implements Parcelable {
         return true
                 && java.util.Objects.equals(mPopulationName, that.mPopulationName)
                 && java.util.Objects.equals(mServerAddress, that.mServerAddress)
+                && java.util.Objects.equals(mOwnerComponentName, that.mOwnerComponentName)
                 && java.util.Objects.equals(mTrainingInterval, that.mTrainingInterval)
                 && java.util.Arrays.equals(mContextData, that.mContextData);
     }
@@ -137,6 +159,7 @@ public final class TrainingOptions implements Parcelable {
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mPopulationName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mServerAddress);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mOwnerComponentName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mTrainingInterval);
         _hash = 31 * _hash + java.util.Arrays.hashCode(mContextData);
         return _hash;
@@ -149,10 +172,12 @@ public final class TrainingOptions implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         byte flg = 0;
-        if (mTrainingInterval != null) flg |= 0x4;
+        if (mOwnerComponentName != null) flg |= 0x4;
+        if (mTrainingInterval != null) flg |= 0x8;
         dest.writeByte(flg);
         dest.writeString(mPopulationName);
         dest.writeString(mServerAddress);
+        if (mOwnerComponentName != null) dest.writeTypedObject(mOwnerComponentName, flags);
         if (mTrainingInterval != null) dest.writeTypedObject(mTrainingInterval, flags);
         dest.writeByteArray(mContextData);
     }
@@ -173,8 +198,10 @@ public final class TrainingOptions implements Parcelable {
         byte flg = in.readByte();
         String populationName = in.readString();
         String serverAddress = in.readString();
+        ComponentName ownerComponentName =
+                (flg & 0x4) == 0 ? null : (ComponentName) in.readTypedObject(ComponentName.CREATOR);
         TrainingInterval trainingInterval =
-                (flg & 0x4) == 0
+                (flg & 0x8) == 0
                         ? null
                         : (TrainingInterval) in.readTypedObject(TrainingInterval.CREATOR);
         byte[] contextData = in.createByteArray();
@@ -183,6 +210,7 @@ public final class TrainingOptions implements Parcelable {
         AnnotationValidations.validate(NonNull.class, null, mPopulationName);
         this.mServerAddress = serverAddress;
         AnnotationValidations.validate(NonNull.class, null, mServerAddress);
+        this.mOwnerComponentName = ownerComponentName;
         this.mTrainingInterval = trainingInterval;
         this.mContextData = contextData;
 
@@ -210,6 +238,7 @@ public final class TrainingOptions implements Parcelable {
 
         private @NonNull String mPopulationName;
         private @NonNull String mServerAddress;
+        private @Nullable ComponentName mOwnerComponentName;
         private @Nullable TrainingInterval mTrainingInterval;
         private @Nullable byte[] mContextData;
 
@@ -217,7 +246,10 @@ public final class TrainingOptions implements Parcelable {
 
         public Builder() {}
 
-        /** The task name to be provided to the federated compute server during checkin. */
+        /**
+         * The task name to be provided to the federated compute server during checkin. The field is
+         * required and should not be empty.
+         */
         @DataClass.Generated.Member
         public @NonNull Builder setPopulationName(@NonNull String value) {
             checkNotUsed();
@@ -229,7 +261,7 @@ public final class TrainingOptions implements Parcelable {
 
         /**
          * The remote federated compute server address that federated compute client need to
-         * checkin. It's required when you first time schedule the job.
+         * checkin. The field is required and should not be empty.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setServerAddress(@NonNull String value) {
@@ -240,10 +272,22 @@ public final class TrainingOptions implements Parcelable {
             return this;
         }
 
+        /**
+         * Indicated the component of the application requesting federated learning. The field is
+         * required and should not be empty.
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setOwnerComponentName(@NonNull ComponentName value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x4;
+            mOwnerComponentName = value;
+            return this;
+        }
+
         @DataClass.Generated.Member
         public @NonNull Builder setTrainingInterval(@NonNull TrainingInterval value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x8;
             mTrainingInterval = value;
             return this;
         }
@@ -255,7 +299,7 @@ public final class TrainingOptions implements Parcelable {
         @DataClass.Generated.Member
         public @NonNull Builder setContextData(@NonNull byte... value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x10;
             mContextData = value;
             return this;
         }
@@ -263,7 +307,7 @@ public final class TrainingOptions implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull TrainingOptions build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x20; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mPopulationName = "";
@@ -272,16 +316,23 @@ public final class TrainingOptions implements Parcelable {
                 mServerAddress = "";
             }
             if ((mBuilderFieldsSet & 0x4) == 0) {
+                mOwnerComponentName = null;
+            }
+            if ((mBuilderFieldsSet & 0x8) == 0) {
                 mTrainingInterval = null;
             }
             TrainingOptions o =
                     new TrainingOptions(
-                            mPopulationName, mServerAddress, mTrainingInterval, mContextData);
+                            mPopulationName,
+                            mServerAddress,
+                            mOwnerComponentName,
+                            mTrainingInterval,
+                            mContextData);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x20) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -289,12 +340,12 @@ public final class TrainingOptions implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1696467816547L,
+            time = 1706145720044L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/framework/java/android/federatedcompute/common/TrainingOptions.java",
             inputSignatures =
-                    "private final @android.annotation.NonNull java.lang.String mPopulationName\nprivate final @android.annotation.NonNull java.lang.String mServerAddress\nprivate final @android.annotation.Nullable android.federatedcompute.common.TrainingInterval mTrainingInterval\nprivate @android.annotation.Nullable byte[] mContextData\nclass TrainingOptions extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+                    "private @android.annotation.NonNull java.lang.String mPopulationName\nprivate @android.annotation.NonNull java.lang.String mServerAddress\nprivate @android.annotation.Nullable android.content.ComponentName mOwnerComponentName\nprivate @android.annotation.Nullable android.federatedcompute.common.TrainingInterval mTrainingInterval\nprivate final @android.annotation.Nullable byte[] mContextData\nclass TrainingOptions extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

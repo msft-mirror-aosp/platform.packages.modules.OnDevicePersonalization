@@ -34,6 +34,7 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInput;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.TrainingInterval;
@@ -73,7 +74,6 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.Executors;
@@ -142,7 +142,7 @@ public class SampleHandler implements IsolatedWorker {
         Log.d(TAG, "onDownload() started.");
         DownloadCompletedOutput downloadResult =
                 new DownloadCompletedOutput.Builder()
-                        .setRetainedKeys(getFilteredKeys(input.getData()))
+                        .setRetainedKeys(getFilteredKeys(input.getDownloadedContents()))
                         .build();
         consumer.accept(downloadResult);
     }
@@ -275,7 +275,7 @@ public class SampleHandler implements IsolatedWorker {
         ContentValues logData = createLogRecord(ad.mId, ad.mPrice, ad.mPrice * 10.0);
         return new ExecuteOutput.Builder()
                 .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                .addRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
+                .setRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
                 .build();
     }
 
@@ -323,9 +323,12 @@ public class SampleHandler implements IsolatedWorker {
             Example example = convertToExample(
                     new String(mRemoteData.get(String.format("example%d", rand.nextInt(100) + 1)),
                     StandardCharsets.UTF_8));
-            resultBuilder.addTrainingExample(
-                    example.toByteArray()).addResumptionToken(
-                            String.format("token%d", count).getBytes());
+            TrainingExampleRecord record =
+                    new TrainingExampleRecord.Builder()
+                            .setTrainingExample(example.toByteArray())
+                            .setResumptionToken(String.format("token%d", count).getBytes())
+                            .build();
+            resultBuilder.addTrainingExampleRecord(record);
         }
         consumer.accept(resultBuilder.build());
     }
@@ -347,9 +350,11 @@ public class SampleHandler implements IsolatedWorker {
                         .build();
                 FederatedComputeScheduler.Params params = new FederatedComputeScheduler
                         .Params(interval);
-                FederatedComputeInput fcInput = new FederatedComputeInput.Builder()
-                        .setPopulationName(input.getAppParams().getString("schedule_training"))
-                        .build();
+                FederatedComputeInput fcInput =
+                        new FederatedComputeInput.Builder()
+                                .setPopulationName(
+                                        input.getAppParams().getString("schedule_training"))
+                                .build();
                 mFCScheduler.schedule(params, fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
@@ -615,7 +620,7 @@ public class SampleHandler implements IsolatedWorker {
         return isInstalledAppFound(ad.mExcludeFilter) || isInstalledAppFound(ad.mExcludes);
     }
 
-    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+    private List<String> getFilteredKeys(KeyValueStore data) {
         Log.d(TAG, "getFilteredKeys() called.");
         List<String> filteredKeys = new ArrayList<String>();
         // Add all keys from the file into the list

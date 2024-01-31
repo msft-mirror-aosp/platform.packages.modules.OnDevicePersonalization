@@ -34,12 +34,12 @@ public class EventStateTest {
 
         EventState eventState1 = new EventState.Builder()
                 .setTaskIdentifier(taskIdentifier)
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setToken(token)
                 .build();
 
         assertEquals(eventState1.getTaskIdentifier(), taskIdentifier);
-        assertEquals(eventState1.getServicePackageName(), servicePackageName);
+        assertEquals(eventState1.getServiceName(), servicePackageName);
         assertArrayEquals(eventState1.getToken(), token);
 
         EventState eventState2 = new EventState.Builder(
@@ -56,7 +56,7 @@ public class EventStateTest {
         byte[] token = new byte[] {1};
         EventState.Builder builder = new EventState.Builder()
                 .setTaskIdentifier(taskIdentifier)
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setToken(token);
 
         builder.build();
