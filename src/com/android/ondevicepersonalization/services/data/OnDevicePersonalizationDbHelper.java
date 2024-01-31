@@ -26,7 +26,6 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
-import com.android.ondevicepersonalization.services.data.user.UserDataTables;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 /**
@@ -82,14 +81,6 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
-
-        // User data tables and indexes.
-        db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
-        db.execSQL(UserDataTables.LocationHistory.CREATE_INDEXES_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TABLE_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_STARTING_TIME_SEC_INDEX_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_ENDING_TIME_SEC_INDEX_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TOTAL_TIME_USED_SEC_INDEX_STATEMENT);
     }
 
     @Override
