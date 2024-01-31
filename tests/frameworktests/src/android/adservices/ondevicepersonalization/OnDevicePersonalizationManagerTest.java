@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -53,31 +54,108 @@ public final class OnDevicePersonalizationManagerTest {
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
     private OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
-    private boolean mCallbackSuccess = false;
-    private boolean mCallbackError = false;
-    private CountDownLatch mLatch = new CountDownLatch(1);
 
     @Test
     public void testExecuteSuccess() throws Exception {
+        var receiver = new ResultReceiver<SurfacePackageToken>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
-                new OutcomeReceiver<SurfacePackageToken, Exception>() {
-                    @Override
-                    public void onResult(SurfacePackageToken token) {
-                        mCallbackSuccess = true;
-                        mLatch.countDown();
-                    }
-                    @Override
-                    public void onError(Exception e) {
-                        mCallbackError = true;
-                        mLatch.countDown();
-                    }
-                });
-        mLatch.await();
-        assertTrue(mCallbackSuccess);
-        assertFalse(mCallbackError);
+                receiver);
+        receiver.mLatch.await();
+        assertTrue(receiver.mCallbackSuccess);
+        assertFalse(receiver.mCallbackError);
+    }
+
+    @Test
+    public void testRegisterWebTriggerSuccess() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.registerWebTrigger(
+                Uri.parse("http://example.com"),
+                Uri.parse("http://regurl"),
+                "ok",
+                "com.example.browser",
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.mLatch.await();
+        assertTrue(receiver.mCallbackSuccess);
+        assertFalse(receiver.mCallbackError);
+    }
+
+    @Test
+    public void testRegisterWebTriggerError() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.registerWebTrigger(
+                Uri.parse("http://example.com"),
+                Uri.parse("http://regurl"),
+                "error",
+                "com.example.browser",
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.mLatch.await();
+        assertFalse(receiver.mCallbackSuccess);
+        assertTrue(receiver.mCallbackError);
+    }
+
+    @Test
+    public void testRegisterWebTriggerPropagatesIae() throws Exception {
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> mManager.registerWebTrigger(
+                        Uri.parse("http://example.com"),
+                        Uri.parse("http://regurl"),
+                        "iae",
+                        "com.example.browser",
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<Void>()));
+    }
+
+    @Test
+    public void testRegisterWebTriggerPropagatesNpe() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> mManager.registerWebTrigger(
+                        Uri.parse("http://example.com"),
+                        Uri.parse("http://regurl"),
+                        "npe",
+                        "com.example.browser",
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<Void>()));
+    }
+
+    @Test
+    public void testRegisterWebTriggerCatchesExceptions() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.registerWebTrigger(
+                Uri.parse("http://example.com"),
+                Uri.parse("http://regurl"),
+                "ise",
+                "com.example.browser",
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.mLatch.await();
+        assertFalse(receiver.mCallbackSuccess);
+        assertTrue(receiver.mCallbackError);
+    }
+
+    class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
+        boolean mCallbackSuccess = false;
+        boolean mCallbackError = false;
+        T mResult = null;
+        Exception mException = null;
+        CountDownLatch mLatch = new CountDownLatch(1);
+        @Override public void onResult(T value) {
+            mCallbackSuccess = true;
+            mResult = value;
+            mLatch.countDown();
+        }
+        @Override
+        public void onError(Exception e) {
+            mCallbackError = true;
+            mException = e;
+            mLatch.countDown();
+        }
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {
@@ -122,7 +200,21 @@ public final class OnDevicePersonalizationManagerTest {
                 String appPackageName,
                 CallerMetadata metadata,
                 IRegisterWebTriggerCallback callback) {
-            throw new UnsupportedOperationException();
+            try {
+                if (triggerHeader.equals("error")) {
+                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } else if (triggerHeader.equals("iae")) {
+                    throw new IllegalArgumentException();
+                } else if (triggerHeader.equals("npe")) {
+                    throw new NullPointerException();
+                } else if (triggerHeader.equals("ise")) {
+                    throw new IllegalStateException();
+                } else {
+                    callback.onSuccess();
+                }
+            } catch (RemoteException e) {
+                Log.e(TAG, "callback error", e);
+            }
         }
     }
 
