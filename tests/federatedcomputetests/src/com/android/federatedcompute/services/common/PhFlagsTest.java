@@ -17,11 +17,13 @@
 package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.AUTHENTICATION_ENABLED;
+import static com.android.federatedcompute.services.common.Flags.ENCRYPTION_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
 import static com.android.federatedcompute.services.common.Flags.HTTP_REQUEST_RETRY_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_AUTHENTICATION;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.PhFlags.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
@@ -63,6 +65,11 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_ENABLE_AUTHENTICATION,
                 Boolean.toString(AUTHENTICATION_ENABLED),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_ENCRYPTION,
+                Boolean.toString(ENCRYPTION_ENABLED),
                 /* makeDefault= */ false);
     }
 
@@ -125,6 +132,28 @@ public class PhFlagsTest {
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getEnableBackgroundEncryptionKeyFetch())
                 .isEqualTo(overrideEnableBackgroundKeyFetch);
+    }
+
+    @Test
+    public void testEnableEncryption() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_ENCRYPTION,
+                Boolean.toString(ENCRYPTION_ENABLED),
+                /* makeDefault */ false);
+        assertThat(FlagsFactory.getFlags().isEncryptionEnabled()).isEqualTo(ENCRYPTION_ENABLED);
+
+        // Now overriding the value from PH
+        boolean overrideEnableEncryption = !ENCRYPTION_ENABLED;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_ENCRYPTION,
+                Boolean.toString(overrideEnableEncryption),
+                /* makeDefault */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.isEncryptionEnabled()).isEqualTo(overrideEnableEncryption);
     }
 
     @Test

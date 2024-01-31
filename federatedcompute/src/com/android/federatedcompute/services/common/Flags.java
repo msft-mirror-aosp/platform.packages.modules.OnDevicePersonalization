@@ -186,8 +186,16 @@ public interface Flags {
     }
 
     Boolean AUTHENTICATION_ENABLED = false;
+
     /** Whether to enable authentication when uploading results. */
     default Boolean isAuthenticationEnabled() {
         return AUTHENTICATION_ENABLED;
+    }
+
+    Boolean ENCRYPTION_ENABLED = true;
+
+    /** Whether to enable encryption when uploading results. */
+    default Boolean isEncryptionEnabled() {
+        return ENCRYPTION_ENABLED;
     }
 }
