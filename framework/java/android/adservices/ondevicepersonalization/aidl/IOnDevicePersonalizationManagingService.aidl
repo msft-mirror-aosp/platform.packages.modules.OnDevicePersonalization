@@ -21,6 +21,7 @@ import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.net.Uri;
 import android.os.Bundle;
 
 /** @hide */
@@ -43,8 +44,8 @@ interface IOnDevicePersonalizationManagingService {
         in IRequestSurfacePackageCallback callback);
 
     void registerWebTrigger(
-        in String destinationUrl,
-        in String registrationUrl,
+        in Uri destinationUrl,
+        in Uri registrationUrl,
         in String triggerHeader,
         in String appPackageName,
         in CallerMetadata metadata,

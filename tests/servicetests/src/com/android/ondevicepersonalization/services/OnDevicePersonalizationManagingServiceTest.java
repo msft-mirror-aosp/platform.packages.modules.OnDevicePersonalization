@@ -28,6 +28,7 @@ import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCal
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -388,8 +389,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                     IllegalStateException.class,
                     () ->
                     mService.registerWebTrigger(
-                        "http://desturl",
-                        "http://regurl",
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regurl"),
                         "header",
                         "com.example.browser",
                         new CallerMetadata.Builder().build(),
@@ -402,8 +403,8 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Test
     public void testRegisterWebTriggerInvokesWebTriggerFlow() throws Exception {
         mService.registerWebTrigger(
-                "http://desturl",
-                "http://regurl",
+                Uri.parse("http://desturl"),
+                Uri.parse("http://regurl"),
                 "header",
                 "com.example.browser",
                 new CallerMetadata.Builder().build(),
@@ -417,8 +418,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                 Futures.immediateFailedFuture(new IllegalStateException());
         var callback = new RegisterWebTriggerCallback();
         mService.registerWebTrigger(
-                "http://desturl",
-                "http://regurl",
+                Uri.parse("http://desturl"),
+                Uri.parse("http://regurl"),
                 "header",
                 "com.example.browser",
                 new CallerMetadata.Builder().build(),
@@ -456,8 +457,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         ));
 
         assertNotNull(injector.getWebTriggerFlow(
-                "http://example.com",
-                "http://regurl.com",
+                Uri.parse("http://example.com"),
+                Uri.parse("http://regurl.com"),
                 "header",
                 "com.example.browser",
                 mContext,
@@ -509,8 +510,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         WebTriggerFlow getWebTriggerFlow(
-                String destinationUrl,
-                String registrationUrl,
+                Uri destinationUrl,
+                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 Context context,

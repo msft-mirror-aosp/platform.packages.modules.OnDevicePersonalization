@@ -26,6 +26,7 @@ import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.IBinder;
 import android.os.PersistableBundle;
@@ -80,8 +81,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
         }
 
         WebTriggerFlow getWebTriggerFlow(
-                String destinationUrl,
-                String registrationUrl,
+                Uri destinationUrl,
+                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 Context context,
@@ -201,8 +202,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
     @Override
     public void registerWebTrigger(
-            @NonNull String destinationUrl,
-            @NonNull String registrationUrl,
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
             @NonNull String triggerHeader,
             @NonNull String appPackageName,
             @NonNull CallerMetadata metadata,
