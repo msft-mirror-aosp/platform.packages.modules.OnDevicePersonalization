@@ -46,19 +46,19 @@ public class EventsDaoTest {
     private final Event mTestEvent = new Event.Builder()
             .setType(EVENT_TYPE_B2D)
             .setEventData("event".getBytes(StandardCharsets.UTF_8))
-            .setServicePackageName(mContext.getPackageName())
+            .setServiceName(mContext.getPackageName())
             .setQueryId(1L)
             .setTimeMillis(1L)
             .setRowIndex(0)
             .build();
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setServicePackageName(mContext.getPackageName())
+            .setServiceName(mContext.getPackageName())
             .setQueryData("query".getBytes(StandardCharsets.UTF_8))
             .build();
     private final EventState mEventState = new EventState.Builder()
             .setTaskIdentifier(TASK_IDENTIFIER)
-            .setServicePackageName(mContext.getPackageName())
+            .setServiceName(mContext.getPackageName())
             .setToken(new byte[]{1})
             .build();
     private EventsDao mDao;
@@ -84,7 +84,7 @@ public class EventsDaoTest {
         Event testEvent = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(1L)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
@@ -98,7 +98,7 @@ public class EventsDaoTest {
         Event testEvent = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(1L)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
@@ -122,7 +122,7 @@ public class EventsDaoTest {
         assertEquals(mEventState, mDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setToken(new byte[]{100})
                 .build();
         assertTrue(mDao.updateOrInsertEventState(testEventState));
@@ -135,7 +135,7 @@ public class EventsDaoTest {
     public void testInsertAndReadEventStatesTransaction() {
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setToken(new byte[]{100})
                 .build();
         List<EventState> eventStates = new ArrayList<>();
@@ -150,7 +150,7 @@ public class EventsDaoTest {
         mDao.updateOrInsertEventState(mEventState);
         EventState testEventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
-                .setServicePackageName("packageA")
+                .setServiceName("packageA")
                 .setToken(new byte[]{100})
                 .build();
         mDao.updateOrInsertEventState(testEventState);
@@ -171,7 +171,7 @@ public class EventsDaoTest {
         Event testEvent = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId2)
                 .setTimeMillis(3L)
                 .setRowIndex(0)
@@ -180,7 +180,7 @@ public class EventsDaoTest {
 
         Query testQuery = new Query.Builder()
                 .setTimeMillis(5L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId3 = mDao.insertQuery(testQuery);
@@ -226,7 +226,7 @@ public class EventsDaoTest {
 
         Query packageAQuery = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName("packageA")
+                .setServiceName("packageA")
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId3 = mDao.insertQuery(packageAQuery);
@@ -234,7 +234,7 @@ public class EventsDaoTest {
         Event packageAEvent = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName("packageA")
+                .setServiceName("packageA")
                 .setQueryId(queryId3)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
@@ -270,7 +270,7 @@ public class EventsDaoTest {
 
         Query packageAQuery = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName("packageA")
+                .setServiceName("packageA")
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId3 = mDao.insertQuery(packageAQuery);
@@ -278,7 +278,7 @@ public class EventsDaoTest {
         Event packageAEvent = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName("packageA")
+                .setServiceName("packageA")
                 .setQueryId(queryId3)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
@@ -311,25 +311,25 @@ public class EventsDaoTest {
     public void testReadAllQueries() {
         Query query1 = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId1 = mDao.insertQuery(query1);
         Query query2 = new Query.Builder()
                 .setTimeMillis(10L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId2 = mDao.insertQuery(query2);
         Query query3 = new Query.Builder()
                 .setTimeMillis(100L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId3 = mDao.insertQuery(query3);
         Query query4 = new Query.Builder()
                 .setTimeMillis(100L)
-                .setServicePackageName("package")
+                .setServiceName("package")
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId4 = mDao.insertQuery(query4);
@@ -357,19 +357,19 @@ public class EventsDaoTest {
     public void testReadAllEventIds() {
         Query query1 = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId1 = mDao.insertQuery(query1);
         Query query2 = new Query.Builder()
                 .setTimeMillis(10L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId2 = mDao.insertQuery(query2);
         Query query3 = new Query.Builder()
                 .setTimeMillis(100L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId3 = mDao.insertQuery(query3);
@@ -377,7 +377,7 @@ public class EventsDaoTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId1)
                 .setTimeMillis(2L)
                 .setRowIndex(0)
@@ -386,7 +386,7 @@ public class EventsDaoTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId2)
                 .setTimeMillis(11L)
                 .setRowIndex(0)
@@ -395,7 +395,7 @@ public class EventsDaoTest {
         Event event3 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId3)
                 .setTimeMillis(101L)
                 .setRowIndex(0)
@@ -424,13 +424,13 @@ public class EventsDaoTest {
     public void testReadEventIdsForRequest() {
         Query query1 = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId1 = mDao.insertQuery(query1);
         Query query2 = new Query.Builder()
                 .setTimeMillis(10L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId2 = mDao.insertQuery(query2);
@@ -438,7 +438,7 @@ public class EventsDaoTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId1)
                 .setTimeMillis(2L)
                 .setRowIndex(0)
@@ -447,7 +447,7 @@ public class EventsDaoTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId2)
                 .setTimeMillis(11L)
                 .setRowIndex(0)
@@ -456,7 +456,7 @@ public class EventsDaoTest {
         Event event3 = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId2)
                 .setTimeMillis(101L)
                 .setRowIndex(0)
@@ -483,19 +483,19 @@ public class EventsDaoTest {
     public void testReadJoinedEvents() {
         Query query1 = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId1 = mDao.insertQuery(query1);
         Query query2 = new Query.Builder()
                 .setTimeMillis(10L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId2 = mDao.insertQuery(query2);
         Query query3 = new Query.Builder()
                 .setTimeMillis(100L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId3 = mDao.insertQuery(query3);
@@ -503,7 +503,7 @@ public class EventsDaoTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId1)
                 .setTimeMillis(2L)
                 .setRowIndex(0)
@@ -512,7 +512,7 @@ public class EventsDaoTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId2)
                 .setTimeMillis(11L)
                 .setRowIndex(0)
@@ -521,7 +521,7 @@ public class EventsDaoTest {
         Event event3 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId3)
                 .setTimeMillis(101L)
                 .setRowIndex(0)
@@ -551,7 +551,7 @@ public class EventsDaoTest {
         Query query1 = new Query.Builder()
                 .setQueryId(1)
                 .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         mDao.insertQuery(query1);
@@ -599,14 +599,14 @@ public class EventsDaoTest {
             long queryId) {
         if (event == null) {
             return new JoinedEvent.Builder()
-                    .setServicePackageName(query.getServicePackageName())
+                    .setServiceName(query.getServiceName())
                     .setQueryData(query.getQueryData())
                     .setQueryId(queryId)
                     .setQueryTimeMillis(query.getTimeMillis())
                     .build();
         }
         return new JoinedEvent.Builder()
-                .setServicePackageName(event.getServicePackageName())
+                .setServiceName(event.getServiceName())
                 .setQueryId(queryId)
                 .setEventId(eventId)
                 .setRowIndex(event.getRowIndex())

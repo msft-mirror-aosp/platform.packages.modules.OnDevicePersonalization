@@ -31,11 +31,13 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.app.job.JobParameters;
+import android.app.job.JobScheduler;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -70,6 +72,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     private static final String TEST_CERT_DIGEST = "certDigest";
     private static final String TASK_IDENTIFIER = "task";
     private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
     private OnDevicePersonalizationVendorDataDao mTestDao;
     private OnDevicePersonalizationVendorDataDao mDao;
 
@@ -92,7 +95,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     private void addEventData(String packageName, long timestamp) {
         Query query = new Query.Builder()
                 .setTimeMillis(timestamp)
-                .setServicePackageName(packageName)
+                .setServiceName(packageName)
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
@@ -100,7 +103,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         Event event = new Event.Builder()
                 .setType(1)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(packageName)
+                .setServiceName(packageName)
                 .setQueryId(queryId)
                 .setTimeMillis(timestamp)
                 .setRowIndex(0)
@@ -109,7 +112,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         EventState eventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
-                .setServicePackageName(packageName)
+                .setServiceName(packageName)
                 .setToken(new byte[]{1})
                 .build();
         mEventsDao.updateOrInsertEventState(eventState);
@@ -157,10 +160,18 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
         try {
+            doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
+            mSpyService.schedule(mContext);
+            assertTrue(mJobScheduler.getPendingJob(
+                    OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
+                    != null);
             doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
             boolean result = mSpyService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+            assertTrue(mJobScheduler.getPendingJob(
+                    OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
+                    == null);
         } finally {
             session.finishMocking();
         }

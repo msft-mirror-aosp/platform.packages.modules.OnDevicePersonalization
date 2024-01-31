@@ -64,7 +64,7 @@ public class JoinedTableDaoTest {
     public void invalidProvidedColumns() {
         List<ColumnSchema> columnSchemaList = new ArrayList<>();
         columnSchemaList.add(new ColumnSchema.Builder().setName(
-                JoinedTableDao.SERVICE_PACKAGE_NAME_COL).setType(
+                JoinedTableDao.SERVICE_NAME_COL).setType(
                 ColumnSchema.SQL_DATA_TYPE_INTEGER).build());
         assertThrows(IllegalArgumentException.class,
                 () -> new JoinedTableDao(columnSchemaList, 0, 0, mContext));
@@ -111,7 +111,7 @@ public class JoinedTableDaoTest {
             for (int i = 0; i < 4; i++) {
                 cursor.moveToNext();
                 String servicePackageName = cursor.getString(
-                        cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_PACKAGE_NAME_COL));
+                        cursor.getColumnIndexOrThrow(JoinedTableDao.SERVICE_NAME_COL));
                 int type = cursor.getInt(cursor.getColumnIndexOrThrow(JoinedTableDao.TYPE_COL));
                 long eventTimeMillis = cursor.getLong(
                         cursor.getColumnIndexOrThrow(JoinedTableDao.EVENT_TIME_MILLIS_COL));
@@ -178,7 +178,7 @@ public class JoinedTableDaoTest {
         rows.add(row);
         Query query = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryData(OnDevicePersonalizationFlatbufferUtils.createQueryData(
                         mContext.getPackageName(), "AABBCCDD", rows))
                 .build();
@@ -193,7 +193,7 @@ public class JoinedTableDaoTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(eventData))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId)
                 .setTimeMillis(1L)
                 .setRowIndex(0)
@@ -209,7 +209,7 @@ public class JoinedTableDaoTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_CLICK)
                 .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(eventData2))
-                .setServicePackageName(mContext.getPackageName())
+                .setServiceName(mContext.getPackageName())
                 .setQueryId(queryId)
                 .setTimeMillis(2L)
                 .setRowIndex(1)
