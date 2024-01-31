@@ -49,6 +49,7 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -105,6 +106,11 @@ public class AppRequestFlow {
         boolean isPersonalizationStatusEnabled() {
             UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
             return privacyStatus.isPersonalizationStatusEnabled();
+        }
+
+        boolean isOutputDataAllowed(
+                String servicePackageName, String appPackageName, Context context) {
+            return PrivacyUtils.isOutputDataAllowed(servicePackageName, appPackageName, context);
         }
     }
 
@@ -172,7 +178,8 @@ public class AppRequestFlow {
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
                         TASK_NAME, mService);
-            ListenableFuture<ExecuteOutputParcel> resultFuture = FluentFuture.from(loadFuture)
+            ListenableFuture<ExecuteOutputParcel> executeResultFuture =
+                    FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeAppRequest(result),
                             mInjector.getExecutor()
@@ -185,14 +192,15 @@ public class AppRequestFlow {
                             mInjector.getExecutor()
                     );
 
-            ListenableFuture<Long> queryIdFuture = FluentFuture.from(resultFuture)
+            ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
                     .transformAsync(input -> logQuery(input), mInjector.getExecutor());
 
-            ListenableFuture<String> resultTokenFuture =
+            ListenableFuture<Bundle> outputResultFuture =
                     FluentFuture.from(
-                            Futures.whenAllSucceed(resultFuture, queryIdFuture)
+                            Futures.whenAllSucceed(executeResultFuture, queryIdFuture)
                                 .callAsync(
-                                        () -> createToken(resultFuture, queryIdFuture),
+                                        () -> createResultBundle(
+                                                executeResultFuture, queryIdFuture),
                                         mInjector.getExecutor()))
                             .withTimeout(
                                 mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
@@ -201,11 +209,11 @@ public class AppRequestFlow {
                             );
 
             Futures.addCallback(
-                    resultTokenFuture,
-                    new FutureCallback<String>() {
+                    outputResultFuture,
+                    new FutureCallback<Bundle>() {
                         @Override
-                        public void onSuccess(String token) {
-                            sendSuccessResult(token);
+                        public void onSuccess(Bundle bundle) {
+                            sendSuccessResult(bundle);
                         }
 
                         @Override
@@ -216,7 +224,7 @@ public class AppRequestFlow {
                     },
                     mInjector.getExecutor());
 
-            var unused = Futures.whenAllComplete(loadFuture, resultTokenFuture)
+            var unused = Futures.whenAllComplete(loadFuture, outputResultFuture)
                     .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
                             loadFuture.get()),
                     mInjector.getExecutor());
@@ -278,11 +286,11 @@ public class AppRequestFlow {
                 result.getEventLogRecords());
     }
 
-    private ListenableFuture<String> createToken(
+    private ListenableFuture<Bundle> createResultBundle(
             ListenableFuture<ExecuteOutputParcel> resultFuture,
             ListenableFuture<Long> queryIdFuture) {
         try {
-            sLogger.d(TAG + ": createToken() started.");
+            sLogger.d(TAG + ": createResultBundle() started.");
             ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
             RenderingConfig renderingConfig = result.getRenderingConfig();
@@ -296,18 +304,21 @@ public class AppRequestFlow {
                         mService.getPackageName(), queryId);
                 token = CryptUtils.encrypt(wrapper);
             }
-
-            return Futures.immediateFuture(token);
+            Bundle bundle = new Bundle();
+            bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, token);
+            if (mInjector.isOutputDataAllowed(
+                    mService.getPackageName(), mCallingPackageName, mContext)) {
+                bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, result.getOutputData());
+            }
+            return Futures.immediateFuture(bundle);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
     }
 
-    private void sendSuccessResult(String resultToken) {
+    private void sendSuccessResult(Bundle result) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            Bundle result = new Bundle();
-            result.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, resultToken);
             mCallback.onSuccess(result);
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
