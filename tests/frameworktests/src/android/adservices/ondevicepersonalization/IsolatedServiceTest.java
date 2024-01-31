@@ -16,6 +16,8 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
@@ -29,15 +31,13 @@ import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
 import android.federatedcompute.common.TrainingOptions;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
-
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
-import com.android.ondevicepersonalization.internal.util.StringParceledListSlice;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -61,6 +61,7 @@ public class IsolatedServiceTest {
     private boolean mOnRenderCalled;
     private boolean mOnEventCalled;
     private boolean mOnTrainingExampleCalled;
+    private boolean mOnWebTriggerCalled;
     private Bundle mCallbackResult;
     private int mCallbackErrorCode;
 
@@ -100,7 +101,7 @@ public class IsolatedServiceTest {
         ExecuteOutputParcel result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
         assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
-        assertEquals("123", result.getRenderingConfigs().get(0).getKeys().get(0));
+        assertEquals("123", result.getRenderingConfig().getKeys().get(0));
     }
 
     @Test
@@ -206,8 +207,7 @@ public class IsolatedServiceTest {
     public void testOnDownload() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -248,8 +248,7 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfDataAccessServiceMissing() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -264,8 +263,7 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfFederatedComputeServiceMissing() throws Exception {
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -282,8 +280,7 @@ public class IsolatedServiceTest {
         ParcelFileDescriptor[] pfds = ParcelFileDescriptor.createPipe();
         DownloadInputParcel input =
                 new DownloadInputParcel.Builder()
-                        .setDownloadedKeys(StringParceledListSlice.emptyList())
-                        .setDownloadedValues(ByteArrayParceledListSlice.emptyList())
+                        .setDataAccessServiceBinder(new TestDataAccessService())
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -483,12 +480,10 @@ public class IsolatedServiceTest {
         TrainingExamplesOutputParcel result =
                 mCallbackResult.getParcelable(
                         Constants.EXTRA_RESULT, TrainingExamplesOutputParcel.class);
-        List<byte[]> examples = result.getTrainingExamples().getList();
-        List<byte[]> tokens = result.getResumptionTokens().getList();
-        assertEquals(1, examples.size());
-        assertEquals(1, tokens.size());
-        assertArrayEquals(new byte[] {12}, examples.get(0));
-        assertArrayEquals(new byte[] {13}, tokens.get(0));
+        List<TrainingExampleRecord> examples = result.getTrainingExampleRecords().getList();
+        assertThat(examples).hasSize(1);
+        assertArrayEquals(new byte[] {12}, examples.get(0).getTrainingExample());
+        assertArrayEquals(new byte[] {13}, examples.get(0).getResumptionToken());
     }
 
     @Test
@@ -540,6 +535,101 @@ public class IsolatedServiceTest {
                 });
     }
 
+    @Test
+    public void testOnWebTrigger() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+        mLatch.await();
+        assertTrue(mOnWebTriggerCalled);
+        WebTriggerOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, WebTriggerOutputParcel.class);
+        assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+    }
+
+    @Test
+    public void testOnWebTriggerPropagatesError() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "error")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+        mLatch.await();
+        assertTrue(mOnWebTriggerCalled);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfParamsMissing() throws Exception {
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, null, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfInputMissing() throws Exception {
+        Bundle params = new Bundle();
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfDataAccessServiceMissing() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+                });
+    }
+
+    @Test
+    public void testOnWebTriggerThrowsIfCallbackMissing() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
+                    .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        assertThrows(
+                NullPointerException.class,
+                () -> {
+                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, null);
+                });
+    }
+
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
@@ -565,7 +655,7 @@ public class IsolatedServiceTest {
                         new ExecuteOutput.Builder()
                                 .setRequestLogRecord(
                                         new RequestLogRecord.Builder().addRow(row).build())
-                                .addRenderingConfig(
+                                .setRenderingConfig(
                                         new RenderingConfig.Builder().addKey("123").build())
                                 .build());
             }
@@ -612,15 +702,34 @@ public class IsolatedServiceTest {
         public void onTrainingExamples(
                 TrainingExamplesInput input, Consumer<TrainingExamplesOutput> consumer) {
             mOnTrainingExampleCalled = true;
-            List<byte[]> examples = new ArrayList<>();
-            examples.add(new byte[] {12});
-            List<byte[]> tokens = new ArrayList<>();
-            tokens.add(new byte[] {13});
+            List<TrainingExampleRecord> exampleRecordList = new ArrayList<>();
+            TrainingExampleRecord record =
+                    new TrainingExampleRecord.Builder()
+                            .setTrainingExample(new byte[] {12})
+                            .setResumptionToken(new byte[] {13})
+                            .build();
+            exampleRecordList.add(record);
             consumer.accept(
                     new TrainingExamplesOutput.Builder()
-                            .setTrainingExamples(examples)
-                            .setResumptionTokens(tokens)
+                            .setTrainingExampleRecords(exampleRecordList)
                             .build());
+        }
+
+        @Override
+        public void onWebTrigger(
+                WebTriggerInput input, Consumer<WebTriggerOutput> consumer) {
+            mOnWebTriggerCalled = true;
+            if (input.getData().equals("error")) {
+                consumer.accept(null);
+            } else {
+                ContentValues row = new ContentValues();
+                row.put("a", 5);
+                consumer.accept(
+                        new WebTriggerOutput.Builder()
+                            .setRequestLogRecord(
+                                    new RequestLogRecord.Builder().addRow(row).build())
+                            .build());
+            }
         }
     }
 

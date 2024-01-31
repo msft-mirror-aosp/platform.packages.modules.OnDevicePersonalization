@@ -40,11 +40,10 @@ public final class ExecuteOutputParcel implements Parcelable {
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
-     * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     * calling app. The calling app and the service must agree on the expected size of this list.
+     * A {@link RenderingConfig} object that contains information about the content to be rendered
+     * in the client app view. Can be null if no content is to be rendered.
      */
-    @DataClass.PluralOf("renderingConfig")
-    @NonNull private List<RenderingConfig> mRenderingConfigs = Collections.emptyList();
+    @Nullable private RenderingConfig mRenderingConfig = null;
 
     /**
      * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
@@ -60,7 +59,7 @@ public final class ExecuteOutputParcel implements Parcelable {
 
     /** @hide */
     public ExecuteOutputParcel(@NonNull ExecuteOutput value) {
-        this(value.getRequestLogRecord(), value.getRenderingConfigs(), value.getEventLogRecords());
+        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords());
     }
 
 
@@ -85,9 +84,9 @@ public final class ExecuteOutputParcel implements Parcelable {
      *   Persistent data to be written to the REQUESTS table after
      *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
      *   completes. If null, no persistent data will be written.
-     * @param renderingConfigs
-     *   A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     *   calling app. The calling app and the service must agree on the expected size of this list.
+     * @param renderingConfig
+     *   A {@link RenderingConfig} object that contains information about the content to be rendered
+     *   in the client app view. Can be null if no content is to be rendered.
      * @param eventLogRecords
      *   A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
      *   them with requests with the specified corresponding {@link RequestLogRecord} from
@@ -98,12 +97,10 @@ public final class ExecuteOutputParcel implements Parcelable {
     @DataClass.Generated.Member
     public ExecuteOutputParcel(
             @Nullable RequestLogRecord requestLogRecord,
-            @NonNull List<RenderingConfig> renderingConfigs,
+            @Nullable RenderingConfig renderingConfig,
             @NonNull List<EventLogRecord> eventLogRecords) {
         this.mRequestLogRecord = requestLogRecord;
-        this.mRenderingConfigs = renderingConfigs;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRenderingConfigs);
+        this.mRenderingConfig = renderingConfig;
         this.mEventLogRecords = eventLogRecords;
         AnnotationValidations.validate(
                 NonNull.class, null, mEventLogRecords);
@@ -122,12 +119,12 @@ public final class ExecuteOutputParcel implements Parcelable {
     }
 
     /**
-     * A list of {@link RenderingConfig} objects, one per slot specified in the request from the
-     * calling app. The calling app and the service must agree on the expected size of this list.
+     * A {@link RenderingConfig} object that contains information about the content to be rendered
+     * in the client app view. Can be null if no content is to be rendered.
      */
     @DataClass.Generated.Member
-    public @NonNull List<RenderingConfig> getRenderingConfigs() {
-        return mRenderingConfigs;
+    public @Nullable RenderingConfig getRenderingConfig() {
+        return mRenderingConfig;
     }
 
     /**
@@ -152,9 +149,10 @@ public final class ExecuteOutputParcel implements Parcelable {
 
         byte flg = 0;
         if (mRequestLogRecord != null) flg |= 0x1;
+        if (mRenderingConfig != null) flg |= 0x2;
         dest.writeByte(flg);
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
-        dest.writeParcelableList(mRenderingConfigs, flags);
+        if (mRenderingConfig != null) dest.writeTypedObject(mRenderingConfig, flags);
         dest.writeParcelableList(mEventLogRecords, flags);
     }
 
@@ -171,15 +169,12 @@ public final class ExecuteOutputParcel implements Parcelable {
 
         byte flg = in.readByte();
         RequestLogRecord requestLogRecord = (flg & 0x1) == 0 ? null : (RequestLogRecord) in.readTypedObject(RequestLogRecord.CREATOR);
-        List<RenderingConfig> renderingConfigs = new java.util.ArrayList<>();
-        in.readParcelableList(renderingConfigs, RenderingConfig.class.getClassLoader());
+        RenderingConfig renderingConfig = (flg & 0x2) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);
         List<EventLogRecord> eventLogRecords = new java.util.ArrayList<>();
         in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());
 
         this.mRequestLogRecord = requestLogRecord;
-        this.mRenderingConfigs = renderingConfigs;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRenderingConfigs);
+        this.mRenderingConfig = renderingConfig;
         this.mEventLogRecords = eventLogRecords;
         AnnotationValidations.validate(
                 NonNull.class, null, mEventLogRecords);
@@ -202,10 +197,10 @@ public final class ExecuteOutputParcel implements Parcelable {
     };
 
     @DataClass.Generated(
-            time = 1698864579986L,
+            time = 1704832029278L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"renderingConfig\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.RenderingConfig> mRenderingConfigs\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genBuilder=false)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genBuilder=false)")
     @Deprecated
     private void __metadata() {}
 

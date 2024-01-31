@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.common;
 
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_AUTHENTICATION;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import android.provider.DeviceConfig;
@@ -62,9 +63,7 @@ public class PhFlagsTestUtil {
                 /* makeDefault */ false);
     }
 
-    /**
-     * Enable scheduling the background key fetch job.
-     */
+    /** Enable scheduling the background key fetch job. */
     public static void enableScheduleBackgroundKeyFetchJob() {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -73,9 +72,7 @@ public class PhFlagsTestUtil {
                 /* makeDefault= */ false);
     }
 
-    /**
-     * Disable scheduling the background key fetch job.
-     */
+    /** Disable scheduling the background key fetch job. */
     public static void disableScheduleBackgroundKeyFetchJob() {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -84,4 +81,21 @@ public class PhFlagsTestUtil {
                 /* makeDefault= */ false);
     }
 
+    /** Enable authentication for token deletion service. */
+    public static void enableAuthentication() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_AUTHENTICATION,
+                Boolean.toString(true),
+                /* makeDefault= */ false);
+    }
+
+    /** Disable authentication for token deletion service. */
+    public static void disableAuthentication() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_AUTHENTICATION,
+                Boolean.toString(false),
+                /* makeDefault= */ false);
+    }
 }
