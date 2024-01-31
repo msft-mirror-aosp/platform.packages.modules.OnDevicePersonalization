@@ -92,12 +92,3 @@ java_defaults {
         "framework-ondevicepersonalization.impl",
     ],
 }
-
-java_api_contribution {
-    name: "framework-ondevicepersonalization-public-stubs",
-    api_surface: "public",
-    api_file: "api/current.txt",
-    visibility: [
-        "//build/orchestrator/apis",
-    ],
-}
