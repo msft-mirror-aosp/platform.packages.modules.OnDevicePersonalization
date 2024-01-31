@@ -306,7 +306,9 @@ public class AppRequestFlow {
     private void sendSuccessResult(String resultToken) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            mCallback.onSuccess(resultToken);
+            Bundle result = new Bundle();
+            result.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, resultToken);
+            mCallback.onSuccess(result);
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);

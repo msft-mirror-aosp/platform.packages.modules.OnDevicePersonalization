@@ -25,6 +25,7 @@ import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
@@ -138,14 +139,16 @@ public class OnDevicePersonalizationManager {
             IExecuteCallback callbackWrapper = new IExecuteCallback.Stub() {
                 @Override
                 public void onSuccess(
-                        String tokenString) {
+                        Bundle callbackResult) {
                     executor.execute(() -> {
                         try {
-                            SurfacePackageToken token;
-                            if (tokenString == null || tokenString.isBlank()) {
-                                token = null;
-                            } else {
-                                token = new SurfacePackageToken(tokenString);
+                            SurfacePackageToken token = null;
+                            if (callbackResult != null) {
+                                String tokenString = callbackResult.getString(
+                                        Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+                                if (tokenString != null && !tokenString.isBlank()) {
+                                    token = new SurfacePackageToken(tokenString);
+                                }
                             }
                             receiver.onResult(token);
                         } catch (Exception e) {

@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -126,7 +127,7 @@ public class AppRequestFlowTest {
 
     class TestCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(String token) {
+        public void onSuccess(Bundle bundle) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
