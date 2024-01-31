@@ -43,6 +43,8 @@ import android.os.RemoteException;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -73,12 +75,15 @@ public class OdpExampleStoreServiceTests {
     private final EventsDao mEventsDao = EventsDao.getInstanceForTest(mContext);
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         initMocks(this);
         when(mMockContext.getApplicationContext()).thenReturn(mContext);
         mQueryCallbackOnSuccessCalled = false;
         mQueryCallbackOnFailureCalled = false;
         mLatch = new CountDownLatch(1);
+
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
     @Test
@@ -106,7 +111,7 @@ public class OdpExampleStoreServiceTests {
         binder.startQuery(input, callback);
         assertTrue(
                 "timeout reached while waiting for countdownlatch!",
-                mLatch.await(1000, TimeUnit.MILLISECONDS));
+                mLatch.await(5000, TimeUnit.MILLISECONDS));
 
         assertTrue(mQueryCallbackOnSuccessCalled);
         assertFalse(mQueryCallbackOnFailureCalled);

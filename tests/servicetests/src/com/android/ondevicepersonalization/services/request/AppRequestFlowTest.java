@@ -28,6 +28,8 @@ import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -64,7 +66,7 @@ public class AppRequestFlowTest {
     private int mCallbackErrorCode;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row1 = new ContentValues();
@@ -79,6 +81,8 @@ public class AppRequestFlowTest {
                 new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
     @After
