@@ -16,8 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.FlaggedApi;
@@ -27,6 +25,7 @@ import android.os.Bundle;
 import android.os.Parcelable;
 import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
@@ -43,9 +42,8 @@ import java.util.concurrent.BlockingQueue;
  *
  * @see IsolatedService#getLogReader(RequestToken)
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class LogReader {
     private static final String TAG = "LogReader";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();

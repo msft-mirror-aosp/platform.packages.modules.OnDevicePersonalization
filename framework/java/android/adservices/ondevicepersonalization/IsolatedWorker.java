@@ -16,10 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.function.Consumer;
 
@@ -30,9 +30,8 @@ import java.util.function.Consumer;
  * IsolatedService} calls the method on a Binder thread and the {@link IsolatedWorker} should
  * offload long running operations to a worker thread. The consumer parameter of each method is used
  * to return results.
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public interface IsolatedWorker {
 
     /**
@@ -126,6 +125,22 @@ public interface IsolatedWorker {
     default void onTrainingExamples(
             @NonNull TrainingExamplesInput input,
             @NonNull Consumer<TrainingExamplesOutput> consumer) {
+        consumer.accept(null);
+    }
+
+    /**
+     * Handles a Web Trigger registration from a browser.
+     *
+     * @param input The parameters needed to process Web Trigger registrations.
+     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
+     *     an error. If called with <code>null</code>, no data is written to the REQUESTS or EVENTS
+     *     tables.
+     *
+     * @hide
+     */
+    default void onWebTrigger(
+            @NonNull WebTriggerInput input,
+            @NonNull Consumer<WebTriggerOutput> consumer) {
         consumer.accept(null);
     }
 }

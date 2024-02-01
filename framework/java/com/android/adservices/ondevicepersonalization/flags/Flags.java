@@ -14,6 +14,13 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization;
+package com.android.adservices.ondevicepersonalization.flags;
 
-parcelable LocationStatus;
+ /** @hide */
+public class Flags {
+    public static final String FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED =
+            "com.android.adservices.ondevicepersonalization.flags."
+            + "on_device_personalization_apis_enabled";
+
+    private Flags() {}
+}

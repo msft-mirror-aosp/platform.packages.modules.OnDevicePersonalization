@@ -121,6 +121,11 @@ public class BackgroundKeyFetchJobService extends JobService {
                                             TAG,
                                             "Background key fetch failed due to interruption "
                                             + "error");
+                                } else if (throwable instanceof IllegalArgumentException) {
+                                    LogUtil.e(
+                                            TAG,
+                                            "Background key fetch failed due to illegal argument "
+                                            + "error");
                                 } else {
                                     LogUtil.e(
                                             TAG,

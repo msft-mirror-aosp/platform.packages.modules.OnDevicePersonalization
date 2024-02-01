@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.download.mdd;
 
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID;
 import static com.android.ondevicepersonalization.services.download.mdd.MddTaskScheduler.MDD_TASK_TAG_KEY;
 
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
@@ -33,8 +34,10 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 import android.os.PersistableBundle;
 
@@ -83,6 +86,7 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobTest() {
+        PhFlagsTestUtil.disableGlobalKillSwitch();
         MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
                 OnDevicePersonalizationExecutors.class).strictness(
                 Strictness.LENIENT).startMocking();
@@ -111,11 +115,34 @@ public class MddJobServiceTest {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
         try {
+            JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
+            PersistableBundle extras = new PersistableBundle();
+            extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
+            JobInfo jobInfo =
+                    new JobInfo.Builder(
+                            MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                            new ComponentName(mContext, MddJobService.class))
+                            .setRequiresDeviceIdle(true)
+                            .setRequiresCharging(false)
+                            .setRequiresBatteryNotLow(true)
+                            .setPeriodic(21_600_000L)
+                            .setPersisted(true)
+                            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                            .setExtras(extras)
+                            .build();
+            mJobScheduler.schedule(jobInfo);
+            assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
+                    != null);
+            doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
             doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+            JobParameters jobParameters = mock(JobParameters.class);
+            doReturn(extras).when(jobParameters).getExtras();
+            boolean result = mSpyService.onStartJob(jobParameters);
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));
             verify(mMockJobScheduler, times(0)).schedule(any());
+            assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
+                    == null);
         } finally {
             session.finishMocking();
         }

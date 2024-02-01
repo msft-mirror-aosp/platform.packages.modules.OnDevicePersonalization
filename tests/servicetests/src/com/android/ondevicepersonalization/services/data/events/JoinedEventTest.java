@@ -39,7 +39,7 @@ public class JoinedEventTest {
         byte[] queryData = "queryData".getBytes();
 
         JoinedEvent joinedEvent1 = new JoinedEvent.Builder()
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setQueryId(queryId)
                 .setEventId(eventId)
                 .setRowIndex(rowIndex)
@@ -58,7 +58,7 @@ public class JoinedEventTest {
         assertEquals(joinedEvent1.getQueryTimeMillis(), queryTimeMillis);
         assertArrayEquals(joinedEvent1.getEventData(), eventData);
         assertArrayEquals(joinedEvent1.getQueryData(), queryData);
-        assertEquals(joinedEvent1.getServicePackageName(), servicePackageName);
+        assertEquals(joinedEvent1.getServiceName(), servicePackageName);
 
         JoinedEvent joinedEvent2 = new JoinedEvent.Builder(
                 eventId, queryId, rowIndex, servicePackageName, type, eventTimeMillis, eventData,
@@ -81,7 +81,7 @@ public class JoinedEventTest {
         byte[] queryData = "queryData".getBytes();
 
         JoinedEvent.Builder builder = new JoinedEvent.Builder()
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setQueryId(queryId)
                 .setEventId(eventId)
                 .setRowIndex(rowIndex)
