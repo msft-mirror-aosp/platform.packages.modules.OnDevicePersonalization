@@ -25,7 +25,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
 
@@ -33,9 +35,11 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
+import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
+import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
@@ -46,6 +50,8 @@ import com.google.common.annotations.VisibleForTesting;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
+import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityPolicyEvalSpec;
+import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -151,11 +157,29 @@ public class FederatedComputeJobManager {
      */
     public synchronized int onTrainerStartCalled(
             String callingPackageName, TrainingOptions trainingOptions) {
+        String packageName = trainingOptions.getOwnerComponentName().getPackageName();
+        String ownerCertDigest;
+        try {
+            ownerCertDigest = PackageUtils.getCertDigest(mContext, packageName);
+        } catch (PackageManager.NameNotFoundException e) {
+            LogUtil.e(TAG, e, ": Error while scheduling  federatedCompute task.");
+            return STATUS_INTERNAL_ERROR;
+        }
+
         FederatedTrainingTask existingTask =
-                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
-                        trainingOptions.getPopulationName(), callingPackageName);
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        trainingOptions.getPopulationName(),
+                        trainingOptions.getOwnerComponentName().flattenToString(),
+                        ownerCertDigest);
         Set<FederatedTrainingTask> trainingTasksToCancel = new HashSet<>();
         String populationName = trainingOptions.getPopulationName();
+
+        String ownerIdentifier =
+                packageName
+                        + "-"
+                        + trainingOptions.getOwnerComponentName().getClassName()
+                        + "-"
+                        + ownerCertDigest;
         long nowMs = mClock.currentTimeMillis();
         boolean shouldSchedule;
         FederatedTrainingTask newTask;
@@ -163,15 +187,15 @@ public class FederatedComputeJobManager {
         // Federated server address is required to schedule the job.
         Preconditions.checkStringNotEmpty(trainingOptions.getServerAddress());
 
-
         if (existingTask == null) {
             int jobId =
-                    mJobIdGenerator.generateJobId(
-                            this.mContext, populationName, callingPackageName);
+                    mJobIdGenerator.generateJobId(this.mContext, populationName, ownerIdentifier);
             FederatedTrainingTask.Builder newTaskBuilder =
                     FederatedTrainingTask.builder()
                             .appPackageName(callingPackageName)
                             .jobId(jobId)
+                            .ownerId(trainingOptions.getOwnerComponentName().flattenToString())
+                            .ownerIdCertDigest(ownerCertDigest)
                             .creationTime(nowMs)
                             .lastScheduledTime(nowMs)
                             .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
@@ -284,18 +308,28 @@ public class FederatedComputeJobManager {
      * Called when a client indicates via the client API that a task with the given parameters
      * should be canceled.
      */
-    public synchronized int onTrainerStopCalled(String callingPackageName, String populationName) {
+    public synchronized int onTrainerStopCalled(
+            ComponentName ownerComponent, String populationName) {
+        String ownerCertDigest;
+        try {
+            ownerCertDigest = PackageUtils.getCertDigest(mContext, ownerComponent.getPackageName());
+        } catch (PackageManager.NameNotFoundException e) {
+            LogUtil.e(TAG, e, ": Error while cancelling federatedCompute task.");
+            return STATUS_INTERNAL_ERROR;
+        }
         FederatedTrainingTask taskToCancel =
-                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
-                        populationName, callingPackageName);
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        populationName, ownerComponent.flattenToString(), ownerCertDigest);
         // If no matching task exists then there's nothing for us to do. This is not an error
         // case though.
         if (taskToCancel == null) {
             LogUtil.i(
                     TAG,
-                    "No matching task exists when cancel the job (population: %s, ATP: %s",
+                    "No matching task exists when cancel the job (population: %s,"
+                            + " ATP: %s, cert: %s)",
                     populationName,
-                    callingPackageName);
+                    ownerComponent.flattenToString(),
+                    ownerCertDigest);
             return STATUS_SUCCESS;
         }
 
@@ -322,6 +356,46 @@ public class FederatedComputeJobManager {
         FederatedTrainingTask newTask = existingTask.toBuilder().lastRunStartTime(nowMs).build();
         mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
         return newTask;
+    }
+
+    /**
+     * Add or update the training task history record if this round of training submit result to
+     * server successfully. The record will be used to run eligibility task.
+     */
+    public synchronized void recordSuccessContribution(
+            int jobId, String populationName, TaskAssignment taskAssignment) {
+        TaskHistory existingTaskHistory =
+                mFederatedTrainingTaskDao.getTaskHistory(
+                        jobId, populationName, taskAssignment.getTaskId());
+        long roundNumber = 0;
+        for (EligibilityPolicyEvalSpec evalSpec :
+                taskAssignment.getEligibilityTaskInfo().getEligibilityPoliciesList()) {
+            if (evalSpec.getPolicyTypeCase()
+                    == EligibilityPolicyEvalSpec.PolicyTypeCase.MIN_SEP_POLICY) {
+                roundNumber = evalSpec.getMinSepPolicy().getCurrentIndex();
+                break;
+            }
+        }
+        boolean result =
+                mFederatedTrainingTaskDao.updateOrInsertTaskHistory(
+                        new TaskHistory.Builder()
+                                .setJobId(jobId)
+                                .setPopulationName(populationName)
+                                .setTaskId(taskAssignment.getTaskId())
+                                .setContributionRound(roundNumber)
+                                .setContributionTime(mClock.currentTimeMillis())
+                                .setTotalParticipation(
+                                        existingTaskHistory == null
+                                                ? 1
+                                                : existingTaskHistory.getTotalParticipation() + 1)
+                                .build());
+        if (!result) {
+            LogUtil.e(
+                    TAG,
+                    "Failed to store success contribution in TaskHistory %s %s",
+                    populationName,
+                    taskAssignment.getTaskId());
+        }
     }
 
     /** Called when a training task completed. */

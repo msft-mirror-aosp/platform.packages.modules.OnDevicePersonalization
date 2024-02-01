@@ -16,18 +16,17 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 /**
  * An opaque reference to content that can be displayed in a {@link android.view.SurfaceView}. This
  * maps to a {@link RenderingConfig} returned by an {@link IsolatedService}.
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class SurfacePackageToken {
     @NonNull private final String mTokenString;
 

@@ -28,12 +28,13 @@ public class Constants {
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
-    // Operations implemented by personalization services.
+    // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
     public static final int OP_RENDER = 3;
     public static final int OP_WEB_VIEW_EVENT = 4;
     public static final int OP_TRAINING_EXAMPLE = 5;
+    public static final int OP_WEB_TRIGGER = 6;
 
     // Keys for Bundle objects passed between processes.
     public static final String EXTRA_CALLEE_METADATA =
@@ -50,13 +51,15 @@ public class Constants {
     public static final String EXTRA_LOOKUP_KEYS =
             "android.ondevicepersonalization.extra.lookup_keys";
     public static final String EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
+    public static final String EXTRA_OUTPUT_DATA =
+            "android.ondevicepersonalization.extra.output_data";
     public static final String EXTRA_RESPONSE_DATA =
             "android.ondevicepersonalization.extra.response_data";
+    public static final String EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
+    public static final String EXTRA_SURFACE_PACKAGE_TOKEN_STRING =
+            "android.ondevicepersonalization.extra.surface_package_token_string";
     public static final String EXTRA_USER_DATA = "android.ondevicepersonalization.extra.user_data";
     public static final String EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
-    public static final String EXTRA_RESULT = "android.ondevicepersonalization.extra.result";
-    public static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
-            "enable_ondevicepersonalization_apis";
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;

@@ -21,7 +21,6 @@ import android.content.res.Configuration;
 import android.net.NetworkCapabilities;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
 
 /**
@@ -52,18 +51,6 @@ public final class RawUserData {
 
     // installed packages.
     public List<AppInfo> appsInfo = new ArrayList<>();
-
-    // A histogram of app usage: total times used per app in the last 30 days.
-    public HashMap<String, Long> appUsageHistory = new HashMap<>();
-
-    // User's most recently available location information.
-    public LocationInfo currentLocation = new LocationInfo();
-
-    /**
-     * A histogram of location history: total time spent per location in the last 30 days.
-     * Default precision level of locations is set to E4.
-     */
-    public HashMap<LocationInfo, Long> locationHistory = new HashMap<>();
 
     private RawUserData() { }
 
