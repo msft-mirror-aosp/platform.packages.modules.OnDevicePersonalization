@@ -49,6 +49,7 @@ import java.util.concurrent.Executors;
 @RunWith(AndroidJUnit4.class)
 public final class OnDevicePersonalizationManagerTest {
     private static final String TAG = "OnDevicePersonalizationManagerTest";
+    private static final String KEY_OP = "op";
     private Context mContext = ApplicationProvider.getApplicationContext();
     private TestServiceBinder mTestBinder = new TestServiceBinder(
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
@@ -57,15 +58,74 @@ public final class OnDevicePersonalizationManagerTest {
 
     @Test
     public void testExecuteSuccess() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "ok");
         var receiver = new ResultReceiver<SurfacePackageToken>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
-                PersistableBundle.EMPTY,
+                params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
         assertTrue(receiver.mCallbackSuccess);
         assertFalse(receiver.mCallbackError);
+    }
+
+    @Test
+    public void testExecuteError() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        var receiver = new ResultReceiver<SurfacePackageToken>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.mLatch.await();
+        assertFalse(receiver.mCallbackSuccess);
+        assertTrue(receiver.mCallbackError);
+    }
+
+    @Test
+    public void testExecutePropagatesIae() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "iae");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> mManager.execute(
+                        ComponentName.createRelative("com.example.service", ".Example"),
+                        params,
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackageToken>()));
+    }
+
+    @Test
+    public void testExecutePropagatesNpe() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "npe");
+        assertThrows(
+                NullPointerException.class,
+                () -> mManager.execute(
+                        ComponentName.createRelative("com.example.service", ".Example"),
+                        params,
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<SurfacePackageToken>()));
+    }
+
+    @Test
+    public void testExecuteCatchesOtherExceptions() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "ise");
+        var receiver = new ResultReceiver<SurfacePackageToken>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.mLatch.await();
+        assertFalse(receiver.mCallbackSuccess);
+        assertTrue(receiver.mCallbackError);
+        assertTrue(receiver.mException instanceof IllegalStateException);
     }
 
     @Test
@@ -172,9 +232,22 @@ public final class OnDevicePersonalizationManagerTest {
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
             try {
-                Bundle bundle = new Bundle();
-                bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
-                callback.onSuccess(bundle);
+                String op = params.getString(KEY_OP);
+                if (op.equals("ok")) {
+                    Bundle bundle = new Bundle();
+                    bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
+                    callback.onSuccess(bundle);
+                } else if (op.equals("error")) {
+                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } else if (op.equals("iae")) {
+                    throw new IllegalArgumentException();
+                } else if (op.equals("npe")) {
+                    throw new NullPointerException();
+                } else if (op.equals("ise")) {
+                    throw new IllegalStateException();
+                } else {
+                    throw new UnsupportedOperationException();
+                }
             } catch (RemoteException e) {
                 Log.e(TAG, "callback error", e);
             }
