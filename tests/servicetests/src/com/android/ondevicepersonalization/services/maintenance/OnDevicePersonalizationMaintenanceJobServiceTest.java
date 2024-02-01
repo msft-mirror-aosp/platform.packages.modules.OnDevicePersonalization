@@ -95,7 +95,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     private void addEventData(String packageName, long timestamp) {
         Query query = new Query.Builder()
                 .setTimeMillis(timestamp)
-                .setServicePackageName(packageName)
+                .setServiceName(packageName)
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
@@ -103,7 +103,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         Event event = new Event.Builder()
                 .setType(1)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServicePackageName(packageName)
+                .setServiceName(packageName)
                 .setQueryId(queryId)
                 .setTimeMillis(timestamp)
                 .setRowIndex(0)
@@ -112,7 +112,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         EventState eventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
-                .setServicePackageName(packageName)
+                .setServiceName(packageName)
                 .setToken(new byte[]{1})
                 .build();
         mEventsDao.updateOrInsertEventState(eventState);

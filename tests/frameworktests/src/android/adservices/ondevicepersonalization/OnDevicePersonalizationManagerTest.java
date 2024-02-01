@@ -25,6 +25,8 @@ import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallba
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
@@ -92,7 +94,9 @@ public final class OnDevicePersonalizationManagerTest {
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
             try {
-                callback.onSuccess("aaaa");
+                Bundle bundle = new Bundle();
+                bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
+                callback.onSuccess(bundle);
             } catch (RemoteException e) {
                 Log.e(TAG, "callback error", e);
             }
@@ -112,8 +116,8 @@ public final class OnDevicePersonalizationManagerTest {
 
         @Override
         public void registerWebTrigger(
-                String destinationUrl,
-                String registrationUrl,
+                Uri destinationUrl,
+                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 CallerMetadata metadata,
