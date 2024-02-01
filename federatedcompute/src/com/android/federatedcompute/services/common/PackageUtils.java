@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.common;
 
 import static android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES;
 import static android.content.pm.PackageManager.MATCH_STATIC_SHARED_AND_SDK_LIBRARIES;
+import static android.federatedcompute.common.ClientConstants.ODP_APEX_KEYWORD;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -31,11 +32,9 @@ import libcore.util.HexEncoding;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.List;
 
-/**
- * PackageUtils for federated compute portion of OnDevicePersonalization module.
- *
- */
+/** PackageUtils for federated compute portion of OnDevicePersonalization module. */
 public class PackageUtils {
     /**
      * Retrieves the certDigest of the given packageName
@@ -80,5 +79,28 @@ public class PackageUtils {
         messageDigest.update(data);
 
         return messageDigest.digest();
+    }
+
+    /**
+     * Get the apex version of OnDevicePersonalization.
+     *
+     * @param context The context of the calling process.
+     * @return The apex version of OnDevicePersonalization in string. If there is no name match,
+     * then return -1.
+     */
+    public static String getApexVersion(Context context) {
+        PackageManager packageManager = context.getPackageManager();
+
+        List<PackageInfo> installedPackages =
+                packageManager.getInstalledPackages(
+                        PackageManager.PackageInfoFlags.of(PackageManager.MATCH_APEX));
+
+        long apexVersion = -1L;
+        for (PackageInfo pkg : installedPackages) {
+            if (pkg.packageName.contains(ODP_APEX_KEYWORD) && pkg.isApex) {
+                apexVersion = pkg.getLongVersionCode();
+            }
+        }
+        return String.valueOf(apexVersion);
     }
 }

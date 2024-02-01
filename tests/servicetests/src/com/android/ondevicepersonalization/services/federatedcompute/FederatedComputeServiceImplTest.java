@@ -167,7 +167,7 @@ public class FederatedComputeServiceImplTest {
         EventsDao.getInstanceForTest(mApplicationContext)
                 .updateOrInsertEventState(
                         new EventState.Builder()
-                                .setServicePackageName(mApplicationContext.getPackageName())
+                                .setServiceName(mApplicationContext.getPackageName())
                                 .setTaskIdentifier("population")
                                 .setToken(new byte[] {})
                                 .build());
@@ -190,7 +190,7 @@ public class FederatedComputeServiceImplTest {
         EventsDao.getInstanceForTest(mApplicationContext)
                 .updateOrInsertEventState(
                         new EventState.Builder()
-                                .setServicePackageName(mApplicationContext.getPackageName())
+                                .setServiceName(mApplicationContext.getPackageName())
                                 .setTaskIdentifier("population")
                                 .setToken(new byte[] {})
                                 .build());

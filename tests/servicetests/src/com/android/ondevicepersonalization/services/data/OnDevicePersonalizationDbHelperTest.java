@@ -29,7 +29,6 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
-import com.android.ondevicepersonalization.services.data.user.UserDataTables;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 import org.junit.Before;
@@ -56,14 +55,6 @@ public class OnDevicePersonalizationDbHelperTest {
         assertTrue(hasEntity(QueriesContract.QueriesEntry.TABLE_NAME, "table"));
         assertTrue(hasEntity(EventsContract.EventsEntry.TABLE_NAME, "table"));
         assertTrue(hasEntity(EventStateContract.EventStateEntry.TABLE_NAME, "table"));
-        assertTrue(hasEntity(UserDataTables.LocationHistory.TABLE_NAME, "table"));
-        assertTrue(hasEntity(UserDataTables.LocationHistory.INDEX_NAME, "index"));
-        assertTrue(hasEntity(UserDataTables.AppUsageHistory.TABLE_NAME, "table"));
-        assertTrue(hasEntity(
-                UserDataTables.AppUsageHistory.STARTING_TIME_SEC_INDEX_NAME, "index"));
-        assertTrue(hasEntity(UserDataTables.AppUsageHistory.ENDING_TIME_SEC_INDEX_NAME, "index"));
-        assertTrue(hasEntity(
-                UserDataTables.AppUsageHistory.TOTAL_TIME_USED_SEC_INDEX_NAME, "index"));
     }
 
     @Test

@@ -17,6 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.NonNull;
+import android.net.Uri;
 import android.os.Parcelable;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -29,10 +30,10 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 @DataClass(genAidl = false, genHiddenBuilder = true)
 public final class WebTriggerInputParcel implements Parcelable {
     /** The destination URL (landing page) where the trigger registration occurred. */
-    @NonNull private String mDestinationUrl;
+    @NonNull private Uri mDestinationUrl;
 
     /** The trigger registration URL that returned the trigger data */
-    @NonNull private String mRegistrationUrl;
+    @NonNull private Uri mRegistrationUrl;
 
     /** The app where the trigger registration occurred */
     @NonNull private String mAppPackageName;
@@ -57,8 +58,8 @@ public final class WebTriggerInputParcel implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ WebTriggerInputParcel(
-            @NonNull String destinationUrl,
-            @NonNull String registrationUrl,
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
             @NonNull String appPackageName,
             @NonNull String data) {
         this.mDestinationUrl = destinationUrl;
@@ -81,7 +82,7 @@ public final class WebTriggerInputParcel implements Parcelable {
      * The destination URL (landing page) where the trigger registration occurred.
      */
     @DataClass.Generated.Member
-    public @NonNull String getDestinationUrl() {
+    public @NonNull Uri getDestinationUrl() {
         return mDestinationUrl;
     }
 
@@ -89,7 +90,7 @@ public final class WebTriggerInputParcel implements Parcelable {
      * The trigger registration URL that returned the trigger data
      */
     @DataClass.Generated.Member
-    public @NonNull String getRegistrationUrl() {
+    public @NonNull Uri getRegistrationUrl() {
         return mRegistrationUrl;
     }
 
@@ -115,8 +116,8 @@ public final class WebTriggerInputParcel implements Parcelable {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
-        dest.writeString(mDestinationUrl);
-        dest.writeString(mRegistrationUrl);
+        dest.writeTypedObject(mDestinationUrl, flags);
+        dest.writeTypedObject(mRegistrationUrl, flags);
         dest.writeString(mAppPackageName);
         dest.writeString(mData);
     }
@@ -132,8 +133,8 @@ public final class WebTriggerInputParcel implements Parcelable {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
-        String destinationUrl = in.readString();
-        String registrationUrl = in.readString();
+        Uri destinationUrl = (Uri) in.readTypedObject(Uri.CREATOR);
+        Uri registrationUrl = (Uri) in.readTypedObject(Uri.CREATOR);
         String appPackageName = in.readString();
         String data = in.readString();
 
@@ -175,8 +176,8 @@ public final class WebTriggerInputParcel implements Parcelable {
     @DataClass.Generated.Member
     public static final class Builder {
 
-        private @NonNull String mDestinationUrl;
-        private @NonNull String mRegistrationUrl;
+        private @NonNull Uri mDestinationUrl;
+        private @NonNull Uri mRegistrationUrl;
         private @NonNull String mAppPackageName;
         private @NonNull String mData;
 
@@ -195,8 +196,8 @@ public final class WebTriggerInputParcel implements Parcelable {
          *   The data that was returned by the registration URL.
          */
         public Builder(
-                @NonNull String destinationUrl,
-                @NonNull String registrationUrl,
+                @NonNull Uri destinationUrl,
+                @NonNull Uri registrationUrl,
                 @NonNull String appPackageName,
                 @NonNull String data) {
             mDestinationUrl = destinationUrl;
@@ -217,7 +218,7 @@ public final class WebTriggerInputParcel implements Parcelable {
          * The destination URL (landing page) where the trigger registration occurred.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setDestinationUrl(@NonNull String value) {
+        public @NonNull Builder setDestinationUrl(@NonNull Uri value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mDestinationUrl = value;
@@ -228,7 +229,7 @@ public final class WebTriggerInputParcel implements Parcelable {
          * The trigger registration URL that returned the trigger data
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRegistrationUrl(@NonNull String value) {
+        public @NonNull Builder setRegistrationUrl(@NonNull Uri value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mRegistrationUrl = value;
@@ -279,10 +280,10 @@ public final class WebTriggerInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1704483218892L,
+            time = 1706652621687L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerInputParcel.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mRegistrationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull android.net.Uri mRegistrationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
     @Deprecated
     private void __metadata() {}
 
