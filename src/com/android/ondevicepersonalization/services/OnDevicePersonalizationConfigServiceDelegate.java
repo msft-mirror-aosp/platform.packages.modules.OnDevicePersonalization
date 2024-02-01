@@ -61,7 +61,7 @@ public class OnDevicePersonalizationConfigServiceDelegate
     public void setPersonalizationStatus(boolean enabled,
                                      @NonNull IOnDevicePersonalizationConfigServiceCallback
                                              callback) {
-        if (!isOnDevicePersonalizationApisEnabled()) {
+        if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the API flag is turned off.");
         }
         // Verify caller's permission
@@ -88,7 +88,6 @@ public class OnDevicePersonalizationConfigServiceDelegate
                                 UserDataCollector.getInstance(mContext);
                         userDataCollector.clearUserData(userData);
                         userDataCollector.clearMetadata();
-                        userDataCollector.clearDatabase();
 
                         // TODO(b/302018665): replicate system server storage to T devices.
                         if (!SdkLevel.isAtLeastU()) {
@@ -132,11 +131,10 @@ public class OnDevicePersonalizationConfigServiceDelegate
         );
     }
 
-    private boolean isOnDevicePersonalizationApisEnabled() {
+    private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
-        boolean isOnDevicePersonalizationApisEnabled =
-                        FlagsFactory.getFlags().isOnDevicePersonalizationApisEnabled();
+        boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
         Binder.restoreCallingIdentity(origId);
-        return isOnDevicePersonalizationApisEnabled;
+        return globalKillSwitch;
     }
 }

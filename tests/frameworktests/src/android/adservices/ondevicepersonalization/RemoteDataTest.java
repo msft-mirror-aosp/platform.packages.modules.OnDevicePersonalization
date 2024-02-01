@@ -29,6 +29,8 @@ import android.os.RemoteException;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -97,15 +99,15 @@ public class RemoteDataTest {
             }
 
             if (operation != Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP) {
-                try {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                } catch (RemoteException e) {
-                    // Ignored.
-                }
-                return;
+                throw new IllegalArgumentException("op: " + operation);
             }
-            String[] keys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-            if (keys.length == 1 && keys[0].equals("z")) {
+
+            String key = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+            if (key == null) {
+                throw new NullPointerException("key");
+            }
+
+            if (key.equals("z")) {
                 // Raise expected error.
                 try {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -114,14 +116,12 @@ public class RemoteDataTest {
                 }
                 return;
             }
-            HashMap<String, byte[]> dict = new HashMap<String, byte[]>();
-            for (int i = 0; i < keys.length; ++i) {
-                if (mContents.containsKey(keys[i])) {
-                    dict.put(keys[i], mContents.get(keys[i]));
-                }
+            byte[] value = null;
+            if (mContents.containsKey(key)) {
+                value = mContents.get(key);
             }
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, dict);
+            result.putParcelable(Constants.EXTRA_RESULT, new ByteArrayParceledSlice(value));
             try {
                 callback.onSuccess(result);
             } catch (RemoteException e) {

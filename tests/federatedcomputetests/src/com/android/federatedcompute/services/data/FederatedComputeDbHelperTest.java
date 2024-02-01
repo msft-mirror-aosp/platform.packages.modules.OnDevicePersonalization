@@ -18,6 +18,7 @@ package com.android.federatedcompute.services.data;
 
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
+import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -59,6 +60,7 @@ public final class FederatedComputeDbHelperTest {
         assertThat(db).isNotNull();
         assertThat(DatabaseUtils.queryNumEntries(db, FEDERATED_TRAINING_TASKS_TABLE)).isEqualTo(0);
         assertThat(DatabaseUtils.queryNumEntries(db, ENCRYPTION_KEY_TABLE)).isEqualTo(0);
+        assertThat(DatabaseUtils.queryNumEntries(db, ODP_AUTHORIZATION_TOKEN_TABLE)).isEqualTo(0);
 
         // query number of tables
         ArrayList<String> tableNames = new ArrayList<String>();
@@ -69,7 +71,8 @@ public final class FederatedComputeDbHelperTest {
                 cursor.moveToNext();
             }
         }
-        String[] expectedTables = {FEDERATED_TRAINING_TASKS_TABLE, ENCRYPTION_KEY_TABLE};
+        String[] expectedTables = {FEDERATED_TRAINING_TASKS_TABLE, ENCRYPTION_KEY_TABLE,
+                ODP_AUTHORIZATION_TOKEN_TABLE};
         // android metadata table also exists in the database
         assertThat(tableNames).containsAtLeastElementsIn(expectedTables);
     }
