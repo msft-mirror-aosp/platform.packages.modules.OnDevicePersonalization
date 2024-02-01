@@ -16,13 +16,17 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
@@ -160,5 +164,53 @@ public class PhFlagsTest {
 
         assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
                 .isEqualTo(testIsolatedProcessFeatureEnabled);
+    }
+
+    @Test
+    public void testGetCallerAppAllowList() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_CALLER_APP_ALLOW_LIST,
+                DEFAULT_CALLER_APP_ALLOW_LIST,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getCallerAppAllowList())
+                .isEqualTo(DEFAULT_CALLER_APP_ALLOW_LIST);
+
+        final String testCallerAppAllowList =
+                "com.example.odpclient";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_CALLER_APP_ALLOW_LIST,
+                testCallerAppAllowList,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getCallerAppAllowList())
+                .isEqualTo(testCallerAppAllowList);
+    }
+
+    @Test
+    public void testGetIsolatedServiceAllowList() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                DEFAULT_ISOLATED_SERVICE_ALLOW_LIST,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getIsolatedServiceAllowList())
+                .isEqualTo(DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
+
+        final String testIsolatedServiceAllowList =
+                "com.example.odpsamplenetwork";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                testIsolatedServiceAllowList,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getIsolatedServiceAllowList())
+                .isEqualTo(testIsolatedServiceAllowList);
     }
 }

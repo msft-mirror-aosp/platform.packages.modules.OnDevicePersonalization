@@ -204,7 +204,7 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class SurfacePackageToken {
   }
 
-  @FlaggedApi("enable_ondevicepersonalization_apis") public final class TrainingExampleRecord implements android.os.Parcelable {
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExampleRecord implements android.os.Parcelable {
     method public int describeContents();
     method @Nullable public byte[] getResumptionToken();
     method @Nullable public byte[] getTrainingExample();
@@ -212,7 +212,7 @@ package android.adservices.ondevicepersonalization {
     field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.TrainingExampleRecord> CREATOR;
   }
 
-  @FlaggedApi("enable_ondevicepersonalization_apis") public static final class TrainingExampleRecord.Builder {
+  public static final class TrainingExampleRecord.Builder {
     ctor public TrainingExampleRecord.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord build();
     method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setResumptionToken(@NonNull byte...);
