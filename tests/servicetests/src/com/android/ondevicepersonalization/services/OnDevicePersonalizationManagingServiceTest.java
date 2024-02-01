@@ -22,13 +22,16 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.view.SurfaceControlViewHost;
@@ -388,8 +391,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                     IllegalStateException.class,
                     () ->
                     mService.registerWebTrigger(
-                        "http://desturl",
-                        "http://regurl",
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regurl"),
                         "header",
                         "com.example.browser",
                         new CallerMetadata.Builder().build(),
@@ -402,8 +405,8 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Test
     public void testRegisterWebTriggerInvokesWebTriggerFlow() throws Exception {
         mService.registerWebTrigger(
-                "http://desturl",
-                "http://regurl",
+                Uri.parse("http://desturl"),
+                Uri.parse("http://regurl"),
                 "header",
                 "com.example.browser",
                 new CallerMetadata.Builder().build(),
@@ -417,8 +420,8 @@ public class OnDevicePersonalizationManagingServiceTest {
                 Futures.immediateFailedFuture(new IllegalStateException());
         var callback = new RegisterWebTriggerCallback();
         mService.registerWebTrigger(
-                "http://desturl",
-                "http://regurl",
+                Uri.parse("http://desturl"),
+                Uri.parse("http://regurl"),
                 "header",
                 "com.example.browser",
                 new CallerMetadata.Builder().build(),
@@ -456,8 +459,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         ));
 
         assertNotNull(injector.getWebTriggerFlow(
-                "http://example.com",
-                "http://regurl.com",
+                Uri.parse("http://example.com"),
+                Uri.parse("http://regurl.com"),
                 "header",
                 "com.example.browser",
                 mContext,
@@ -509,8 +512,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         WebTriggerFlow getWebTriggerFlow(
-                String destinationUrl,
-                String registrationUrl,
+                Uri destinationUrl,
+                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 Context context,
@@ -536,8 +539,10 @@ public class OnDevicePersonalizationManagingServiceTest {
         private CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess(String token) {
-            mToken = token;
+        public void onSuccess(Bundle bundle) {
+            if (bundle != null) {
+                mToken = bundle.getString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+            }
             mLatch.countDown();
         }
 

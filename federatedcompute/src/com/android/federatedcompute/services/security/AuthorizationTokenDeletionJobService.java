@@ -72,8 +72,9 @@ public class AuthorizationTokenDeletionJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         LogUtil.d(TAG, "AuthorizationTokenDeletionJobService.onStartJob %d", params.getJobId());
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-            LogUtil.d(TAG, "GlobalKillSwitch enabled, finishing job.");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()
+                || !FlagsFactory.getFlags().isAuthenticationEnabled()) {
+            LogUtil.d(TAG, "GlobalKillSwitch enabled or authentication disabled, finishing job.");
             jobFinished(params, /* wantsReschedule= */ false);
             return true;
         }

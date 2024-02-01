@@ -44,6 +44,11 @@ public final class PhFlags implements Flags {
 
     static final String HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME =
             "http_request_retry_limit";
+
+    static final String FCP_ENABLE_AUTHENTICATION = "fcp_enable_authentication";
+
+    static final String FCP_ENABLE_ENCRYPTION = "fcp_enable_encryption";
+
     private static final PhFlags sSingleton = new PhFlags();
 
     /** Returns the singleton instance of the PhFlags. */
@@ -92,5 +97,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ HTTP_REQUEST_RETRY_LIMIT);
+    }
+
+    @Override
+    public Boolean isAuthenticationEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_ENABLE_AUTHENTICATION,
+                /* defaultValue= */ AUTHENTICATION_ENABLED
+        );
+    }
+
+    public Boolean isEncryptionEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_ENABLE_ENCRYPTION,
+                /* defaultValue= */ ENCRYPTION_ENABLED);
     }
 }
