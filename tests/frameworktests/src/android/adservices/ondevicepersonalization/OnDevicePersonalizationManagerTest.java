@@ -197,6 +197,7 @@ public final class OnDevicePersonalizationManagerTest {
         receiver.mLatch.await();
         assertFalse(receiver.mCallbackSuccess);
         assertTrue(receiver.mCallbackError);
+        assertTrue(receiver.mException instanceof IllegalStateException);
     }
 
     class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
