@@ -42,6 +42,10 @@ public final class PhFlags implements Flags {
     static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
             "shared_isolated_process_feature_enabled";
 
+    static final String KEY_CALLER_APP_ALLOW_LIST = "caller_app_allow_list";
+
+    static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
     private static final PhFlags sSingleton = new PhFlags();
@@ -109,5 +113,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+    }
+
+    @Override
+    public String getCallerAppAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_CALLER_APP_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_CALLER_APP_ALLOW_LIST);
+    }
+
+    @Override
+    public String getIsolatedServiceAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
     }
 }
