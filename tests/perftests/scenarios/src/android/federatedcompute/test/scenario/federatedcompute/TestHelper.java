@@ -107,6 +107,10 @@ public class TestHelper {
         executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
                 + "com.android.ondevicepersonalization."
                 + "libraries.plugin.internal.PluginExecutorService");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "plugin_disable_art_image_:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
         executeShellCommand("am kill com.google.android.federatedcompute");
         executeShellCommand("am kill com.google.android.federatedcompute:"
                 + "com.android.federatedcompute.services.training.IsolatedTrainingService");
