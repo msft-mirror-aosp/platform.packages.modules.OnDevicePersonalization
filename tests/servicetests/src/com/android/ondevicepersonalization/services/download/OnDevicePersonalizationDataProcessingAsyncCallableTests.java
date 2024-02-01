@@ -26,6 +26,8 @@ import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
@@ -48,6 +50,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -88,6 +91,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
+
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
     @Test
@@ -130,11 +136,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         assertEquals(3, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContent1.getKey())) {
-                compareDataContent(mContent1, data);
+                compareDataContent(mContent1, data, false);
             } else if (data.getKey().equals(mContent2.getKey())) {
-                compareDataContent(mContent2, data);
+                compareDataContent(mContent2, data, true);
             } else if (data.getKey().equals(mContentExtra.getKey())) {
-                compareDataContent(mContentExtra, data);
+                compareDataContent(mContentExtra, data, false);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }
@@ -181,16 +187,22 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         assertEquals(1, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContentExtra.getKey())) {
-                compareDataContent(mContentExtra, data);
+                compareDataContent(mContentExtra, data, false);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }
         }
     }
 
-    private void compareDataContent(VendorData expectedData, VendorData actualData) {
+    private void compareDataContent(VendorData expectedData, VendorData actualData,
+            boolean base64) {
         assertEquals(expectedData.getKey(), actualData.getKey());
-        assertArrayEquals(expectedData.getData(), actualData.getData());
+        if (base64) {
+            assertArrayEquals(Base64.getDecoder().decode(expectedData.getData()),
+                    actualData.getData());
+        } else {
+            assertArrayEquals(expectedData.getData(), actualData.getData());
+        }
     }
 
     @After

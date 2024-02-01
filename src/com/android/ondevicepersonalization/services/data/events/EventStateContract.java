@@ -34,7 +34,7 @@ public class EventStateContract {
         public static final String TASK_IDENTIFIER = "taskIdentifier";
 
         /** Name of the service package for this event */
-        public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
+        public static final String SERVICE_NAME = "serviceName";
 
         /** Token representing the event state. */
         public static final String TOKEN = "token";
@@ -43,10 +43,10 @@ public class EventStateContract {
         public static final String CREATE_TABLE_STATEMENT =
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
                     + TASK_IDENTIFIER + " TEXT NOT NULL,"
-                    + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + SERVICE_NAME + " TEXT NOT NULL,"
                     + TOKEN + " BLOB NOT NULL,"
                     + "UNIQUE(" + TASK_IDENTIFIER + ","
-                        + SERVICE_PACKAGE_NAME + "))";
+                        + SERVICE_NAME + "))";
 
         private EventStateEntry() {}
     }

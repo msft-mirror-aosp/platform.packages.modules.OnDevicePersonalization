@@ -23,6 +23,7 @@ import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
@@ -42,7 +43,6 @@ import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
-import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
@@ -104,21 +104,21 @@ class OdpWebViewClient extends WebViewClient {
     }
 
     @NonNull private final Context mContext;
-    @NonNull private final String mServicePackageName;
+    @NonNull private final ComponentName mService;
     long mQueryId;
     @NonNull private final RequestLogRecord mLogRecord;
     @NonNull private final Injector mInjector;
 
-    OdpWebViewClient(Context context, String servicePackageName, long queryId,
+    OdpWebViewClient(Context context, ComponentName service, long queryId,
             RequestLogRecord logRecord) {
-        this(context, servicePackageName, queryId, logRecord, new Injector());
+        this(context, service, queryId, logRecord, new Injector());
     }
 
     @VisibleForTesting
-    OdpWebViewClient(Context context, String servicePackageName, long queryId,
+    OdpWebViewClient(Context context, ComponentName service, long queryId,
             RequestLogRecord logRecord, Injector injector) {
         mContext = context;
-        mServicePackageName = servicePackageName;
+        mService = service;
         mQueryId = queryId;
         mLogRecord = logRecord;
         mInjector = injector;
@@ -189,7 +189,7 @@ class OdpWebViewClient extends WebViewClient {
             sLogger.d(TAG + ": executeEventHandler() called");
             Bundle serviceParams = new Bundle();
             DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                    mServicePackageName, mContext, /* includeLocalData */ true,
+                    mService.getPackageName(), mContext, /* includeLocalData */ true,
                     /* includeEventData */ true);
             serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
             // TODO(b/259950177): Add Query row to input.
@@ -204,8 +204,6 @@ class OdpWebViewClient extends WebViewClient {
             return FluentFuture.from(
                     mInjector.getProcessRunner().runIsolatedService(
                         isolatedServiceInfo,
-                        AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                                mContext, mServicePackageName),
                         Constants.OP_WEB_VIEW_EVENT,
                         serviceParams))
                     .transform(
@@ -271,7 +269,7 @@ class OdpWebViewClient extends WebViewClient {
             Event event = new Event.Builder()
                     .setType(eventData.getType())
                     .setQueryId(mQueryId)
-                    .setServicePackageName(mServicePackageName)
+                    .setServiceName(mService.getPackageName())
                     .setTimeMillis(mInjector.getClock().currentTimeMillis())
                     .setRowIndex(eventData.getRowIndex())
                     .setEventData(data)
@@ -292,7 +290,7 @@ class OdpWebViewClient extends WebViewClient {
 
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mServicePackageName);
+                        TASK_NAME, mService);
 
             var doneFuture = FluentFuture.from(getEventOutputParcel(loadFuture, eventUrlPayload))
                     .transformAsync(

@@ -16,8 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
@@ -33,11 +31,10 @@ import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.SystemClock;
 
-import com.android.ondevicepersonalization.internal.util.ByteArrayParceledListSlice;
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
-import java.util.HashMap;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
@@ -55,10 +52,8 @@ import java.util.function.Function;
  * by Federated Learning for model training.
  * Client apps use {@link OnDevicePersonalizationManager} to interact with an {@link
  * IsolatedService}.
- *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public abstract class IsolatedService extends Service {
     private static final String TAG = "IsolatedService";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -241,24 +236,13 @@ public abstract class IsolatedService extends Service {
                                 params.getParcelable(
                                         Constants.EXTRA_INPUT, DownloadInputParcel.class));
 
-                List<String> keys =
-                        Objects.requireNonNull(inputParcel.getDownloadedKeys()).getList();
-                List<byte[]> values =
-                        Objects.requireNonNull(inputParcel.getDownloadedValues()).getList();
-                if (keys.size() != values.size()) {
-                    throw new IllegalArgumentException(
-                            "Mismatching key and value list sizes of "
-                                    + keys.size()
-                                    + " and "
-                                    + values.size());
-                }
+                KeyValueStore downloadedContents = new RemoteDataImpl(
+                        IDataAccessService.Stub.asInterface(
+                                Objects.requireNonNull(inputParcel.getDataAccessServiceBinder())));
 
-                HashMap<String, byte[]> downloadData = new HashMap<>();
-                for (int i = 0; i < keys.size(); i++) {
-                    downloadData.put(keys.get(i), values.get(i));
-                }
                 DownloadCompletedInput input =
-                        new DownloadCompletedInput.Builder().setData(downloadData).build();
+                        new DownloadCompletedInput.Builder().setDownloadedContents(
+                                downloadedContents).build();
 
                 IDataAccessService binder =
                         IDataAccessService.Stub.asInterface(
@@ -352,12 +336,11 @@ public abstract class IsolatedService extends Service {
                                 } else {
                                     TrainingExamplesOutputParcel parcelResult =
                                             new TrainingExamplesOutputParcel.Builder()
-                                                    .setTrainingExamples(
-                                                            new ByteArrayParceledListSlice(
-                                                                    result.getTrainingExamples()))
-                                                    .setResumptionTokens(
-                                                            new ByteArrayParceledListSlice(
-                                                                    result.getResumptionTokens()))
+                                                    .setTrainingExampleRecords(
+                                                            new OdpParceledListSlice<
+                                                                    TrainingExampleRecord>(
+                                                                    result
+                                                                            .getTrainingExampleRecords()))
                                                     .build();
                                     Bundle bundle = new Bundle();
                                     bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);

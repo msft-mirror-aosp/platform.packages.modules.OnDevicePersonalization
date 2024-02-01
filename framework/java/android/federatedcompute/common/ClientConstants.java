@@ -51,5 +51,7 @@ public final class ClientConstants {
     public static final String RESULT_HANDLING_SERVICE_ACTION =
             "android.federatedcompute.COMPUTATION_RESULT";
 
+    public static final String ODP_APEX_KEYWORD = "ondevicepersonalization";
+
     private ClientConstants() {}
 }
