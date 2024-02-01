@@ -34,7 +34,6 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
-import android.os.RemoteException;
 import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
@@ -175,8 +174,10 @@ public class OnDevicePersonalizationManager {
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+        } catch (IllegalArgumentException | NullPointerException  e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
         }
     }
 
@@ -249,8 +250,10 @@ public class OnDevicePersonalizationManager {
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
         }
     }
 
