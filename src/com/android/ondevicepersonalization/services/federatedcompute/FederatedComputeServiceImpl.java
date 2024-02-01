@@ -137,7 +137,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                         public void onResult(Object result) {
                             mInjector.getEventsDao(mApplicationContext).updateOrInsertEventState(
                                     new EventState.Builder()
-                                            .setServicePackageName(mCallingService.getPackageName())
+                                            .setServiceName(mCallingService.getPackageName())
                                             .setTaskIdentifier(trainingOptions.getPopulationName())
                                             .setToken(new byte[]{})
                                             .build());

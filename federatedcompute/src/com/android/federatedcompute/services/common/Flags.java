@@ -178,4 +178,24 @@ public interface Flags {
     default Long getAuthorizationTokenDeletionPeriodSeconds() {
         return ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs;
     }
+
+    int HTTP_REQUEST_RETRY_LIMIT = 3;
+
+    default int getHttpRequestRetryLimit() {
+        return HTTP_REQUEST_RETRY_LIMIT;
+    }
+
+    Boolean AUTHENTICATION_ENABLED = false;
+
+    /** Whether to enable authentication when uploading results. */
+    default Boolean isAuthenticationEnabled() {
+        return AUTHENTICATION_ENABLED;
+    }
+
+    Boolean ENCRYPTION_ENABLED = true;
+
+    /** Whether to enable encryption when uploading results. */
+    default Boolean isEncryptionEnabled() {
+        return ENCRYPTION_ENABLED;
+    }
 }

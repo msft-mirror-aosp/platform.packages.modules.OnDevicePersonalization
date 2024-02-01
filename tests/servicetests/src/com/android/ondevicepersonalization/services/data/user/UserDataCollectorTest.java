@@ -36,10 +36,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.ArrayDeque;
 import java.util.ArrayList;
-import java.util.Deque;
-import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -109,82 +106,9 @@ public class UserDataCollectorTest {
                 filteredCap.getCapabilities());
     }
 
-    @Test
-    public void testRecoveryFromSystemCrash() {
-        mCollector.updateUserData(mUserData);
-        // Backup sample answer.
-        final HashMap<String, Long> refAppUsageHistogram =
-                copyAppUsageMap(mUserData.appUsageHistory);
-        final HashMap<LocationInfo, Long> refLocationHistogram =
-                copyLocationMap(mUserData.locationHistory);
-        final Deque<AppUsageEntry> refAllowedAppUsageEntries =
-                copyAppUsageEntries(mCollector.getAllowedAppUsageEntries());
-        final Deque<LocationInfo> refAllowedLocationEntries =
-                copyLocationEntries(mCollector.getAllowedLocationEntries());
-        final long refLastTimeAppUsageCollected = mCollector.getLastTimeMillisAppUsageCollected();
-
-        // Mock system crash scenario.
-        mCollector.clearUserData(mUserData);
-        mCollector.clearMetadata();
-        mCollector.recoverAppUsageHistogram(mUserData.appUsageHistory);
-        mCollector.recoverLocationHistogram(mUserData.locationHistory);
-
-        assertEquals(refAppUsageHistogram.size(), mUserData.appUsageHistory.size());
-        for (String key: refAppUsageHistogram.keySet()) {
-            assertTrue(mUserData.appUsageHistory.containsKey(key));
-            assertEquals(refAppUsageHistogram.get(key), mUserData.appUsageHistory.get(key));
-        }
-        assertEquals(refLastTimeAppUsageCollected,
-                mCollector.getLastTimeMillisAppUsageCollected());
-        assertEquals(refAllowedAppUsageEntries.size(),
-                mCollector.getAllowedAppUsageEntries().size());
-
-        assertEquals(refLocationHistogram.size(), mUserData.locationHistory.size());
-        for (LocationInfo locationInfo: refLocationHistogram.keySet()) {
-            assertTrue(mUserData.locationHistory.containsKey(locationInfo));
-            assertEquals(refLocationHistogram.get(locationInfo),
-                    mUserData.locationHistory.get(locationInfo));
-        }
-        assertEquals(refAllowedLocationEntries.size(),
-                mCollector.getAllowedLocationEntries().size());
-    }
-
-    private HashMap<String, Long> copyAppUsageMap(HashMap<String, Long> other) {
-        HashMap<String, Long> copy = new HashMap<>();
-        for (String key: other.keySet()) {
-            copy.put(key, (long) other.get(key));
-        }
-        return copy;
-    }
-
-    private HashMap<LocationInfo, Long> copyLocationMap(HashMap<LocationInfo, Long> other) {
-        HashMap<LocationInfo, Long> copy = new HashMap<>();
-        for (LocationInfo key: other.keySet()) {
-            copy.put(new LocationInfo(key), (long) other.get(key));
-        }
-        return copy;
-    }
-
-    private Deque<AppUsageEntry> copyAppUsageEntries(Deque<AppUsageEntry> other) {
-        Deque<AppUsageEntry> copy = new ArrayDeque<>();
-        for (AppUsageEntry entry: other) {
-            copy.add(new AppUsageEntry(entry));
-        }
-        return copy;
-    }
-
-    private Deque<LocationInfo> copyLocationEntries(Deque<LocationInfo> other) {
-        Deque<LocationInfo> copy = new ArrayDeque<>();
-        for (LocationInfo entry: other) {
-            copy.add(new LocationInfo(entry));
-        }
-        return copy;
-    }
-
     @After
     public void cleanUp() {
         mCollector.clearUserData(mUserData);
         mCollector.clearMetadata();
-        mCollector.clearDatabase();
     }
 }

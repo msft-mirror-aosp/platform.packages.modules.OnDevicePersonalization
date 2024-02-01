@@ -88,7 +88,6 @@ public class OnDevicePersonalizationConfigServiceDelegate
                                 UserDataCollector.getInstance(mContext);
                         userDataCollector.clearUserData(userData);
                         userDataCollector.clearMetadata();
-                        userDataCollector.clearDatabase();
 
                         // TODO(b/302018665): replicate system server storage to T devices.
                         if (!SdkLevel.isAtLeastU()) {

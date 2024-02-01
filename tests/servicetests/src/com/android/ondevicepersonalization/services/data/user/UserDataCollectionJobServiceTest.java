@@ -37,7 +37,6 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -139,11 +138,5 @@ public class UserDataCollectionJobServiceTest {
     public void cleanUp() {
         mUserDataCollector.clearUserData(RawUserData.getInstance());
         mUserDataCollector.clearMetadata();
-        mUserDataCollector.clearDatabase();
-        OnDevicePersonalizationDbHelper dbHelper =
-                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
     }
 }

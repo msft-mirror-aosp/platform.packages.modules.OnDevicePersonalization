@@ -58,6 +58,48 @@ public interface Flags {
      */
     boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
 
+    String DEFAULT_CALLER_APP_ALLOW_LIST =
+            "android.ondevicepersonalization,"
+                    + "android.ondevicepersonalization.test.scenario,"
+                    + "com.android.federatedcompute.services,"
+                    + "com.android.libraries.pcc.chronicle.test,"
+                    + "com.android.ondevicepersonalization,"
+                    + "com.android.ondevicepersonalization.cts.e2e,"
+                    + "com.android.ondevicepersonalization.federatedcomputetests,"
+                    + "com.android.ondevicepersonalization.libraries.plugin,"
+                    + "com.android.ondevicepersonalization.manualtests,"
+                    + "com.android.ondevicepersonalization.plugintests,"
+                    + "com.android.ondevicepersonalization.services,"
+                    + "com.android.ondevicepersonalization.servicetests,"
+                    + "com.android.ondevicepersonalization.systemserviceapitests,"
+                    + "com.android.ondevicepersonalization.systemserviceimpltests,"
+                    + "com.android.ondevicepersonalization.testing.sampleservice,"
+                    + "com.example.odpclient,"
+                    + "com.example.odpsamplenetwork,"
+                    + "com.example.odptargetingapp1,"
+                    + "com.example.odptargetingapp2";
+
+    String DEFAULT_ISOLATED_SERVICE_ALLOW_LIST =
+            "android.ondevicepersonalization,"
+                    + "android.ondevicepersonalization.test.scenario,"
+                    + "com.android.federatedcompute.services,"
+                    + "com.android.libraries.pcc.chronicle.test,"
+                    + "com.android.ondevicepersonalization,"
+                    + "com.android.ondevicepersonalization.cts.e2e,"
+                    + "com.android.ondevicepersonalization.federatedcomputetests,"
+                    + "com.android.ondevicepersonalization.libraries.plugin,"
+                    + "com.android.ondevicepersonalization.manualtests,"
+                    + "com.android.ondevicepersonalization.plugintests,"
+                    + "com.android.ondevicepersonalization.services,"
+                    + "com.android.ondevicepersonalization.servicetests,"
+                    + "com.android.ondevicepersonalization.systemserviceapitests,"
+                    + "com.android.ondevicepersonalization.systemserviceimpltests,"
+                    + "com.android.ondevicepersonalization.testing.sampleservice,"
+                    + "com.example.odpclient,"
+                    + "com.example.odpsamplenetwork,"
+                    + "com.example.odptargetingapp1,"
+                    + "com.example.odptargetingapp2";
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
     }
@@ -80,5 +122,13 @@ public interface Flags {
 
     default boolean isSharedIsolatedProcessFeatureEnabled() {
         return DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+    }
+
+    default String getCallerAppAllowList() {
+        return DEFAULT_CALLER_APP_ALLOW_LIST;
+    }
+
+    default String getIsolatedServiceAllowList() {
+        return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
     }
 }
