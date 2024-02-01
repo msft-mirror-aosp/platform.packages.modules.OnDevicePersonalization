@@ -94,6 +94,10 @@ public class TestAppHelper {
         executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
                 + "com.android.ondevicepersonalization."
                 + "libraries.plugin.internal.PluginExecutorService");
+        executeShellCommand("am kill com.google.android.ondevicepersonalization.services:"
+                + "plugin_disable_art_image_:"
+                + "com.android.ondevicepersonalization."
+                + "libraries.plugin.internal.PluginExecutorService");
         SystemClock.sleep(2000);
     }
 

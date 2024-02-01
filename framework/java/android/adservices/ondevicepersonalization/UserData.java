@@ -18,7 +18,6 @@ package android.adservices.ondevicepersonalization;
 
 import static android.content.res.Configuration.ORIENTATION_LANDSCAPE;
 import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
-import static android.content.res.Configuration.ORIENTATION_SQUARE;
 import static android.content.res.Configuration.ORIENTATION_UNDEFINED;
 
 import android.annotation.FlaggedApi;
@@ -60,8 +59,7 @@ public final class UserData implements Parcelable {
     @IntDef(prefix = {"ORIENTATION_"}, value = {
             ORIENTATION_UNDEFINED,
             ORIENTATION_PORTRAIT,
-            ORIENTATION_LANDSCAPE,
-            ORIENTATION_SQUARE
+            ORIENTATION_LANDSCAPE
     })
     @Retention(RetentionPolicy.SOURCE)
     public @interface Orientation {
@@ -126,7 +124,6 @@ public final class UserData implements Parcelable {
     /**
      * Data network type. This is the value of
      * {@link android.telephony.TelephonyManager#getDataNetworkType()}.
-     * @hide
      */
     @NetworkType int mDataNetworkType = 0;
 
@@ -134,7 +131,7 @@ public final class UserData implements Parcelable {
     @DataClass.PluralOf("appInfo")
     @NonNull Map<String, AppInfo> mAppInfos = Collections.emptyMap();
 
-    /** The device timezone +/- offset from UTC in {@link Duration}. @hide */
+    /** The device timezone +/- offset from UTC. */
     @NonNull public Duration getTimezoneUtcOffset() {
         return Duration.ofMinutes(mTimezoneUtcOffsetMins);
     }
@@ -249,8 +246,6 @@ public final class UserData implements Parcelable {
     /**
      * Data network type. This is the value of
      * {@link android.telephony.TelephonyManager#getDataNetworkType()}.
-     *
-     * @hide
      */
     @DataClass.Generated.Member
     public @NetworkType int getDataNetworkType() {
@@ -486,8 +481,6 @@ public final class UserData implements Parcelable {
         /**
          * Data network type. This is the value of
          * {@link android.telephony.TelephonyManager#getDataNetworkType()}.
-         *
-         * @hide
          */
         @DataClass.Generated.Member
         public @NonNull Builder setDataNetworkType(@NetworkType int value) {
@@ -566,7 +559,7 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1706220855610L,
+            time = 1706576592947L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
             inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n @android.annotation.Nullable android.net.NetworkCapabilities mNetworkCapabilities\n @android.adservices.ondevicepersonalization.UserData.NetworkType int mDataNetworkType\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\npublic @android.annotation.NonNull java.time.Duration getTimezoneUtcOffset()\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")

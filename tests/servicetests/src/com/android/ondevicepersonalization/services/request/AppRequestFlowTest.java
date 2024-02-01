@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.Constants;
@@ -24,10 +26,13 @@ import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -62,9 +67,10 @@ public class AppRequestFlowTest {
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
     private int mCallbackErrorCode;
+    private Bundle mCallbackResult;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row1 = new ContentValues();
@@ -76,9 +82,11 @@ public class AppRequestFlowTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 "com.example.test", "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
     @After
@@ -89,15 +97,49 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testRunAppRequestFlow() throws Exception {
+    public void testRunAppRequestFlowOutputDataBlocked() throws Exception {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 PersistableBundle.EMPTY,
-                new TestCallback(), mContext, 100L, new TestInjector());
+                new TestCallback(), mContext, 100L,
+                new TestInjector() {
+                    @Override public boolean isOutputDataAllowed(
+                        String servicePkg, String appPkg, Context context) {
+                            return false;
+                        }
+                });
         appRequestFlow.run();
         mLatch.await();
         assertTrue(mCallbackSuccess);
+        assertNull(mCallbackResult.getByteArray(Constants.EXTRA_OUTPUT_DATA));
+        assertEquals(2,
+                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
+                        null, null, null, null, null).getCount());
+        assertEquals(1,
+                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
+                        null, null, null, null, null).getCount());
+    }
+
+    @Test
+    public void testRunAppRequestFlowOutputDataAllowed() throws Exception {
+        AppRequestFlow appRequestFlow = new AppRequestFlow(
+                "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                PersistableBundle.EMPTY,
+                new TestCallback(), mContext, 100L,
+                new TestInjector() {
+                    @Override public boolean isOutputDataAllowed(
+                        String servicePkg, String appPkg, Context context) {
+                            return true;
+                        }
+                });
+        appRequestFlow.run();
+        mLatch.await();
+        assertTrue(mCallbackSuccess);
+        assertArrayEquals(
+                mCallbackResult.getByteArray(Constants.EXTRA_OUTPUT_DATA),
+                new byte[] {1, 2, 3});
         assertEquals(2,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -126,8 +168,9 @@ public class AppRequestFlowTest {
 
     class TestCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(String token) {
+        public void onSuccess(Bundle bundle) {
             mCallbackSuccess = true;
+            mCallbackResult = bundle;
             mLatch.countDown();
         }
 

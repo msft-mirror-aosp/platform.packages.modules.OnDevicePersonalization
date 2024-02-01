@@ -18,6 +18,7 @@ package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.net.Uri;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
@@ -33,10 +34,10 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class WebTriggerInput {
     /** The destination URL (landing page) where the trigger registration occurred. */
-    @NonNull private String mDestinationUrl;
+    @NonNull private Uri mDestinationUrl;
 
     /** The trigger registration URL that returned the trigger data */
-    @NonNull private String mRegistrationUrl;
+    @NonNull private Uri mRegistrationUrl;
 
     /** The app where the trigger registration occurred */
     @NonNull private String mAppPackageName;
@@ -80,8 +81,8 @@ public final class WebTriggerInput {
      */
     @DataClass.Generated.Member
     public WebTriggerInput(
-            @NonNull String destinationUrl,
-            @NonNull String registrationUrl,
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
             @NonNull String appPackageName,
             @NonNull String data) {
         this.mDestinationUrl = destinationUrl;
@@ -104,7 +105,7 @@ public final class WebTriggerInput {
      * The destination URL (landing page) where the trigger registration occurred.
      */
     @DataClass.Generated.Member
-    public @NonNull String getDestinationUrl() {
+    public @NonNull Uri getDestinationUrl() {
         return mDestinationUrl;
     }
 
@@ -112,7 +113,7 @@ public final class WebTriggerInput {
      * The trigger registration URL that returned the trigger data
      */
     @DataClass.Generated.Member
-    public @NonNull String getRegistrationUrl() {
+    public @NonNull Uri getRegistrationUrl() {
         return mRegistrationUrl;
     }
 
@@ -166,10 +167,10 @@ public final class WebTriggerInput {
     }
 
     @DataClass.Generated(
-            time = 1704483224602L,
+            time = 1706652627979L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerInput.java",
-            inputSignatures = "private @android.annotation.NonNull java.lang.String mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mRegistrationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull android.net.Uri mRegistrationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

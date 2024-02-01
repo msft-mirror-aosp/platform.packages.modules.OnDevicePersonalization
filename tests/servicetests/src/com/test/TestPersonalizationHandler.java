@@ -97,6 +97,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                                         .setType(1)
                                         .setRowIndex(1)
                                         .build())
+                        .setOutputData(new byte[] {1, 2, 3})
                         .build();
         consumer.accept(result);
     }

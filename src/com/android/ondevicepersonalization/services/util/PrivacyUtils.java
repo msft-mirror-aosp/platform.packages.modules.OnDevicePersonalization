@@ -14,12 +14,21 @@
  * limitations under the License.
  */
 
-package android.adservices.ondevicepersonalization.aidl;
+package com.android.ondevicepersonalization.services.util;
 
-import android.os.Bundle;
+import android.annotation.NonNull;
+import android.content.Context;
 
-/** @hide */
-oneway interface IExecuteCallback {
-    void onSuccess(in Bundle result);
-    void onError(int errorCode);
+/** Privacy utils. */
+public class PrivacyUtils {
+    /** Returns true if the service is allowed to return data to the app. */
+    public static boolean isOutputDataAllowed(
+            @NonNull String servicePackageName,
+            @NonNull String appPackageName,
+            @NonNull Context context) {
+        // TODO(b/323106058): Implement.
+        return false;
+    }
+
+    private PrivacyUtils() {}
 }

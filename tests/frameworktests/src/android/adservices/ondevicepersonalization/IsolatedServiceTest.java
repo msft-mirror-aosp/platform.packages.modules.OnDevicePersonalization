@@ -31,6 +31,7 @@ import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
 import android.federatedcompute.common.TrainingOptions;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
@@ -538,7 +539,10 @@ public class IsolatedServiceTest {
     public void testOnWebTrigger() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -555,7 +559,10 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerPropagatesError() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "error")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "error")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -590,7 +597,10 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerThrowsIfDataAccessServiceMissing() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -605,7 +615,10 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerThrowsIfCallbackMissing() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
