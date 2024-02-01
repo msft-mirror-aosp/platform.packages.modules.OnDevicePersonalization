@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.data.vendor;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
@@ -33,6 +35,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.File;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -61,7 +64,7 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         assertEquals(timestamp, timestampFromDB);
 
         Cursor cursor = mDao.readAllVendorData();
-        assertEquals(2, cursor.getCount());
+        assertEquals(5, cursor.getCount());
         cursor.close();
 
         List<VendorData> dataList = new ArrayList<>();
@@ -72,11 +75,32 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         retainedKeys.add("key2");
         retainedKeys.add("key3");
         retainedKeys.add("key4");
+        retainedKeys.add("large");
         assertTrue(mDao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
                 timestamp));
         cursor = mDao.readAllVendorData();
-        assertEquals(3, cursor.getCount());
+        assertEquals(4, cursor.getCount());
         cursor.close();
+        assertArrayEquals(new byte[10], mDao.readSingleVendorDataRow("key2"));
+        assertArrayEquals(new byte[111111], mDao.readSingleVendorDataRow("large"));
+
+        File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                OnDevicePersonalizationVendorDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+        assertTrue(dir.isDirectory());
+        assertTrue(new File(dir, "large_" + timestamp).exists());
+    }
+
+    @Test
+    public void testReadSingleRow() {
+        long timestamp = System.currentTimeMillis();
+        addTestData(timestamp);
+
+        assertArrayEquals(new byte[10], mDao.readSingleVendorDataRow("key"));
+        assertArrayEquals(new byte[10], mDao.readSingleVendorDataRow("key2"));
+        assertArrayEquals(new byte[111111], mDao.readSingleVendorDataRow("large"));
+        assertArrayEquals(new byte[111111], mDao.readSingleVendorDataRow("large2"));
+        assertArrayEquals(new byte[5555555], mDao.readSingleVendorDataRow("xlarge"));
     }
 
     @Test
@@ -86,6 +110,9 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         Set<String> expectedKeys = new HashSet<>();
         expectedKeys.add("key");
         expectedKeys.add("key2");
+        expectedKeys.add("large");
+        expectedKeys.add("large2");
+        expectedKeys.add("xlarge");
         assertEquals(expectedKeys, keys);
     }
 
@@ -115,7 +142,16 @@ public class OnDevicePersonalizationVendorDataDaoTest {
 
     @Test
     public void testDeleteVendor() {
+        File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                OnDevicePersonalizationVendorDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+        File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                OnDevicePersonalizationLocalDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+
         addTestData(System.currentTimeMillis());
+        assertTrue(dir.isDirectory());
+        assertTrue(localDir.isDirectory());
         OnDevicePersonalizationVendorDataDao.deleteVendorData(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);
         List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
@@ -123,6 +159,8 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         assertEquals(0, vendors.size());
         long timestampFromDB = mDao.getSyncToken();
         assertEquals(-1L, timestampFromDB);
+        assertFalse(dir.exists());
+        assertFalse(localDir.exists());
     }
 
     @Test
@@ -153,10 +191,16 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
         dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("large").setData(new byte[111111]).build());
+        dataList.add(new VendorData.Builder().setKey("large2").setData(new byte[111111]).build());
+        dataList.add(new VendorData.Builder().setKey("xlarge").setData(new byte[5555555]).build());
 
         List<String> retainedKeys = new ArrayList<>();
         retainedKeys.add("key");
         retainedKeys.add("key2");
+        retainedKeys.add("large");
+        retainedKeys.add("large2");
+        retainedKeys.add("xlarge");
         assertTrue(mDao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
                 timestamp));
     }

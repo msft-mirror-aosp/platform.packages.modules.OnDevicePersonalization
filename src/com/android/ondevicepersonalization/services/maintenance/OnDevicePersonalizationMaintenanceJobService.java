@@ -35,6 +35,8 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfi
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -43,6 +45,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.File;
 import java.util.AbstractMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -98,13 +101,22 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         Set<Map.Entry<String, String>> vendors = new HashSet<>(
                 OnDevicePersonalizationVendorDataDao.getVendors(context));
 
+        // Set of valid packageName and cert
+        Set<Map.Entry<String, String>> validVendors = new HashSet<>();
+
+
         // Remove all valid packages from the set
         for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
             String packageName = packageInfo.packageName;
             if (AppManifestConfigHelper.manifestContainsOdpSettings(
                     context, packageName)) {
+                // Remove valid packages from set
                 vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName,
+                        PackageUtils.getCertDigest(context, packageName)));
+
+                // Add valid package to new set
+                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(packageName,
                         PackageUtils.getCertDigest(context, packageName)));
             }
         }
@@ -121,6 +133,31 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         // Cleanup event and queries table.
         eventsDao.deleteEventsAndQueries(
                 System.currentTimeMillis() - MAXIMUM_DELETION_TIMEFRAME_MILLIS);
+
+        // Cleanup files from internal storage for valid packages.
+        for (Map.Entry<String, String> entry : validVendors) {
+            String packageName = entry.getKey();
+            String certDigest = entry.getValue();
+            // VendorDao
+            OnDevicePersonalizationVendorDataDao vendorDao =
+                    OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
+                            certDigest);
+            File vendorDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                    OnDevicePersonalizationVendorDataDao.getTableName(packageName, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(vendorDao.readAllVendorDataKeys(), vendorDir);
+
+            // LocalDao
+            OnDevicePersonalizationLocalDataDao localDao =
+                    OnDevicePersonalizationLocalDataDao.getInstance(context, packageName,
+                            certDigest);
+            File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                    OnDevicePersonalizationLocalDataDao.getTableName(packageName, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
+        }
+
+        // TODO: cleanup any loose data directories. Tables deleted, but directory still exists.
     }
 
     @Override
