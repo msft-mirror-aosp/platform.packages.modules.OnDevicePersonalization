@@ -166,10 +166,9 @@ public class AppRequestFlow {
     // TO-DO (323554852): Add detailed trace for app request flow.
     private void processRequest() {
         try {
-            checkPersonalizationStatus();
-            checkAppManifestConfig();
-            if (mErrorCode != Constants.STATUS_SUCCESS) {
-                sendErrorResult(mErrorCode);
+            int errorCode = checkAppRequestFlowPreconditions();
+            if (errorCode != Constants.STATUS_SUCCESS) {
+                sendErrorResult(errorCode);
                 return;
             }
 
@@ -275,14 +274,12 @@ public class AppRequestFlow {
         return serviceBinder.getService(Runnable::run);
     }
 
-    private void checkPersonalizationStatus() {
+    private int checkAppRequestFlowPreconditions() {
         if (!mInjector.isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is disabled.");
-            mErrorCode = Constants.STATUS_PERSONALIZATION_DISABLED;
+            return Constants.STATUS_PERSONALIZATION_DISABLED;
         }
-    }
 
-    private void checkAppManifestConfig() {
         AppManifestConfig config = null;
         try {
             config = Objects.requireNonNull(
@@ -290,14 +287,15 @@ public class AppRequestFlow {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            mErrorCode = Constants.STATUS_NAME_NOT_FOUND;
-            return;
+            return Constants.STATUS_NAME_NOT_FOUND;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
             sLogger.d(TAG + "service class not found");
-            mErrorCode = Constants.STATUS_CLASS_NOT_FOUND;
+            return Constants.STATUS_CLASS_NOT_FOUND;
         }
+
+        return Constants.STATUS_SUCCESS;
     }
 
     private Bundle getServiceParams() {
