@@ -61,9 +61,6 @@ public class Constants {
     public static final String EXTRA_USER_DATA = "android.ondevicepersonalization.extra.user_data";
     public static final String EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
 
-    public static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
-            "enable_ondevicepersonalization_apis";
-
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
     public static final int DATA_ACCESS_OP_REMOTE_DATA_KEYSET = 2;
