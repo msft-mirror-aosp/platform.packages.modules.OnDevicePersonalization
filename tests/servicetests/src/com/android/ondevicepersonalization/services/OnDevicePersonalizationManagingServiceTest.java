@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -30,6 +31,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.view.SurfaceControlViewHost;
@@ -537,8 +539,10 @@ public class OnDevicePersonalizationManagingServiceTest {
         private CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess(String token) {
-            mToken = token;
+        public void onSuccess(Bundle bundle) {
+            if (bundle != null) {
+                mToken = bundle.getString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+            }
             mLatch.countDown();
         }
 
