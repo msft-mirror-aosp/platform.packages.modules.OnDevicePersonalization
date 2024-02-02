@@ -21,6 +21,8 @@ import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
@@ -29,11 +31,14 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
+import androidx.concurrent.futures.CallbackToFutureAdapter;
+
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -158,35 +163,62 @@ public class AppRequestFlow {
         var unused = Futures.submit(this::processRequest, mInjector.getExecutor());
     }
 
+    // TO-DO (323554852): Add detailed trace for app request flow.
     private void processRequest() {
         try {
             checkPersonalizationStatus();
             checkAppManifestConfig();
-
             if (mErrorCode != Constants.STATUS_SUCCESS) {
                 sendErrorResult(mErrorCode);
                 return;
             }
 
-            ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mService);
-            ListenableFuture<ExecuteOutputParcel> executeResultFuture =
-                    FluentFuture.from(loadFuture)
-                    .transformAsync(
-                            result -> executeAppRequest(result),
-                            mInjector.getExecutor()
-                    )
-                    .transform(
-                            result -> {
-                                return result.getParcelable(
-                                        Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
-                            },
-                            mInjector.getExecutor()
-                    );
+            ListenableFuture<IsolatedServiceInfo> loadFuture;
+            ListenableFuture<ExecuteOutputParcel> executeResultFuture;
+            // TO-DO (323412845): Remove plugin code once SIP feature is fully ramped up.
+            if (mInjector.getFlags().isSharedIsolatedProcessFeatureEnabled()) {
+                loadFuture = null;
+                IIsolatedService isolatedService = getIsolatedService();
+
+                ListenableFuture<Bundle> onRequestBundle = CallbackToFutureAdapter.getFuture(
+                        completer -> {
+                            isolatedService.onRequest(Constants.OP_EXECUTE, getServiceParams(),
+                                    new IIsolatedServiceCallback.Stub() {
+                                        @Override public void onSuccess(Bundle result) {
+                                            completer.set(result);
+
+                                        }
+                                        @Override public void onError(int errorCode) {
+                                            completer.setException(new OdpServiceException(Constants.STATUS_INTERNAL_ERROR));
+                                        }
+                                    });
+                            return null;
+                        });
+
+                executeResultFuture = FluentFuture.from(onRequestBundle).transform(
+                        result -> result.getParcelable(
+                                Constants.EXTRA_RESULT, ExecuteOutputParcel.class),
+                        mInjector.getExecutor()
+                );
+            } else {
+                loadFuture = mInjector.getProcessRunner().loadIsolatedService(
+                                TASK_NAME, mService);
+
+                executeResultFuture =
+                        FluentFuture.from(loadFuture)
+                                .transformAsync(
+                                        this::executeAppRequest,
+                                        mInjector.getExecutor()
+                                )
+                                .transform(
+                                        result -> result.getParcelable(
+                                                Constants.EXTRA_RESULT, ExecuteOutputParcel.class),
+                                        mInjector.getExecutor()
+                                );
+            }
 
             ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
-                    .transformAsync(input -> logQuery(input), mInjector.getExecutor());
+                    .transformAsync(this::logQuery, mInjector.getExecutor());
 
             ListenableFuture<Bundle> outputResultFuture =
                     FluentFuture.from(
@@ -217,20 +249,30 @@ public class AppRequestFlow {
                     },
                     mInjector.getExecutor());
 
-            var unused =
-                    Futures.whenAllComplete(loadFuture, outputResultFuture)
-                            .callAsync(
-                                    () -> {
-                                        unBindFromModelService();
-                                        return mInjector
-                                                .getProcessRunner()
-                                                .unloadIsolatedService(loadFuture.get());
-                                    },
-                                    mInjector.getExecutor());
+            if (loadFuture != null) {
+                var unused = Futures.whenAllComplete(loadFuture, outputResultFuture)
+                        .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
+                                        loadFuture.get()),
+                                mInjector.getExecutor());
+            }
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
+    }
+
+    private IIsolatedService getIsolatedService() {
+        AbstractServiceBinder<IIsolatedService> serviceBinder =
+                AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
+                        mContext,
+                        mService.getClassName(),
+                        mService.getPackageName(),
+                        // TO-DO (323427279): Put trusted apps into a separate SIP.
+                        "trustedSip",
+                        Context.BIND_SHARED_ISOLATED_PROCESS,
+                        IIsolatedService.Stub::asInterface);
+
+        return serviceBinder.getService(Runnable::run);
     }
 
     private void checkPersonalizationStatus() {
