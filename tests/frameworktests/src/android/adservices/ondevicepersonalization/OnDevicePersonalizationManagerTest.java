@@ -16,7 +16,9 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
@@ -69,6 +71,8 @@ public final class OnDevicePersonalizationManagerTest {
         receiver.mLatch.await();
         assertTrue(receiver.mCallbackSuccess);
         assertFalse(receiver.mCallbackError);
+        assertNotNull(receiver.mResult);
+        assertEquals(receiver.mResult.getTokenString(), "aaaa");
     }
 
     @Test
