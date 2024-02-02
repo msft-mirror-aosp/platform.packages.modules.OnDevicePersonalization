@@ -133,29 +133,34 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                 new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),
                 new HashSet<>(Arrays.asList(DataIngressPolicy.NPA_DATA_POLICY)));
 
-        // Schedule maintenance task
-        OnDevicePersonalizationMaintenanceJobService.schedule(context);
+        // Schedule recurring jobs if kill switch is off
+        if (!FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            // Schedule maintenance task
+            OnDevicePersonalizationMaintenanceJobService.schedule(context);
 
-        // Schedule user data collection task
-        UserDataCollectionJobService.schedule(context);
+            // Schedule user data collection task
+            UserDataCollectionJobService.schedule(context);
 
-        final PendingResult pendingResult = goAsync();
-        // Schedule MDD to download scripts periodically.
-        Futures.addCallback(
-                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
-                new FutureCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void result) {
-                        sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
-                        pendingResult.finish();
-                    }
+            final PendingResult pendingResult = goAsync();
+            // Schedule MDD to download scripts periodically.
+            Futures.addCallback(
+                    MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
+                    new FutureCallback<Void>() {
+                        @Override
+                        public void onSuccess(Void result) {
+                            sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
+                            pendingResult.finish();
+                        }
 
-                    @Override
-                    public void onFailure(Throwable t) {
-                        sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
-                        pendingResult.finish();
-                    }
-                },
-                mExecutor);
+                        @Override
+                        public void onFailure(Throwable t) {
+                            sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
+                            pendingResult.finish();
+                        }
+                    },
+                    mExecutor);
+        } else {
+            sLogger.d(TAG + ": GlobalKillSwitch on, skipped scheduling jobs.");
+        }
     }
 }

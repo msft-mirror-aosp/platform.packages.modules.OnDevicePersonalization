@@ -133,7 +133,6 @@ public class KeyAttestation {
                             .setDevicePropertiesAttestationIncluded(false)
                             .setIsStrongBoxBacked(mUseStrongBox)
                             .build());
-            LogUtil.e(TAG, keyPairGenerator.getAlgorithm());
             return keyPairGenerator.generateKeyPair();
         } catch (NoSuchAlgorithmException
                 | NoSuchProviderException

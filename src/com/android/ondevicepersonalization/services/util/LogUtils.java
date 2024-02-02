@@ -42,7 +42,7 @@ public class LogUtils {
     /** Writes the provided records to the REQUESTS and EVENTS tables. */
     public static ListenableFuture<Long> writeLogRecords(
             @NonNull Context context,
-            @NonNull String servicePackageName,
+            @NonNull String serviceName,
             @Nullable RequestLogRecord requestLogRecord,
             @NonNull List<EventLogRecord> eventLogRecords) {
         sLogger.d(TAG + ": writeLogRecords() started.");
@@ -52,9 +52,9 @@ public class LogUtils {
         if (requestLogRecord != null) {
             List<ContentValues> rows = requestLogRecord.getRows();
             byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                    servicePackageName, null, rows);
+                    serviceName, null, rows);
             Query query = new Query.Builder()
-                    .setServicePackageName(servicePackageName)
+                    .setServiceName(serviceName)
                     .setQueryData(queryData)
                     .setTimeMillis(System.currentTimeMillis())
                     .build();
@@ -75,7 +75,7 @@ public class LogUtils {
             }
             // Make sure query exists for package in QUERY table
             Query queryRow = eventsDao.readSingleQueryRow(parent.getRequestId(),
-                    servicePackageName);
+                    serviceName);
             if (queryRow == null || eventLogRecord.getRowIndex()
                     >= OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
                     queryRow.getQueryData())) {
@@ -86,7 +86,7 @@ public class LogUtils {
                             eventLogRecord.getData()))
                     .setQueryId(parent.getRequestId())
                     .setRowIndex(eventLogRecord.getRowIndex())
-                    .setServicePackageName(servicePackageName)
+                    .setServiceName(serviceName)
                     .setTimeMillis(System.currentTimeMillis())
                     .setType(eventLogRecord.getType())
                     .build();

@@ -16,12 +16,11 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -34,9 +33,8 @@ import java.util.List;
  * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
  * java.util.concurrent.Executor, OutcomeReceiver)}
  * from a client app.
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class ExecuteOutput {
     /**
@@ -53,15 +51,26 @@ public final class ExecuteOutput {
     @Nullable private RenderingConfig mRenderingConfig = null;
 
     /**
-     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord} from
-     * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-     * EventLogRecord is not written.
-     *
+     * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+     * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+     * the REQUESTS table, specified using
+     * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+     * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+     * written.
      */
     @DataClass.PluralOf("eventLogRecord")
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
+
+    /**
+     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
+     * this array is returned to the caller of
+     * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
+     * if the (calling app package, isolated service package) pair is present in an allow list
+     * that permits data to be returned to the caller.
+     *
+     * @hide
+     */
+    @Nullable private byte[] mOutputData = null;
 
 
 
@@ -82,12 +91,14 @@ public final class ExecuteOutput {
     /* package-private */ ExecuteOutput(
             @Nullable RequestLogRecord requestLogRecord,
             @Nullable RenderingConfig renderingConfig,
-            @NonNull List<EventLogRecord> eventLogRecords) {
+            @NonNull List<EventLogRecord> eventLogRecords,
+            @Nullable byte[] outputData) {
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfig = renderingConfig;
         this.mEventLogRecords = eventLogRecords;
         AnnotationValidations.validate(
                 NonNull.class, null, mEventLogRecords);
+        this.mOutputData = outputData;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -112,15 +123,30 @@ public final class ExecuteOutput {
     }
 
     /**
-     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord} from
-     * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-     * EventLogRecord is not written.
+     * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+     * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+     * the REQUESTS table, specified using
+     * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+     * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+     * written.
      */
     @DataClass.Generated.Member
     public @NonNull List<EventLogRecord> getEventLogRecords() {
         return mEventLogRecords;
+    }
+
+    /**
+     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
+     * this array is returned to the caller of
+     * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
+     * if the (calling app package, isolated service package) pair is present in an allow list
+     * that permits data to be returned to the caller.
+     *
+     * @hide
+     */
+    @DataClass.Generated.Member
+    public @Nullable byte[] getOutputData() {
+        return mOutputData;
     }
 
     @Override
@@ -138,7 +164,8 @@ public final class ExecuteOutput {
         return true
                 && java.util.Objects.equals(mRequestLogRecord, that.mRequestLogRecord)
                 && java.util.Objects.equals(mRenderingConfig, that.mRenderingConfig)
-                && java.util.Objects.equals(mEventLogRecords, that.mEventLogRecords);
+                && java.util.Objects.equals(mEventLogRecords, that.mEventLogRecords)
+                && java.util.Arrays.equals(mOutputData, that.mOutputData);
     }
 
     @Override
@@ -151,6 +178,7 @@ public final class ExecuteOutput {
         _hash = 31 * _hash + java.util.Objects.hashCode(mRequestLogRecord);
         _hash = 31 * _hash + java.util.Objects.hashCode(mRenderingConfig);
         _hash = 31 * _hash + java.util.Objects.hashCode(mEventLogRecords);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mOutputData);
         return _hash;
     }
 
@@ -164,6 +192,7 @@ public final class ExecuteOutput {
         private @Nullable RequestLogRecord mRequestLogRecord;
         private @Nullable RenderingConfig mRenderingConfig;
         private @NonNull List<EventLogRecord> mEventLogRecords;
+        private @Nullable byte[] mOutputData;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -196,11 +225,12 @@ public final class ExecuteOutput {
         }
 
         /**
-         * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-         * them with requests with the specified corresponding {@link RequestLogRecord} from
-         * {@link EventLogRecord#getRequestLogRecord()}.
-         * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
-         * EventLogRecord is not written.
+         * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+         * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+         * the REQUESTS table, specified using
+         * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+         * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+         * written.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
@@ -218,10 +248,27 @@ public final class ExecuteOutput {
             return this;
         }
 
+        /**
+         * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
+         * this array is returned to the caller of
+         * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
+         * if the (calling app package, isolated service package) pair is present in an allow list
+         * that permits data to be returned to the caller.
+         *
+         * @hide
+         */
+        @DataClass.Generated.Member
+        public @NonNull Builder setOutputData(@NonNull byte... value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x8;
+            mOutputData = value;
+            return this;
+        }
+
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull ExecuteOutput build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8; // Mark builder used
+            mBuilderFieldsSet |= 0x10; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mRequestLogRecord = null;
@@ -232,15 +279,19 @@ public final class ExecuteOutput {
             if ((mBuilderFieldsSet & 0x4) == 0) {
                 mEventLogRecords = Collections.emptyList();
             }
+            if ((mBuilderFieldsSet & 0x8) == 0) {
+                mOutputData = null;
+            }
             ExecuteOutput o = new ExecuteOutput(
                     mRequestLogRecord,
                     mRenderingConfig,
-                    mEventLogRecords);
+                    mEventLogRecords,
+                    mOutputData);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x8) != 0) {
+            if ((mBuilderFieldsSet & 0x10) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -248,10 +299,10 @@ public final class ExecuteOutput {
     }
 
     @DataClass.Generated(
-            time = 1704831744922L,
+            time = 1706683855882L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nprivate @android.annotation.Nullable byte[] mOutputData\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
