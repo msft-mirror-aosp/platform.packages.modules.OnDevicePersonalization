@@ -93,6 +93,11 @@
                 <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
             </intent-filter>
         </service>
+        <service
+            android:name="com.android.ondevicepersonalization.services.inference.IsolatedModelService"
+            android:isolatedProcess="true"
+            android:exported="false">
+        </service>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <receiver android:name=".OnDevicePersonalizationBroadcastReceiver"

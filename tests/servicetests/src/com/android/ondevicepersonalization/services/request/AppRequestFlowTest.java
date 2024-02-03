@@ -71,6 +71,10 @@ public class AppRequestFlowTest {
 
     @Before
     public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        // Make sure we can access hidden APIs.
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row1 = new ContentValues();

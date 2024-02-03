@@ -43,6 +43,8 @@ public class Constants {
             "android.ondevicepersonalization.extra.data_access_service_binder";
     public static final String EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER =
             "android.ondevicepersonalization.extra.federated_computation_service_binder";
+    public static final String EXTRA_MODEL_SERVICE_BINDER =
+            "android.ondevicepersonalization.extra.model_service_binder";
     public static final String EXTRA_DESTINATION_URL =
             "android.ondevicepersonalization.extra.destination_url";
     public static final String EXTRA_EVENT_PARAMS =
@@ -60,6 +62,17 @@ public class Constants {
             "android.ondevicepersonalization.extra.surface_package_token_string";
     public static final String EXTRA_USER_DATA = "android.ondevicepersonalization.extra.user_data";
     public static final String EXTRA_VALUE = "android.ondevicepersonalization.extra.value";
+    public static final String EXTRA_MODEL_INPUTS =
+            "android.ondevicepersonalization.extra.model_inputs";
+    public static final String EXTRA_MODEL_OUTPUTS =
+            "android.ondevicepersonalization.extra.model_outputs";
+    public static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
+            "enable_ondevicepersonalization_apis";
+
+    // Inference related constants,
+    public static final String EXTRA_INFERENCE_INPUT =
+            "android.ondevicepersonalization.extra.inference_input";
+    public static final String EXTRA_MODEL_ID = "android.ondevicepersonalization.extra.model_id";
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;
@@ -71,6 +84,7 @@ public class Constants {
     public static final int DATA_ACCESS_OP_LOCAL_DATA_REMOVE = 7;
     public static final int DATA_ACCESS_OP_GET_REQUESTS = 8;
     public static final int DATA_ACCESS_OP_GET_JOINED_EVENTS = 9;
+    public static final int DATA_ACCESS_OP_GET_MODEL = 10;
 
     private Constants() {}
 }
