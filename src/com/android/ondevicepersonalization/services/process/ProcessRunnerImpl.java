@@ -159,7 +159,7 @@ public class ProcessRunnerImpl implements ProcessRunner {
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
                             completer.set(new IsolatedServiceInfo(
-                                    startTimeMillis, componentName, pluginController));
+                                    startTimeMillis, componentName, pluginController, /* isolatedService= */ null));
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OdpServiceException(
