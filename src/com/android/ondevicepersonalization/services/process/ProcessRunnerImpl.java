@@ -55,9 +55,8 @@ public class ProcessRunnerImpl implements ProcessRunner {
     public static final String PARAM_OPERATION_KEY = "param.operation";
     public static final String PARAM_SERVICE_INPUT = "param.service_input";
 
-    @NonNull private Context mApplicationContext;
+    @NonNull private final Context mApplicationContext;
 
-    private static volatile ProcessRunnerImpl sProcessRunner;
     private static volatile PluginManager sPluginManager;
 
     static class Injector {
@@ -76,18 +75,17 @@ public class ProcessRunnerImpl implements ProcessRunner {
         mInjector = Objects.requireNonNull(injector);
     }
 
+
+    private static class ProcessRunnerImplLazyInstanceHolder {
+        static final ProcessRunnerImpl LAZY_INSTANCE =
+                new ProcessRunnerImpl(
+                        OnDevicePersonalizationApplication.getAppContext(),
+                        new Injector());
+    }
+
     /** Returns the global ProcessRunner */
     @NonNull public static ProcessRunnerImpl getInstance() {
-        if (sProcessRunner == null) {
-            synchronized (ProcessRunnerImpl.class) {
-                if (sProcessRunner == null) {
-                    sProcessRunner = new ProcessRunnerImpl(
-                            OnDevicePersonalizationApplication.getAppContext(),
-                            new Injector());
-                }
-            }
-        }
-        return sProcessRunner;
+        return ProcessRunnerImplLazyInstanceHolder.LAZY_INSTANCE;
     }
 
     /** Loads a service in an isolated process */
