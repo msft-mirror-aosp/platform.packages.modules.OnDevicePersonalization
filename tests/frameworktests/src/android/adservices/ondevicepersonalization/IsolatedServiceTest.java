@@ -27,6 +27,8 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
@@ -95,6 +97,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -119,6 +122,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -134,6 +138,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -752,5 +757,10 @@ public class IsolatedServiceTest {
             mCallbackErrorCode = errorCode;
             mLatch.countDown();
         }
+    }
+
+    class TestIsolatedModelService extends IIsolatedModelService.Stub {
+        @Override
+        public void runInference(Bundle params, IIsolatedModelServiceCallback callback) {}
     }
 }

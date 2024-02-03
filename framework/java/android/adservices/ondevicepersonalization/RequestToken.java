@@ -18,6 +18,7 @@ package android.adservices.ondevicepersonalization;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -39,6 +40,8 @@ public class RequestToken {
     @Nullable
     private final IFederatedComputeService mFcService;
 
+    @Nullable private final IIsolatedModelService mModelService;
+
     @Nullable
     private final UserData mUserData;
 
@@ -48,9 +51,11 @@ public class RequestToken {
     RequestToken(
             @NonNull IDataAccessService binder,
             @Nullable IFederatedComputeService fcServiceBinder,
+            @Nullable IIsolatedModelService modelServiceBinder,
             @Nullable UserData userData) {
         mDataAccessService = Objects.requireNonNull(binder);
         mFcService = fcServiceBinder;
+        mModelService = modelServiceBinder;
         mUserData = userData;
         mStartTimeMillis = SystemClock.elapsedRealtime();
     }
@@ -65,6 +70,12 @@ public class RequestToken {
     @Nullable
     IFederatedComputeService getFederatedComputeService() {
         return mFcService;
+    }
+
+    /** @hide */
+    @Nullable
+    IIsolatedModelService getModelService() {
+        return mModelService;
     }
 
     /** @hide */
