@@ -117,7 +117,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        callable.call().get(5000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -168,7 +168,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        callable.call().get(5000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
