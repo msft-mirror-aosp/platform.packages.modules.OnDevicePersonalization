@@ -86,7 +86,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
 
             return FluentFuture.from(isolatedServiceFuture)
                     .transform(
-                            (isolatedService) -> new IsolatedServiceInfo(mInjector.getClock().elapsedRealtime(),
+                            (isolatedService) -> new IsolatedServiceInfo(
+                                    mInjector.getClock().elapsedRealtime(),
                                     componentName,
                                     /* pluginController= */ null,
                                     isolatedService), mInjector.getExecutor());
@@ -103,16 +104,20 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
             @NonNull Bundle serviceParams) {
             return CallbackToFutureAdapter.getFuture(
                 completer -> {
-                    isolatedProcessInfo.getIsolatedServiceBinder().getService(Runnable::run).onRequest(Constants.OP_EXECUTE, serviceParams,
-                            new IIsolatedServiceCallback.Stub() {
-                                @Override public void onSuccess(Bundle result) {
-                                    completer.set(result);
+                    isolatedProcessInfo.getIsolatedServiceBinder()
+                            .getService(Runnable::run)
+                            .onRequest(
+                                    operationCode, serviceParams,
+                                    new IIsolatedServiceCallback.Stub() {
+                                        @Override public void onSuccess(Bundle result) {
+                                            completer.set(result);
+                                        }
 
-                                }
-                                @Override public void onError(int errorCode) {
-                                    completer.setException(new OdpServiceException(Constants.STATUS_INTERNAL_ERROR));
-                                }
-                            });
+                                        @Override public void onError(int errorCode) {
+                                            completer.setException(
+                                                    new OdpServiceException(Constants.STATUS_INTERNAL_ERROR));
+                                        }
+                                    });
                     return null;
                 });
     }
@@ -130,7 +135,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         }
     }
 
-    private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(@NonNull Context context, @NonNull ComponentName service) {
+    private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(
+            @NonNull Context context, @NonNull ComponentName service) {
          return AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
                         context,
                         service.getClassName(),
