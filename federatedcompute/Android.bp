@@ -57,7 +57,10 @@ filegroup {
 cc_library_shared {
     name: "libfcp_cpp_dep_jni",
     srcs: [
-        "jni/cpp/*.cc",
+        "jni/cpp/example_iterator_wrapper_impl.cc",
+        "jni/cpp/fl_runner_jni.cc",
+        "jni/cpp/log_manager_wrapper_impl.cc",
+        "jni/cpp/simple_task_environment_wrapper_impl.cc",
         // Add tensorflow java API jni source files
         ":tensorflowlite_jni_src",
     ],
@@ -76,10 +79,36 @@ cc_library_shared {
     header_libs: [
         "libnativehelper_header_only",
         "libeigen",
-        "jni_headers",
     ],
     shared_libs: [
         "liblog",
+        "libcrypto",
+    ],
+    stl: "libc++_static",
+    apex_available: ["com.android.ondevicepersonalization"],
+    sdk_version: "current",
+    min_sdk_version: "Tiramisu",
+    visibility: [
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
+    ],
+    cflags: [
+        "-Wno-unused-parameter",
+    ],
+}
+
+cc_library_shared {
+    name: "libfcp_hpke_jni",
+    srcs: [
+        "jni/cpp/hpke_jni.cc",
+    ],
+    include_dirs: [
+        "packages/modules/OnDevicePersonalization/federatedcompute/jni/include"
+    ],
+    version_script: "jni/jni.lds",
+    header_libs: [
+        "jni_headers",
+    ],
+    shared_libs: [
         "libcrypto",
     ],
     stl: "libc++_static",

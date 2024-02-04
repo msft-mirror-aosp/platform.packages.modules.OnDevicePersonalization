@@ -63,5 +63,6 @@ android_test {
         "libdexmakerjvmtiagent",
         "libstaticjvmtiagent",
         "libfcp_cpp_dep_jni",
+        "libfcp_hpke_jni",
     ],
 }
