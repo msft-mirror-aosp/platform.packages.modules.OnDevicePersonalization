@@ -30,6 +30,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -39,8 +40,10 @@ import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
@@ -48,7 +51,11 @@ import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
+import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -65,7 +72,7 @@ import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class OdpWebViewClientTests {
@@ -77,7 +84,7 @@ public class OdpWebViewClientTests {
             new EventUrlPayload(createEventParameters(), null, null);
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setServicePackageName("servicePackageName")
+            .setServiceName("servicePackageName")
             .setQueryData("query".getBytes(StandardCharsets.UTF_8))
             .build();
     private EventsDao mDao;
@@ -85,12 +92,18 @@ public class OdpWebViewClientTests {
     private OdpWebView mWebView;
     private String mOpenedUrl;
 
+    private CountDownLatch mLatch;
+
     @Before
     public void setup() throws Exception {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         mDao = EventsDao.getInstanceForTest(mContext);
         // Insert query for FK constraint
         mDao.insertQuery(mTestQuery);
+        mLatch = new CountDownLatch(1);
+
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         CountDownLatch latch = new CountDownLatch(1);
         OnDevicePersonalizationExecutors.getHandlerForMainThread().postAtFrontOfQueue(() -> {
@@ -115,6 +128,7 @@ public class OdpWebViewClientTests {
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
+        mLatch.await(5000, TimeUnit.MILLISECONDS);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -127,6 +141,7 @@ public class OdpWebViewClientTests {
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
+        mLatch.await(5000, TimeUnit.MILLISECONDS);
         assertEquals(HttpURLConnection.HTTP_NO_CONTENT, response.getStatusCode());
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
@@ -141,6 +156,7 @@ public class OdpWebViewClientTests {
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
+        mLatch.await(5000, TimeUnit.MILLISECONDS);
         assertEquals(HttpURLConnection.HTTP_OK, response.getStatusCode());
         assertEquals("image/gif", response.getMimeType());
         assertArrayEquals(RESPONSE_BYTES, response.getData().readAllBytes());
@@ -156,10 +172,9 @@ public class OdpWebViewClientTests {
                 mTestEventPayload, landingPage).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
 
-        CountDownLatch latch = new CountDownLatch(1);
-        AtomicBoolean result = new AtomicBoolean(false);
         WebViewClient webViewClient = getWebViewClient();
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
+        mLatch.await(5000, TimeUnit.MILLISECONDS);
         assertEquals(landingPage, mOpenedUrl);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
@@ -172,6 +187,7 @@ public class OdpWebViewClientTests {
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
+        mLatch.await(5000, TimeUnit.MILLISECONDS);
         Cursor result =
                 mDbHelper.getReadableDatabase().query(
                     EventsContract.EventsEntry.TABLE_NAME, null,
@@ -227,6 +243,10 @@ public class OdpWebViewClientTests {
         void openUrl(String url, Context context) {
             mOpenedUrl = url;
         }
+
+        ProcessRunner getProcessRunner() {
+            return new TestProcessRunner();
+        }
     }
 
     private WebViewClient getWebViewClient() {
@@ -263,6 +283,35 @@ public class OdpWebViewClientTests {
             return mLastLoadedUrl;
         }
 
+    }
+
+    class TestProcessRunner implements ProcessRunner {
+
+        ProcessRunner mProcessRunner = ProcessRunnerImpl.getInstance();
+
+        @NonNull
+        @Override
+        public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(@NonNull String taskName,
+                @NonNull ComponentName componentName) {
+            return mProcessRunner.loadIsolatedService(taskName, componentName);
+        }
+
+        @NonNull
+        @Override
+        public ListenableFuture<Bundle> runIsolatedService(
+                @NonNull IsolatedServiceInfo isolatedProcessInfo, int operationCode,
+                @NonNull Bundle serviceParams) {
+            return mProcessRunner.runIsolatedService(isolatedProcessInfo, operationCode,
+                    serviceParams);
+        }
+
+        @NonNull
+        @Override
+        public ListenableFuture<Void> unloadIsolatedService(
+                @NonNull IsolatedServiceInfo isolatedServiceInfo) {
+            mLatch.countDown();
+            return mProcessRunner.unloadIsolatedService(isolatedServiceInfo);
+        }
     }
 
     static class OdpWebResourceRequest implements WebResourceRequest {

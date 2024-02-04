@@ -27,10 +27,13 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.ContentValues;
 import android.federatedcompute.common.TrainingOptions;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
@@ -94,6 +97,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -118,6 +122,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -133,6 +138,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mSelectContentCalled);
@@ -538,7 +544,10 @@ public class IsolatedServiceTest {
     public void testOnWebTrigger() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -555,7 +564,10 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerPropagatesError() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "error")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "error")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -590,7 +602,10 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerThrowsIfDataAccessServiceMissing() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -605,7 +620,10 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerThrowsIfCallbackMissing() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        "http://desturl", "http://regUrl", "com.browser", "abcd")
+                        Uri.parse("http://desturl"),
+                        Uri.parse("http://regUrl"),
+                        "com.browser",
+                        "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -739,5 +757,10 @@ public class IsolatedServiceTest {
             mCallbackErrorCode = errorCode;
             mLatch.countDown();
         }
+    }
+
+    class TestIsolatedModelService extends IIsolatedModelService.Stub {
+        @Override
+        public void runInference(Bundle params, IIsolatedModelServiceCallback callback) {}
     }
 }

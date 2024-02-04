@@ -118,4 +118,9 @@ public class RemoteDataImpl implements KeyValueStore {
             throw new IllegalStateException(e);
         }
     }
+
+    @Override
+    public int getTableId() {
+        return ModelId.TABLE_ID_REMOTE_DATA;
+    }
 }

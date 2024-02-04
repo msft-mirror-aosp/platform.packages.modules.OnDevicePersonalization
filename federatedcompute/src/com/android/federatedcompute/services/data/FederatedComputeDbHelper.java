@@ -153,6 +153,16 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
         LogUtil.d(TAG, "DB upgrade from %d to %d", oldVersion, newVersion);
+        throw new UnsupportedOperationException(
+                "Database upgrade for FederatedCompute is unsupported");
+    }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        LogUtil.d(TAG, "DB downgrade from %d to %d", newVersion, oldVersion);
+        // All data is retained for the package between upgrades and rollbacks. Update the
+        // DB version to the oldVersion, but maintain the data and schema from the new Version. It
+        // is assumed that the new version will be fully backward compatible.
     }
 
     @Override
