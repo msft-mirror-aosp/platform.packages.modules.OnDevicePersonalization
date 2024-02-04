@@ -51,4 +51,11 @@ public interface KeyValueStore {
      */
     @WorkerThread
     @NonNull Set<String> keySet();
+
+    /**
+     * Returns the table id {@link ModelId.TableId} of KeyValueStore implementation.
+     *
+     * @hide
+     */
+    int getTableId();
 }
