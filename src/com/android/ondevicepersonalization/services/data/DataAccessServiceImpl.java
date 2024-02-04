@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.ModelId;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -27,6 +28,7 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
@@ -43,6 +45,7 @@ import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -240,6 +243,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 mInjector.getExecutor().execute(
                         () -> getJoinedEvents(eventTimes[0], eventTimes[1], callback));
                 break;
+            case Constants.DATA_ACCESS_OP_GET_MODEL:
+                ModelId modelId =
+                        Objects.requireNonNull(
+                                params.getParcelable(Constants.EXTRA_MODEL_ID, ModelId.class));
+                mInjector.getExecutor().execute(() -> getModelFileDescriptor(modelId, callback));
+                break;
             default:
                 sendError(callback);
         }
@@ -403,6 +412,42 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     new OdpParceledListSlice<>(joinedLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getModelFileDescriptor(
+            ModelId modelId, @NonNull IDataAccessServiceCallback callback) {
+        try {
+            byte[] modelData = null;
+            switch (modelId.getTableId()) {
+                case ModelId.TABLE_ID_REMOTE_DATA:
+                    modelData = mVendorDataDao.readSingleVendorDataRow(modelId.getKey());
+                    break;
+                case ModelId.TABLE_ID_LOCAL_DATA:
+                    modelData = mLocalDataDao.readSingleLocalDataRow(modelId.getKey());
+                    break;
+                default:
+                    throw new IllegalStateException(
+                            "Unsupported table name " + modelId.getTableId());
+            }
+
+            if (modelData == null) {
+                sLogger.e(TAG + " Failed to find model data from database: " + modelId.getKey());
+                sendError(callback);
+                return;
+            }
+            String modelFile =
+                    IoUtils.writeToTempFile(
+                            modelId.getKey() + "_" + mInjector.getTimeMillis(), modelData);
+            ParcelFileDescriptor modelFd =
+                    IoUtils.createFileDescriptor(modelFile, ParcelFileDescriptor.MODE_READ_ONLY);
+
+            Bundle result = new Bundle();
+            result.putParcelable(Constants.EXTRA_RESULT, modelFd);
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sLogger.e(TAG + " Failed to find model data: " + modelId.getKey(), e);
             sendError(callback);
         }
     }
