@@ -113,35 +113,22 @@ public class WebTriggerFlow {
         }
     }
 
-    @NonNull private final Uri mDestinationUrl;
-    @NonNull private final String mTriggerHeader;
-    @NonNull private final String mAppPackageName;
+    @NonNull private final Bundle mParams;
     @NonNull private final Context mContext;
     @NonNull private final Injector mInjector;
 
     public WebTriggerFlow(
-            @NonNull Uri destinationUrl,
-            @NonNull String triggerHeader,
-            @NonNull String appPackageName,
+            @NonNull Bundle params,
             @NonNull Context context) {
-        this(
-                destinationUrl,
-                triggerHeader,
-                appPackageName,
-                context,
-                new Injector());
+        this(params, context, new Injector());
     }
 
     @VisibleForTesting
     WebTriggerFlow(
-            @NonNull Uri destinationUrl,
-            @NonNull String triggerHeader,
-            @NonNull String appPackageName,
+            @NonNull Bundle params,
             @NonNull Context context,
             @NonNull Injector injector) {
-        mDestinationUrl = Objects.requireNonNull(destinationUrl);
-        mTriggerHeader = Objects.requireNonNull(triggerHeader);
-        mAppPackageName = Objects.requireNonNull(appPackageName);
+        mParams = params;
         mContext = Objects.requireNonNull(context);
         mInjector = Objects.requireNonNull(injector);
     }
@@ -153,6 +140,7 @@ public class WebTriggerFlow {
                     new IllegalStateException("Disabled by kill switch"));
         }
         try {
+
             OnDevicePersonalizationPermissions.enforceCallingPermission(
                     mContext, OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT);
         } catch (Exception e) {
@@ -164,13 +152,19 @@ public class WebTriggerFlow {
 
     private ListenableFuture<Void> processRequest() {
         try {
-            if (mDestinationUrl.toString().isBlank()
-                    || mTriggerHeader.isBlank()) {
+            Uri destinationUrl = Objects.requireNonNull(mParams.getParcelable(
+                    Constants.EXTRA_DESTINATION_URL, Uri.class));
+            String triggerHeader = Objects.requireNonNull(mParams.getString(
+                    Constants.EXTRA_MEASUREMENT_DATA));
+            String appPackageName = Objects.requireNonNull(
+                    mParams.getString(Constants.EXTRA_APP_PACKAGE_NAME));
+            if (destinationUrl.toString().isBlank() || appPackageName.isBlank()
+                    || triggerHeader.isBlank()) {
                 return Futures.immediateFailedFuture(
-                        new IllegalArgumentException("Missing url or header"));
+                    new IllegalArgumentException("Missing url or header"));
             }
 
-            JSONObject json = new JSONObject(mTriggerHeader);
+            JSONObject json = new JSONObject(triggerHeader);
             ParsedTriggerHeader parsedHeader = new ParsedTriggerHeader(
                     json.optString(PACKAGE_NAME_KEY),
                     json.optString(CLASS_NAME_KEY),
@@ -211,7 +205,8 @@ public class WebTriggerFlow {
 
             ListenableFuture<Void> resultFuture =
                     FluentFuture.from(loadFuture).transformAsync(
-                            result -> runIsolatedService(parsedHeader, result),
+                            result -> runIsolatedService(
+                                    destinationUrl, appPackageName, parsedHeader, result),
                             mInjector.getExecutor())
                     .transform(
                         result -> result.getParcelable(
@@ -241,13 +236,15 @@ public class WebTriggerFlow {
     }
 
     private ListenableFuture<Bundle> runIsolatedService(
+            Uri destinationUrl,
+            String appPackageName,
             ParsedTriggerHeader parsedHeader,
             IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": runIsolatedService() started.");
         Bundle serviceParams = new Bundle();
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        mDestinationUrl, mAppPackageName, parsedHeader.mData)
+                        destinationUrl, appPackageName, parsedHeader.mData)
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(

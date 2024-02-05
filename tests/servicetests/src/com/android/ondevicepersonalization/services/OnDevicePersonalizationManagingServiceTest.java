@@ -23,13 +23,13 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.RegisterMeasurementEventInput;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
-import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -384,46 +384,40 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
-    public void testEnabledGlobalKillSwitchOnRegisterWebTrigger() throws Exception {
+    public void testEnabledGlobalKillSwitchOnRegisterMeasurementEvent() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
             assertThrows(
                     IllegalStateException.class,
                     () ->
-                    mService.registerWebTrigger(
-                        Uri.parse("http://desturl"),
-                        Uri.parse("http://regurl"),
-                        "header",
-                        "com.example.browser",
+                    mService.registerMeasurementEvent(
+                        RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER,
+                        Bundle.EMPTY,
                         new CallerMetadata.Builder().build(),
-                        new RegisterWebTriggerCallback()));
+                        new RegisterMeasurementEventCallback()));
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }
     }
 
     @Test
-    public void testRegisterWebTriggerInvokesWebTriggerFlow() throws Exception {
-        mService.registerWebTrigger(
-                Uri.parse("http://desturl"),
-                Uri.parse("http://regurl"),
-                "header",
-                "com.example.browser",
+    public void testRegisterMeasurementEventInvokesWebTriggerFlow() throws Exception {
+        mService.registerMeasurementEvent(
+                RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER,
+                Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
-                new RegisterWebTriggerCallback());
+                new RegisterMeasurementEventCallback());
         assertTrue(mWebTriggerFlowStarted);
     }
 
     @Test
-    public void testRegisterWebTriggerPropagatesError() throws Exception {
+    public void testRegisterMeasurementEventPropagatesError() throws Exception {
         mTestInjector.mWebTriggerFlowResult =
                 Futures.immediateFailedFuture(new IllegalStateException());
-        var callback = new RegisterWebTriggerCallback();
-        mService.registerWebTrigger(
-                Uri.parse("http://desturl"),
-                Uri.parse("http://regurl"),
-                "header",
-                "com.example.browser",
+        var callback = new RegisterMeasurementEventCallback();
+        mService.registerMeasurementEvent(
+                RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER,
+                Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
                 callback);
         assertTrue(mWebTriggerFlowStarted);
@@ -459,9 +453,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         ));
 
         assertNotNull(injector.getWebTriggerFlow(
-                Uri.parse("http://example.com"),
-                "header",
-                "com.example.browser",
+                Bundle.EMPTY,
                 mContext,
                 0L));
     }
@@ -511,13 +503,10 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         WebTriggerFlow getWebTriggerFlow(
-                Uri destinationUrl,
-                String triggerHeader,
-                String appPackageName,
+                Bundle params,
                 Context context,
                 long startTimeMillis) {
-            return new WebTriggerFlow(destinationUrl, appPackageName,
-                    triggerHeader, context) {
+            return new WebTriggerFlow(params, context) {
                 @Override public ListenableFuture<Void> run() {
                     mWebTriggerFlowStarted = true;
                     return mWebTriggerFlowResult;
@@ -578,7 +567,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
     }
 
-    static class RegisterWebTriggerCallback extends IRegisterWebTriggerCallback.Stub {
+    static class RegisterMeasurementEventCallback extends IRegisterMeasurementEventCallback.Stub {
         public boolean mError = false;
         public int mErrorCode = 0;
         private CountDownLatch mLatch = new CountDownLatch(1);

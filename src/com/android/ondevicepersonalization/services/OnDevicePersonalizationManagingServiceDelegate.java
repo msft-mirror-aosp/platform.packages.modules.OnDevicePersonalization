@@ -18,16 +18,17 @@ package com.android.ondevicepersonalization.services;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.RegisterMeasurementEventInput;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -81,13 +82,8 @@ public class OnDevicePersonalizationManagingServiceDelegate
         }
 
         WebTriggerFlow getWebTriggerFlow(
-                Uri destinationUrl,
-                String triggerHeader,
-                String appPackageName,
-                Context context,
-                long startTimeMillis) {
-            return new WebTriggerFlow(destinationUrl,
-                    triggerHeader, appPackageName, context);
+                Bundle params, Context context, long startTimeMillis) {
+            return new WebTriggerFlow(params, context);
         }
 
         ListeningExecutorService getExecutor() {
@@ -199,29 +195,27 @@ public class OnDevicePersonalizationManagingServiceDelegate
         Trace.endSection();
     }
 
+    // TODO(b/301732670): Move to a new service.
     @Override
-    public void registerWebTrigger(
-            @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
-            @NonNull String triggerHeader,
-            @NonNull String appPackageName,
+    public void registerMeasurementEvent(
+            @NonNull int measurementEventType,
+            @NonNull Bundle params,
             @NonNull CallerMetadata metadata,
-            @NonNull IRegisterWebTriggerCallback callback
+            @NonNull IRegisterMeasurementEventCallback callback
     ) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
-        Trace.beginSection("OdpManagingServiceDelegate#RegisterWebTrigger");
-        Objects.requireNonNull(destinationUrl);
-        Objects.requireNonNull(triggerHeader);
-        Objects.requireNonNull(appPackageName);
+        Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
+        if (measurementEventType != RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER) {
+            throw new IllegalArgumentException("measurementEventType");
+        }
+        Objects.requireNonNull(params);
         Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
         WebTriggerFlow flow = mInjector.getWebTriggerFlow(
-                destinationUrl,
-                triggerHeader,
-                appPackageName,
+                params,
                 mContext,
                 metadata.getStartTimeMillis());
         ListenableFuture<Void> result = flow.run();
