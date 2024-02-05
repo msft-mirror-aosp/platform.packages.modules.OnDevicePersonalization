@@ -28,9 +28,6 @@ public final class PhFlags implements Flags {
     // Killswitch keys
     static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
 
-    static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
-            "enable_ondevicepersonalization_apis";
-
     static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
             "enable_personalization_status_override";
 
@@ -44,6 +41,10 @@ public final class PhFlags implements Flags {
 
     static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
             "shared_isolated_process_feature_enabled";
+
+    static final String KEY_CALLER_APP_ALLOW_LIST = "caller_app_allow_list";
+
+    static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -63,18 +64,6 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_GLOBAL_KILL_SWITCH,
                 /* defaultValue= */ GLOBAL_KILL_SWITCH);
-    }
-
-    @Override
-    public boolean isOnDevicePersonalizationApisEnabled() {
-        if (getGlobalKillSwitch()) {
-            return false;
-        }
-        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS,
-                /* defaultValue= */ ENABLE_ONDEVICEPERSONALIZATION_APIS);
     }
 
     @Override
@@ -124,5 +113,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+    }
+
+    @Override
+    public String getCallerAppAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_CALLER_APP_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_CALLER_APP_ALLOW_LIST);
+    }
+
+    @Override
+    public String getIsolatedServiceAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
     }
 }

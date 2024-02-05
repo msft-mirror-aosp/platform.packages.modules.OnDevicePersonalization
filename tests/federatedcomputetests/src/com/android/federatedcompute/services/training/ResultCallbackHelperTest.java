@@ -61,6 +61,9 @@ public final class ResultCallbackHelperTest {
     private static final byte[] SELECTION_CRITERIA = new byte[] {10, 0, 1};
     private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final String POPULATION_NAME = "population_name";
+    private static final String OWNER_ID =
+            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final String TASK_NAME = "task_name";
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
@@ -75,6 +78,8 @@ public final class ResultCallbackHelperTest {
                     .intervalOptions(INTERVAL_OPTIONS)
                     .constraints(TRAINING_CONSTRAINTS)
                     .serverAddress("server_address")
+                    .ownerId(OWNER_ID)
+                    .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                     .creationTime(123L)
                     .lastScheduledTime(123L)
                     .earliestNextRunTime(123L)

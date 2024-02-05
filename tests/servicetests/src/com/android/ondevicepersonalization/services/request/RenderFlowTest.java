@@ -33,6 +33,7 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -66,8 +67,10 @@ public class RenderFlowTest {
     private int mCallbackErrorCode;
 
     @Before
-    public void setUp() {
+    public void setUp() throws Exception {
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
     }
 

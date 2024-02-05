@@ -52,14 +52,25 @@ public final class ExecuteOutputParcel implements Parcelable {
      * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      * EventLogRecord is not written.
      *
-     * @hide
      */
     @DataClass.PluralOf("eventLogRecord")
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
 
+    /**
+     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
+     * this array is returned to the caller of
+     * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
+     * if the (calling app package, isolated service package) pair is present in an allow list
+     * that permits data to be returned to the caller.
+     *
+     * @hide
+     */
+    @Nullable private byte[] mOutputData = null;
+
     /** @hide */
     public ExecuteOutputParcel(@NonNull ExecuteOutput value) {
-        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords());
+        this(value.getRequestLogRecord(), value.getRenderingConfig(), value.getEventLogRecords(),
+                value.getOutputData());
     }
 
 
@@ -93,17 +104,25 @@ public final class ExecuteOutputParcel implements Parcelable {
      *   {@link EventLogRecord#getRequestLogRecord()}.
      *   If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      *   EventLogRecord is not written.
+     * @param outputData
+     *   A byte array returned by an {@link IsolatedService} to a calling app. The contents of
+     *   this array is returned to the caller of
+     *   {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
+     *   if the (calling app package, isolated service package) pair is present in an allow list
+     *   that permits data to be returned to the caller.
      */
     @DataClass.Generated.Member
     public ExecuteOutputParcel(
             @Nullable RequestLogRecord requestLogRecord,
             @Nullable RenderingConfig renderingConfig,
-            @NonNull List<EventLogRecord> eventLogRecords) {
+            @NonNull List<EventLogRecord> eventLogRecords,
+            @Nullable byte[] outputData) {
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfig = renderingConfig;
         this.mEventLogRecords = eventLogRecords;
         AnnotationValidations.validate(
                 NonNull.class, null, mEventLogRecords);
+        this.mOutputData = outputData;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -133,12 +152,24 @@ public final class ExecuteOutputParcel implements Parcelable {
      * {@link EventLogRecord#getRequestLogRecord()}.
      * If the event does not contain a {@link RequestLogRecord} emitted by this package, the
      * EventLogRecord is not written.
-     *
-     * @hide
      */
     @DataClass.Generated.Member
     public @NonNull List<EventLogRecord> getEventLogRecords() {
         return mEventLogRecords;
+    }
+
+    /**
+     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
+     * this array is returned to the caller of
+     * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
+     * if the (calling app package, isolated service package) pair is present in an allow list
+     * that permits data to be returned to the caller.
+     *
+     * @hide
+     */
+    @DataClass.Generated.Member
+    public @Nullable byte[] getOutputData() {
+        return mOutputData;
     }
 
     @Override
@@ -154,6 +185,7 @@ public final class ExecuteOutputParcel implements Parcelable {
         if (mRequestLogRecord != null) dest.writeTypedObject(mRequestLogRecord, flags);
         if (mRenderingConfig != null) dest.writeTypedObject(mRenderingConfig, flags);
         dest.writeParcelableList(mEventLogRecords, flags);
+        dest.writeByteArray(mOutputData);
     }
 
     @Override
@@ -172,12 +204,14 @@ public final class ExecuteOutputParcel implements Parcelable {
         RenderingConfig renderingConfig = (flg & 0x2) == 0 ? null : (RenderingConfig) in.readTypedObject(RenderingConfig.CREATOR);
         List<EventLogRecord> eventLogRecords = new java.util.ArrayList<>();
         in.readParcelableList(eventLogRecords, EventLogRecord.class.getClassLoader());
+        byte[] outputData = in.createByteArray();
 
         this.mRequestLogRecord = requestLogRecord;
         this.mRenderingConfig = renderingConfig;
         this.mEventLogRecords = eventLogRecords;
         AnnotationValidations.validate(
                 NonNull.class, null, mEventLogRecords);
+        this.mOutputData = outputData;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -197,10 +231,10 @@ public final class ExecuteOutputParcel implements Parcelable {
     };
 
     @DataClass.Generated(
-            time = 1704832029278L,
+            time = 1706684633171L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutputParcel.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass ExecuteOutputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genBuilder=false)")
+            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nprivate @android.annotation.Nullable byte[] mOutputData\nclass ExecuteOutputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genBuilder=false)")
     @Deprecated
     private void __metadata() {}
 

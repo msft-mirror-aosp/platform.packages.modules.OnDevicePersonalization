@@ -92,8 +92,8 @@ public class ODPAuthorizationTokenDao {
         }
 
         ContentValues values = new ContentValues();
-        values.put(ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER,
-                authorizationToken.getAdopterIdentifier());
+        values.put(ODPAuthorizationTokenColumns.OWNER_IDENTIFIER,
+                authorizationToken.getOwnerIdentifier());
         values.put(ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN,
                 authorizationToken.getAuthorizationToken());
         values.put(ODPAuthorizationTokenColumns.CREATION_TIME,
@@ -110,28 +110,44 @@ public class ODPAuthorizationTokenDao {
 
     /** Get an ODP adopter's unexpired authorization token.
      * @return an unexpired authorization token. */
-    public ODPAuthorizationToken getUnexpiredAuthorizationToken(String adopterIdentifier) {
+    public ODPAuthorizationToken getUnexpiredAuthorizationToken(String ownerIdentifier) {
         String selection = ODPAuthorizationTokenColumns.EXPIRY_TIME + " > ? " + "AND "
-                + ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER + " = ?";
-        String[] selectionArgs = {String.valueOf(mClock.currentTimeMillis()), adopterIdentifier};
+                + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER + " = ?";
+        String[] selectionArgs = {String.valueOf(mClock.currentTimeMillis()), ownerIdentifier};
         String orderBy = ODPAuthorizationTokenColumns.EXPIRY_TIME + " DESC";
         return readTokenFromDatabase(selection, selectionArgs, orderBy);
     }
 
     /** Delete an ODP adopter's authorization token.
      * @return the number of rows deleted. */
-    public int deleteAuthorizationToken(String adopterIdentifier) {
+    public int deleteAuthorizationToken(String ownerIdentifier) {
         SQLiteDatabase db = getWritableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
-        String whereClause = ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER + " = ?";
-        String[] whereArgs = {adopterIdentifier};
+        String whereClause = ODPAuthorizationTokenColumns.OWNER_IDENTIFIER + " = ?";
+        String[] whereArgs = {ownerIdentifier};
         int deletedRows = db.delete(ODP_AUTHORIZATION_TOKEN_TABLE, whereClause, whereArgs);
-        LogUtil.d(TAG, "Deleted %s expired tokens for %s from database", deletedRows,
-                adopterIdentifier);
+        LogUtil.d(TAG, "Deleted %d expired tokens for %s from database", deletedRows,
+                ownerIdentifier);
         return deletedRows;
     }
+
+
+    /** Batch delete all expired authorization tokens.
+     * @return the number of rows deleted. */
+    public int deleteExpiredAuthorizationTokens() {
+        SQLiteDatabase db = getWritableDatabase();
+        if (db == null) {
+            throw new SQLiteException(TAG + ": Failed to open database.");
+        }
+        String whereClause = ODPAuthorizationTokenColumns.EXPIRY_TIME + " < ?";
+        String[] whereArgs = { String.valueOf(mClock.currentTimeMillis()) };
+        int deletedRows = db.delete(ODP_AUTHORIZATION_TOKEN_TABLE, whereClause, whereArgs);
+        LogUtil.d(TAG, "Deleted %d expired tokens", deletedRows);
+        return deletedRows;
+    }
+
 
 
     private ODPAuthorizationToken readTokenFromDatabase(
@@ -142,7 +158,7 @@ public class ODPAuthorizationTokenDao {
         }
 
         String[] selectColumns = {
-                ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER,
+                ODPAuthorizationTokenColumns.OWNER_IDENTIFIER,
                 ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN,
                 ODPAuthorizationTokenColumns.CREATION_TIME,
                 ODPAuthorizationTokenColumns.EXPIRY_TIME,
@@ -170,7 +186,7 @@ public class ODPAuthorizationTokenDao {
                         new ODPAuthorizationToken.Builder(
                                 cursor.getString(
                                         cursor.getColumnIndexOrThrow(
-                                                ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER)),
+                                                ODPAuthorizationTokenColumns.OWNER_IDENTIFIER)),
                                 cursor.getString(
                                         cursor.getColumnIndexOrThrow(
                                                 ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN)),

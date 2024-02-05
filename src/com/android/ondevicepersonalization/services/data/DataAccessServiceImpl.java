@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.ModelId;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -27,10 +28,12 @@ import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -42,6 +45,7 @@ import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -51,6 +55,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -64,7 +69,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final Context mApplicationContext;
     @NonNull
     private final String mServicePackageName;
-    private final OnDevicePersonalizationVendorDataDao mVendorDataDao;
+    @Nullable
+    private OnDevicePersonalizationVendorDataDao mVendorDataDao = null;
     @Nullable
     private final OnDevicePersonalizationLocalDataDao mLocalDataDao;
     @Nullable
@@ -73,13 +79,24 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final boolean mIncludeEventData;
     @NonNull
     private final Injector mInjector;
+    private Map<String, byte[]> mRemoteData = null;
 
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
             boolean includeLocalData,
             boolean includeEventData) {
-        this(servicePackageName, applicationContext, includeLocalData, includeEventData,
+        this(servicePackageName, applicationContext, null, includeLocalData, includeEventData,
+                new Injector());
+    }
+
+    public DataAccessServiceImpl(
+            @NonNull String servicePackageName,
+            @NonNull Context applicationContext,
+            @NonNull Map<String, byte[]> remoteData,
+            boolean includeLocalData,
+            boolean includeEventData) {
+        this(servicePackageName, applicationContext, remoteData, includeLocalData, includeEventData,
                 new Injector());
     }
 
@@ -87,6 +104,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     public DataAccessServiceImpl(
             @NonNull String servicePackageName,
             @NonNull Context applicationContext,
+            Map<String, byte[]> remoteData,
             boolean includeLocalData,
             boolean includeEventData,
             @NonNull Injector injector) {
@@ -94,9 +112,14 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         mServicePackageName = Objects.requireNonNull(servicePackageName, "servicePackageName");
         mInjector = Objects.requireNonNull(injector, "injector");
         try {
-            mVendorDataDao = mInjector.getVendorDataDao(
-                    mApplicationContext, servicePackageName,
-                    PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+            if (remoteData != null) {
+                // Use provided remoteData instead of vendorData
+                mRemoteData = new HashMap<>(remoteData);
+            } else {
+                mVendorDataDao = mInjector.getVendorDataDao(
+                        mApplicationContext, servicePackageName,
+                        PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+            }
             mIncludeLocalData = includeLocalData;
             if (includeLocalData) {
                 mLocalDataDao = mInjector.getLocalDataDao(
@@ -127,13 +150,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         sLogger.d(TAG + ": onRequest: op=" + operation + " params: " + params.toString());
         switch (operation) {
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_LOOKUP:
-                String[] lookupKeys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                if (lookupKeys == null) {
-                    throw new IllegalArgumentException("Missing lookup keys.");
+                String lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                if (lookupKey == null || lookupKey.isEmpty()) {
+                    throw new IllegalArgumentException("Missing lookup key.");
                 }
                 mInjector.getExecutor().execute(
                         () -> remoteDataLookup(
-                                lookupKeys, callback));
+                                lookupKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_REMOTE_DATA_KEYSET:
                 mInjector.getExecutor().execute(
@@ -143,13 +166,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 if (!mIncludeLocalData) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
-                lookupKeys = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                if (lookupKeys == null) {
-                    throw new IllegalArgumentException("Missing lookup keys.");
+                lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                if (lookupKey == null || lookupKey.isEmpty()) {
+                    throw new IllegalArgumentException("Missing lookup key.");
                 }
                 mInjector.getExecutor().execute(
                         () -> localDataLookup(
-                                lookupKeys, callback));
+                                lookupKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET:
                 if (!mIncludeLocalData) {
@@ -162,25 +185,26 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 if (!mIncludeLocalData) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
-                String[] putKey = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                byte[] value = params.getByteArray(Constants.EXTRA_VALUE);
-                if (value == null
-                        || putKey == null || putKey.length != 1 || putKey[0] == null) {
+                String putKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                ByteArrayParceledSlice parceledValue = params.getParcelable(
+                        Constants.EXTRA_VALUE, ByteArrayParceledSlice.class);
+                if (parceledValue == null
+                        || putKey == null || putKey.isEmpty()) {
                     throw new IllegalArgumentException("Invalid key or value for put.");
                 }
                 mInjector.getExecutor().execute(
-                        () -> localDataPut(putKey[0], value, callback));
+                        () -> localDataPut(putKey, parceledValue, callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE:
                 if (!mIncludeLocalData) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
-                String[] deleteKey = params.getStringArray(Constants.EXTRA_LOOKUP_KEYS);
-                if (deleteKey == null || deleteKey.length != 1 || deleteKey[0] == null) {
+                String deleteKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
+                if (deleteKey == null || deleteKey.isEmpty()) {
                     throw new IllegalArgumentException("Invalid key provided for delete.");
                 }
                 mInjector.getExecutor().execute(
-                        () -> localDataDelete(deleteKey[0], callback));
+                        () -> localDataDelete(deleteKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_EVENT_URL:
                 PersistableBundle eventParams = Objects.requireNonNull(params.getParcelable(
@@ -219,6 +243,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 mInjector.getExecutor().execute(
                         () -> getJoinedEvents(eventTimes[0], eventTimes[1], callback));
                 break;
+            case Constants.DATA_ACCESS_OP_GET_MODEL:
+                ModelId modelId =
+                        Objects.requireNonNull(
+                                params.getParcelable(Constants.EXTRA_MODEL_ID, ModelId.class));
+                mInjector.getExecutor().execute(() -> getModelFileDescriptor(modelId, callback));
+                break;
             default:
                 sendError(callback);
         }
@@ -226,8 +256,13 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
 
     private void remoteDataKeyset(@NonNull IDataAccessServiceCallback callback) {
         Bundle result = new Bundle();
-        result.putSerializable(Constants.EXTRA_RESULT,
-                new HashSet<>(mVendorDataDao.readAllVendorDataKeys()));
+        HashSet<String> keyset;
+        if (mRemoteData != null) {
+            keyset = new HashSet<>(mRemoteData.keySet());
+        } else {
+            keyset = new HashSet<>(mVendorDataDao.readAllVendorDataKeys());
+        }
+        result.putSerializable(Constants.EXTRA_RESULT, keyset);
         sendResult(result, callback);
     }
 
@@ -238,45 +273,47 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         sendResult(result, callback);
     }
 
-    private void remoteDataLookup(String[] keys, @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> vendorData = new HashMap<>();
+    private void remoteDataLookup(String key, @NonNull IDataAccessServiceCallback callback) {
         try {
-            for (String key : keys) {
-                vendorData.put(key, mVendorDataDao.readSingleVendorDataRow(key));
+            byte[] data;
+            if (mRemoteData != null) {
+                data = mRemoteData.get(key);
+            } else {
+                data = mVendorDataDao.readSingleVendorDataRow(key);
             }
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, vendorData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
         }
     }
 
-    private void localDataLookup(String[] keys, @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> localData = new HashMap<>();
+    private void localDataLookup(String key, @NonNull IDataAccessServiceCallback callback) {
         try {
-            for (String key : keys) {
-                localData.put(key, mLocalDataDao.readSingleLocalDataRow(key));
-            }
+            byte[] data = mLocalDataDao.readSingleLocalDataRow(key);
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, localData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(data));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
         }
     }
 
-    private void localDataPut(String key, byte[] data,
+    private void localDataPut(String key, ByteArrayParceledSlice parceledData,
             @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> localData = new HashMap<>();
         try {
-            localData.put(key, mLocalDataDao.readSingleLocalDataRow(key));
+            byte[] data = parceledData.getByteArray();
+            byte[] existingData = mLocalDataDao.readSingleLocalDataRow(key);
             if (!mLocalDataDao.updateOrInsertLocalData(
                     new LocalData.Builder().setKey(key).setData(data).build())) {
                 sendError(callback);
             }
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, localData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingData));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
@@ -284,12 +321,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     }
 
     private void localDataDelete(String key, @NonNull IDataAccessServiceCallback callback) {
-        HashMap<String, byte[]> localData = new HashMap<>();
         try {
-            localData.put(key, mLocalDataDao.readSingleLocalDataRow(key));
+            byte[] existingData = mLocalDataDao.readSingleLocalDataRow(key);
             mLocalDataDao.deleteLocalDataRow(key);
             Bundle result = new Bundle();
-            result.putSerializable(Constants.EXTRA_RESULT, localData);
+            result.putParcelable(
+                    Constants.EXTRA_RESULT, new ByteArrayParceledSlice(existingData));
             sendResult(result, callback);
         } catch (Exception e) {
             sendError(callback);
@@ -375,6 +412,42 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     new OdpParceledListSlice<>(joinedLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getModelFileDescriptor(
+            ModelId modelId, @NonNull IDataAccessServiceCallback callback) {
+        try {
+            byte[] modelData = null;
+            switch (modelId.getTableId()) {
+                case ModelId.TABLE_ID_REMOTE_DATA:
+                    modelData = mVendorDataDao.readSingleVendorDataRow(modelId.getKey());
+                    break;
+                case ModelId.TABLE_ID_LOCAL_DATA:
+                    modelData = mLocalDataDao.readSingleLocalDataRow(modelId.getKey());
+                    break;
+                default:
+                    throw new IllegalStateException(
+                            "Unsupported table name " + modelId.getTableId());
+            }
+
+            if (modelData == null) {
+                sLogger.e(TAG + " Failed to find model data from database: " + modelId.getKey());
+                sendError(callback);
+                return;
+            }
+            String modelFile =
+                    IoUtils.writeToTempFile(
+                            modelId.getKey() + "_" + mInjector.getTimeMillis(), modelData);
+            ParcelFileDescriptor modelFd =
+                    IoUtils.createFileDescriptor(modelFile, ParcelFileDescriptor.MODE_READ_ONLY);
+
+            Bundle result = new Bundle();
+            result.putParcelable(Constants.EXTRA_RESULT, modelFd);
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sLogger.e(TAG + " Failed to find model data: " + modelId.getKey(), e);
             sendError(callback);
         }
     }

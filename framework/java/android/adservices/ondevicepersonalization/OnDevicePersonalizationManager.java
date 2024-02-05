@@ -16,28 +16,32 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT;
 
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.annotation.RequiresPermission;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.Uri;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
-import android.os.RemoteException;
 import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -52,10 +56,8 @@ import java.util.concurrent.Executor;
  * persistent results to on-device storage which can be consumed by Federated Analytics for
  * cross-device statistical analysis or by Federated Learning for model training. The displayed
  * content and the persistent output are both not directly accessible by the calling app.
- *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_SERVICE =
@@ -72,8 +74,8 @@ public class OnDevicePersonalizationManager {
 
     /** @hide */
     public OnDevicePersonalizationManager(Context context) {
-        mContext = context;
-        this.mServiceBinder =
+        this(
+                context,
                 AbstractServiceBinder.getServiceBinderByIntent(
                         context,
                         INTENT_FILTER_ACTION,
@@ -81,7 +83,16 @@ public class OnDevicePersonalizationManager {
                                 ODP_MANAGING_SERVICE_PACKAGE_SUFFIX,
                                 ALT_ODP_MANAGING_SERVICE_PACKAGE_SUFFIX),
                         SdkLevel.isAtLeastU() ? Context.BIND_ALLOW_ACTIVITY_STARTS : 0,
-                        IOnDevicePersonalizationManagingService.Stub::asInterface);
+                        IOnDevicePersonalizationManagingService.Stub::asInterface));
+    }
+
+    /** @hide */
+    @VisibleForTesting
+    public OnDevicePersonalizationManager(
+            Context context,
+            AbstractServiceBinder<IOnDevicePersonalizationManagingService> serviceBinder) {
+        mContext = context;
+        mServiceBinder = serviceBinder;
     }
 
     /**
@@ -98,15 +109,14 @@ public class OnDevicePersonalizationManager {
      *     {@link IsolatedService}. The expected contents of this parameter are defined
      *     by the{@link IsolatedService}. The platform does not interpret this parameter.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This returns a list of {@link SurfacePackageToken} objects, each of which is
+     * @param receiver This returns a {@link SurfacePackageToken} object, which is
      *     an opaque reference to a {@link RenderingConfig} returned by an
      *     {@link IsolatedService}, or an {@link Exception} on failure. The returned
      *     {@link SurfacePackageToken} objects can be used in a subsequent
      *     {@link #requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, Executor,
-     *     OutcomeReceiver)} call to display the result in a view. The calling app and
-     *     the {@link IsolatedService} must agree on the expected size of this list.
-     *     An entry in the returned list of {@link SurfacePackageToken} objects may be null to
-     *     indicate that the service has no output for that specific surface.
+     *     OutcomeReceiver)} call to display the result in a view. The returned
+     *     {@link SurfacePackageToken} may be null to indicate that no output is expected to be
+     *     displayed for this request.
      *
      *     In case of an error, the receiver returns one of the following exceptions:
      *     Returns a {@link android.content.pm.PackageManager.NameNotFoundException} if the handler
@@ -118,7 +128,7 @@ public class OnDevicePersonalizationManager {
             @NonNull ComponentName handler,
             @NonNull PersistableBundle params,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<List<SurfacePackageToken>, Exception> receiver
+            @NonNull OutcomeReceiver<SurfacePackageToken, Exception> receiver
     ) {
         Objects.requireNonNull(handler);
         Objects.requireNonNull(params);
@@ -133,19 +143,18 @@ public class OnDevicePersonalizationManager {
             IExecuteCallback callbackWrapper = new IExecuteCallback.Stub() {
                 @Override
                 public void onSuccess(
-                        @NonNull List<String> tokenStrings) {
+                        Bundle callbackResult) {
                     executor.execute(() -> {
                         try {
-                            ArrayList<SurfacePackageToken> tokens =
-                                    new ArrayList<>(tokenStrings.size());
-                            for (String tokenString : tokenStrings) {
-                                if (tokenString == null) {
-                                    tokens.add(null);
-                                } else {
-                                    tokens.add(new SurfacePackageToken(tokenString));
+                            SurfacePackageToken token = null;
+                            if (callbackResult != null) {
+                                String tokenString = callbackResult.getString(
+                                        Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+                                if (tokenString != null && !tokenString.isBlank()) {
+                                    token = new SurfacePackageToken(tokenString);
                                 }
                             }
-                            receiver.onResult(tokens);
+                            receiver.onResult(token);
                         } catch (Exception e) {
                             receiver.onError(e);
                         }
@@ -165,8 +174,10 @@ public class OnDevicePersonalizationManager {
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+        } catch (IllegalArgumentException | NullPointerException  e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
         }
     }
 
@@ -239,8 +250,66 @@ public class OnDevicePersonalizationManager {
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (RemoteException e) {
-            receiver.onError(new IllegalStateException(e));
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
+        }
+    }
+
+    /**
+     * Registers a web trigger.
+     *
+     * @param destinationUrl the URL of the web page where the triggering event occurred.
+     * @param registrationUrl the URL which returned the triggering data.
+     * @param triggerHeader the payload returned by the registrationUrl in the Odp trigger header.
+     * @param appPackageName the browser app which showed the page where the triggering event
+     *     occurred.
+     * @param executor the {@link Executor} on which to invoke the callback
+     * @param receiver This either returns {@code null} on success, or an exception on failure.
+     *
+     * @hide
+     */
+    @RequiresPermission(REGISTER_MEASUREMENT_EVENT)
+    public void registerWebTrigger(
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
+            @NonNull String triggerHeader,
+            @NonNull String appPackageName,
+            @NonNull @CallbackExecutor Executor executor,
+            @NonNull OutcomeReceiver<Void, Exception> receiver) {
+        Objects.requireNonNull(destinationUrl);
+        Objects.requireNonNull(registrationUrl);
+        Objects.requireNonNull(triggerHeader);
+        Objects.requireNonNull(appPackageName);
+        Objects.requireNonNull(executor);
+        Objects.requireNonNull(receiver);
+        long startTimeMillis = SystemClock.elapsedRealtime();
+
+        try {
+            final IOnDevicePersonalizationManagingService service =
+                    mServiceBinder.getService(executor);
+            service.registerWebTrigger(
+                    destinationUrl,
+                    registrationUrl,
+                    triggerHeader,
+                    appPackageName,
+                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
+                    new IRegisterWebTriggerCallback.Stub() {
+                        @Override
+                        public void onSuccess() {
+                            executor.execute(() -> receiver.onResult(null));
+                        }
+                        @Override
+                        public void onError(int errorCode) {
+                            executor.execute(() -> receiver.onError(createException(errorCode)));
+                        }
+                    }
+            );
+        } catch (IllegalArgumentException | NullPointerException e) {
+            throw e;
+        } catch (Exception e) {
+            receiver.onError(e);
         }
     }
 

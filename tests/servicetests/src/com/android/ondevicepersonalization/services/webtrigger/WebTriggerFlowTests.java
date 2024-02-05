@@ -17,9 +17,16 @@
 package com.android.ondevicepersonalization.services.webtrigger;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -42,10 +49,11 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 import java.util.ArrayList;
+import java.util.concurrent.ExecutionException;
 
 @RunWith(JUnit4.class)
 public class WebTriggerFlowTests {
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final Context mContext = spy(ApplicationProvider.getApplicationContext());
     private OnDevicePersonalizationDbHelper mDbHelper;
     private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
 
@@ -62,8 +70,10 @@ public class WebTriggerFlowTests {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 "com.example.test", "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
     }
 
     @After
@@ -85,8 +95,8 @@ public class WebTriggerFlowTests {
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
         WebTriggerFlow flow = new WebTriggerFlow(
-                "http://landingpage", "http://regurl", triggerHeader, mContext,
-                new TestInjector());
+                Uri.parse("http://landingpage"), Uri.parse("http://regurl"), triggerHeader,
+                "com.example.browser", mContext, new TestInjector());
         var unused = flow.run().get();
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
@@ -94,6 +104,24 @@ public class WebTriggerFlowTests {
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                     null, null, null, null, null).getCount());
+    }
+
+    @Test
+    public void testEnforceCallerPermission() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        String triggerHeader = String.format(
+                "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
+                mContext.getPackageName());
+        WebTriggerFlow flow = new WebTriggerFlow(
+                Uri.parse("http://landingpage"), Uri.parse("http://regurl"), triggerHeader,
+                "com.example.browser", mContext, new TestInjector());
+        try {
+            var unused = flow.run().get();
+            fail("Expected ExecutionException");
+        } catch (ExecutionException e) {
+            assertTrue(e.getCause() instanceof SecurityException);
+        }
     }
 
     class TestInjector extends WebTriggerFlow.Injector {
