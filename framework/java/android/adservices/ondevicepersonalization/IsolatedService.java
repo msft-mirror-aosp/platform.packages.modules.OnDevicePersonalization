@@ -18,6 +18,7 @@ package android.adservices.ondevicepersonalization;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.FlaggedApi;
@@ -191,6 +192,20 @@ public abstract class IsolatedService extends Service {
         return new FederatedComputeScheduler(requestToken.getFederatedComputeService());
     }
 
+    /**
+     * Returns an {@link ModelManager} for the current request. The {@link ModelManager} can be ued
+     * to do model inference. It only supports Tensorflow Lite model inference now.
+     *
+     * @param requestToken an opaque token that identifies the current request to the service.
+     * @return An {@link ModelManager} that can be used for model inference.
+     * @hide
+     */
+    @NonNull
+    public final ModelManager getModelManager(@NonNull RequestToken requestToken) {
+        return new ModelManager(
+                requestToken.getDataAccessService(), requestToken.getModelService());
+    }
+
     // TODO(b/228200518): Add onBidRequest()/onBidResponse() methods.
 
     class ServiceBinder extends IIsolatedService.Stub {
@@ -202,6 +217,7 @@ public abstract class IsolatedService extends Service {
             Objects.requireNonNull(params);
             Objects.requireNonNull(resultCallback);
             // TODO(b/228200518): Ensure that caller is ODP Service.
+            // TODO(b/323592348): Add model inference in other flows.
 
             if (operationCode == Constants.OP_EXECUTE) {
 
@@ -221,8 +237,14 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
                 Objects.requireNonNull(fcBinder);
+                IIsolatedModelService modelServiceBinder =
+                        IIsolatedModelService.Stub.asInterface(
+                                Objects.requireNonNull(
+                                        params.getBinder(Constants.EXTRA_MODEL_SERVICE_BINDER)));
+                Objects.requireNonNull(modelServiceBinder);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
+                RequestToken requestToken =
+                        new RequestToken(binder, fcBinder, modelServiceBinder, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onExecute(
                         input,
@@ -257,7 +279,7 @@ public abstract class IsolatedService extends Service {
                                                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
                 Objects.requireNonNull(fcBinder);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, fcBinder, userData);
+                RequestToken requestToken = new RequestToken(binder, fcBinder, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onDownloadCompleted(
                         input,
@@ -280,7 +302,7 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
-                RequestToken requestToken = new RequestToken(binder, null, null);
+                RequestToken requestToken = new RequestToken(binder, null, null, null);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onRender(input, new WrappedCallback<RenderOutput, RenderOutputParcel>(
                         resultCallback, requestToken, v -> new RenderOutputParcel(v)));
@@ -298,7 +320,7 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, null, userData);
+                RequestToken requestToken = new RequestToken(binder, null, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onEvent(
                         input, new WrappedCallback<EventOutput, EventOutputParcel>(
@@ -317,7 +339,7 @@ public abstract class IsolatedService extends Service {
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 Objects.requireNonNull(binder);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, null, userData);
+                RequestToken requestToken = new RequestToken(binder, null, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onTrainingExamples(
                         input,
@@ -370,7 +392,7 @@ public abstract class IsolatedService extends Service {
                                         params.getBinder(
                                                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, null, userData);
+                RequestToken requestToken = new RequestToken(binder, null, null, userData);
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onWebTrigger(
                         input, new WrappedCallback<WebTriggerOutput, WebTriggerOutputParcel>(

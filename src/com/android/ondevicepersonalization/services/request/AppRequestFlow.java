@@ -22,6 +22,7 @@ import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
@@ -29,6 +30,7 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
@@ -69,6 +71,8 @@ public class AppRequestFlow {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "AppRequestFlow";
     private static final String TASK_NAME = "AppRequest";
+    public static final String ISOLATED_MODEL_SERVICE_NAME =
+            "com.android.ondevicepersonalization.services.inference.IsolatedModelService";
     @NonNull
     private final String mCallingPackageName;
     @NonNull
@@ -80,6 +84,7 @@ public class AppRequestFlow {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
+    private AbstractServiceBinder<IIsolatedModelService> mModelService;
 
     @VisibleForTesting
     static class Injector {
@@ -224,10 +229,16 @@ public class AppRequestFlow {
                     },
                     mInjector.getExecutor());
 
-            var unused = Futures.whenAllComplete(loadFuture, outputResultFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                    mInjector.getExecutor());
+            var unused =
+                    Futures.whenAllComplete(loadFuture, outputResultFuture)
+                            .callAsync(
+                                    () -> {
+                                        unBindFromModelService();
+                                        return mInjector
+                                                .getProcessRunner()
+                                                .unloadIsolatedService(loadFuture.get());
+                                    },
+                                    mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -253,6 +264,8 @@ public class AppRequestFlow {
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
+        IIsolatedModelService modelService = getModelService();
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, Constants.OP_EXECUTE, serviceParams);
         return FluentFuture.from(result)
@@ -284,6 +297,21 @@ public class AppRequestFlow {
                 mService.getPackageName(),
                 result.getRequestLogRecord(),
                 result.getEventLogRecords());
+    }
+
+    private IIsolatedModelService getModelService() {
+        // TODO(b/323304647): bind to shared isolated process.
+        mModelService =
+                AbstractServiceBinder.getServiceBinderByServiceName(
+                        mContext,
+                        ISOLATED_MODEL_SERVICE_NAME,
+                        mContext.getPackageName(),
+                        IIsolatedModelService.Stub::asInterface);
+        return mModelService.getService(Runnable::run);
+    }
+
+    private void unBindFromModelService() {
+        mModelService.unbindFromService();
     }
 
     private ListenableFuture<Bundle> createResultBundle(
