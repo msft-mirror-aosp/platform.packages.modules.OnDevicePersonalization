@@ -460,7 +460,6 @@ public class OnDevicePersonalizationManagingServiceTest {
 
         assertNotNull(injector.getWebTriggerFlow(
                 Uri.parse("http://example.com"),
-                Uri.parse("http://regurl.com"),
                 "header",
                 "com.example.browser",
                 mContext,
@@ -513,12 +512,11 @@ public class OnDevicePersonalizationManagingServiceTest {
 
         WebTriggerFlow getWebTriggerFlow(
                 Uri destinationUrl,
-                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 Context context,
                 long startTimeMillis) {
-            return new WebTriggerFlow(destinationUrl, registrationUrl, appPackageName,
+            return new WebTriggerFlow(destinationUrl, appPackageName,
                     triggerHeader, context) {
                 @Override public ListenableFuture<Void> run() {
                     mWebTriggerFlowStarted = true;

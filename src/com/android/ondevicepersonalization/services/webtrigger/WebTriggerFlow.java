@@ -111,7 +111,6 @@ public class WebTriggerFlow {
     }
 
     @NonNull private final Uri mDestinationUrl;
-    @NonNull private final Uri mRegistrationUrl;
     @NonNull private final String mTriggerHeader;
     @NonNull private final String mAppPackageName;
     @NonNull private final Context mContext;
@@ -119,13 +118,11 @@ public class WebTriggerFlow {
 
     public WebTriggerFlow(
             @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
             @NonNull String triggerHeader,
             @NonNull String appPackageName,
             @NonNull Context context) {
         this(
                 destinationUrl,
-                registrationUrl,
                 triggerHeader,
                 appPackageName,
                 context,
@@ -135,13 +132,11 @@ public class WebTriggerFlow {
     @VisibleForTesting
     WebTriggerFlow(
             @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
             @NonNull String triggerHeader,
             @NonNull String appPackageName,
             @NonNull Context context,
             @NonNull Injector injector) {
         mDestinationUrl = Objects.requireNonNull(destinationUrl);
-        mRegistrationUrl = Objects.requireNonNull(registrationUrl);
         mTriggerHeader = Objects.requireNonNull(triggerHeader);
         mAppPackageName = Objects.requireNonNull(appPackageName);
         mContext = Objects.requireNonNull(context);
@@ -167,7 +162,6 @@ public class WebTriggerFlow {
     private ListenableFuture<Void> processRequest() {
         try {
             if (mDestinationUrl.toString().isBlank()
-                    || mRegistrationUrl.toString().isBlank()
                     || mTriggerHeader.isBlank()) {
                 return Futures.immediateFailedFuture(
                         new IllegalArgumentException("Missing url or header"));
@@ -250,7 +244,7 @@ public class WebTriggerFlow {
         Bundle serviceParams = new Bundle();
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        mDestinationUrl, mRegistrationUrl, mAppPackageName, parsedHeader.mData)
+                        mDestinationUrl, mAppPackageName, parsedHeader.mData)
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
