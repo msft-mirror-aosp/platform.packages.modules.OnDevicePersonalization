@@ -16,9 +16,12 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 
 import java.util.Objects;
@@ -27,19 +30,26 @@ import java.util.Objects;
 public class IsolatedServiceInfo {
     private final long mStartTimeMillis;
     @NonNull private final ComponentName mComponentName;
-    @NonNull private final PluginController mPluginController;
+    @Nullable private final PluginController mPluginController;
+    @Nullable private final AbstractServiceBinder<IIsolatedService> mIsolatedServiceBinder;
 
     IsolatedServiceInfo(
             long startTimeMillis,
             @NonNull ComponentName componentName,
-            @NonNull PluginController pluginController) {
+            @Nullable PluginController pluginController,
+            @Nullable AbstractServiceBinder<IIsolatedService> isolatedServiceBinder) {
         mStartTimeMillis = startTimeMillis;
         mComponentName = Objects.requireNonNull(componentName);
-        mPluginController = Objects.requireNonNull(pluginController);
+        mPluginController = pluginController;
+        mIsolatedServiceBinder = isolatedServiceBinder;
     }
 
     PluginController getPluginController() {
         return mPluginController;
+    }
+
+    AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder() {
+        return mIsolatedServiceBinder;
     }
 
     /** Returns the service start time. */
