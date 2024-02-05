@@ -36,12 +36,18 @@ import android.view.SurfaceView;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.compatibility.common.util.ShellUtils;
+
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
@@ -49,14 +55,36 @@ import java.util.concurrent.Executors;
 /**
  * CTS Test cases for OnDevicePersonalizationManager APIs.
  */
-@RunWith(AndroidJUnit4.class)
+@RunWith(Parameterized.class)
 public class CtsOdpManagerTests {
+
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
     private static final String SERVICE_PACKAGE =
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    @Before
+    public void setUp() {
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
+    }
+
 
     @Rule
     public final ActivityScenarioRule<TestActivity> mActivityScenarioRule =
