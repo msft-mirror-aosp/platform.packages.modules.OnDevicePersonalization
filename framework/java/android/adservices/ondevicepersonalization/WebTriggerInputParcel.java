@@ -32,13 +32,10 @@ public final class WebTriggerInputParcel implements Parcelable {
     /** The destination URL (landing page) where the trigger registration occurred. */
     @NonNull private Uri mDestinationUrl;
 
-    /** The trigger registration URL that returned the trigger data */
-    @NonNull private Uri mRegistrationUrl;
-
     /** The app where the trigger registration occurred */
     @NonNull private String mAppPackageName;
 
-    /** The data that was returned by the registration URL. */
+    /** The data to be sent to the isolated service.  */
     @NonNull private String mData;
 
 
@@ -59,15 +56,11 @@ public final class WebTriggerInputParcel implements Parcelable {
     @DataClass.Generated.Member
     /* package-private */ WebTriggerInputParcel(
             @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
             @NonNull String appPackageName,
             @NonNull String data) {
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
                 NonNull.class, null, mDestinationUrl);
-        this.mRegistrationUrl = registrationUrl;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRegistrationUrl);
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
@@ -87,14 +80,6 @@ public final class WebTriggerInputParcel implements Parcelable {
     }
 
     /**
-     * The trigger registration URL that returned the trigger data
-     */
-    @DataClass.Generated.Member
-    public @NonNull Uri getRegistrationUrl() {
-        return mRegistrationUrl;
-    }
-
-    /**
      * The app where the trigger registration occurred
      */
     @DataClass.Generated.Member
@@ -103,7 +88,7 @@ public final class WebTriggerInputParcel implements Parcelable {
     }
 
     /**
-     * The data that was returned by the registration URL.
+     * The data to be sent to the isolated service.
      */
     @DataClass.Generated.Member
     public @NonNull String getData() {
@@ -117,7 +102,6 @@ public final class WebTriggerInputParcel implements Parcelable {
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
         dest.writeTypedObject(mDestinationUrl, flags);
-        dest.writeTypedObject(mRegistrationUrl, flags);
         dest.writeString(mAppPackageName);
         dest.writeString(mData);
     }
@@ -134,16 +118,12 @@ public final class WebTriggerInputParcel implements Parcelable {
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
         Uri destinationUrl = (Uri) in.readTypedObject(Uri.CREATOR);
-        Uri registrationUrl = (Uri) in.readTypedObject(Uri.CREATOR);
         String appPackageName = in.readString();
         String data = in.readString();
 
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
                 NonNull.class, null, mDestinationUrl);
-        this.mRegistrationUrl = registrationUrl;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRegistrationUrl);
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
@@ -177,7 +157,6 @@ public final class WebTriggerInputParcel implements Parcelable {
     public static final class Builder {
 
         private @NonNull Uri mDestinationUrl;
-        private @NonNull Uri mRegistrationUrl;
         private @NonNull String mAppPackageName;
         private @NonNull String mData;
 
@@ -188,24 +167,18 @@ public final class WebTriggerInputParcel implements Parcelable {
          *
          * @param destinationUrl
          *   The destination URL (landing page) where the trigger registration occurred.
-         * @param registrationUrl
-         *   The trigger registration URL that returned the trigger data
          * @param appPackageName
          *   The app where the trigger registration occurred
          * @param data
-         *   The data that was returned by the registration URL.
+         *   The data to be sent to the isolated service.
          */
         public Builder(
                 @NonNull Uri destinationUrl,
-                @NonNull Uri registrationUrl,
                 @NonNull String appPackageName,
                 @NonNull String data) {
             mDestinationUrl = destinationUrl;
             AnnotationValidations.validate(
                     NonNull.class, null, mDestinationUrl);
-            mRegistrationUrl = registrationUrl;
-            AnnotationValidations.validate(
-                    NonNull.class, null, mRegistrationUrl);
             mAppPackageName = appPackageName;
             AnnotationValidations.validate(
                     NonNull.class, null, mAppPackageName);
@@ -226,34 +199,23 @@ public final class WebTriggerInputParcel implements Parcelable {
         }
 
         /**
-         * The trigger registration URL that returned the trigger data
-         */
-        @DataClass.Generated.Member
-        public @NonNull Builder setRegistrationUrl(@NonNull Uri value) {
-            checkNotUsed();
-            mBuilderFieldsSet |= 0x2;
-            mRegistrationUrl = value;
-            return this;
-        }
-
-        /**
          * The app where the trigger registration occurred
          */
         @DataClass.Generated.Member
         public @NonNull Builder setAppPackageName(@NonNull String value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x4;
+            mBuilderFieldsSet |= 0x2;
             mAppPackageName = value;
             return this;
         }
 
         /**
-         * The data that was returned by the registration URL.
+         * The data to be sent to the isolated service.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setData(@NonNull String value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x4;
             mData = value;
             return this;
         }
@@ -261,18 +223,17 @@ public final class WebTriggerInputParcel implements Parcelable {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull WebTriggerInputParcel build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10; // Mark builder used
+            mBuilderFieldsSet |= 0x8; // Mark builder used
 
             WebTriggerInputParcel o = new WebTriggerInputParcel(
                     mDestinationUrl,
-                    mRegistrationUrl,
                     mAppPackageName,
                     mData);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
+            if ((mBuilderFieldsSet & 0x8) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -280,10 +241,10 @@ public final class WebTriggerInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1706652621687L,
+            time = 1707167071051L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerInputParcel.java",
-            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull android.net.Uri mRegistrationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
     @Deprecated
     private void __metadata() {}
 

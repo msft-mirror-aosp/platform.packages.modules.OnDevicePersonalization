@@ -545,7 +545,6 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "abcd")
                     .build();
@@ -565,7 +564,6 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "error")
                     .build();
@@ -603,7 +601,6 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "abcd")
                     .build();
@@ -621,7 +618,6 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "abcd")
                     .build();

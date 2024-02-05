@@ -82,12 +82,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         WebTriggerFlow getWebTriggerFlow(
                 Uri destinationUrl,
-                Uri registrationUrl,
                 String triggerHeader,
                 String appPackageName,
                 Context context,
                 long startTimeMillis) {
-            return new WebTriggerFlow(destinationUrl, registrationUrl,
+            return new WebTriggerFlow(destinationUrl,
                     triggerHeader, appPackageName, context);
         }
 
@@ -215,14 +214,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         Trace.beginSection("OdpManagingServiceDelegate#RegisterWebTrigger");
         Objects.requireNonNull(destinationUrl);
-        Objects.requireNonNull(registrationUrl);
         Objects.requireNonNull(triggerHeader);
         Objects.requireNonNull(appPackageName);
         Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
         WebTriggerFlow flow = mInjector.getWebTriggerFlow(
                 destinationUrl,
-                registrationUrl,
                 triggerHeader,
                 appPackageName,
                 mContext,
