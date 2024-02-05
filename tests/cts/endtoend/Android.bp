@@ -47,6 +47,7 @@ android_test {
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
+        "mcts-ondevicepersonalization",
     ],
     test_config: "AndroidTest.xml",
 }
