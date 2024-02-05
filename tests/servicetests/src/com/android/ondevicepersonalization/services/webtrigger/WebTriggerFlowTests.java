@@ -95,7 +95,7 @@ public class WebTriggerFlowTests {
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
         WebTriggerFlow flow = new WebTriggerFlow(
-                Uri.parse("http://landingpage"), Uri.parse("http://regurl"), triggerHeader,
+                Uri.parse("http://landingpage"), triggerHeader,
                 "com.example.browser", mContext, new TestInjector());
         var unused = flow.run().get();
         assertEquals(1,
@@ -114,7 +114,7 @@ public class WebTriggerFlowTests {
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
         WebTriggerFlow flow = new WebTriggerFlow(
-                Uri.parse("http://landingpage"), Uri.parse("http://regurl"), triggerHeader,
+                Uri.parse("http://landingpage"), triggerHeader,
                 "com.example.browser", mContext, new TestInjector());
         try {
             var unused = flow.run().get();
