@@ -57,5 +57,7 @@ public interface KeyValueStore {
      *
      * @hide
      */
-    int getTableId();
+    default int getTableId(){
+        return 0;
+    }
 }
