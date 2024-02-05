@@ -16,7 +16,8 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import android.adservices.ondevicepersonalization.Constants;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED;
+
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
@@ -85,11 +86,21 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                             () -> getIsolatedServiceBinder(mApplicationContext, componentName));
 
             return FluentFuture.from(isolatedServiceFuture)
-                    .transform(
-                            (isolatedService) -> new IsolatedServiceInfo(mInjector.getClock().elapsedRealtime(),
-                                    componentName,
-                                    /* pluginController= */ null,
-                                    isolatedService), mInjector.getExecutor());
+                    .transformAsync(
+                            (isolatedService) -> {
+                                try {
+                                    return Futures.immediateFuture(new IsolatedServiceInfo(
+                                            mInjector.getClock().elapsedRealtime(), componentName,
+                                            /* pluginController= */ null, isolatedService));
+                                } catch (Exception e) {
+                                    return Futures.immediateFailedFuture(e);
+                                }
+                            }, mInjector.getExecutor())
+                    .catchingAsync(
+                            Exception.class,
+                            Futures::immediateFailedFuture,
+                            mInjector.getExecutor()
+                    );
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -103,16 +114,21 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
             @NonNull Bundle serviceParams) {
             return CallbackToFutureAdapter.getFuture(
                 completer -> {
-                    isolatedProcessInfo.getIsolatedServiceBinder().getService(Runnable::run).onRequest(Constants.OP_EXECUTE, serviceParams,
-                            new IIsolatedServiceCallback.Stub() {
-                                @Override public void onSuccess(Bundle result) {
-                                    completer.set(result);
+                    isolatedProcessInfo.getIsolatedServiceBinder()
+                            .getService(Runnable::run)
+                            .onRequest(
+                                    operationCode, serviceParams,
+                                    new IIsolatedServiceCallback.Stub() {
+                                        @Override public void onSuccess(Bundle result) {
+                                            completer.set(result);
+                                        }
 
-                                }
-                                @Override public void onError(int errorCode) {
-                                    completer.setException(new OdpServiceException(Constants.STATUS_INTERNAL_ERROR));
-                                }
-                            });
+                                        // TO-DO (323882182): Granular isolated servce failures.
+                                        @Override public void onError(int errorCode) {
+                                            completer.setException(
+                                                new OdpServiceException(ERROR_ISOLATED_SERVICE_FAILED));
+                                        }
+                                    });
                     return null;
                 });
     }
@@ -130,8 +146,9 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         }
     }
 
-    private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(@NonNull Context context, @NonNull ComponentName service) {
-         return AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
+    private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(
+            @NonNull Context context, @NonNull ComponentName service) {
+        return AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
                         context,
                         service.getClassName(),
                         service.getPackageName(),

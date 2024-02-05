@@ -158,8 +158,15 @@ public class ProcessRunnerImpl implements ProcessRunner {
                     sLogger.d(TAG + ": loadPlugin");
                     pluginController.load(new PluginCallback() {
                         @Override public void onSuccess(Bundle bundle) {
-                            completer.set(new IsolatedServiceInfo(
-                                    startTimeMillis, componentName, pluginController, /* isolatedService= */ null));
+                            try {
+                                completer.set(
+                                        new IsolatedServiceInfo(
+                                            startTimeMillis, componentName,
+                                            pluginController, /* isolatedServiceBinder= */ null));
+                            } catch (OdpServiceException e) {
+                                completer.setException(e);
+                            }
+
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OdpServiceException(
