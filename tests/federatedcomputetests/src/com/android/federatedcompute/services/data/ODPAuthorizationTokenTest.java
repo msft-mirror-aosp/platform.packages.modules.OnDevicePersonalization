@@ -30,9 +30,9 @@ import org.junit.runner.RunWith;
 public class ODPAuthorizationTokenTest {
     private static final String TOKEN = "b3c4dc4a-768b-415d-8adb-d3aa2206b7bb";
 
-    private static final String ADOPTER_IDENTIFIER = "http://odp-test.com";
+    private static final String OWNER_IDENTIFIER = "atp1";
 
-    private static final String ADOPTER_IDENTIFIER2 = "http://odp-test2.com";
+    private static final String OWNER_IDENTIFIER2 = "atp2";
 
     private static final long NOW = 1000000L;
 
@@ -41,12 +41,12 @@ public class ODPAuthorizationTokenTest {
     @Test
     public void testBuilderAndEquals() {
         ODPAuthorizationToken token1 = new ODPAuthorizationToken.Builder()
-                .setAdopterIdentifier(ADOPTER_IDENTIFIER)
+                .setOwnerIdentifier(OWNER_IDENTIFIER)
                 .setAuthorizationToken(TOKEN)
                 .setCreationTime(NOW)
                 .setExpiryTime(NOW + ONE_HOUR).build();
         ODPAuthorizationToken token2 = new ODPAuthorizationToken.Builder()
-                .setAdopterIdentifier(ADOPTER_IDENTIFIER)
+                .setOwnerIdentifier(OWNER_IDENTIFIER)
                 .setAuthorizationToken(TOKEN)
                 .setCreationTime(NOW)
                 .setExpiryTime(NOW + ONE_HOUR).build();
@@ -54,7 +54,7 @@ public class ODPAuthorizationTokenTest {
         assertEquals(token1, token2);
 
         ODPAuthorizationToken token3 = new ODPAuthorizationToken.Builder()
-                .setAdopterIdentifier(ADOPTER_IDENTIFIER2)
+                .setOwnerIdentifier(OWNER_IDENTIFIER2)
                 .setAuthorizationToken(TOKEN)
                 .setCreationTime(NOW)
                 .setExpiryTime(NOW + ONE_HOUR).build();
@@ -66,7 +66,7 @@ public class ODPAuthorizationTokenTest {
     @Test
     public void testBuildTwiceThrows() {
         ODPAuthorizationToken.Builder builder = new ODPAuthorizationToken.Builder()
-                .setAdopterIdentifier(ADOPTER_IDENTIFIER)
+                .setOwnerIdentifier(OWNER_IDENTIFIER)
                 .setAuthorizationToken(TOKEN)
                 .setCreationTime(NOW)
                 .setExpiryTime(NOW + ONE_HOUR);

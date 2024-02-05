@@ -51,6 +51,7 @@ android_test {
         "flatbuffers-java",
         "modules-utils-list-slice",
         "owasp-java-encoder",
+        "tensorflowlite_java",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
@@ -60,4 +61,9 @@ android_test {
     ],
     manifest: "AndroidManifest.xml",
     test_config: "AndroidTest.xml",
+    jni_libs: [
+        "libdexmakerjvmtiagent",
+        "libstaticjvmtiagent",
+        "libtensorflowlite_jni",
+    ],
 }

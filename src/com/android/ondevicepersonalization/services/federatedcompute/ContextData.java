@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,8 +34,16 @@ public class ContextData implements Serializable {
     @NonNull
     String mPackageName;
 
+    @Nullable
+    String mClassName;
+
     public ContextData(@NonNull String packageName) {
         mPackageName = packageName;
+    }
+
+    public ContextData(@NonNull String packageName, @NonNull String className) {
+        this.mPackageName = packageName;
+        this.mClassName = className;
     }
 
     /**
@@ -62,5 +71,10 @@ public class ContextData implements Serializable {
     @NonNull
     public String getPackageName() {
         return mPackageName;
+    }
+
+    @Nullable
+    public String getClassName() {
+        return mClassName;
     }
 }

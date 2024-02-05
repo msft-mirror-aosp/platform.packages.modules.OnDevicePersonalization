@@ -16,12 +16,12 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.WorkerThread;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.Set;
 
@@ -32,9 +32,8 @@ import java.util.Set;
  *
  * @see IsolatedService#getRemoteData(RequestToken)
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public interface KeyValueStore {
     /**
      * Looks up a key in a read-only store.
@@ -52,4 +51,11 @@ public interface KeyValueStore {
      */
     @WorkerThread
     @NonNull Set<String> keySet();
+
+    /**
+     * Returns the table id {@link ModelId.TableId} of KeyValueStore implementation.
+     *
+     * @hide
+     */
+    int getTableId();
 }

@@ -112,7 +112,7 @@ public class OdpResultHandlingService extends ResultHandlingService {
             if (resumptionToken != null) {
                 eventStates.add(
                         new EventState.Builder()
-                                .setServicePackageName(packageName)
+                                .setServiceName(packageName)
                                 .setTaskIdentifier(taskIdentifier)
                                 .setToken(resumptionToken)
                                 .build());

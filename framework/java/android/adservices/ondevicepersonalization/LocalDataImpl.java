@@ -23,10 +23,9 @@ import android.annotation.Nullable;
 import android.os.Bundle;
 import android.os.RemoteException;
 
-
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -49,36 +48,36 @@ public class LocalDataImpl implements MutableKeyValueStore {
     public byte[] get(@NonNull String key) {
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
-        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP, key, params);
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
+        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP, params);
     }
 
     @Override @Nullable
     public byte[] put(@NonNull String key, byte[] value) {
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
-        params.putByteArray(Constants.EXTRA_VALUE, value);
-        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT, key, params);
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
+        params.putParcelable(Constants.EXTRA_VALUE, new ByteArrayParceledSlice(value));
+        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT, params);
     }
 
     @Override @Nullable
     public byte[] remove(@NonNull String key) {
         Objects.requireNonNull(key);
         Bundle params = new Bundle();
-        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{key});
-        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, key, params);
+        params.putString(Constants.EXTRA_LOOKUP_KEYS, key);
+        return handleLookupRequest(Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE, params);
     }
 
-    private byte[] handleLookupRequest(int op, String key, Bundle params) {
+    private byte[] handleLookupRequest(int op, Bundle params) {
         Bundle result = handleAsyncRequest(op, params);
-        HashMap<String, byte[]> data = result.getSerializable(
-                Constants.EXTRA_RESULT, HashMap.class);
+        ByteArrayParceledSlice data = result.getParcelable(
+                Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
         if (null == data) {
             sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
             throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
         }
-        return data.get(key);
+        return data.getByteArray();
     }
 
     @Override @NonNull
@@ -92,6 +91,11 @@ public class LocalDataImpl implements MutableKeyValueStore {
             throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
         }
         return resultSet;
+    }
+
+    @Override
+    public int getTableId() {
+        return ModelId.TABLE_ID_LOCAL_DATA;
     }
 
     private Bundle handleAsyncRequest(int op, Bundle params) {
