@@ -70,12 +70,10 @@ public class ModelManagerTest {
         Object[] input = new Object[1];
         input[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
-                new InferenceInput.Builder()
-                        .setOptions(
-                                InferenceInput.Options.createCpuOptions(mRemoteData, MODEL_KEY, 1))
-                        .setInputData(input)
-                        .setExpectedOutputStructure(
-                                new InferenceOutput.Builder().setData(outputData).build())
+                new InferenceInput.Builder(
+                                InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, 1),
+                                input,
+                                new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
 
         var callback = new MyTestCallback();
@@ -84,7 +82,7 @@ public class ModelManagerTest {
         callback.mLatch.await();
         assertTrue(mRunInferenceCalled);
         assertNotNull(callback.mInferenceOutput);
-        float[] value = (float[]) callback.mInferenceOutput.getData().get(0);
+        float[] value = (float[]) callback.mInferenceOutput.getDataOutputs().get(0);
         assertEquals(value[0], 5.0f, 0.01f);
     }
 
@@ -95,13 +93,11 @@ public class ModelManagerTest {
         Object[] input = new Object[1];
         input[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
-                new InferenceInput.Builder()
-                        .setOptions(
-                                InferenceInput.Options.createCpuOptions(
-                                        mRemoteData, INVALID_MODEL_KEY, 1))
-                        .setInputData(input)
-                        .setExpectedOutputStructure(
-                                new InferenceOutput.Builder().setData(outputData).build())
+                new InferenceInput.Builder(
+                                InferenceInput.Params.createCpuParams(
+                                        mRemoteData, INVALID_MODEL_KEY, 1),
+                                input,
+                                new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
 
         var callback = new MyTestCallback();
@@ -127,13 +123,11 @@ public class ModelManagerTest {
         Object[] inputData = new Object[1];
         inputData[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
-                new InferenceInput.Builder()
-                        .setOptions(
-                                InferenceInput.Options.createCpuOptions(
-                                        mRemoteData, MISSING_OUTPUT_KEY, 1))
-                        .setInputData(inputData)
-                        .setExpectedOutputStructure(
-                                new InferenceOutput.Builder().setData(outputData).build())
+                new InferenceInput.Builder(
+                                InferenceInput.Params.createCpuParams(
+                                        mRemoteData, MISSING_OUTPUT_KEY, 1),
+                                inputData,
+                                new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
 
         var callback = new MyTestCallback();
@@ -183,7 +177,7 @@ public class ModelManagerTest {
             bundle.putParcelable(
                     Constants.EXTRA_RESULT,
                     new InferenceOutputParcel(
-                            new InferenceOutput.Builder().setData(result).build()));
+                            new InferenceOutput.Builder().setDataOutputs(result).build()));
             callback.onSuccess(bundle);
         }
     }

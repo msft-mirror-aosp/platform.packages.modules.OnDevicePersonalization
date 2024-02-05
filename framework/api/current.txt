@@ -105,6 +105,42 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.TrainingInterval getTrainingInterval();
   }
 
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class InferenceInput {
+    method public int getBatchSize();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceOutput getExpectedOutputStructure();
+    method @NonNull public Object[] getInputData();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params getParams();
+  }
+
+  public static final class InferenceInput.Builder {
+    ctor public InferenceInput.Builder(@NonNull android.adservices.ondevicepersonalization.InferenceInput.Params, @NonNull Object[], @NonNull android.adservices.ondevicepersonalization.InferenceOutput);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput build();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setBatchSize(int);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setExpectedOutputStructure(@NonNull android.adservices.ondevicepersonalization.InferenceOutput);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setInputData(@NonNull java.lang.Object...);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Builder setParams(@NonNull android.adservices.ondevicepersonalization.InferenceInput.Params);
+  }
+
+  public static class InferenceInput.Params {
+    method @NonNull public static android.adservices.ondevicepersonalization.InferenceInput.Params createCpuParams(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String, @IntRange(from=1) int);
+    method @IntRange(from=1) public int getCpuNumThread();
+    method public int getDelegateType();
+    method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getKeyValueStore();
+    method @NonNull public String getModelKey();
+    field public static final int DELEGATE_CPU = 1; // 0x1
+  }
+
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class InferenceOutput {
+    method @NonNull public java.util.Map<java.lang.Integer,java.lang.Object> getDataOutputs();
+  }
+
+  public static final class InferenceOutput.Builder {
+    ctor public InferenceOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceOutput.Builder addDataOutput(int, @NonNull Object);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceOutput.Builder setDataOutputs(@NonNull java.util.Map<java.lang.Integer,java.lang.Object>);
+  }
+
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public abstract class IsolatedService extends android.app.Service {
     ctor public IsolatedService();
     method @NonNull public final android.adservices.ondevicepersonalization.EventUrlProvider getEventUrlProvider(@NonNull android.adservices.ondevicepersonalization.RequestToken);
@@ -133,6 +169,10 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class LogReader {
     method @NonNull @WorkerThread public java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> getJoinedEvents(@NonNull java.time.Instant, @NonNull java.time.Instant);
     method @NonNull @WorkerThread public java.util.List<android.adservices.ondevicepersonalization.RequestLogRecord> getRequests(@NonNull java.time.Instant, @NonNull java.time.Instant);
+  }
+
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class ModelManager {
+    method @WorkerThread public void run(@NonNull android.adservices.ondevicepersonalization.InferenceInput, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.InferenceOutput,java.lang.Exception>);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface MutableKeyValueStore extends android.adservices.ondevicepersonalization.KeyValueStore {
