@@ -29,6 +29,9 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -42,19 +45,23 @@ public class OnDevicePersonalizationLocalDataDao {
     private static final String TAG = "OnDevicePersonalizationLocalDataDao";
     private static final String LOCAL_DATA_TABLE_NAME_PREFIX = "localdata_";
 
+    private static final long BLOB_SIZE_LIMIT = 100000;
+
     private static final Map<String, OnDevicePersonalizationLocalDataDao> sLocalDataDaos =
             new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
     private final String mOwner;
     private final String mCertDigest;
     private final String mTableName;
+    private final String mFileDir;
 
     private OnDevicePersonalizationLocalDataDao(OnDevicePersonalizationDbHelper dbHelper,
-            String owner, String certDigest) {
+            String owner, String certDigest, String fileDir) {
         this.mDbHelper = dbHelper;
         this.mOwner = owner;
         this.mCertDigest = certDigest;
         this.mTableName = getTableName(owner, certDigest);
+        this.mFileDir = fileDir;
     }
 
     /**
@@ -67,9 +74,10 @@ public class OnDevicePersonalizationLocalDataDao {
      * package's table
      */
     public static OnDevicePersonalizationLocalDataDao getInstance(Context context, String owner,
-                                                                  String certDigest) {
+            String certDigest) {
         // TODO: Validate the owner and certDigest
         String tableName = getTableName(owner, certDigest);
+        String fileDir = getFileDir(tableName, context.getFilesDir());
         OnDevicePersonalizationLocalDataDao instance = sLocalDataDaos.get(tableName);
         if (instance == null) {
             synchronized (sLocalDataDaos) {
@@ -78,7 +86,7 @@ public class OnDevicePersonalizationLocalDataDao {
                     OnDevicePersonalizationDbHelper dbHelper =
                             OnDevicePersonalizationDbHelper.getInstance(context);
                     instance = new OnDevicePersonalizationLocalDataDao(
-                            dbHelper, owner, certDigest);
+                            dbHelper, owner, certDigest, fileDir);
                     sLocalDataDaos.put(tableName, instance);
                 }
             }
@@ -95,33 +103,44 @@ public class OnDevicePersonalizationLocalDataDao {
             String owner, String certDigest) {
         synchronized (OnDevicePersonalizationLocalDataDao.class) {
             String tableName = getTableName(owner, certDigest);
+            String fileDir = getFileDir(tableName, context.getFilesDir());
             OnDevicePersonalizationLocalDataDao instance = sLocalDataDaos.get(tableName);
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
                 instance = new OnDevicePersonalizationLocalDataDao(
-                        dbHelper, owner, certDigest);
+                        dbHelper, owner, certDigest, fileDir);
                 sLocalDataDaos.put(tableName, instance);
             }
             return instance;
         }
     }
 
+    /**
+     * Creates file directory name based on table name and base directory
+     */
+    public static String getFileDir(String tableName, File baseDir) {
+        return baseDir + "/" + tableName;
+    }
 
     /**
      * Attempts to create the LocalData table
      *
      * @return true if it already exists or was created, false otherwise.
      */
-    public static boolean createTableIfNotExists(String tableName,
-            OnDevicePersonalizationDbHelper dbHelper) {
+    public boolean createTableIfNotExists() {
         try {
-            SQLiteDatabase db = dbHelper.getWritableDatabase();
+            SQLiteDatabase db = mDbHelper.getWritableDatabase();
             db.execSQL(LocalDataContract.LocalDataEntry.getCreateTableIfNotExistsStatement(
-                    tableName));
+                    mTableName));
         } catch (SQLException e) {
-            sLogger.e(TAG + ": Failed to create table: " + tableName, e);
+            sLogger.e(TAG + ": Failed to create table: " + mTableName, e);
             return false;
+        }
+        // Create directory for large files
+        File dir = new File(mFileDir);
+        if (!dir.isDirectory()) {
+            return dir.mkdir();
         }
         return true;
     }
@@ -142,9 +161,12 @@ public class OnDevicePersonalizationLocalDataDao {
     public byte[] readSingleLocalDataRow(String key) {
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
-            String[] projection = {LocalDataContract.LocalDataEntry.DATA};
+            String[] projection = {
+                    LocalDataContract.LocalDataEntry.TYPE,
+                    LocalDataContract.LocalDataEntry.DATA
+            };
             String selection = LocalDataContract.LocalDataEntry.KEY + " = ?";
-            String[] selectionArgs = { key };
+            String[] selectionArgs = {key};
             try (Cursor cursor = db.query(
                     mTableName,
                     projection,
@@ -159,9 +181,17 @@ public class OnDevicePersonalizationLocalDataDao {
                     return null;
                 }
                 cursor.moveToNext();
-                return cursor.getBlob(0);
+                byte[] blob = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(LocalDataContract.LocalDataEntry.DATA));
+                int type = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(LocalDataContract.LocalDataEntry.TYPE));
+                if (type == LocalDataContract.DATA_TYPE_FILE) {
+                    File file = new File(mFileDir, new String(blob));
+                    return Files.readAllBytes(file.toPath());
+                }
+                return blob;
             }
-        } catch (SQLiteException e) {
+        } catch (SQLiteException | IOException e) {
             sLogger.e(TAG + ": Failed to read local data row", e);
         }
         return null;
@@ -173,15 +203,30 @@ public class OnDevicePersonalizationLocalDataDao {
      * @return true if the update/insert succeeded, false otherwise
      */
     public boolean updateOrInsertLocalData(LocalData localData) {
+        long timeMillis = System.currentTimeMillis();
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(LocalDataContract.LocalDataEntry.KEY, localData.getKey());
-            values.put(LocalDataContract.LocalDataEntry.DATA, localData.getData());
+            if (localData.getData().length > BLOB_SIZE_LIMIT) {
+                String filename = localData.getKey() + "_" + timeMillis;
+                File file = new File(mFileDir, filename);
+                Files.write(file.toPath(), localData.getData());
+                values.put(LocalDataContract.LocalDataEntry.TYPE,
+                        LocalDataContract.DATA_TYPE_FILE);
+                values.put(LocalDataContract.LocalDataEntry.DATA, filename.getBytes());
+            } else {
+                values.put(LocalDataContract.LocalDataEntry.DATA, localData.getData());
+            }
+            // TODO: Cleanup file on replace instead of waiting for maintenance job.
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
-        } catch (SQLiteException e) {
+        } catch (SQLiteException | IOException e) {
             sLogger.e(TAG + ": Failed to update or insert local data", e);
+            // Attempt to delete file if something failed
+            String filename = localData.getKey() + "_" + timeMillis;
+            File file = new File(mFileDir, filename);
+            file.delete();
         }
         return false;
     }
@@ -196,7 +241,7 @@ public class OnDevicePersonalizationLocalDataDao {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             String whereClause = LocalDataContract.LocalDataEntry.KEY + " = ?";
-            String[] selectionArgs = { key };
+            String[] selectionArgs = {key};
             return db.delete(mTableName, whereClause, selectionArgs) == 1;
         } catch (SQLiteException e) {
             sLogger.e(TAG + ": Failed to delete row from local data", e);
