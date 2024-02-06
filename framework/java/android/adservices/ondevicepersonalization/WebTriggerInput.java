@@ -33,10 +33,10 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class WebTriggerInput {
-    /** The destination URL (landing page) where the trigger registration occurred. */
+    /** The destination URL (landing page) where the trigger event occurred. */
     @NonNull private Uri mDestinationUrl;
 
-    /** The app where the trigger registration occurred */
+    /** The app where the trigger event occurred */
     @NonNull private String mAppPackageName;
 
     /** The data to be sent to the isolated service. */
@@ -66,9 +66,9 @@ public final class WebTriggerInput {
      * Creates a new WebTriggerInput.
      *
      * @param destinationUrl
-     *   The destination URL (landing page) where the trigger registration occurred.
+     *   The destination URL (landing page) where the trigger event occurred.
      * @param appPackageName
-     *   The app where the trigger registration occurred
+     *   The app where the trigger event occurred
      * @param data
      *   The data to be sent to the isolated service.
      * @hide
@@ -92,7 +92,7 @@ public final class WebTriggerInput {
     }
 
     /**
-     * The destination URL (landing page) where the trigger registration occurred.
+     * The destination URL (landing page) where the trigger event occurred.
      */
     @DataClass.Generated.Member
     public @NonNull Uri getDestinationUrl() {
@@ -100,7 +100,7 @@ public final class WebTriggerInput {
     }
 
     /**
-     * The app where the trigger registration occurred
+     * The app where the trigger event occurred
      */
     @DataClass.Generated.Member
     public @NonNull String getAppPackageName() {
@@ -147,7 +147,7 @@ public final class WebTriggerInput {
     }
 
     @DataClass.Generated(
-            time = 1707167073418L,
+            time = 1707196245772L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerInput.java",
             inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
