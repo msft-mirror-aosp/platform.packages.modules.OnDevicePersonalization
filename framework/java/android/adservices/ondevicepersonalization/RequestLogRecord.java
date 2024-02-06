@@ -34,10 +34,9 @@ import java.util.List;
  * Contains data that will be written to the REQUESTS table at the end of a call to
  * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
  * A single {@link RequestLogRecord} is appended to the
- * REQUESTS table if it is provided as a part of {@link ExecuteOutput}. The contents of
- * the REQUESTS table can be consumed by Federated Learning facilitated model training,
- * or Federated Analytics facilitated cross-device statistical analysis.
- *
+ * REQUESTS table if it is present in the output of one of the methods in {@link IsolatedWorker}.
+ * The contents of the REQUESTS table can be consumed by Federated Learning facilitated model
+ * training, or Federated Analytics facilitated cross-device statistical analysis.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
