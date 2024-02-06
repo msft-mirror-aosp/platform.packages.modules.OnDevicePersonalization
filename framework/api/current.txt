@@ -70,6 +70,7 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class ExecuteOutput {
     method @NonNull public java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> getEventLogRecords();
+    method @Nullable public byte[] getOutputData();
     method @Nullable public android.adservices.ondevicepersonalization.RenderingConfig getRenderingConfig();
     method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
   }
@@ -79,6 +80,7 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder addEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput build();
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setEventLogRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord>);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setOutputData(@NonNull byte...);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfig(@NonNull android.adservices.ondevicepersonalization.RenderingConfig);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
   }
@@ -145,8 +147,13 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationManager {
-    method public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.SurfacePackageToken,java.lang.Exception>);
+    method public void execute(@NonNull android.content.ComponentName, @NonNull android.os.PersistableBundle, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult,java.lang.Exception>);
     method public void requestSurfacePackage(@NonNull android.adservices.ondevicepersonalization.SurfacePackageToken, @NonNull android.os.IBinder, int, int, int, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<android.view.SurfaceControlViewHost.SurfacePackage,java.lang.Exception>);
+  }
+
+  public static class OnDevicePersonalizationManager.ExecuteResult {
+    method @Nullable public byte[] getOutputData();
+    method @Nullable public android.adservices.ondevicepersonalization.SurfacePackageToken getSurfacePackageToken();
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class RenderInput {
