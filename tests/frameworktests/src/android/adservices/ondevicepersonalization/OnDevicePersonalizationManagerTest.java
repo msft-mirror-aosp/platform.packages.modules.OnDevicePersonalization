@@ -38,26 +38,50 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(Parameterized.class)
 public final class OnDevicePersonalizationManagerTest {
     private static final String TAG = "OnDevicePersonalizationManagerTest";
     private static final String KEY_OP = "op";
-    private Context mContext = ApplicationProvider.getApplicationContext();
-    private TestServiceBinder mTestBinder = new TestServiceBinder(
+    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final TestServiceBinder mTestBinder = new TestServiceBinder(
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
-    private OnDevicePersonalizationManager mManager =
+    private final OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
+
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    @Before
+    public void setUp() {
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
+    }
 
     @Test
     public void testExecuteSuccess() throws Exception {
