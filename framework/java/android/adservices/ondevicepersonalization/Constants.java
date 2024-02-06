@@ -37,6 +37,8 @@ public class Constants {
     public static final int OP_WEB_TRIGGER = 6;
 
     // Keys for Bundle objects passed between processes.
+    public static final String EXTRA_APP_PACKAGE_NAME =
+                "android.ondevicepersonalization.app_package_name";
     public static final String EXTRA_CALLEE_METADATA =
             "android.ondevicepersonalization.extra.callee_metadata";
     public static final String EXTRA_DATA_ACCESS_SERVICE_BINDER =
@@ -52,6 +54,8 @@ public class Constants {
     public static final String EXTRA_INPUT = "android.ondevicepersonalization.extra.input";
     public static final String EXTRA_LOOKUP_KEYS =
             "android.ondevicepersonalization.extra.lookup_keys";
+    public static final String EXTRA_MEASUREMENT_DATA =
+            "android.adservices.ondevicepersonalization.measurement_data";
     public static final String EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
     public static final String EXTRA_OUTPUT_DATA =
             "android.ondevicepersonalization.extra.output_data";

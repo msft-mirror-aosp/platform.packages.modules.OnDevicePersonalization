@@ -42,8 +42,7 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
-import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
@@ -90,7 +89,9 @@ public class RenderFlow {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunnerImpl.getInstance();
+            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
+                    ? SharedIsolatedProcessRunner.getInstance()
+                    : ProcessRunnerImpl.getInstance();
         }
     }
 
@@ -187,7 +188,7 @@ public class RenderFlow {
 
             Futures.addCallback(
                     surfacePackageFuture,
-                    new FutureCallback<SurfacePackage>() {
+                    new FutureCallback<>() {
                         @Override
                         public void onSuccess(SurfacePackage surfacePackage) {
                             sendDisplayResult(surfacePackage);
@@ -252,30 +253,36 @@ public class RenderFlow {
         }
     }
 
+    private Bundle getServiceParams(RenderingConfig renderingConfig) {
+        Bundle serviceParams = new Bundle();
+
+        serviceParams.putParcelable(
+                Constants.EXTRA_INPUT, new RenderInputParcel.Builder()
+                        .setHeight(mHeight)
+                        .setWidth(mWidth)
+                        .setRenderingConfig(renderingConfig)
+                        .build());
+        serviceParams.putBinder(
+                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new DataAccessServiceImpl(
+                        mService.getPackageName(), mContext, /* includeLocalData */ false,
+                        /* includeEventData */ false));
+
+        return serviceParams;
+    }
+
+
     private ListenableFuture<Bundle> executeRenderContentRequest(
             IsolatedServiceInfo isolatedServiceInfo,
             RenderingConfig renderingConfig) {
         sLogger.d(TAG + "executeRenderContentRequest() started.");
-        Bundle serviceParams = new Bundle();
-        RenderInputParcel input =
-                new RenderInputParcel.Builder()
-                    .setHeight(mHeight)
-                    .setWidth(mWidth)
-                    .setRenderingConfig(renderingConfig)
-                    .build();
-        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mService.getPackageName(), mContext, /* includeLocalData */ false,
-                /* includeEventData */ false);
-        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, Constants.OP_RENDER, serviceParams);
+                isolatedServiceInfo, Constants.OP_RENDER, getServiceParams(renderingConfig));
         return FluentFuture.from(result)
                 .transform(
                     val -> {
-                        writeServiceRequestMetrics(
-                                val, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_SUCCESS);
+                        StatsUtils.writeServiceRequestMetrics(
+                                val, mInjector.getClock(),
+                                Constants.STATUS_SUCCESS, isolatedServiceInfo.getStartTimeMillis());
                         return val;
                     },
                     mInjector.getExecutor()
@@ -283,9 +290,10 @@ public class RenderFlow {
                 .catchingAsync(
                     Exception.class,
                     e -> {
-                        writeServiceRequestMetrics(
-                                null, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_INTERNAL_ERROR);
+                        StatsUtils.writeServiceRequestMetrics(
+                                /* result= */ null, mInjector.getClock(),
+                                Constants.STATUS_INTERNAL_ERROR,
+                                isolatedServiceInfo.getStartTimeMillis());
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
@@ -309,7 +317,7 @@ public class RenderFlow {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(responseCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
@@ -319,29 +327,8 @@ public class RenderFlow {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(errorCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
         }
-    }
-
-    private void writeAppRequestMetrics(int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_REQUEST_SURFACE_PACKAGE)
-                .setLatencyMillis(latencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
-    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        int overheadLatencyMillis =
-                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
     private boolean isPersonalizationStatusEnabled() {

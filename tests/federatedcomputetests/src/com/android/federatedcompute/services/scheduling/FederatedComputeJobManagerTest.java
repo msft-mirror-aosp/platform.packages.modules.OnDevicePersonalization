@@ -830,6 +830,7 @@ public final class FederatedComputeJobManagerTest {
                         .schedulingReason(
                                 SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
                         .earliestNextRunTime(3000 + serverRetryDelayMillis)
+                        .rescheduleCount(1)
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
 
@@ -1007,6 +1008,7 @@ public final class FederatedComputeJobManagerTest {
                         .schedulingReason(
                                 SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
                         .earliestNextRunTime(3000 + serverDefinedIntervalMillis)
+                        .rescheduleCount(1)
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
 
@@ -1177,7 +1179,8 @@ public final class FederatedComputeJobManagerTest {
                         .ownerId(mOwnerComponentName.flattenToString())
                         .ownerIdCertDigest(
                                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()))
-                        .appPackageName(CALLING_PACKAGE_NAME);
+                        .appPackageName(CALLING_PACKAGE_NAME)
+                        .rescheduleCount(0);
         if (trainingIntervalOptions != null) {
             builder.intervalOptions(trainingIntervalOptions);
         }
