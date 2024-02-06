@@ -24,6 +24,8 @@ import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -115,14 +117,16 @@ public class WebTriggerFlowTests {
         assertEquals(0,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                     null, null, null, null, null).getCount());
-        String triggerHeader = String.format(
-                "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
-                mContext.getPackageName());
+        MeasurementWebTriggerEventParamsParcel wtparams =
+                new MeasurementWebTriggerEventParamsParcel(
+                    Uri.parse("http://landingpage"),
+                    "com.example.browser",
+                    ComponentName.createRelative(
+                        mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                    null,
+                    "ABCD");
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_DESTINATION_URL,
-                Uri.parse("http://landingpage"));
-        params.putString(Constants.EXTRA_APP_PACKAGE_NAME, "com.example.browser");
-        params.putString(Constants.EXTRA_MEASUREMENT_DATA, triggerHeader);
+        params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
                 params, mContext, new TestInjector() {
                     @Override
@@ -145,14 +149,16 @@ public class WebTriggerFlowTests {
     public void testEnforceCallerPermission() throws Exception {
         when(mContext.checkCallingOrSelfPermission(anyString()))
                 .thenReturn(PackageManager.PERMISSION_DENIED);
-        String triggerHeader = String.format(
-                "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
-                mContext.getPackageName());
+        MeasurementWebTriggerEventParamsParcel wtparams =
+                new MeasurementWebTriggerEventParamsParcel(
+                    Uri.parse("http://landingpage"),
+                    "com.example.browser",
+                    ComponentName.createRelative(
+                        mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                    null,
+                    "ABCD");
         Bundle params = new Bundle();
-        params.putParcelable(Constants.EXTRA_DESTINATION_URL,
-                Uri.parse("http://landingpage"));
-        params.putString(Constants.EXTRA_APP_PACKAGE_NAME, "com.example.browser");
-        params.putString(Constants.EXTRA_MEASUREMENT_DATA, triggerHeader);
+        params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
                 params, mContext, new TestInjector());
         try {
