@@ -1,4 +1,5 @@
 package: "com.android.adservices.ondevicepersonalization.flags"
+container: "com.android.ondevicepersonalization"
 
 flag {
     name: "on_device_personalization_apis_enabled"
