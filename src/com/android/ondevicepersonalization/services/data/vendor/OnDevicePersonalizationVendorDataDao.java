@@ -27,6 +27,9 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -44,6 +47,8 @@ public class OnDevicePersonalizationVendorDataDao {
     private static final String TAG = "OnDevicePersonalizationVendorDataDao";
     private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata_";
 
+    private static final long BLOB_SIZE_LIMIT = 100000;
+
     private static final Map<String, OnDevicePersonalizationVendorDataDao> sVendorDataDaos =
             new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
@@ -51,12 +56,18 @@ public class OnDevicePersonalizationVendorDataDao {
     private final String mCertDigest;
     private final String mTableName;
 
+    private final String mFileDir;
+    private final OnDevicePersonalizationLocalDataDao mLocalDao;
+
     private OnDevicePersonalizationVendorDataDao(OnDevicePersonalizationDbHelper dbHelper,
-            String owner, String certDigest) {
+            String owner, String certDigest, String fileDir,
+            OnDevicePersonalizationLocalDataDao localDataDao) {
         this.mDbHelper = dbHelper;
         this.mOwner = owner;
         this.mCertDigest = certDigest;
         this.mTableName = getTableName(owner, certDigest);
+        this.mFileDir = fileDir;
+        this.mLocalDao = localDataDao;
     }
 
     /**
@@ -72,6 +83,7 @@ public class OnDevicePersonalizationVendorDataDao {
             String certDigest) {
         // TODO: Validate the owner and certDigest
         String tableName = getTableName(owner, certDigest);
+        String fileDir = getFileDir(tableName, context.getFilesDir());
         OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
         if (instance == null) {
             synchronized (sVendorDataDaos) {
@@ -80,7 +92,9 @@ public class OnDevicePersonalizationVendorDataDao {
                     OnDevicePersonalizationDbHelper dbHelper =
                             OnDevicePersonalizationDbHelper.getInstance(context);
                     instance = new OnDevicePersonalizationVendorDataDao(
-                            dbHelper, owner, certDigest);
+                            dbHelper, owner, certDigest, fileDir,
+                            OnDevicePersonalizationLocalDataDao.getInstance(context, owner,
+                                    certDigest));
                     sVendorDataDaos.put(tableName, instance);
                 }
             }
@@ -97,21 +111,34 @@ public class OnDevicePersonalizationVendorDataDao {
             String owner, String certDigest) {
         synchronized (OnDevicePersonalizationVendorDataDao.class) {
             String tableName = getTableName(owner, certDigest);
+            String fileDir = getFileDir(tableName, context.getFilesDir());
             OnDevicePersonalizationVendorDataDao instance = sVendorDataDaos.get(tableName);
             if (instance == null) {
                 OnDevicePersonalizationDbHelper dbHelper =
                         OnDevicePersonalizationDbHelper.getInstanceForTest(context);
                 instance = new OnDevicePersonalizationVendorDataDao(
-                        dbHelper, owner, certDigest);
+                        dbHelper, owner, certDigest, fileDir,
+                        OnDevicePersonalizationLocalDataDao.getInstanceForTest(context, owner,
+                                certDigest));
                 sVendorDataDaos.put(tableName, instance);
             }
             return instance;
         }
     }
 
-    private static String getTableName(String owner, String certDigest) {
+    /**
+     * Creates table name based on owner and certDigest
+     */
+    public static String getTableName(String owner, String certDigest) {
         owner = owner.replace(".", "_");
         return VENDOR_DATA_TABLE_NAME_PREFIX + owner + "_" + certDigest;
+    }
+
+    /**
+     * Creates file directory name based on table name and base directory
+     */
+    public static String getFileDir(String tableName, File baseDir) {
+        return baseDir + "/" + tableName;
     }
 
     /**
@@ -169,7 +196,7 @@ public class OnDevicePersonalizationVendorDataDao {
             db.delete(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, selection,
                     selectionArgs);
 
-            // Delete the vendorData table
+            // Delete the vendorData and localData table
             db.execSQL("DROP TABLE " + vendorDataTableName);
             OnDevicePersonalizationLocalDataDao.deleteTable(context, owner, certDigest);
 
@@ -180,6 +207,10 @@ public class OnDevicePersonalizationVendorDataDao {
         } finally {
             db.endTransaction();
         }
+        FileUtils.deleteDirectory(new File(getFileDir(vendorDataTableName, context.getFilesDir())));
+        FileUtils.deleteDirectory(new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                OnDevicePersonalizationLocalDataDao.getTableName(owner, certDigest),
+                context.getFilesDir())));
         return true;
     }
 
@@ -191,6 +222,11 @@ public class OnDevicePersonalizationVendorDataDao {
         } catch (SQLException e) {
             sLogger.e(TAG + ": Failed to create table: " + tableName, e);
             return false;
+        }
+        // Create directory for large files
+        File dir = new File(mFileDir);
+        if (!dir.isDirectory()) {
+            return dir.mkdir();
         }
         return true;
     }
@@ -226,7 +262,10 @@ public class OnDevicePersonalizationVendorDataDao {
     public byte[] readSingleVendorDataRow(String key) {
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
-            String[] projection = {VendorDataContract.VendorDataEntry.DATA};
+            String[] projection = {
+                    VendorDataContract.VendorDataEntry.TYPE,
+                    VendorDataContract.VendorDataEntry.DATA
+            };
             String selection = VendorDataContract.VendorDataEntry.KEY + " = ?";
             String[] selectionArgs = {key};
             try (Cursor cursor = db.query(
@@ -243,9 +282,17 @@ public class OnDevicePersonalizationVendorDataDao {
                     return null;
                 }
                 cursor.moveToNext();
-                return cursor.getBlob(0);
+                byte[] blob = cursor.getBlob(
+                        cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.DATA));
+                int type = cursor.getInt(
+                        cursor.getColumnIndexOrThrow(VendorDataContract.VendorDataEntry.TYPE));
+                if (type == VendorDataContract.DATA_TYPE_FILE) {
+                    File file = new File(mFileDir, new String(blob));
+                    return Files.readAllBytes(file.toPath());
+                }
+                return blob;
             }
-        } catch (SQLiteException e) {
+        } catch (SQLiteException | IOException e) {
             sLogger.e(TAG + ": Failed to read vendor data row", e);
         }
         return null;
@@ -298,16 +345,14 @@ public class OnDevicePersonalizationVendorDataDao {
             if (!createTableIfNotExists(mTableName)) {
                 return false;
             }
-            if (!OnDevicePersonalizationLocalDataDao.createTableIfNotExists(
-                    OnDevicePersonalizationLocalDataDao.getTableName(mOwner, mCertDigest),
-                    mDbHelper)) {
+            if (!mLocalDao.createTableIfNotExists()) {
                 return false;
             }
             if (!deleteUnretainedRows(retainedKeys)) {
                 return false;
             }
             for (VendorData vendorData : vendorDataList) {
-                if (!updateOrInsertVendorData(vendorData)) {
+                if (!updateOrInsertVendorData(vendorData, syncToken)) {
                     // The query failed. Return and don't finalize the transaction.
                     return false;
                 }
@@ -342,16 +387,29 @@ public class OnDevicePersonalizationVendorDataDao {
      *
      * @return true if the update/insert succeeded, false otherwise
      */
-    private boolean updateOrInsertVendorData(VendorData vendorData) {
+    private boolean updateOrInsertVendorData(VendorData vendorData, long syncToken) {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(VendorDataContract.VendorDataEntry.KEY, vendorData.getKey());
-            values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
+            if (vendorData.getData().length > BLOB_SIZE_LIMIT) {
+                String filename = vendorData.getKey() + "_" + syncToken;
+                File file = new File(mFileDir, filename);
+                Files.write(file.toPath(), vendorData.getData());
+                values.put(VendorDataContract.VendorDataEntry.TYPE,
+                        VendorDataContract.DATA_TYPE_FILE);
+                values.put(VendorDataContract.VendorDataEntry.DATA, filename.getBytes());
+            } else {
+                values.put(VendorDataContract.VendorDataEntry.DATA, vendorData.getData());
+            }
             return db.insertWithOnConflict(mTableName, null,
                     values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
-        } catch (SQLiteException e) {
+        } catch (SQLiteException | IOException e) {
             sLogger.e(TAG + ": Failed to update or insert buyer data", e);
+            // Attempt to delete file if something failed
+            String filename = vendorData.getKey() + "_" + syncToken;
+            File file = new File(mFileDir, filename);
+            file.delete();
         }
         return false;
     }
