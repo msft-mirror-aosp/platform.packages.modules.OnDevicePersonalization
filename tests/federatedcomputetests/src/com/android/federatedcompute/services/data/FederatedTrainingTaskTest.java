@@ -60,6 +60,7 @@ public final class FederatedTrainingTaskTest {
     private static final int SCHEDULING_REASON = SchedulingReason.SCHEDULING_REASON_NEW_TASK;
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
     private static final byte[] TRAINING_CONSTRAINTS = createDefaultTrainingConstraints();
+    public static final int RESCHEDULE_COUNT = 2;
 
     private SQLiteDatabase mDatabase;
     private FederatedComputeDbHelper mDbHelper;
@@ -117,6 +118,7 @@ public final class FederatedTrainingTaskTest {
         assertThat(storedFederatedTrainingTask.lastRunStartTime()).isEqualTo(0);
         assertThat(storedFederatedTrainingTask.lastRunEndTime()).isEqualTo(0);
         assertThat(storedFederatedTrainingTask.lastRunStartTime()).isEqualTo(0);
+        assertThat(storedFederatedTrainingTask.rescheduleCount()).isEqualTo(0);
     }
 
     @Test
@@ -152,6 +154,7 @@ public final class FederatedTrainingTaskTest {
         assertThat(trainingTask.lastRunEndTime()).isEqualTo(LAST_RUN_END_TIME);
         assertThat(trainingTask.earliestNextRunTime()).isEqualTo(EARLIEST_NEXT_RUN_TIME);
         assertThat(trainingTask.schedulingReason()).isEqualTo(SCHEDULING_REASON);
+        assertThat(trainingTask.rescheduleCount()).isEqualTo(RESCHEDULE_COUNT);
     }
 
     private static byte[] createDefaultTrainingConstraints() {
@@ -184,6 +187,7 @@ public final class FederatedTrainingTaskTest {
                 .lastRunEndTime(LAST_RUN_END_TIME)
                 .earliestNextRunTime(EARLIEST_NEXT_RUN_TIME)
                 .schedulingReason(SCHEDULING_REASON)
+                .rescheduleCount(RESCHEDULE_COUNT)
                 .build();
     }
 

@@ -38,7 +38,9 @@ import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.events.Query;
-import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -48,32 +50,45 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class AppRequestFlowTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private OnDevicePersonalizationDbHelper mDbHelper;
-    private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
 
-    private String mRenderedContent;
-    private boolean mGenerateHtmlCalled;
-    private String mGeneratedHtml;
-    private boolean mDisplayHtmlCalled;
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private Bundle mCallbackResult;
+
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         // Make sure we can access hidden APIs.
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
 
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         ArrayList<ContentValues> rows = new ArrayList<>();
@@ -89,8 +104,6 @@ public class AppRequestFlowTest {
                 new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
-        PhFlagsTestUtil.setUpDeviceConfigPermissions();
-        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
     }
 
     @After
@@ -112,6 +125,12 @@ public class AppRequestFlowTest {
                         String servicePkg, String appPkg, Context context) {
                             return false;
                         }
+
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
                 });
         appRequestFlow.run();
         mLatch.await();
@@ -137,6 +156,12 @@ public class AppRequestFlowTest {
                         String servicePkg, String appPkg, Context context) {
                             return true;
                         }
+
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
                 });
         appRequestFlow.run();
         mLatch.await();
@@ -162,6 +187,12 @@ public class AppRequestFlowTest {
                 new TestInjector() {
                     @Override boolean isPersonalizationStatusEnabled() {
                         return false;
+                    }
+
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
                     }
                 });
         appRequestFlow.run();
@@ -195,3 +226,4 @@ public class AppRequestFlowTest {
         }
     }
 }
+
