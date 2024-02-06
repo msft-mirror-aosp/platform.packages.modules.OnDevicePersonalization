@@ -54,6 +54,9 @@ java_sdk_library {
         "framework-connectivity.stubs.module_lib",
         "ondevicepersonalization_flags_lib",
     ],
+    stub_only_libs: [
+        "framework-connectivity.stubs.module_lib",
+    ],
     sdk_version: "module_current",
     defaults: [
         "framework-module-defaults",
