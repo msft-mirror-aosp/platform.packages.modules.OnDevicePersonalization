@@ -16,21 +16,16 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT;
-
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
-import android.annotation.RequiresPermission;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -291,62 +286,6 @@ public class OnDevicePersonalizationManager {
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 
-        } catch (IllegalArgumentException | NullPointerException e) {
-            throw e;
-        } catch (Exception e) {
-            receiver.onError(e);
-        }
-    }
-
-    /**
-     * Registers a web trigger.
-     *
-     * @param destinationUrl the URL of the web page where the triggering event occurred.
-     * @param registrationUrl the URL which returned the triggering data.
-     * @param triggerHeader the payload returned by the registrationUrl in the Odp trigger header.
-     * @param appPackageName the browser app which showed the page where the triggering event
-     *     occurred.
-     * @param executor the {@link Executor} on which to invoke the callback
-     * @param receiver This either returns {@code null} on success, or an exception on failure.
-     *
-     * @hide
-     */
-    @RequiresPermission(REGISTER_MEASUREMENT_EVENT)
-    public void registerWebTrigger(
-            @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
-            @NonNull String triggerHeader,
-            @NonNull String appPackageName,
-            @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<Void, Exception> receiver) {
-        Objects.requireNonNull(destinationUrl);
-        Objects.requireNonNull(registrationUrl);
-        Objects.requireNonNull(triggerHeader);
-        Objects.requireNonNull(appPackageName);
-        Objects.requireNonNull(executor);
-        Objects.requireNonNull(receiver);
-        long startTimeMillis = SystemClock.elapsedRealtime();
-
-        try {
-            final IOnDevicePersonalizationManagingService service =
-                    mServiceBinder.getService(executor);
-            service.registerWebTrigger(
-                    destinationUrl,
-                    registrationUrl,
-                    triggerHeader,
-                    appPackageName,
-                    new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
-                    new IRegisterWebTriggerCallback.Stub() {
-                        @Override
-                        public void onSuccess() {
-                            executor.execute(() -> receiver.onResult(null));
-                        }
-                        @Override
-                        public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(createException(errorCode)));
-                        }
-                    }
-            );
         } catch (IllegalArgumentException | NullPointerException e) {
             throw e;
         } catch (Exception e) {

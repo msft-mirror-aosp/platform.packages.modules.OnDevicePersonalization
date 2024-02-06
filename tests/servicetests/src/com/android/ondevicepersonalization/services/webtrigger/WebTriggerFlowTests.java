@@ -23,10 +23,12 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
+import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -116,10 +118,13 @@ public class WebTriggerFlowTests {
         String triggerHeader = String.format(
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_DESTINATION_URL,
+                Uri.parse("http://landingpage"));
+        params.putString(Constants.EXTRA_APP_PACKAGE_NAME, "com.example.browser");
+        params.putString(Constants.EXTRA_MEASUREMENT_DATA, triggerHeader);
         WebTriggerFlow flow = new WebTriggerFlow(
-                Uri.parse("http://landingpage"),
-                triggerHeader, "com.example.browser", mContext,
-                new TestInjector() {
+                params, mContext, new TestInjector() {
                     @Override
                     ProcessRunner getProcessRunner() {
                         return mIsSipFeatureEnabled
@@ -143,9 +148,13 @@ public class WebTriggerFlowTests {
         String triggerHeader = String.format(
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_DESTINATION_URL,
+                Uri.parse("http://landingpage"));
+        params.putString(Constants.EXTRA_APP_PACKAGE_NAME, "com.example.browser");
+        params.putString(Constants.EXTRA_MEASUREMENT_DATA, triggerHeader);
         WebTriggerFlow flow = new WebTriggerFlow(
-                Uri.parse("http://landingpage"), triggerHeader,
-                "com.example.browser", mContext, new TestInjector());
+                params, mContext, new TestInjector());
         try {
             var unused = flow.run().get();
             fail("Expected ExecutionException");
