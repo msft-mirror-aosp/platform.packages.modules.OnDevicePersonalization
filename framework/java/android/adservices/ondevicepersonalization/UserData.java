@@ -115,9 +115,14 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Network capabilities of the device. This is the value of
-     * {@link android.net.ConnectivityManager#getNetworkCapabilities(android.net.Network)}.
-     * @hide
+     * A filtered subset of the Network capabilities of the device that contains upstream
+     * and downstream speeds, and whether the network is metered.
+     * This is an instance of {@link NetworkCapabilities} that contains the capability
+     * {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} if the network is not
+     * metered, and {@link NetworkCapabilities#getLinkDownstreamBandwidthKbps()} and
+     * {@link NetworkCapabilities#getLinkUpstreamBandwidthKbps()} return the downstream and
+     * upstream connection speeds. All other methods of this {@link NetworkCapabilities} object
+     * return empty or default values.
      */
     @Nullable NetworkCapabilities mNetworkCapabilities = null;
 
@@ -233,10 +238,14 @@ public final class UserData implements Parcelable {
     }
 
     /**
-     * Network capabilities of the device. This is the value of
-     * {@link android.net.ConnectivityManager#getNetworkCapabilities(android.net.Network)}.
-     *
-     * @hide
+     * A filtered subset of the Network capabilities of the device that contains upstream
+     * and downstream speeds, and whether the network is metered.
+     * This is an instance of {@link NetworkCapabilities} that contains the capability
+     * {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} if the network is not
+     * metered, and {@link NetworkCapabilities#getLinkDownstreamBandwidthKbps()} and
+     * {@link NetworkCapabilities#getLinkUpstreamBandwidthKbps()} return the downstream and
+     * upstream connection speeds. All other methods of this {@link NetworkCapabilities} object
+     * return empty or default values.
      */
     @DataClass.Generated.Member
     public @Nullable NetworkCapabilities getNetworkCapabilities() {
@@ -465,10 +474,14 @@ public final class UserData implements Parcelable {
         }
 
         /**
-         * Network capabilities of the device. This is the value of
-         * {@link android.net.ConnectivityManager#getNetworkCapabilities(android.net.Network)}.
-         *
-         * @hide
+         * A filtered subset of the Network capabilities of the device that contains upstream
+         * and downstream speeds, and whether the network is metered.
+         * This is an instance of {@link NetworkCapabilities} that contains the capability
+         * {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} if the network is not
+         * metered, and {@link NetworkCapabilities#getLinkDownstreamBandwidthKbps()} and
+         * {@link NetworkCapabilities#getLinkUpstreamBandwidthKbps()} return the downstream and
+         * upstream connection speeds. All other methods of this {@link NetworkCapabilities} object
+         * return empty or default values.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setNetworkCapabilities(@NonNull NetworkCapabilities value) {
@@ -559,7 +572,7 @@ public final class UserData implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1706576592947L,
+            time = 1707172832988L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/UserData.java",
             inputSignatures = "  int mTimezoneUtcOffsetMins\n @android.adservices.ondevicepersonalization.UserData.Orientation int mOrientation\n @android.annotation.IntRange long mAvailableStorageBytes\n @android.annotation.IntRange int mBatteryPercentage\n @android.annotation.NonNull java.lang.String mCarrier\n @android.annotation.Nullable android.net.NetworkCapabilities mNetworkCapabilities\n @android.adservices.ondevicepersonalization.UserData.NetworkType int mDataNetworkType\n @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"appInfo\") @android.annotation.NonNull java.util.Map<java.lang.String,android.adservices.ondevicepersonalization.AppInfo> mAppInfos\npublic @android.annotation.NonNull java.time.Duration getTimezoneUtcOffset()\nclass UserData extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genHiddenBuilder=true, genEqualsHashCode=true, genConstDefs=false)")
