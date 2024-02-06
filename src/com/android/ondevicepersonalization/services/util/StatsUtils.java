@@ -20,6 +20,9 @@ import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.os.Bundle;
 
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+
 /** Utilities for stats logging */
 public class StatsUtils {
     /** Subtracts callee reported latency from caller reported latency. */
@@ -38,5 +41,28 @@ public class StatsUtils {
         return callerLatencyMillis - calleeLatencyMillis;
     }
 
+    /** Writes app request usage to statsd. */
+    public static void writeAppRequestMetrics(Clock clock, int responseCode, long startTimeMillis) {
+        int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
+                .setLatencyMillis(latencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
+
+    /** Writes service request usage to statsd. */
+    public static void writeServiceRequestMetrics(
+            Bundle result, Clock clock, int responseCode, long startTimeMillis) {
+        int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
+        int overheadLatencyMillis =
+                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
+        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
+                .setLatencyMillis(latencyMillis)
+                .setOverheadLatencyMillis(overheadLatencyMillis)
+                .setResponseCode(responseCode)
+                .build();
+        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
+    }
     private StatsUtils() {}
 }
