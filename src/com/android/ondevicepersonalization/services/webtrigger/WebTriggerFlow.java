@@ -21,6 +21,7 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermiss
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
 import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
@@ -34,6 +35,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
@@ -118,6 +120,8 @@ public class WebTriggerFlow {
     @NonNull private final String mAppPackageName;
     @NonNull private final Context mContext;
     @NonNull private final Injector mInjector;
+
+    @NonNull private IsolatedModelServiceProvider mModelServiceProvider;
 
     public WebTriggerFlow(
             @NonNull Uri destinationUrl,
@@ -228,8 +232,11 @@ public class WebTriggerFlow {
 
             var unused = Futures.whenAllComplete(loadFuture, resultFuture)
                     .callAsync(
-                            () -> mInjector.getProcessRunner().unloadIsolatedService(
-                                loadFuture.get()),
+                            () -> {
+                                mModelServiceProvider.unBindFromModelService();
+                                return mInjector.getProcessRunner().unloadIsolatedService(
+                                        loadFuture.get());
+                            },
                             mInjector.getExecutor());
 
             return resultFuture;
@@ -257,6 +264,9 @@ public class WebTriggerFlow {
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, Constants.OP_WEB_TRIGGER,

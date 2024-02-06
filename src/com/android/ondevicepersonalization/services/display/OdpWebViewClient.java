@@ -22,6 +22,7 @@ import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
@@ -43,6 +44,7 @@ import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
@@ -111,6 +113,8 @@ class OdpWebViewClient extends WebViewClient {
     long mQueryId;
     @NonNull private final RequestLogRecord mLogRecord;
     @NonNull private final Injector mInjector;
+
+    @NonNull private IsolatedModelServiceProvider mModelServiceProvider;
 
     OdpWebViewClient(Context context, ComponentName service, long queryId,
             RequestLogRecord logRecord) {
@@ -204,11 +208,14 @@ class OdpWebViewClient extends WebViewClient {
             UserDataAccessor userDataAccessor = new UserDataAccessor();
             UserData userData = userDataAccessor.getUserData();
             serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
+            mModelServiceProvider = new IsolatedModelServiceProvider();
+            IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+            serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
             return FluentFuture.from(
-                    mInjector.getProcessRunner().runIsolatedService(
-                        isolatedServiceInfo,
-                        Constants.OP_WEB_VIEW_EVENT,
-                        serviceParams))
+                            mInjector.getProcessRunner().runIsolatedService(
+                                    isolatedServiceInfo,
+                                    Constants.OP_WEB_VIEW_EVENT,
+                                    serviceParams))
                     .transform(
                             result -> {
                                 writeServiceRequestMetrics(
@@ -306,9 +313,12 @@ class OdpWebViewClient extends WebViewClient {
                     );
 
             var unused = Futures.whenAllComplete(loadFuture, doneFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                    mInjector.getExecutor());
+                    .callAsync(() -> {
+                                mModelServiceProvider.unBindFromModelService();
+                                return mInjector.getProcessRunner().unloadIsolatedService(
+                                        loadFuture.get());
+                            },
+                            mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Failed to handle Event", e);
         }
