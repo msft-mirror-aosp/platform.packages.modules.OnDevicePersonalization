@@ -64,6 +64,7 @@ import org.mockito.quality.Strictness;
 
 import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -254,6 +255,29 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertEquals(2, mEventsDao.readAllNewRowsForPackage(TEST_OWNER, 0, 0).size());
         assertEquals(2,
                 mEventsDao.readAllNewRowsForPackage(mContext.getPackageName(), 0, 0).size());
+    }
+
+    @Test
+    public void testVendorDataCleanupExtraDirs() throws Exception {
+        long timestamp = System.currentTimeMillis();
+        addTestData(timestamp, mDao);
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+
+        // Write extra dirs and files
+        new File(vendorDir, "randomDirectory").mkdir();
+        new File(vendorDir, "randomDirectory2").mkdir();
+        new File(localDir, "randomDirectory").mkdir();
+        Files.write(new File(vendorDir, "randomFile.txt").toPath(), new byte[10]);
+        Files.write(new File(vendorDir + "/randomDirectory", "randomFile.txt").toPath(),
+                new byte[10]);
+        Files.write(new File(localDir, "randomFile.txt").toPath(), new byte[10]);
+        assertEquals(4, vendorDir.listFiles().length);
+        assertEquals(3, localDir.listFiles().length);
+
+        OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        assertEquals(1, vendorDir.listFiles().length);
+        assertEquals(1, localDir.listFiles().length);
     }
 
     @After

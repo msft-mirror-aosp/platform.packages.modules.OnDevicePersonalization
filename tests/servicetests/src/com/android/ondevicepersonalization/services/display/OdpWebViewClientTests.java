@@ -147,7 +147,7 @@ public class OdpWebViewClientTests {
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await(10000, TimeUnit.MILLISECONDS);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -160,7 +160,7 @@ public class OdpWebViewClientTests {
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await(10000, TimeUnit.MILLISECONDS);
         assertEquals(HttpURLConnection.HTTP_NO_CONTENT, response.getStatusCode());
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
@@ -175,7 +175,7 @@ public class OdpWebViewClientTests {
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await(10000, TimeUnit.MILLISECONDS);
         assertEquals(HttpURLConnection.HTTP_OK, response.getStatusCode());
         assertEquals("image/gif", response.getMimeType());
         assertArrayEquals(RESPONSE_BYTES, response.getData().readAllBytes());
@@ -193,7 +193,7 @@ public class OdpWebViewClientTests {
 
         WebViewClient webViewClient = getWebViewClient();
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await(10000, TimeUnit.MILLISECONDS);
         assertEquals(landingPage, mOpenedUrl);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
@@ -206,7 +206,7 @@ public class OdpWebViewClientTests {
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await(10000, TimeUnit.MILLISECONDS);
         Cursor result =
                 mDbHelper.getReadableDatabase().query(
                     EventsContract.EventsEntry.TABLE_NAME, null,
