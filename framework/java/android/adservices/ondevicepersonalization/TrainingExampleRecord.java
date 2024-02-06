@@ -34,6 +34,7 @@ public final class TrainingExampleRecord implements Parcelable {
      * href="https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/example/example.proto">
      * tensorflow.Example</a> proto. The maximum allowed example size is 50KB.
      */
+    @DataClass.MaySetToNull
     @Nullable private byte[] mTrainingExample = null;
 
     /**
@@ -41,6 +42,7 @@ public final class TrainingExampleRecord implements Parcelable {
      * example's corresponding resumption token will be passed to {@link
      * IsolatedWorker#onTrainingExamples} to support resumption.
      */
+    @DataClass.MaySetToNull
     @Nullable private byte[] mResumptionToken = null;
 
 
@@ -153,7 +155,7 @@ public final class TrainingExampleRecord implements Parcelable {
          * tensorflow.Example</a> proto. The maximum allowed example size is 50KB.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setTrainingExample(@android.annotation.NonNull byte... value) {
+        public @android.annotation.NonNull Builder setTrainingExample(@Nullable byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mTrainingExample = value;
@@ -166,7 +168,7 @@ public final class TrainingExampleRecord implements Parcelable {
          * IsolatedWorker#onTrainingExamples} to support resumption.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setResumptionToken(@android.annotation.NonNull byte... value) {
+        public @android.annotation.NonNull Builder setResumptionToken(@Nullable byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mResumptionToken = value;
@@ -199,10 +201,10 @@ public final class TrainingExampleRecord implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1706729212797L,
+            time = 1707253849218L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExampleRecord.java",
-            inputSignatures = "private @android.annotation.Nullable byte[] mTrainingExample\nprivate @android.annotation.Nullable byte[] mResumptionToken\nclass TrainingExampleRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genAidl=false)")
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable byte[] mTrainingExample\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable byte[] mResumptionToken\nclass TrainingExampleRecord extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genAidl=false)")
     @Deprecated
     private void __metadata() {}
 
