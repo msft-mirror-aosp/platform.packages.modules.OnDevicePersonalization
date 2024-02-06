@@ -19,8 +19,9 @@ package com.android.ondevicepersonalization.services;
 import android.annotation.NonNull;
 import android.provider.DeviceConfig;
 
+import com.android.modules.utils.build.SdkLevel;
+
 /** Flags Implementation that delegates to DeviceConfig. */
-// TODO(b/228037065): Add validation logics for Feature flags read from PH.
 public final class PhFlags implements Flags {
     /*
      * Keys for ALL the flags stored in DeviceConfig.
@@ -101,18 +102,27 @@ public final class PhFlags implements Flags {
 
     @Override
     public String getTrustedPartnerAppsList() {
-        return DeviceConfig.getString(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
-                /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+        if (SdkLevel.isAtLeastU()) {
+            return DeviceConfig.getString(
+                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                    /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
+                    /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+        } else {
+            return "";
+        }
     }
 
     @Override
     public boolean isSharedIsolatedProcessFeatureEnabled() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
-                /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+        if (SdkLevel.isAtLeastU()) {
+            return DeviceConfig.getBoolean(
+                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                    /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                    /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+        } else {
+            return false;
+        }
+
     }
 
     @Override

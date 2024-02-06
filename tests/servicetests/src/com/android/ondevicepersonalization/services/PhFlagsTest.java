@@ -37,6 +37,8 @@ import android.provider.DeviceConfig;
 
 import androidx.test.runner.AndroidJUnit4;
 
+import com.android.modules.utils.build.SdkLevel;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -126,8 +128,13 @@ public class PhFlagsTest {
                 DEFAULT_TRUSTED_PARTNER_APPS_LIST,
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
-                .isEqualTo(DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+        if (SdkLevel.isAtLeastU()) {
+            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                    .isEqualTo(DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+        } else {
+            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                    .isEqualTo("");
+        }
 
         final String testTrustedPartnerAppsList =
                 "trusted_test_app_1, trusted_test_app_2, trusted_test_app_3";
@@ -138,8 +145,13 @@ public class PhFlagsTest {
                 testTrustedPartnerAppsList,
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
-                .isEqualTo(testTrustedPartnerAppsList);
+        if (SdkLevel.isAtLeastU()) {
+            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                    .isEqualTo(testTrustedPartnerAppsList);
+        } else {
+            assertThat(FlagsFactory.getFlags().getTrustedPartnerAppsList())
+                    .isEqualTo("");
+        }
     }
 
     @Test
@@ -150,8 +162,13 @@ public class PhFlagsTest {
                 Boolean.toString(DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED),
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
-                .isEqualTo(DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+        if (SdkLevel.isAtLeastU()) {
+            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
+                    .isEqualTo(DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+        } else {
+            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
+                    .isFalse();
+        }
 
         final boolean testIsolatedProcessFeatureEnabled =
                 !DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
@@ -162,8 +179,13 @@ public class PhFlagsTest {
                 Boolean.toString(testIsolatedProcessFeatureEnabled),
                 /* makeDefault */ false);
 
-        assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
-                .isEqualTo(testIsolatedProcessFeatureEnabled);
+        if (SdkLevel.isAtLeastU()) {
+            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
+                    .isEqualTo(testIsolatedProcessFeatureEnabled);
+        } else {
+            assertThat(FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled())
+                    .isFalse();
+        }
     }
 
     @Test
