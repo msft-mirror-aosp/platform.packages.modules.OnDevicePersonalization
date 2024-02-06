@@ -77,7 +77,9 @@ public class FederatedComputeServiceImplTest {
         mMockManager = Mockito.mock(FederatedComputeManager.class);
         mCallbackCapture = ArgumentCaptor.forClass(OutcomeReceiver.class);
         mRequestCapture = ArgumentCaptor.forClass(ScheduleFederatedComputeRequest.class);
-        doNothing().when(mMockManager).cancel(any(), any(), mCallbackCapture.capture());
+        doNothing()
+                .when(mMockManager)
+                .cancel(any(), any(), any(), mCallbackCapture.capture());
         doNothing()
                 .when(mMockManager)
                 .schedule(mRequestCapture.capture(), any(), mCallbackCapture.capture());
@@ -165,7 +167,7 @@ public class FederatedComputeServiceImplTest {
         EventsDao.getInstanceForTest(mApplicationContext)
                 .updateOrInsertEventState(
                         new EventState.Builder()
-                                .setServicePackageName(mApplicationContext.getPackageName())
+                                .setServiceName(mApplicationContext.getPackageName())
                                 .setTaskIdentifier("population")
                                 .setToken(new byte[] {})
                                 .build());
@@ -179,7 +181,7 @@ public class FederatedComputeServiceImplTest {
     public void testCancelNoPopulation() throws Exception {
         mServiceProxy.cancel("population", new TestCallback());
         mLatch.await(1000, TimeUnit.MILLISECONDS);
-        verify(mMockManager, times(0)).cancel(any(), any(), any());
+        verify(mMockManager, times(0)).cancel(any(), any(), any(), any());
         assertTrue(mOnSuccessCalled);
     }
 
@@ -188,7 +190,7 @@ public class FederatedComputeServiceImplTest {
         EventsDao.getInstanceForTest(mApplicationContext)
                 .updateOrInsertEventState(
                         new EventState.Builder()
-                                .setServicePackageName(mApplicationContext.getPackageName())
+                                .setServiceName(mApplicationContext.getPackageName())
                                 .setTaskIdentifier("population")
                                 .setToken(new byte[] {})
                                 .build());

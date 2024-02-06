@@ -58,6 +58,12 @@ cc_library_shared {
     name: "libfcp_cpp_dep_jni",
     srcs: [
         "jni/cpp/*.cc",
+        // Add tensorflow java API jni source files
+        ":tensorflowlite_jni_src",
+    ],
+    include_dirs: [
+        "external/flatbuffers/include",
+        "external/tensorflow",
     ],
     version_script: "jni/jni.lds",
     whole_static_libs: [

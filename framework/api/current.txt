@@ -9,7 +9,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedInput {
-    method @NonNull public java.util.Map<java.lang.String,byte[]> getData();
+    method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getDownloadedContents();
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class DownloadCompletedOutput {
@@ -141,6 +141,7 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationException extends java.lang.Exception {
     method public int getErrorCode();
     field public static final int ERROR_ISOLATED_SERVICE_FAILED = 1; // 0x1
+    field public static final int ERROR_PERSONALIZATION_DISABLED = 2; // 0x2
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationManager {
@@ -203,7 +204,7 @@ package android.adservices.ondevicepersonalization {
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class SurfacePackageToken {
   }
 
-  @FlaggedApi("enable_ondevicepersonalization_apis") public final class TrainingExampleRecord implements android.os.Parcelable {
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExampleRecord implements android.os.Parcelable {
     method public int describeContents();
     method @Nullable public byte[] getResumptionToken();
     method @Nullable public byte[] getTrainingExample();
@@ -211,7 +212,7 @@ package android.adservices.ondevicepersonalization {
     field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.TrainingExampleRecord> CREATOR;
   }
 
-  @FlaggedApi("enable_ondevicepersonalization_apis") public static final class TrainingExampleRecord.Builder {
+  public static final class TrainingExampleRecord.Builder {
     ctor public TrainingExampleRecord.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord build();
     method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setResumptionToken(@NonNull byte...);
@@ -255,7 +256,9 @@ package android.adservices.ondevicepersonalization {
     method @IntRange(from=0) public long getAvailableStorageBytes();
     method @IntRange(from=0, to=100) public int getBatteryPercentage();
     method @NonNull public String getCarrier();
+    method public int getDataNetworkType();
     method public int getOrientation();
+    method @NonNull public java.time.Duration getTimezoneUtcOffset();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.UserData> CREATOR;
   }

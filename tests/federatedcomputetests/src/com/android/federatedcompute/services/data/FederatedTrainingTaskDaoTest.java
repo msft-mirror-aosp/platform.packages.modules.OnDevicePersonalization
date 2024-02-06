@@ -190,6 +190,47 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @Test
+    public void findAndRemoveTaskByPopulationNameAndAndOwnerId_success() {
+        FederatedTrainingTask task = createDefaultFederatedTrainingTask();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task);
+        FederatedTrainingTask task2 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(456)
+                        .populationName(POPULATION_NAME + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task2);
+        FederatedTrainingTask task3 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(457)
+                        .ownerId(OWNER_ID + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task3);
+        FederatedTrainingTask task4 =
+                createDefaultFederatedTrainingTask().toBuilder()
+                        .jobId(458)
+                        .ownerIdCertDigest(OWNER_ID_CERT_DIGEST + "_2")
+                        .build();
+        mTrainingTaskDao.updateOrInsertFederatedTrainingTask(task4);
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(4);
+
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+
+        assertThat(DataTestUtil.isEqualTask(removedTask, task)).isTrue();
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(3);
+    }
+
+    @Test
+    public void findAndRemoveTaskByPopulationNameAndOwnerId_nonExist() {
+        FederatedTrainingTask removedTask =
+                mTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        POPULATION_NAME, OWNER_ID, OWNER_ID_CERT_DIGEST);
+
+        assertThat(removedTask).isNull();
+    }
+
+    @Test
     public void getTaskHistory_nonExist() {
         TaskHistory taskHistory =
                 mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_NAME);

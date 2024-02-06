@@ -39,7 +39,7 @@ public class EventTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE)
                 .setEventData(eventData)
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setQueryId(queryId)
                 .setTimeMillis(timeMillis)
                 .setRowIndex(rowIndex)
@@ -48,7 +48,7 @@ public class EventTest {
 
         assertEquals(event1.getType(), EVENT_TYPE);
         assertArrayEquals(event1.getEventData(), eventData);
-        assertEquals(event1.getServicePackageName(), servicePackageName);
+        assertEquals(event1.getServiceName(), servicePackageName);
         assertEquals(event1.getQueryId(), queryId);
         assertEquals(event1.getTimeMillis(), timeMillis);
         assertEquals(event1.getRowIndex(), rowIndex);
@@ -72,7 +72,7 @@ public class EventTest {
         Event.Builder builder = new Event.Builder()
                 .setType(EVENT_TYPE)
                 .setEventData(eventData)
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setQueryId(queryId)
                 .setTimeMillis(timeMillis)
                 .setRowIndex(rowIndex)

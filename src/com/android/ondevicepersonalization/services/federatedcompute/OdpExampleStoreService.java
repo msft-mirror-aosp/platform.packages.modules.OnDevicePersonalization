@@ -99,6 +99,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                             Objects.requireNonNull(
                                     params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
             String packageName = contextData.getPackageName();
+            String ownerClassName = contextData.getClassName();
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
             String taskName =
@@ -121,6 +122,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     return;
                 }
                 FCManager.cancel(
+                        ComponentName.createRelative(packageName, ownerClassName),
                         populationName,
                         OnDevicePersonalizationExecutors.getBackgroundExecutor(),
                         new OutcomeReceiver<Object, Exception>() {

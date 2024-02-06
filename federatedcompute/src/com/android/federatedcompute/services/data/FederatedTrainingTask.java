@@ -153,6 +153,11 @@ public abstract class FederatedTrainingTask {
      */
     public abstract int schedulingReason();
 
+    /**
+     * @return the number of rescheduling happened for this task.
+     */
+    public abstract int rescheduleCount();
+
     /** Builder for {@link FederatedTrainingTask} */
     @AutoValue.Builder
     public abstract static class Builder {
@@ -204,6 +209,9 @@ public abstract class FederatedTrainingTask {
         /** Set the reason to schedule the task. */
         public abstract Builder schedulingReason(int schedulingReason);
 
+        /** Set the count of reschedules. */
+        public abstract Builder rescheduleCount(int rescheduleCount);
+
         /** Build a federated training task instance. */
         @NonNull
         public abstract FederatedTrainingTask build();
@@ -219,7 +227,7 @@ public abstract class FederatedTrainingTask {
      */
     @NonNull
     public static Builder builder() {
-        return new AutoValue_FederatedTrainingTask.Builder();
+        return new AutoValue_FederatedTrainingTask.Builder().rescheduleCount(0);
     }
 
     boolean addToDatabase(SQLiteDatabase db) {
@@ -250,6 +258,7 @@ public abstract class FederatedTrainingTask {
         values.put(FederatedTrainingTaskColumns.EARLIEST_NEXT_RUN_TIME, earliestNextRunTime());
         values.put(FederatedTrainingTaskColumns.CONSTRAINTS, constraints());
         values.put(FederatedTrainingTaskColumns.SCHEDULING_REASON, schedulingReason());
+        values.put(FederatedTrainingTaskColumns.RESCHEDULE_COUNT, rescheduleCount());
         long jobId =
                 db.insertWithOnConflict(
                         FEDERATED_TRAINING_TASKS_TABLE,
@@ -278,6 +287,7 @@ public abstract class FederatedTrainingTask {
             FederatedTrainingTaskColumns.EARLIEST_NEXT_RUN_TIME,
             FederatedTrainingTaskColumns.CONSTRAINTS,
             FederatedTrainingTaskColumns.SCHEDULING_REASON,
+            FederatedTrainingTaskColumns.RESCHEDULE_COUNT,
         };
         Cursor cursor = null;
         try {
@@ -349,7 +359,10 @@ public abstract class FederatedTrainingTask {
                                         cursor.getLong(
                                                 cursor.getColumnIndexOrThrow(
                                                         FederatedTrainingTaskColumns
-                                                                .EARLIEST_NEXT_RUN_TIME)));
+                                                                .EARLIEST_NEXT_RUN_TIME)))
+                                .rescheduleCount(cursor.getInt(
+                                        cursor.getColumnIndexOrThrow(
+                                                FederatedTrainingTaskColumns.RESCHEDULE_COUNT)));
                 int schedulingReason =
                         cursor.getInt(
                                 cursor.getColumnIndexOrThrow(

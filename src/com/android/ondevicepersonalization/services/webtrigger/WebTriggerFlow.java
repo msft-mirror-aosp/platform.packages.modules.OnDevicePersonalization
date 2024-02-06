@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
+import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
 
@@ -109,30 +110,40 @@ public class WebTriggerFlow {
         }
     }
 
-    @NonNull private final String mDestinationUrl;
-    @NonNull private final String mRegistrationUrl;
+    @NonNull private final Uri mDestinationUrl;
+    @NonNull private final Uri mRegistrationUrl;
     @NonNull private final String mTriggerHeader;
+    @NonNull private final String mAppPackageName;
     @NonNull private final Context mContext;
     @NonNull private final Injector mInjector;
 
     public WebTriggerFlow(
-            @NonNull String destinationUrl,
-            @NonNull String registrationUrl,
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
             @NonNull String triggerHeader,
+            @NonNull String appPackageName,
             @NonNull Context context) {
-        this(destinationUrl, registrationUrl, triggerHeader, context, new Injector());
+        this(
+                destinationUrl,
+                registrationUrl,
+                triggerHeader,
+                appPackageName,
+                context,
+                new Injector());
     }
 
     @VisibleForTesting
     WebTriggerFlow(
-            @NonNull String destinationUrl,
-            @NonNull String registrationUrl,
+            @NonNull Uri destinationUrl,
+            @NonNull Uri registrationUrl,
             @NonNull String triggerHeader,
+            @NonNull String appPackageName,
             @NonNull Context context,
             @NonNull Injector injector) {
         mDestinationUrl = Objects.requireNonNull(destinationUrl);
         mRegistrationUrl = Objects.requireNonNull(registrationUrl);
         mTriggerHeader = Objects.requireNonNull(triggerHeader);
+        mAppPackageName = Objects.requireNonNull(appPackageName);
         mContext = Objects.requireNonNull(context);
         mInjector = Objects.requireNonNull(injector);
     }
@@ -155,7 +166,8 @@ public class WebTriggerFlow {
 
     private ListenableFuture<Void> processRequest() {
         try {
-            if (mDestinationUrl.isBlank() || mRegistrationUrl.isBlank()
+            if (mDestinationUrl.toString().isBlank()
+                    || mRegistrationUrl.toString().isBlank()
                     || mTriggerHeader.isBlank()) {
                 return Futures.immediateFailedFuture(
                         new IllegalArgumentException("Missing url or header"));
@@ -238,7 +250,7 @@ public class WebTriggerFlow {
         Bundle serviceParams = new Bundle();
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        mDestinationUrl, mRegistrationUrl, "no-app", parsedHeader.mData)
+                        mDestinationUrl, mRegistrationUrl, mAppPackageName, parsedHeader.mData)
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(

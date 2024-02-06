@@ -25,7 +25,9 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
 
@@ -33,6 +35,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.MonotonicClock;
+import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
@@ -154,17 +157,29 @@ public class FederatedComputeJobManager {
      */
     public synchronized int onTrainerStartCalled(
             String callingPackageName, TrainingOptions trainingOptions) {
+        String packageName = trainingOptions.getOwnerComponentName().getPackageName();
+        String ownerCertDigest;
+        try {
+            ownerCertDigest = PackageUtils.getCertDigest(mContext, packageName);
+        } catch (PackageManager.NameNotFoundException e) {
+            LogUtil.e(TAG, e, ": Error while scheduling  federatedCompute task.");
+            return STATUS_INTERNAL_ERROR;
+        }
+
         FederatedTrainingTask existingTask =
-                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
-                        trainingOptions.getPopulationName(), callingPackageName);
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        trainingOptions.getPopulationName(),
+                        trainingOptions.getOwnerComponentName().flattenToString(),
+                        ownerCertDigest);
         Set<FederatedTrainingTask> trainingTasksToCancel = new HashSet<>();
         String populationName = trainingOptions.getPopulationName();
+
         String ownerIdentifier =
-                trainingOptions.getOwnerComponentName().getPackageName()
+                packageName
                         + "-"
                         + trainingOptions.getOwnerComponentName().getClassName()
                         + "-"
-                        + trainingOptions.getOwnerIdentifierCertDigest();
+                        + ownerCertDigest;
         long nowMs = mClock.currentTimeMillis();
         boolean shouldSchedule;
         FederatedTrainingTask newTask;
@@ -180,7 +195,7 @@ public class FederatedComputeJobManager {
                             .appPackageName(callingPackageName)
                             .jobId(jobId)
                             .ownerId(trainingOptions.getOwnerComponentName().flattenToString())
-                            .ownerIdCertDigest(trainingOptions.getOwnerIdentifierCertDigest())
+                            .ownerIdCertDigest(ownerCertDigest)
                             .creationTime(nowMs)
                             .lastScheduledTime(nowMs)
                             .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
@@ -293,18 +308,28 @@ public class FederatedComputeJobManager {
      * Called when a client indicates via the client API that a task with the given parameters
      * should be canceled.
      */
-    public synchronized int onTrainerStopCalled(String callingPackageName, String populationName) {
+    public synchronized int onTrainerStopCalled(
+            ComponentName ownerComponent, String populationName) {
+        String ownerCertDigest;
+        try {
+            ownerCertDigest = PackageUtils.getCertDigest(mContext, ownerComponent.getPackageName());
+        } catch (PackageManager.NameNotFoundException e) {
+            LogUtil.e(TAG, e, ": Error while cancelling federatedCompute task.");
+            return STATUS_INTERNAL_ERROR;
+        }
         FederatedTrainingTask taskToCancel =
-                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndCallingPackage(
-                        populationName, callingPackageName);
+                mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
+                        populationName, ownerComponent.flattenToString(), ownerCertDigest);
         // If no matching task exists then there's nothing for us to do. This is not an error
         // case though.
         if (taskToCancel == null) {
             LogUtil.i(
                     TAG,
-                    "No matching task exists when cancel the job (population: %s, ATP: %s",
+                    "No matching task exists when cancel the job (population: %s,"
+                            + " ATP: %s, cert: %s)",
                     populationName,
-                    callingPackageName);
+                    ownerComponent.flattenToString(),
+                    ownerCertDigest);
             return STATUS_SUCCESS;
         }
 
@@ -425,6 +450,10 @@ public class FederatedComputeJobManager {
                 taskRetry != null
                         ? SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY
                         : SchedulingReason.SCHEDULING_REASON_FAILURE);
+        if (trainingResult == ContributionResult.FAIL) {
+            int rescheduleCount = existingTask.rescheduleCount() + 1;
+            newTaskBuilder.rescheduleCount(rescheduleCount);
+        }
         FederatedTrainingTask newTask = newTaskBuilder.build();
         mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);

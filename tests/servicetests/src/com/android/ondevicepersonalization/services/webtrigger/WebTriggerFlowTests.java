@@ -26,6 +26,7 @@ import static org.mockito.Mockito.when;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -69,7 +70,7 @@ public class WebTriggerFlowTests {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 "com.example.test", "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServicePackageName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         when(mContext.checkCallingOrSelfPermission(anyString()))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
@@ -94,8 +95,8 @@ public class WebTriggerFlowTests {
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
         WebTriggerFlow flow = new WebTriggerFlow(
-                "http://landingpage", "http://regurl", triggerHeader, mContext,
-                new TestInjector());
+                Uri.parse("http://landingpage"), Uri.parse("http://regurl"), triggerHeader,
+                "com.example.browser", mContext, new TestInjector());
         var unused = flow.run().get();
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
@@ -113,8 +114,8 @@ public class WebTriggerFlowTests {
                 "{package: \"%s\", class: \"com.test.TestPersonalizationService\", data: \"ABCD\"}",
                 mContext.getPackageName());
         WebTriggerFlow flow = new WebTriggerFlow(
-                "http://landingpage", "http://regurl", triggerHeader, mContext,
-                new TestInjector());
+                Uri.parse("http://landingpage"), Uri.parse("http://regurl"), triggerHeader,
+                "com.example.browser", mContext, new TestInjector());
         try {
             var unused = flow.run().get();
             fail("Expected ExecutionException");
