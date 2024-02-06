@@ -96,6 +96,10 @@
             android:isolatedProcess="true"
             android:exported="false">
         </service>
+        <service
+            android:name="com.test.TestPersonalizationService"
+            android:isolatedProcess="true"
+            android:allowSharedIsolatedProcess="true"/>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->
         <!-- TODO(b/250001593) Enable any required broadcast receivers during runtime/onCreate. -->

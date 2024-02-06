@@ -450,6 +450,10 @@ public class FederatedComputeJobManager {
                 taskRetry != null
                         ? SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY
                         : SchedulingReason.SCHEDULING_REASON_FAILURE);
+        if (trainingResult == ContributionResult.FAIL) {
+            int rescheduleCount = existingTask.rescheduleCount() + 1;
+            newTaskBuilder.rescheduleCount(rescheduleCount);
+        }
         FederatedTrainingTask newTask = newTaskBuilder.build();
         mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);

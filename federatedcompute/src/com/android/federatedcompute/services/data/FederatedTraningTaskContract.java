@@ -80,5 +80,7 @@ public final class FederatedTraningTaskContract {
         public static final String CONSTRAINTS = "constraints";
 
         public static final String SCHEDULING_REASON = "scheduling_reason";
+
+        public static final String RESCHEDULE_COUNT = "reschedule_count";
     }
 }

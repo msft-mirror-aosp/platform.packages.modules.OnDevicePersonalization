@@ -22,18 +22,25 @@ import android.os.Bundle;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
+/**
+ * Interface for process runners used to support various request flows. Note that only one type
+ * of runner can be used until the process restarts.
+ */
 public interface ProcessRunner {
-    /** Loads a service in an isolated process */
-    @NonNull public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
+    /** Binds to/Loads a service in a (shared) isolated process. */
+    @NonNull
+    ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
             @NonNull String taskName, @NonNull ComponentName componentName);
 
-    /** Executes a service loaded in an isolated process */
-    @NonNull public ListenableFuture<Bundle> runIsolatedService(
+    /** Executes a service loaded in a (shared) isolated process. */
+    @NonNull
+    ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo,
             int operationCode,
             @NonNull Bundle serviceParams);
 
-    /** Unloads a service loaded in an isolated process */
-    @NonNull public ListenableFuture<Void> unloadIsolatedService(
+    /** Unbinds/Unloads a service loaded in a (shared) isolated process. */
+    @NonNull
+    ListenableFuture<Void> unloadIsolatedService(
             @NonNull IsolatedServiceInfo isolatedServiceInfo);
 }
