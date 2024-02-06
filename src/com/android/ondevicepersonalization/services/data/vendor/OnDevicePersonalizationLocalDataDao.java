@@ -120,7 +120,7 @@ public class OnDevicePersonalizationLocalDataDao {
      * Creates file directory name based on table name and base directory
      */
     public static String getFileDir(String tableName, File baseDir) {
-        return baseDir + "/" + tableName;
+        return baseDir + "/LocalData/" + tableName;
     }
 
     /**
@@ -140,7 +140,7 @@ public class OnDevicePersonalizationLocalDataDao {
         // Create directory for large files
         File dir = new File(mFileDir);
         if (!dir.isDirectory()) {
-            return dir.mkdir();
+            return dir.mkdirs();
         }
         return true;
     }

@@ -138,7 +138,7 @@ public class OnDevicePersonalizationVendorDataDao {
      * Creates file directory name based on table name and base directory
      */
     public static String getFileDir(String tableName, File baseDir) {
-        return baseDir + "/" + tableName;
+        return baseDir + "/VendorData/" + tableName;
     }
 
     /**
@@ -226,7 +226,7 @@ public class OnDevicePersonalizationVendorDataDao {
         // Create directory for large files
         File dir = new File(mFileDir);
         if (!dir.isDirectory()) {
-            return dir.mkdir();
+            return dir.mkdirs();
         }
         return true;
     }
