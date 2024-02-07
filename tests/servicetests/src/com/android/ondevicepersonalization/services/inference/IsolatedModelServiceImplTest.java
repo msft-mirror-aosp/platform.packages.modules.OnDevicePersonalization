@@ -59,7 +59,7 @@ public class IsolatedModelServiceImplTest {
 
     private static final String MODEL_KEY = "modelKey";
     private Bundle mCallbackResult;
-    private InferenceInput.Options mOptions;
+    private InferenceInput.Params mParams;
     private RemoteDataImpl mRemoteData;
 
     @Before
@@ -67,7 +67,7 @@ public class IsolatedModelServiceImplTest {
         mRemoteData =
                 new RemoteDataImpl(
                         IDataAccessService.Stub.asInterface(new TestDataAccessService()));
-        mOptions = InferenceInput.Options.createCpuOptions(mRemoteData, MODEL_KEY, 1);
+        mParams = InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, 1);
     }
 
     // TODO(b/323557896): add more test cases after get a fully OSS model.
@@ -75,10 +75,8 @@ public class IsolatedModelServiceImplTest {
     public void runModelInference_success() throws Exception {
         // Set up inference context.
         InferenceInput inferenceInput =
-                new InferenceInput.Builder()
-                        .setInputData(generateInferenceInput())
-                        .setOptions(mOptions)
-                        .setExpectedOutputStructure(generateInferenceOutput())
+                new InferenceInput.Builder(
+                                mParams, generateInferenceInput(), generateInferenceOutput())
                         .build();
 
         Bundle bundle = new Bundle();
@@ -112,10 +110,7 @@ public class IsolatedModelServiceImplTest {
         Object[] invalidInput = {input0, input1, input0};
 
         InferenceInput inferenceInput =
-                new InferenceInput.Builder()
-                        .setInputData(invalidInput)
-                        .setOptions(mOptions)
-                        .setExpectedOutputStructure(generateInferenceOutput())
+                new InferenceInput.Builder(mParams, invalidInput, generateInferenceOutput())
                         .build();
 
         Bundle bundle = new Bundle();
@@ -137,13 +132,11 @@ public class IsolatedModelServiceImplTest {
         assertThrows(
                 NullPointerException.class,
                 () ->
-                        new InferenceInput.Builder()
-                                .setInputData(generateInferenceInput())
-                                // Not set model id in InferenceOption.
-                                .setOptions(
-                                        InferenceInput.Options.createCpuOptions(
-                                                mRemoteData, null, -1))
-                                .setExpectedOutputStructure(generateInferenceOutput())
+                        new InferenceInput.Builder(
+                                        InferenceInput.Params.createCpuParams(
+                                                mRemoteData, null, -1),
+                                        generateInferenceInput(),
+                                        generateInferenceOutput())
                                 .build());
     }
 
@@ -151,21 +144,24 @@ public class IsolatedModelServiceImplTest {
     public void missingInputData_buildThrows() {
         assertThrows(
                 NullPointerException.class,
-                () ->
-                        new InferenceInput.Builder()
-                                .setOptions(mOptions)
-                                .setExpectedOutputStructure(generateInferenceOutput())
-                                .build());
+                () -> new InferenceInput.Builder(mParams, null, generateInferenceOutput()).build());
+    }
+
+    @Test
+    public void negativeThreadNum_buildThrows() {
+        assertThrows(
+                IllegalStateException.class,
+                () -> InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, -1));
     }
 
     @Test
     public void runModelInference_missingModelOutput() throws Exception {
         InferenceInput inferenceInput =
-                new InferenceInput.Builder()
-                        .setInputData(generateInferenceInput())
-                        .setOptions(mOptions)
-                        // Not set output structure in InferenceOutput.
-                        .setExpectedOutputStructure(new InferenceOutput.Builder().build())
+                // Not set output structure in InferenceOutput.
+                new InferenceInput.Builder(
+                                mParams,
+                                generateInferenceInput(),
+                                new InferenceOutput.Builder().build())
                         .build();
 
         Bundle bundle = new Bundle();
@@ -186,10 +182,8 @@ public class IsolatedModelServiceImplTest {
     public void runModelInference_missingDataAccessServiceBinder() {
         // Set up inference context.
         InferenceInput inferenceInput =
-                new InferenceInput.Builder()
-                        .setInputData(generateInferenceInput())
-                        .setOptions(mOptions)
-                        .setExpectedOutputStructure(generateInferenceOutput())
+                new InferenceInput.Builder(
+                                mParams, generateInferenceInput(), generateInferenceOutput())
                         .build();
 
         Bundle bundle = new Bundle();
@@ -214,7 +208,7 @@ public class IsolatedModelServiceImplTest {
         HashMap<Integer, Object> modelOutput = new HashMap<>();
         modelOutput.put(0, parsedOutput0);
         modelOutput.put(1, parsedOutput1);
-        return new InferenceOutput.Builder().setData(modelOutput).build();
+        return new InferenceOutput.Builder().setDataOutputs(modelOutput).build();
     }
 
     class TestServiceCallback extends IIsolatedModelServiceCallback.Stub {
