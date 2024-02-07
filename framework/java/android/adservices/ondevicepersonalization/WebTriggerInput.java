@@ -27,28 +27,22 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 /**
  * The input data for
  * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}.
- *
- * @hide
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class WebTriggerInput {
-    /** The destination URL (landing page) where the trigger registration occurred. */
+    /** The destination URL (landing page) where the trigger event occurred. */
     @NonNull private Uri mDestinationUrl;
 
-    /** The trigger registration URL that returned the trigger data */
-    @NonNull private Uri mRegistrationUrl;
-
-    /** The app where the trigger registration occurred */
+    /** The app where the trigger event occurred */
     @NonNull private String mAppPackageName;
 
-    /** The data that was returned by the registration URL. */
+    /** The data to be sent to the isolated service. */
     @NonNull private String mData;
 
     /** @hide */
     public WebTriggerInput(@NonNull WebTriggerInputParcel parcel) {
-        this(parcel.getDestinationUrl(), parcel.getRegistrationUrl(), parcel.getAppPackageName(),
-                parcel.getData());
+        this(parcel.getDestinationUrl(), parcel.getAppPackageName(), parcel.getData());
     }
 
 
@@ -70,27 +64,21 @@ public final class WebTriggerInput {
      * Creates a new WebTriggerInput.
      *
      * @param destinationUrl
-     *   The destination URL (landing page) where the trigger registration occurred.
-     * @param registrationUrl
-     *   The trigger registration URL that returned the trigger data
+     *   The destination URL (landing page) where the trigger event occurred.
      * @param appPackageName
-     *   The app where the trigger registration occurred
+     *   The app where the trigger event occurred
      * @param data
-     *   The data that was returned by the registration URL.
+     *   The data to be sent to the isolated service.
      * @hide
      */
     @DataClass.Generated.Member
     public WebTriggerInput(
             @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
             @NonNull String appPackageName,
             @NonNull String data) {
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
                 NonNull.class, null, mDestinationUrl);
-        this.mRegistrationUrl = registrationUrl;
-        AnnotationValidations.validate(
-                NonNull.class, null, mRegistrationUrl);
         this.mAppPackageName = appPackageName;
         AnnotationValidations.validate(
                 NonNull.class, null, mAppPackageName);
@@ -102,7 +90,7 @@ public final class WebTriggerInput {
     }
 
     /**
-     * The destination URL (landing page) where the trigger registration occurred.
+     * The destination URL (landing page) where the trigger event occurred.
      */
     @DataClass.Generated.Member
     public @NonNull Uri getDestinationUrl() {
@@ -110,15 +98,7 @@ public final class WebTriggerInput {
     }
 
     /**
-     * The trigger registration URL that returned the trigger data
-     */
-    @DataClass.Generated.Member
-    public @NonNull Uri getRegistrationUrl() {
-        return mRegistrationUrl;
-    }
-
-    /**
-     * The app where the trigger registration occurred
+     * The app where the trigger event occurred
      */
     @DataClass.Generated.Member
     public @NonNull String getAppPackageName() {
@@ -126,7 +106,7 @@ public final class WebTriggerInput {
     }
 
     /**
-     * The data that was returned by the registration URL.
+     * The data to be sent to the isolated service.
      */
     @DataClass.Generated.Member
     public @NonNull String getData() {
@@ -147,7 +127,6 @@ public final class WebTriggerInput {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Objects.equals(mDestinationUrl, that.mDestinationUrl)
-                && java.util.Objects.equals(mRegistrationUrl, that.mRegistrationUrl)
                 && java.util.Objects.equals(mAppPackageName, that.mAppPackageName)
                 && java.util.Objects.equals(mData, that.mData);
     }
@@ -160,17 +139,16 @@ public final class WebTriggerInput {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Objects.hashCode(mDestinationUrl);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mRegistrationUrl);
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppPackageName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mData);
         return _hash;
     }
 
     @DataClass.Generated(
-            time = 1706652627979L,
+            time = 1707196245772L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerInput.java",
-            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull android.net.Uri mRegistrationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=false, genHiddenConstructor=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

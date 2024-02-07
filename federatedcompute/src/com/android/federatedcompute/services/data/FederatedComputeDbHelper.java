@@ -74,6 +74,8 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + " BLOB, "
                     + FederatedTrainingTaskColumns.SCHEDULING_REASON
                     + " INTEGER, "
+                    + FederatedTrainingTaskColumns.RESCHEDULE_COUNT
+                    + " INTEGER, "
                     + "UNIQUE("
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + "))";
