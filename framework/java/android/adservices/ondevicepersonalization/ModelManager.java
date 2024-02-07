@@ -20,12 +20,14 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelServiceCallback;
 import android.annotation.CallbackExecutor;
+import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.WorkerThread;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.Objects;
@@ -34,9 +36,8 @@ import java.util.concurrent.Executor;
 /**
  * Handles model inference and only support TFLite model inference now. See {@link
  * IsolatedService#getModelManager}.
- *
- * @hide
  */
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class ModelManager {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = ModelManager.class.getSimpleName();
@@ -54,14 +55,14 @@ public class ModelManager {
     /**
      * Run a single model inference. Only supports TFLite model inference now.
      *
-     * @param input contains all the information needed for one run of model inference.
+     * @param input contains all the information needed for a run of model inference.
      * @param executor the {@link Executor} on which to invoke the callback.
      * @param receiver this returns a {@link InferenceOutput} which contains model inference result
      *     or {@link Exception} on failure.
      */
     @WorkerThread
     public void run(
-            InferenceInput input,
+            @NonNull InferenceInput input,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<InferenceOutput, Exception> receiver) {
         Objects.requireNonNull(input);
