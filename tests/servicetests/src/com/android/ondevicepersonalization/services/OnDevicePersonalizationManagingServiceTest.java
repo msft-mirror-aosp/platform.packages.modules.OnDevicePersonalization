@@ -23,7 +23,6 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.RegisterMeasurementEventInput;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -391,7 +390,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                     IllegalStateException.class,
                     () ->
                     mService.registerMeasurementEvent(
-                        RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER,
+                        Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                         Bundle.EMPTY,
                         new CallerMetadata.Builder().build(),
                         new RegisterMeasurementEventCallback()));
@@ -403,7 +402,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     @Test
     public void testRegisterMeasurementEventInvokesWebTriggerFlow() throws Exception {
         mService.registerMeasurementEvent(
-                RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER,
+                Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                 Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
                 new RegisterMeasurementEventCallback());
@@ -416,7 +415,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 Futures.immediateFailedFuture(new IllegalStateException());
         var callback = new RegisterMeasurementEventCallback();
         mService.registerMeasurementEvent(
-                RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER,
+                Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                 Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
                 callback);
