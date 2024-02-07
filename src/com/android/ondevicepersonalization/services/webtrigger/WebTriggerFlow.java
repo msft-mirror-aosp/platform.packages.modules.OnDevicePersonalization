@@ -21,6 +21,7 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermiss
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
 import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
@@ -34,12 +35,14 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
@@ -106,44 +109,30 @@ public class WebTriggerFlow {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunnerImpl.getInstance();
+            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
+                    ? SharedIsolatedProcessRunner.getInstance()
+                    : ProcessRunnerImpl.getInstance();
         }
     }
 
-    @NonNull private final Uri mDestinationUrl;
-    @NonNull private final Uri mRegistrationUrl;
-    @NonNull private final String mTriggerHeader;
-    @NonNull private final String mAppPackageName;
+    @NonNull private final Bundle mParams;
     @NonNull private final Context mContext;
     @NonNull private final Injector mInjector;
 
+    @NonNull private IsolatedModelServiceProvider mModelServiceProvider;
+
     public WebTriggerFlow(
-            @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
-            @NonNull String triggerHeader,
-            @NonNull String appPackageName,
+            @NonNull Bundle params,
             @NonNull Context context) {
-        this(
-                destinationUrl,
-                registrationUrl,
-                triggerHeader,
-                appPackageName,
-                context,
-                new Injector());
+        this(params, context, new Injector());
     }
 
     @VisibleForTesting
     WebTriggerFlow(
-            @NonNull Uri destinationUrl,
-            @NonNull Uri registrationUrl,
-            @NonNull String triggerHeader,
-            @NonNull String appPackageName,
+            @NonNull Bundle params,
             @NonNull Context context,
             @NonNull Injector injector) {
-        mDestinationUrl = Objects.requireNonNull(destinationUrl);
-        mRegistrationUrl = Objects.requireNonNull(registrationUrl);
-        mTriggerHeader = Objects.requireNonNull(triggerHeader);
-        mAppPackageName = Objects.requireNonNull(appPackageName);
+        mParams = params;
         mContext = Objects.requireNonNull(context);
         mInjector = Objects.requireNonNull(injector);
     }
@@ -155,6 +144,7 @@ public class WebTriggerFlow {
                     new IllegalStateException("Disabled by kill switch"));
         }
         try {
+
             OnDevicePersonalizationPermissions.enforceCallingPermission(
                     mContext, OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT);
         } catch (Exception e) {
@@ -166,14 +156,19 @@ public class WebTriggerFlow {
 
     private ListenableFuture<Void> processRequest() {
         try {
-            if (mDestinationUrl.toString().isBlank()
-                    || mRegistrationUrl.toString().isBlank()
-                    || mTriggerHeader.isBlank()) {
+            Uri destinationUrl = Objects.requireNonNull(mParams.getParcelable(
+                    Constants.EXTRA_DESTINATION_URL, Uri.class));
+            String triggerHeader = Objects.requireNonNull(mParams.getString(
+                    Constants.EXTRA_MEASUREMENT_DATA));
+            String appPackageName = Objects.requireNonNull(
+                    mParams.getString(Constants.EXTRA_APP_PACKAGE_NAME));
+            if (destinationUrl.toString().isBlank() || appPackageName.isBlank()
+                    || triggerHeader.isBlank()) {
                 return Futures.immediateFailedFuture(
-                        new IllegalArgumentException("Missing url or header"));
+                    new IllegalArgumentException("Missing url or header"));
             }
 
-            JSONObject json = new JSONObject(mTriggerHeader);
+            JSONObject json = new JSONObject(triggerHeader);
             ParsedTriggerHeader parsedHeader = new ParsedTriggerHeader(
                     json.optString(PACKAGE_NAME_KEY),
                     json.optString(CLASS_NAME_KEY),
@@ -214,7 +209,8 @@ public class WebTriggerFlow {
 
             ListenableFuture<Void> resultFuture =
                     FluentFuture.from(loadFuture).transformAsync(
-                            result -> runIsolatedService(parsedHeader, result),
+                            result -> runIsolatedService(
+                                    destinationUrl, appPackageName, parsedHeader, result),
                             mInjector.getExecutor())
                     .transform(
                         result -> result.getParcelable(
@@ -231,8 +227,11 @@ public class WebTriggerFlow {
 
             var unused = Futures.whenAllComplete(loadFuture, resultFuture)
                     .callAsync(
-                            () -> mInjector.getProcessRunner().unloadIsolatedService(
-                                loadFuture.get()),
+                            () -> {
+                                mModelServiceProvider.unBindFromModelService();
+                                return mInjector.getProcessRunner().unloadIsolatedService(
+                                        loadFuture.get());
+                            },
                             mInjector.getExecutor());
 
             return resultFuture;
@@ -244,13 +243,15 @@ public class WebTriggerFlow {
     }
 
     private ListenableFuture<Bundle> runIsolatedService(
+            Uri destinationUrl,
+            String appPackageName,
             ParsedTriggerHeader parsedHeader,
             IsolatedServiceInfo isolatedServiceInfo) {
         sLogger.d(TAG + ": runIsolatedService() started.");
         Bundle serviceParams = new Bundle();
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        mDestinationUrl, mRegistrationUrl, mAppPackageName, parsedHeader.mData)
+                        destinationUrl, appPackageName, parsedHeader.mData)
                     .build();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
@@ -260,6 +261,9 @@ public class WebTriggerFlow {
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
                 isolatedServiceInfo, Constants.OP_WEB_TRIGGER,

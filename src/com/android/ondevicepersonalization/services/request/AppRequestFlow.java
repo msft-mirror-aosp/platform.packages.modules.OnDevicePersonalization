@@ -21,8 +21,6 @@ import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
-import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
@@ -31,9 +29,6 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
-import androidx.concurrent.futures.CallbackToFutureAdapter;
-
-import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
@@ -42,6 +37,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
@@ -49,8 +45,6 @@ import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
-import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
-import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
@@ -88,7 +82,8 @@ public class AppRequestFlow {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
-    private AbstractServiceBinder<IIsolatedModelService> mModelService;
+    @NonNull
+    private IsolatedModelServiceProvider mModelServiceProvider;
 
     @VisibleForTesting
     static class Injector {
@@ -208,16 +203,16 @@ public class AppRequestFlow {
             Futures.addCallback(
                     outputResultFuture,
                     new FutureCallback<Bundle>() {
-                          @Override
-                          public void onSuccess(Bundle bundle) {
-                              sendSuccessResult(bundle);
-                          }
+                            @Override
+                            public void onSuccess(Bundle bundle) {
+                                sendSuccessResult(bundle);
+                            }
 
-                          @Override
-                          public void onFailure(Throwable t) {
-                              sLogger.w(TAG + ": Request failed.", t);
-                              sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-                          }
+                            @Override
+                            public void onFailure(Throwable t) {
+                                sLogger.w(TAG + ": Request failed.", t);
+                                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                            }
                     },
                     mInjector.getExecutor());
 
@@ -225,7 +220,7 @@ public class AppRequestFlow {
                     Futures.whenAllComplete(loadFuture, outputResultFuture)
                             .callAsync(
                                     () -> {
-                                        unBindFromModelService();
+                                        mModelServiceProvider.unBindFromModelService();
                                         return mInjector
                                                 .getProcessRunner()
                                                 .unloadIsolatedService(loadFuture.get());
@@ -283,9 +278,9 @@ public class AppRequestFlow {
         serviceParams.putParcelable(
                 Constants.EXTRA_USER_DATA,
                 new UserDataAccessor().getUserData());
-        serviceParams.putBinder(
-                Constants.EXTRA_MODEL_SERVICE_BINDER,
-                getModelService().asBinder());
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
 
         return serviceParams;
     }
@@ -300,9 +295,9 @@ public class AppRequestFlow {
         return FluentFuture.from(result)
                 .transform(
                     val -> {
-                        writeServiceRequestMetrics(
-                                val, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_SUCCESS);
+                        StatsUtils.writeServiceRequestMetrics(
+                                val, mInjector.getClock(),
+                                Constants.STATUS_SUCCESS, isolatedServiceInfo.getStartTimeMillis());
                         return val;
                     },
                     mInjector.getExecutor()
@@ -310,9 +305,10 @@ public class AppRequestFlow {
                 .catchingAsync(
                     Exception.class,
                     e -> {
-                        writeServiceRequestMetrics(
-                                null, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_INTERNAL_ERROR);
+                        StatsUtils.writeServiceRequestMetrics(
+                                /* result= */ null, mInjector.getClock(),
+                                Constants.STATUS_INTERNAL_ERROR,
+                                isolatedServiceInfo.getStartTimeMillis());
                         return Futures.immediateFailedFuture(e);
                     },
                     mInjector.getExecutor()
@@ -326,21 +322,6 @@ public class AppRequestFlow {
                 mService.getPackageName(),
                 result.getRequestLogRecord(),
                 result.getEventLogRecords());
-    }
-
-    private IIsolatedModelService getModelService() {
-        // TODO(b/323304647): bind to shared isolated process.
-        mModelService =
-                AbstractServiceBinder.getServiceBinderByServiceName(
-                        mContext,
-                        ISOLATED_MODEL_SERVICE_NAME,
-                        mContext.getPackageName(),
-                        IIsolatedModelService.Stub::asInterface);
-        return mModelService.getService(Runnable::run);
-    }
-
-    private void unBindFromModelService() {
-        mModelService.unbindFromService();
     }
 
     private ListenableFuture<Bundle> createResultBundle(
@@ -381,7 +362,7 @@ public class AppRequestFlow {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(responseCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
@@ -391,29 +372,8 @@ public class AppRequestFlow {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(errorCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
         }
-    }
-
-    private void writeAppRequestMetrics(int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
-                .setLatencyMillis(latencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
-    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        int overheadLatencyMillis =
-                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EXECUTE)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }
 
