@@ -80,9 +80,9 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder addEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput build();
     method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setEventLogRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord>);
-    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setOutputData(@NonNull byte...);
-    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfig(@NonNull android.adservices.ondevicepersonalization.RenderingConfig);
-    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setOutputData(@Nullable byte...);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRenderingConfig(@Nullable android.adservices.ondevicepersonalization.RenderingConfig);
+    method @NonNull public android.adservices.ondevicepersonalization.ExecuteOutput.Builder setRequestLogRecord(@Nullable android.adservices.ondevicepersonalization.RequestLogRecord);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class FederatedComputeInput {
