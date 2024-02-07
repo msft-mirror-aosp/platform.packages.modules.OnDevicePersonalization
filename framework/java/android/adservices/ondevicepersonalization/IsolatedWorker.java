@@ -129,9 +129,13 @@ public interface IsolatedWorker {
     }
 
     /**
-     * Handles a Web Trigger registration from a browser.
+     * Handles a Web Trigger event from a browser. A Web Trigger event occurs when a browser
+     * registers a web trigger event with the OS using the <a href="https://github.com/WICG/attribution-reporting-api">
+     * Attribution and Reporting API</a>. If the data in the web trigger payload indicates that the
+     * event should be forwarded to an {@link IsolatedService}, the platform will call this function
+     * with the web trigger data.
      *
-     * @param input The parameters needed to process Web Trigger registrations.
+     * @param input The parameters needed to process Web Trigger event.
      * @param consumer Callback that receives the result. Should be called with <code>null</code> on
      *     an error. If called with <code>null</code>, no data is written to the REQUESTS or EVENTS
      *     tables.

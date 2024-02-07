@@ -16,20 +16,17 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static org.junit.Assert.assertArrayEquals;
-import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -50,41 +47,42 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 @RunWith(AndroidJUnit4.class)
-public final class OnDevicePersonalizationManagerTest {
+public final class OnDevicePersonalizationSystemEventManagerTest {
     private static final String TAG = "OnDevicePersonalizationManagerTest";
     private static final String KEY_OP = "op";
     private Context mContext = ApplicationProvider.getApplicationContext();
     private TestServiceBinder mTestBinder = new TestServiceBinder(
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
-    private OnDevicePersonalizationManager mManager =
-            new OnDevicePersonalizationManager(mContext, mTestBinder);
+    private OnDevicePersonalizationSystemEventManager mManager =
+            new OnDevicePersonalizationSystemEventManager(mContext, mTestBinder);
 
     @Test
-    public void testExecuteSuccess() throws Exception {
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "ok");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
+    public void testregisterMeasurementEventSuccess() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.registerMeasurementEvent(
+                new RegisterMeasurementEventInput.Builder(
+                        RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER)
+                    .setAppPackageName("com.example.app")
+                    .setDestinationUrl(Uri.parse("http://example.com"))
+                    .setEventData("ok")
+                    .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
         assertTrue(receiver.mCallbackSuccess);
         assertFalse(receiver.mCallbackError);
-        assertNotNull(receiver.mResult);
-        assertEquals(receiver.mResult.getSurfacePackageToken().getTokenString(), "aaaa");
-        assertArrayEquals(receiver.mResult.getOutputData(), new byte[]{1, 2, 3});
     }
 
     @Test
-    public void testExecuteError() throws Exception {
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "error");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
+    public void testregisterMeasurementEventError() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.registerMeasurementEvent(
+                new RegisterMeasurementEventInput.Builder(
+                        RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER)
+                    .setAppPackageName("com.example.app")
+                    .setDestinationUrl(Uri.parse("http://example.com"))
+                    .setEventData("error")
+                    .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
@@ -93,39 +91,45 @@ public final class OnDevicePersonalizationManagerTest {
     }
 
     @Test
-    public void testExecutePropagatesIae() throws Exception {
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "iae");
+    public void testregisterMeasurementEventPropagatesIae() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> mManager.execute(
-                        ComponentName.createRelative("com.example.service", ".Example"),
-                        params,
+                () -> mManager.registerMeasurementEvent(
+                        new RegisterMeasurementEventInput.Builder(
+                                RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER)
+                            .setAppPackageName("com.example.app")
+                            .setDestinationUrl(Uri.parse("http://example.com"))
+                            .setEventData("iae")
+                            .build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
-    public void testExecutePropagatesNpe() throws Exception {
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "npe");
+    public void testregisterMeasurementEventPropagatesNpe() throws Exception {
         assertThrows(
                 NullPointerException.class,
-                () -> mManager.execute(
-                        ComponentName.createRelative("com.example.service", ".Example"),
-                        params,
+                () -> mManager.registerMeasurementEvent(
+                        new RegisterMeasurementEventInput.Builder(
+                                RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER)
+                            .setAppPackageName("com.example.app")
+                            .setDestinationUrl(Uri.parse("http://example.com"))
+                            .setEventData("npe")
+                            .build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
-    public void testExecuteCatchesOtherExceptions() throws Exception {
-        PersistableBundle params = new PersistableBundle();
-        params.putString(KEY_OP, "ise");
-        var receiver = new ResultReceiver<ExecuteResult>();
-        mManager.execute(
-                ComponentName.createRelative("com.example.service", ".Example"),
-                params,
+    public void testregisterMeasurementEventCatchesExceptions() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.registerMeasurementEvent(
+                new RegisterMeasurementEventInput.Builder(
+                        RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER)
+                    .setAppPackageName("com.example.app")
+                    .setDestinationUrl(Uri.parse("http://example.com"))
+                    .setEventData("ise")
+                    .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
@@ -166,27 +170,7 @@ public final class OnDevicePersonalizationManagerTest {
                 PersistableBundle params,
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
-            try {
-                String op = params.getString(KEY_OP);
-                if (op.equals("ok")) {
-                    Bundle bundle = new Bundle();
-                    bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
-                    bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
-                    callback.onSuccess(bundle);
-                } else if (op.equals("error")) {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                } else if (op.equals("iae")) {
-                    throw new IllegalArgumentException();
-                } else if (op.equals("npe")) {
-                    throw new NullPointerException();
-                } else if (op.equals("ise")) {
-                    throw new IllegalStateException();
-                } else {
-                    throw new UnsupportedOperationException();
-                }
-            } catch (RemoteException e) {
-                Log.e(TAG, "callback error", e);
-            }
+            throw new UnsupportedOperationException();
         }
 
         @Override
@@ -207,7 +191,22 @@ public final class OnDevicePersonalizationManagerTest {
                 Bundle params,
                 CallerMetadata metadata,
                 IRegisterMeasurementEventCallback callback) {
-            throw new UnsupportedOperationException();
+            try {
+                String triggerHeader = params.getString(Constants.EXTRA_MEASUREMENT_DATA);
+                if (triggerHeader.equals("error")) {
+                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } else if (triggerHeader.equals("iae")) {
+                    throw new IllegalArgumentException();
+                } else if (triggerHeader.equals("npe")) {
+                    throw new NullPointerException();
+                } else if (triggerHeader.equals("ise")) {
+                    throw new IllegalStateException();
+                } else {
+                    callback.onSuccess();
+                }
+            } catch (RemoteException e) {
+                Log.e(TAG, "callback error", e);
+            }
         }
     }
 

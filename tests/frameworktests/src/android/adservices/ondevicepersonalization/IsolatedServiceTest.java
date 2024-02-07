@@ -220,6 +220,7 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
@@ -393,6 +394,7 @@ public class IsolatedServiceTest {
                 Constants.EXTRA_INPUT,
                 new EventInputParcel.Builder().setParameters(PersistableBundle.EMPTY).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnEventCalled);
@@ -412,6 +414,7 @@ public class IsolatedServiceTest {
                 Constants.EXTRA_INPUT,
                 new EventInputParcel.Builder().setParameters(eventParams).build());
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnEventCalled);
@@ -545,13 +548,13 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "abcd")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnWebTriggerCalled);
@@ -565,13 +568,13 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "error")
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnWebTriggerCalled);
@@ -603,7 +606,6 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "abcd")
                     .build();
@@ -621,7 +623,6 @@ public class IsolatedServiceTest {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
-                        Uri.parse("http://regUrl"),
                         "com.browser",
                         "abcd")
                     .build();

@@ -54,6 +54,7 @@ import com.android.ondevicepersonalization.services.fbs.EventFields;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -63,18 +64,20 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.net.HttpURLConnection;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class OdpWebViewClientTests {
     private static final long QUERY_ID = 1L;
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
@@ -94,6 +97,18 @@ public class OdpWebViewClientTests {
 
     private CountDownLatch mLatch;
 
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
     @Before
     public void setup() throws Exception {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
@@ -104,6 +119,10 @@ public class OdpWebViewClientTests {
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
 
         CountDownLatch latch = new CountDownLatch(1);
         OnDevicePersonalizationExecutors.getHandlerForMainThread().postAtFrontOfQueue(() -> {
@@ -287,7 +306,9 @@ public class OdpWebViewClientTests {
 
     class TestProcessRunner implements ProcessRunner {
 
-        ProcessRunner mProcessRunner = ProcessRunnerImpl.getInstance();
+        ProcessRunner mProcessRunner = mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
 
         @NonNull
         @Override
