@@ -136,11 +136,9 @@ public interface IsolatedWorker {
      * with the web trigger data.
      *
      * @param input The parameters needed to process Web Trigger event.
-     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
-     *     an error. If called with <code>null</code>, no data is written to the REQUESTS or EVENTS
-     *     tables.
-     *
-     * @hide
+     * @param consumer Callback that receives the result. Should be called with a
+     *     {@link WebTriggerOutput} object populated with a set of records to be written to the
+     *     REQUESTS or EVENTS tables. On an error, the callback should be called with {@code null}.
      */
     default void onWebTrigger(
             @NonNull WebTriggerInput input,

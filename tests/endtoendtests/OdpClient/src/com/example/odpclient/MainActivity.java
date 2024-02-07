@@ -27,6 +27,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
+import android.os.Trace;
 import android.util.Log;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.SurfaceHolder;
@@ -110,6 +111,8 @@ public class MainActivity extends Activity {
             AtomicReference<ExecuteResult> slotResultHandle = new AtomicReference<>();
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("keyword", mTextBox.getText().toString());
+
+            Trace.beginAsyncSection("OdpClient:makeRequest:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
                         "com.example.odpsamplenetwork",
@@ -119,6 +122,7 @@ public class MainActivity extends Activity {
                     new OutcomeReceiver<ExecuteResult, Exception>() {
                         @Override
                         public void onResult(ExecuteResult result) {
+                            Trace.endAsyncSection("OdpClient:makeRequest:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
                             if (result != null) {
                                 slotResultHandle.set(result);
@@ -130,12 +134,15 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void onError(Exception e) {
+                            Trace.endAsyncSection("OdpClient:makeRequest:odpManager.execute", 0);
                             makeToast("execute() error: " + e.toString());
                             latch.countDown();
                         }
                     });
             latch.await();
-            Log.d(TAG, "wait success");
+            Log.d(TAG, "makeRequest:odpManager.execute wait success");
+
+            Trace.beginAsyncSection("OdpClient:makeRequest:odpManager.requestSurfacePackage", 0);
             odpManager.requestSurfacePackage(
                     slotResultHandle.get().getSurfacePackageToken(),
                     mRenderedView.getHostToken(),
@@ -146,6 +153,8 @@ public class MainActivity extends Activity {
                     new OutcomeReceiver<SurfacePackage, Exception>() {
                         @Override
                         public void onResult(SurfacePackage surfacePackage) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:makeRequest:odpManager.requestSurfacePackage", 0);
                             Log.i(TAG,
                                     "requestSurfacePackage() success: "
                                     + surfacePackage.toString());
@@ -161,6 +170,8 @@ public class MainActivity extends Activity {
 
                         @Override
                         public void onError(Exception e) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:makeRequest:odpManager.requestSurfacePackage", 0);
                             makeToast("requestSurfacePackage() error: " + e.toString());
                         }
                     });
@@ -183,6 +194,8 @@ public class MainActivity extends Activity {
                     + mScheduleTrainingTextBox.getText().toString());
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("schedule_training", mScheduleTrainingTextBox.getText().toString());
+
+            Trace.beginAsyncSection("OdpClient:scheduleTraining:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
                             "com.example.odpsamplenetwork",
@@ -192,17 +205,22 @@ public class MainActivity extends Activity {
                     new OutcomeReceiver<ExecuteResult, Exception>() {
                         @Override
                         public void onResult(ExecuteResult result) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:scheduleTraining:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
                             latch.countDown();
                         }
 
                         @Override
                         public void onError(Exception e) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:scheduleTraining:odpManager.execute", 0);
                             makeToast("execute() error: " + e.toString());
                             latch.countDown();
                         }
                     });
             latch.await();
+            Log.d(TAG, "scheduleTraining:odpManager.execute wait success");
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
@@ -217,6 +235,8 @@ public class MainActivity extends Activity {
                     + mReportConversionTextBox.getText().toString());
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("conversion_ad_id", mReportConversionTextBox.getText().toString());
+
+            Trace.beginAsyncSection("OdpClient:reportConversion:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
                             "com.example.odpsamplenetwork",
@@ -226,17 +246,22 @@ public class MainActivity extends Activity {
                     new OutcomeReceiver<ExecuteResult, Exception>() {
                         @Override
                         public void onResult(ExecuteResult result) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:reportConversion:odpManager.execute", 0);
                             Log.i(TAG, "execute() success: " + result);
                             latch.countDown();
                         }
 
                         @Override
                         public void onError(Exception e) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:reportConversion:odpManager.execute", 0);
                             makeToast("execute() error: " + e.toString());
                             latch.countDown();
                         }
                     });
             latch.await();
+            Log.d(TAG, "reportConversion:odpManager.execute wait success");
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }

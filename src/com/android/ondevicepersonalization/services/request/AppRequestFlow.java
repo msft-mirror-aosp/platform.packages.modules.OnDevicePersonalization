@@ -29,7 +29,6 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
-import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
@@ -38,6 +37,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
@@ -82,7 +82,8 @@ public class AppRequestFlow {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
-    private AbstractServiceBinder<IIsolatedModelService> mModelService;
+    @NonNull
+    private IsolatedModelServiceProvider mModelServiceProvider;
 
     @VisibleForTesting
     static class Injector {
@@ -219,7 +220,7 @@ public class AppRequestFlow {
                     Futures.whenAllComplete(loadFuture, outputResultFuture)
                             .callAsync(
                                     () -> {
-                                        unBindFromModelService();
+                                        mModelServiceProvider.unBindFromModelService();
                                         return mInjector
                                                 .getProcessRunner()
                                                 .unloadIsolatedService(loadFuture.get());
@@ -277,9 +278,9 @@ public class AppRequestFlow {
         serviceParams.putParcelable(
                 Constants.EXTRA_USER_DATA,
                 new UserDataAccessor().getUserData());
-        serviceParams.putBinder(
-                Constants.EXTRA_MODEL_SERVICE_BINDER,
-                getModelService().asBinder());
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
 
         return serviceParams;
     }
@@ -321,21 +322,6 @@ public class AppRequestFlow {
                 mService.getPackageName(),
                 result.getRequestLogRecord(),
                 result.getEventLogRecords());
-    }
-
-    private IIsolatedModelService getModelService() {
-        // TODO(b/323304647): bind to shared isolated process.
-        mModelService =
-                AbstractServiceBinder.getServiceBinderByServiceName(
-                        mContext,
-                        ISOLATED_MODEL_SERVICE_NAME,
-                        mContext.getPackageName(),
-                        IIsolatedModelService.Stub::asInterface);
-        return mModelService.getService(Runnable::run);
-    }
-
-    private void unBindFromModelService() {
-        mModelService.unbindFromService();
     }
 
     private ListenableFuture<Bundle> createResultBundle(

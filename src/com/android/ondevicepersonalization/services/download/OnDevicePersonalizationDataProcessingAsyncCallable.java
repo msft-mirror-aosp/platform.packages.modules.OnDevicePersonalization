@@ -20,6 +20,8 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
 import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
+import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -36,6 +38,7 @@ import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.download.mdd.OnDevicePersonalizationFileGroupPopulator;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
@@ -82,6 +85,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private final String mPackageName;
     private final Context mContext;
     private OnDevicePersonalizationVendorDataDao mDao;
+
+    @NonNull
+    private IsolatedModelServiceProvider mModelServiceProvider;
 
     static class Injector {
         Clock getClock() {
@@ -227,8 +233,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             var unused = Futures.whenAllComplete(loadFuture, resultFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                                    loadFuture.get()),
+                    .callAsync(() -> {
+                                mModelServiceProvider.unBindFromModelService();
+                                return mInjector.getProcessRunner().unloadIsolatedService(
+                                        loadFuture.get());
+                            },
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
 
             return resultFuture;
@@ -290,6 +299,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
                 .setDataAccessServiceBinder(downloadedContentBinder)
                 .build();
+
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        pluginParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
 
         pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
 

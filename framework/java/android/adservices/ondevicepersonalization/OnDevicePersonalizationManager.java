@@ -86,7 +86,9 @@ public class OnDevicePersonalizationManager {
 
         /**
          * Returns a {@link SurfacePackageToken}, which is an opaque reference to content that
-         * can be displayed in a {@link android.view.SurfaceView}.
+         * can be displayed in a {@link android.view.SurfaceView}. This may be null if the
+         * {@link IsolatedService} has not generated any content to be displayed within the
+         * calling app.
          */
         @Nullable public SurfacePackageToken getSurfacePackageToken() {
             return mSurfacePackageToken;
