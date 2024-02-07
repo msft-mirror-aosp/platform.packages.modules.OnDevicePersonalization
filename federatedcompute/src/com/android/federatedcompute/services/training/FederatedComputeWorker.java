@@ -44,6 +44,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
@@ -359,7 +360,8 @@ public class FederatedComputeWorker {
         }
 
         // 2. Execute eligibility task if applicable.
-        if (checkinResult.getTaskAssignment().hasEligibilityTaskInfo()) {
+        if (checkinResult.getTaskAssignment().hasEligibilityTaskInfo()
+                && mInjector.isEligibilityTaskEnabled()) {
             TaskAssignment taskAssignment = checkinResult.getTaskAssignment();
             LogUtil.d(
                     TAG,
@@ -1050,6 +1052,10 @@ public class FederatedComputeWorker {
 
         EligibilityDecider getEligibilityDecider(Context context) {
             return new EligibilityDecider(FederatedTrainingTaskDao.getInstance(context));
+        }
+
+        boolean isEligibilityTaskEnabled() {
+            return FlagsFactory.getFlags().isEligibilityTaskEnabled();
         }
     }
 
