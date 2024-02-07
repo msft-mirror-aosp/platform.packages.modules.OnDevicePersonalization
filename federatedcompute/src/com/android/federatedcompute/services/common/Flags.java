@@ -183,4 +183,14 @@ public interface Flags {
     default boolean isEligibilityTaskEnabled() {
         return DEFAULT_ENABLE_ELIGIBILITY_TASK;
     }
+
+    int FCP_RESCHEDULE_LIMIT = 6;
+
+    /**
+     * Limitation of how much times can FCP task job can be rescheduled if it failed, if federated
+     * compute job retry times exceeds this limit, the job will be canceled/abort.
+     */
+    default int getFcpRescheduleLimit() {
+        return FCP_RESCHEDULE_LIMIT;
+    }
 }
