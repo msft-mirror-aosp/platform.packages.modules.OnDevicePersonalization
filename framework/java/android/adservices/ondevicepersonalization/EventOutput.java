@@ -33,6 +33,7 @@ public final class EventOutput {
      * {@link EventLogRecord} is associated with a row in an existing {@link RequestLogRecord} that
      * has been written to the REQUESTS table.
      */
+    @DataClass.MaySetToNull
     @Nullable EventLogRecord mEventLogRecord = null;
 
 
@@ -115,7 +116,7 @@ public final class EventOutput {
          * has been written to the REQUESTS table.
          */
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setEventLogRecord(@android.annotation.NonNull EventLogRecord value) {
+        public @android.annotation.NonNull Builder setEventLogRecord(@Nullable EventLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mEventLogRecord = value;
@@ -144,10 +145,10 @@ public final class EventOutput {
     }
 
     @DataClass.Generated(
-            time = 1698882423016L,
+            time = 1707253681044L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/EventOutput.java",
-            inputSignatures = " @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = " @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable android.adservices.ondevicepersonalization.EventLogRecord mEventLogRecord\nclass EventOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

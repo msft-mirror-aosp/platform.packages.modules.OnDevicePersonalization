@@ -42,8 +42,8 @@ package android.adservices.ondevicepersonalization {
   public static final class EventLogRecord.Builder {
     ctor public EventLogRecord.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord build();
-    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setData(@NonNull android.content.ContentValues);
-    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setRequestLogRecord(@NonNull android.adservices.ondevicepersonalization.RequestLogRecord);
+    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setData(@Nullable android.content.ContentValues);
+    method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setRequestLogRecord(@Nullable android.adservices.ondevicepersonalization.RequestLogRecord);
     method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setRowIndex(@IntRange(from=0) int);
     method @NonNull public android.adservices.ondevicepersonalization.EventLogRecord.Builder setType(@IntRange(from=1, to=127) int);
   }
@@ -55,7 +55,7 @@ package android.adservices.ondevicepersonalization {
   public static final class EventOutput.Builder {
     ctor public EventOutput.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.EventOutput build();
-    method @NonNull public android.adservices.ondevicepersonalization.EventOutput.Builder setEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
+    method @NonNull public android.adservices.ondevicepersonalization.EventOutput.Builder setEventLogRecord(@Nullable android.adservices.ondevicepersonalization.EventLogRecord);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class EventUrlProvider {
@@ -171,8 +171,8 @@ package android.adservices.ondevicepersonalization {
   public static final class RenderOutput.Builder {
     ctor public RenderOutput.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.RenderOutput build();
-    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setContent(@NonNull String);
-    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setTemplateId(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setContent(@Nullable String);
+    method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setTemplateId(@Nullable String);
     method @NonNull public android.adservices.ondevicepersonalization.RenderOutput.Builder setTemplateParams(@NonNull android.os.PersistableBundle);
   }
 
@@ -222,8 +222,8 @@ package android.adservices.ondevicepersonalization {
   public static final class TrainingExampleRecord.Builder {
     ctor public TrainingExampleRecord.Builder();
     method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord build();
-    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setResumptionToken(@NonNull byte...);
-    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setTrainingExample(@NonNull byte...);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setResumptionToken(@Nullable byte...);
+    method @NonNull public android.adservices.ondevicepersonalization.TrainingExampleRecord.Builder setTrainingExample(@Nullable byte...);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class TrainingExamplesInput {

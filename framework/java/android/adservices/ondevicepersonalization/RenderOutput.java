@@ -38,6 +38,7 @@ public final class RenderOutput {
      * generates HTML from the data in {@link #getTemplateId()} and {@link #getTemplateParams()}
      * as described below.
      */
+    @DataClass.MaySetToNull
     @Nullable private String mContent = null;
 
     /**
@@ -45,6 +46,7 @@ public final class RenderOutput {
      * points to an <a href="velocity.apache.org">Apache Velocity</a> template. This is ignored if
      * {@link #getContent()} is not null.
      */
+    @DataClass.MaySetToNull
     @Nullable private String mTemplateId = null;
 
     /**
@@ -166,7 +168,7 @@ public final class RenderOutput {
          * as described below.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setContent(@NonNull String value) {
+        public @NonNull Builder setContent(@Nullable String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mContent = value;
@@ -179,7 +181,7 @@ public final class RenderOutput {
          * {@link #getContent()} is not null.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setTemplateId(@NonNull String value) {
+        public @NonNull Builder setTemplateId(@Nullable String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mTemplateId = value;
@@ -228,10 +230,10 @@ public final class RenderOutput {
     }
 
     @DataClass.Generated(
-            time = 1698880093023L,
+            time = 1707253768205L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/RenderOutput.java",
-            inputSignatures = "private @android.annotation.Nullable java.lang.String mContent\nprivate @android.annotation.Nullable java.lang.String mTemplateId\nprivate @android.annotation.NonNull android.os.PersistableBundle mTemplateParams\nclass RenderOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable java.lang.String mContent\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable java.lang.String mTemplateId\nprivate @android.annotation.NonNull android.os.PersistableBundle mTemplateParams\nclass RenderOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
