@@ -41,7 +41,6 @@ import java.util.concurrent.Executor;
 
 /**
  * Provides APIs for the platform to signal events that are to be handled by the ODP service.
- * Currently
  * @hide
  */
 @SystemApi
