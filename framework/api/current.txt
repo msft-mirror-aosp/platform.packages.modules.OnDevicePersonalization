@@ -159,6 +159,7 @@ package android.adservices.ondevicepersonalization {
     method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
     method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
     method public default void onTrainingExamples(@NonNull android.adservices.ondevicepersonalization.TrainingExamplesInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.TrainingExamplesOutput>);
+    method public default void onWebTrigger(@NonNull android.adservices.ondevicepersonalization.WebTriggerInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.WebTriggerOutput>);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface KeyValueStore {
@@ -309,6 +310,25 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public java.time.Duration getTimezoneUtcOffset();
     method public void writeToParcel(@NonNull android.os.Parcel, int);
     field @NonNull public static final android.os.Parcelable.Creator<android.adservices.ondevicepersonalization.UserData> CREATOR;
+  }
+
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class WebTriggerInput {
+    method @NonNull public String getAppPackageName();
+    method @NonNull public String getData();
+    method @NonNull public android.net.Uri getDestinationUrl();
+  }
+
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class WebTriggerOutput {
+    method @NonNull public java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> getEventLogRecords();
+    method @Nullable public android.adservices.ondevicepersonalization.RequestLogRecord getRequestLogRecord();
+  }
+
+  public static final class WebTriggerOutput.Builder {
+    ctor public WebTriggerOutput.Builder();
+    method @NonNull public android.adservices.ondevicepersonalization.WebTriggerOutput.Builder addEventLogRecord(@NonNull android.adservices.ondevicepersonalization.EventLogRecord);
+    method @NonNull public android.adservices.ondevicepersonalization.WebTriggerOutput build();
+    method @NonNull public android.adservices.ondevicepersonalization.WebTriggerOutput.Builder setEventLogRecords(@NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord>);
+    method @NonNull public android.adservices.ondevicepersonalization.WebTriggerOutput.Builder setRequestLogRecord(@Nullable android.adservices.ondevicepersonalization.RequestLogRecord);
   }
 
 }
