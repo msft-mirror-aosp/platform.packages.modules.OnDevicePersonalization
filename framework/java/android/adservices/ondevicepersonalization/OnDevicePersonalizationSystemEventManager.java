@@ -24,6 +24,7 @@ import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
+import android.annotation.SystemApi;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
@@ -39,9 +40,10 @@ import java.util.Objects;
 import java.util.concurrent.Executor;
 
 /**
- * Provides APIs that receive and process events from the OS.
+ * Provides APIs for the platform to signal events that are to be handled by the ODP service.
  * @hide
  */
+@SystemApi
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationSystemEventManager {
     /** @hide */
@@ -83,43 +85,42 @@ public class OnDevicePersonalizationSystemEventManager {
     }
 
     /**
-     * Receives a measurement event from the Measurement Service.
+     * Receives a web trigger event from the Measurement API. This is intended to be called by the
+     * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/guides/attribution">
+     * Measurement Service</a> when a browser registers an attribution event using the
+     * <a href="https://github.com/WICG/attribution-reporting-api">Attribution and Reporting API</a>
+     * with a payload that should be processed by an {@link IsolatedService}.
      *
-     * @param measurementEvent the input data from the measurement service.
+     * @param measurementWebTriggerEvent the web trigger payload to be processed.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This either returns {@code null} on success, or an exception on failure.
+     * @param receiver This either returns a new {@link Object} on success, or an exception on
+     * failure. The contents of the {@link Object} are not significant - its presence indicates
+     * that the call succeeded.
      */
     @RequiresPermission(REGISTER_MEASUREMENT_EVENT)
     public void registerMeasurementEvent(
-            @NonNull RegisterMeasurementEventInput measurementEvent,
+            @NonNull MeasurementWebTriggerEventParams measurementWebTriggerEvent,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<Void, Exception> receiver) {
-        Objects.requireNonNull(measurementEvent);
+            @NonNull OutcomeReceiver<Object, Exception> receiver) {
+        Objects.requireNonNull(measurementWebTriggerEvent);
         Objects.requireNonNull(executor);
         Objects.requireNonNull(receiver);
-        if (measurementEvent.getType()
-                != RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER) {
-            throw new IllegalArgumentException("invalid measurementEventType");
-        }
         long startTimeMillis = SystemClock.elapsedRealtime();
 
         try {
             final IOnDevicePersonalizationManagingService service =
                     mServiceBinder.getService(executor);
             Bundle bundle = new Bundle();
-            bundle.putParcelable(
-                    Constants.EXTRA_DESTINATION_URL, measurementEvent.getDestinationUrl());
-            bundle.putString(
-                    Constants.EXTRA_APP_PACKAGE_NAME, measurementEvent.getAppPackageName());
-            bundle.putString(Constants.EXTRA_MEASUREMENT_DATA, measurementEvent.getEventData());
+            bundle.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
+                    new MeasurementWebTriggerEventParamsParcel(measurementWebTriggerEvent));
             service.registerMeasurementEvent(
-                    measurementEvent.getType(),
+                    Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                     bundle,
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     new IRegisterMeasurementEventCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> receiver.onResult(null));
+                            executor.execute(() -> receiver.onResult(new Object()));
                         }
                         @Override
                         public void onError(int errorCode) {
