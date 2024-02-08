@@ -41,8 +41,7 @@ public class OnDevicePersonalizationPermissions {
             "android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE";
 
     /**
-     * The permission required for callers to signal measurement events to ODP.
-     * @hide
+     * The permission required for callers to send measurement events to ODP.
      */
     public static final String REGISTER_MEASUREMENT_EVENT =
             "android.permission.ondevicepersonalization.REGISTER_MEASUREMENT_EVENT";

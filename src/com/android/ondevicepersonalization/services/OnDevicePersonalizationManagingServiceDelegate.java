@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.services;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.RegisterMeasurementEventInput;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -208,8 +207,9 @@ public class OnDevicePersonalizationManagingServiceDelegate
         }
 
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
-        if (measurementEventType != RegisterMeasurementEventInput.MEASUREMENT_EVENT_WEB_TRIGGER) {
-            throw new IllegalArgumentException("measurementEventType");
+        if (measurementEventType
+                != Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER) {
+            throw new IllegalStateException("invalid measurementEventType");
         }
         Objects.requireNonNull(params);
         Objects.requireNonNull(metadata);
