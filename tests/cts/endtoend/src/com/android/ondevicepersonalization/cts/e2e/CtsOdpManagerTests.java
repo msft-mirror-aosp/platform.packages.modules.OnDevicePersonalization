@@ -59,15 +59,15 @@ import java.util.concurrent.Executors;
 @RunWith(Parameterized.class)
 public class CtsOdpManagerTests {
 
-    @Parameterized.Parameter(0)
-    public boolean mIsSipFeatureEnabled;
-
     private static final String SERVICE_PACKAGE =
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
