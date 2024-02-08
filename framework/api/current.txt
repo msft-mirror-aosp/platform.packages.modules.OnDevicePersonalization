@@ -153,13 +153,17 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public abstract android.adservices.ondevicepersonalization.IsolatedWorker onRequest(@NonNull android.adservices.ondevicepersonalization.RequestToken);
   }
 
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class IsolatedServiceException extends java.lang.Exception {
+    ctor public IsolatedServiceException(@IntRange(from=1, to=127) int);
+  }
+
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface IsolatedWorker {
-    method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.DownloadCompletedOutput>);
-    method public default void onEvent(@NonNull android.adservices.ondevicepersonalization.EventInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.EventOutput>);
-    method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
-    method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
-    method public default void onTrainingExamples(@NonNull android.adservices.ondevicepersonalization.TrainingExamplesInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.TrainingExamplesOutput>);
-    method public default void onWebTrigger(@NonNull android.adservices.ondevicepersonalization.WebTriggerInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.WebTriggerOutput>);
+    method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.DownloadCompletedOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onEvent(@NonNull android.adservices.ondevicepersonalization.EventInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.EventOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.ExecuteOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.RenderOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onTrainingExamples(@NonNull android.adservices.ondevicepersonalization.TrainingExamplesInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.TrainingExamplesOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onWebTrigger(@NonNull android.adservices.ondevicepersonalization.WebTriggerInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.WebTriggerOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface KeyValueStore {
