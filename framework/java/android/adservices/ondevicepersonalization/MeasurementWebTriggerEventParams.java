@@ -27,12 +27,20 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
+// TODO(b/301732670): Add link to documentation describing the format of the ODP-specific
+// attribution data that the server is expected to return.
 /**
- * A class that contains Web Trigger Event data sent from the Measurement API to the
- * OnDevicePersonalization service when the browser registers a web trigger
- * with the <a href="https://developer.android.com/design-for-safety/privacy-sandbox/guides/attribution">
- * Measurement API</a> and the web trigger data is intended to be processed by an
- * {@link IsolatedService}.
+ * A class that contains Web Trigger Event data sent from the
+ * <a href="https://developer.android.com/design-for-safety/privacy-sandbox/guides/attribution">
+ * Measurement API</a> to the OnDevicePersonalization service when the browser registers a web
+ * trigger URL with the native OS attribution API as described in
+ * <a href="https://github.com/WICG/attribution-reporting-api/blob/main/app_to_web.md">
+ * Cross App and Web Attribution Measurement</a>. The Measurement API fetches and processes the
+ * attribution response from the browser-provided URL. If the URL response contains additional
+ * data that needs to be processed by an {@link IsolatedService}, the Measurement API passes this
+ * to the OnDevicePersonalization service and the OnDevicePersonalization service will invoke
+ * the {@link IsolatedService} with the provided data.
+ *
  * @hide
  */
 @SystemApi

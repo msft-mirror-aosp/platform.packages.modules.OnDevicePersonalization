@@ -143,7 +143,7 @@ public class WebTriggerFlow {
         try {
 
             OnDevicePersonalizationPermissions.enforceCallingPermission(
-                    mContext, OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT);
+                    mContext, OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
