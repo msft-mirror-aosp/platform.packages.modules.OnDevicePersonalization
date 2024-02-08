@@ -84,6 +84,7 @@ public class AppRequestFlow {
     private final long mStartTimeMillis;
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
+    private long mStartServiceTimeMillis;
 
     @VisibleForTesting
     static class Injector {
@@ -162,68 +163,41 @@ public class AppRequestFlow {
     // TO-DO (323554852): Add detailed trace for app request flow.
     private void processRequest() {
         try {
-            int errorCode = checkAppRequestFlowPreconditions();
+            int errorCode = checkServiceFlowPreconditions();
             if (errorCode != Constants.STATUS_SUCCESS) {
                 sendErrorResult(errorCode);
                 return;
             }
 
-            ListenableFuture<IsolatedServiceInfo> loadFuture
-                        = mInjector.getProcessRunner().loadIsolatedService(
+            mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+            ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(
                                 TASK_NAME, mService);
 
-            ListenableFuture<ExecuteOutputParcel> executeResultFuture =
-                        FluentFuture.from(loadFuture)
-                                .transformAsync(
-                                        this::executeAppRequest,
-                                        mInjector.getExecutor()
-                                )
-                                .transform(
-                                        result -> result.getParcelable(
-                                                Constants.EXTRA_RESULT, ExecuteOutputParcel.class),
-                                        mInjector.getExecutor()
-                                );
+            ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
+                    .transformAsync(
+                            isolatedServiceInfo ->
+                                    mInjector.getProcessRunner()
+                                            .runIsolatedService(
+                                                    isolatedServiceInfo,
+                                                    Constants.OP_EXECUTE, getServiceParams()),
+                                    mInjector.getExecutor());
 
-            ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
-                    .transformAsync(this::logQuery, mInjector.getExecutor());
+            uploadServiceFlowMetrics(runServiceFuture);
 
-            ListenableFuture<Bundle> outputResultFuture =
-                    FluentFuture.from(
-                            Futures.whenAllSucceed(executeResultFuture, queryIdFuture)
-                                .callAsync(
-                                        () -> createResultBundle(
-                                                executeResultFuture, queryIdFuture),
-                                        mInjector.getExecutor()))
-                            .withTimeout(
-                                mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
-                                TimeUnit.SECONDS,
-                                mInjector.getScheduledExecutor()
-                            );
+            ListenableFuture<Bundle> serviceFlowResultFuture =
+                    getServiceFlowResultFuture(runServiceFuture);
 
-            Futures.addCallback(
-                    outputResultFuture,
-                    new FutureCallback<Bundle>() {
-                            @Override
-                            public void onSuccess(Bundle bundle) {
-                                sendSuccessResult(bundle);
-                            }
-
-                            @Override
-                            public void onFailure(Throwable t) {
-                                sLogger.w(TAG + ": Request failed.", t);
-                                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-                            }
-                    },
-                    mInjector.getExecutor());
+            returnResultThroughCallback(serviceFlowResultFuture);
 
             var unused =
-                    Futures.whenAllComplete(loadFuture, outputResultFuture)
+                    Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
                             .callAsync(
                                     () -> {
                                         mModelServiceProvider.unBindFromModelService();
                                         return mInjector
                                                 .getProcessRunner()
-                                                .unloadIsolatedService(loadFuture.get());
+                                                .unloadIsolatedService(loadServiceFuture.get());
                                     },
                                     mInjector.getExecutor());
         } catch (Exception e) {
@@ -232,7 +206,7 @@ public class AppRequestFlow {
         }
     }
 
-    private int checkAppRequestFlowPreconditions() {
+    private int checkServiceFlowPreconditions() {
         if (!mInjector.isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is disabled.");
             return Constants.STATUS_PERSONALIZATION_DISABLED;
@@ -285,34 +259,54 @@ public class AppRequestFlow {
         return serviceParams;
     }
 
-    private ListenableFuture<Bundle> executeAppRequest(
-            IsolatedServiceInfo isolatedServiceInfo) {
+    private void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
         sLogger.d(TAG + ": executeAppRequest() started.");
-
-        Bundle serviceParams = getServiceParams();
-        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, Constants.OP_EXECUTE, serviceParams);
-        return FluentFuture.from(result)
+        var unused = FluentFuture.from(runServiceFuture)
                 .transform(
-                    val -> {
-                        StatsUtils.writeServiceRequestMetrics(
-                                val, mInjector.getClock(),
-                                Constants.STATUS_SUCCESS, isolatedServiceInfo.getStartTimeMillis());
-                        return val;
-                    },
-                    mInjector.getExecutor()
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor()
                 )
                 .catchingAsync(
-                    Exception.class,
-                    e -> {
-                        StatsUtils.writeServiceRequestMetrics(
-                                /* result= */ null, mInjector.getClock(),
-                                Constants.STATUS_INTERNAL_ERROR,
-                                isolatedServiceInfo.getStartTimeMillis());
-                        return Futures.immediateFailedFuture(e);
-                    },
-                    mInjector.getExecutor()
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    /* result= */ null, mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor()
                 );
+    }
+
+    private ListenableFuture<Bundle> getServiceFlowResultFuture(
+            ListenableFuture<Bundle> runServiceFuture) {
+        ListenableFuture<ExecuteOutputParcel> executeResultFuture =
+                FluentFuture.from(runServiceFuture)
+                        .transform(
+                                result -> result.getParcelable(
+                                        Constants.EXTRA_RESULT, ExecuteOutputParcel.class),
+                                mInjector.getExecutor()
+                        );
+
+        ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
+                .transformAsync(this::logQuery, mInjector.getExecutor());
+
+        return FluentFuture.from(
+                                Futures.whenAllSucceed(executeResultFuture, queryIdFuture)
+                                        .callAsync(
+                                                () -> createResultBundle(
+                                                        executeResultFuture, queryIdFuture),
+                                                mInjector.getExecutor()))
+                        .withTimeout(
+                                mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                                TimeUnit.SECONDS,
+                                mInjector.getScheduledExecutor()
+                        );
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
@@ -352,6 +346,24 @@ public class AppRequestFlow {
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private void returnResultThroughCallback(ListenableFuture<Bundle> serviceFlowResultFuture) {
+        Futures.addCallback(
+                serviceFlowResultFuture,
+                new FutureCallback<Bundle>() {
+                    @Override
+                    public void onSuccess(Bundle bundle) {
+                        sendSuccessResult(bundle);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.w(TAG + ": Request failed.", t);
+                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                    }
+                },
+                mInjector.getExecutor());
     }
 
     private void sendSuccessResult(Bundle result) {
