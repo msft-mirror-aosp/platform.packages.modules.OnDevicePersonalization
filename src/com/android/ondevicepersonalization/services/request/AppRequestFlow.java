@@ -45,6 +45,7 @@ import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
@@ -65,12 +66,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * Handles a surface package request from an app or SDK.
  */
-public class AppRequestFlow {
+public class AppRequestFlow implements ServiceFlow<Bundle> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AppRequestFlow.class.getSimpleName();
     private static final String TASK_NAME = "AppRequest";
-    public static final String ISOLATED_MODEL_SERVICE_NAME =
-            "com.android.ondevicepersonalization.services.inference.IsolatedModelService";
     @NonNull
     private final String mCallingPackageName;
     @NonNull
@@ -163,11 +162,7 @@ public class AppRequestFlow {
     // TO-DO (323554852): Add detailed trace for app request flow.
     private void processRequest() {
         try {
-            int errorCode = checkServiceFlowPreconditions();
-            if (errorCode != Constants.STATUS_SUCCESS) {
-                sendErrorResult(errorCode);
-                return;
-            }
+            if (!isServiceFlowReady()) return;
 
             mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
             ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
@@ -206,10 +201,12 @@ public class AppRequestFlow {
         }
     }
 
-    private int checkServiceFlowPreconditions() {
+    @Override
+    public boolean isServiceFlowReady() {
         if (!mInjector.isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is disabled.");
-            return Constants.STATUS_PERSONALIZATION_DISABLED;
+            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+            return false;
         }
 
         AppManifestConfig config = null;
@@ -219,18 +216,21 @@ public class AppRequestFlow {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            return Constants.STATUS_NAME_NOT_FOUND;
+            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND);
+            return false;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
             sLogger.d(TAG + "service class not found");
-            return Constants.STATUS_CLASS_NOT_FOUND;
+            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
+            return false;
         }
 
-        return Constants.STATUS_SUCCESS;
+        return true;
     }
 
-    private Bundle getServiceParams() {
+    @Override
+    public Bundle getServiceParams() {
         Bundle serviceParams = new Bundle();
 
         serviceParams.putParcelable(
@@ -259,8 +259,8 @@ public class AppRequestFlow {
         return serviceParams;
     }
 
-    private void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
-        sLogger.d(TAG + ": executeAppRequest() started.");
+    @Override
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
         var unused = FluentFuture.from(runServiceFuture)
                 .transform(
                         val -> {
@@ -283,7 +283,8 @@ public class AppRequestFlow {
                 );
     }
 
-    private ListenableFuture<Bundle> getServiceFlowResultFuture(
+    @Override
+    public ListenableFuture<Bundle> getServiceFlowResultFuture(
             ListenableFuture<Bundle> runServiceFuture) {
         ListenableFuture<ExecuteOutputParcel> executeResultFuture =
                 FluentFuture.from(runServiceFuture)
@@ -307,6 +308,25 @@ public class AppRequestFlow {
                                 TimeUnit.SECONDS,
                                 mInjector.getScheduledExecutor()
                         );
+    }
+
+    @Override
+    public void returnResultThroughCallback(ListenableFuture<Bundle> serviceFlowResultFuture) {
+        Futures.addCallback(
+                serviceFlowResultFuture,
+                new FutureCallback<Bundle>() {
+                    @Override
+                    public void onSuccess(Bundle bundle) {
+                        sendSuccessResult(bundle);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.w(TAG + ": Request failed.", t);
+                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                    }
+                },
+                mInjector.getExecutor());
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
@@ -346,24 +366,6 @@ public class AppRequestFlow {
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
-    }
-
-    private void returnResultThroughCallback(ListenableFuture<Bundle> serviceFlowResultFuture) {
-        Futures.addCallback(
-                serviceFlowResultFuture,
-                new FutureCallback<Bundle>() {
-                    @Override
-                    public void onSuccess(Bundle bundle) {
-                        sendSuccessResult(bundle);
-                    }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                        sLogger.w(TAG + ": Request failed.", t);
-                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-                    }
-                },
-                mInjector.getExecutor());
     }
 
     private void sendSuccessResult(Bundle result) {
