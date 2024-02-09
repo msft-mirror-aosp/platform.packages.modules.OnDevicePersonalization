@@ -16,7 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -97,8 +97,8 @@ public class OnDevicePersonalizationSystemEventManager {
      * failure. The contents of the {@link Object} are not significant - its presence indicates
      * that the call succeeded.
      */
-    @RequiresPermission(REGISTER_MEASUREMENT_EVENT)
-    public void registerMeasurementEvent(
+    @RequiresPermission(NOTIFY_MEASUREMENT_EVENT)
+    public void notifyMeasurementEvent(
             @NonNull MeasurementWebTriggerEventParams measurementWebTriggerEvent,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> receiver) {
@@ -113,6 +113,7 @@ public class OnDevicePersonalizationSystemEventManager {
             Bundle bundle = new Bundle();
             bundle.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
                     new MeasurementWebTriggerEventParamsParcel(measurementWebTriggerEvent));
+            // TODO(b/301732670): Update method name in service.
             service.registerMeasurementEvent(
                     Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                     bundle,
