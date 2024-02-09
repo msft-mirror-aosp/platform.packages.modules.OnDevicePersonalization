@@ -130,7 +130,7 @@ public interface Flags {
     }
 
     Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS =
-            TimeUnit.DAYS.toSeconds(14 /* duration= */);
+            TimeUnit.DAYS.toSeconds(14/* duration= */ );
 
     /**
      * @return default max age in seconds for federated compute ecryption keys.
@@ -152,7 +152,7 @@ public interface Flags {
     }
 
     Long ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs =
-            TimeUnit.DAYS.toSeconds(1 /* duration= */);
+            TimeUnit.DAYS.toSeconds(1/* duration= */ );
 
     default Long getAuthorizationTokenDeletionPeriodSeconds() {
         return ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs;
@@ -187,10 +187,17 @@ public interface Flags {
     int FCP_RESCHEDULE_LIMIT = 6;
 
     /**
-     * Limitation of how much times can FCP task job can be rescheduled if it failed, if federated
+     * Limitation of how many times that FCP task job can be rescheduled if it failed, if federated
      * compute job retry times exceeds this limit, the job will be canceled/abort.
      */
     default int getFcpRescheduleLimit() {
         return FCP_RESCHEDULE_LIMIT;
+    }
+
+    // 7 days in milliseconds
+    long ODP_AUTHORIZATION_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000L;
+
+    default long getOdpAuthorizationTokenTtl() {
+        return ODP_AUTHORIZATION_TOKEN_TTL;
     }
 }
