@@ -63,7 +63,7 @@ public final class MeasurementWebTriggerEventParamsParcel implements Parcelable 
      * Additional data that the server may provide to the {@link IsolatedService}. This can be
      * {@code null} if the server does not need to provide any data other than the required fields.
      */
-    @Nullable private String mEventData = null;
+    @Nullable private byte[] mEventData = null;
 
     public MeasurementWebTriggerEventParamsParcel(
             @NonNull MeasurementWebTriggerEventParams params) {
@@ -111,7 +111,7 @@ public final class MeasurementWebTriggerEventParamsParcel implements Parcelable 
             @NonNull String appPackageName,
             @NonNull ComponentName isolatedService,
             @Nullable String certDigest,
-            @Nullable String eventData) {
+            @Nullable byte[] eventData) {
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
                 NonNull.class, null, mDestinationUrl);
@@ -168,7 +168,7 @@ public final class MeasurementWebTriggerEventParamsParcel implements Parcelable 
      * {@code null} if the server does not need to provide any data other than the required fields.
      */
     @DataClass.Generated.Member
-    public @Nullable String getEventData() {
+    public @Nullable byte[] getEventData() {
         return mEventData;
     }
 
@@ -180,13 +180,12 @@ public final class MeasurementWebTriggerEventParamsParcel implements Parcelable 
 
         byte flg = 0;
         if (mCertDigest != null) flg |= 0x8;
-        if (mEventData != null) flg |= 0x10;
         dest.writeByte(flg);
         dest.writeTypedObject(mDestinationUrl, flags);
         dest.writeString(mAppPackageName);
         dest.writeTypedObject(mIsolatedService, flags);
         if (mCertDigest != null) dest.writeString(mCertDigest);
-        if (mEventData != null) dest.writeString(mEventData);
+        dest.writeByteArray(mEventData);
     }
 
     @Override
@@ -205,7 +204,7 @@ public final class MeasurementWebTriggerEventParamsParcel implements Parcelable 
         String appPackageName = in.readString();
         ComponentName isolatedService = (ComponentName) in.readTypedObject(ComponentName.CREATOR);
         String certDigest = (flg & 0x8) == 0 ? null : in.readString();
-        String eventData = (flg & 0x10) == 0 ? null : in.readString();
+        byte[] eventData = in.createByteArray();
 
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
@@ -237,10 +236,10 @@ public final class MeasurementWebTriggerEventParamsParcel implements Parcelable 
     };
 
     @DataClass.Generated(
-            time = 1707269697739L,
+            time = 1707510209072L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParamsParcel.java",
-            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull android.content.ComponentName mIsolatedService\nprivate @android.annotation.Nullable java.lang.String mCertDigest\nprivate @android.annotation.Nullable java.lang.String mEventData\nclass MeasurementWebTriggerEventParamsParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genBuilder=false)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull android.content.ComponentName mIsolatedService\nprivate @android.annotation.Nullable java.lang.String mCertDigest\nprivate @android.annotation.Nullable byte[] mEventData\nclass MeasurementWebTriggerEventParamsParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genBuilder=false)")
     @Deprecated
     private void __metadata() {}
 

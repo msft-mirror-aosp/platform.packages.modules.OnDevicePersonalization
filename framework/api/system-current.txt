@@ -5,7 +5,7 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public String getAppPackageName();
     method @Nullable public String getCertDigest();
     method @NonNull public android.net.Uri getDestinationUrl();
-    method @Nullable public String getEventData();
+    method @Nullable public byte[] getEventData();
     method @NonNull public android.content.ComponentName getIsolatedService();
   }
 
@@ -15,7 +15,7 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setAppPackageName(@NonNull String);
     method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setCertDigest(@Nullable String);
     method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setDestinationUrl(@NonNull android.net.Uri);
-    method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setEventData(@Nullable String);
+    method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setEventData(@Nullable byte...);
     method @NonNull public android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams.Builder setIsolatedService(@NonNull android.content.ComponentName);
   }
 
