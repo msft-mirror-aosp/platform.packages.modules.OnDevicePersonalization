@@ -29,7 +29,7 @@ package android.adservices.ondevicepersonalization {
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationSystemEventManager {
-    method @RequiresPermission(android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT) public void notifyMeasurementEvent(@NonNull android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Object,java.lang.Exception>);
+    method @RequiresPermission(android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT) public void notifyMeasurementEvent(@NonNull android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Void,java.lang.Exception>);
   }
 
 }

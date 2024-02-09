@@ -58,7 +58,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
 
     @Test
     public void testnotifyMeasurementEventSuccess() throws Exception {
-        var receiver = new ResultReceiver<Object>();
+        var receiver = new ResultReceiver<Void>();
         mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
                         Uri.parse("http://landingpage"),
@@ -74,7 +74,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
 
     @Test
     public void testnotifyMeasurementEventError() throws Exception {
-        var receiver = new ResultReceiver<Object>();
+        var receiver = new ResultReceiver<Void>();
         mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
                         Uri.parse("http://landingpage"),
@@ -99,7 +99,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             ComponentName.createRelative("com.example", ".Example"))
                                 .setEventData("iae").build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Object>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
@@ -113,12 +113,12 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             ComponentName.createRelative("com.example", ".Example"))
                                 .setEventData("npe").build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Object>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
     public void testnotifyMeasurementEventCatchesExceptions() throws Exception {
-        var receiver = new ResultReceiver<Object>();
+        var receiver = new ResultReceiver<Void>();
         mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
                         Uri.parse("http://landingpage"),
