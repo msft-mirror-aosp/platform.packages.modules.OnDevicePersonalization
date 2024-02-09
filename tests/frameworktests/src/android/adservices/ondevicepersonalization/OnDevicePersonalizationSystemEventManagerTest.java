@@ -57,9 +57,9 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
             new OnDevicePersonalizationSystemEventManager(mContext, mTestBinder);
 
     @Test
-    public void testregisterMeasurementEventSuccess() throws Exception {
+    public void testnotifyMeasurementEventSuccess() throws Exception {
         var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
                         Uri.parse("http://landingpage"),
                         "com.example.browser",
@@ -73,9 +73,9 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
     }
 
     @Test
-    public void testregisterMeasurementEventError() throws Exception {
+    public void testnotifyMeasurementEventError() throws Exception {
         var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
                         Uri.parse("http://landingpage"),
                         "com.example.browser",
@@ -89,10 +89,10 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
     }
 
     @Test
-    public void testregisterMeasurementEventPropagatesIae() throws Exception {
+    public void testnotifyMeasurementEventPropagatesIae() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> mManager.registerMeasurementEvent(
+                () -> mManager.notifyMeasurementEvent(
                         new MeasurementWebTriggerEventParams.Builder(
                             Uri.parse("http://landingpage"),
                             "com.example.browser",
@@ -103,10 +103,10 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
     }
 
     @Test
-    public void testregisterMeasurementEventPropagatesNpe() throws Exception {
+    public void testnotifyMeasurementEventPropagatesNpe() throws Exception {
         assertThrows(
                 NullPointerException.class,
-                () -> mManager.registerMeasurementEvent(
+                () -> mManager.notifyMeasurementEvent(
                         new MeasurementWebTriggerEventParams.Builder(
                             Uri.parse("http://landingpage"),
                             "com.example.browser",
@@ -117,9 +117,9 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
     }
 
     @Test
-    public void testregisterMeasurementEventCatchesExceptions() throws Exception {
+    public void testnotifyMeasurementEventCatchesExceptions() throws Exception {
         var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
                         Uri.parse("http://landingpage"),
                         "com.example.browser",
