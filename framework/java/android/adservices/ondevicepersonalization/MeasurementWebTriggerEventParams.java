@@ -77,7 +77,7 @@ public final class MeasurementWebTriggerEventParams {
      * {@code null} if the server does not need to provide any data other than the required fields.
      */
     @DataClass.MaySetToNull
-    @Nullable private String mEventData = null;
+    @Nullable private byte[] mEventData = null;
 
 
 
@@ -100,7 +100,7 @@ public final class MeasurementWebTriggerEventParams {
             @NonNull String appPackageName,
             @NonNull ComponentName isolatedService,
             @Nullable String certDigest,
-            @Nullable String eventData) {
+            @Nullable byte[] eventData) {
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
                 NonNull.class, null, mDestinationUrl);
@@ -157,7 +157,7 @@ public final class MeasurementWebTriggerEventParams {
      * {@code null} if the server does not need to provide any data other than the required fields.
      */
     @DataClass.Generated.Member
-    public @Nullable String getEventData() {
+    public @Nullable byte[] getEventData() {
         return mEventData;
     }
 
@@ -178,7 +178,7 @@ public final class MeasurementWebTriggerEventParams {
                 && java.util.Objects.equals(mAppPackageName, that.mAppPackageName)
                 && java.util.Objects.equals(mIsolatedService, that.mIsolatedService)
                 && java.util.Objects.equals(mCertDigest, that.mCertDigest)
-                && java.util.Objects.equals(mEventData, that.mEventData);
+                && java.util.Arrays.equals(mEventData, that.mEventData);
     }
 
     @Override
@@ -192,7 +192,7 @@ public final class MeasurementWebTriggerEventParams {
         _hash = 31 * _hash + java.util.Objects.hashCode(mAppPackageName);
         _hash = 31 * _hash + java.util.Objects.hashCode(mIsolatedService);
         _hash = 31 * _hash + java.util.Objects.hashCode(mCertDigest);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mEventData);
+        _hash = 31 * _hash + java.util.Arrays.hashCode(mEventData);
         return _hash;
     }
 
@@ -207,7 +207,7 @@ public final class MeasurementWebTriggerEventParams {
         private @NonNull String mAppPackageName;
         private @NonNull ComponentName mIsolatedService;
         private @Nullable String mCertDigest;
-        private @Nullable String mEventData;
+        private @Nullable byte[] mEventData;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -290,7 +290,7 @@ public final class MeasurementWebTriggerEventParams {
          * {@code null} if the server does not need to provide any data other than the required fields.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setEventData(@Nullable String value) {
+        public @NonNull Builder setEventData(@Nullable byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10;
             mEventData = value;
@@ -326,10 +326,10 @@ public final class MeasurementWebTriggerEventParams {
     }
 
     @DataClass.Generated(
-            time = 1707269583667L,
+            time = 1707510203588L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/MeasurementWebTriggerEventParams.java",
-            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull android.content.ComponentName mIsolatedService\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable java.lang.String mCertDigest\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable java.lang.String mEventData\nclass MeasurementWebTriggerEventParams extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull android.content.ComponentName mIsolatedService\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable java.lang.String mCertDigest\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable byte[] mEventData\nclass MeasurementWebTriggerEventParams extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
