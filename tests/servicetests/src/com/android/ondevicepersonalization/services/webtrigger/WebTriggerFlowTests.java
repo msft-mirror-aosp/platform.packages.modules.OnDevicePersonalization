@@ -120,12 +120,12 @@ public class WebTriggerFlowTests {
                     null, null, null, null, null).getCount());
         MeasurementWebTriggerEventParamsParcel wtparams =
                 new MeasurementWebTriggerEventParamsParcel(
-                    Uri.parse("http://landingpage"),
-                    "com.example.browser",
-                    ComponentName.createRelative(
-                        mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                    null,
-                    "ABCD");
+                        Uri.parse("http://landingpage"),
+                        "com.example.browser",
+                        ComponentName.createRelative(
+                            mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                        null,
+                        new byte[] {1, 2, 3});
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
@@ -152,12 +152,12 @@ public class WebTriggerFlowTests {
                 .thenReturn(PackageManager.PERMISSION_DENIED);
         MeasurementWebTriggerEventParamsParcel wtparams =
                 new MeasurementWebTriggerEventParamsParcel(
-                    Uri.parse("http://landingpage"),
-                    "com.example.browser",
-                    ComponentName.createRelative(
-                        mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                    null,
-                    "ABCD");
+                        Uri.parse("http://landingpage"),
+                        "com.example.browser",
+                        ComponentName.createRelative(
+                            mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                        null,
+                        new byte[] {1, 2, 3});
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
