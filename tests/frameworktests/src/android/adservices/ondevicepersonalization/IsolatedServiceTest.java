@@ -549,7 +549,7 @@ public class IsolatedServiceTest {
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
                         "com.browser",
-                        "abcd")
+                        new byte[] {1, 2, 3})
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -567,9 +567,9 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerPropagatesError() throws Exception {
         WebTriggerInputParcel input =
                 new WebTriggerInputParcel.Builder(
-                        Uri.parse("http://desturl"),
+                        Uri.parse("http://error"),
                         "com.browser",
-                        "error")
+                        new byte[] {1, 2, 3})
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -607,7 +607,7 @@ public class IsolatedServiceTest {
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
                         "com.browser",
-                        "abcd")
+                        new byte[] {1, 2, 3})
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -624,7 +624,7 @@ public class IsolatedServiceTest {
                 new WebTriggerInputParcel.Builder(
                         Uri.parse("http://desturl"),
                         "com.browser",
-                        "abcd")
+                        new byte[] {1, 2, 3})
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -725,7 +725,7 @@ public class IsolatedServiceTest {
         public void onWebTrigger(
                 WebTriggerInput input, Consumer<WebTriggerOutput> consumer) {
             mOnWebTriggerCalled = true;
-            if (input.getData().equals("error")) {
+            if (input.getDestinationUrl().toString().equals("http://error")) {
                 consumer.accept(null);
             } else {
                 ContentValues row = new ContentValues();

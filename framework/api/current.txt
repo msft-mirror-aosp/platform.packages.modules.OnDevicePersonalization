@@ -314,7 +314,7 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class WebTriggerInput {
     method @NonNull public String getAppPackageName();
-    method @NonNull public String getData();
+    method @NonNull public byte[] getData();
     method @NonNull public android.net.Uri getDestinationUrl();
   }
 
