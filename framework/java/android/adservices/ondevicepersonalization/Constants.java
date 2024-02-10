@@ -52,6 +52,8 @@ public class Constants {
     public static final String EXTRA_INPUT = "android.ondevicepersonalization.extra.input";
     public static final String EXTRA_LOOKUP_KEYS =
             "android.ondevicepersonalization.extra.lookup_keys";
+    public static final String EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS =
+            "android.adservices.ondevicepersonalization.measurement_web_trigger_params";
     public static final String EXTRA_MIME_TYPE = "android.ondevicepersonalization.extra.mime_type";
     public static final String EXTRA_OUTPUT_DATA =
             "android.ondevicepersonalization.extra.output_data";
@@ -85,6 +87,9 @@ public class Constants {
     public static final int DATA_ACCESS_OP_GET_REQUESTS = 8;
     public static final int DATA_ACCESS_OP_GET_JOINED_EVENTS = 9;
     public static final int DATA_ACCESS_OP_GET_MODEL = 10;
+
+    // Measurement event types for measurement events received from the OS.
+    public static final int MEASUREMENT_EVENT_TYPE_WEB_TRIGGER = 1;
 
     private Constants() {}
 }

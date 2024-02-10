@@ -128,7 +128,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
 
             closeFd(modelFd);
             Bundle bundle = new Bundle();
-            InferenceOutput result = new InferenceOutput.Builder().setData(outputs).build();
+            InferenceOutput result = new InferenceOutput.Builder().setDataOutputs(outputs).build();
             bundle.putParcelable(Constants.EXTRA_RESULT, new InferenceOutputParcel(result));
             sendResult(bundle, callback);
             Trace.endSection();
