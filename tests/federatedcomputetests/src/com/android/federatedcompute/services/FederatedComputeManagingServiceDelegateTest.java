@@ -129,6 +129,57 @@ public final class FederatedComputeManagingServiceDelegateTest {
     }
 
     @Test
+    public void testScheduleThrowsRTE() throws Exception {
+        when(mMockJobManager.onTrainerStartCalled(anyString(), any()))
+                .thenThrow(RuntimeException.class);
+
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+        invokeScheduleAndVerifyLogging(trainingOptions, STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testScheduleThrowsNPE() throws Exception {
+        when(mMockJobManager.onTrainerStartCalled(anyString(), any()))
+                .thenThrow(NullPointerException.class);
+
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+        invokeScheduleAndVerifyLogging(trainingOptions, STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testScheduleClockThrowsRTE() throws Exception {
+        when(mClock.elapsedRealtime()).thenThrow(RuntimeException.class);
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+        FederatedComputeCallback callback = spy(new FederatedComputeCallback());
+
+        mFcpService.schedule(
+                mContext.getPackageName(), trainingOptions, callback);
+
+        ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
+        verify(callback).onFailure(argument.capture());
+        assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
+
+    }
+
+    @Test
+    public void testScheduleClockThrowsIAE() throws Exception {
+        when(mClock.elapsedRealtime()).thenThrow(IllegalArgumentException.class);
+
+        TrainingOptions trainingOptions =
+                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        mFcpService.schedule(
+                                mContext.getPackageName(),
+                                trainingOptions,
+                                new FederatedComputeCallback()));
+    }
+
+    @Test
     public void testScheduleEnabledGlobalKillSwitch_throwsException() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         TrainingOptions trainingOptions =
@@ -192,6 +243,48 @@ public final class FederatedComputeManagingServiceDelegateTest {
         }
     }
 
+    @Test
+    public void testCancelThrowsRTE() throws Exception {
+        when(mMockJobManager.onTrainerStopCalled(any(), any()))
+                .thenThrow(RuntimeException.class);
+
+        invokeCancelAndVerifyLogging("fake-population", STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testCancelThrowsNPE() throws Exception {
+        when(mMockJobManager.onTrainerStopCalled(any(), any()))
+                .thenThrow(NullPointerException.class);
+
+        invokeCancelAndVerifyLogging("fake-population", STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testCancelClockThrowsRTE() throws Exception {
+        when(mClock.elapsedRealtime()).thenThrow(RuntimeException.class);
+        FederatedComputeCallback callback = spy(new FederatedComputeCallback());
+
+        mFcpService.cancel(OWNER_COMPONENT_NAME, "fake-population", callback);
+
+        ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
+        verify(callback).onFailure(argument.capture());
+        assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
+
+    }
+
+    @Test
+    public void testCancelClockThrowsIAE() throws Exception {
+        when(mClock.elapsedRealtime()).thenThrow(IllegalArgumentException.class);
+
+        assertThrows(
+                IllegalArgumentException.class,
+                () ->
+                        mFcpService.cancel(
+                                OWNER_COMPONENT_NAME,
+                                "fake-population",
+                                new FederatedComputeCallback()));
+    }
+
     private void invokeScheduleAndVerifyLogging(
             TrainingOptions trainingOptions, int expectedResultCode) throws InterruptedException {
         mFcpService.schedule(
@@ -212,7 +305,6 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 .logApiCallStats(any(ApiCallStats.class));
         sJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-
         ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
         verify(mFcStatsdLogger).logApiCallStats(argument.capture());
         assertThat(argument.getValue().getResponseCode()).isEqualTo(expectedResultCode);
