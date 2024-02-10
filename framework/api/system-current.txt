@@ -25,11 +25,11 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationPermissions {
     field public static final String MODIFY_ONDEVICEPERSONALIZATION_STATE = "android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE";
-    field public static final String REGISTER_MEASUREMENT_EVENT = "android.permission.ondevicepersonalization.REGISTER_MEASUREMENT_EVENT";
+    field public static final String NOTIFY_MEASUREMENT_EVENT = "android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT";
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public class OnDevicePersonalizationSystemEventManager {
-    method @RequiresPermission(android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT) public void registerMeasurementEvent(@NonNull android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Object,java.lang.Exception>);
+    method @RequiresPermission(android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT) public void notifyMeasurementEvent(@NonNull android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams, @NonNull java.util.concurrent.Executor, @NonNull android.os.OutcomeReceiver<java.lang.Void,java.lang.Exception>);
   }
 
 }
