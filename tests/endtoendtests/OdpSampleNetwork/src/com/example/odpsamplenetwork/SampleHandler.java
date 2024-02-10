@@ -27,6 +27,7 @@ import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
 import android.adservices.ondevicepersonalization.LogReader;
@@ -41,6 +42,7 @@ import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.UserData;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.Process;
 import android.os.StrictMode;
@@ -78,7 +80,6 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
-import java.util.function.Consumer;
 
 public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
@@ -138,39 +139,45 @@ public class SampleHandler implements IsolatedWorker {
     @Override
     public void onDownloadCompleted(
             @NonNull DownloadCompletedInput input,
-            @NonNull Consumer<DownloadCompletedOutput> consumer) {
+            @NonNull OutcomeReceiver<DownloadCompletedOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onDownload() started.");
         DownloadCompletedOutput downloadResult =
                 new DownloadCompletedOutput.Builder()
                         .setRetainedKeys(getFilteredKeys(input.getDownloadedContents()))
                         .build();
-        consumer.accept(downloadResult);
+        receiver.onResult(downloadResult);
     }
 
     @Override
-    public void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
+    public void onExecute(
+            @NonNull ExecuteInput input,
+            @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onExecute() started.");
-        sBackgroundExecutor.execute(() -> handleOnExecute(input, consumer));
+        sBackgroundExecutor.execute(() -> handleOnExecute(input, receiver));
     }
 
     @Override
     public void onTrainingExamples(
             @NonNull TrainingExamplesInput input,
-            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+            @NonNull OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onTrainingExamples() started.");
-        sBackgroundExecutor.execute(() -> handleOnTrainingExamples(input, consumer));
+        sBackgroundExecutor.execute(() -> handleOnTrainingExamples(input, receiver));
     }
 
     @Override
-    public void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
+    public void onRender(
+            @NonNull RenderInput input,
+            @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onRender() started.");
-        sBackgroundExecutor.execute(() -> handleOnRender(input, consumer));
+        sBackgroundExecutor.execute(() -> handleOnRender(input, receiver));
     }
 
     @Override
-    public void onEvent(@NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
+    public void onEvent(
+            @NonNull EventInput input,
+            @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onEvent() started.");
-        sBackgroundExecutor.execute(() -> handleOnWebViewEvent(input, consumer));
+        sBackgroundExecutor.execute(() -> handleOnWebViewEvent(input, receiver));
     }
 
     private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
@@ -314,7 +321,7 @@ public class SampleHandler implements IsolatedWorker {
 
     private void handleOnTrainingExamples(
             @NonNull TrainingExamplesInput input,
-            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+            @NonNull OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
         TrainingExamplesOutput.Builder resultBuilder = new TrainingExamplesOutput.Builder();
         Random rand = new Random();
         int numExample = rand.nextInt(10) + 1;
@@ -330,18 +337,18 @@ public class SampleHandler implements IsolatedWorker {
                             .build();
             resultBuilder.addTrainingExampleRecord(record);
         }
-        consumer.accept(resultBuilder.build());
+        receiver.onResult(resultBuilder.build());
     }
 
     private void handleOnExecute(
             @NonNull ExecuteInput input,
-            @NonNull Consumer<ExecuteOutput> consumer
+            @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver
     ) {
         try {
             if (input != null && input.getAppParams() != null
                     && input.getAppParams().getString("schedule_training") != null) {
                 if (input.getAppParams().getString("schedule_training").isEmpty()) {
-                    consumer.accept(null);
+                    receiver.onResult(null);
                     return;
                 }
                 TrainingInterval interval = new TrainingInterval.Builder()
@@ -358,13 +365,13 @@ public class SampleHandler implements IsolatedWorker {
                 mFCScheduler.schedule(params, fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
-                consumer.accept(result);
+                receiver.onResult(result);
             } else if (input != null && input.getAppParams() != null
                     && input.getAppParams().getString("conversion_ad_id") != null) {
                 try {
-                    consumer.accept(handleConversion(input));
+                    receiver.onResult(handleConversion(input));
                 } catch (Exception e) {
-                    consumer.accept(null);
+                    receiver.onResult(null);
                     return;
                 }
             } else {
@@ -374,7 +381,7 @@ public class SampleHandler implements IsolatedWorker {
                             sBackgroundExecutor)
                         .transform(
                             result -> {
-                                consumer.accept(result);
+                                receiver.onResult(result);
                                 return null;
                             },
                             MoreExecutors.directExecutor())
@@ -382,14 +389,14 @@ public class SampleHandler implements IsolatedWorker {
                             Exception.class,
                             e -> {
                                 Log.e(TAG, "Execution failed.", e);
-                                consumer.accept(null);
+                                receiver.onResult(null);
                                 return null;
                             },
                             MoreExecutors.directExecutor());
             }
         } catch (Exception e) {
             Log.e(TAG, "handleOnExecute() failed", e);
-            consumer.accept(null);
+            receiver.onResult(null);
         }
     }
 
@@ -488,7 +495,7 @@ public class SampleHandler implements IsolatedWorker {
 
     private void handleOnRender(
             @NonNull RenderInput input,
-            @NonNull Consumer<RenderOutput> consumer
+            @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver
     ) {
         try {
             Log.d(TAG, "handleOnRender() started.");
@@ -507,7 +514,7 @@ public class SampleHandler implements IsolatedWorker {
                             MoreExecutors.directExecutor()))
                     .transform(
                         result -> {
-                            consumer.accept(result);
+                            receiver.onResult(result);
                             return null;
                         },
                         MoreExecutors.directExecutor())
@@ -515,26 +522,26 @@ public class SampleHandler implements IsolatedWorker {
                         Exception.class,
                         e -> {
                             Log.e(TAG, "Execution failed.", e);
-                            consumer.accept(null);
+                            receiver.onResult(null);
                             return null;
                         },
                         MoreExecutors.directExecutor());
 
         } catch (Exception e) {
             Log.e(TAG, "handleOnRender failed.", e);
-            consumer.accept(null);
+            receiver.onResult(null);
         }
     }
 
     public void handleOnWebViewEvent(
             @NonNull EventInput input,
-            @NonNull Consumer<EventOutput> consumer) {
+            @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
         try {
             Log.d(TAG, "handleOnEvent() started.");
             PersistableBundle eventParams = input.getParameters();
             int eventType = eventParams.getInt(EVENT_TYPE_KEY);
             if (eventType <= 0) {
-                consumer.accept(new EventOutput.Builder().build());
+                receiver.onResult(new EventOutput.Builder().build());
                 return;
             }
             ContentValues logData = null;
@@ -560,10 +567,10 @@ public class SampleHandler implements IsolatedWorker {
                             .setType(eventType)
                             .setData(logData).build())
                     .build();
-            consumer.accept(result);
+            receiver.onResult(result);
         } catch (Exception e) {
             Log.e(TAG, "handleOnEvent failed.", e);
-            consumer.accept(null);
+            receiver.onResult(null);
         }
     }
 
