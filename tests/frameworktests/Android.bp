@@ -39,6 +39,7 @@ android_test {
         "tensorflow_core_proto_java_lite",
         "mockito-target-minus-junit4",
         "truth",
+        "compatibility-device-util-axt",
     ],
     libs: [
         "android.test.runner",

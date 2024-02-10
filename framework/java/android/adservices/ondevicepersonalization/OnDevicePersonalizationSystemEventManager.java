@@ -16,7 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.REGISTER_MEASUREMENT_EVENT;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -93,15 +93,13 @@ public class OnDevicePersonalizationSystemEventManager {
      *
      * @param measurementWebTriggerEvent the web trigger payload to be processed.
      * @param executor the {@link Executor} on which to invoke the callback.
-     * @param receiver This either returns a new {@link Object} on success, or an exception on
-     * failure. The contents of the {@link Object} are not significant - its presence indicates
-     * that the call succeeded.
+     * @param receiver This either returns a {@code null} on success, or an exception on failure.
      */
-    @RequiresPermission(REGISTER_MEASUREMENT_EVENT)
-    public void registerMeasurementEvent(
+    @RequiresPermission(NOTIFY_MEASUREMENT_EVENT)
+    public void notifyMeasurementEvent(
             @NonNull MeasurementWebTriggerEventParams measurementWebTriggerEvent,
             @NonNull @CallbackExecutor Executor executor,
-            @NonNull OutcomeReceiver<Object, Exception> receiver) {
+            @NonNull OutcomeReceiver<Void, Exception> receiver) {
         Objects.requireNonNull(measurementWebTriggerEvent);
         Objects.requireNonNull(executor);
         Objects.requireNonNull(receiver);
@@ -113,6 +111,7 @@ public class OnDevicePersonalizationSystemEventManager {
             Bundle bundle = new Bundle();
             bundle.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
                     new MeasurementWebTriggerEventParamsParcel(measurementWebTriggerEvent));
+            // TODO(b/301732670): Update method name in service.
             service.registerMeasurementEvent(
                     Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                     bundle,
@@ -120,7 +119,7 @@ public class OnDevicePersonalizationSystemEventManager {
                     new IRegisterMeasurementEventCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> receiver.onResult(new Object()));
+                            executor.execute(() -> receiver.onResult(null));
                         }
                         @Override
                         public void onError(int errorCode) {
