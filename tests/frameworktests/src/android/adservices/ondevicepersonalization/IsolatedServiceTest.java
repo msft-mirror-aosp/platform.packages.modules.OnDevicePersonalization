@@ -35,6 +35,7 @@ import android.content.ContentValues;
 import android.federatedcompute.common.TrainingOptions;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.OutcomeReceiver;
 import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 
@@ -48,7 +49,6 @@ import org.junit.runner.RunWith;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
-import java.util.function.Consumer;
 
 /** Unit Tests of IsolatedService class. */
 @SmallTest
@@ -648,16 +648,18 @@ public class IsolatedServiceTest {
         public void cancel(String populationName, IFederatedComputeCallback callback) {}
     }
 
-    class TestHandler implements IsolatedWorker {
+    class TestWorker implements IsolatedWorker {
         @Override
-        public void onExecute(ExecuteInput input, Consumer<ExecuteOutput> consumer) {
+        public void onExecute(
+                ExecuteInput input,
+                OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
             mSelectContentCalled = true;
             if (input.getAppParams() != null && input.getAppParams().getInt("error") > 0) {
-                consumer.accept(null);
+                receiver.onError(new IsolatedServiceException(1));
             } else {
                 ContentValues row = new ContentValues();
                 row.put("a", 5);
-                consumer.accept(
+                receiver.onResult(
                         new ExecuteOutput.Builder()
                                 .setRequestLogRecord(
                                         new RequestLogRecord.Builder().addRow(row).build())
@@ -669,30 +671,35 @@ public class IsolatedServiceTest {
 
         @Override
         public void onDownloadCompleted(
-                DownloadCompletedInput input, Consumer<DownloadCompletedOutput> consumer) {
+                DownloadCompletedInput input,
+                OutcomeReceiver<DownloadCompletedOutput, IsolatedServiceException> receiver) {
             mOnDownloadCalled = true;
-            consumer.accept(new DownloadCompletedOutput.Builder().addRetainedKey("12").build());
+            receiver.onResult(new DownloadCompletedOutput.Builder().addRetainedKey("12").build());
         }
 
         @Override
-        public void onRender(RenderInput input, Consumer<RenderOutput> consumer) {
+        public void onRender(
+                RenderInput input,
+                OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
             mOnRenderCalled = true;
             if (input.getRenderingConfig().getKeys().size() >= 1
                     && input.getRenderingConfig().getKeys().get(0).equals("z")) {
-                consumer.accept(null);
+                receiver.onError(new IsolatedServiceException(1));
             } else {
-                consumer.accept(new RenderOutput.Builder().setContent("htmlstring").build());
+                receiver.onResult(new RenderOutput.Builder().setContent("htmlstring").build());
             }
         }
 
         @Override
-        public void onEvent(EventInput input, Consumer<EventOutput> consumer) {
+        public void onEvent(
+                EventInput input,
+                OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
             mOnEventCalled = true;
             int eventType = input.getParameters().getInt(EVENT_TYPE_KEY);
             if (eventType == 9999) {
-                consumer.accept(null);
+                receiver.onError(new IsolatedServiceException(1));
             } else {
-                consumer.accept(
+                receiver.onResult(
                         new EventOutput.Builder()
                                 .setEventLogRecord(
                                         new EventLogRecord.Builder()
@@ -706,7 +713,8 @@ public class IsolatedServiceTest {
 
         @Override
         public void onTrainingExamples(
-                TrainingExamplesInput input, Consumer<TrainingExamplesOutput> consumer) {
+                TrainingExamplesInput input,
+                OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
             mOnTrainingExampleCalled = true;
             List<TrainingExampleRecord> exampleRecordList = new ArrayList<>();
             TrainingExampleRecord record =
@@ -715,7 +723,7 @@ public class IsolatedServiceTest {
                             .setResumptionToken(new byte[] {13})
                             .build();
             exampleRecordList.add(record);
-            consumer.accept(
+            receiver.onResult(
                     new TrainingExamplesOutput.Builder()
                             .setTrainingExampleRecords(exampleRecordList)
                             .build());
@@ -723,14 +731,15 @@ public class IsolatedServiceTest {
 
         @Override
         public void onWebTrigger(
-                WebTriggerInput input, Consumer<WebTriggerOutput> consumer) {
+                WebTriggerInput input,
+                OutcomeReceiver<WebTriggerOutput, IsolatedServiceException> receiver) {
             mOnWebTriggerCalled = true;
             if (input.getDestinationUrl().toString().equals("http://error")) {
-                consumer.accept(null);
+                receiver.onError(new IsolatedServiceException(1));
             } else {
                 ContentValues row = new ContentValues();
                 row.put("a", 5);
-                consumer.accept(
+                receiver.onResult(
                         new WebTriggerOutput.Builder()
                             .setRequestLogRecord(
                                     new RequestLogRecord.Builder().addRow(row).build())
@@ -742,7 +751,7 @@ public class IsolatedServiceTest {
     class TestService extends IsolatedService {
         @Override
         public IsolatedWorker onRequest(RequestToken token) {
-            return new TestHandler();
+            return new TestWorker();
         }
     }
 

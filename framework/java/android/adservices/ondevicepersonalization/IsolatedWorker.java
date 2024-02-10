@@ -18,18 +18,22 @@ package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
+import android.os.OutcomeReceiver;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.function.Consumer;
 
 /**
- * Interface with methods that need to be implemented to handle requests from the OS to an {@link
- * IsolatedService}. The {@link IsolatedService} creates an instance of {@link IsolatedWorker} on
- * each request and calls one of the methods below, depending the type of the request. The {@link
- * IsolatedService} calls the method on a Binder thread and the {@link IsolatedWorker} should
- * offload long running operations to a worker thread. The consumer parameter of each method is used
- * to return results.
+ * Interface with methods that need to be implemented to handle requests from the
+ * OnDevicePersonalization service to an {@link IsolatedService}. The {@link IsolatedService}
+ * creates an instance of {@link IsolatedWorker} on each request and calls one of the methods
+ * below, depending the type of the request. The {@link IsolatedService} calls the method on a
+ * Binder thread and the {@link IsolatedWorker} should offload long running operations to a
+ * worker thread. The {@link IsolatedWorker} should use the {@code receiver} parameter of each
+ * method to return results. If any of these methods throws a {@link RuntimeException}, the
+ * platform treats it as an unrecoverable error in the {@link IsolatedService} and ends processing
+ * the request.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public interface IsolatedWorker {
@@ -41,20 +45,20 @@ public interface IsolatedWorker {
      * {@link IsolatedService}.
      *
      * @param input Request Parameters from the calling app.
-     * @param consumer Callback that receives the result {@link ExecuteOutput}. Should be called
-     *     with <code>null</code> on an error. The error is propagated to the calling app as an
-     *     {@link OnDevicePersonalizationException} with error code {@link
-     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}. To avoid leaking private
-     *     data to the calling app, more detailed error reporting is not available. If the {@link
-     *     IsolatedService} needs to report error stats to its backend, it should populate {@link
-     *     ExecuteOutput} with error data for logging, and rely on Federated Analytics to aggregate
-     *     the error reports.
-     *     <p>If this method throws a {@link RuntimeException}, that is also reported to
-     *     calling apps as an {@link OnDevicePersonalizationException} with error code {@link
-     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
+     * @param receiver Callback that receives the result {@link ExecuteOutput} or an
+     *     {@link IsolatedServiceException}. If this method throws a {@link RuntimeException} or
+     *     returns either {@code null} or {@link IsolatedServiceException}, the error is indicated
+     *     to the calling app as an {@link OnDevicePersonalizationException} with error code
+     *     {@link OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}. To avoid leaking
+     *     private data to the calling app, more detailed errors are not reported to the caller.
+     *     If the {@link IsolatedService} needs to report additional data beyond the error code to
+     *     its backend servers, it should populate the logging fields in {@link ExecuteOutput} with
+     *     the additional error data for logging, and rely on Federated Analytics for the stats.
      */
-    default void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
-        consumer.accept(null);
+    default void onExecute(
+            @NonNull ExecuteInput input,
+            @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
+        receiver.onResult(new ExecuteOutput.Builder().build());
     }
 
     /**
@@ -64,15 +68,15 @@ public interface IsolatedWorker {
      * {@link IsolatedService#getRemoteData(RequestToken)} with the result of this method.
      *
      * @param input Download handler parameters.
-     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
-     *     an error. If called with <code>null</code>, no updates are made to the REMOTE_DATA table.
-     *     <p>If this method throws a {@link RuntimeException}, no updates are made to the
-     *     REMOTE_DATA table.
+     * @param receiver Callback that receives the result {@link DownloadCompletedOutput} or an
+     *     {@link IsolatedServiceException}.
+     *     <p>If this method returns a {@code null} result or exception via the callback, or
+     *     throws a {@link RuntimeException}, no updates are made to the REMOTE_DATA table.
      */
     default void onDownloadCompleted(
             @NonNull DownloadCompletedInput input,
-            @NonNull Consumer<DownloadCompletedOutput> consumer) {
-        consumer.accept(null);
+            @NonNull OutcomeReceiver<DownloadCompletedOutput, IsolatedServiceException> receiver) {
+        receiver.onResult(new DownloadCompletedOutput.Builder().build());
     }
 
     /**
@@ -83,16 +87,17 @@ public interface IsolatedWorker {
      * frame.
      *
      * @param input Parameters for the render request.
-     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
-     *     an error. The error is propagated to the calling app as an {@link
-     *     OnDevicePersonalizationException} with error code {@link
-     *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
-     *     <p>If this method throws a {@link RuntimeException}, that is also reported to calling
+     * @param receiver Callback that receives the result {@link RenderOutput} or an
+     *     {@link IsolatedServiceException}.
+     *     <p>If this method returns a {@code null} result or exception via the callback, or
+     *     throws a {@link RuntimeException}, the error is also reported to calling
      *     apps as an {@link OnDevicePersonalizationException} with error code {@link
      *     OnDevicePersonalizationException#ERROR_ISOLATED_SERVICE_FAILED}.
      */
-    default void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
-        consumer.accept(null);
+    default void onRender(
+            @NonNull RenderInput input,
+            @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+        receiver.onResult(new RenderOutput.Builder().build());
     }
 
     /**
@@ -102,14 +107,15 @@ public interface IsolatedWorker {
      * {@link EventOutput#getEventLogRecord()}.
      *
      * @param input The parameters needed to compute event data.
-     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
-     *     an error. If called with <code>null</code>, no data is written to the EVENTS table.
-     *     <p>If this method throws a {@link RuntimeException}, no data is written to the EVENTS
-     *     table.
+     * @param receiver Callback that receives the result {@link EventOutput} or an
+     *     {@link IsolatedServiceException}.
+     *     <p>If this method returns a {@code null} result or exception via the callback, or
+     *     throws a {@link RuntimeException}, no data is written to the EVENTS table.
      */
     default void onEvent(
-            @NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
-        consumer.accept(null);
+            @NonNull EventInput input,
+            @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
+        receiver.onResult(new EventOutput.Builder().build());
     }
 
     /**
@@ -118,14 +124,16 @@ public interface IsolatedWorker {
      * an app through {@link FederatedComputeScheduler#schedule}.
      *
      * @param input The parameters needed to generate the training example.
-     * @param consumer Callback that receives the result. Should be called with <code>null</code> on
-     *     an error. If called with <code>null</code>, no training examples is produced for this
+     * @param receiver Callback that receives the result {@link TrainingExamplesOutput} or an
+     *     {@link IsolatedServiceException}.
+     *     <p>If this method returns a {@code null} result or exception via the callback, or
+     *     throws a {@link RuntimeException}, no training examples is produced for this
      *     training session.
      */
     default void onTrainingExamples(
             @NonNull TrainingExamplesInput input,
-            @NonNull Consumer<TrainingExamplesOutput> consumer) {
-        consumer.accept(null);
+            @NonNull OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
+        receiver.onResult(new TrainingExamplesOutput.Builder().build());
     }
 
     /**
@@ -136,13 +144,16 @@ public interface IsolatedWorker {
      * with the web trigger data.
      *
      * @param input The parameters needed to process Web Trigger event.
-     * @param consumer Callback that receives the result. Should be called with a
+     * @param receiver Callback that receives the result {@link WebTriggerOutput} or an
+     *     {@link IsolatedServiceException}. Should be called with a
      *     {@link WebTriggerOutput} object populated with a set of records to be written to the
-     *     REQUESTS or EVENTS tables. On an error, the callback should be called with {@code null}.
+     *     REQUESTS or EVENTS tables.
+     *     <p>If this method returns a {@code null} result or exception via the callback, or
+     *     throws a {@link RuntimeException}, no data is written to the REQUESTS orEVENTS tables.
      */
     default void onWebTrigger(
             @NonNull WebTriggerInput input,
-            @NonNull Consumer<WebTriggerOutput> consumer) {
-        consumer.accept(null);
+            @NonNull OutcomeReceiver<WebTriggerOutput, IsolatedServiceException> receiver) {
+        receiver.onResult(new WebTriggerOutput.Builder().build());
     }
 }
