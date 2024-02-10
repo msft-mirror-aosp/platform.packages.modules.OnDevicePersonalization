@@ -19,10 +19,10 @@ package android.adservices.ondevicepersonalization.aidl;
 import android.content.ComponentName;
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
-import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
-import android.net.Uri;
 import android.os.Bundle;
+import android.os.PersistableBundle;
 
 /** @hide */
 interface IOnDevicePersonalizationManagingService {
@@ -43,11 +43,10 @@ interface IOnDevicePersonalizationManagingService {
         in CallerMetadata metadata,
         in IRequestSurfacePackageCallback callback);
 
-    void registerWebTrigger(
-        in Uri destinationUrl,
-        in Uri registrationUrl,
-        in String triggerHeader,
-        in String appPackageName,
+    // TODO(b/301732670): Move to a new service.
+    void registerMeasurementEvent(
+        in int measurementEventType,
+        in Bundle params,
         in CallerMetadata metadata,
-        in IRegisterWebTriggerCallback callback);
+        in IRegisterMeasurementEventCallback callback);
 }

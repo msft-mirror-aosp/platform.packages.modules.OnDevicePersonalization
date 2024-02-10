@@ -16,19 +16,20 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -62,7 +63,7 @@ public final class OnDevicePersonalizationManagerTest {
     public void testExecuteSuccess() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "ok");
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 params,
@@ -72,14 +73,15 @@ public final class OnDevicePersonalizationManagerTest {
         assertTrue(receiver.mCallbackSuccess);
         assertFalse(receiver.mCallbackError);
         assertNotNull(receiver.mResult);
-        assertEquals(receiver.mResult.getTokenString(), "aaaa");
+        assertEquals(receiver.mResult.getSurfacePackageToken().getTokenString(), "aaaa");
+        assertArrayEquals(receiver.mResult.getOutputData(), new byte[]{1, 2, 3});
     }
 
     @Test
     public void testExecuteError() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "error");
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 params,
@@ -100,7 +102,7 @@ public final class OnDevicePersonalizationManagerTest {
                         ComponentName.createRelative("com.example.service", ".Example"),
                         params,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -113,89 +115,17 @@ public final class OnDevicePersonalizationManagerTest {
                         ComponentName.createRelative("com.example.service", ".Example"),
                         params,
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackageToken>()));
+                        new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
     public void testExecuteCatchesOtherExceptions() throws Exception {
         PersistableBundle params = new PersistableBundle();
         params.putString(KEY_OP, "ise");
-        var receiver = new ResultReceiver<SurfacePackageToken>();
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
                 params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
-        assertTrue(receiver.mException instanceof IllegalStateException);
-    }
-
-    @Test
-    public void testRegisterWebTriggerSuccess() throws Exception {
-        var receiver = new ResultReceiver<Void>();
-        mManager.registerWebTrigger(
-                Uri.parse("http://example.com"),
-                Uri.parse("http://regurl"),
-                "ok",
-                "com.example.browser",
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        receiver.mLatch.await();
-        assertTrue(receiver.mCallbackSuccess);
-        assertFalse(receiver.mCallbackError);
-    }
-
-    @Test
-    public void testRegisterWebTriggerError() throws Exception {
-        var receiver = new ResultReceiver<Void>();
-        mManager.registerWebTrigger(
-                Uri.parse("http://example.com"),
-                Uri.parse("http://regurl"),
-                "error",
-                "com.example.browser",
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
-    }
-
-    @Test
-    public void testRegisterWebTriggerPropagatesIae() throws Exception {
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> mManager.registerWebTrigger(
-                        Uri.parse("http://example.com"),
-                        Uri.parse("http://regurl"),
-                        "iae",
-                        "com.example.browser",
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Void>()));
-    }
-
-    @Test
-    public void testRegisterWebTriggerPropagatesNpe() throws Exception {
-        assertThrows(
-                NullPointerException.class,
-                () -> mManager.registerWebTrigger(
-                        Uri.parse("http://example.com"),
-                        Uri.parse("http://regurl"),
-                        "npe",
-                        "com.example.browser",
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Void>()));
-    }
-
-    @Test
-    public void testRegisterWebTriggerCatchesExceptions() throws Exception {
-        var receiver = new ResultReceiver<Void>();
-        mManager.registerWebTrigger(
-                Uri.parse("http://example.com"),
-                Uri.parse("http://regurl"),
-                "ise",
-                "com.example.browser",
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
@@ -241,6 +171,7 @@ public final class OnDevicePersonalizationManagerTest {
                 if (op.equals("ok")) {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
+                    bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
                     callback.onSuccess(bundle);
                 } else if (op.equals("error")) {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
@@ -271,28 +202,12 @@ public final class OnDevicePersonalizationManagerTest {
         }
 
         @Override
-        public void registerWebTrigger(
-                Uri destinationUrl,
-                Uri registrationUrl,
-                String triggerHeader,
-                String appPackageName,
+        public void registerMeasurementEvent(
+                int eventType,
+                Bundle params,
                 CallerMetadata metadata,
-                IRegisterWebTriggerCallback callback) {
-            try {
-                if (triggerHeader.equals("error")) {
-                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                } else if (triggerHeader.equals("iae")) {
-                    throw new IllegalArgumentException();
-                } else if (triggerHeader.equals("npe")) {
-                    throw new NullPointerException();
-                } else if (triggerHeader.equals("ise")) {
-                    throw new IllegalStateException();
-                } else {
-                    callback.onSuccess();
-                }
-            } catch (RemoteException e) {
-                Log.e(TAG, "callback error", e);
-            }
+                IRegisterMeasurementEventCallback callback) {
+            throw new UnsupportedOperationException();
         }
     }
 
