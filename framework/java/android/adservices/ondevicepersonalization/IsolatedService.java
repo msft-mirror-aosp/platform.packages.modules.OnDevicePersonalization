@@ -28,6 +28,7 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.os.OutcomeReceiver;
 import android.os.Parcelable;
 import android.os.RemoteException;
 import android.os.SystemClock;
@@ -37,7 +38,6 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 
 import java.util.Objects;
-import java.util.function.Consumer;
 import java.util.function.Function;
 
 // TODO(b/289102463): Add a link to the public ODP developer documentation.
@@ -353,42 +353,14 @@ public abstract class IsolatedService extends Service {
                 IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
                 implCallback.onTrainingExamples(
                         input,
-                        new Consumer<TrainingExamplesOutput>() {
-                            @Override
-                            public void accept(TrainingExamplesOutput result) {
-                                long elapsedTimeMillis =
-                                        SystemClock.elapsedRealtime()
-                                                - requestToken.getStartTimeMillis();
-                                if (result == null) {
-                                    try {
-                                        resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
-                                    } catch (RemoteException e) {
-                                        sLogger.w(TAG + ": Callback failed.", e);
-                                    }
-                                } else {
-                                    TrainingExamplesOutputParcel parcelResult =
-                                            new TrainingExamplesOutputParcel.Builder()
-                                                    .setTrainingExampleRecords(
-                                                            new OdpParceledListSlice<
-                                                                    TrainingExampleRecord>(
-                                                                    result
-                                                                            .getTrainingExampleRecords()))
-                                                    .build();
-                                    Bundle bundle = new Bundle();
-                                    bundle.putParcelable(Constants.EXTRA_RESULT, parcelResult);
-                                    bundle.putParcelable(
-                                            Constants.EXTRA_CALLEE_METADATA,
-                                            new CalleeMetadata.Builder()
-                                                    .setElapsedTimeMillis(elapsedTimeMillis)
-                                                    .build());
-                                    try {
-                                        resultCallback.onSuccess(bundle);
-                                    } catch (RemoteException e) {
-                                        sLogger.w(TAG + ": Callback failed.", e);
-                                    }
-                                }
-                            }
-                        });
+                        new WrappedCallback<TrainingExamplesOutput, TrainingExamplesOutputParcel>(
+                                resultCallback,
+                                requestToken,
+                                v -> new TrainingExamplesOutputParcel.Builder()
+                                    .setTrainingExampleRecords(
+                                        new OdpParceledListSlice<TrainingExampleRecord>(
+                                            v.getTrainingExampleRecords()))
+                                    .build()));
 
             } else if (operationCode == Constants.OP_WEB_TRIGGER) {
                 WebTriggerInputParcel inputParcel =
@@ -418,7 +390,8 @@ public abstract class IsolatedService extends Service {
         }
     }
 
-    private static class WrappedCallback<T, U extends Parcelable> implements Consumer<T> {
+    private static class WrappedCallback<T, U extends Parcelable>
+                implements OutcomeReceiver<T, IsolatedServiceException> {
         @NonNull private final IIsolatedServiceCallback mCallback;
         @NonNull private final RequestToken mRequestToken;
         @NonNull private final Function<T, U> mConverter;
@@ -433,7 +406,7 @@ public abstract class IsolatedService extends Service {
         }
 
         @Override
-        public void accept(T result) {
+        public void onResult(T result) {
             long elapsedTimeMillis =
                     SystemClock.elapsedRealtime() - mRequestToken.getStartTimeMillis();
             if (result == null) {
@@ -455,6 +428,16 @@ public abstract class IsolatedService extends Service {
                 } catch (RemoteException e) {
                     sLogger.w(TAG + ": Callback failed.", e);
                 }
+            }
+        }
+
+        @Override
+        public void onError(IsolatedServiceException e) {
+            try {
+                // TODO(b/324478256): Log and report the error code from e.
+                mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+            } catch (RemoteException re) {
+                sLogger.w(TAG + ": Callback failed.", re);
             }
         }
     }

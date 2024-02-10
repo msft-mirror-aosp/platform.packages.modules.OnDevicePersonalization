@@ -47,7 +47,9 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import java.io.File;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -103,6 +105,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
         // Set of valid packageName and cert
         Set<Map.Entry<String, String>> validVendors = new HashSet<>();
+        Set<String> validTables = new HashSet<>();
 
 
         // Remove all valid packages from the set
@@ -111,13 +114,16 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
             String packageName = packageInfo.packageName;
             if (AppManifestConfigHelper.manifestContainsOdpSettings(
                     context, packageName)) {
+                String certDigest = PackageUtils.getCertDigest(context, packageName);
                 // Remove valid packages from set
-                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName,
-                        PackageUtils.getCertDigest(context, packageName)));
+                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));
 
                 // Add valid package to new set
-                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(packageName,
-                        PackageUtils.getCertDigest(context, packageName)));
+                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));
+                validTables.add(OnDevicePersonalizationLocalDataDao
+                        .getTableName(packageName, certDigest));
+                validTables.add(OnDevicePersonalizationVendorDataDao
+                        .getTableName(packageName, certDigest));
             }
         }
 
@@ -157,7 +163,37 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
             FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
         }
 
-        // TODO: cleanup any loose data directories. Tables deleted, but directory still exists.
+        // Cleanup any loose data directories. Tables deleted, but directory still exists.
+        List<File> filesToDelete = new ArrayList<>();
+        File vendorDir = new File(context.getFilesDir(), "VendorData");
+        if (vendorDir.isDirectory()) {
+            for (File f : vendorDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        File localDir = new File(context.getFilesDir(), "LocalData");
+        if (localDir.isDirectory()) {
+            for (File f : localDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        filesToDelete.forEach(FileUtils::deleteDirectory);
     }
 
     @Override
