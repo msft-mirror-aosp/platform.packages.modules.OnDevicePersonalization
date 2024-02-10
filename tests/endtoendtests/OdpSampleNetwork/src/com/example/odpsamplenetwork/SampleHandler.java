@@ -631,7 +631,8 @@ public class SampleHandler implements IsolatedWorker {
                     if (ad != null && !isBlockedAd(ad)) {
                         filteredKeys.add(key);
                     }
-                } else if (key.startsWith("template") || key.startsWith("example")) {
+                } else if (key.startsWith("template") || key.startsWith("example")
+                        || key.startsWith("model")) {
                     filteredKeys.add(key);
                 }
             }
