@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.testing.sampleservice;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedService;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
@@ -26,12 +27,13 @@ import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.RequestToken;
 import android.content.ContentValues;
-
-import java.util.function.Consumer;
+import android.os.OutcomeReceiver;
 
 public class SampleService extends IsolatedService {
     class SampleWorker implements IsolatedWorker {
-        @Override public void onExecute(ExecuteInput input, Consumer<ExecuteOutput> consumer) {
+        @Override public void onExecute(
+                ExecuteInput input,
+                OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
             ContentValues logData = new ContentValues();
             logData.put("id", "ad1");
             logData.put("pr", 5.0);
@@ -41,16 +43,18 @@ public class SampleService extends IsolatedService {
                         new RenderingConfig.Builder().addKey("bid1").build()
                     )
                     .build();
-            consumer.accept(result);
+            receiver.onResult(result);
         }
 
-        @Override public void onRender(RenderInput input, Consumer<RenderOutput> consumer) {
+        @Override public void onRender(
+                RenderInput input,
+                OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
             var keys = input.getRenderingConfig().getKeys();
             if (keys.size() > 0) {
                 String html = "<body>" + input.getRenderingConfig().getKeys().get(0) + "</body>";
-                consumer.accept(new RenderOutput.Builder().setContent(html).build());
+                receiver.onResult(new RenderOutput.Builder().setContent(html).build());
             } else {
-                consumer.accept(null);
+                receiver.onResult(null);
             }
         }
     }

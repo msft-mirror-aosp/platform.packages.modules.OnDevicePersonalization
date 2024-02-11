@@ -30,6 +30,7 @@ android_test {
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "compatibility-device-util-axt",
     ],
     libs: [
         "android.test.base",
@@ -46,6 +47,7 @@ android_test {
     test_suites: [
         "general-tests",
         "mts-ondevicepersonalization",
+        "mcts-ondevicepersonalization",
     ],
     test_config: "AndroidTest.xml",
 }
