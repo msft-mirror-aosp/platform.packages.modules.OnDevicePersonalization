@@ -16,10 +16,11 @@
 
 package com.android.ondevicepersonalization.services.webtrigger;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -98,7 +99,7 @@ public class WebTriggerFlowTests {
         EventsDao.getInstanceForTest(mContext).insertQuery(
                 new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
-        when(mContext.checkCallingOrSelfPermission(anyString()))
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
     }
 
@@ -119,12 +120,12 @@ public class WebTriggerFlowTests {
                     null, null, null, null, null).getCount());
         MeasurementWebTriggerEventParamsParcel wtparams =
                 new MeasurementWebTriggerEventParamsParcel(
-                    Uri.parse("http://landingpage"),
-                    "com.example.browser",
-                    ComponentName.createRelative(
-                        mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                    null,
-                    "ABCD");
+                        Uri.parse("http://landingpage"),
+                        "com.example.browser",
+                        ComponentName.createRelative(
+                            mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                        null,
+                        new byte[] {1, 2, 3});
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
@@ -147,16 +148,16 @@ public class WebTriggerFlowTests {
 
     @Test
     public void testEnforceCallerPermission() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(anyString()))
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_DENIED);
         MeasurementWebTriggerEventParamsParcel wtparams =
                 new MeasurementWebTriggerEventParamsParcel(
-                    Uri.parse("http://landingpage"),
-                    "com.example.browser",
-                    ComponentName.createRelative(
-                        mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                    null,
-                    "ABCD");
+                        Uri.parse("http://landingpage"),
+                        "com.example.browser",
+                        ComponentName.createRelative(
+                            mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                        null,
+                        new byte[] {1, 2, 3});
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(

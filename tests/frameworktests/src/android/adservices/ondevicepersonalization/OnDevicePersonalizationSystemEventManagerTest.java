@@ -57,14 +57,14 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
             new OnDevicePersonalizationSystemEventManager(mContext, mTestBinder);
 
     @Test
-    public void testregisterMeasurementEventSuccess() throws Exception {
-        var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+    public void testnotifyMeasurementEventSuccess() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
-                        Uri.parse("http://landingpage"),
+                        Uri.parse("http://ok"),
                         "com.example.browser",
                         ComponentName.createRelative("com.example", ".Example"))
-                            .setEventData("ok").build(),
+                            .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
@@ -73,14 +73,14 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
     }
 
     @Test
-    public void testregisterMeasurementEventError() throws Exception {
-        var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+    public void testnotifyMeasurementEventError() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
-                        Uri.parse("http://landingpage"),
+                        Uri.parse("http://error"),
                         "com.example.browser",
                         ComponentName.createRelative("com.example", ".Example"))
-                            .setEventData("error").build(),
+                            .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
@@ -89,42 +89,42 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
     }
 
     @Test
-    public void testregisterMeasurementEventPropagatesIae() throws Exception {
+    public void testnotifyMeasurementEventPropagatesIae() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> mManager.registerMeasurementEvent(
+                () -> mManager.notifyMeasurementEvent(
                         new MeasurementWebTriggerEventParams.Builder(
-                            Uri.parse("http://landingpage"),
+                            Uri.parse("http://iae"),
                             "com.example.browser",
                             ComponentName.createRelative("com.example", ".Example"))
-                                .setEventData("iae").build(),
+                                .build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Object>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
-    public void testregisterMeasurementEventPropagatesNpe() throws Exception {
+    public void testnotifyMeasurementEventPropagatesNpe() throws Exception {
         assertThrows(
                 NullPointerException.class,
-                () -> mManager.registerMeasurementEvent(
+                () -> mManager.notifyMeasurementEvent(
                         new MeasurementWebTriggerEventParams.Builder(
-                            Uri.parse("http://landingpage"),
+                            Uri.parse("http://npe"),
                             "com.example.browser",
                             ComponentName.createRelative("com.example", ".Example"))
-                                .setEventData("npe").build(),
+                                .build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Object>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
-    public void testregisterMeasurementEventCatchesExceptions() throws Exception {
-        var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+    public void testnotifyMeasurementEventCatchesExceptions() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
-                        Uri.parse("http://landingpage"),
+                        Uri.parse("http://ise"),
                         "com.example.browser",
                         ComponentName.createRelative("com.example", ".Example"))
-                            .setEventData("ise").build(),
+                            .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
         receiver.mLatch.await();
@@ -190,13 +190,14 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 MeasurementWebTriggerEventParamsParcel wtparams = params.getParcelable(
                         Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
                         MeasurementWebTriggerEventParamsParcel.class);
-                if (wtparams.getEventData().equals("error")) {
+                String url = wtparams.getDestinationUrl().toString();
+                if (url.equals("http://error")) {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                } else if (wtparams.getEventData().equals("iae")) {
+                } else if (url.equals("http://iae")) {
                     throw new IllegalArgumentException();
-                } else if (wtparams.getEventData().equals("npe")) {
+                } else if (url.equals("http://npe")) {
                     throw new NullPointerException();
-                } else if (wtparams.getEventData().equals("ise")) {
+                } else if (url.equals("http://ise")) {
                     throw new IllegalStateException();
                 } else {
                     callback.onSuccess();

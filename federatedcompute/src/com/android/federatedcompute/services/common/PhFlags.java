@@ -72,6 +72,8 @@ public final class PhFlags implements Flags {
     static final String TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS =
             "training_condition_check_period_throttle_period_mills";
 
+    static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
+
     private static final PhFlags sSingleton = new PhFlags();
 
     /** Returns the singleton instance of the PhFlags. */
@@ -216,5 +218,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS,
                 /* defaultValue= */ DEFAULT_TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS);
+    }
+
+    @Override
+    public int getFcpRescheduleLimit() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
+                /* defaultValue= */ FCP_RESCHEDULE_LIMIT);
     }
 }
