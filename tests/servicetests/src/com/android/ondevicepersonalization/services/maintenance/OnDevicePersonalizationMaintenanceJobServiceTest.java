@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.maintenance;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
@@ -46,6 +47,7 @@ import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -60,7 +62,9 @@ import org.junit.runners.JUnit4;
 import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
+import java.io.File;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
 import java.util.List;
@@ -85,9 +89,13 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
         dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        dataList.add(new VendorData.Builder().setKey("large").setData(new byte[111111]).build());
+        dataList.add(new VendorData.Builder().setKey("large2").setData(new byte[111111]).build());
         List<String> retainedKeys = new ArrayList<>();
         retainedKeys.add("key");
         retainedKeys.add("key2");
+        retainedKeys.add("large");
+        retainedKeys.add("large2");
         assertTrue(dao.batchUpdateOrInsertVendorDataTransaction(dataList, retainedKeys,
                 timestamp));
     }
@@ -204,18 +212,42 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     @Test
     public void testVendorDataCleanup() throws Exception {
-        addTestData(System.currentTimeMillis(), mTestDao);
-        addTestData(System.currentTimeMillis(), mDao);
-        addEventData(mContext.getPackageName(), System.currentTimeMillis());
+        long timestamp = System.currentTimeMillis();
+        addTestData(timestamp, mTestDao);
+        addTestData(timestamp, mDao);
+        addEventData(mContext.getPackageName(), timestamp);
         addEventData(mContext.getPackageName(), 100L);
-        addEventData(TEST_OWNER, System.currentTimeMillis());
+        addEventData(TEST_OWNER, timestamp);
 
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                OnDevicePersonalizationVendorDataDao.getTableName(mContext.getPackageName(),
+                        PackageUtils.getCertDigest(mContext, mContext.getPackageName())),
+                mContext.getFilesDir()));
+        File testDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                OnDevicePersonalizationVendorDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+        File localTestDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                OnDevicePersonalizationLocalDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+        assertFalse(testDir.exists());
+        assertFalse(localTestDir.exists());
+        assertEquals(2, dir.listFiles().length);
+
         List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
                 mContext);
         assertEquals(1, vendors.size());
         assertEquals(new AbstractMap.SimpleEntry<>(mContext.getPackageName(),
                 PackageUtils.getCertDigest(mContext, mContext.getPackageName())), vendors.get(0));
+
+        addTestData(timestamp + 10, mDao);
+        addTestData(timestamp + 20, mDao);
+        assertEquals(6, dir.listFiles().length);
+
+        OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        assertEquals(2, dir.listFiles().length);
+        assertTrue(new File(dir, "large_" + (timestamp + 20)).exists());
+        assertTrue(new File(dir, "large2_" + (timestamp + 20)).exists());
 
         assertNull(mEventsDao.getEventState(TASK_IDENTIFIER, TEST_OWNER));
         assertNotNull(mEventsDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
@@ -223,6 +255,29 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertEquals(2, mEventsDao.readAllNewRowsForPackage(TEST_OWNER, 0, 0).size());
         assertEquals(2,
                 mEventsDao.readAllNewRowsForPackage(mContext.getPackageName(), 0, 0).size());
+    }
+
+    @Test
+    public void testVendorDataCleanupExtraDirs() throws Exception {
+        long timestamp = System.currentTimeMillis();
+        addTestData(timestamp, mDao);
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+
+        // Write extra dirs and files
+        new File(vendorDir, "randomDirectory").mkdir();
+        new File(vendorDir, "randomDirectory2").mkdir();
+        new File(localDir, "randomDirectory").mkdir();
+        Files.write(new File(vendorDir, "randomFile.txt").toPath(), new byte[10]);
+        Files.write(new File(vendorDir + "/randomDirectory", "randomFile.txt").toPath(),
+                new byte[10]);
+        Files.write(new File(localDir, "randomFile.txt").toPath(), new byte[10]);
+        assertEquals(4, vendorDir.listFiles().length);
+        assertEquals(3, localDir.listFiles().length);
+
+        OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        assertEquals(1, vendorDir.listFiles().length);
+        assertEquals(1, localDir.listFiles().length);
     }
 
     @After

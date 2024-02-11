@@ -85,35 +85,14 @@ public interface Flags {
         return TRANSIENT_ERROR_RETRY_DELAY_SECS;
     }
 
-    /** Flags for ExampleStoreService. */
-    long APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS = 30;
-
-    default long getAppHostedExampleStoreTimeoutSecs() {
-        return APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS;
-    }
-
-    /** Flags for ResultHandlingService. */
-    long RESULT_HANDLING_BIND_SERVICE_TIMEOUT_SECS = 10;
-
-    default long getResultHandlingBindServiceTimeoutSecs() {
-        return RESULT_HANDLING_BIND_SERVICE_TIMEOUT_SECS;
-    }
-
-    // 9 minutes 45 seconds, leaving ~15 seconds to clean up.
-    long RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS = 60 * 9 + 45;
-
-    default long getResultHandlingServiceCallbackTimeoutSecs() {
-        return RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS;
-    }
-
     /**
      * The minimum percentage (expressed as an integer between 0 and 100) of battery charge that
      * must be remaining in order start training as well as continue it once started.
      */
-    int TRAINING_MIN_BATTERY_LEVEL = 30;
+    int DEFAULT_TRAINING_MIN_BATTERY_LEVEL = 30;
 
     default int getTrainingMinBatteryLevel() {
-        return TRAINING_MIN_BATTERY_LEVEL;
+        return DEFAULT_TRAINING_MIN_BATTERY_LEVEL;
     }
 
     /**
@@ -128,17 +107,17 @@ public interface Flags {
      * THERMAL_STATUS_EMERGENCY = 5; <br>
      * THERMAL_STATUS_SHUTDOWN = 6; <br>
      */
-    int THERMAL_STATUS_TO_THROTTLE = 2;
+    int DEFAULT_THERMAL_STATUS_TO_THROTTLE = 2;
 
     default int getThermalStatusToThrottle() {
-        return THERMAL_STATUS_TO_THROTTLE;
+        return DEFAULT_THERMAL_STATUS_TO_THROTTLE;
     }
 
     /** The minimum duration between two training condition checks in milliseconds. */
-    long TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS = 1000;
+    long DEFAULT_TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS = 1000;
 
     default long getTrainingConditionCheckThrottlePeriodMillis() {
-        return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
+        return DEFAULT_TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
     }
 
     String ENCRYPTION_KEY_FETCH_URL = "https://fake-coordinator/v1alpha/publicKeys";
@@ -197,5 +176,21 @@ public interface Flags {
     /** Whether to enable encryption when uploading results. */
     default Boolean isEncryptionEnabled() {
         return ENCRYPTION_ENABLED;
+    }
+
+    boolean DEFAULT_ENABLE_ELIGIBILITY_TASK = true;
+
+    default boolean isEligibilityTaskEnabled() {
+        return DEFAULT_ENABLE_ELIGIBILITY_TASK;
+    }
+
+    int FCP_RESCHEDULE_LIMIT = 6;
+
+    /**
+     * Limitation of how much times can FCP task job can be rescheduled if it failed, if federated
+     * compute job retry times exceeds this limit, the job will be canceled/abort.
+     */
+    default int getFcpRescheduleLimit() {
+        return FCP_RESCHEDULE_LIMIT;
     }
 }

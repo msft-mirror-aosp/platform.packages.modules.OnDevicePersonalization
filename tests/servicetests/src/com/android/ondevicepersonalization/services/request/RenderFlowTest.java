@@ -38,6 +38,9 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 
 import com.google.common.util.concurrent.Futures;
@@ -48,15 +51,17 @@ import com.google.common.util.concurrent.MoreExecutors;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class RenderFlowTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
-    private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+    private final UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
 
     private String mRenderedContent;
     private boolean mGenerateHtmlCalled;
@@ -66,11 +71,27 @@ public class RenderFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
 
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
     @Before
     public void setUp() throws Exception {
-        PhFlagsTestUtil.disablePersonalizationStatusOverride();
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
         mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
     }
 
@@ -85,7 +106,13 @@ public class RenderFlowTest {
                 new TestCallback(),
                 mContext,
                 100L,
-                new TestInjector(),
+                new TestInjector() {
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
+                },
                 new TestDisplayHelper());
         flow.run();
         mLatch.await();
@@ -107,7 +134,13 @@ public class RenderFlowTest {
                 new TestCallback(),
                 mContext,
                 100L,
-                new TestInjector(),
+                new TestInjector() {
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
+                },
                 new TestDisplayHelper());
         flow.run();
         mLatch.await();

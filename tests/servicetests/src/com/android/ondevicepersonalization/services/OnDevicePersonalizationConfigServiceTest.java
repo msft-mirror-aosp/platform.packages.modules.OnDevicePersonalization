@@ -21,17 +21,21 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.IBinder;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.filters.SdkSuppress;
 import androidx.test.rule.ServiceTestRule;
 
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
@@ -47,6 +51,7 @@ import org.junit.runners.JUnit4;
 
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
@@ -134,6 +139,30 @@ public class OnDevicePersonalizationConfigServiceTest {
     }
 
     @Test
+    public void testSetPersonalizationStatusThrowsIllegalArgument() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                .thenThrow(IllegalArgumentException.class);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    mBinder.setPersonalizationStatus(true, null);
+                });
+    }
+
+    @Test
+    @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
+    public void testSetPersonalizationStatusThrowsRuntimeException() throws Exception {
+        when(mContext.getSystemService(any(Class.class))).thenThrow(RuntimeException.class);
+        CountDownLatch latch = new CountDownLatch(1);
+        TestCallback callback = new TestCallback(latch);
+
+        mBinder.setPersonalizationStatus(true, callback);
+
+        assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, callback.getErrCode());
+    }
+
+    @Test
     public void testSetPersonalizationStatusNoOps() throws Exception {
         mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
 
@@ -180,5 +209,29 @@ public class OnDevicePersonalizationConfigServiceTest {
 
     private void populateUserData() {
         mUserDataCollector.updateUserData(mUserData);
+    }
+
+    class TestCallback extends IOnDevicePersonalizationConfigServiceCallback.Stub {
+
+        int mErrCode;
+        CountDownLatch mLatch;
+
+        TestCallback(CountDownLatch latch) {
+            this.mLatch = latch;
+        }
+
+        @Override
+        public void onSuccess() {
+        }
+
+        @Override
+        public void onFailure(int errorCode) {
+            mErrCode = errorCode;
+            mLatch.countDown();
+        }
+
+        public int getErrCode() {
+            return mErrCode;
+        }
     }
 }
