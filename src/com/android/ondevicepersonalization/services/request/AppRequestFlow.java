@@ -230,6 +230,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     }
 
     @Override
+    public ComponentName getService() {
+        return mService;
+    }
+
+    @Override
     public Bundle getServiceParams() {
         Bundle serviceParams = new Bundle();
 
@@ -327,6 +332,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     }
                 },
                 mInjector.getExecutor());
+    }
+
+    @Override
+    public void cleanUpServiceParams() {
+        mModelServiceProvider.unBindFromModelService();
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
