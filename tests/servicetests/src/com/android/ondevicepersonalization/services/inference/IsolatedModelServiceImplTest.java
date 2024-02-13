@@ -51,6 +51,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 
 public class IsolatedModelServiceImplTest {
@@ -58,6 +59,8 @@ public class IsolatedModelServiceImplTest {
     private static final String TAG = IsolatedModelServiceImplTest.class.getSimpleName();
 
     private static final String MODEL_KEY = "modelKey";
+    private final Random mRandom = new Random();
+
     private Bundle mCallbackResult;
     private InferenceInput.Params mParams;
     private RemoteDataImpl mRemoteData;
@@ -70,13 +73,12 @@ public class IsolatedModelServiceImplTest {
         mParams = InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, 1);
     }
 
-    // TODO(b/323557896): add more test cases after get a fully OSS model.
     @Test
-    public void runModelInference_success() throws Exception {
+    public void runModelInference_singleExample_success() throws Exception {
         // Set up inference context.
         InferenceInput inferenceInput =
                 new InferenceInput.Builder(
-                                mParams, generateInferenceInput(), generateInferenceOutput())
+                                mParams, generateInferenceInput(1), generateInferenceOutput(1))
                         .build();
 
         Bundle bundle = new Bundle();
@@ -94,12 +96,94 @@ public class IsolatedModelServiceImplTest {
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
         Map<Integer, Object> outputs = result.getData();
         float[] output1 = (float[]) outputs.get(0);
-        float[] expected1 = {4.89f};
-        assertThat(output1).usingTolerance(0.1f).containsExactly(expected1).inOrder();
+        assertThat(output1.length).isEqualTo(1);
+    }
 
-        float[] output2 = (float[]) outputs.get(1);
-        float[] expected2 = {6.09f};
-        assertThat(output2).usingTolerance(0.1f).containsExactly(expected2).inOrder();
+    @Test
+    public void runModelInference_setBatchSizeNotMatch_success() throws Exception {
+        // Set up inference context.
+        int numExample = 50;
+        InferenceInput inferenceInput =
+                new InferenceInput.Builder(
+                                mParams,
+                                generateInferenceInput(numExample),
+                                generateInferenceOutput(numExample))
+                        .setBatchSize(numExample - 10)
+                        .build();
+
+        Bundle bundle = new Bundle();
+        bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        bundle.putParcelable(
+                Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(inferenceInput));
+
+        IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
+        var callback = new TestServiceCallback();
+        modelService.runInference(bundle, callback);
+        callback.mLatch.await();
+
+        assertFalse(callback.mError);
+        InferenceOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        Map<Integer, Object> outputs = result.getData();
+        float[] output1 = (float[]) outputs.get(0);
+        assertThat(output1.length).isEqualTo(numExample);
+    }
+
+    @Test
+    public void runModelInferenceBatch_setBatchSize_success() throws Exception {
+        int numExample = 50;
+        InferenceInput inferenceInput =
+                new InferenceInput.Builder(
+                                mParams,
+                                generateInferenceInput(numExample),
+                                generateInferenceOutput(numExample))
+                        .setBatchSize(numExample)
+                        .build();
+
+        Bundle bundle = new Bundle();
+        bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        bundle.putParcelable(
+                Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(inferenceInput));
+
+        IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
+        var callback = new TestServiceCallback();
+        modelService.runInference(bundle, callback);
+        callback.mLatch.await();
+
+        assertFalse(callback.mError);
+        InferenceOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        Map<Integer, Object> outputs = result.getData();
+        float[] output1 = (float[]) outputs.get(0);
+        assertThat(output1.length).isEqualTo(numExample);
+    }
+
+    @Test
+    public void runModelInferenceBatch_notSetBatchSize_success() throws Exception {
+        int numExample = 50;
+        InferenceInput inferenceInput =
+                new InferenceInput.Builder(
+                                mParams,
+                                generateInferenceInput(numExample),
+                                generateInferenceOutput(numExample))
+                        .build();
+
+        Bundle bundle = new Bundle();
+        bundle.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        bundle.putParcelable(
+                Constants.EXTRA_INFERENCE_INPUT, new InferenceInputParcel(inferenceInput));
+
+        IsolatedModelServiceImpl modelService = new IsolatedModelServiceImpl();
+        var callback = new TestServiceCallback();
+        modelService.runInference(bundle, callback);
+        callback.mLatch.await();
+
+        assertFalse(callback.mError);
+        InferenceOutputParcel result =
+                mCallbackResult.getParcelable(Constants.EXTRA_RESULT, InferenceOutputParcel.class);
+        Map<Integer, Object> outputs = result.getData();
+        float[] output1 = (float[]) outputs.get(0);
+        assertThat(output1.length).isEqualTo(numExample);
     }
 
     @Test
@@ -110,7 +194,7 @@ public class IsolatedModelServiceImplTest {
         Object[] invalidInput = {input0, input1, input0};
 
         InferenceInput inferenceInput =
-                new InferenceInput.Builder(mParams, invalidInput, generateInferenceOutput())
+                new InferenceInput.Builder(mParams, invalidInput, generateInferenceOutput(1))
                         .build();
 
         Bundle bundle = new Bundle();
@@ -135,8 +219,8 @@ public class IsolatedModelServiceImplTest {
                         new InferenceInput.Builder(
                                         InferenceInput.Params.createCpuParams(
                                                 mRemoteData, null, -1),
-                                        generateInferenceInput(),
-                                        generateInferenceOutput())
+                                        generateInferenceInput(1),
+                                        generateInferenceOutput(1))
                                 .build());
     }
 
@@ -144,7 +228,9 @@ public class IsolatedModelServiceImplTest {
     public void missingInputData_buildThrows() {
         assertThrows(
                 NullPointerException.class,
-                () -> new InferenceInput.Builder(mParams, null, generateInferenceOutput()).build());
+                () ->
+                        new InferenceInput.Builder(mParams, null, generateInferenceOutput(1))
+                                .build());
     }
 
     @Test
@@ -160,7 +246,7 @@ public class IsolatedModelServiceImplTest {
                 // Not set output structure in InferenceOutput.
                 new InferenceInput.Builder(
                                 mParams,
-                                generateInferenceInput(),
+                                generateInferenceInput(1),
                                 new InferenceOutput.Builder().build())
                         .build();
 
@@ -183,7 +269,7 @@ public class IsolatedModelServiceImplTest {
         // Set up inference context.
         InferenceInput inferenceInput =
                 new InferenceInput.Builder(
-                                mParams, generateInferenceInput(), generateInferenceOutput())
+                                mParams, generateInferenceInput(1), generateInferenceOutput(1))
                         .build();
 
         Bundle bundle = new Bundle();
@@ -196,19 +282,19 @@ public class IsolatedModelServiceImplTest {
                 () -> modelService.runInference(bundle, new TestServiceCallback()));
     }
 
-    private Object[] generateInferenceInput() {
-        float[] input0 = {1.23f};
-        float[] input1 = {2.43f};
-        return new Object[] {input0, input1, input0, input1};
+    private Object[] generateInferenceInput(int numExample) {
+        float[][] input0 = new float[numExample][100];
+        for (int i = 0; i < numExample; i++) {
+            input0[i][0] = mRandom.nextFloat();
+        }
+        return new Object[] {input0};
     }
 
-    private InferenceOutput generateInferenceOutput() {
-        float[] parsedOutput0 = new float[1];
-        float[] parsedOutput1 = new float[1];
-        HashMap<Integer, Object> modelOutput = new HashMap<>();
-        modelOutput.put(0, parsedOutput0);
-        modelOutput.put(1, parsedOutput1);
-        return new InferenceOutput.Builder().setDataOutputs(modelOutput).build();
+    private InferenceOutput generateInferenceOutput(int numExample) {
+        float[] output0 = new float[numExample];
+        HashMap<Integer, Object> outputMap = new HashMap<>();
+        outputMap.put(0, output0);
+        return new InferenceOutput.Builder().setDataOutputs(outputMap).build();
     }
 
     class TestServiceCallback extends IIsolatedModelServiceCallback.Stub {
@@ -245,8 +331,8 @@ public class IsolatedModelServiceImplTest {
                     Context context = ApplicationProvider.getApplicationContext();
                     Uri modelUri =
                             Uri.parse(
-                                    "android.resource://com.android.ondevicepersonalization.servicetests/raw/multi_add");
-                    File modelFile = File.createTempFile("model", ".bin");
+                                    "android.resource://com.android.ondevicepersonalization.servicetests/raw/model");
+                    File modelFile = File.createTempFile("model", ".tflite");
                     InputStream in = context.getContentResolver().openInputStream(modelUri);
                     Files.copy(in, modelFile.toPath(), REPLACE_EXISTING);
                     in.close();

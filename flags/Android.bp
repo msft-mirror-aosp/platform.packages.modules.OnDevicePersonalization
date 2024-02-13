@@ -15,6 +15,7 @@
 aconfig_declarations {
     name: "ondevicepersonalization_flags",
     package: "com.android.adservices.ondevicepersonalization.flags",
+    container: "com.android.ondevicepersonalization",
     srcs: ["ondevicepersonalization_flags.aconfig"],
 }
 
