@@ -26,7 +26,6 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
@@ -41,10 +40,10 @@ public class FederatedTrainingTaskDao {
 
     private static final String TAG = FederatedTrainingTaskDao.class.getSimpleName();
 
-    private final SQLiteOpenHelper mDbHelper;
+    private final FederatedComputeDbHelper mDbHelper;
     private static volatile FederatedTrainingTaskDao sSingletonInstance;
 
-    private FederatedTrainingTaskDao(SQLiteOpenHelper dbHelper) {
+    private FederatedTrainingTaskDao(FederatedComputeDbHelper dbHelper) {
         this.mDbHelper = dbHelper;
     }
 
@@ -78,7 +77,7 @@ public class FederatedTrainingTaskDao {
 
     /** Deletes a training task in FederatedTrainingTask table. */
     private void deleteFederatedTrainingTask(String selection, String[] selectionArgs) {
-        SQLiteDatabase db = getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             return;
         }
@@ -88,7 +87,7 @@ public class FederatedTrainingTaskDao {
     /** Insert a training task or update it if task already exists. */
     public boolean updateOrInsertFederatedTrainingTask(FederatedTrainingTask trainingTask) {
         try {
-            SQLiteDatabase db = getWritableDatabase();
+            SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
             if (db == null) {
                 return false;
             }
@@ -107,7 +106,7 @@ public class FederatedTrainingTaskDao {
     @Nullable
     public List<FederatedTrainingTask> getFederatedTrainingTask(
             String selection, String[] selectionArgs) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         if (db == null) {
             return null;
         }
@@ -240,7 +239,7 @@ public class FederatedTrainingTaskDao {
     /** Insert a training task history record or update it if task already exists. */
     public boolean updateOrInsertTaskHistory(TaskHistory taskHistory) {
         try {
-            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(TaskHistoryContract.TaskHistoryEntry.JOB_ID, taskHistory.getJobId());
             values.put(
@@ -274,7 +273,7 @@ public class FederatedTrainingTaskDao {
 
     /** Get a task history based on job id, population name and task name. */
     public TaskHistory getTaskHistory(int jobId, String populationName, String taskId) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         String selection =
                 TaskHistoryContract.TaskHistoryEntry.JOB_ID
                         + " = ? AND "
@@ -332,27 +331,5 @@ public class FederatedTrainingTaskDao {
             values[i] = String.valueOf(args[i]);
         }
         return values;
-    }
-
-    /** It's only public to unit test. Clears all records in task table. */
-    @VisibleForTesting
-    public boolean clearDatabase() {
-        SQLiteDatabase db = getWritableDatabase();
-        if (db == null) {
-            return false;
-        }
-        db.delete(FEDERATED_TRAINING_TASKS_TABLE, null, null);
-        return true;
-    }
-
-    /* Returns a writable database object or null if error occurs. */
-    @Nullable
-    private SQLiteDatabase getWritableDatabase() {
-        try {
-            return mDbHelper.getWritableDatabase();
-        } catch (SQLiteException e) {
-            LogUtil.e(TAG, e, "Failed to open the database.");
-        }
-        return null;
     }
 }
