@@ -21,8 +21,10 @@ import static com.android.federatedcompute.services.data.FederatedTraningTaskCon
 import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
+import android.annotation.Nullable;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
@@ -180,6 +182,28 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                 sInstance.close();
                 sInstance = null;
             }
+        }
+    }
+
+    /** Wraps getReadableDatabase to catch SQLiteException and log error. */
+    @Nullable
+    public SQLiteDatabase safeGetReadableDatabase() {
+        try {
+            return super.getReadableDatabase();
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, e, "Failed to get a readable database");
+            return null;
+        }
+    }
+
+    /** Wraps getWritableDatabase to catch SQLiteException and log error. */
+    @Nullable
+    public SQLiteDatabase safeGetWritableDatabase() {
+        try {
+            return super.getWritableDatabase();
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, e, "Failed to get a writeable database");
+            return null;
         }
     }
 }
