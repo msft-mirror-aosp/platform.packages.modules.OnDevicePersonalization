@@ -182,13 +182,29 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    public void testExecuteReturnsNameNotFoundIfServiceNotInstalled() throws InterruptedException {
+    public void testExecuteReturnsIllegalStateIfServiceNotEnrolled() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
         manager.execute(
                 new ComponentName("somepackage", "someclass"),
+                PersistableBundle.EMPTY,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        receiver.await();
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof IllegalStateException);
+    }
+
+    @Test
+    public void testExecuteReturnsNameNotFoundIfServiceNotInstalled() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        manager.execute(
+                new ComponentName("com.example.odptargetingapp2", "someclass"),
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
