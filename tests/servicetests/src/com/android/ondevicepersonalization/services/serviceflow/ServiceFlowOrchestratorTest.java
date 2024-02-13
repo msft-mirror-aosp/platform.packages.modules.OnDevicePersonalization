@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
@@ -23,14 +25,21 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -62,16 +71,15 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(JUnit4.class)
 public class ServiceFlowOrchestratorTest {
 
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final Context mContext = spy(ApplicationProvider.getApplicationContext());
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
 
-
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
     private int mCallbackErrorCode;
-    private Bundle mCallbackResult;
+    private Bundle mExecuteCallback;
     private MockitoSession mSession;
     private ServiceFlowOrchestrator mSfo;
 
@@ -81,8 +89,8 @@ public class ServiceFlowOrchestratorTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-
-        setUpTestDate();
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization global_kill_switch false");
 
         MockitoAnnotations.initMocks(this);
         mSession = ExtendedMockito.mockitoSession()
@@ -93,11 +101,15 @@ public class ServiceFlowOrchestratorTest {
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
 
+        setUpTestData();
+
         mSfo = new ServiceFlowOrchestrator();
+
         mSfo.register(ServiceFlowType.APP_REQUEST_FLOW, "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
-                new TestCallback(), mContext, 100L);
+                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
+        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
+                new TestWebCallback(), 100L);
     }
 
     @After
@@ -115,8 +127,8 @@ public class ServiceFlowOrchestratorTest {
         doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
 
         mSfo.run(ServiceFlowType.APP_REQUEST_FLOW);
-
         mLatch.await();
+
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
     }
@@ -130,10 +142,10 @@ public class ServiceFlowOrchestratorTest {
                                 anyString(), anyString(), any(Context.class)));
 
         mSfo.run(ServiceFlowType.APP_REQUEST_FLOW);
-
         mLatch.await();
+
         assertTrue(mCallbackSuccess);
-        assertNull(mCallbackResult.getByteArray(Constants.EXTRA_OUTPUT_DATA));
+        assertNull(mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA));
         assertEquals(2,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -151,11 +163,11 @@ public class ServiceFlowOrchestratorTest {
                                 anyString(), anyString(), any(Context.class)));
 
         mSfo.run(ServiceFlowType.APP_REQUEST_FLOW);
-
         mLatch.await();
+
         assertTrue(mCallbackSuccess);
         assertArrayEquals(
-                mCallbackResult.getByteArray(Constants.EXTRA_OUTPUT_DATA),
+                mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA),
                 new byte[] {1, 2, 3});
         assertEquals(2,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
@@ -165,7 +177,141 @@ public class ServiceFlowOrchestratorTest {
                         null, null, null, null, null).getCount());
     }
 
-    private void setUpTestDate() {
+    @Test
+    public void testWebTriggerFlow_GlobalKillswitchOn() throws Exception {
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization global_kill_switch true");
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_EnforceCallerPermission() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_EmptyWebTriggerParams() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        Bundle emptyWebTriggerParams = new Bundle();
+        emptyWebTriggerParams.putParcelable(
+                Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
+                null);
+        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, emptyWebTriggerParams, mContext,
+                new TestWebCallback(), 0L);
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_EmptyDestionalUrl() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        Bundle emptyClassParams = new Bundle();
+        emptyClassParams.putParcelable(
+                Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
+                new MeasurementWebTriggerEventParamsParcel(
+                        Uri.parse(""),
+                        "com.example.browser",
+                        ComponentName.createRelative(mContext.getPackageName(),
+                                "com.test.TestPersonalizationService"),
+                        null, new byte[] {1, 2, 3}));
+        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, emptyClassParams, mContext,
+                new TestWebCallback(), 0L);
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_InvalidCertDigest() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        Bundle invalidCertDigestParams = new Bundle();
+        invalidCertDigestParams.putParcelable(
+                Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
+                new MeasurementWebTriggerEventParamsParcel(
+                        Uri.parse("http://landingpage"),
+                        "com.example.browser",
+                        ComponentName.createRelative(mContext.getPackageName(),
+                                "com.test.TestPersonalizationService"),
+                        "randomTestCertDigest", new byte[] {1, 2, 3}));
+        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, invalidCertDigestParams, mContext,
+                new TestWebCallback(), 0L);
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_InvalidClassName() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+        Bundle invalidPackageNameParams = new Bundle();
+        invalidPackageNameParams.putParcelable(
+                Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
+                new MeasurementWebTriggerEventParamsParcel(
+                        Uri.parse("http://landingpage"),
+                        "com.example.browser",
+                        ComponentName.createRelative(mContext.getPackageName(),
+                                "not.com.test.TestPersonalizationService"),
+                        null, new byte[] {1, 2, 3}));
+        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, invalidPackageNameParams, mContext,
+                new TestWebCallback(), 0L);
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_CLASS_NOT_FOUND, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_Success() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
+
+        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
+    }
+
+    private Bundle getWebTriggerParams() {
+        Bundle params = new Bundle();
+        params.putParcelable(
+                Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
+                new MeasurementWebTriggerEventParamsParcel(
+                    Uri.parse("http://landingpage"),
+                    "com.example.browser",
+                    ComponentName.createRelative(mContext.getPackageName(),
+                            "com.test.TestPersonalizationService"),
+                null, new byte[] {1, 2, 3}));
+        return params;
+    }
+
+    private void setUpTestData() {
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row1 = new ContentValues();
         row1.put("a", 1);
@@ -181,11 +327,26 @@ public class ServiceFlowOrchestratorTest {
         EventsDao.getInstanceForTest(mContext);
     }
 
-    class TestCallback extends IExecuteCallback.Stub {
+    class TestExecuteCallback extends IExecuteCallback.Stub {
         @Override
         public void onSuccess(Bundle bundle) {
             mCallbackSuccess = true;
-            mCallbackResult = bundle;
+            mExecuteCallback = bundle;
+            mLatch.countDown();
+        }
+
+        @Override
+        public void onError(int errorCode) {
+            mCallbackError = true;
+            mCallbackErrorCode = errorCode;
+            mLatch.countDown();
+        }
+    }
+
+    class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {
+        @Override
+        public void onSuccess() {
+            mCallbackSuccess = true;
             mLatch.countDown();
         }
 
