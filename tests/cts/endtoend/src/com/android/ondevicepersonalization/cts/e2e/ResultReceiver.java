@@ -21,13 +21,17 @@ import java.util.concurrent.CountDownLatch;
 
 class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
     private CountDownLatch mLatch = new CountDownLatch(1);
-    private T mResult;
-    private Exception mException;
+    private T mResult = null;
+    private Exception mException = null;
+    private boolean mSuccess = false;
+    private boolean mError = false;
     @Override public void onResult(T result) {
+        mSuccess = true;
         mResult = result;
         mLatch.countDown();
     }
     @Override public void onError(Exception e) {
+        mError = true;
         mException = e;
         mLatch.countDown();
     }
@@ -38,5 +42,13 @@ class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
     Exception getException() throws InterruptedException {
         mLatch.await();
         return mException;
+    }
+    boolean isSuccess() throws InterruptedException {
+        mLatch.await();
+        return mSuccess;
+    }
+    boolean isError() throws InterruptedException {
+        mLatch.await();
+        return mError;
     }
 }
