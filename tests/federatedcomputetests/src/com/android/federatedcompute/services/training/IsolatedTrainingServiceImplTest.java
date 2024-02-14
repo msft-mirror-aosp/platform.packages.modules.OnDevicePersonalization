@@ -44,6 +44,7 @@ import com.google.intelligence.fcp.client.RetryInfo;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
+import com.google.protobuf.Duration;
 
 import org.junit.After;
 import org.junit.Before;
@@ -205,7 +206,14 @@ public final class IsolatedTrainingServiceImplTest {
     private void assertFailResult() throws Exception {
         byte[] flRunnerResultBytes = mCallbackResult.getByteArray(Constants.EXTRA_FL_RUNNER_RESULT);
         FLRunnerResult flRunnerResult = FLRunnerResult.parseFrom(flRunnerResultBytes);
-        assertThat(flRunnerResult).isEqualTo(FL_RUNNER_FAIL_RESULT);
+        assertThat(flRunnerResult)
+                .isEqualTo(
+                        FL_RUNNER_FAIL_RESULT.toBuilder()
+                                .setRetryInfo(
+                                        RetryInfo.newBuilder()
+                                                .setMinimumDelay(
+                                                        Duration.newBuilder().setSeconds(86400)))
+                                .build());
     }
 
     private Bundle buildInputBundle() throws Exception {
