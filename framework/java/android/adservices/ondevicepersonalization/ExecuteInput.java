@@ -25,7 +25,7 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * The input data for {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+ * The input data for {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
  *
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)

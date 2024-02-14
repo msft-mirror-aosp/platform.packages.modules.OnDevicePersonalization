@@ -27,14 +27,14 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input data for {@link
- * IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
+ * IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)
 public final class EventInput {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
@@ -70,7 +70,7 @@ public final class EventInput {
      *
      * @param requestLogRecord
      *   The {@link RequestLogRecord} that was returned as a result of
-     *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     *   {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      * @param parameters
      *   The Event URL parameters that the service passed to {@link
      *   EventUrlProvider#createEventTrackingUrlWithResponse(PersistableBundle, byte[], String)}
@@ -91,7 +91,7 @@ public final class EventInput {
 
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {

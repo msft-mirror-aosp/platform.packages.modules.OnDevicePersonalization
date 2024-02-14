@@ -22,8 +22,6 @@ import android.os.OutcomeReceiver;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 
-import java.util.function.Consumer;
-
 /**
  * Interface with methods that need to be implemented to handle requests from the
  * OnDevicePersonalization service to an {@link IsolatedService}. The {@link IsolatedService}
@@ -81,7 +79,7 @@ public interface IsolatedWorker {
 
     /**
      * Generates HTML for the results that were returned as a result of
-     * {@link #onExecute(ExecuteInput, Consumer)}. Called when a client app calls
+     * {@link #onExecute(ExecuteInput, android.os.OutcomeReceiver)}. Called when a client app calls
      * {@link OnDevicePersonalizationManager#requestSurfacePackage(SurfacePackageToken, IBinder, int, int, int, java.util.concurrent.Executor, OutcomeReceiver)}.
      * The platform will render this HTML in an {@link android.webkit.WebView} inside a fenced
      * frame.
@@ -103,7 +101,7 @@ public interface IsolatedWorker {
     /**
      * Handles an event triggered by a request to a platform-provided tracking URL {@link
      * EventUrlProvider} that was embedded in the HTML output returned by
-     * {@link #onRender(RenderInput, Consumer)}. The platform updates the EVENTS table with
+     * {@link #onRender(RenderInput, android.os.OutcomeReceiver)}. The platform updates the EVENTS table with
      * {@link EventOutput#getEventLogRecord()}.
      *
      * @param input The parameters needed to compute event data.
