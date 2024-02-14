@@ -131,7 +131,7 @@ public class OnDevicePersonalizationManager {
     /**
      * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
-     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * with the caller-provided parameters. When the {@link IsolatedService} finishes execution,
      * the platform returns tokens that refer to the results from the service to the caller.
      * These tokens can be subsequently used to display results in a
