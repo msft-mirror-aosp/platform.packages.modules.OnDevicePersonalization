@@ -33,7 +33,6 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.common.util.concurrent.Futures;
@@ -88,8 +87,7 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
             String packageName = packageInfo.packageName;
             if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    this, packageName)
-                    && PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                    this, packageName)) {
                 mFutures.add(Futures.submitAsync(
                         new OnDevicePersonalizationDataProcessingAsyncCallable(packageName,
                                 this),
