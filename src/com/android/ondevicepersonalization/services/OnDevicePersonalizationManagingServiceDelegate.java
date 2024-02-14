@@ -30,7 +30,6 @@ import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
-import android.os.RemoteException;
 import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -39,9 +38,6 @@ import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
 
-import com.google.common.util.concurrent.FutureCallback;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.Objects;
@@ -81,8 +77,9 @@ public class OnDevicePersonalizationManagingServiceDelegate
         }
 
         WebTriggerFlow getWebTriggerFlow(
-                Bundle params, Context context, long startTimeMillis) {
-            return new WebTriggerFlow(params, context);
+                Bundle params, Context context,
+                IRegisterMeasurementEventCallback callback, long startTimeMillis) {
+            return new WebTriggerFlow(params, context, callback, startTimeMillis);
         }
 
         ListeningExecutorService getExecutor() {
@@ -217,30 +214,9 @@ public class OnDevicePersonalizationManagingServiceDelegate
         WebTriggerFlow flow = mInjector.getWebTriggerFlow(
                 params,
                 mContext,
+                callback,
                 metadata.getStartTimeMillis());
-        ListenableFuture<Void> result = flow.run();
-        Futures.addCallback(
-                result,
-                new FutureCallback<Void>() {
-                    @Override
-                    public void onSuccess(Void unused) {
-                        try {
-                            callback.onSuccess();
-                        } catch (RemoteException e) {
-                            sLogger.w(e, TAG + ": Callback failed");
-                        }
-                    }
-                    @Override
-                    public void onFailure(Throwable t) {
-                        sLogger.w(t, TAG + ": Request failed.");
-                        try {
-                            callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                        } catch (RemoteException e) {
-                            sLogger.w(e, TAG + ": Callback failed");
-                        }
-                    }
-                },
-                mInjector.getExecutor());
+        flow.run();
         Trace.endSection();
     }
 

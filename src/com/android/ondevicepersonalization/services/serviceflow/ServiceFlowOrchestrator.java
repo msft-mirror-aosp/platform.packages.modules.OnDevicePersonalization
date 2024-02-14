@@ -75,12 +75,11 @@ public class ServiceFlowOrchestrator {
 
         ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
                 .transformAsync(
-                        isolatedServiceInfo ->
-                                sProcessRunner
-                                        .runIsolatedService(
-                                                isolatedServiceInfo,
-                                                serviceFlowType.getOperationCode(),
-                                                serviceFlow.getServiceParams()),
+                        isolatedServiceInfo -> sProcessRunner
+                                .runIsolatedService(
+                                        isolatedServiceInfo,
+                                        serviceFlowType.getOperationCode(),
+                                        serviceFlow.getServiceParams()),
                         sExecutor);
 
         serviceFlow.uploadServiceFlowMetrics(runServiceFuture);

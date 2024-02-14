@@ -17,14 +17,17 @@
 package com.android.ondevicepersonalization.services.serviceflow;
 
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
+import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
+import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
 
 /** Factory for service flow instances. */
 public class ServiceFlowFactory {
@@ -32,12 +35,17 @@ public class ServiceFlowFactory {
     /** Create a service flow instance give the type. */
     public static ServiceFlow createInstance(ServiceFlowType serviceFlowType, Object... args) {
         return switch (serviceFlowType) {
-            case APP_REQUEST_FLOW -> new AppRequestFlow(
-                    (String) args[0], (ComponentName) args[1], (PersistableBundle) args[2],
-                    (IExecuteCallback) args[3], (Context) args[4], (long) args[5]);
-            case RENDER_FLOW -> new RenderFlow((String) args[0], (IBinder) args[1], (int) args[2],
-                    (int) args[3], (int) args[4], (IRequestSurfacePackageCallback) args[5],
-                    (Context) args[6], (long) args[7]);
+            case APP_REQUEST_FLOW ->
+                    new AppRequestFlow(
+                        (String) args[0], (ComponentName) args[1], (PersistableBundle) args[2],
+                        (IExecuteCallback) args[3], (Context) args[4], (long) args[5]);
+            case RENDER_FLOW ->
+                    new RenderFlow((String) args[0], (IBinder) args[1], (int) args[2],
+                        (int) args[3], (int) args[4], (IRequestSurfacePackageCallback) args[5],
+                        (Context) args[6], (long) args[7]);
+            case WEB_TRIGGER_FLOW ->
+                    new WebTriggerFlow((Bundle) args[0], (Context) args[1],
+                            (IRegisterMeasurementEventCallback) args[2], (long) args[3]);
             default -> throw new IllegalArgumentException(
                     "Invalid service flow type: " + serviceFlowType);
         };
