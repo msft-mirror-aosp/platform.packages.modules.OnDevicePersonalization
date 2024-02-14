@@ -31,6 +31,7 @@ import android.os.PersistableBundle;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -197,7 +198,7 @@ public class CtsOdpManagerTests {
     }
 
     @Test
-    public void testExecute() throws InterruptedException {
+    public void testExecuteNoOp() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         assertNotNull(manager);
@@ -207,7 +208,72 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
+        assertTrue(receiver.isSuccess());
+        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
+        assertNull(token);
+    }
+
+    @Test
+    public void testExecuteWithRenderAndLogging() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        appParams.putString(SampleServiceApi.KEY_RENDERING_CONFIG_IDS, "id1");
+        PersistableBundle logData = new PersistableBundle();
+        logData.putString("id", "a1");
+        logData.putDouble("val", 5.0);
+        appParams.putPersistableBundle(SampleServiceApi.KEY_LOG_DATA, logData);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
+    }
+
+    @Test
+    public void testExecuteWithRender() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        appParams.putString(SampleServiceApi.KEY_RENDERING_CONFIG_IDS, "id1");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isSuccess());
+        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
+        assertNotNull(token);
+    }
+
+    @Test
+    public void testExecuteWithLogging() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
+        PersistableBundle logData = new PersistableBundle();
+        logData.putString("id", "a1");
+        logData.putDouble("val", 5.0);
+        appParams.putPersistableBundle(SampleServiceApi.KEY_LOG_DATA, logData);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isSuccess());
+        SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
+        assertNull(token);
     }
 }
