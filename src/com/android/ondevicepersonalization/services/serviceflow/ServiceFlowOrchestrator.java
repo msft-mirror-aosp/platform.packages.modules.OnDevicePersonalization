@@ -16,34 +16,24 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-import android.os.Bundle;
 
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 
-import com.google.common.util.concurrent.FluentFuture;
-import com.google.common.util.concurrent.Futures;
-import com.google.common.util.concurrent.ListenableFuture;
-import com.google.common.util.concurrent.ListeningExecutorService;
-
-import java.util.HashMap;
-import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /** Orchestrator that coordinate service flows through process runners. */
 public class ServiceFlowOrchestrator {
 
-    private static final Map<ServiceFlowType, ServiceFlow> sServiceFlowMap = new HashMap<>();
     // All service flows should use the same process runner until main process restarts.
     private static final ProcessRunner sProcessRunner =
             FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
                     ? SharedIsolatedProcessRunner.getInstance()
                     : ProcessRunnerImpl.getInstance();
-    private static final ListeningExecutorService sExecutor =
-            OnDevicePersonalizationExecutors.getBackgroundExecutor();
 
     ServiceFlowOrchestrator() {}
 
@@ -58,44 +48,12 @@ public class ServiceFlowOrchestrator {
     }
 
     /** Registers a given service flow with the orchestrator. */
-    public void register(ServiceFlowType serviceFlowType, Object... args) {
-        sServiceFlowMap.put(
-                serviceFlowType, ServiceFlowFactory.createInstance(serviceFlowType, args));
-    }
+    public void schedule(ServiceFlowType serviceFlowType, Object... args) {
+        ServiceFlow serviceFlow = ServiceFlowFactory.createInstance(serviceFlowType, args);
 
-    /** Runs the given service flow. */
-    public void run(ServiceFlowType serviceFlowType) {
-        ServiceFlow serviceFlow = sServiceFlowMap.get(serviceFlowType);
+        ServiceFlowTask serviceFlowTask =
+                new ServiceFlowTask(serviceFlowType, serviceFlow, sProcessRunner);
 
-        if (!serviceFlow.isServiceFlowReady()) return;
-
-        ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
-                sProcessRunner.loadIsolatedService(
-                        serviceFlowType.getTaskName(), serviceFlow.getService());
-
-        ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
-                .transformAsync(
-                        isolatedServiceInfo -> sProcessRunner
-                                .runIsolatedService(
-                                        isolatedServiceInfo,
-                                        serviceFlowType.getOperationCode(),
-                                        serviceFlow.getServiceParams()),
-                        sExecutor);
-
-        serviceFlow.uploadServiceFlowMetrics(runServiceFuture);
-
-        ListenableFuture<?> serviceFlowResultFuture =
-                serviceFlow.getServiceFlowResultFuture(runServiceFuture);
-
-        serviceFlow.returnResultThroughCallback(serviceFlowResultFuture);
-
-        var unused =
-                Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
-                        .callAsync(
-                                () -> {
-                                    serviceFlow.cleanUpServiceParams();
-                                    return sProcessRunner.unloadIsolatedService(
-                                            loadServiceFuture.get());
-                                }, sExecutor);
+        OnDevicePersonalizationExecutors.getBackgroundExecutor().submit(serviceFlowTask::run);
     }
 }

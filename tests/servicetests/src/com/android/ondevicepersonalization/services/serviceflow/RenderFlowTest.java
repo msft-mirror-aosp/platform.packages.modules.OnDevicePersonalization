@@ -112,8 +112,6 @@ public class RenderFlowTest {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
 
         mSfo = new ServiceFlowOrchestrator();
-        mSfo.register(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
     }
 
     @After
@@ -130,7 +128,8 @@ public class RenderFlowTest {
     public void testRenderFlow_PersonalizationDisabled() throws Exception {
         doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
 
-        mSfo.run(ServiceFlowType.RENDER_FLOW);
+        mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
+                100, 50, new TestRenderFlowCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -141,7 +140,8 @@ public class RenderFlowTest {
     public void testRunRenderFlow_InvalidToken() throws Exception {
         doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
 
-        mSfo.run(ServiceFlowType.RENDER_FLOW);
+        mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
+                100, 50, new TestRenderFlowCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -162,7 +162,8 @@ public class RenderFlowTest {
                                 mContext.getPackageName(), 0))
                 .when(() -> CryptUtils.decrypt("token"));
 
-        mSfo.run(ServiceFlowType.RENDER_FLOW);
+        mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
+                100, 50, new TestRenderFlowCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
