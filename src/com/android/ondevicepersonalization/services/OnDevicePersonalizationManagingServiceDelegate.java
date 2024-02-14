@@ -35,7 +35,6 @@ import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
@@ -141,8 +140,6 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
-
-        enforceEnrollment(callingPackageName, handler);
 
         AppRequestFlow flow = mInjector.getAppRequestFlow(
                 callingPackageName,
@@ -266,26 +263,5 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new SecurityException(packageName + " does not belong to uid " + uid);
         }
         //TODO(b/242792629): Handle requests from the SDK sandbox.
-    }
-
-    private void enforceEnrollment(@NonNull String callingPackageName,
-                                   @NonNull ComponentName service) {
-        long origId = Binder.clearCallingIdentity();
-
-        try {
-            if (!PartnerEnrollmentChecker.isCallerAppEnrolled(callingPackageName)) {
-                sLogger.d("caller app %s not enrolled to call ODP.", callingPackageName);
-                throw new IllegalStateException(
-                        "Service skipped as the caller app is not enrolled to call ODP.");
-            }
-            if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(service.getPackageName())) {
-                sLogger.d("isolated service %s not enrolled to access ODP.",
-                        service.getPackageName());
-                throw new IllegalStateException(
-                        "Service skipped as the isolated service is not enrolled to access ODP.");
-            }
-        } finally {
-            Binder.restoreCallingIdentity(origId);
-        }
     }
 }
