@@ -38,7 +38,6 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
-import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -114,8 +113,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
             String packageName = packageInfo.packageName;
             if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    context, packageName)
-                    && PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                    context, packageName)) {
                 String certDigest = PackageUtils.getCertDigest(context, packageName);
                 // Remove valid packages from set
                 vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));

@@ -236,51 +236,6 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
-    public void testExecuteThrowsIfCallerNotEnrolled() throws Exception {
-        var callback = new ExecuteCallback();
-        var originalCallerAppAllowList = FlagsFactory.getFlags().getCallerAppAllowList();
-        PhFlagsTestUtil.setCallerAppAllowList("");
-        try {
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mService.execute(
-                                    mContext.getPackageName(),
-                                    new ComponentName(
-                                            mContext.getPackageName(),
-                                            "com.test.TestPersonalizationHandler"),
-                                    PersistableBundle.EMPTY,
-                                    new CallerMetadata.Builder().build(),
-                                    callback));
-        } finally {
-            PhFlagsTestUtil.setCallerAppAllowList(originalCallerAppAllowList);
-        }
-    }
-
-    @Test
-    public void testExecuteThrowsIfIsolatedServiceNotEnrolled() throws Exception {
-        var callback = new ExecuteCallback();
-        var originalIsolatedServiceAllowList =
-                FlagsFactory.getFlags().getIsolatedServiceAllowList();
-        PhFlagsTestUtil.setIsolatedServiceAllowList("");
-        try {
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mService.execute(
-                                    mContext.getPackageName(),
-                                    new ComponentName(
-                                            mContext.getPackageName(),
-                                            "com.test.TestPersonalizationHandler"),
-                                    PersistableBundle.EMPTY,
-                                    new CallerMetadata.Builder().build(),
-                                    callback));
-        } finally {
-            PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
-        }
-    }
-
-    @Test
     public void testEnabledGlobalKillSwitchOnRequestSurfacePackage() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
