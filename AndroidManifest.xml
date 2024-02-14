@@ -36,6 +36,9 @@
     <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
+    <!-- Required for reading common states from AdServices -->
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_STATE"/>
+
     <!-- Required for modifying personalization state -->
     <permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"
                 android:protectionLevel="signature|privileged"/>
