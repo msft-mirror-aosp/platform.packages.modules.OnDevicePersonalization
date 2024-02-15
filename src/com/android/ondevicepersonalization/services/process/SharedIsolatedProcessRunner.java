@@ -46,6 +46,10 @@ import java.util.Objects;
 /** Utilities for running remote isolated services in a shared isolated process. */
 public class SharedIsolatedProcessRunner implements ProcessRunner  {
 
+    // Shared isolated process that hosts services from all trusted partners, as well as internal
+    // isolated services.
+    public static final String TRUSTED_PARTNER_APPS_SIP = "trusted_partner_apps_sip";
+
     private final Context mApplicationContext;
     private final Injector mInjector;
 
@@ -87,7 +91,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
 
             ListenableFuture<AbstractServiceBinder<IIsolatedService>> isolatedServiceFuture =
                     mInjector.getExecutor().submit(
-                            () -> getIsolatedServiceBinder(isSipRequested, componentName));
+                            () -> getIsolatedServiceBinder(componentName));
 
             return FluentFuture.from(isolatedServiceFuture)
                     .transformAsync(
@@ -152,14 +156,16 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     }
 
     private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(
-            boolean isSipRequested, @NonNull ComponentName service) {
+            @NonNull ComponentName service) throws Exception {
+        boolean isSipRequested = isSharedIsolatedProcessRequested(service);
         // null instance name results in regular isolated service being created.
-        String instanceName = isSipRequested ? "trustedSip" : null;
-        int bindFlag = isSipRequested ? Context.BIND_SHARED_ISOLATED_PROCESS : 0;
+        String instanceName = isSipRequested ? TRUSTED_PARTNER_APPS_SIP : null;
+        int bindFlag = isSipRequested
+                ? Context.BIND_SHARED_ISOLATED_PROCESS
+                : Context.BIND_AUTO_CREATE;
         return AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
                         mApplicationContext,
                         service.getClassName(), service.getPackageName(),
-                        // TO-DO (323427279): Put trusted apps into a separate SIP.
                         instanceName, bindFlag, IIsolatedService.Stub::asInterface);
     }
 

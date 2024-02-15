@@ -40,6 +40,8 @@ public class ServiceFlowOrchestrator {
         ServiceFlowTask serviceFlowTask =
                 new ServiceFlowTask(serviceFlowType, serviceFlow);
 
-        OnDevicePersonalizationExecutors.getBackgroundExecutor().submit(serviceFlowTask::run);
+        var unused =
+                OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                        .submit(serviceFlowTask::run);
     }
 }
