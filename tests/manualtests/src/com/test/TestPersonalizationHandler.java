@@ -16,43 +16,49 @@
 
 package com.test;
 
-import android.ondevicepersonalization.DownloadInput;
-import android.ondevicepersonalization.DownloadOutput;
-import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.OnDevicePersonalizationContext;
+import android.adservices.ondevicepersonalization.DownloadCompletedInput;
+import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.os.OutcomeReceiver;
 import android.util.Log;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationHandler implements IsolatedComputationHandler {
-    public final String TAG = "TestIsolatedComputationHandler";
+public class TestPersonalizationHandler implements IsolatedWorker {
+    public final String TAG = "TestIsolatedWorker";
+    private final KeyValueStore mRemoteData;
+
+    TestPersonalizationHandler(KeyValueStore remoteData) {
+        mRemoteData = remoteData;
+    }
 
     @Override
-    public void onDownload(DownloadInput input, OnDevicePersonalizationContext odpContext,
-            Consumer<DownloadOutput> consumer) {
+    public void onDownloadCompleted(
+            DownloadCompletedInput input,
+            OutcomeReceiver<DownloadCompletedOutput, IsolatedServiceException> receiver) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Existing keyExtra: "
-                    + Arrays.toString(odpContext.getRemoteData().get("keyExtra")));
-            Log.d(TAG, "Existing keySet: " + odpContext.getRemoteData().keySet());
+                    + Arrays.toString(mRemoteData.get("keyExtra")));
+            Log.d(TAG, "Existing keySet: " + mRemoteData.keySet());
 
-            DownloadOutput result =
-                    new DownloadOutput.Builder()
-                            .setKeysToRetain(getFilteredKeys(input.getData()))
+            DownloadCompletedOutput result =
+                    new DownloadCompletedOutput.Builder()
+                            .setRetainedKeys(getFilteredKeys(input.getDownloadedContents()))
                             .build();
-            consumer.accept(result);
+            receiver.onResult(result);
         } catch (Exception e) {
             Log.e(TAG, "Error occurred in onDownload", e);
         }
     }
 
-    private List<String> getFilteredKeys(Map<String, byte[]> data) {
+    private List<String> getFilteredKeys(KeyValueStore data) {
         Set<String> filteredKeys = data.keySet();
         filteredKeys.remove("key3");
         return new ArrayList<>(filteredKeys);

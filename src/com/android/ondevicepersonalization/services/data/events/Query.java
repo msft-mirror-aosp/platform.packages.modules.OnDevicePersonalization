@@ -36,9 +36,9 @@ public class Query {
     /** Time of the query in milliseconds. */
     private final long mTimeMillis;
 
-    /** Name of the package that handled the request */
+    /** Name of the service that handled the request */
     @NonNull
-    private final String mServicePackageName;
+    private final String mServiceName;
 
     /** Blob representing the query. */
     @NonNull
@@ -63,13 +63,13 @@ public class Query {
     /* package-private */ Query(
             long queryId,
             long timeMillis,
-            @NonNull String servicePackageName,
+            @NonNull String serviceName,
             @NonNull byte[] queryData) {
         this.mQueryId = queryId;
         this.mTimeMillis = timeMillis;
-        this.mServicePackageName = servicePackageName;
+        this.mServiceName = serviceName;
         AnnotationValidations.validate(
-                NonNull.class, null, mServicePackageName);
+                NonNull.class, null, mServiceName);
         this.mQueryData = queryData;
         AnnotationValidations.validate(
                 NonNull.class, null, mQueryData);
@@ -94,11 +94,11 @@ public class Query {
     }
 
     /**
-     * Name of the package that handled the request
+     * Name of the service that handled the request
      */
     @DataClass.Generated.Member
-    public @NonNull String getServicePackageName() {
-        return mServicePackageName;
+    public @NonNull String getServiceName() {
+        return mServiceName;
     }
 
     /**
@@ -124,7 +124,7 @@ public class Query {
         return true
                 && mQueryId == that.mQueryId
                 && mTimeMillis == that.mTimeMillis
-                && java.util.Objects.equals(mServicePackageName, that.mServicePackageName)
+                && java.util.Objects.equals(mServiceName, that.mServiceName)
                 && java.util.Arrays.equals(mQueryData, that.mQueryData);
     }
 
@@ -137,7 +137,7 @@ public class Query {
         int _hash = 1;
         _hash = 31 * _hash + Long.hashCode(mQueryId);
         _hash = 31 * _hash + Long.hashCode(mTimeMillis);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mServiceName);
         _hash = 31 * _hash + java.util.Arrays.hashCode(mQueryData);
         return _hash;
     }
@@ -151,7 +151,7 @@ public class Query {
 
         private long mQueryId;
         private long mTimeMillis;
-        private @NonNull String mServicePackageName;
+        private @NonNull String mServiceName;
         private @NonNull byte[] mQueryData;
 
         private long mBuilderFieldsSet = 0L;
@@ -166,21 +166,21 @@ public class Query {
          *   The id of the query.
          * @param timeMillis
          *   Time of the query in milliseconds.
-         * @param servicePackageName
-         *   Name of the package that handled the request
+         * @param serviceName
+         *   Name of the service that handled the request
          * @param queryData
          *   Blob representing the query.
          */
         public Builder(
                 long queryId,
                 long timeMillis,
-                @NonNull String servicePackageName,
+                @NonNull String serviceName,
                 @NonNull byte[] queryData) {
             mQueryId = queryId;
             mTimeMillis = timeMillis;
-            mServicePackageName = servicePackageName;
+            mServiceName = serviceName;
             AnnotationValidations.validate(
-                    NonNull.class, null, mServicePackageName);
+                    NonNull.class, null, mServiceName);
             mQueryData = queryData;
             AnnotationValidations.validate(
                     NonNull.class, null, mQueryData);
@@ -209,13 +209,13 @@ public class Query {
         }
 
         /**
-         * Name of the package that handled the request
+         * Name of the service that handled the request
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setServicePackageName(@NonNull String value) {
+        public @NonNull Builder setServiceName(@NonNull String value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
-            mServicePackageName = value;
+            mServiceName = value;
             return this;
         }
 
@@ -238,7 +238,7 @@ public class Query {
             Query o = new Query(
                     mQueryId,
                     mTimeMillis,
-                    mServicePackageName,
+                    mServiceName,
                     mQueryData);
             return o;
         }
@@ -252,10 +252,10 @@ public class Query {
     }
 
     @DataClass.Generated(
-            time = 1680018439034L,
+            time = 1706637243750L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Query.java",
-            inputSignatures = "private final  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull byte[] mQueryData\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mServiceName\nprivate final @android.annotation.NonNull byte[] mQueryData\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

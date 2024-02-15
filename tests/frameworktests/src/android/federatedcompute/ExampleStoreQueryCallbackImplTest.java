@@ -137,6 +137,7 @@ public final class ExampleStoreQueryCallbackImplTest {
         // The second call shouldn't result in another call to the app's close() method.
         verify(mMockExampleStoreIterator, never()).next(any());
     }
+
     /**
      * Tests that additional calls to a the callback are passed through to the proxy. It will be in
      * charge of ignoring all but the first call.
@@ -150,6 +151,7 @@ public final class ExampleStoreQueryCallbackImplTest {
         assertThat(adapter.onIteratorNextSuccess(new Bundle())).isTrue();
         verify(mMockAidlExampleStoreIteratorCallback, times(2)).onIteratorNextSuccess(any());
     }
+
     /**
      * Tests that additional calls to a the callback are passed through to the proxy. It will be in
      * charge of ignoring all but the first call.
@@ -164,6 +166,7 @@ public final class ExampleStoreQueryCallbackImplTest {
         verify(mMockAidlExampleStoreIteratorCallback, times(2))
                 .onIteratorNextFailure(eq(STATUS_INTERNAL_ERROR));
     }
+
     /**
      * Tests that additional calls to a the callback are passed through to the proxy. It will be in
      * charge of ignoring all but the first call.
@@ -180,6 +183,7 @@ public final class ExampleStoreQueryCallbackImplTest {
                 .onIteratorNextFailure(eq(STATUS_INTERNAL_ERROR));
         verify(mMockAidlExampleStoreIteratorCallback, times(2)).onIteratorNextSuccess(any());
     }
+
     /**
      * Tests that additional calls to a the callback are passed through to the proxy. It will be in
      * charge of ignoring all but the first call.

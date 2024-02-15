@@ -17,9 +17,9 @@
 package com.android.libraries.pcc.chronicle.api
 
 import com.android.libraries.pcc.chronicle.api.Flavor.ASI_DEBUG
-import com.android.libraries.pcc.chronicle.api.Flavor.ASI_DOGFOOD
-import com.android.libraries.pcc.chronicle.api.Flavor.ASI_DROIDFOOD
-import com.android.libraries.pcc.chronicle.api.Flavor.ASI_FISHFOOD
+import com.android.libraries.pcc.chronicle.api.Flavor.ASI_DOG_FOOD
+import com.android.libraries.pcc.chronicle.api.Flavor.ASI_DROID_FOOD
+import com.android.libraries.pcc.chronicle.api.Flavor.ASI_FISH_FOOD
 import com.android.libraries.pcc.chronicle.api.Flavor.ASI_PROD
 
 /** copybara:intracomment_strip_begin
@@ -33,9 +33,9 @@ import com.android.libraries.pcc.chronicle.api.Flavor.ASI_PROD
 val ASI_ALL_FLAVORS =
   arrayOf(
     ASI_DEBUG,
-    ASI_FISHFOOD,
-    ASI_DOGFOOD,
-    ASI_DROIDFOOD,
+    ASI_FISH_FOOD,
+    ASI_DOG_FOOD,
+    ASI_DROID_FOOD,
     ASI_PROD, // includes SYSIMG and PLAYSTORE
   )
 
@@ -45,9 +45,9 @@ val ASI_ALL_FLAVORS =
 enum class Flavor {
   /** [ASI_DEBUG] includes TESTONLY */
   ASI_DEBUG,
-  ASI_FISHFOOD,
-  ASI_DOGFOOD,
-  ASI_DROIDFOOD,
+  ASI_FISH_FOOD,
+  ASI_DOG_FOOD,
+  ASI_DROID_FOOD,
   /** [ASI_PROD] includes SYSIMG and PLAYSTORE */
   ASI_PROD,
   /** For local development on real devices. GPPS adjusts policy parameters during dev, so it
@@ -55,8 +55,8 @@ enum class Flavor {
   GPPS_DEBUG,
   /** For usage in integration tests, not used on real devices. */
   GPPS_INTEGRATION_TEST_ONLY,
-  /** Fishfood also known as Teamfood for GPPS */
-  GPPS_FISHFOOD,
+  /** Fish food also known as Team food for GPPS */
+  GPPS_FISH_FOOD,
   GPPS_PROD,
   PCS_INTERNAL,
 }

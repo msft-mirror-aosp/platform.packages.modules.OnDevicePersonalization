@@ -49,10 +49,10 @@ public class EventUrlHelper {
      * @param event The event to create the URL for.
      * @return Encrypted ODP event URL
      */
-    public static String getEncryptedOdpEventUrl(@NonNull EventUrlPayload event) throws Exception {
+    public static Uri getEncryptedOdpEventUrl(@NonNull EventUrlPayload event) throws Exception {
         String encryptedEvent = encryptEvent(event);
         return Uri.parse(BASE_URL).buildUpon().appendQueryParameter(URL_EVENT_KEY,
-                encryptedEvent).build().toString();
+                encryptedEvent).build();
     }
 
     /**
@@ -61,11 +61,11 @@ public class EventUrlHelper {
      * @param event The event to create the URL for.
      * @return Encrypted ODP event URL with a landingPage parameter
      */
-    public static String getEncryptedClickTrackingUrl(@NonNull EventUrlPayload event,
+    public static Uri getEncryptedClickTrackingUrl(@NonNull EventUrlPayload event,
             @NonNull String landingPage)
             throws Exception {
-        return Uri.parse(getEncryptedOdpEventUrl(event)).buildUpon().appendQueryParameter(
-                URL_LANDING_PAGE_EVENT_KEY, landingPage).build().toString();
+        return getEncryptedOdpEventUrl(event).buildUpon().appendQueryParameter(
+                URL_LANDING_PAGE_EVENT_KEY, landingPage).build();
     }
 
     /**

@@ -35,12 +35,12 @@ public class QueryTest {
         Query query1 = new Query.Builder()
                 .setQueryId(queryId)
                 .setQueryData(queryData)
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setTimeMillis(timeMillis)
                 .build();
         assertEquals(query1.getQueryId(), queryId);
         assertArrayEquals(query1.getQueryData(), queryData);
-        assertEquals(query1.getServicePackageName(), servicePackageName);
+        assertEquals(query1.getServiceName(), servicePackageName);
         assertEquals(query1.getTimeMillis(), timeMillis);
 
         Query query2 = new Query.Builder(
@@ -58,7 +58,7 @@ public class QueryTest {
         Query.Builder builder = new Query.Builder()
                 .setQueryId(queryId)
                 .setQueryData(queryData)
-                .setServicePackageName(servicePackageName)
+                .setServiceName(servicePackageName)
                 .setTimeMillis(timeMillis);
         builder.build();
         assertThrows(IllegalStateException.class, () -> builder.build());

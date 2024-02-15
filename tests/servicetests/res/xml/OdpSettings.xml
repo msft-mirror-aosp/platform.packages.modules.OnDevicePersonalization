@@ -17,7 +17,9 @@
 
 <!-- Odp Settings, in XML resource -->
 <on-device-personalization>
-    <service name="com.test.TestPersonalizationService" />
+  <service name="com.test.TestPersonalizationService">
     <download-settings url="android.resource://com.android.ondevicepersonalization.servicetests/raw/test_data1" />
+    <federated-compute-settings url="https://google.com" />
+  </service>
 </on-device-personalization>
 

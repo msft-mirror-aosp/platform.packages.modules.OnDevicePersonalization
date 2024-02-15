@@ -8,22 +8,12 @@ table QueryData {
 
 table QueryFields {
     owner:Owner;
-    slots:[Slot];
+    rows:[KeyValueList];
 }
 
 table Owner {
     package_name:string;
     cert_digest:string;
-}
-
-table Slot {
-    key:string;
-    bids:[Bid];
-}
-
-table Bid {
-    key:string;
-    metrics:Metrics;
 }
 
 root_type QueryData;

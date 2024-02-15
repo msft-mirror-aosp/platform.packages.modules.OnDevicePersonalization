@@ -22,10 +22,12 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import android.Manifest;
+import android.adservices.ondevicepersonalization.RenderOutput;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.content.ComponentName;
 import android.content.Context;
 import android.hardware.display.DisplayManager;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
 import android.os.PersistableBundle;
 import android.view.Display;
 import android.view.SurfaceControlViewHost;
@@ -55,7 +57,7 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
 public class DisplayHelperTest {
-
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationVendorDataDao mDao;
 
@@ -72,7 +74,8 @@ public class DisplayHelperTest {
         DisplayHelper displayHelper = new DisplayHelper(mContext);
         RenderOutput renderContentResult = new RenderOutput.Builder()
                 .setContent("html").build();
-        assertEquals("html", displayHelper.generateHtml(renderContentResult,
+        RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
+        assertEquals("html", displayHelper.generateHtml(resultParcel,
                 mContext.getPackageName()));
     }
 
@@ -95,8 +98,9 @@ public class DisplayHelperTest {
                 .setTemplateId("templateId")
                 .setTemplateParams(bundle)
                 .build();
+        RenderOutputParcel resultParcel = new RenderOutputParcel(renderContentResult);
         String expected = "Hello odp! I am 100.";
-        assertEquals(expected, displayHelper.generateHtml(renderContentResult,
+        assertEquals(expected, displayHelper.generateHtml(resultParcel,
                 mContext.getPackageName()));
     }
 
@@ -110,13 +114,13 @@ public class DisplayHelperTest {
 
         DisplayHelper displayHelper = new DisplayHelper(mContext);
         SurfaceView surfaceView = new SurfaceView(mContext);
-        SlotResult slotResult = new SlotResult.Builder()
-                .setSlotKey("slotId").setLoggedBids(new ArrayList<>()).build();
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().build();
         final DisplayManager dm = mContext.getSystemService(DisplayManager.class);
         final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
         final Context windowContext = mContext.createDisplayContext(primaryDisplay);
         ListenableFuture<SurfaceControlViewHost.SurfacePackage> result =
-                displayHelper.displayHtml("html", slotResult, mContext.getPackageName(),
+                displayHelper.displayHtml("html", logRecord, 0,
+                        ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
                         surfaceView.getHostToken(), windowContext.getDisplay().getDisplayId(),
                         surfaceView.getWidth(), surfaceView.getHeight());
         // Give 2 minutes to create the webview. Should normally be ~25s.

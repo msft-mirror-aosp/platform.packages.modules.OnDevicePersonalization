@@ -29,19 +29,32 @@ public final class FederatedTraningTaskContract {
 
         private FederatedTrainingTaskColumns() {}
 
-        // The package name of the application this task belongs to. Must be
-        // non-empty.
+        // The package name of the application this task was created from.
+        // ODP most likely for time being. Must be non-empty.
         public static final String APP_PACKAGE_NAME = "app_package_name";
 
         // A unique, app-specified JobScheduler job ID for this task. Must be
         // non-zero.
         public static final String JOB_SCHEDULER_JOB_ID = "jobscheduler_job_id";
 
+        // The package name and class name  of the application this task belongs to. Must be
+        // non-empty.
+        public static final String OWNER_ID = "owner_id";
+
+        // The package cert digest of the application this task belongs to. Must be
+        // non-empty.
+        public static final String OWNER_ID_CERT_DIGEST = "owner_cert_digest";
+
         // An app-specified population name, to be provided to the federated learning
         // server during check in. Must be non-empty.
         public static final String POPULATION_NAME = "population_name";
 
+        /** The remote federated compute server address that client provided. */
+        public static final String SERVER_ADDRESS = "server_address";
+
         public static final String INTERVAL_OPTIONS = "interval_options";
+
+        public static final String CONTEXT_DATA = "context_data";
 
         // The time the task was originally created.
         public static final String CREATION_TIME = "creation_time";
@@ -67,5 +80,7 @@ public final class FederatedTraningTaskContract {
         public static final String CONSTRAINTS = "constraints";
 
         public static final String SCHEDULING_REASON = "scheduling_reason";
+
+        public static final String RESCHEDULE_COUNT = "reschedule_count";
     }
 }

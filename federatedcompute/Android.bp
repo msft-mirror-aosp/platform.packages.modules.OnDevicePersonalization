@@ -46,9 +46,79 @@ filegroup {
     name: "federatedcompute-sources",
     srcs: [
         "src/**/*.java",
+        "src/**/*.aidl",
     ],
     path: "src",
     visibility: [
       "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
+}
+
+cc_library_shared {
+    name: "libfcp_cpp_dep_jni",
+    srcs: [
+        "jni/cpp/example_iterator_wrapper_impl.cc",
+        "jni/cpp/fl_runner_jni.cc",
+        "jni/cpp/log_manager_wrapper_impl.cc",
+        "jni/cpp/simple_task_environment_wrapper_impl.cc",
+        // Add tensorflow java API jni source files
+        ":tensorflowlite_jni_src",
+    ],
+    include_dirs: [
+        "external/flatbuffers/include",
+        "external/tensorflow",
+    ],
+    version_script: "jni/jni.lds",
+    whole_static_libs: [
+        "libfederatedcompute",
+    ],
+    static_libs:[
+        "federated-compute-cc-proto-lite",
+        "libprotobuf-cpp-lite-ndk",
+    ],
+    header_libs: [
+        "libnativehelper_header_only",
+        "libeigen",
+    ],
+    shared_libs: [
+        "liblog",
+        "libcrypto",
+    ],
+    stl: "libc++_static",
+    apex_available: ["com.android.ondevicepersonalization"],
+    sdk_version: "current",
+    min_sdk_version: "Tiramisu",
+    visibility: [
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
+    ],
+    cflags: [
+        "-Wno-unused-parameter",
+    ],
+}
+
+cc_library_shared {
+    name: "libfcp_hpke_jni",
+    srcs: [
+        "jni/cpp/hpke_jni.cc",
+    ],
+    include_dirs: [
+        "packages/modules/OnDevicePersonalization/federatedcompute/jni/include"
+    ],
+    version_script: "jni/jni.lds",
+    header_libs: [
+        "jni_headers",
+    ],
+    shared_libs: [
+        "libcrypto",
+    ],
+    stl: "libc++_static",
+    apex_available: ["com.android.ondevicepersonalization"],
+    sdk_version: "current",
+    min_sdk_version: "Tiramisu",
+    visibility: [
+        "//packages/modules/OnDevicePersonalization:__subpackages__",
+    ],
+    cflags: [
+        "-Wno-unused-parameter",
     ],
 }

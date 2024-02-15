@@ -22,7 +22,12 @@ android_test {
         "src/**/*.java",
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
-
+        ":statslog-federatedcompute-java-gen",
+        ":fcp_native_wrapper",
+    ],
+    defaults: [
+        // For ExtendedMockito dependencies.
+        "modules-utils-testable-device-config-defaults",
     ],
     libs: [
         "android.test.base",
@@ -30,20 +35,23 @@ android_test {
         "auto_value_annotations",
         "framework-annotations-lib",
         "framework-ondevicepersonalization.impl",
-        "truth-prebuilt",
+        "framework-configinfrastructure", // For PH flags
+        "framework-statsd.stubs.module_lib", // For WW logging
+        "truth",
     ],
     static_libs: [
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
-        "federatedcompute-service-proto-lite",
+        "federated-compute-java-proto-lite",
         "flatbuffers-java",
         "mockito-target-extended-minus-junit4",
         "modules-utils-build",
         "modules-utils-preconditions",
-        "flatbuffers-java",
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
+        // Used for client error logging.
+        "adservices-shared-error-logging",
     ],
     manifest: "AndroidManifest.xml",
     plugins: ["auto_value_plugin"],
@@ -60,5 +68,7 @@ android_test {
     jni_libs: [
         "libdexmakerjvmtiagent",
         "libstaticjvmtiagent",
+        "libfcp_cpp_dep_jni",
+        "libfcp_hpke_jni",
     ],
 }

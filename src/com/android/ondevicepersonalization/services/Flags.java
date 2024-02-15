@@ -23,21 +23,121 @@ package com.android.ondevicepersonalization.services;
  * generated from the GCL.
  */
 public interface Flags {
-
-    boolean ONDEVICEPERSONALIZATION_ENABLED = false;
-
-    default boolean getOnDevicePersonalizationEnabled() {
-        return ONDEVICEPERSONALIZATION_ENABLED;
-    }
-
     /**
      * Global OnDevicePersonalization Kill Switch. This overrides all other killswitches.
-     * The default value is false which means OnDevicePersonalization is enabled.
-     * This flag is used for emergency turning off the whole module.
+     * The default value is true which means OnDevicePersonalization is disabled.
+     * This flag is used for ramp-up and emergency turning off the whole module.
      */
     boolean GLOBAL_KILL_SWITCH = true;
 
+    /**
+     * P/H flag to override the personalization status for end-to-end tests.
+     * The default value is false, which means UserPrivacyStatus#personalizationStatus is not
+     * override by PERSONALIZATION_STATUS_OVERRIDE_VALUE. If true, returns the personalization
+     * status in PERSONALIZATION_STATUS_OVERRIDE_VALUE.
+     */
+    boolean ENABLE_PERSONALIZATION_STATUS_OVERRIDE = false;
+
+    /**
+     * Value of the personalization status, if ENABLE_PERSONALIZATION_STATUS_OVERRIDE is true.
+     */
+    boolean PERSONALIZATION_STATUS_OVERRIDE_VALUE = false;
+
+    /**
+     * Deadline for calls from ODP to isolated services.
+     */
+    int ISOLATED_SERVICE_DEADLINE_SECONDS = 30;
+
+    /**
+     * Default value for the list of trusted partner app names.
+     */
+    String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
+
+    /**
+     * Default value for the shared isolated process feature.
+     */
+    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
+
+    String DEFAULT_CALLER_APP_ALLOW_LIST =
+            "android.ondevicepersonalization,"
+                    + "android.ondevicepersonalization.test.scenario,"
+                    + "com.android.federatedcompute.services,"
+                    + "com.android.libraries.pcc.chronicle.test,"
+                    + "com.android.ondevicepersonalization,"
+                    + "com.android.ondevicepersonalization.cts.e2e,"
+                    + "com.android.ondevicepersonalization.federatedcomputetests,"
+                    + "com.android.ondevicepersonalization.libraries.plugin,"
+                    + "com.android.ondevicepersonalization.manualtests,"
+                    + "com.android.ondevicepersonalization.plugintests,"
+                    + "com.android.ondevicepersonalization.services,"
+                    + "com.android.ondevicepersonalization.servicetests,"
+                    + "com.android.ondevicepersonalization.systemserviceapitests,"
+                    + "com.android.ondevicepersonalization.systemserviceimpltests,"
+                    + "com.android.ondevicepersonalization.testing.sampleservice,"
+                    + "com.example.odpclient,"
+                    + "com.example.odpsamplenetwork,"
+                    + "com.example.odptargetingapp1,"
+                    + "com.example.odptargetingapp2";
+
+    String DEFAULT_ISOLATED_SERVICE_ALLOW_LIST =
+            "android.ondevicepersonalization,"
+                    + "android.ondevicepersonalization.test.scenario,"
+                    + "com.android.federatedcompute.services,"
+                    + "com.android.libraries.pcc.chronicle.test,"
+                    + "com.android.ondevicepersonalization,"
+                    + "com.android.ondevicepersonalization.cts.e2e,"
+                    + "com.android.ondevicepersonalization.federatedcomputetests,"
+                    + "com.android.ondevicepersonalization.libraries.plugin,"
+                    + "com.android.ondevicepersonalization.manualtests,"
+                    + "com.android.ondevicepersonalization.plugintests,"
+                    + "com.android.ondevicepersonalization.services,"
+                    + "com.android.ondevicepersonalization.servicetests,"
+                    + "com.android.ondevicepersonalization.systemserviceapitests,"
+                    + "com.android.ondevicepersonalization.systemserviceimpltests,"
+                    + "com.android.ondevicepersonalization.testing.sampleservice,"
+                    + "com.example.odpclient,"
+                    + "com.example.odpsamplenetwork,"
+                    + "com.example.odptargetingapp1,"
+                    + "com.example.odptargetingapp2";
+
+    /**
+     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     */
+    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
+    }
+
+    default boolean isPersonalizationStatusOverrideEnabled() {
+        return ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+    }
+
+    default boolean getPersonalizationStatusOverrideValue() {
+        return PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+    }
+
+    default int getIsolatedServiceDeadlineSeconds() {
+        return ISOLATED_SERVICE_DEADLINE_SECONDS;
+    }
+
+    default String getTrustedPartnerAppsList() {
+        return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
+    }
+
+    default boolean isSharedIsolatedProcessFeatureEnabled() {
+        return DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+    }
+
+    default String getCallerAppAllowList() {
+        return DEFAULT_CALLER_APP_ALLOW_LIST;
+    }
+
+    default String getIsolatedServiceAllowList() {
+        return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
+    }
+
+    default long getUserConsentCacheInMillis() {
+        return USER_CONSENT_CACHE_IN_MILLIS;
     }
 }

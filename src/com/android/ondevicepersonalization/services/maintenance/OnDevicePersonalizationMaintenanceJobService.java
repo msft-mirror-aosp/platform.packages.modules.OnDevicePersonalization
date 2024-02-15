@@ -27,11 +27,16 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.util.Log;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -40,8 +45,11 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
+import java.io.File;
 import java.util.AbstractMap;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -49,8 +57,15 @@ import java.util.Set;
  * JobService to handle the OnDevicePersonalization maintenance
  */
 public class OnDevicePersonalizationMaintenanceJobService extends JobService {
-    public static final String TAG = "OnDevicePersonalizationMaintenanceJobService";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "OnDevicePersonalizationMaintenanceJobService";
+
+    // Every 24hrs.
     private static final long PERIOD_SECONDS = 86400;
+
+    // The maximum deletion timeframe is 63 days.
+    // Set parameter to 60 days to account for job scheduler delays.
+    private static final long MAXIMUM_DELETION_TIMEFRAME_MILLIS = 5184000000L;
     private ListenableFuture<Void> mFuture;
 
     /**
@@ -60,7 +75,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID) != null) {
-            Log.d(TAG, "Job is already scheduled. Doing nothing,");
+            sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
             return RESULT_FAILURE;
         }
         ComponentName serviceComponent = new ComponentName(context,
@@ -80,18 +95,128 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         return jobScheduler.schedule(builder.build());
     }
 
+    @VisibleForTesting
+    static void cleanupVendorData(Context context) throws Exception {
+        EventsDao eventsDao = EventsDao.getInstance(context);
+
+        // Set of packageName and cert
+        Set<Map.Entry<String, String>> vendors = new HashSet<>(
+                OnDevicePersonalizationVendorDataDao.getVendors(context));
+
+        // Set of valid packageName and cert
+        Set<Map.Entry<String, String>> validVendors = new HashSet<>();
+        Set<String> validTables = new HashSet<>();
+
+
+        // Remove all valid packages from the set
+        for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
+                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
+            String packageName = packageInfo.packageName;
+            if (AppManifestConfigHelper.manifestContainsOdpSettings(
+                    context, packageName)) {
+                String certDigest = PackageUtils.getCertDigest(context, packageName);
+                // Remove valid packages from set
+                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));
+
+                // Add valid package to new set
+                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));
+                validTables.add(OnDevicePersonalizationLocalDataDao
+                        .getTableName(packageName, certDigest));
+                validTables.add(OnDevicePersonalizationVendorDataDao
+                        .getTableName(packageName, certDigest));
+            }
+        }
+
+        sLogger.d(TAG + ": Deleting: " + vendors);
+        // Delete the remaining tables for packages not found onboarded
+        for (Map.Entry<String, String> entry : vendors) {
+            String packageName = entry.getKey();
+            String certDigest = entry.getValue();
+            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, packageName, certDigest);
+            eventsDao.deleteEventState(entry.getKey());
+        }
+
+        // Cleanup event and queries table.
+        eventsDao.deleteEventsAndQueries(
+                System.currentTimeMillis() - MAXIMUM_DELETION_TIMEFRAME_MILLIS);
+
+        // Cleanup files from internal storage for valid packages.
+        for (Map.Entry<String, String> entry : validVendors) {
+            String packageName = entry.getKey();
+            String certDigest = entry.getValue();
+            // VendorDao
+            OnDevicePersonalizationVendorDataDao vendorDao =
+                    OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
+                            certDigest);
+            File vendorDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                    OnDevicePersonalizationVendorDataDao.getTableName(packageName, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(vendorDao.readAllVendorDataKeys(), vendorDir);
+
+            // LocalDao
+            OnDevicePersonalizationLocalDataDao localDao =
+                    OnDevicePersonalizationLocalDataDao.getInstance(context, packageName,
+                            certDigest);
+            File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                    OnDevicePersonalizationLocalDataDao.getTableName(packageName, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
+        }
+
+        // Cleanup any loose data directories. Tables deleted, but directory still exists.
+        List<File> filesToDelete = new ArrayList<>();
+        File vendorDir = new File(context.getFilesDir(), "VendorData");
+        if (vendorDir.isDirectory()) {
+            for (File f : vendorDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        File localDir = new File(context.getFilesDir(), "LocalData");
+        if (localDir.isDirectory()) {
+            for (File f : localDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        filesToDelete.forEach(FileUtils::deleteDirectory);
+    }
+
     @Override
     public boolean onStartJob(JobParameters params) {
-        Log.d(TAG, "onStartJob()");
+        sLogger.d(TAG + ": onStartJob()");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
+            return cancelAndFinishJob(params);
+        }
+        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            jobFinished(params, false);
+            return true;
+        }
         Context context = this;
         mFuture = Futures.submit(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "Running maintenance job");
+                sLogger.d(TAG + ": Running maintenance job");
                 try {
                     cleanupVendorData(context);
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to cleanup vendorData", e);
+                    sLogger.e(TAG + ": Failed to cleanup vendorData", e);
                 }
             }
         }, OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -101,7 +226,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Log.d(TAG, "Maintenance job completed.");
+                        sLogger.d(TAG + ": Maintenance job completed.");
                         // Tell the JobScheduler that the job has completed and does not needs to be
                         // rescheduled.
                         jobFinished(params, /* wantsReschedule = */ false);
@@ -109,7 +234,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to handle JobService: " + params.getJobId(), t);
+                        sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
                         //  When failure, also tell the JobScheduler that the job has completed and
                         // does not need to be rescheduled.
                         jobFinished(params, /* wantsReschedule = */ false);
@@ -129,28 +254,12 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
         return true;
     }
 
-    @VisibleForTesting
-    static void cleanupVendorData(Context context) throws Exception {
-        Set<Map.Entry<String, String>> vendors = new HashSet<>(
-                OnDevicePersonalizationVendorDataDao.getVendors(context));
-
-        // Remove all valid packages from the set
-        for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
-                PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
-            String packageName = packageInfo.packageName;
-            if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                    context, packageName)) {
-                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName,
-                        PackageUtils.getCertDigest(context, packageName)));
-            }
+    private boolean cancelAndFinishJob(final JobParameters params) {
+        JobScheduler jobScheduler = this.getSystemService(JobScheduler.class);
+        if (jobScheduler != null) {
+            jobScheduler.cancel(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID);
         }
-
-        Log.d(TAG, "Deleting: " + vendors.toString());
-        // Delete the remaining tables for packages not found onboarded
-        for (Map.Entry<String, String> entry : vendors) {
-            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, entry.getKey(),
-                    entry.getValue());
-        }
-
+        jobFinished(params, /* wantsReschedule = */ false);
+        return true;
     }
 }

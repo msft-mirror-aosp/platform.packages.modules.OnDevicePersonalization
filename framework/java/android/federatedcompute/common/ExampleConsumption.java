@@ -25,16 +25,16 @@ import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
- * A container for information regarding an example store access, including the collection name, the
+ * A container for information regarding an example store access, including the task name, the
  * selection criteria and the number of examples which has been used.
  *
  * @hide
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public class ExampleConsumption implements Parcelable {
-    @NonNull private final String mCollectionName;
+    @NonNull private final String mTaskName;
 
-    @NonNull private final byte[] mSelectionCriteria;
+    @Nullable private final byte[] mSelectionCriteria;
 
     private final int mExampleCount;
 
@@ -55,14 +55,13 @@ public class ExampleConsumption implements Parcelable {
 
     @DataClass.Generated.Member
     /* package-private */ ExampleConsumption(
-            @NonNull String collectionName,
-            @NonNull byte[] selectionCriteria,
+            @NonNull String taskName,
+            @Nullable byte[] selectionCriteria,
             int exampleCount,
             @Nullable byte[] resumptionToken) {
-        this.mCollectionName = collectionName;
-        AnnotationValidations.validate(NonNull.class, null, mCollectionName);
+        this.mTaskName = taskName;
+        AnnotationValidations.validate(NonNull.class, null, mTaskName);
         this.mSelectionCriteria = selectionCriteria;
-        AnnotationValidations.validate(NonNull.class, null, mSelectionCriteria);
         this.mExampleCount = exampleCount;
         this.mResumptionToken = resumptionToken;
 
@@ -70,12 +69,12 @@ public class ExampleConsumption implements Parcelable {
     }
 
     @DataClass.Generated.Member
-    public @NonNull String getCollectionName() {
-        return mCollectionName;
+    public @NonNull String getTaskName() {
+        return mTaskName;
     }
 
     @DataClass.Generated.Member
-    public @NonNull byte[] getSelectionCriteria() {
+    public @Nullable byte[] getSelectionCriteria() {
         return mSelectionCriteria;
     }
 
@@ -102,7 +101,7 @@ public class ExampleConsumption implements Parcelable {
         ExampleConsumption that = (ExampleConsumption) o;
         //noinspection PointlessBooleanExpression
         return true
-                && java.util.Objects.equals(mCollectionName, that.mCollectionName)
+                && java.util.Objects.equals(mTaskName, that.mTaskName)
                 && java.util.Arrays.equals(mSelectionCriteria, that.mSelectionCriteria)
                 && mExampleCount == that.mExampleCount
                 && java.util.Arrays.equals(mResumptionToken, that.mResumptionToken);
@@ -115,7 +114,7 @@ public class ExampleConsumption implements Parcelable {
         // int fieldNameHashCode() { ... }
 
         int _hash = 1;
-        _hash = 31 * _hash + java.util.Objects.hashCode(mCollectionName);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mTaskName);
         _hash = 31 * _hash + java.util.Arrays.hashCode(mSelectionCriteria);
         _hash = 31 * _hash + mExampleCount;
         _hash = 31 * _hash + java.util.Arrays.hashCode(mResumptionToken);
@@ -128,13 +127,10 @@ public class ExampleConsumption implements Parcelable {
         // You can override field parcelling by defining methods like:
         // void parcelFieldName(Parcel dest, int flags) { ... }
 
-        byte flg = 0;
-        if (mResumptionToken != null) flg |= 0x8;
-        dest.writeByte(flg);
-        dest.writeString(mCollectionName);
+        dest.writeString(mTaskName);
         dest.writeByteArray(mSelectionCriteria);
         dest.writeInt(mExampleCount);
-        if (mResumptionToken != null) dest.writeByteArray(mResumptionToken);
+        dest.writeByteArray(mResumptionToken);
     }
 
     @Override
@@ -150,16 +146,14 @@ public class ExampleConsumption implements Parcelable {
         // You can override field unparcelling by defining methods like:
         // static FieldType unparcelFieldName(Parcel in) { ... }
 
-        byte flg = in.readByte();
-        String collectionName = in.readString();
+        String taskName = in.readString();
         byte[] selectionCriteria = in.createByteArray();
         int exampleCount = in.readInt();
-        byte[] resumptionToken = (flg & 0x8) == 0 ? null : in.createByteArray();
+        byte[] resumptionToken = in.createByteArray();
 
-        this.mCollectionName = collectionName;
-        AnnotationValidations.validate(NonNull.class, null, mCollectionName);
+        this.mTaskName = taskName;
+        AnnotationValidations.validate(NonNull.class, null, mTaskName);
         this.mSelectionCriteria = selectionCriteria;
-        AnnotationValidations.validate(NonNull.class, null, mSelectionCriteria);
         this.mExampleCount = exampleCount;
         this.mResumptionToken = resumptionToken;
 
@@ -185,8 +179,8 @@ public class ExampleConsumption implements Parcelable {
     @DataClass.Generated.Member
     public static class Builder {
 
-        private @NonNull String mCollectionName;
-        private @NonNull byte[] mSelectionCriteria;
+        private @NonNull String mTaskName;
+        private @Nullable byte[] mSelectionCriteria;
         private int mExampleCount;
         private @Nullable byte[] mResumptionToken;
 
@@ -195,11 +189,11 @@ public class ExampleConsumption implements Parcelable {
         public Builder() {}
 
         @DataClass.Generated.Member
-        public @NonNull Builder setCollectionName(@NonNull String value) {
+        public @NonNull Builder setTaskName(@NonNull String value) {
             checkNotUsed();
             Preconditions.checkStringNotEmpty(value);
             mBuilderFieldsSet |= 0x1;
-            mCollectionName = value;
+            mTaskName = value;
             return this;
         }
 
@@ -234,7 +228,7 @@ public class ExampleConsumption implements Parcelable {
 
             ExampleConsumption o =
                     new ExampleConsumption(
-                            mCollectionName, mSelectionCriteria, mExampleCount, mResumptionToken);
+                            mTaskName, mSelectionCriteria, mExampleCount, mResumptionToken);
             return o;
         }
 

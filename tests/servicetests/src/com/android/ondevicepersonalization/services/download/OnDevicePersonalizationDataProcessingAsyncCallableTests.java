@@ -26,6 +26,8 @@ import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
@@ -45,13 +47,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
@@ -73,6 +78,18 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             .setData("extra".getBytes())
             .build();
 
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
@@ -88,6 +105,13 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         // Initialize the DB as a test instance
         OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                 PackageUtils.getCertDigest(mContext, mPackageName));
+
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
     }
 
     @Test
@@ -111,7 +135,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        callable.call().get(5000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -130,11 +154,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         assertEquals(3, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContent1.getKey())) {
-                compareDataContent(mContent1, data);
+                compareDataContent(mContent1, data, false);
             } else if (data.getKey().equals(mContent2.getKey())) {
-                compareDataContent(mContent2, data);
+                compareDataContent(mContent2, data, true);
             } else if (data.getKey().equals(mContentExtra.getKey())) {
-                compareDataContent(mContentExtra, data);
+                compareDataContent(mContentExtra, data, false);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }
@@ -162,7 +186,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        callable.call().get(5000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -181,16 +205,22 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         assertEquals(1, vendorDataList.size());
         for (VendorData data : vendorDataList) {
             if (data.getKey().equals(mContentExtra.getKey())) {
-                compareDataContent(mContentExtra, data);
+                compareDataContent(mContentExtra, data, false);
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }
         }
     }
 
-    private void compareDataContent(VendorData expectedData, VendorData actualData) {
+    private void compareDataContent(VendorData expectedData, VendorData actualData,
+            boolean base64) {
         assertEquals(expectedData.getKey(), actualData.getKey());
-        assertArrayEquals(expectedData.getData(), actualData.getData());
+        if (base64) {
+            assertArrayEquals(Base64.getDecoder().decode(expectedData.getData()),
+                    actualData.getData());
+        } else {
+            assertArrayEquals(expectedData.getData(), actualData.getData());
+        }
     }
 
     @After

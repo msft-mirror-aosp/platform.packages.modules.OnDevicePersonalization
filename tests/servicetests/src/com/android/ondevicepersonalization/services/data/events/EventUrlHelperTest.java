@@ -18,69 +18,60 @@ package com.android.ondevicepersonalization.services.data.events;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
-import static org.junit.Assert.assertTrue;
 
 import android.net.Uri;
+import android.os.PersistableBundle;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.nio.charset.StandardCharsets;
-
 @RunWith(JUnit4.class)
 public class EventUrlHelperTest {
-
-    private static final Event TEST_EVENT = new Event.Builder()
-            .setType(EventType.B2D.getValue())
-            .setEventData("test".getBytes(StandardCharsets.UTF_8))
-            .setBidId("bidId")
-            .setServicePackageName("packageName")
-            .setSlotId("slotId")
-            .setSlotPosition(1)
-            .setQueryId(1L)
-            .setTimeMillis(1L)
-            .setSlotIndex(0)
-            .build();
-
-    private static final EventUrlPayload TEST_EVENT_URL_PAYLOAD = new EventUrlPayload.Builder()
-            .setEvent(TEST_EVENT).build();
+    private static final EventUrlPayload TEST_EVENT_URL_PAYLOAD = createTestEventUrlPayload();
 
     @Test
     public void testEncryptDecryptEvent() throws Exception {
-        String url = EventUrlHelper.getEncryptedOdpEventUrl(TEST_EVENT_URL_PAYLOAD);
-        Uri uri = Uri.parse(url);
+        Uri uri = EventUrlHelper.getEncryptedOdpEventUrl(TEST_EVENT_URL_PAYLOAD);
         assertEquals(uri.getScheme(), EventUrlHelper.URI_SCHEME);
         assertEquals(uri.getAuthority(), EventUrlHelper.URI_AUTHORITY);
         assertEquals(uri.getQueryParameterNames().size(), 1);
 
-        EventUrlPayload decryptedEventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
-        assertTrue(TEST_EVENT_URL_PAYLOAD.equals(decryptedEventUrlPayload));
-        Event decryptedEvent = decryptedEventUrlPayload.getEvent();
-        assertTrue(TEST_EVENT.equals(decryptedEvent));
+        EventUrlPayload decryptedEventUrlPayload =
+                EventUrlHelper.getEventFromOdpEventUrl(uri.toString());
+        PersistableBundle eventParams = decryptedEventUrlPayload.getEventParams();
+        assertEquals(1, eventParams.getInt("x"));
+        assertEquals("abc", eventParams.getString("y"));
     }
 
     @Test
     public void testEncryptDecryptClickTrackingUrlEvent() throws Exception {
         String landingPage = "https://google.com/";
-        String url = EventUrlHelper.getEncryptedClickTrackingUrl(TEST_EVENT_URL_PAYLOAD,
+        Uri uri = EventUrlHelper.getEncryptedClickTrackingUrl(TEST_EVENT_URL_PAYLOAD,
                 landingPage);
-        Uri uri = Uri.parse(url);
         assertEquals(uri.getScheme(), EventUrlHelper.URI_SCHEME);
         assertEquals(uri.getAuthority(), EventUrlHelper.URI_AUTHORITY);
         assertEquals(uri.getQueryParameterNames().size(), 2);
 
         assertEquals(uri.getQueryParameter(EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY), landingPage);
 
-        EventUrlPayload decryptedEventUrlPayload = EventUrlHelper.getEventFromOdpEventUrl(url);
-        assertTrue(TEST_EVENT_URL_PAYLOAD.equals(decryptedEventUrlPayload));
-        Event decryptedEvent = decryptedEventUrlPayload.getEvent();
-        assertTrue(TEST_EVENT.equals(decryptedEvent));
+        EventUrlPayload decryptedEventUrlPayload =
+                EventUrlHelper.getEventFromOdpEventUrl(uri.toString());
+        PersistableBundle eventParams = decryptedEventUrlPayload.getEventParams();
+        assertEquals(1, eventParams.getInt("x"));
+        assertEquals("abc", eventParams.getString("y"));
     }
 
     @Test
     public void testInvalidUrl() {
         assertThrows(IllegalArgumentException.class,
                 () -> EventUrlHelper.getEventFromOdpEventUrl("https://google.com/"));
+    }
+
+    private static EventUrlPayload createTestEventUrlPayload() {
+        PersistableBundle params = new PersistableBundle();
+        params.putInt("x", 1);
+        params.putString("y", "abc");
+        return new EventUrlPayload(params, null, null);
     }
 }

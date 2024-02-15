@@ -43,50 +43,16 @@ class DataIngressPolicy {
                 .trimIndent()
             target(USER_DATA_GENERATED_DTD, Duration.ofDays(30)) {
                 retention(medium = StorageMedium.RAM, encryptionRequired = false)
-                "timeSec" {rawUsage(UsageType.ANY)}
-                "timezone" {rawUsage(UsageType.ANY)}
+                "timestampSec" {rawUsage(UsageType.ANY)}
+                "timezoneUtcOffsetMins" {rawUsage(UsageType.ANY)}
                 "orientation" {rawUsage(UsageType.ANY)}
-                "availableBytesMB" {rawUsage(UsageType.ANY)}
-                "batteryPct" {rawUsage(UsageType.ANY)}
-                "country" {rawUsage(UsageType.ANY)}
-                "language" {rawUsage(UsageType.ANY)}
+                "availableStorageMB" {rawUsage(UsageType.ANY)}
+                "batteryPercentage" {rawUsage(UsageType.ANY)}
                 "carrier" {rawUsage(UsageType.ANY)}
-                "osVersions" {
-                    "major" {rawUsage(UsageType.ANY)}
-                    "minor" {rawUsage(UsageType.ANY)}
-                    "micro" {rawUsage(UsageType.ANY)}
-                }
-                "connectionType" {rawUsage(UsageType.ANY)}
-                "connectionSpeedKbps" {rawUsage(UsageType.ANY)}
-                "networkMetered" {rawUsage(UsageType.ANY)}
-                "deviceMetrics" {
-                    "make" {rawUsage(UsageType.ANY)}
-                    "model" {rawUsage(UsageType.ANY)}
-                    "screenHeightDp" {rawUsage(UsageType.ANY)}
-                    "screenWidthDp" {rawUsage(UsageType.ANY)}
-                    "xdpi" {rawUsage(UsageType.ANY)}
-                    "ydpi" {rawUsage(UsageType.ANY)}
-                    "pxRatio" {rawUsage(UsageType.ANY)}
-                }
-                "appInstalledHistory" {
+                "dataNetworkType" {rawUsage(UsageType.ANY)}
+                "appInfos" {
                     "packageName" {rawUsage(UsageType.ANY)}
                     "installed" {rawUsage(UsageType.ANY)}
-                }
-                "appUsageHistory" {
-                    "packageName" {rawUsage(UsageType.ANY)}
-                    "totalTimeUsedMillis" {rawUsage(UsageType.ANY)}
-                }
-                "currentLocation" {
-                    "timeSec" {rawUsage(UsageType.ANY)}
-                    "latitude" {rawUsage(UsageType.ANY)}
-                    "longitude" {rawUsage(UsageType.ANY)}
-                    "locationProvider" {rawUsage(UsageType.ANY)}
-                    "preciseLocation" {rawUsage(UsageType.ANY)}
-                }
-                "locationHistory" {
-                    "latitude" {rawUsage(UsageType.ANY)}
-                    "longitude" {rawUsage(UsageType.ANY)}
-                    "durationMillis" {rawUsage(UsageType.ANY)}
                 }
             }
 

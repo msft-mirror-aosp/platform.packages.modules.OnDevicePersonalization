@@ -16,19 +16,59 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import android.annotation.NonNull;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED;
 
+import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
+import android.annotation.NonNull;
+import android.annotation.Nullable;
+import android.content.ComponentName;
+
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.libraries.plugin.PluginController;
+import com.android.ondevicepersonalization.services.OdpServiceException;
+
+import java.util.Objects;
 
 /** Wraps an instance of a loaded isolated service */
 public class IsolatedServiceInfo {
-    @NonNull private final PluginController mPluginController;
+    private final long mStartTimeMillis;
+    @NonNull private final ComponentName mComponentName;
+    @Nullable private final PluginController mPluginController;
+    @Nullable private final AbstractServiceBinder<IIsolatedService> mIsolatedServiceBinder;
 
-    IsolatedServiceInfo(@NonNull PluginController pluginController) {
+    IsolatedServiceInfo(
+            long startTimeMillis,
+            @NonNull ComponentName componentName,
+            @Nullable PluginController pluginController,
+            @Nullable AbstractServiceBinder<IIsolatedService> isolatedServiceBinder)
+            throws OdpServiceException {
+        mStartTimeMillis = startTimeMillis;
+        mComponentName = Objects.requireNonNull(componentName);
         mPluginController = pluginController;
+        mIsolatedServiceBinder = isolatedServiceBinder;
+
+        // TO-DO (323882182): Granular isolated servce failures.
+        if ((mPluginController != null && mIsolatedServiceBinder != null)
+                || (mPluginController == null && mIsolatedServiceBinder == null)) {
+            throw new OdpServiceException(ERROR_ISOLATED_SERVICE_FAILED);
+        }
     }
 
     PluginController getPluginController() {
         return mPluginController;
+    }
+
+    AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder() {
+        return mIsolatedServiceBinder;
+    }
+
+    /** Returns the service start time. */
+    public long getStartTimeMillis() {
+        return mStartTimeMillis;
+    }
+
+    /** Returns the ComponentName to be loaded. */
+    @NonNull public ComponentName getComponentName() {
+        return mComponentName;
     }
 }

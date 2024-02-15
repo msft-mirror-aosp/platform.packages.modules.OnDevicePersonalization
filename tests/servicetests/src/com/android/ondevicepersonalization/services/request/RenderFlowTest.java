@@ -19,19 +19,28 @@ package com.android.ondevicepersonalization.services.request;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.RenderOutputParcel;
+import android.adservices.ondevicepersonalization.RenderingConfig;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.ComponentName;
+import android.content.ContentValues;
 import android.content.Context;
-import android.ondevicepersonalization.Bid;
-import android.ondevicepersonalization.RenderOutput;
-import android.ondevicepersonalization.SlotResult;
-import android.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.os.Binder;
 import android.os.IBinder;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
+import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 
 import com.google.common.util.concurrent.Futures;
@@ -39,16 +48,20 @@ import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.CountDownLatch;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class RenderFlowTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
+    private final UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
 
     private String mRenderedContent;
     private boolean mGenerateHtmlCalled;
@@ -56,6 +69,31 @@ public class RenderFlowTest {
     private boolean mDisplayHtmlCalled;
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
+    private int mCallbackErrorCode;
+
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    @Before
+    public void setUp() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
+    }
 
     @Test
     public void testRunRenderFlow() throws Exception {
@@ -67,7 +105,14 @@ public class RenderFlowTest {
                 50,
                 new TestCallback(),
                 mContext,
-                new TestInjector(),
+                100L,
+                new TestInjector() {
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
+                },
                 new TestDisplayHelper());
         flow.run();
         mLatch.await();
@@ -78,22 +123,49 @@ public class RenderFlowTest {
     }
 
     @Test
+    public void testRunRenderFlowPersonalizationDisabled() throws Exception {
+        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
+        RenderFlow flow = new RenderFlow(
+                "token",
+                new Binder(),
+                0,
+                100,
+                50,
+                new TestCallback(),
+                mContext,
+                100L,
+                new TestInjector() {
+                    @Override ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
+                },
+                new TestDisplayHelper());
+        flow.run();
+        mLatch.await();
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
+    @Test
     public void testDefaultInjector() throws Exception {
         RenderFlow.Injector injector = new RenderFlow.Injector();
         assertEquals(OnDevicePersonalizationExecutors.getBackgroundExecutor(),
                 injector.getExecutor());
-        SlotResult slotResult =
-                new SlotResult.Builder()
-                        .addRenderedBidKeys("bid1")
-                        .addLoggedBids(new Bid.Builder().setKey("bid1").build())
-                        .build();
-        SlotRenderingData data = new SlotRenderingData(
-                slotResult, mContext.getPackageName(), 0);
+        ContentValues logData = new ContentValues();
+        logData.put("x", 1);
+        RequestLogRecord logRecord = new RequestLogRecord.Builder().addRow(logData).build();
+        RenderingConfig info =
+                new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
+        SlotWrapper data = new SlotWrapper(
+                logRecord, info, mContext.getPackageName(), 0);
         String encrypted = CryptUtils.encrypt(data);
-        SlotRenderingData decrypted = injector.decryptToken(encrypted);
+        SlotWrapper decrypted = injector.decryptToken(encrypted);
+        assertEquals(data.getLogRecord(), decrypted.getLogRecord());
         assertEquals(data.getQueryId(), decrypted.getQueryId());
         assertEquals(data.getServicePackageName(), decrypted.getServicePackageName());
-        assertEquals(data.getSlotResult(), decrypted.getSlotResult());
+        assertEquals(data.getRenderingConfig(), decrypted.getRenderingConfig());
     }
 
     class TestInjector extends RenderFlow.Injector {
@@ -101,16 +173,13 @@ public class RenderFlowTest {
             return MoreExecutors.newDirectExecutorService();
         }
 
-        SlotRenderingData decryptToken(String token) {
+        SlotWrapper decryptToken(String token) {
             if (token.equals("token")) {
-                SlotResult slotResult =
-                        new SlotResult.Builder()
-                        .addRenderedBidKeys("bid1")
-                        .addLoggedBids(new Bid.Builder().setKey("bid1").build())
-                        .addLoggedBids(new Bid.Builder().setKey("bid2").build())
-                        .build();
-                SlotRenderingData data = new SlotRenderingData(
-                        slotResult, mContext.getPackageName(), 0);
+                RequestLogRecord logRecord = new RequestLogRecord.Builder().build();
+                RenderingConfig info =
+                        new RenderingConfig.Builder().addKey("bid1").addKey("bid2").build();
+                SlotWrapper data = new SlotWrapper(
+                        logRecord, info, mContext.getPackageName(), 0);
                 return data;
             } else {
                 return null;
@@ -123,14 +192,15 @@ public class RenderFlowTest {
             super(mContext);
         }
 
-        @Override public String generateHtml(RenderOutput renderContentResult, String packageName) {
+        @Override public String generateHtml(
+                RenderOutputParcel renderContentResult, String packageName) {
             mRenderedContent = renderContentResult.getContent();
             mGenerateHtmlCalled = true;
             return mRenderedContent;
         }
 
         @Override public ListenableFuture<SurfacePackage> displayHtml(
-                String html, SlotResult slotResult, String servicePackageName,
+                String html, RequestLogRecord logRecord, long queryId, ComponentName service,
                 IBinder hostToken, int displayId, int width, int height) {
             mGeneratedHtml = html;
             mDisplayHtmlCalled = true;
@@ -146,6 +216,7 @@ public class RenderFlowTest {
         }
         @Override public void onError(int errorCode) {
             mCallbackError = true;
+            mCallbackErrorCode = errorCode;
             mLatch.countDown();
         }
     }
