@@ -58,6 +58,10 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
 
     @NonNull private final Injector mInjector;
 
+    static {
+        System.loadLibrary("fcp_cpp_dep_jni");
+    }
+
     @VisibleForTesting
     public IsolatedModelServiceImpl(@NonNull Injector injector) {
         this.mInjector = injector;
