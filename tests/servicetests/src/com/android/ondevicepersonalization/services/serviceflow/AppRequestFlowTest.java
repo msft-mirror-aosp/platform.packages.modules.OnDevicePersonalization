@@ -98,10 +98,6 @@ public class AppRequestFlowTest {
         setUpTestData();
 
         mSfo = new ServiceFlowOrchestrator();
-
-        mSfo.register(ServiceFlowType.APP_REQUEST_FLOW, "abc",
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
     }
 
     @After
@@ -118,7 +114,9 @@ public class AppRequestFlowTest {
     public void testAppRequestFlow_PersonalizationDisabled() throws InterruptedException {
         doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
 
-        mSfo.run(ServiceFlowType.APP_REQUEST_FLOW);
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -133,7 +131,9 @@ public class AppRequestFlowTest {
                         () -> PrivacyUtils.isOutputDataAllowed(
                                 anyString(), anyString(), any(Context.class)));
 
-        mSfo.run(ServiceFlowType.APP_REQUEST_FLOW);
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -154,7 +154,9 @@ public class AppRequestFlowTest {
                         () -> PrivacyUtils.isOutputDataAllowed(
                                 anyString(), anyString(), any(Context.class)));
 
-        mSfo.run(ServiceFlowType.APP_REQUEST_FLOW);
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);

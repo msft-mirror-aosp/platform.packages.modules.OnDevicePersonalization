@@ -93,8 +93,6 @@ public class WebTriggerFlowTest {
         setUpTestData();
 
         mSfo = new ServiceFlowOrchestrator();
-        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
     }
 
     @After
@@ -112,7 +110,8 @@ public class WebTriggerFlowTest {
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization global_kill_switch true");
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
+                new TestWebCallback(), 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -124,7 +123,9 @@ public class WebTriggerFlowTest {
         when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_DENIED);
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
+                new TestWebCallback(), 100L);
+        mLatch.await();
 
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
@@ -138,10 +139,9 @@ public class WebTriggerFlowTest {
         emptyWebTriggerParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
                 null);
-        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, emptyWebTriggerParams, mContext,
-                new TestWebCallback(), 0L);
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyWebTriggerParams, mContext,
+                new TestWebCallback(), 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -161,10 +161,9 @@ public class WebTriggerFlowTest {
                         ComponentName.createRelative(mContext.getPackageName(),
                                 "com.test.TestPersonalizationService"),
                         null, new byte[] {1, 2, 3}));
-        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, emptyClassParams, mContext,
-                new TestWebCallback(), 0L);
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyClassParams, mContext,
+                new TestWebCallback(), 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -184,10 +183,9 @@ public class WebTriggerFlowTest {
                         ComponentName.createRelative(mContext.getPackageName(),
                                 "com.test.TestPersonalizationService"),
                         "randomTestCertDigest", new byte[] {1, 2, 3}));
-        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, invalidCertDigestParams, mContext,
-                new TestWebCallback(), 0L);
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidCertDigestParams, mContext,
+                new TestWebCallback(), 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -207,10 +205,9 @@ public class WebTriggerFlowTest {
                         ComponentName.createRelative(mContext.getPackageName(),
                                 "not.com.test.TestPersonalizationService"),
                         null, new byte[] {1, 2, 3}));
-        mSfo.register(ServiceFlowType.WEB_TRIGGER_FLOW, invalidPackageNameParams, mContext,
-                new TestWebCallback(), 0L);
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidPackageNameParams, mContext,
+                new TestWebCallback(), 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -222,7 +219,8 @@ public class WebTriggerFlowTest {
         when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
 
-        mSfo.run(ServiceFlowType.WEB_TRIGGER_FLOW);
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
+                new TestWebCallback(), 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
