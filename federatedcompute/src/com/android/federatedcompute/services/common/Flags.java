@@ -200,4 +200,10 @@ public interface Flags {
     default long getOdpAuthorizationTokenTtl() {
         return ODP_AUTHORIZATION_TOKEN_TTL;
     }
+
+    boolean ENABLE_CLIENT_ERROR_LOGGING = false;
+
+    default boolean getEnableClientErrorLogging() {
+        return ENABLE_CLIENT_ERROR_LOGGING;
+    }
 }
