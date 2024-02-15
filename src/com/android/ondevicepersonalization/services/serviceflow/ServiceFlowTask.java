@@ -18,9 +18,12 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import android.os.Bundle;
 
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
+import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -40,13 +43,13 @@ public class ServiceFlowTask {
     private final ListeningExecutorService mExecutor =
             OnDevicePersonalizationExecutors.getBackgroundExecutor();
 
-    public ServiceFlowTask(
-            ServiceFlowType serviceFlowType, ServiceFlow serviceFlow,
-            ProcessRunner processRunner) {
+    public ServiceFlowTask(ServiceFlowType serviceFlowType, ServiceFlow serviceFlow) {
+        mIsCompleted = false;
         mServiceFlowType = serviceFlowType;
         mServiceFlow = serviceFlow;
-        mProcessRunner = processRunner;
-        mIsCompleted = false;
+        mProcessRunner = FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
+                ? SharedIsolatedProcessRunner.getInstance()
+                : ProcessRunnerImpl.getInstance();
     }
 
     public ServiceFlowType getServiceFlowType() {
@@ -68,7 +71,7 @@ public class ServiceFlowTask {
     /** Executes the given service flow. */
     public void run() {
         try {
-            if (!mServiceFlow.isServiceFlowReady()) return;
+            if (mIsCompleted || !mServiceFlow.isServiceFlowReady()) return;
 
             ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
                     mProcessRunner.loadIsolatedService(
@@ -97,7 +100,7 @@ public class ServiceFlowTask {
                                         mServiceFlow.cleanUpServiceParams();
                                         ListenableFuture<Void> unloadServiceFuture =
                                                 mProcessRunner.unloadIsolatedService(
-                                                    loadServiceFuture.get());
+                                                        loadServiceFuture.get());
                                         mIsCompleted = true;
                                         return unloadServiceFuture;
                                     }, mExecutor);
