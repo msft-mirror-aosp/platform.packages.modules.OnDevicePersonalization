@@ -68,8 +68,6 @@ public class Constants {
             "android.ondevicepersonalization.extra.model_inputs";
     public static final String EXTRA_MODEL_OUTPUTS =
             "android.ondevicepersonalization.extra.model_outputs";
-    public static final String KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS =
-            "enable_ondevicepersonalization_apis";
 
     // Inference related constants,
     public static final String EXTRA_INFERENCE_INPUT =
