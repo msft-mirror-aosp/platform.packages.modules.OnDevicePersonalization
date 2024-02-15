@@ -33,31 +33,50 @@ import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServic
 
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 class SampleWorker implements IsolatedWorker {
     private static final String TAG = "OdpTestingSampleService";
 
     private static final int ERROR_SAMPLE_SERVICE_FAILED = 1;
 
+    private final ExecutorService mExecutor = Executors.newCachedThreadPool();
+
     @Override public void onExecute(
             ExecuteInput input,
             OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
-        Log.i(TAG, "onExecute()");
+        PersistableBundle appParams = Objects.requireNonNull(input.getAppParams());
+        if (appParams == null
+                || appParams.equals(PersistableBundle.EMPTY)
+                || appParams.getString(SampleServiceApi.KEY_OPCODE) == null) {
+            receiver.onResult(new ExecuteOutput.Builder().build());
+            return;
+        }
+
+        String op = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_OPCODE));
+        if (op.equals(SampleServiceApi.OPCODE_THROW_EXCEPTION)) {
+            throw createException(appParams);
+        }
+
+        mExecutor.submit(() -> handleOnExecute(appParams, receiver));
+    }
+
+    private void handleOnExecute(
+            PersistableBundle appParams,
+            OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
+        Log.i(TAG, "handleOnExecute()");
         ExecuteOutput result = null;
+        int errorCode = ERROR_SAMPLE_SERVICE_FAILED;
 
         try {
-            PersistableBundle appParams = Objects.requireNonNull(input.getAppParams());
-            if (appParams == null
-                    || appParams.equals(PersistableBundle.EMPTY)
-                    || appParams.getString(SampleServiceApi.KEY_OPCODE) == null) {
-                receiver.onResult(new ExecuteOutput.Builder().build());
-                return;
-            }
-
             String op = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_OPCODE));
 
             if (op.equals(SampleServiceApi.OPCODE_RENDER_AND_LOG)) {
                 result = handleRenderAndLog(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_FAIL_WITH_ERROR_CODE)) {
+                errorCode = appParams.getInt(
+                        SampleServiceApi.KEY_ERROR_CODE, ERROR_SAMPLE_SERVICE_FAILED);
             }
         } catch (Exception e) {
             Log.e(TAG, "Service error", e);
@@ -67,6 +86,18 @@ class SampleWorker implements IsolatedWorker {
             receiver.onResult(result);
         } else {
             receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+        }
+    }
+
+    private RuntimeException createException(PersistableBundle appParams) {
+        try {
+            String exceptionClass = appParams.getString(
+                    SampleServiceApi.KEY_EXCEPTION_CLASS, "IllegalStateException");
+            var clazz = Class.forName(exceptionClass);
+            return (RuntimeException) clazz.getDeclaredConstructor().newInstance();
+        } catch (Exception e) {
+            Log.e(TAG, "Error creating exception", e);
+            throw new IllegalStateException(e);
         }
     }
 
