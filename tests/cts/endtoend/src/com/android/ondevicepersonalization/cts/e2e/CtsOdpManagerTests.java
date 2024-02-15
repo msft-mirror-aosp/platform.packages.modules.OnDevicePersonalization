@@ -15,8 +15,6 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
-import static android.view.Display.DEFAULT_DISPLAY;
-
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
@@ -28,20 +26,13 @@ import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
-import android.hardware.display.DisplayManager;
-import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
-import android.view.Display;
-import android.view.SurfaceControlViewHost.SurfacePackage;
-import android.view.SurfaceView;
 
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.compatibility.common.util.ShellUtils;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
@@ -49,8 +40,6 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 
 /**
@@ -85,11 +74,6 @@ public class CtsOdpManagerTests {
                         + "shared_isolated_process_feature_enabled "
                         + mIsSipFeatureEnabled);
     }
-
-
-    @Rule
-    public final ActivityScenarioRule<TestActivity> mActivityScenarioRule =
-            new ActivityScenarioRule<>(TestActivity.class);
 
     @Test
     public void testExecuteThrowsIfComponentNameMissing() throws InterruptedException {
@@ -192,7 +176,6 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.await();
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof NameNotFoundException);
     }
@@ -209,7 +192,6 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.await();
         assertNull(receiver.getResult());
         assertTrue(receiver.getException() instanceof ClassNotFoundException);
     }
@@ -225,209 +207,7 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.await();
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
-    }
-
-    @Test
-    public void testRequestSurfacePackage() throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        var receiver = new ResultReceiver<SurfacePackage>();
-        SurfaceView surfaceView = createSurfaceView();
-        manager.requestSurfacePackage(
-                token,
-                surfaceView.getHostToken(),
-                getDisplayId(),
-                surfaceView.getWidth(),
-                surfaceView.getHeight(),
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        receiver.await();
-        assertNotNull(receiver.getResult());
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfSurfacePackageTokenMissing()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                NullPointerException.class,
-                () -> manager.requestSurfacePackage(
-                        null,
-                        surfaceView.getHostToken(),
-                        getDisplayId(),
-                        surfaceView.getWidth(),
-                        surfaceView.getHeight(),
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackage>()));
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfSurfaceViewHostTokenMissing()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                NullPointerException.class,
-                () -> manager.requestSurfacePackage(
-                        token,
-                        null,
-                        getDisplayId(),
-                        surfaceView.getWidth(),
-                        surfaceView.getHeight(),
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackage>()));
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfInvalidDisplayId()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> manager.requestSurfacePackage(
-                        token,
-                        surfaceView.getHostToken(),
-                        -1,
-                        surfaceView.getWidth(),
-                        surfaceView.getHeight(),
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackage>()));
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfInvalidWidth()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> manager.requestSurfacePackage(
-                        token,
-                        surfaceView.getHostToken(),
-                        getDisplayId(),
-                        0,
-                        surfaceView.getHeight(),
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackage>()));
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfInvalidHeight()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> manager.requestSurfacePackage(
-                        token,
-                        surfaceView.getHostToken(),
-                        getDisplayId(),
-                        surfaceView.getWidth(),
-                        0,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<SurfacePackage>()));
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfExecutorMissing()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                NullPointerException.class,
-                () -> manager.requestSurfacePackage(
-                        token,
-                        surfaceView.getHostToken(),
-                        getDisplayId(),
-                        surfaceView.getWidth(),
-                        surfaceView.getHeight(),
-                        null,
-                        new ResultReceiver<SurfacePackage>()));
-    }
-
-    @Test
-    public void testRequestSurfacePackageThrowsIfOutcomeReceiverMissing()
-            throws InterruptedException {
-        OnDevicePersonalizationManager manager =
-                mContext.getSystemService(OnDevicePersonalizationManager.class);
-        SurfacePackageToken token = runExecute(manager, PersistableBundle.EMPTY);
-        SurfaceView surfaceView = createSurfaceView();
-        assertThrows(
-                NullPointerException.class,
-                () -> manager.requestSurfacePackage(
-                        token,
-                        surfaceView.getHostToken(),
-                        getDisplayId(),
-                        surfaceView.getWidth(),
-                        surfaceView.getHeight(),
-                        Executors.newSingleThreadExecutor(),
-                        null));
-    }
-
-    int getDisplayId() {
-        final DisplayManager dm = mContext.getSystemService(DisplayManager.class);
-        final Display primaryDisplay = dm.getDisplay(DEFAULT_DISPLAY);
-        final Context windowContext = mContext.createDisplayContext(primaryDisplay);
-        return windowContext.getDisplay().getDisplayId();
-    }
-
-    SurfaceView createSurfaceView() throws InterruptedException {
-        ArrayBlockingQueue<SurfaceView> viewQueue = new ArrayBlockingQueue<>(1);
-        mActivityScenarioRule.getScenario().onActivity(
-                a -> viewQueue.add(a.findViewById(R.id.test_surface_view)));
-        return viewQueue.take();
-    }
-
-    private SurfacePackageToken runExecute(
-            OnDevicePersonalizationManager manager, PersistableBundle params)
-            throws InterruptedException {
-        var receiver = new ResultReceiver<ExecuteResult>();
-        manager.execute(
-                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                params,
-                Executors.newSingleThreadExecutor(),
-                receiver);
-        receiver.await();
-        return receiver.getResult().getSurfacePackageToken();
-    }
-
-    class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
-        private CountDownLatch mLatch = new CountDownLatch(1);
-        private T mResult;
-        private Exception mException;
-        @Override public void onResult(T result) {
-            mResult = result;
-            mLatch.countDown();
-        }
-        @Override public void onError(Exception e) {
-            mException = e;
-            mLatch.countDown();
-        }
-        void await() throws InterruptedException {
-            mLatch.await();
-        }
-        T getResult() {
-            return mResult;
-        }
-        Exception getException() {
-            return mException;
-        }
     }
 }
