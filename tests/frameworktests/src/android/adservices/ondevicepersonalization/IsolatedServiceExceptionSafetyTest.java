@@ -32,11 +32,13 @@ import android.content.Context;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.Bundle;
 import android.os.PersistableBundle;
+import android.os.RemoteException;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SmallTest;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 
 import org.junit.After;
 import org.junit.Before;
@@ -97,7 +99,7 @@ public class IsolatedServiceExceptionSafetyTest {
     @Test
     public void testOnRequestExceptions() throws Exception {
         PersistableBundle appParams = new PersistableBundle();
-        appParams.putString("op", operation);
+        appParams.putString("ex", operation);
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
@@ -111,6 +113,23 @@ public class IsolatedServiceExceptionSafetyTest {
                 new TestFederatedComputeService());
         params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mIsolatedService.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
+        assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnDownloadExceptions() throws Exception {
+        DownloadInputParcel input =
+                new DownloadInputParcel.Builder()
+                        .setDataAccessServiceBinder(new TestDataAccessService(operation))
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new TestFederatedComputeService());
+        mIsolatedService.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
@@ -129,8 +148,31 @@ public class IsolatedServiceExceptionSafetyTest {
     }
 
     static class TestDataAccessService extends IDataAccessService.Stub {
+
+        String mOp;
+
+        TestDataAccessService(String operation) {
+            this.mOp = operation;
+        }
+
+        TestDataAccessService() {
+            mOp = null;
+        }
+
         @Override
-        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {
+            // pass parameters for onDownloadCompleted testing
+            if (mOp != null) {
+                Bundle bndl = new Bundle();
+                bndl.putParcelable(
+                        Constants.EXTRA_RESULT, new ByteArrayParceledSlice(mOp.getBytes()));
+                try {
+                    callback.onSuccess(bndl);
+                } catch (RemoteException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {
