@@ -29,7 +29,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -38,11 +37,11 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -67,9 +66,8 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertTrue(receiver.mCallbackSuccess);
-        assertFalse(receiver.mCallbackError);
+        assertTrue(receiver.isSuccess());
+        assertFalse(receiver.isError());
     }
 
     @Test
@@ -83,9 +81,8 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
     }
 
     @Test
@@ -127,29 +124,9 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                             .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
-        assertTrue(receiver.mException instanceof IllegalStateException);
-    }
-
-    class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
-        boolean mCallbackSuccess = false;
-        boolean mCallbackError = false;
-        T mResult = null;
-        Exception mException = null;
-        CountDownLatch mLatch = new CountDownLatch(1);
-        @Override public void onResult(T value) {
-            mCallbackSuccess = true;
-            mResult = value;
-            mLatch.countDown();
-        }
-        @Override
-        public void onError(Exception e) {
-            mCallbackError = true;
-            mException = e;
-            mLatch.countDown();
-        }
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof IllegalStateException);
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {

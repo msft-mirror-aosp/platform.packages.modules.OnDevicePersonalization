@@ -13,41 +13,54 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.android.ondevicepersonalization.cts.e2e;
+package com.android.ondevicepersonalization.testing.utils;
 
 import android.os.OutcomeReceiver;
 
 import java.util.concurrent.CountDownLatch;
 
-class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
-    private CountDownLatch mLatch = new CountDownLatch(1);
+/**
+ * A synchronous wrapper around OutcomeReceiver for testing.
+ */
+public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
+    private final CountDownLatch mLatch = new CountDownLatch(1);
     private T mResult = null;
     private Exception mException = null;
     private boolean mSuccess = false;
     private boolean mError = false;
+
     @Override public void onResult(T result) {
         mSuccess = true;
         mResult = result;
         mLatch.countDown();
     }
+
     @Override public void onError(Exception e) {
         mError = true;
         mException = e;
         mLatch.countDown();
     }
-    T getResult() throws InterruptedException {
+
+    /** Returns the result passed to the OutcomeReceiver. */
+    public T getResult() throws InterruptedException {
         mLatch.await();
         return mResult;
     }
-    Exception getException() throws InterruptedException {
+
+    /** Returns the exception passed to the OutcomeReceiver. */
+    public Exception getException() throws InterruptedException {
         mLatch.await();
         return mException;
     }
-    boolean isSuccess() throws InterruptedException {
+
+    /** Returns true if onResult() was called. */
+    public boolean isSuccess() throws InterruptedException {
         mLatch.await();
         return mSuccess;
     }
-    boolean isError() throws InterruptedException {
+
+    /** Returns true if onError() was called. */
+    public boolean isError() throws InterruptedException {
         mLatch.await();
         return mError;
     }
