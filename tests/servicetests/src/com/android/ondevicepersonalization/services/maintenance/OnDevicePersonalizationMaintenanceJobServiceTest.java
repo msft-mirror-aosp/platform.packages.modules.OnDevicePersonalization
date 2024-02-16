@@ -37,6 +37,7 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -131,6 +132,13 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization caller_app_allow_list "
+                        + mContext.getPackageName());
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization isolated_service_allow_list "
+                        + mContext.getPackageName());
+
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);

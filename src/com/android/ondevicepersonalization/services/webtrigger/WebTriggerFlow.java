@@ -22,11 +22,13 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermiss
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
 import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Binder;
 import android.os.Bundle;
+import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -47,8 +49,10 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -65,6 +69,8 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "WebTriggerFlow";
     private static final String TASK_NAME = "WebTrigger";
+    private final IRegisterMeasurementEventCallback mCallback;
+    private final long mStartTimeMillis;
 
     @VisibleForTesting
     static class Injector {
@@ -95,47 +101,38 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     @NonNull private final Context mContext;
     @NonNull private final Injector mInjector;
     @NonNull private IsolatedModelServiceProvider mModelServiceProvider;
-    private Exception mException;
     private MeasurementWebTriggerEventParamsParcel mServiceParcel;
 
     public WebTriggerFlow(
             @NonNull Bundle params,
-            @NonNull Context context) {
-        this(params, context, new Injector());
+            @NonNull Context context,
+            @NonNull IRegisterMeasurementEventCallback callback,
+            long startTimeMillis) {
+        this(params, context, callback, startTimeMillis, new Injector());
     }
 
     @VisibleForTesting
     WebTriggerFlow(
             @NonNull Bundle params,
             @NonNull Context context,
+            @NonNull IRegisterMeasurementEventCallback callback,
+            long startTimeMillis,
             @NonNull Injector injector) {
         mParams = params;
         mContext = Objects.requireNonNull(context);
+        mCallback = callback;
+        mStartTimeMillis = startTimeMillis;
         mInjector = Objects.requireNonNull(injector);
     }
 
     /** Schedules the trigger processing flow to run asynchronously and returns immediately. */
-    public ListenableFuture<Void> run() {
-        if (getGlobalKillSwitch()) {
-            return Futures.immediateFailedFuture(
-                    new IllegalStateException("Disabled by kill switch"));
-        }
-        try {
-
-            OnDevicePersonalizationPermissions.enforceCallingPermission(
-                    mContext, OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT);
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
-        }
-
-        return Futures.submitAsync(this::processRequest, mInjector.getExecutor());
+    public void run() {
+        var unused = Futures.submit(this::processRequest, mInjector.getExecutor());
     }
 
-    private ListenableFuture<Void> processRequest() {
+    private void processRequest() {
         try {
-            if (!isServiceFlowReady()) {
-                return Futures.immediateFailedFuture(mException);
-            }
+            if (!isServiceFlowReady()) return;
 
             ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
@@ -153,6 +150,8 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             ListenableFuture<WebTriggerOutputParcel> serviceFlowResultFuture =
                     getServiceFlowResultFuture(runServiceFuture);
 
+            returnResultThroughCallback(serviceFlowResultFuture);
+
             var unused = Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
                     .callAsync(
                             () -> {
@@ -161,19 +160,24 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                                         loadServiceFuture.get());
                             },
                             mInjector.getExecutor());
-
-            return FluentFuture.from(serviceFlowResultFuture)
-                    .transform(result -> null, mInjector.getExecutor());
-
         } catch (Exception e) {
             sLogger.e(e, TAG + ": Error");
-            return Futures.immediateFailedFuture(e);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
         }
     }
 
+    // TO-DO: Add web trigger error codes.
     @Override
     public boolean isServiceFlowReady() {
         try {
+            if (getGlobalKillSwitch()) {
+                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                return false;
+            }
+
+            OnDevicePersonalizationPermissions.enforceCallingPermission(
+                        mContext, OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT);
+
             mServiceParcel = Objects.requireNonNull(
                     mParams.getParcelable(
                         Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -189,7 +193,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                     || mServiceParcel.getAppPackageName().isBlank()
                     || mServiceParcel.getIsolatedService().getPackageName().isBlank()
                     || mServiceParcel.getIsolatedService().getClassName().isBlank()) {
-                mException = new IllegalArgumentException("Missing required parameters");
+                sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                 return false;
             }
 
@@ -199,7 +203,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                         mContext, mServiceParcel.getIsolatedService().getPackageName());
                 if (!mServiceParcel.getCertDigest().equals(installedPackageCert)) {
                     sLogger.i(TAG + ": Dropping trigger event due to cert mismatch");
-                    mException = new IllegalArgumentException("package cert mismatch");
+                    sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
                     return false;
                 }
             }
@@ -211,13 +215,13 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                     .getClassName()
                     .equals(config.getServiceName())) {
                 sLogger.d(TAG + ": service class not found");
-                mException = new IllegalStateException("package or class not found");
+                sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
                 return false;
             }
 
             return true;
         } catch (Exception e) {
-            mException = new IllegalStateException("Failed to configure web trigger flow.");
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
             return false;
         }
     }
@@ -276,7 +280,23 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
 
     @Override
     public void returnResultThroughCallback(
-            ListenableFuture<WebTriggerOutputParcel> serviceFlowResultFuture) {}
+            ListenableFuture<WebTriggerOutputParcel>  serviceFlowResultFuture) {
+        Futures.addCallback(
+                serviceFlowResultFuture,
+                new FutureCallback<WebTriggerOutputParcel>() {
+                    @Override
+                    public void onSuccess(WebTriggerOutputParcel result) {
+                        sendSuccessResult(result);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.w(TAG + ": Request failed.", t);
+                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                    }
+                },
+                mInjector.getExecutor());
+    }
 
     @Override
     public void cleanUpServiceParams() {
@@ -301,5 +321,27 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         boolean globalKillSwitch = mInjector.getFlags().getGlobalKillSwitch();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
+    }
+
+    private void sendSuccessResult(WebTriggerOutputParcel result) {
+        int responseCode = Constants.STATUS_SUCCESS;
+        try {
+            mCallback.onSuccess();
+        } catch (RemoteException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
+            sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
+        }
+    }
+
+    private void sendErrorResult(int errorCode) {
+        try {
+            mCallback.onError(errorCode);
+        } catch (RemoteException e) {
+            sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
+        }
     }
 }
