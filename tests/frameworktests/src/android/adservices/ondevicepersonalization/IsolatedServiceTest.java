@@ -214,7 +214,6 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
-        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
@@ -237,11 +236,9 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -252,11 +249,9 @@ public class IsolatedServiceTest {
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -268,11 +263,9 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
