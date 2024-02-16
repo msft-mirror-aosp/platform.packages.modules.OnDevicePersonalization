@@ -33,6 +33,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -328,7 +329,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     @Override
                     public void onFailure(Throwable t) {
                         sLogger.w(TAG + ": Request failed.", t);
-                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                        if (t instanceof OdpServiceException) {
+                            sendErrorResult(((OdpServiceException) t).getErrorCode());
+                        } else {
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                        }
                     }
                 },
                 mInjector.getExecutor());

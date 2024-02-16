@@ -16,8 +16,7 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED;
-
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
@@ -131,7 +130,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                         // TO-DO (323882182): Granular isolated servce failures.
                                         @Override public void onError(int errorCode) {
                                             completer.setException(
-                                                new OdpServiceException(ERROR_ISOLATED_SERVICE_FAILED));
+                                                new OdpServiceException(
+                                                    Constants.STATUS_SERVICE_FAILED));
                                         }
                                     });
                     return null;
