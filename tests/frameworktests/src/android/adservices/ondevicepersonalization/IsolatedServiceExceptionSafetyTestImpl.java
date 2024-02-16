@@ -36,12 +36,26 @@ public class IsolatedServiceExceptionSafetyTestImpl extends IsolatedService {
         public void onExecute(
                 @NonNull ExecuteInput input,
                 @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
-            String op = input.getAppParams().getString("op", "n/a");
+            String exName = input.getAppParams().getString("ex", "n/a");
+            constructAndThrowException(exName);
+        }
+
+        @Override
+        public void onDownloadCompleted(
+                @NonNull DownloadCompletedInput input,
+                @NonNull
+                        OutcomeReceiver<DownloadCompletedOutput, IsolatedServiceException>
+                                receiver) {
+            KeyValueStore downloadedContents = input.getDownloadedContents();
+            String exName = new String(downloadedContents.get("ex"));
+            constructAndThrowException(exName);
+        }
+
+        private static void constructAndThrowException(String exName) {
             Class<?> aClass;
             try {
-                aClass = Class.forName(op);
-                throw (RuntimeException)
-                        aClass.getDeclaredConstructor().newInstance();
+                aClass = Class.forName(exName);
+                throw (RuntimeException) aClass.getDeclaredConstructor().newInstance();
 
             } catch (ClassNotFoundException
                     | NoSuchMethodException
