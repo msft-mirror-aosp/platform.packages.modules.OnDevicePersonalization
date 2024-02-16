@@ -29,6 +29,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.PersistableBundle;
+import android.util.Base64;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -288,7 +289,8 @@ public class CtsOdpManagerTests {
         var receiver = new ResultReceiver<ExecuteResult>();
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_THROW_EXCEPTION);
-        appParams.putString(SampleServiceApi.KEY_EXCEPTION_CLASS, "NullPointerException");
+        appParams.putString(
+                SampleServiceApi.KEY_EXCEPTION_CLASS, "java.lang.NullPointerException");
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
@@ -323,5 +325,117 @@ public class CtsOdpManagerTests {
         assertEquals(
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
                 OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+    }
+
+    @Test
+    public void testExecuteWriteAndReadLocalData() throws InterruptedException {
+        final String tableKey = "testKey_" + System.currentTimeMillis();
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+
+        // Write 1 byte.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value matches written value.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Write 10MB.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 10485760);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value matches written value.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 10485760);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Remove.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value was removed.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
     }
 }
