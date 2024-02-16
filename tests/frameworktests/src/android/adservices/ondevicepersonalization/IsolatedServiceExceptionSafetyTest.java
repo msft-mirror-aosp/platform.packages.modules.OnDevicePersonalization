@@ -39,6 +39,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -103,7 +104,8 @@ public class IsolatedServiceExceptionSafetyTest {
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
-                        .setAppParams(appParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(appParams)))
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
