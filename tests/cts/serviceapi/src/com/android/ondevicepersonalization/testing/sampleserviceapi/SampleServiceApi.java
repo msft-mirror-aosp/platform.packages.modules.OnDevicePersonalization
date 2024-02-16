@@ -26,11 +26,16 @@ public class SampleServiceApi {
     public static final String KEY_LOG_DATA = "log_data";
     public static final String KEY_ERROR_CODE = "error_code";
     public static final String KEY_EXCEPTION_CLASS = "exception_class";
+    public static final String KEY_TABLE_KEY = "table_key";
+    public static final String KEY_TABLE_VALUE = "table_value";
+    public static final String KEY_TABLE_VALUE_REPEAT_COUNT = "table_value_repeat_count";
 
     // Values of opcodes.
     public static final String OPCODE_RENDER_AND_LOG = "render_and_log";
     public static final String OPCODE_FAIL_WITH_ERROR_CODE = "fail_with_error_code";
     public static final String OPCODE_THROW_EXCEPTION = "throw_exception";
+    public static final String OPCODE_WRITE_LOCAL_DATA = "write_local_data";
+    public static final String OPCODE_READ_LOCAL_DATA = "read_local_data";
 
     private SampleServiceApi() {}
 }
