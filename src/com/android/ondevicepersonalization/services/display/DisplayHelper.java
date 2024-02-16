@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.display;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -113,7 +114,7 @@ public class DisplayHelper {
 
     /** Creates a webview and displays the provided HTML. */
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
-            @NonNull String html, @NonNull RequestLogRecord logRecord,
+            @NonNull String html, @Nullable RequestLogRecord logRecord,
             long queryId, @NonNull ComponentName service,
             @NonNull IBinder hostToken, int displayId, int width, int height) {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
@@ -130,7 +131,7 @@ public class DisplayHelper {
     }
 
     private void createWebView(
-            @NonNull String html, @NonNull RequestLogRecord logRecord, long queryId,
+            @NonNull String html, @Nullable RequestLogRecord logRecord, long queryId,
             @NonNull ComponentName service,
             @NonNull IBinder hostToken, int displayId, int width, int height,
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
