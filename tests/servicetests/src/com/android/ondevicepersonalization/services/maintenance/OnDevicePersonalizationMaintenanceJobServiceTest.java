@@ -48,6 +48,8 @@ import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
+import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
@@ -138,6 +140,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization isolated_service_allow_list "
                         + mContext.getPackageName());
+
+        // Clean data up directories
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+        FileUtils.deleteDirectory(vendorDir);
+        FileUtils.deleteDirectory(localDir);
 
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
@@ -266,6 +274,27 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     }
 
     @Test
+    public void testLocalDataCleanup() throws Exception {
+        var localDao = OnDevicePersonalizationLocalDataDao.getInstanceForTest(mContext,
+                TEST_OWNER, TEST_CERT_DIGEST);
+        localDao.createTable();
+        File localTestDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                OnDevicePersonalizationLocalDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+        assertTrue(localTestDir.exists());
+
+        localDao.updateOrInsertLocalData(new LocalData.Builder()
+                        .setData(new byte[1])
+                        .setKey("key")
+                .build());
+        assertNotNull(localDao.readSingleLocalDataRow("key"));
+
+        OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        assertFalse(localTestDir.exists());
+        assertNull(localDao.readSingleLocalDataRow("key"));
+    }
+
+    @Test
     public void testVendorDataCleanupExtraDirs() throws Exception {
         long timestamp = System.currentTimeMillis();
         addTestData(timestamp, mDao);
@@ -295,5 +324,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+        FileUtils.deleteDirectory(vendorDir);
+        FileUtils.deleteDirectory(localDir);
     }
 }
