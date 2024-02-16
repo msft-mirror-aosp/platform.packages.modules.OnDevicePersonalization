@@ -24,9 +24,13 @@ public class SampleServiceApi {
     public static final String KEY_OPCODE = "opcode";
     public static final String KEY_RENDERING_CONFIG_IDS = "rendering_config_ids";
     public static final String KEY_LOG_DATA = "log_data";
+    public static final String KEY_ERROR_CODE = "error_code";
+    public static final String KEY_EXCEPTION_CLASS = "exception_class";
 
     // Values of opcodes.
-    public static final String OPCODE_RENDER_AND_LOG = "render-and-log";
+    public static final String OPCODE_RENDER_AND_LOG = "render_and_log";
+    public static final String OPCODE_FAIL_WITH_ERROR_CODE = "fail_with_error_code";
+    public static final String OPCODE_THROW_EXCEPTION = "throw_exception";
 
     private SampleServiceApi() {}
 }

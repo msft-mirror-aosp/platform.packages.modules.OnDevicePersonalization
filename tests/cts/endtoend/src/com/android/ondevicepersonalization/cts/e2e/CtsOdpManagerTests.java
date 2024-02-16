@@ -15,11 +15,13 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
@@ -276,5 +278,50 @@ public class CtsOdpManagerTests {
         assertTrue(receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNull(token);
+    }
+
+    @Test
+    public void testExecuteReturnsErrorIfServiceThrows() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_THROW_EXCEPTION);
+        appParams.putString(SampleServiceApi.KEY_EXCEPTION_CLASS, "NullPointerException");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isError());
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+    }
+
+    @Test
+    public void testExecuteReturnsErrorIfServiceReturnsError() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_FAIL_WITH_ERROR_CODE);
+        appParams.putInt(SampleServiceApi.KEY_ERROR_CODE, 10);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isError());
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
     }
 }
