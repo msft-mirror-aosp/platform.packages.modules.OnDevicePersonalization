@@ -28,7 +28,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Binder;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.view.SurfaceControlViewHost;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -57,7 +56,7 @@ public class ServiceFlowFactoryTest {
     public void testCreateAppRequestFlowInstance() throws Exception {
         ServiceFlow serviceFlow = ServiceFlowFactory.createInstance(
                 ServiceFlowType.APP_REQUEST_FLOW, "testCallingPackage",
-                new ComponentName("testPackage", "testClass"), new PersistableBundle(),
+                new ComponentName("testPackage", "testClass"), new Bundle(),
                 new TestExecuteCallback(), mContext, 0L);
 
         assertThat(serviceFlow).isNotNull();

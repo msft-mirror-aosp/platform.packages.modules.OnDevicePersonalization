@@ -22,12 +22,16 @@ package android.adservices.ondevicepersonalization;
  * @hide
  */
 public class Constants {
+    // Status codes used within the ODP service or returned from service to manager classes.
+    // These will be mapped to existing platform exceptions or subclasses of
+    // OnDevicePersonalizationException in APIs.
     public static final int STATUS_SUCCESS = 0;
     public static final int STATUS_INTERNAL_ERROR = 100;
     public static final int STATUS_NAME_NOT_FOUND = 101;
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
+
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
     public static final int OP_DOWNLOAD = 2;
@@ -37,6 +41,8 @@ public class Constants {
     public static final int OP_WEB_TRIGGER = 6;
 
     // Keys for Bundle objects passed between processes.
+    public static final String EXTRA_APP_PARAMS_SERIALIZED =
+            "android.ondevicepersonalization.extra.app_params_serialized";
     public static final String EXTRA_CALLEE_METADATA =
             "android.ondevicepersonalization.extra.callee_metadata";
     public static final String EXTRA_DATA_ACCESS_SERVICE_BINDER =

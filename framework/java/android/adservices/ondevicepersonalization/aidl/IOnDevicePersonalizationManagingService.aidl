@@ -30,7 +30,7 @@ interface IOnDevicePersonalizationManagingService {
     void execute(
         in String callingPackageName,
         in ComponentName handler,
-        in PersistableBundle params,
+        in Bundle wrappedParams,
         in CallerMetadata metadata,
         in IExecuteCallback callback);
 
