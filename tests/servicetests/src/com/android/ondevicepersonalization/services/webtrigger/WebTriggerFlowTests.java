@@ -19,13 +19,13 @@ package com.android.ondevicepersonalization.services.webtrigger;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
 
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
+import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
@@ -60,13 +60,20 @@ import org.junit.runners.Parameterized;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CountDownLatch;
 
 @RunWith(Parameterized.class)
 public class WebTriggerFlowTests {
     private final Context mContext = spy(ApplicationProvider.getApplicationContext());
+    private final CountDownLatch mLatch = new CountDownLatch(1);
+
     private OnDevicePersonalizationDbHelper mDbHelper;
     private final UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+
+    private boolean mCallbackSuccess;
+    private boolean mCallbackError;
+    private int mCallbackErrorCode;
+    private WebTriggerOutputParcel mCallbackResult;
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
@@ -129,7 +136,7 @@ public class WebTriggerFlowTests {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
-                params, mContext, new TestInjector() {
+                params, mContext, new TestWebCallback(), 100L, new TestInjector() {
                     @Override
                     ProcessRunner getProcessRunner() {
                         return mIsSipFeatureEnabled
@@ -137,7 +144,8 @@ public class WebTriggerFlowTests {
                             : ProcessRunnerImpl.getInstance();
                     }
                 });
-        var unused = flow.run().get();
+        flow.run();
+        mLatch.await();
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     null, null, null, null, null).getCount());
@@ -161,13 +169,9 @@ public class WebTriggerFlowTests {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS, wtparams);
         WebTriggerFlow flow = new WebTriggerFlow(
-                params, mContext, new TestInjector());
-        try {
-            var unused = flow.run().get();
-            fail("Expected ExecutionException");
-        } catch (ExecutionException e) {
-            assertTrue(e.getCause() instanceof SecurityException);
-        }
+                params, mContext, new TestWebCallback(), 0, new TestInjector());
+
+        flow.run();
     }
 
     class TestInjector extends WebTriggerFlow.Injector {
@@ -181,6 +185,20 @@ public class WebTriggerFlowTests {
                     return false;
                 }
             };
+        }
+    }
+
+    class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {
+        @Override
+        public void onSuccess() {
+            mCallbackSuccess = true;
+            mLatch.countDown();
+        }
+        @Override
+        public void onError(int errorCode) {
+            mCallbackError = true;
+            mCallbackErrorCode = errorCode;
+            mLatch.countDown();
         }
     }
 }
