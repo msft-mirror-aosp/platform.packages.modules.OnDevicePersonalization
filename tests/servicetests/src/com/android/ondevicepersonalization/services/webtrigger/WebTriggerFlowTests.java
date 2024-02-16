@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.webtrigger;
 
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
@@ -37,6 +39,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -88,11 +91,13 @@ public class WebTriggerFlowTests {
     }
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
                         + mIsSipFeatureEnabled);
+
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row1 = new ContentValues();
@@ -144,8 +149,10 @@ public class WebTriggerFlowTests {
                             : ProcessRunnerImpl.getInstance();
                     }
                 });
+
         flow.run();
         mLatch.await();
+
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     null, null, null, null, null).getCount());
@@ -172,6 +179,8 @@ public class WebTriggerFlowTests {
                 params, mContext, new TestWebCallback(), 0, new TestInjector());
 
         flow.run();
+        mLatch.await();
+        assertThat(mCallbackErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
     class TestInjector extends WebTriggerFlow.Injector {
