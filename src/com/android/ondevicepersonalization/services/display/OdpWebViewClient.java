@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -109,7 +110,7 @@ class OdpWebViewClient extends WebViewClient {
     @NonNull private final Context mContext;
     @NonNull private final ComponentName mService;
     long mQueryId;
-    @NonNull private final RequestLogRecord mLogRecord;
+    @Nullable private final RequestLogRecord mLogRecord;
     @NonNull private final Injector mInjector;
 
     @NonNull private IsolatedModelServiceProvider mModelServiceProvider;
@@ -261,14 +262,13 @@ class OdpWebViewClient extends WebViewClient {
     private ListenableFuture<Void> writeEvent(EventOutputParcel result) {
         try {
             sLogger.d(TAG + ": writeEvent() called. EventOutputParcel: " + result.toString());
-            if (result == null || result.getEventLogRecord() == null) {
+            if (result == null || result.getEventLogRecord() == null
+                    || mLogRecord == null || mLogRecord.getRows() == null) {
+                sLogger.d(TAG + "no EventLogRecord or RequestLogRecord");
                 return Futures.immediateFuture(null);
             }
             EventLogRecord eventData = result.getEventLogRecord();
-            int rowCount = 0;
-            if (mLogRecord.getRows() != null) {
-                rowCount = mLogRecord.getRows().size();
-            }
+            int rowCount = mLogRecord.getRows().size();
             if (eventData.getType() <= 0 || eventData.getRowIndex() < 0
                     || eventData.getRowIndex() >= rowCount) {
                 sLogger.w(TAG + ": rowOffset out of range");
