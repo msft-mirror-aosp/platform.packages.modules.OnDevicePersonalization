@@ -97,7 +97,7 @@ class SampleWorker implements IsolatedWorker {
         if (result != null) {
             receiver.onResult(result);
         } else {
-            receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+            receiver.onError(new IsolatedServiceException(errorCode));
         }
     }
 

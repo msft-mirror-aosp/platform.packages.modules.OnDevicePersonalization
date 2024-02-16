@@ -289,7 +289,8 @@ public class CtsOdpManagerTests {
         var receiver = new ResultReceiver<ExecuteResult>();
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_THROW_EXCEPTION);
-        appParams.putString(SampleServiceApi.KEY_EXCEPTION_CLASS, "NullPointerException");
+        appParams.putString(
+                SampleServiceApi.KEY_EXCEPTION_CLASS, "java.lang.NullPointerException");
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
