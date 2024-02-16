@@ -38,10 +38,13 @@ import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.events.Query;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -55,6 +58,7 @@ import org.junit.runners.Parameterized;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(Parameterized.class)
@@ -103,7 +107,16 @@ public class AppRequestFlowTest {
         EventsDao.getInstanceForTest(mContext).insertQuery(
                 new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
-        EventsDao.getInstanceForTest(mContext);
+        OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
+                .getInstanceForTest(mContext, mContext.getPackageName(),
+                        PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
+        VendorData vendorData = new VendorData.Builder().setData(new byte[5]).setKey(
+                "bid1").build();
+        testVendorDao.batchUpdateOrInsertVendorDataTransaction(
+                List.of(vendorData),
+                List.of("bid1"),
+                0
+        );
     }
 
     @After
@@ -185,11 +198,13 @@ public class AppRequestFlowTest {
                 PersistableBundle.EMPTY,
                 new TestCallback(), mContext, 100L,
                 new TestInjector() {
-                    @Override boolean isPersonalizationStatusEnabled() {
+                    @Override
+                    boolean isPersonalizationStatusEnabled() {
                         return false;
                     }
 
-                    @Override ProcessRunner getProcessRunner() {
+                    @Override
+                    ProcessRunner getProcessRunner() {
                         return mIsSipFeatureEnabled
                                 ? SharedIsolatedProcessRunner.getInstance()
                                 : ProcessRunnerImpl.getInstance();
@@ -199,6 +214,35 @@ public class AppRequestFlowTest {
         mLatch.await();
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testRunAppRequestFlowInvalidRenderingConfigKeys() throws Exception {
+        OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
+                .getInstanceForTest(mContext, mContext.getPackageName(),
+                        PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
+        testVendorDao.batchUpdateOrInsertVendorDataTransaction(
+                List.of(),
+                List.of(),
+                0
+        );
+        AppRequestFlow appRequestFlow = new AppRequestFlow(
+                "abc",
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                PersistableBundle.EMPTY,
+                new TestCallback(), mContext, 100L,
+                new TestInjector() {
+                    @Override
+                    ProcessRunner getProcessRunner() {
+                        return mIsSipFeatureEnabled
+                                ? SharedIsolatedProcessRunner.getInstance()
+                                : ProcessRunnerImpl.getInstance();
+                    }
+                });
+        appRequestFlow.run();
+        mLatch.await();
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
     }
 
     class TestCallback extends IExecuteCallback.Stub {
@@ -222,6 +266,10 @@ public class AppRequestFlowTest {
             return MoreExecutors.newDirectExecutorService();
         }
         @Override boolean isPersonalizationStatusEnabled() {
+            return true;
+        }
+
+        @Override boolean shouldValidateExecuteOutput() {
             return true;
         }
     }

@@ -78,6 +78,10 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
                         + mIsSipFeatureEnabled);
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "debug.validate_rendering_config_keys "
+                        + false);
     }
 
     @Test
