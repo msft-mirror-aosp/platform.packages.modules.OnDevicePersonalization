@@ -274,7 +274,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
     @Override
     public ListenableFuture<SurfacePackage> getServiceFlowResultFuture(
             ListenableFuture<Bundle> runServiceFuture) {
-        RequestLogRecord logRecord = Objects.requireNonNull(mSlotWrapper.getLogRecord());
+        RequestLogRecord logRecord = mSlotWrapper.getLogRecord();
         long queryId = mSlotWrapper.getQueryId();
 
         return FluentFuture.from(runServiceFuture)

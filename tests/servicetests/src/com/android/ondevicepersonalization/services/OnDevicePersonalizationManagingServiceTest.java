@@ -38,6 +38,7 @@ import android.view.SurfaceControlViewHost;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
@@ -73,6 +74,13 @@ public class OnDevicePersonalizationManagingServiceTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization caller_app_allow_list "
+                        + mContext.getPackageName());
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization isolated_service_allow_list "
+                        + mContext.getPackageName());
+
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mService = new OnDevicePersonalizationManagingServiceDelegate(
                 mContext, mTestInjector);
@@ -401,12 +409,14 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     @Test
     public void testRegisterMeasurementEventInvokesWebTriggerFlow() throws Exception {
+        var callback = new RegisterMeasurementEventCallback();
         mService.registerMeasurementEvent(
                 Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
                 Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
-                new RegisterMeasurementEventCallback());
-        assertTrue(mWebTriggerFlowStarted);
+                callback);
+        callback.await();
+        assertTrue(callback.mWasInvoked);
     }
 
     @Test
@@ -419,7 +429,6 @@ public class OnDevicePersonalizationManagingServiceTest {
                 Bundle.EMPTY,
                 new CallerMetadata.Builder().build(),
                 callback);
-        assertTrue(mWebTriggerFlowStarted);
         callback.await();
         assertTrue(callback.mError);
     }
@@ -454,6 +463,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         assertNotNull(injector.getWebTriggerFlow(
                 Bundle.EMPTY,
                 mContext,
+                new RegisterMeasurementEventCallback(),
                 0L));
     }
 
@@ -505,12 +515,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 Bundle params,
                 Context context,
                 long startTimeMillis) {
-            return new WebTriggerFlow(params, context) {
-                @Override public ListenableFuture<Void> run() {
-                    mWebTriggerFlowStarted = true;
-                    return mWebTriggerFlowResult;
-                }
-            };
+            return new WebTriggerFlow(params, context, new RegisterMeasurementEventCallback(), 0L);
         }
 
         @Override ListeningExecutorService getExecutor() {
@@ -522,7 +527,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mError = false;
         public int mErrorCode = 0;
         public String mToken = null;
-        private CountDownLatch mLatch = new CountDownLatch(1);
+        private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
         public void onSuccess(Bundle bundle) {
@@ -547,7 +552,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     static class RequestSurfacePackageCallback extends IRequestSurfacePackageCallback.Stub {
         public boolean mError = false;
         public int mErrorCode = 0;
-        private CountDownLatch mLatch = new CountDownLatch(1);
+        private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
         public void onSuccess(SurfaceControlViewHost.SurfacePackage s) {
@@ -568,16 +573,21 @@ public class OnDevicePersonalizationManagingServiceTest {
 
     static class RegisterMeasurementEventCallback extends IRegisterMeasurementEventCallback.Stub {
         public boolean mError = false;
+        public boolean mSuccess = false;
+        public boolean mWasInvoked = false;
         public int mErrorCode = 0;
-        private CountDownLatch mLatch = new CountDownLatch(1);
+        private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
         public void onSuccess() {
+            mWasInvoked = true;
+            mSuccess = true;
             mLatch.countDown();
         }
 
         @Override
         public void onError(int errorCode) {
+            mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
             mLatch.countDown();
