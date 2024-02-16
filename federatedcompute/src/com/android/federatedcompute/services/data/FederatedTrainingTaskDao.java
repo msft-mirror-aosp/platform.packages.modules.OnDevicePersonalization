@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.data;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 
 import android.annotation.NonNull;
@@ -29,6 +31,7 @@ import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
@@ -79,6 +82,10 @@ public class FederatedTrainingTaskDao {
     private void deleteFederatedTrainingTask(String selection, String[] selectionArgs) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
+            ClientErrorLogger.getInstance()
+                    .logError(
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return;
         }
         db.delete(FEDERATED_TRAINING_TASKS_TABLE, selection, selectionArgs);
@@ -123,10 +130,20 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
             LogUtil.e(TAG, e, "Failed to delete federated training task by job id %d", jobId);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -140,6 +157,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -148,6 +170,11 @@ public class FederatedTrainingTaskDao {
                     e,
                     "Failed to delete federated training task by population name %s",
                     populationName);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -166,6 +193,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -176,6 +208,11 @@ public class FederatedTrainingTaskDao {
                             + "population name %s and calling package: %s",
                     populationName,
                     callingPackage);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -196,6 +233,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -205,6 +247,11 @@ public class FederatedTrainingTaskDao {
                     "Failed to delete federated training task by population name %s and ATP: %s",
                     populationName,
                     ownerId);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -223,6 +270,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -232,6 +284,11 @@ public class FederatedTrainingTaskDao {
                     "Failed to delete federated training task by population name %s and job id %d",
                     populationName,
                     jobId);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
