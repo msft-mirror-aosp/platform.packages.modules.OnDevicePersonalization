@@ -57,6 +57,7 @@ public class CtsOdpManagerTests {
             "com.android.ondevicepersonalization.testing.sampleservice";
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
+    private static final int LARGE_BLOB_SIZE = 10485760;
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
@@ -346,7 +347,7 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_TABLE_VALUE,
+                    SampleServiceApi.KEY_BASE64_VALUE,
                     Base64.encodeToString(new byte[]{'A'}, 0));
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -364,7 +365,7 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_TABLE_VALUE,
+                    SampleServiceApi.KEY_BASE64_VALUE,
                     Base64.encodeToString(new byte[]{'A'}, 0));
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -382,9 +383,9 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_TABLE_VALUE,
+                    SampleServiceApi.KEY_BASE64_VALUE,
                     Base64.encodeToString(new byte[]{'A'}, 0));
-            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 10485760);
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                     appParams,
@@ -401,9 +402,9 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_TABLE_VALUE,
+                    SampleServiceApi.KEY_BASE64_VALUE,
                     Base64.encodeToString(new byte[]{'A'}, 0));
-            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 10485760);
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                     appParams,
@@ -441,5 +442,31 @@ public class CtsOdpManagerTests {
                     receiver);
             assertTrue(receiver.isSuccess());
         }
+    }
+
+    @Test
+    public void testExecuteSendLargeBlob() throws InterruptedException {
+        final String tableKey = "testKey_" + System.currentTimeMillis();
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH);
+        byte[] buffer = new byte[LARGE_BLOB_SIZE];
+        for (int i = 0; i < LARGE_BLOB_SIZE; ++i) {
+            buffer[i] = 'A';
+        }
+        appParams.putString(
+                SampleServiceApi.KEY_BASE64_VALUE,
+                Base64.encodeToString(buffer, 0));
+        appParams.putInt(SampleServiceApi.KEY_VALUE_LENGTH, LARGE_BLOB_SIZE);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isSuccess());
     }
 }
