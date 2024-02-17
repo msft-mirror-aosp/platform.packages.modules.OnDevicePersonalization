@@ -42,8 +42,10 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
+import com.google.intelligence.fcp.client.RetryInfo;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
+import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.util.ArrayList;
@@ -150,8 +152,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         @Override
                         public void onSuccess(FLRunnerResult result) {
                             Bundle bundle = new Bundle();
-                            bundle.putByteArray(
-                                    Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
+
                             ArrayList<ExampleConsumption> exampleConsumptionArrayList =
                                     recorder.finishRecordingAndGet();
                             int numExamples = 0;
@@ -173,7 +174,22 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                         populationName,
                                         result.getContributionResult(),
                                         result.getErrorMessage());
+                                result =
+                                        result.toBuilder()
+                                                .setRetryInfo(
+                                                        RetryInfo.newBuilder()
+                                                                .setMinimumDelay(
+                                                                        Duration.newBuilder()
+                                                                                // Set retry to 24
+                                                                                // hours
+                                                                                // in case TF failed
+                                                                                // to
+                                                                                // do computation
+                                                                                .setSeconds(86400)))
+                                                .build();
                             }
+                            bundle.putByteArray(
+                                    Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
                             bundle.putParcelableArrayList(
                                     ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
                                     exampleConsumptionArrayList);
@@ -197,7 +213,16 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     private Bundle createFailedResult() {
         Bundle bundle = new Bundle();
         FLRunnerResult result =
-                FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
+                FLRunnerResult.newBuilder()
+                        .setContributionResult(ContributionResult.FAIL)
+                        .setRetryInfo(
+                                RetryInfo.newBuilder()
+                                        .setMinimumDelay(
+                                                Duration.newBuilder()
+                                                        // Set retry to 24 hours in case TF failed
+                                                        // to do computation
+                                                        .setSeconds(86400)))
+                        .build();
         bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
         return bundle;
     }

@@ -37,7 +37,7 @@ import java.time.Instant;
  * {@link RequestLogRecord} in the requests table {@link RequestLogRecord#getRows()}.
  * The purpose of the EVENTS table is to add supplemental information to logged data
  * from a prior request, e.g., logging an event when a link in a rendered WebView is
- * clicked {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}.
+ * clicked {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}.
  * The contents of the EVENTS table can be
  * consumed by Federated Learning facilitated model training, or Federated Analytics facilitated
  * cross-device statistical analysis.
@@ -76,9 +76,9 @@ public final class EventLogRecord implements Parcelable {
     /**
      * The existing {@link RequestLogRecord} that this payload should be associated with. In an
      * implementation of
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}, this should be
      * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
-     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)},
      * this should be set to {@code null} because the payload will be automatically associated with
      * the current {@link RequestLogRecord}.
      *
@@ -181,9 +181,9 @@ public final class EventLogRecord implements Parcelable {
     /**
      * The existing {@link RequestLogRecord} that this payload should be associated with. In an
      * implementation of
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}, this should be
      * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
-     * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+     * implementation of {@link IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)},
      * this should be set to {@code null} because the payload will be automatically associated with
      * the current {@link RequestLogRecord}.
      */
@@ -366,9 +366,9 @@ public final class EventLogRecord implements Parcelable {
         /**
          * The existing {@link RequestLogRecord} that this payload should be associated with. In an
          * implementation of
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}, this should be
+         * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}, this should be
          * set to a value returned by {@link LogReader#getRequests(Instant, Instant)}. In an
-         * implementation of {@link IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)},
+         * implementation of {@link IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)},
          * this should be set to {@code null} because the payload will be automatically associated with
          * the current {@link RequestLogRecord}.
          */

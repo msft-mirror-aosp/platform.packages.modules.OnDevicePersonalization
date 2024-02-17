@@ -23,10 +23,15 @@ import android.adservices.ondevicepersonalization.RequestToken;
 import androidx.annotation.NonNull;
 
 public class SampleService extends IsolatedService {
-    @NonNull @Override public IsolatedWorker onRequest(
-            RequestToken requestToken) {
-        return new SampleHandler(getRemoteData(requestToken), getEventUrlProvider(requestToken),
-                getUserData(requestToken), getFederatedComputeScheduler(requestToken),
-                getLogReader(requestToken));
+    @NonNull
+    @Override
+    public IsolatedWorker onRequest(RequestToken requestToken) {
+        return new SampleHandler(
+                getRemoteData(requestToken),
+                getEventUrlProvider(requestToken),
+                getUserData(requestToken),
+                getFederatedComputeScheduler(requestToken),
+                getLogReader(requestToken),
+                getModelManager(requestToken));
     }
 }

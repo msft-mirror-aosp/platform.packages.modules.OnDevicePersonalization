@@ -60,7 +60,19 @@ public class OnDevicePersonalizationLocalDataDaoTest {
     public void testBasicDaoOperations() {
         mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                 System.currentTimeMillis());
+        basicDaoOperations();
+        assertNotEquals(0, mVendorDao.getSyncToken());
+    }
 
+    @Test
+    public void testCreateTable() {
+        mLocalDao.createTable();
+
+        basicDaoOperations();
+        assertEquals(0, mVendorDao.getSyncToken());
+    }
+
+    private void basicDaoOperations() {
         File dir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
                 OnDevicePersonalizationLocalDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
                 mContext.getFilesDir()));
@@ -136,5 +148,9 @@ public class OnDevicePersonalizationLocalDataDaoTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+        FileUtils.deleteDirectory(vendorDir);
+        FileUtils.deleteDirectory(localDir);
     }
 }
