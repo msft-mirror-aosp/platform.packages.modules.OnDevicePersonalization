@@ -38,6 +38,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -120,7 +122,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -137,7 +139,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -160,7 +162,7 @@ public class AppRequestFlowTest {
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY, new TestExecuteCallback(), mContext, 100L);
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -200,6 +202,18 @@ public class AppRequestFlowTest {
                 List.of("bid1"),
                 0
         );
+    }
+
+    private Bundle createWrappedAppParams() {
+        try {
+            Bundle wrappedParams = new Bundle();
+            ByteArrayParceledSlice buffer = new ByteArrayParceledSlice(
+                    PersistableBundleUtils.toByteArray(PersistableBundle.EMPTY));
+            wrappedParams.putParcelable(Constants.EXTRA_APP_PARAMS_SERIALIZED, buffer);
+            return wrappedParams;
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 
     class TestExecuteCallback extends IExecuteCallback.Stub {
