@@ -26,14 +26,12 @@ import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
@@ -91,7 +89,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
     private long mStartServiceTimeMillis;
-    private PersistableBundle mAppParams;
+    private byte[] mSerializedAppParams;
 
     @VisibleForTesting
     static class Injector {
@@ -225,10 +223,10 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
 
         try {
-            ByteArrayParceledSlice paramsBuffer = mWrappedParams.getParcelable(
-                    Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class);
-            mAppParams = Objects.requireNonNull(
-                    PersistableBundleUtils.fromByteArray(paramsBuffer.getByteArray()));
+            ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
+                    mWrappedParams.getParcelable(
+                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class));
+            mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to extract app params.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -268,7 +266,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 Constants.EXTRA_INPUT,
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName(mCallingPackageName)
-                        .setAppParams(mAppParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(mSerializedAppParams))
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,

@@ -42,6 +42,9 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -89,7 +92,8 @@ public class IsolatedServiceTest {
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
-                        .setAppParams(appParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(appParams)))
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -114,7 +118,8 @@ public class IsolatedServiceTest {
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
-                        .setAppParams(appParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(appParams)))
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
