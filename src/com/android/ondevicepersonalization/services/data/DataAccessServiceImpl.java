@@ -125,7 +125,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 mLocalDataDao = mInjector.getLocalDataDao(
                         mApplicationContext, servicePackageName,
                         PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
-                mLocalDataDao.createTableIfNotExists();
+                mLocalDataDao.createTable();
             } else {
                 mLocalDataDao = null;
             }
