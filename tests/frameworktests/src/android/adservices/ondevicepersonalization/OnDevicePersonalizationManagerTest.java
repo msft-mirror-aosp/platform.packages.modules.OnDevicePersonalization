@@ -40,6 +40,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import org.junit.Before;
@@ -164,11 +166,21 @@ public final class OnDevicePersonalizationManagerTest {
         public void execute(
                 String callingPackageName,
                 ComponentName handler,
-                PersistableBundle params,
+                Bundle wrappedParams,
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
             try {
-                String op = params.getString(KEY_OP);
+                String op;
+                try {
+                    ByteArrayParceledSlice paramsBuffer = wrappedParams.getParcelable(
+                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class);
+                    PersistableBundle params =
+                            PersistableBundleUtils.fromByteArray(paramsBuffer.getByteArray());
+                    op = params.getString(KEY_OP);
+                } catch (Exception e) {
+                    Log.e(TAG, "error extracting params", e);
+                    throw new IllegalStateException(e);
+                }
                 if (op.equals("ok")) {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");

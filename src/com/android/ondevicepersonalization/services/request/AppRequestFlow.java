@@ -31,7 +31,9 @@ import android.os.RemoteException;
 import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
@@ -80,7 +82,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @NonNull
     private final ComponentName mService;
     @NonNull
-    private final PersistableBundle mParams;
+    private final Bundle mWrappedParams;
     @NonNull
     private final IExecuteCallback mCallback;
     @NonNull
@@ -89,6 +91,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
     private long mStartServiceTimeMillis;
+    private PersistableBundle mAppParams;
 
     @VisibleForTesting
     static class Injector {
@@ -138,11 +141,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis) {
-        this(callingPackageName, service, params,
+        this(callingPackageName, service, wrappedParams,
                 callback, context, startTimeMillis,
                 new Injector());
     }
@@ -151,7 +154,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis,
@@ -159,7 +162,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
         mService = Objects.requireNonNull(service);
-        mParams = Objects.requireNonNull(params);
+        mWrappedParams = Objects.requireNonNull(wrappedParams);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
         mStartTimeMillis = startTimeMillis;
@@ -221,6 +224,17 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return false;
         }
 
+        try {
+            ByteArrayParceledSlice paramsBuffer = mWrappedParams.getParcelable(
+                    Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class);
+            mAppParams = Objects.requireNonNull(
+                    PersistableBundleUtils.fromByteArray(paramsBuffer.getByteArray()));
+        } catch (Exception e) {
+            sLogger.d(TAG + ": Failed to extract app params.", e);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            return false;
+        }
+
         AppManifestConfig config = null;
         try {
             config = Objects.requireNonNull(
@@ -254,7 +268,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 Constants.EXTRA_INPUT,
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName(mCallingPackageName)
-                        .setAppParams(mParams)
+                        .setAppParams(mAppParams)
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,

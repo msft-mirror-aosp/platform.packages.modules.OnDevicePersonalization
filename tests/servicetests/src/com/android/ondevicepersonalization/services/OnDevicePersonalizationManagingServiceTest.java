@@ -39,6 +39,8 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
@@ -102,7 +104,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         mContext.getPackageName(),
                         new ComponentName(
                             mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback
                     ));
@@ -118,7 +120,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 mContext.getPackageName(),
                 new ComponentName(
                     mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
-                PersistableBundle.EMPTY,
+                createWrappedAppParams(),
                 new CallerMetadata.Builder().build(),
                 callback);
         assertTrue(mAppRequestFlowStarted);
@@ -135,7 +137,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         new ComponentName(
                             mContext.getPackageName(),
                             "com.test.TestPersonalizationHandler"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback));
     }
@@ -151,7 +153,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         new ComponentName(
                             mContext.getPackageName(),
                             "com.test.TestPersonalizationHandler"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback));
     }
@@ -167,7 +169,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         new ComponentName(
                             mContext.getPackageName(),
                             "com.test.TestPersonalizationHandler"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback));
     }
@@ -181,7 +183,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                     mService.execute(
                         mContext.getPackageName(),
                         null,
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback));
     }
@@ -195,7 +197,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                     mService.execute(
                         mContext.getPackageName(),
                         new ComponentName("", "ServiceClass"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback));
     }
@@ -209,7 +211,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                     mService.execute(
                         mContext.getPackageName(),
                         new ComponentName("com.test.TestPackage", ""),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         callback));
     }
@@ -224,7 +226,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         mContext.getPackageName(),
                         new ComponentName(
                             mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         null,
                         callback));
     }
@@ -238,7 +240,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                         mContext.getPackageName(),
                         new ComponentName(
                             mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
-                        PersistableBundle.EMPTY,
+                        createWrappedAppParams(),
                         new CallerMetadata.Builder().build(),
                         null));
     }
@@ -434,7 +436,7 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
-    public void testDefaultInjector() {
+    public void testDefaultInjector() throws Exception {
         var executeCallback = new ExecuteCallback();
         var renderCallback = new RequestSurfacePackageCallback();
         OnDevicePersonalizationManagingServiceDelegate.Injector injector =
@@ -444,7 +446,7 @@ public class OnDevicePersonalizationManagingServiceTest {
                 mContext.getPackageName(),
                 new ComponentName(
                     mContext.getPackageName(), "com.test.TestPersonalizationHandler"),
-                PersistableBundle.EMPTY,
+                createWrappedAppParams(),
                 executeCallback,
                 mContext,
                 0L));
@@ -475,18 +477,27 @@ public class OnDevicePersonalizationManagingServiceTest {
         assertTrue(binder instanceof OnDevicePersonalizationManagingServiceDelegate);
     }
 
+    private Bundle createWrappedAppParams() throws Exception {
+        Bundle wrappedParams = new Bundle();
+        ByteArrayParceledSlice buffer = new ByteArrayParceledSlice(
+                PersistableBundleUtils.toByteArray(PersistableBundle.EMPTY));
+        wrappedParams.putParcelable(Constants.EXTRA_APP_PARAMS_SERIALIZED, buffer);
+        return wrappedParams;
+    }
+
     class TestInjector extends OnDevicePersonalizationManagingServiceDelegate.Injector {
         ListenableFuture<Void> mWebTriggerFlowResult = Futures.immediateFuture(null);
 
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
                 ComponentName handler,
-                PersistableBundle params,
+                Bundle wrappedParams,
                 IExecuteCallback callback,
                 Context context,
                 long startTimeMillis) {
             return new AppRequestFlow(
-                    callingPackageName, handler, params, callback, context, startTimeMillis) {
+                    callingPackageName, handler, wrappedParams, callback, context,
+                    startTimeMillis) {
                 @Override public void run() {
                     mAppRequestFlowStarted = true;
                 }

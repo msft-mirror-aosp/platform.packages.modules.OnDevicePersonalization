@@ -32,6 +32,8 @@ import android.os.PersistableBundle;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
@@ -131,7 +133,7 @@ public class AppRequestFlowTest {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
+                createWrappedAppParams(),
                 new TestCallback(), mContext, 100L,
                 new TestInjector() {
                     @Override public boolean isOutputDataAllowed(
@@ -162,7 +164,7 @@ public class AppRequestFlowTest {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
+                createWrappedAppParams(),
                 new TestCallback(), mContext, 100L,
                 new TestInjector() {
                     @Override public boolean isOutputDataAllowed(
@@ -195,7 +197,7 @@ public class AppRequestFlowTest {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
+                createWrappedAppParams(),
                 new TestCallback(), mContext, 100L,
                 new TestInjector() {
                     @Override
@@ -229,7 +231,7 @@ public class AppRequestFlowTest {
         AppRequestFlow appRequestFlow = new AppRequestFlow(
                 "abc",
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                PersistableBundle.EMPTY,
+                createWrappedAppParams(),
                 new TestCallback(), mContext, 100L,
                 new TestInjector() {
                     @Override
@@ -243,6 +245,14 @@ public class AppRequestFlowTest {
         mLatch.await();
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
+    }
+
+    private Bundle createWrappedAppParams() throws Exception {
+        Bundle wrappedParams = new Bundle();
+        ByteArrayParceledSlice buffer = new ByteArrayParceledSlice(
+                PersistableBundleUtils.toByteArray(PersistableBundle.EMPTY));
+        wrappedParams.putParcelable(Constants.EXTRA_APP_PARAMS_SERIALIZED, buffer);
+        return wrappedParams;
     }
 
     class TestCallback extends IExecuteCallback.Stub {
