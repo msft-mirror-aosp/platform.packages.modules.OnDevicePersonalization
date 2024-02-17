@@ -136,6 +136,21 @@ public class IsolatedServiceExceptionSafetyTest {
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
+    @Test
+    public void testOnRender() throws Exception {
+        RenderInputParcel input =
+                new RenderInputParcel.Builder()
+                        .setRenderingConfig(
+                                new RenderingConfig.Builder().addKey(operation).build())
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mIsolatedService.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
+        assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
     class TestServiceCallback extends IIsolatedServiceCallback.Stub {
         @Override
         public void onSuccess(Bundle result) {
