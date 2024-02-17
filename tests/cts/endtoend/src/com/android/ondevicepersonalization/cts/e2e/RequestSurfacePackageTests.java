@@ -36,6 +36,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -80,6 +81,10 @@ public class RequestSurfacePackageTests {
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
                         + mIsSipFeatureEnabled);
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "debug.validate_rendering_config_keys "
+                        + false);
     }
 
 

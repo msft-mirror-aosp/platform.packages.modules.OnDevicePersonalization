@@ -32,7 +32,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
@@ -41,6 +40,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +49,6 @@ import org.junit.runners.Parameterized;
 
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -93,12 +92,11 @@ public final class OnDevicePersonalizationManagerTest {
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertTrue(receiver.mCallbackSuccess);
-        assertFalse(receiver.mCallbackError);
-        assertNotNull(receiver.mResult);
-        assertEquals(receiver.mResult.getSurfacePackageToken().getTokenString(), "aaaa");
-        assertArrayEquals(receiver.mResult.getOutputData(), new byte[]{1, 2, 3});
+        assertTrue(receiver.isSuccess());
+        assertFalse(receiver.isError());
+        assertNotNull(receiver.getResult());
+        assertEquals(receiver.getResult().getSurfacePackageToken().getTokenString(), "aaaa");
+        assertArrayEquals(receiver.getResult().getOutputData(), new byte[]{1, 2, 3});
     }
 
     @Test
@@ -111,9 +109,8 @@ public final class OnDevicePersonalizationManagerTest {
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
     }
 
     @Test
@@ -152,29 +149,9 @@ public final class OnDevicePersonalizationManagerTest {
                 params,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
-        assertTrue(receiver.mException instanceof IllegalStateException);
-    }
-
-    class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
-        boolean mCallbackSuccess = false;
-        boolean mCallbackError = false;
-        T mResult = null;
-        Exception mException = null;
-        CountDownLatch mLatch = new CountDownLatch(1);
-        @Override public void onResult(T value) {
-            mCallbackSuccess = true;
-            mResult = value;
-            mLatch.countDown();
-        }
-        @Override
-        public void onError(Exception e) {
-            mCallbackError = true;
-            mException = e;
-            mLatch.countDown();
-        }
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof IllegalStateException);
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {

@@ -45,7 +45,10 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 
 import org.junit.After;
@@ -59,6 +62,7 @@ import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
@@ -171,7 +175,7 @@ public class AppRequestFlowTest {
                         null, null, null, null, null).getCount());
     }
 
-    private void setUpTestData() {
+    private void setUpTestData() throws Exception {
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row1 = new ContentValues();
         row1.put("a", 1);
@@ -185,6 +189,17 @@ public class AppRequestFlowTest {
                 new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
+
+        OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
+                .getInstanceForTest(mContext, mContext.getPackageName(),
+                        PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
+        VendorData vendorData = new VendorData.Builder().setData(new byte[5]).setKey(
+                "bid1").build();
+        testVendorDao.batchUpdateOrInsertVendorDataTransaction(
+                List.of(vendorData),
+                List.of("bid1"),
+                0
+        );
     }
 
     class TestExecuteCallback extends IExecuteCallback.Stub {
