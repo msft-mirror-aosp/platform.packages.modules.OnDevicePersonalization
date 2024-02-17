@@ -29,7 +29,6 @@ import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.PersistableBundle;
 import android.os.Trace;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -54,7 +53,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         AppRequestFlow getAppRequestFlow(
                 String callingPackageName,
                 ComponentName handler,
-                PersistableBundle params,
+                Bundle params,
                 IExecuteCallback callback,
                 Context context,
                 long startTimeMillis) {
@@ -110,7 +109,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
     public void execute(
             @NonNull String callingPackageName,
             @NonNull ComponentName handler,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull CallerMetadata metadata,
             @NonNull IExecuteCallback callback) {
         if (getGlobalKillSwitch()) {
@@ -122,7 +121,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
         Objects.requireNonNull(handler.getClassName());
-        Objects.requireNonNull(params);
+        Objects.requireNonNull(wrappedParams);
         Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
         if (callingPackageName.isEmpty()) {
@@ -141,7 +140,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
         AppRequestFlow flow = mInjector.getAppRequestFlow(
                 callingPackageName,
                 handler,
-                params,
+                wrappedParams,
                 callback,
                 mContext,
                 metadata.getStartTimeMillis());

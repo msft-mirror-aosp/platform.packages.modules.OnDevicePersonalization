@@ -51,12 +51,19 @@ public class IsolatedServiceExceptionSafetyTestImpl extends IsolatedService {
             constructAndThrowException(exName);
         }
 
+        @Override
+        public void onRender(
+                @NonNull RenderInput input,
+                @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+            String exName = input.getRenderingConfig().getKeys().get(0);
+            constructAndThrowException(exName);
+        }
+
         private static void constructAndThrowException(String exName) {
             Class<?> aClass;
             try {
                 aClass = Class.forName(exName);
                 throw (RuntimeException) aClass.getDeclaredConstructor().newInstance();
-
             } catch (ClassNotFoundException
                     | NoSuchMethodException
                     | InvocationTargetException

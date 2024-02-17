@@ -29,7 +29,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -139,7 +138,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
         public void execute(
                 String callingPackageName,
                 ComponentName handler,
-                PersistableBundle params,
+                Bundle params,
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
             throw new UnsupportedOperationException();

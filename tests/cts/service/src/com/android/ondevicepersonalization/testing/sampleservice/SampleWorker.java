@@ -88,6 +88,8 @@ class SampleWorker implements IsolatedWorker {
                 result = handleWriteLocalData(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_READ_LOCAL_DATA)) {
                 result = handleReadLocalData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH)) {
+                result = handleCheckValueLength(appParams);
             }
 
         } catch (Exception e) {
@@ -131,7 +133,7 @@ class SampleWorker implements IsolatedWorker {
 
     private ExecuteOutput handleWriteLocalData(PersistableBundle appParams) {
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
-        String encodedValue = appParams.getString(SampleServiceApi.KEY_TABLE_VALUE);
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ?  Base64.decode(encodedValue, 0) : null;
         if (value != null) {
             int repeatCount = appParams.getInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 1);
@@ -145,7 +147,7 @@ class SampleWorker implements IsolatedWorker {
 
     private ExecuteOutput handleReadLocalData(PersistableBundle appParams) {
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
-        String encodedValue = appParams.getString(SampleServiceApi.KEY_TABLE_VALUE);
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ?  Base64.decode(encodedValue, 0) : null;
         boolean success = false;
         if (value != null) {
@@ -158,6 +160,18 @@ class SampleWorker implements IsolatedWorker {
         }
 
         if (success) {
+            return new ExecuteOutput.Builder().build();
+        } else {
+            return null;
+        }
+    }
+
+    private ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ?  Base64.decode(encodedValue, 0) : null;
+        int expectedLength = appParams.getInt(SampleServiceApi.KEY_VALUE_LENGTH);
+
+        if (expectedLength == value.length) {
             return new ExecuteOutput.Builder().build();
         } else {
             return null;

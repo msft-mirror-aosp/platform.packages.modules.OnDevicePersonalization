@@ -39,6 +39,7 @@ import androidx.test.filters.SmallTest;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -103,7 +104,8 @@ public class IsolatedServiceExceptionSafetyTest {
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
-                        .setAppParams(appParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(appParams)))
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -130,6 +132,21 @@ public class IsolatedServiceExceptionSafetyTest {
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
         mIsolatedService.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnRender() throws Exception {
+        RenderInputParcel input =
+                new RenderInputParcel.Builder()
+                        .setRenderingConfig(
+                                new RenderingConfig.Builder().addKey(operation).build())
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mIsolatedService.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
         assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
