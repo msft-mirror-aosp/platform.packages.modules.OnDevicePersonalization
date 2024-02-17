@@ -22,6 +22,6 @@ import android.adservices.ondevicepersonalization.RequestToken;
 
 public class SampleService extends IsolatedService {
     @Override public IsolatedWorker onRequest(RequestToken requestToken) {
-        return new SampleWorker();
+        return new SampleWorker(getLocalData(requestToken));
     }
 }

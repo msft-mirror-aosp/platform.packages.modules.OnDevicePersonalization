@@ -16,24 +16,10 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-
-import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-
-/** Orchestrator that coordinate service flows through process runners. */
+/** Orchestrator that handles the scheduling of all service flows. */
 public class ServiceFlowOrchestrator {
-
-    // All service flows should use the same process runner until main process restarts.
-    private static final ProcessRunner sProcessRunner =
-            FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : ProcessRunnerImpl.getInstance();
 
     ServiceFlowOrchestrator() {}
 
@@ -47,13 +33,15 @@ public class ServiceFlowOrchestrator {
         return ServiceFlowOrchestratorLazyInstanceHolder.LAZY_INSTANCE;
     }
 
-    /** Registers a given service flow with the orchestrator. */
+    /** Schedules a given service flow task with the orchestrator. */
     public void schedule(ServiceFlowType serviceFlowType, Object... args) {
         ServiceFlow serviceFlow = ServiceFlowFactory.createInstance(serviceFlowType, args);
 
         ServiceFlowTask serviceFlowTask =
-                new ServiceFlowTask(serviceFlowType, serviceFlow, sProcessRunner);
+                new ServiceFlowTask(serviceFlowType, serviceFlow);
 
-        OnDevicePersonalizationExecutors.getBackgroundExecutor().submit(serviceFlowTask::run);
+        var unused =
+                OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                        .submit(serviceFlowTask::run);
     }
 }
