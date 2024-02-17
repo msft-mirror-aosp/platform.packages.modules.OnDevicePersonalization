@@ -23,7 +23,6 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.PersistableBundle;
 
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
@@ -37,7 +36,7 @@ public class ServiceFlowFactory {
         return switch (serviceFlowType) {
             case APP_REQUEST_FLOW ->
                     new AppRequestFlow(
-                        (String) args[0], (ComponentName) args[1], (PersistableBundle) args[2],
+                        (String) args[0], (ComponentName) args[1], (Bundle) args[2],
                         (IExecuteCallback) args[3], (Context) args[4], (long) args[5]);
             case RENDER_FLOW ->
                     new RenderFlow((String) args[0], (IBinder) args[1], (int) args[2],

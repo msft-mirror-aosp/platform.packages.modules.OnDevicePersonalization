@@ -29,6 +29,7 @@ import android.federatedcompute.common.TrainingOptions;
 import android.os.OutcomeReceiver;
 import android.os.RemoteException;
 import android.os.SystemProperties;
+import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
@@ -102,6 +103,16 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                         sLogger.d(TAG + ": Overriding fc server URL for package "
                                 + mCallingService.getPackageName() + " to " + overrideManifestUrl);
                         url = overrideManifestUrl;
+                    }
+                    String deviceConfigOverrideUrl = DeviceConfig.getString(
+                            /* namespace= */ "on_device_personalization",
+                            /* name= */ OVERRIDE_FC_SERVER_URL,
+                            /* defaultValue= */ "");
+                    if (!deviceConfigOverrideUrl.isEmpty()) {
+                        sLogger.d(TAG + ": Overriding fc server URL for package "
+                                + mCallingService.getPackageName() + " to "
+                                + deviceConfigOverrideUrl);
+                        url = deviceConfigOverrideUrl;
                     }
                 }
             }

@@ -70,7 +70,12 @@ public class IsolatedModelServiceImplTest {
         mRemoteData =
                 new RemoteDataImpl(
                         IDataAccessService.Stub.asInterface(new TestDataAccessService()));
-        mParams = InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, 1);
+        mParams =
+                InferenceInput.Params.createCpuParams(
+                        mRemoteData,
+                        MODEL_KEY,
+                        1,
+                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
     }
 
     @Test
@@ -218,7 +223,10 @@ public class IsolatedModelServiceImplTest {
                 () ->
                         new InferenceInput.Builder(
                                         InferenceInput.Params.createCpuParams(
-                                                mRemoteData, null, -1),
+                                                mRemoteData,
+                                                null,
+                                                -1,
+                                                InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
                                         generateInferenceInput(1),
                                         generateInferenceOutput(1))
                                 .build());
@@ -237,7 +245,12 @@ public class IsolatedModelServiceImplTest {
     public void negativeThreadNum_buildThrows() {
         assertThrows(
                 IllegalStateException.class,
-                () -> InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, -1));
+                () ->
+                        InferenceInput.Params.createCpuParams(
+                                mRemoteData,
+                                MODEL_KEY,
+                                -1,
+                                InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE));
     }
 
     @Test

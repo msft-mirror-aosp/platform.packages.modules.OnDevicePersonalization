@@ -224,23 +224,7 @@ public abstract class IsolatedService extends Service {
             } else if (operationCode == Constants.OP_DOWNLOAD) {
                 performDownload(params, resultCallback);
             } else if (operationCode == Constants.OP_RENDER) {
-
-                RenderInputParcel inputParcel =
-                        Objects.requireNonNull(params.getParcelable(
-                                Constants.EXTRA_INPUT, RenderInputParcel.class));
-                RenderInput input = new RenderInput(inputParcel);
-                Objects.requireNonNull(input.getRenderingConfig());
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
-                Objects.requireNonNull(binder);
-                RequestToken requestToken = new RequestToken(binder, null, null, null);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onRender(input, new WrappedCallback<RenderOutput, RenderOutputParcel>(
-                        resultCallback, requestToken, v -> new RenderOutputParcel(v)));
-
+                performRender(params, resultCallback);
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
                 EventInputParcel inputParcel =
@@ -318,6 +302,32 @@ public abstract class IsolatedService extends Service {
             }
         }
 
+        private void performRender(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
+                RenderInputParcel inputParcel =
+                        Objects.requireNonNull(
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, RenderInputParcel.class));
+                RenderInput input = new RenderInput(inputParcel);
+                Objects.requireNonNull(input.getRenderingConfig());
+                IDataAccessService binder = getDataAccessService(params);
+                RequestToken requestToken = new RequestToken(binder, null, null, null);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onRender(
+                        input,
+                        new WrappedCallback<RenderOutput, RenderOutputParcel>(
+                                resultCallback, requestToken, v -> new RenderOutputParcel(v)));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service render operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
+            }
+        }
+
         private void performDownload(
                 @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
             try {
@@ -358,7 +368,7 @@ public abstract class IsolatedService extends Service {
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Callback failed.");
+                    sLogger.e(re, "Isolated Service Callback failed.");
                 }
             }
         }
@@ -440,7 +450,7 @@ public abstract class IsolatedService extends Service {
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Callback failed.");
+                    sLogger.e(re, "Isolated Service Callback failed.");
                 }
             }
         }
