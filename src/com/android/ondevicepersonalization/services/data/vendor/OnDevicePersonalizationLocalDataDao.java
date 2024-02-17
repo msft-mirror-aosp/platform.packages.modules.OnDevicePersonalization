@@ -128,7 +128,7 @@ public class OnDevicePersonalizationLocalDataDao {
      *
      * @return true if it already exists or was created, false otherwise.
      */
-    public boolean createTableIfNotExists() {
+    protected boolean createTableIfNotExists() {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             db.execSQL(LocalDataContract.LocalDataEntry.getCreateTableIfNotExistsStatement(
@@ -141,6 +141,27 @@ public class OnDevicePersonalizationLocalDataDao {
         File dir = new File(mFileDir);
         if (!dir.isDirectory()) {
             return dir.mkdirs();
+        }
+        return true;
+    }
+
+    /**
+     * Creates local data tables and adds corresponding vendor_settings metadata
+     */
+    public boolean createTable() {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            if (!createTableIfNotExists()) {
+                return false;
+            }
+            if (!OnDevicePersonalizationVendorDataDao.insertNewSyncToken(db, mOwner, mCertDigest,
+                    0L)) {
+                return false;
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
         }
         return true;
     }
@@ -289,6 +310,6 @@ public class OnDevicePersonalizationLocalDataDao {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.execSQL("DROP TABLE " + getTableName(owner, certDigest));
+        db.execSQL("DROP TABLE IF EXISTS " + getTableName(owner, certDigest));
     }
 }

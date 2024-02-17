@@ -55,8 +55,11 @@ import java.util.concurrent.BlockingQueue;
 public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = IsolatedModelServiceImpl.class.getSimpleName();
-
     @NonNull private final Injector mInjector;
+
+    static {
+        System.loadLibrary("fcp_cpp_dep_jni");
+    }
 
     @VisibleForTesting
     public IsolatedModelServiceImpl(@NonNull Injector injector) {

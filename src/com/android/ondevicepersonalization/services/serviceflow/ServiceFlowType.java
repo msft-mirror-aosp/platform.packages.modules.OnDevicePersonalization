@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
+import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGER;
 
 import com.android.ondevicepersonalization.services.FlagsFactory;
 
@@ -30,8 +31,11 @@ public enum ServiceFlowType {
 
     RENDER_FLOW(
             "Render", OP_RENDER,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds());
+            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds()),
 
+    WEB_TRIGGER_FLOW(
+            "WebTrigger", OP_WEB_TRIGGER,
+            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds());
 
     final String mTaskName;
     final int mOperationCode;
