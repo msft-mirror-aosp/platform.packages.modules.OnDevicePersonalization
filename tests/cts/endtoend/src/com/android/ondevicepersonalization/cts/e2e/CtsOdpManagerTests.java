@@ -15,11 +15,13 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationException;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.SurfacePackageToken;
@@ -27,11 +29,13 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.os.PersistableBundle;
+import android.util.Base64;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -74,6 +78,10 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "shared_isolated_process_feature_enabled "
                         + mIsSipFeatureEnabled);
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "debug.validate_rendering_config_keys "
+                        + false);
     }
 
     @Test
@@ -275,5 +283,163 @@ public class CtsOdpManagerTests {
         assertTrue(receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNull(token);
+    }
+
+    @Test
+    public void testExecuteReturnsErrorIfServiceThrows() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_THROW_EXCEPTION);
+        appParams.putString(
+                SampleServiceApi.KEY_EXCEPTION_CLASS, "java.lang.NullPointerException");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isError());
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+    }
+
+    @Test
+    public void testExecuteReturnsErrorIfServiceReturnsError() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_FAIL_WITH_ERROR_CODE);
+        appParams.putInt(SampleServiceApi.KEY_ERROR_CODE, 10);
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.isError());
+        assertNull(receiver.getResult());
+        assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
+        assertEquals(
+                ((OnDevicePersonalizationException) receiver.getException()).getErrorCode(),
+                OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+    }
+
+    @Test
+    public void testExecuteWriteAndReadLocalData() throws InterruptedException {
+        final String tableKey = "testKey_" + System.currentTimeMillis();
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+
+        // Write 1 byte.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value matches written value.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Write 10MB.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 10485760);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value matches written value.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_TABLE_VALUE,
+                    Base64.encodeToString(new byte[]{'A'}, 0));
+            appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 10485760);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Remove.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value was removed.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
     }
 }

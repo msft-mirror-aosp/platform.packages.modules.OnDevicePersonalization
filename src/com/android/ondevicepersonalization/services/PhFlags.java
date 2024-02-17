@@ -104,27 +104,20 @@ public final class PhFlags implements Flags {
 
     @Override
     public String getTrustedPartnerAppsList() {
-        if (SdkLevel.isAtLeastU()) {
-            return DeviceConfig.getString(
+        return SdkLevel.isAtLeastU()
+                ? DeviceConfig.getString(
                     /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                     /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
-                    /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST);
-        } else {
-            return "";
-        }
+                    /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST)
+                : "";
     }
 
     @Override
     public boolean isSharedIsolatedProcessFeatureEnabled() {
-        if (SdkLevel.isAtLeastU()) {
-            return DeviceConfig.getBoolean(
-                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                    /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
-                    /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
-        } else {
-            return false;
-        }
-
+        return SdkLevel.isAtLeastU() && DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
     }
 
     @Override
