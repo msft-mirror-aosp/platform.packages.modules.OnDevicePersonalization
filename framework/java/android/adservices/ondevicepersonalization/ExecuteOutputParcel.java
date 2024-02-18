@@ -34,7 +34,7 @@ import java.util.List;
 public final class ExecuteOutputParcel implements Parcelable {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
@@ -93,7 +93,7 @@ public final class ExecuteOutputParcel implements Parcelable {
      *
      * @param requestLogRecord
      *   Persistent data to be written to the REQUESTS table after
-     *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     *   {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      *   completes. If null, no persistent data will be written.
      * @param renderingConfig
      *   A {@link RenderingConfig} object that contains information about the content to be rendered
@@ -129,7 +129,7 @@ public final class ExecuteOutputParcel implements Parcelable {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member

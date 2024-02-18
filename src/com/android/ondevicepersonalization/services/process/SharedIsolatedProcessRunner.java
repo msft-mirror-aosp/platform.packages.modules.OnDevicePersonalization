@@ -16,18 +16,20 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED;
-
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -43,6 +45,10 @@ import java.util.Objects;
 
 /** Utilities for running remote isolated services in a shared isolated process. */
 public class SharedIsolatedProcessRunner implements ProcessRunner  {
+
+    // Shared isolated process that hosts services from all trusted partners, as well as internal
+    // isolated services.
+    public static final String TRUSTED_PARTNER_APPS_SIP = "trusted_partner_apps_sip";
 
     private final Context mApplicationContext;
     private final Injector mInjector;
@@ -81,9 +87,11 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     @NonNull public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(
             @NonNull String taskName, @NonNull ComponentName componentName) {
         try {
+            boolean isSipRequested = isSharedIsolatedProcessRequested(componentName);
+
             ListenableFuture<AbstractServiceBinder<IIsolatedService>> isolatedServiceFuture =
                     mInjector.getExecutor().submit(
-                            () -> getIsolatedServiceBinder(mApplicationContext, componentName));
+                            () -> getIsolatedServiceBinder(componentName));
 
             return FluentFuture.from(isolatedServiceFuture)
                     .transformAsync(
@@ -126,7 +134,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                         // TO-DO (323882182): Granular isolated servce failures.
                                         @Override public void onError(int errorCode) {
                                             completer.setException(
-                                                new OdpServiceException(ERROR_ISOLATED_SERVICE_FAILED));
+                                                new OdpServiceException(
+                                                    Constants.STATUS_SERVICE_FAILED));
                                         }
                                     });
                     return null;
@@ -147,14 +156,25 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     }
 
     private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(
-            @NonNull Context context, @NonNull ComponentName service) {
+            @NonNull ComponentName service) throws Exception {
+        boolean isSipRequested = isSharedIsolatedProcessRequested(service);
+        // null instance name results in regular isolated service being created.
+        String instanceName = isSipRequested ? TRUSTED_PARTNER_APPS_SIP : null;
+        int bindFlag = isSipRequested
+                ? Context.BIND_SHARED_ISOLATED_PROCESS
+                : Context.BIND_AUTO_CREATE;
         return AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
-                        context,
-                        service.getClassName(),
-                        service.getPackageName(),
-                        // TO-DO (323427279): Put trusted apps into a separate SIP.
-                        "trustedSip",
-                        Context.BIND_SHARED_ISOLATED_PROCESS,
-                        IIsolatedService.Stub::asInterface);
+                        mApplicationContext,
+                        service.getClassName(), service.getPackageName(),
+                        instanceName, bindFlag, IIsolatedService.Stub::asInterface);
+    }
+
+    private boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
+        if (!SdkLevel.isAtLeastU()) {
+            return false;
+        }
+        PackageManager pm = mApplicationContext.getPackageManager();
+        ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
+        return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;
     }
 }

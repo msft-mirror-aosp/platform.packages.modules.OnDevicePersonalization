@@ -222,6 +222,11 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
     }
 
     @Override
+    public ComponentName getService() {
+        return mService;
+    }
+
+    @Override
     public Bundle getServiceParams() {
         RenderingConfig renderingConfig =
                 Objects.requireNonNull(mSlotWrapper.getRenderingConfig());
@@ -269,7 +274,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
     @Override
     public ListenableFuture<SurfacePackage> getServiceFlowResultFuture(
             ListenableFuture<Bundle> runServiceFuture) {
-        RequestLogRecord logRecord = Objects.requireNonNull(mSlotWrapper.getLogRecord());
+        RequestLogRecord logRecord = mSlotWrapper.getLogRecord();
         long queryId = mSlotWrapper.getQueryId();
 
         return FluentFuture.from(runServiceFuture)
@@ -319,6 +324,9 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                 },
                 mInjector.getExecutor());
     }
+
+    @Override
+    public void cleanUpServiceParams() {}
 
     private void sendDisplayResult(SurfacePackage surfacePackage) {
         if (surfacePackage != null) {

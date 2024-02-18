@@ -197,7 +197,7 @@ public class OnDevicePersonalizationVendorDataDao {
                     selectionArgs);
 
             // Delete the vendorData and localData table
-            db.execSQL("DROP TABLE " + vendorDataTableName);
+            db.execSQL("DROP TABLE IF EXISTS " + vendorDataTableName);
             OnDevicePersonalizationLocalDataDao.deleteTable(context, owner, certDigest);
 
             db.setTransactionSuccessful();
@@ -430,6 +430,26 @@ public class OnDevicePersonalizationVendorDataDao {
                     null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
             sLogger.e(TAG + ": Failed to update or insert syncToken", e);
+        }
+        return false;
+    }
+
+    /**
+     * Inserts the syncToken, ignoring on conflict.
+     *
+     * @return true if the insert succeeded with no error, false otherwise
+     */
+    protected static boolean insertNewSyncToken(SQLiteDatabase db, String owner, String certDigest,
+            long syncToken) {
+        try {
+            ContentValues values = new ContentValues();
+            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER, owner);
+            values.put(VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST, certDigest);
+            values.put(VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN, syncToken);
+            return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
+                    null, values, SQLiteDatabase.CONFLICT_IGNORE) != -1;
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to insert syncToken", e);
         }
         return false;
     }

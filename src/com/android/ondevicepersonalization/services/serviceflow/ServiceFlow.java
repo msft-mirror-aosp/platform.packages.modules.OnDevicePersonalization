@@ -16,12 +16,13 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import android.content.ComponentName;
 import android.os.Bundle;
 
 import com.google.common.util.concurrent.ListenableFuture;
 
 /**
- * Interface for various on-device personalozation service flows.
+ * Interface for various on-device personalization service flows.
  *
  * @param <R> service flow return data type.
  */
@@ -32,6 +33,9 @@ public interface ServiceFlow<R> {
      * flow parameters before execution.
      */
     boolean isServiceFlowReady();
+
+    /** Returns the service used for loading/binding. */
+    ComponentName getService();
 
     /** Returns the necessary service parameters. */
     Bundle getServiceParams();
@@ -44,4 +48,7 @@ public interface ServiceFlow<R> {
 
     /** Returns the service flow result through a callback. */
     void returnResultThroughCallback(ListenableFuture<R> serviceFlowResultFuture);
+
+    /** Frees up resources used by service. */
+    void cleanUpServiceParams();
 }
