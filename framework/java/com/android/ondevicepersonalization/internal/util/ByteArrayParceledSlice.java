@@ -37,10 +37,9 @@ public final class ByteArrayParceledSlice implements Parcelable {
     @NonNull private final ByteArrayParceledListSlice mContents;
 
     public ByteArrayParceledSlice(@Nullable byte[] input) {
-        ArrayList<byte[]> slices = null;
         if (input != null) {
             final int numSlices = (input.length + MAX_SLICE_SIZE - 1) / MAX_SLICE_SIZE;
-            slices = new ArrayList<>(numSlices);
+            ArrayList<byte[]> slices = new ArrayList<>(numSlices);
             for (int i = 0; i < numSlices; ++i) {
                 int startOffset = i * MAX_SLICE_SIZE;
                 int count = Math.min(MAX_SLICE_SIZE, input.length - startOffset);
@@ -48,12 +47,17 @@ public final class ByteArrayParceledSlice implements Parcelable {
                 System.arraycopy(input, startOffset, slice, 0, count);
                 slices.add(slice);
             }
+            mContents = new ByteArrayParceledListSlice(slices);
+        } else {
+            mContents = null;
         }
-        mContents = new ByteArrayParceledListSlice(slices);
     }
 
     /** Returns the byte array. */
     @Nullable public byte[] getByteArray() {
+        if (mContents == null) {
+            return null;
+        }
         List<byte[]> slices = mContents.getList();
         if (slices == null) {
             return null;

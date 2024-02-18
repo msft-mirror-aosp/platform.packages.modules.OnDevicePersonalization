@@ -26,16 +26,19 @@ import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
@@ -50,6 +53,7 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -61,6 +65,7 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -75,7 +80,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @NonNull
     private final ComponentName mService;
     @NonNull
-    private final PersistableBundle mParams;
+    private final Bundle mWrappedParams;
     @NonNull
     private final IExecuteCallback mCallback;
     @NonNull
@@ -84,6 +89,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
     private long mStartServiceTimeMillis;
+    private byte[] mSerializedAppParams;
 
     @VisibleForTesting
     static class Injector {
@@ -118,6 +124,13 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 String servicePackageName, String appPackageName, Context context) {
             return PrivacyUtils.isOutputDataAllowed(servicePackageName, appPackageName, context);
         }
+
+        boolean shouldValidateExecuteOutput() {
+            return DeviceConfig.getBoolean(
+                    /* namespace= */ "on_device_personalization",
+                    /* name= */ "debug.validate_rendering_config_keys",
+                    /* defaultValue= */ true);
+        }
     }
 
     @NonNull
@@ -126,11 +139,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis) {
-        this(callingPackageName, service, params,
+        this(callingPackageName, service, wrappedParams,
                 callback, context, startTimeMillis,
                 new Injector());
     }
@@ -139,7 +152,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis,
@@ -147,7 +160,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
         mService = Objects.requireNonNull(service);
-        mParams = Objects.requireNonNull(params);
+        mWrappedParams = Objects.requireNonNull(wrappedParams);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
         mStartTimeMillis = startTimeMillis;
@@ -209,6 +222,17 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return false;
         }
 
+        try {
+            ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
+                    mWrappedParams.getParcelable(
+                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class));
+            mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": Failed to extract app params.", e);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            return false;
+        }
+
         AppManifestConfig config = null;
         try {
             config = Objects.requireNonNull(
@@ -230,6 +254,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     }
 
     @Override
+    public ComponentName getService() {
+        return mService;
+    }
+
+    @Override
     public Bundle getServiceParams() {
         Bundle serviceParams = new Bundle();
 
@@ -237,7 +266,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 Constants.EXTRA_INPUT,
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName(mCallingPackageName)
-                        .setAppParams(mParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(mSerializedAppParams))
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
@@ -295,6 +324,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                         );
 
         ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
+                .transformAsync(this::validateExecuteOutput, mInjector.getExecutor())
                 .transformAsync(this::logQuery, mInjector.getExecutor());
 
         return FluentFuture.from(
@@ -323,10 +353,42 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     @Override
                     public void onFailure(Throwable t) {
                         sLogger.w(TAG + ": Request failed.", t);
-                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                        if (t instanceof OdpServiceException) {
+                            sendErrorResult(((OdpServiceException) t).getErrorCode());
+                        } else {
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                        }
                     }
                 },
                 mInjector.getExecutor());
+    }
+
+    @Override
+    public void cleanUpServiceParams() {
+        mModelServiceProvider.unBindFromModelService();
+    }
+
+    private ListenableFuture<ExecuteOutputParcel> validateExecuteOutput(
+            ExecuteOutputParcel result) {
+        sLogger.d(TAG + ": validateExecuteOutput() started.");
+        if (mInjector.shouldValidateExecuteOutput()) {
+            try {
+                OnDevicePersonalizationVendorDataDao vendorDataDao =
+                        OnDevicePersonalizationVendorDataDao.getInstance(mContext,
+                                mService.getPackageName(),
+                                PackageUtils.getCertDigest(mContext, mService.getPackageName()));
+                if (result.getRenderingConfig() != null) {
+                    Set<String> keyset = vendorDataDao.readAllVendorDataKeys();
+                    if (!keyset.containsAll(result.getRenderingConfig().getKeys())) {
+                        return Futures.immediateFailedFuture(
+                                new OdpServiceException(Constants.STATUS_SERVICE_FAILED));
+                    }
+                }
+            } catch (Exception e) {
+                return Futures.immediateFailedFuture(e);
+            }
+        }
+        return Futures.immediateFuture(result);
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {

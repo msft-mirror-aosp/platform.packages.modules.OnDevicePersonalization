@@ -56,7 +56,7 @@ import java.util.function.Function;
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public abstract class IsolatedService extends Service {
-    private static final String TAG = "IsolatedService";
+    private static final String TAG = IsolatedService.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private IBinder mBinder;
 
@@ -220,98 +220,11 @@ public abstract class IsolatedService extends Service {
             // TODO(b/323592348): Add model inference in other flows.
 
             if (operationCode == Constants.OP_EXECUTE) {
-
-                ExecuteInputParcel inputParcel = Objects.requireNonNull(
-                        params.getParcelable(Constants.EXTRA_INPUT, ExecuteInputParcel.class));
-                ExecuteInput input = new ExecuteInput(inputParcel);
-                Objects.requireNonNull(input.getAppPackageName());
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
-                Objects.requireNonNull(binder);
-                IFederatedComputeService fcBinder =
-                        IFederatedComputeService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
-                Objects.requireNonNull(fcBinder);
-                IIsolatedModelService modelServiceBinder =
-                        IIsolatedModelService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(Constants.EXTRA_MODEL_SERVICE_BINDER)));
-                Objects.requireNonNull(modelServiceBinder);
-                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken =
-                        new RequestToken(binder, fcBinder, modelServiceBinder, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onExecute(
-                        input,
-                        new WrappedCallback<ExecuteOutput, ExecuteOutputParcel>(
-                            resultCallback, requestToken, v -> new ExecuteOutputParcel(v)));
-
+                performExecute(params, resultCallback);
             } else if (operationCode == Constants.OP_DOWNLOAD) {
-
-                DownloadInputParcel inputParcel =
-                        Objects.requireNonNull(
-                                params.getParcelable(
-                                        Constants.EXTRA_INPUT, DownloadInputParcel.class));
-
-                KeyValueStore downloadedContents = new RemoteDataImpl(
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(inputParcel.getDataAccessServiceBinder())));
-
-                DownloadCompletedInput input =
-                        new DownloadCompletedInput.Builder().setDownloadedContents(
-                                downloadedContents).build();
-
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
-                Objects.requireNonNull(binder);
-                IFederatedComputeService fcBinder =
-                        IFederatedComputeService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
-                Objects.requireNonNull(fcBinder);
-                IIsolatedModelService modelServiceBinder =
-                        IIsolatedModelService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(Constants.EXTRA_MODEL_SERVICE_BINDER)));
-                Objects.requireNonNull(modelServiceBinder);
-                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                RequestToken requestToken = new RequestToken(binder, fcBinder, null, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onDownloadCompleted(
-                        input,
-                        new WrappedCallback<DownloadCompletedOutput,
-                                DownloadCompletedOutputParcel>(
-                                resultCallback,
-                                requestToken,
-                                v -> new DownloadCompletedOutputParcel(v)));
-
+                performDownload(params, resultCallback);
             } else if (operationCode == Constants.OP_RENDER) {
-
-                RenderInputParcel inputParcel =
-                        Objects.requireNonNull(params.getParcelable(
-                                Constants.EXTRA_INPUT, RenderInputParcel.class));
-                RenderInput input = new RenderInput(inputParcel);
-                Objects.requireNonNull(input.getRenderingConfig());
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
-                Objects.requireNonNull(binder);
-                RequestToken requestToken = new RequestToken(binder, null, null, null);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onRender(input, new WrappedCallback<RenderOutput, RenderOutputParcel>(
-                        resultCallback, requestToken, v -> new RenderOutputParcel(v)));
-
+                performRender(params, resultCallback);
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
 
                 EventInputParcel inputParcel =
@@ -386,6 +299,159 @@ public abstract class IsolatedService extends Service {
                             resultCallback, requestToken, v -> new WebTriggerOutputParcel(v)));
             } else {
                 throw new IllegalArgumentException("Invalid op code: " + operationCode);
+            }
+        }
+
+        private void performRender(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
+                RenderInputParcel inputParcel =
+                        Objects.requireNonNull(
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, RenderInputParcel.class));
+                RenderInput input = new RenderInput(inputParcel);
+                Objects.requireNonNull(input.getRenderingConfig());
+                IDataAccessService binder = getDataAccessService(params);
+                RequestToken requestToken = new RequestToken(binder, null, null, null);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onRender(
+                        input,
+                        new WrappedCallback<RenderOutput, RenderOutputParcel>(
+                                resultCallback, requestToken, v -> new RenderOutputParcel(v)));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service render operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
+            }
+        }
+
+        private void performDownload(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
+                DownloadInputParcel inputParcel =
+                        Objects.requireNonNull(
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, DownloadInputParcel.class),
+                                () ->
+                                        String.format(
+                                                "Missing '%s' from input params!",
+                                                Constants.EXTRA_INPUT));
+                KeyValueStore downloadedContents =
+                        new RemoteDataImpl(
+                                IDataAccessService.Stub.asInterface(
+                                        Objects.requireNonNull(
+                                                inputParcel.getDataAccessServiceBinder(),
+                            "Failed to get IDataAccessService binder from the input params!")));
+
+                DownloadCompletedInput input =
+                        new DownloadCompletedInput.Builder()
+                                .setDownloadedContents(downloadedContents)
+                                .build();
+
+                IDataAccessService binder = getDataAccessService(params);
+
+                IFederatedComputeService fcBinder = getFederatedComputeService(params);
+                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
+                RequestToken requestToken = new RequestToken(binder, fcBinder, null, userData);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onDownloadCompleted(
+                        input,
+                        new WrappedCallback<DownloadCompletedOutput, DownloadCompletedOutputParcel>(
+                                resultCallback,
+                                requestToken,
+                                v -> new DownloadCompletedOutputParcel(v)));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service download operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
+            }
+        }
+
+        private static IIsolatedModelService getIsolatedModelService(@NonNull Bundle params) {
+            IIsolatedModelService modelServiceBinder =
+                    IIsolatedModelService.Stub.asInterface(
+                            Objects.requireNonNull(
+                                    params.getBinder(Constants.EXTRA_MODEL_SERVICE_BINDER),
+                                    () ->
+                                            String.format(
+                                                    "Missing '%s' from input params!",
+                                                    Constants.EXTRA_MODEL_SERVICE_BINDER)));
+            Objects.requireNonNull(
+                    modelServiceBinder,
+                    "Failed to get IIsolatedModelService binder from the input params!");
+            return modelServiceBinder;
+        }
+
+        private static IFederatedComputeService getFederatedComputeService(@NonNull Bundle params) {
+            IFederatedComputeService fcBinder =
+                    IFederatedComputeService.Stub.asInterface(
+                            Objects.requireNonNull(
+                                    params.getBinder(
+                                            Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER),
+                                    () ->
+                                            String.format(
+                                                    "Missing '%s' from input params!",
+                                                    Constants
+                                                        .EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER)));
+            Objects.requireNonNull(
+                    fcBinder,
+                    "Failed to get IFederatedComputeService binder from the input params!");
+            return fcBinder;
+        }
+
+        private static IDataAccessService getDataAccessService(@NonNull Bundle params) {
+            IDataAccessService binder =
+                    IDataAccessService.Stub.asInterface(
+                            Objects.requireNonNull(
+                                    params.getBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER),
+                                    () ->
+                                            String.format(
+                                                    "Missing '%s' from input params!",
+                                                    Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+            Objects.requireNonNull(
+                    binder, "Failed to get IDataAccessService binder from the input params!");
+            return binder;
+        }
+
+        private void performExecute(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
+                ExecuteInputParcel inputParcel =
+                        Objects.requireNonNull(
+                                params.getParcelable(
+                                        Constants.EXTRA_INPUT, ExecuteInputParcel.class),
+                                () ->
+                                        String.format(
+                                                "Missing '%s' from input params!",
+                                                Constants.EXTRA_INPUT));
+                ExecuteInput input = new ExecuteInput(inputParcel);
+                Objects.requireNonNull(
+                        input.getAppPackageName(),
+                        "Failed to get AppPackageName from the input params!");
+                IDataAccessService binder = getDataAccessService(params);
+                IFederatedComputeService fcBinder = getFederatedComputeService(params);
+                IIsolatedModelService modelServiceBinder = getIsolatedModelService(params);
+                UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
+                RequestToken requestToken =
+                        new RequestToken(binder, fcBinder, modelServiceBinder, userData);
+                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
+                implCallback.onExecute(
+                        input,
+                        new WrappedCallback<ExecuteOutput, ExecuteOutputParcel>(
+                                resultCallback, requestToken, v -> new ExecuteOutputParcel(v)));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service execute operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
             }
         }
     }

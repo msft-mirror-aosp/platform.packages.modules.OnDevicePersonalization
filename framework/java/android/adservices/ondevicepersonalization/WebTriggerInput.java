@@ -26,7 +26,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input data for
- * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}.
+ * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = false, genHiddenConstructor = true, genEqualsHashCode = true)

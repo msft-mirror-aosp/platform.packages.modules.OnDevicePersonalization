@@ -24,6 +24,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -123,6 +124,21 @@ public class OnDevicePersonalizationVendorDataDaoTest {
     }
 
     @Test
+    public void testInsertNewSyncToken() {
+        SQLiteDatabase db = OnDevicePersonalizationDbHelper.getInstanceForTest(
+                mContext).getWritableDatabase();
+        OnDevicePersonalizationVendorDataDao.insertNewSyncToken(db, TEST_OWNER, TEST_CERT_DIGEST,
+                0);
+        long timestampFromDB = mDao.getSyncToken();
+        assertEquals(0L, timestampFromDB);
+        // Insert does nothing on conflict.
+        OnDevicePersonalizationVendorDataDao.insertNewSyncToken(db, TEST_OWNER, TEST_CERT_DIGEST,
+                100);
+        timestampFromDB = mDao.getSyncToken();
+        assertEquals(0L, timestampFromDB);
+    }
+
+    @Test
     public void testGetVendors() {
         addTestData(System.currentTimeMillis());
         List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
@@ -185,6 +201,11 @@ public class OnDevicePersonalizationVendorDataDaoTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+        FileUtils.deleteDirectory(vendorDir);
+        FileUtils.deleteDirectory(localDir);
     }
 
     private void addTestData(long timestamp) {

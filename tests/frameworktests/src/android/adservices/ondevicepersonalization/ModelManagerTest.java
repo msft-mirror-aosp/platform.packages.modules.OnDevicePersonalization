@@ -71,7 +71,11 @@ public class ModelManagerTest {
         input[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
                 new InferenceInput.Builder(
-                                InferenceInput.Params.createCpuParams(mRemoteData, MODEL_KEY, 1),
+                                InferenceInput.Params.createCpuParams(
+                                        mRemoteData,
+                                        MODEL_KEY,
+                                        1,
+                                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
                                 input,
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
@@ -95,7 +99,10 @@ public class ModelManagerTest {
         InferenceInput inferenceContext =
                 new InferenceInput.Builder(
                                 InferenceInput.Params.createCpuParams(
-                                        mRemoteData, INVALID_MODEL_KEY, 1),
+                                        mRemoteData,
+                                        INVALID_MODEL_KEY,
+                                        1,
+                                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
                                 input,
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
@@ -125,7 +132,10 @@ public class ModelManagerTest {
         InferenceInput inferenceContext =
                 new InferenceInput.Builder(
                                 InferenceInput.Params.createCpuParams(
-                                        mRemoteData, MISSING_OUTPUT_KEY, 1),
+                                        mRemoteData,
+                                        MISSING_OUTPUT_KEY,
+                                        1,
+                                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
                                 inputData,
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
