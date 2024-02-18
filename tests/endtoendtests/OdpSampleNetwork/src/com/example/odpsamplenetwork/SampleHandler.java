@@ -27,10 +27,13 @@ import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.FederatedComputeInput;
 import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
+import android.adservices.ondevicepersonalization.InferenceInput;
+import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
 import android.adservices.ondevicepersonalization.LogReader;
+import android.adservices.ondevicepersonalization.ModelManager;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
@@ -52,6 +55,7 @@ import android.util.JsonReader;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.google.common.base.Strings;
 import com.google.common.util.concurrent.FluentFuture;
@@ -75,6 +79,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.Random;
@@ -96,29 +102,38 @@ public class SampleHandler implements IsolatedWorker {
     private static final int BID_PRICE_OFFSET = 0;
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
-            + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
+                    + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
 
     private static final ListeningExecutorService sBackgroundExecutor =
-            MoreExecutors.listeningDecorator(Executors.newFixedThreadPool(
-                    /* nThreads */ 4,
-                    createThreadFactory("BG Thread", Process.THREAD_PRIORITY_BACKGROUND,
-                            Optional.of(getIoThreadPolicy()))));
+            MoreExecutors.listeningDecorator(
+                    Executors.newFixedThreadPool(
+                            /* nThreads */ 4,
+                            createThreadFactory(
+                                    "BG Thread",
+                                    Process.THREAD_PRIORITY_BACKGROUND,
+                                    Optional.of(getIoThreadPolicy()))));
 
     private final KeyValueStore mRemoteData;
     private final EventUrlProvider mEventUrlProvider;
     private final UserData mUserData;
     private final FederatedComputeScheduler mFCScheduler;
     private final LogReader mLogReader;
+    private final ModelManager mModelManager;
 
-    SampleHandler(KeyValueStore remoteData, EventUrlProvider eventUrlProvider,
-            UserData userData, FederatedComputeScheduler fcScheduler,
-            LogReader logReader) {
+    SampleHandler(
+            KeyValueStore remoteData,
+            EventUrlProvider eventUrlProvider,
+            UserData userData,
+            FederatedComputeScheduler fcScheduler,
+            LogReader logReader,
+            ModelManager modelManager) {
         mRemoteData = remoteData;
         mEventUrlProvider = eventUrlProvider;
         mUserData = userData;
         mFCScheduler = fcScheduler;
         mLogReader = logReader;
+        mModelManager = modelManager;
         if (mRemoteData == null) {
             Log.e(TAG, "RemoteData missing");
         }
@@ -133,6 +148,9 @@ public class SampleHandler implements IsolatedWorker {
         }
         if (mLogReader == null) {
             Log.e(TAG, "LogReader missing");
+        }
+        if (mModelManager == null) {
+            Log.e(TAG, "ModelManager missing");
         }
     }
 
@@ -242,13 +260,14 @@ public class SampleHandler implements IsolatedWorker {
     private List<Ad> matchAds(List<Ad> ads, ExecuteInput input) {
         Log.d(TAG, "matchAds() called.");
         String requestKeyword = "";
-        if (input != null && input.getAppParams() != null
+        if (input != null
+                && input.getAppParams() != null
                 && input.getAppParams().getString("keyword") != null) {
             requestKeyword = input.getAppParams().getString("keyword").toLowerCase().strip();
         }
 
         List<Ad> result = new ArrayList<>();
-        for (Ad ad: ads) {
+        for (Ad ad : ads) {
             if (isMatch(ad, requestKeyword)) {
                 result.add(ad);
             }
@@ -256,14 +275,22 @@ public class SampleHandler implements IsolatedWorker {
         return result;
     }
 
-    private Ad runAuction(List<Ad> ads) {
+    private Ad runAuction(List<Ad> ads, InferenceOutput inferenceOutput) {
         Log.d(TAG, "runAuction() called.");
         Ad winner = null;
         double maxPrice = 0.0;
-        for (Ad ad: ads) {
-            if (ad.mPrice > maxPrice) {
+        float[] prediction = (float[]) inferenceOutput.getDataOutputs().get(0);
+        Log.i(TAG, "prediction result " + Arrays.toString(prediction));
+        if (prediction.length != ads.size()) {
+            Log.e(TAG, "prediction result doesn't match ads list");
+        }
+        for (int i = 0; i < ads.size(); i++) {
+            Ad ad = ads.get(i);
+            double price = ad.mMaxCpcPrice * prediction[i];
+            ad.setBidPrice(price);
+            if (price > maxPrice) {
                 winner = ad;
-                maxPrice = ad.mPrice;
+                maxPrice = price;
             }
         }
         return winner;
@@ -279,7 +306,12 @@ public class SampleHandler implements IsolatedWorker {
 
     private ExecuteOutput buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
-        ContentValues logData = createLogRecord(ad.mId, ad.mPrice, ad.mPrice * 10.0);
+        ContentValues logData = createLogRecord(ad.mId, ad.mMaxCpcPrice, ad.mBidPrice);
+        Log.i(
+                TAG,
+                String.format(
+                        "Log winning ad id %s max cpc price %.2f bid price %.2f",
+                        ad.mId, ad.mMaxCpcPrice, ad.mBidPrice));
         return new ExecuteOutput.Builder()
                 .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
                 .setRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
@@ -296,8 +328,8 @@ public class SampleHandler implements IsolatedWorker {
     private static Feature convertLongToFeature(String value) {
         long lValue = value.isEmpty() ? 0L : Long.parseLong(value);
         return Feature.newBuilder()
-            .setInt64List(Int64List.newBuilder().addValue(lValue).build())
-            .build();
+                .setInt64List(Int64List.newBuilder().addValue(lValue).build())
+                .build();
     }
 
     private static Example convertToExample(String serializedExample) {
@@ -327,9 +359,12 @@ public class SampleHandler implements IsolatedWorker {
         int numExample = rand.nextInt(10) + 1;
         Log.d(TAG, String.format("onTrainingExample() generates %d examples.", numExample));
         for (int count = 0; count < numExample; count++) {
-            Example example = convertToExample(
-                    new String(mRemoteData.get(String.format("example%d", rand.nextInt(100) + 1)),
-                    StandardCharsets.UTF_8));
+            Example example =
+                    convertToExample(
+                            new String(
+                                    mRemoteData.get(
+                                            String.format("example%d", rand.nextInt(100) + 1)),
+                                    StandardCharsets.UTF_8));
             TrainingExampleRecord record =
                     new TrainingExampleRecord.Builder()
                             .setTrainingExample(example.toByteArray())
@@ -342,21 +377,22 @@ public class SampleHandler implements IsolatedWorker {
 
     private void handleOnExecute(
             @NonNull ExecuteInput input,
-            @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver
-    ) {
+            @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         try {
-            if (input != null && input.getAppParams() != null
+            if (input != null
+                    && input.getAppParams() != null
                     && input.getAppParams().getString("schedule_training") != null) {
                 if (input.getAppParams().getString("schedule_training").isEmpty()) {
                     receiver.onResult(null);
                     return;
                 }
-                TrainingInterval interval = new TrainingInterval.Builder()
-                        .setMinimumInterval(Duration.ofSeconds(10))
-                        .setSchedulingMode(2)
-                        .build();
-                FederatedComputeScheduler.Params params = new FederatedComputeScheduler
-                        .Params(interval);
+                TrainingInterval interval =
+                        new TrainingInterval.Builder()
+                                .setMinimumInterval(Duration.ofSeconds(10))
+                                .setSchedulingMode(2)
+                                .build();
+                FederatedComputeScheduler.Params params =
+                        new FederatedComputeScheduler.Params(interval);
                 FederatedComputeInput fcInput =
                         new FederatedComputeInput.Builder()
                                 .setPopulationName(
@@ -366,7 +402,8 @@ public class SampleHandler implements IsolatedWorker {
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
                 receiver.onResult(result);
-            } else if (input != null && input.getAppParams() != null
+            } else if (input != null
+                    && input.getAppParams() != null
                     && input.getAppParams().getString("conversion_ad_id") != null) {
                 try {
                     receiver.onResult(handleConversion(input));
@@ -375,24 +412,38 @@ public class SampleHandler implements IsolatedWorker {
                     return;
                 }
             } else {
-                var unused = FluentFuture.from(readAds(mRemoteData))
-                        .transform(
-                            ads -> buildResult(runAuction(matchAds(ads, input))),
-                            sBackgroundExecutor)
-                        .transform(
-                            result -> {
-                                receiver.onResult(result);
-                                return null;
-                            },
-                            MoreExecutors.directExecutor())
-                        .catching(
-                            Exception.class,
-                            e -> {
-                                Log.e(TAG, "Execution failed.", e);
-                                receiver.onResult(null);
-                                return null;
-                            },
-                            MoreExecutors.directExecutor());
+                ListenableFuture<List<Ad>> matchAdsFuture =
+                        FluentFuture.from(readAds(mRemoteData))
+                                .transform(ads -> matchAds(ads, input), sBackgroundExecutor);
+                ListenableFuture<InferenceOutput> inferenceFuture =
+                        FluentFuture.from(matchAdsFuture)
+                                .transformAsync(ads -> runInference(ads), sBackgroundExecutor);
+                ListenableFuture<ExecuteOutput> resultFuture =
+                        Futures.whenAllComplete(matchAdsFuture, inferenceFuture)
+                                .call(
+                                        () ->
+                                                buildResult(
+                                                        runAuction(
+                                                                matchAdsFuture.get(),
+                                                                inferenceFuture.get())),
+                                        sBackgroundExecutor);
+
+                var unused =
+                        FluentFuture.from(resultFuture)
+                                .transform(
+                                        result -> {
+                                            receiver.onResult(result);
+                                            return null;
+                                        },
+                                        MoreExecutors.directExecutor())
+                                .catching(
+                                        Exception.class,
+                                        e -> {
+                                            Log.e(TAG, "Execution failed.", e);
+                                            receiver.onResult(null);
+                                            return null;
+                                        },
+                                        MoreExecutors.directExecutor());
             }
         } catch (Exception e) {
             Log.e(TAG, "handleOnExecute() failed", e);
@@ -404,21 +455,25 @@ public class SampleHandler implements IsolatedWorker {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_IMPRESSION);
-            String url = mEventUrlProvider.createEventTrackingUrlWithResponse(
-                    eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
+            String url =
+                    mEventUrlProvider
+                            .createEventTrackingUrlWithResponse(
+                                    eventParams, TRANSPARENT_PNG_BYTES, "image/png")
+                            .toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
     }
 
-    private ListenableFuture<String> getClickTrackingUrl(
-            String landingPage) {
+    private ListenableFuture<String> getClickTrackingUrl(String landingPage) {
         try {
             PersistableBundle eventParams = new PersistableBundle();
             eventParams.putInt(EVENT_TYPE_KEY, EVENT_TYPE_CLICK);
-            String url = mEventUrlProvider.createEventTrackingUrlWithRedirect(
-                    eventParams, Uri.parse(landingPage)).toString();
+            String url =
+                    mEventUrlProvider
+                            .createEventTrackingUrlWithRedirect(eventParams, Uri.parse(landingPage))
+                            .toString();
             return Futures.immediateFuture(url);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
@@ -433,8 +488,7 @@ public class SampleHandler implements IsolatedWorker {
         }
     }
 
-    private RenderOutput buildRenderOutput(
-            Ad ad, String impressionUrl, String clickUrl) {
+    private RenderOutput buildRenderOutput(Ad ad, String impressionUrl, String clickUrl) {
         if (ad.mTemplateId != null) {
             PersistableBundle templateParams = new PersistableBundle();
             templateParams.putString("impressionUrl", impressionUrl);
@@ -446,8 +500,14 @@ public class SampleHandler implements IsolatedWorker {
                     .build();
         } else {
             String content =
-                    "<img src=\"" + impressionUrl + "\">\n"
-                            + "<a href=\"" + clickUrl + "\">" + ad.mText + "</a>";
+                    "<img src=\""
+                            + impressionUrl
+                            + "\">\n"
+                            + "<a href=\""
+                            + clickUrl
+                            + "\">"
+                            + ad.mText
+                            + "</a>";
             Log.d(TAG, "content: " + content);
             return new RenderOutput.Builder().setContent(content).build();
         }
@@ -459,14 +519,15 @@ public class SampleHandler implements IsolatedWorker {
             return null;
         }
         long now = System.currentTimeMillis();
-        List<EventLogRecord> logRecords = mLogReader.getJoinedEvents(
-                Instant.ofEpochMilli(now - 24 * 60 * 60 * 1000),
-                Instant.ofEpochMilli(now));
+        List<EventLogRecord> logRecords =
+                mLogReader.getJoinedEvents(
+                        Instant.ofEpochMilli(now - 24 * 60 * 60 * 1000), Instant.ofEpochMilli(now));
         EventLogRecord found = null;
         // Attribute conversion to most recent impression or click.
         for (EventLogRecord ev : logRecords) {
             RequestLogRecord req = ev.getRequestLogRecord();
-            if (req == null || req.getRows() == null
+            if (req == null
+                    || req.getRows() == null
                     || req.getRows().size() <= ev.getRowIndex()
                     || req.getRows().get(ev.getRowIndex()) == null) {
                 continue;
@@ -482,12 +543,13 @@ public class SampleHandler implements IsolatedWorker {
         if (found != null) {
             ContentValues values = new ContentValues();
             values.put(SOURCE_TYPE_KEY, found.getType());
-            EventLogRecord conv = new EventLogRecord.Builder()
-                    .setType(EVENT_TYPE_CONVERSION)
-                    .setData(values)
-                    .setRowIndex(found.getRowIndex())
-                    .setRequestLogRecord(found.getRequestLogRecord())
-                    .build();
+            EventLogRecord conv =
+                    new EventLogRecord.Builder()
+                            .setType(EVENT_TYPE_CONVERSION)
+                            .setData(values)
+                            .setRowIndex(found.getRowIndex())
+                            .setRequestLogRecord(found.getRequestLogRecord())
+                            .build();
             builder.addEventLogRecord(conv);
         }
         return builder.build();
@@ -495,37 +557,42 @@ public class SampleHandler implements IsolatedWorker {
 
     private void handleOnRender(
             @NonNull RenderInput input,
-            @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver
-    ) {
+            @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
         try {
             Log.d(TAG, "handleOnRender() started.");
             String id = input.getRenderingConfig().getKeys().get(0);
             var adFuture = readAd(id, mRemoteData);
             var impUrlFuture = getImpressionTrackingUrl();
-            var clickUrlFuture = FluentFuture.from(adFuture).transformAsync(
-                    ad -> getClickTrackingUrl(ad.mLandingPage),
-                    sBackgroundExecutor);
-            var unused = FluentFuture.from(
-                    Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
-                        .call(
-                            () -> buildRenderOutput(
-                                Futures.getDone(adFuture), Futures.getDone(impUrlFuture),
-                                Futures.getDone(clickUrlFuture)),
-                            MoreExecutors.directExecutor()))
-                    .transform(
-                        result -> {
-                            receiver.onResult(result);
-                            return null;
-                        },
-                        MoreExecutors.directExecutor())
-                    .catching(
-                        Exception.class,
-                        e -> {
-                            Log.e(TAG, "Execution failed.", e);
-                            receiver.onResult(null);
-                            return null;
-                        },
-                        MoreExecutors.directExecutor());
+            var clickUrlFuture =
+                    FluentFuture.from(adFuture)
+                            .transformAsync(
+                                    ad -> getClickTrackingUrl(ad.mLandingPage),
+                                    sBackgroundExecutor);
+            var unused =
+                    FluentFuture.from(
+                                    Futures.whenAllComplete(adFuture, impUrlFuture, clickUrlFuture)
+                                            .call(
+                                                    () ->
+                                                            buildRenderOutput(
+                                                                    Futures.getDone(adFuture),
+                                                                    Futures.getDone(impUrlFuture),
+                                                                    Futures.getDone(
+                                                                            clickUrlFuture)),
+                                                    MoreExecutors.directExecutor()))
+                            .transform(
+                                    result -> {
+                                        receiver.onResult(result);
+                                        return null;
+                                    },
+                                    MoreExecutors.directExecutor())
+                            .catching(
+                                    Exception.class,
+                                    e -> {
+                                        Log.e(TAG, "Execution failed.", e);
+                                        receiver.onResult(null);
+                                        return null;
+                                    },
+                                    MoreExecutors.directExecutor());
 
         } catch (Exception e) {
             Log.e(TAG, "handleOnRender failed.", e);
@@ -560,13 +627,15 @@ public class SampleHandler implements IsolatedWorker {
                 logData = new ContentValues();
                 logData.put(CLICK_COST_KEY, updatedPrice);
             }
-            EventOutput result = new EventOutput.Builder()
-                    .setEventLogRecord(
-                        new EventLogRecord.Builder()
-                            .setRowIndex(0)
-                            .setType(eventType)
-                            .setData(logData).build())
-                    .build();
+            EventOutput result =
+                    new EventOutput.Builder()
+                            .setEventLogRecord(
+                                    new EventLogRecord.Builder()
+                                            .setRowIndex(0)
+                                            .setType(eventType)
+                                            .setData(logData)
+                                            .build())
+                            .build();
             receiver.onResult(result);
         } catch (Exception e) {
             Log.e(TAG, "handleOnEvent failed.", e);
@@ -589,7 +658,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInfos().keySet()) {
+        for (String app : mUserData.getAppInfos().keySet()) {
             AppInfo value = mUserData.getAppInfos().get(app);
             if (value != null && value.isInstalled() && filter.contains(app)) {
                 return true;
@@ -614,7 +683,7 @@ public class SampleHandler implements IsolatedWorker {
             return false;
         }
 
-        for (String app: mUserData.getAppInfos().keySet()) {
+        for (String app : mUserData.getAppInfos().keySet()) {
             if (apps.contains(app)) {
                 return true;
             }
@@ -638,7 +707,9 @@ public class SampleHandler implements IsolatedWorker {
                     if (ad != null && !isBlockedAd(ad)) {
                         filteredKeys.add(key);
                     }
-                } else if (key.startsWith("template") || key.startsWith("example")) {
+                } else if (key.startsWith("template")
+                        || key.startsWith("example")
+                        || key.startsWith("model")) {
                     filteredKeys.add(key);
                 }
             }
@@ -647,34 +718,78 @@ public class SampleHandler implements IsolatedWorker {
     }
 
     private static ThreadFactory createThreadFactory(
-            final String name, final int priority,
-            final Optional<StrictMode.ThreadPolicy> policy) {
+            final String name, final int priority, final Optional<StrictMode.ThreadPolicy> policy) {
         return new ThreadFactoryBuilder()
-            .setDaemon(true)
-            .setNameFormat(name + " #%d")
-            .setThreadFactory(
-                    new ThreadFactory() {
-                        @Override
-                        public Thread newThread(final Runnable runnable) {
-                            return new Thread(new Runnable() {
+                .setDaemon(true)
+                .setNameFormat(name + " #%d")
+                .setThreadFactory(
+                        new ThreadFactory() {
+                            @Override
+                            public Thread newThread(final Runnable runnable) {
+                                return new Thread(
+                                        new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                if (policy.isPresent()) {
+                                                    StrictMode.setThreadPolicy(policy.get());
+                                                }
+                                                // Process class operates on the current thread.
+                                                Process.setThreadPriority(priority);
+                                                runnable.run();
+                                            }
+                                        });
+                            }
+                        })
+                .build();
+    }
+
+    private ListenableFuture<InferenceOutput> runInference(List<Ad> ads) {
+        InferenceInput.Params params =
+                InferenceInput.Params.createCpuParams(
+                        mRemoteData, "model1", 1, InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
+        InferenceInput input =
+                new InferenceInput.Builder(
+                                params, generateInputData(ads), generateInferenceOutput(ads.size()))
+                        .build();
+        Log.d(TAG, "runInference() called.");
+        return CallbackToFutureAdapter.getFuture(
+                completer -> {
+                    mModelManager.run(
+                            input,
+                            sBackgroundExecutor,
+                            new OutcomeReceiver<>() {
                                 @Override
-                                public void run() {
-                                    if (policy.isPresent()) {
-                                        StrictMode.setThreadPolicy(policy.get());
-                                    }
-                                    // Process class operates on the current thread.
-                                    Process.setThreadPriority(priority);
-                                    runnable.run();
+                                public void onResult(InferenceOutput result) {
+                                    completer.set(result);
                                 }
                             });
-                        }
-                    })
-            .build();
+                    // Used only for debugging.
+                    return "getModelInferenceResultFuture";
+                });
+    }
+
+    private Object[] generateInputData(List<Ad> ads) {
+        int numExample = ads.size();
+        float[][] input = new float[numExample][100];
+        for (int i = 0; i < numExample; i++) {
+            Float[] features = ads.get(i).mEmbeddingFeatures;
+            for (int j = 0; j < 100; j++) {
+                input[i][j] = features[j];
+            }
+        }
+        return new Object[] {input};
+    }
+
+    private InferenceOutput generateInferenceOutput(int numExample) {
+        float[] output0 = new float[numExample];
+        HashMap<Integer, Object> outputMap = new HashMap<>();
+        outputMap.put(0, output0);
+        return new InferenceOutput.Builder().setDataOutputs(outputMap).build();
     }
 
     static class Ad {
         final String mId;
-        final double mPrice;
+        final double mMaxCpcPrice;
         final List<String> mTargetKeywords;
         final List<String> mTargetApps;
         final List<String> mExcludes;
@@ -684,13 +799,24 @@ public class SampleHandler implements IsolatedWorker {
         final CuckooFilter<String> mTargetKeywordFilter;
         final CuckooFilter<String> mTargetAppFilter;
         final CuckooFilter<String> mExcludeFilter;
-        Ad(String id, double price, List<String> targetKeywords, List<String> targetApps,
-                List<String> excludes, String landingPage, String text, String templateId,
+        final Float[] mEmbeddingFeatures;
+        double mBidPrice;
+
+        Ad(
+                String id,
+                double price,
+                List<String> targetKeywords,
+                List<String> targetApps,
+                List<String> excludes,
+                String landingPage,
+                String text,
+                String templateId,
                 CuckooFilter<String> targetKeywordFilter,
                 CuckooFilter<String> targetAppFilter,
-                CuckooFilter<String> excludeFilter) {
+                CuckooFilter<String> excludeFilter,
+                Float[] embeddingFeatures) {
             mId = id;
-            mPrice = price;
+            mMaxCpcPrice = price;
             mTargetKeywords = targetKeywords;
             mTargetApps = targetApps;
             mExcludes = excludes;
@@ -700,6 +826,11 @@ public class SampleHandler implements IsolatedWorker {
             mTargetKeywordFilter = targetKeywordFilter;
             mTargetAppFilter = targetAppFilter;
             mExcludeFilter = excludeFilter;
+            mEmbeddingFeatures = embeddingFeatures;
+        }
+
+        public void setBidPrice(double bidPrice) {
+            mBidPrice = bidPrice;
         }
     }
 
@@ -723,7 +854,7 @@ public class SampleHandler implements IsolatedWorker {
         // TODO(b/263493591): Parse JSON ad.
         try (JsonReader reader = new JsonReader(new StringReader(dataStr))) {
             reader.beginObject();
-            double price = 0.0;
+            double maxCpcPrice = 0.0;
             ArrayList<String> targetKeywords = new ArrayList<>();
             ArrayList<String> targetApps = new ArrayList<>();
             ArrayList<String> excludes = new ArrayList<>();
@@ -733,10 +864,11 @@ public class SampleHandler implements IsolatedWorker {
             CuckooFilter<String> targetKeywordFilter = null;
             CuckooFilter<String> targetAppFilter = null;
             CuckooFilter<String> excludeFilter = null;
+            Float[] embeddingFeatures = null;
             while (reader.hasNext()) {
                 String name = reader.nextName();
-                if (name.equals("price")) {
-                    price = reader.nextDouble();
+                if (name.equals("max_cpc")) {
+                    maxCpcPrice = reader.nextDouble();
                 } else if (name.equals("keywords")) {
                     readJsonArray(reader, targetKeywords);
                 } else if (name.equals("apps")) {
@@ -755,13 +887,28 @@ public class SampleHandler implements IsolatedWorker {
                     targetAppFilter = CuckooFilterUtil.createCuckooFilter(reader.nextString());
                 } else if (name.equals("excludeFilter")) {
                     excludeFilter = CuckooFilterUtil.createCuckooFilter(reader.nextString());
+                } else if (name.equals("embedding_features")) {
+                    String[] featuresStr = reader.nextString().split(",", -1);
+                    embeddingFeatures =
+                            Arrays.stream(featuresStr).map(Float::parseFloat).toArray(Float[]::new);
                 } else {
                     reader.skipValue();
                 }
             }
             reader.endObject();
-            return new Ad(id, price, targetKeywords, targetApps, excludes, landingPage, text,
-                    templateId, targetKeywordFilter, targetAppFilter, excludeFilter);
+            return new Ad(
+                    id,
+                    maxCpcPrice,
+                    targetKeywords,
+                    targetApps,
+                    excludes,
+                    landingPage,
+                    text,
+                    templateId,
+                    targetKeywordFilter,
+                    targetAppFilter,
+                    excludeFilter,
+                    embeddingFeatures);
         } catch (Exception e) {
             Log.e(TAG, "parseAd() failed.", e);
             return null;

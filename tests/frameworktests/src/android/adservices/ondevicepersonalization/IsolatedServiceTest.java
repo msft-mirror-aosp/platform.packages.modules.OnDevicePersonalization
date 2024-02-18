@@ -42,6 +42,9 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -89,7 +92,8 @@ public class IsolatedServiceTest {
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
-                        .setAppParams(appParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(appParams)))
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -114,7 +118,8 @@ public class IsolatedServiceTest {
         ExecuteInputParcel input =
                 new ExecuteInputParcel.Builder()
                         .setAppPackageName("com.testapp")
-                        .setAppParams(appParams)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(
+                                PersistableBundleUtils.toByteArray(appParams)))
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
@@ -160,11 +165,9 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -175,11 +178,9 @@ public class IsolatedServiceTest {
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -188,11 +189,9 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -220,7 +219,6 @@ public class IsolatedServiceTest {
         params.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new TestFederatedComputeService());
-        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnDownloadCalled);
@@ -243,11 +241,9 @@ public class IsolatedServiceTest {
     public void testOnDownloadThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -258,11 +254,9 @@ public class IsolatedServiceTest {
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -274,11 +268,9 @@ public class IsolatedServiceTest {
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_DOWNLOAD, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -347,11 +339,9 @@ public class IsolatedServiceTest {
     public void testOnRenderThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -363,11 +353,9 @@ public class IsolatedServiceTest {
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test

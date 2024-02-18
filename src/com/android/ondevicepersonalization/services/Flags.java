@@ -100,6 +100,11 @@ public interface Flags {
                     + "com.example.odptargetingapp1,"
                     + "com.example.odptargetingapp2";
 
+    /**
+     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     */
+    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
     }
@@ -130,5 +135,9 @@ public interface Flags {
 
     default String getIsolatedServiceAllowList() {
         return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
+    }
+
+    default long getUserConsentCacheInMillis() {
+        return USER_CONSENT_CACHE_IN_MILLIS;
     }
 }

@@ -25,7 +25,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input data for
- * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)}.
+ * {@link IsolatedWorker#onRender(RenderInput, android.os.OutcomeReceiver)}.
  *
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
@@ -39,7 +39,7 @@ public final class RenderInput {
 
     /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @Nullable RenderingConfig mRenderingConfig = null;
 
@@ -72,7 +72,7 @@ public final class RenderInput {
      *   The height of the slot.
      * @param renderingConfig
      *   A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     *   {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     *   {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      * @hide
      */
     @DataClass.Generated.Member
@@ -105,7 +105,7 @@ public final class RenderInput {
 
     /**
      * A {@link RenderingConfig} within an {@link ExecuteOutput} that was returned by
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @DataClass.Generated.Member
     public @Nullable RenderingConfig getRenderingConfig() {

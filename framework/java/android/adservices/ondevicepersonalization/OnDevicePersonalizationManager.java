@@ -37,6 +37,8 @@ import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
 import java.util.List;
 import java.util.Objects;
@@ -131,7 +133,7 @@ public class OnDevicePersonalizationManager {
     /**
      * Executes an {@link IsolatedService} in the OnDevicePersonalization sandbox. The
      * platform binds to the specified {@link IsolatedService} in an isolated process
-     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * and calls {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * with the caller-provided parameters. When the {@link IsolatedService} finishes execution,
      * the platform returns tokens that refer to the results from the service to the caller.
      * These tokens can be subsequently used to display results in a
@@ -205,10 +207,14 @@ public class OnDevicePersonalizationManager {
                 }
             };
 
+            Bundle wrappedParams = new Bundle();
+            wrappedParams.putParcelable(
+                    Constants.EXTRA_APP_PARAMS_SERIALIZED,
+                    new ByteArrayParceledSlice(PersistableBundleUtils.toByteArray(params)));
             odpService.execute(
                     mContext.getPackageName(),
                     service,
-                    params,
+                    wrappedParams,
                     new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                     callbackWrapper);
 

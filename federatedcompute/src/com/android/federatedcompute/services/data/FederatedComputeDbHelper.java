@@ -16,19 +16,25 @@
 
 package com.android.federatedcompute.services.data;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
 import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
+import android.annotation.Nullable;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.annotations.VisibleForTesting;
 
 /** Helper to manage FederatedTrainingTask database. */
@@ -180,6 +186,38 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                 sInstance.close();
                 sInstance = null;
             }
+        }
+    }
+
+    /** Wraps getReadableDatabase to catch SQLiteException and log error. */
+    @Nullable
+    public SQLiteDatabase safeGetReadableDatabase() {
+        try {
+            return super.getReadableDatabase();
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, e, "Failed to get a readable database");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+            return null;
+        }
+    }
+
+    /** Wraps getWritableDatabase to catch SQLiteException and log error. */
+    @Nullable
+    public SQLiteDatabase safeGetWritableDatabase() {
+        try {
+            return super.getWritableDatabase();
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, e, "Failed to get a writeable database");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+            return null;
         }
     }
 }

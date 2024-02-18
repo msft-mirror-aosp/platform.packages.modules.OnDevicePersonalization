@@ -96,6 +96,7 @@
         <service
             android:name="com.android.ondevicepersonalization.services.inference.IsolatedModelService"
             android:isolatedProcess="true"
+            android:allowSharedIsolatedProcess="true"
             android:exported="false">
         </service>
 

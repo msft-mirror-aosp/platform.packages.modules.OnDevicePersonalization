@@ -122,12 +122,14 @@ package android.adservices.ondevicepersonalization {
   }
 
   public static class InferenceInput.Params {
-    method @NonNull public static android.adservices.ondevicepersonalization.InferenceInput.Params createCpuParams(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String, @IntRange(from=1) int);
+    method @NonNull public static android.adservices.ondevicepersonalization.InferenceInput.Params createCpuParams(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String, @IntRange(from=1) int, int);
     method @IntRange(from=1) public int getCpuNumThread();
     method public int getDelegateType();
     method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getKeyValueStore();
     method @NonNull public String getModelKey();
+    method public int getModelType();
     field public static final int DELEGATE_CPU = 1; // 0x1
+    field public static final int MODEL_TYPE_TENSORFLOW_LITE = 1; // 0x1
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class InferenceOutput {
