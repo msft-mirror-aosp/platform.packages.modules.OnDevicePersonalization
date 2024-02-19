@@ -64,6 +64,12 @@ public interface Flags {
     int WEB_VIEW_FLOW_DEADLINE_SECONDS = 30;
 
     /**
+     * Executiton deadline for web trigger flow.
+     */
+    int WEB_TRIGGER_FLOW_DEADLINE_SECONDS = 30;
+
+
+    /**
      * Default value for the list of trusted partner app names.
      */
     String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
@@ -146,6 +152,10 @@ public interface Flags {
 
     default int getWebViewFlowDeadlineSeconds() {
         return WEB_VIEW_FLOW_DEADLINE_SECONDS;
+    }
+
+    default int getWebTriggerFlowDeadlineSeconds() {
+        return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
     }
 
     default String getTrustedPartnerAppsList() {
