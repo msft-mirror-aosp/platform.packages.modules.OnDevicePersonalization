@@ -41,6 +41,9 @@ public final class PhFlags implements Flags {
     static final String KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS =
             "app_request_flow_deadline_seconds";
 
+    static final String KEY_RENDER_FLOW_DEADLINE_SECONDS =
+            "render_flow_deadline_seconds";
+
     static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
 
     static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
@@ -110,6 +113,15 @@ public final class PhFlags implements Flags {
                 /* name= */ KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
                 /* defaultValue= */ APP_REQUEST_FLOW_DEADLINE_SECONDS);
     }
+
+    @Override
+    public int getRenderFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RENDER_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ RENDER_FLOW_DEADLINE_SECONDS);
+    }
+
 
     @Override
     public String getTrustedPartnerAppsList() {

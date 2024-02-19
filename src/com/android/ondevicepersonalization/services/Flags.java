@@ -49,9 +49,14 @@ public interface Flags {
     int ISOLATED_SERVICE_DEADLINE_SECONDS = 30;
 
     /**
-     * Execute deadline for app request flow.
+     * Execution deadline for app request flow.
      */
     int APP_REQUEST_FLOW_DEADLINE_SECONDS = 30;
+
+    /**
+     * Executiton deadline for app request flow.
+     */
+    int RENDER_FLOW_DEADLINE_SECONDS = 30;
 
     /**
      * Default value for the list of trusted partner app names.
@@ -128,6 +133,10 @@ public interface Flags {
 
     default int getAppRequestFlowDeadlineSeconds() {
         return APP_REQUEST_FLOW_DEADLINE_SECONDS;
+    }
+
+    default int getRenderFlowDeadlineSeconds() {
+        return RENDER_FLOW_DEADLINE_SECONDS;
     }
 
     default String getTrustedPartnerAppsList() {
