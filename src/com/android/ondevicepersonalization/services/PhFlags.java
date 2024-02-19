@@ -38,6 +38,9 @@ public final class PhFlags implements Flags {
     static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
             "isolated_service_deadline_seconds";
 
+    static final String KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS =
+            "app_request_flow_deadline_seconds";
+
     static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
 
     static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
@@ -86,7 +89,6 @@ public final class PhFlags implements Flags {
         if (getGlobalKillSwitch()) {
             return false;
         }
-        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
@@ -95,11 +97,18 @@ public final class PhFlags implements Flags {
 
     @Override
     public int getIsolatedServiceDeadlineSeconds() {
-        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ISOLATED_SERVICE_DEADLINE_SECONDS,
                 /* defaultValue= */ ISOLATED_SERVICE_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public int getAppRequestFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ APP_REQUEST_FLOW_DEADLINE_SECONDS);
     }
 
     @Override
