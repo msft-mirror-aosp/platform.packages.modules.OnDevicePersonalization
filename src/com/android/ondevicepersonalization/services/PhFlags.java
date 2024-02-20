@@ -21,48 +21,54 @@ import android.provider.DeviceConfig;
 
 import com.android.modules.utils.build.SdkLevel;
 
+import java.util.HashMap;
+import java.util.Map;
+
 /** Flags Implementation that delegates to DeviceConfig. */
 public final class PhFlags implements Flags {
     /*
      * Keys for ALL the flags stored in DeviceConfig.
      */
     // Killswitch keys
-    static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
+    public static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
 
-    static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
+    public static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
             "enable_personalization_status_override";
 
-    static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
+    public static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
             "personalization_status_override_value";
 
-    static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
+    public static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
             "isolated_service_deadline_seconds";
 
-    static final String KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS =
+    public static final String KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS =
             "app_request_flow_deadline_seconds";
 
-    static final String KEY_RENDER_FLOW_DEADLINE_SECONDS =
+    public static final String KEY_RENDER_FLOW_DEADLINE_SECONDS =
             "render_flow_deadline_seconds";
 
-    static final String KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS =
+    public static final String KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS =
             "web_view_flow_deadline_seconds";
 
-    static final String KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS =
+    public static final String KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS =
             "web_trigger_flow_deadline_seconds";
 
-    static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
+    public static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
 
-    static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
+    public static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
             "shared_isolated_process_feature_enabled";
 
-    static final String KEY_CALLER_APP_ALLOW_LIST = "caller_app_allow_list";
+    public static final String KEY_CALLER_APP_ALLOW_LIST = "caller_app_allow_list";
 
-    static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
+    public static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
 
-    static final String KEY_USER_CONSENT_CACHE_IN_MILLIS = "user_consent_cache_duration_millis";
+    public static final String KEY_USER_CONSENT_CACHE_IN_MILLIS =
+            "user_consent_cache_duration_millis";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
-    static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
+    public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
+
+    private final Map<String, Object> mStableFlags = new HashMap<>();
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
@@ -73,6 +79,29 @@ public final class PhFlags implements Flags {
     private static class PhFlagsLazyInstanceHolder {
         private static final PhFlags sSingleton = new PhFlags();
     }
+
+    /** Sets the stable flag map. */
+    public void setStableFlags() {
+        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS, getAppRequestFlowDeadlineSeconds());
+        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS, getRenderFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS, getWebTriggerFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS, getWebViewFlowDeadlineSeconds());
+        mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                isSharedIsolatedProcessFeatureEnabled());
+        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
+    }
+
+    /** Gets a stable flag value based on flag name. */
+    public Object getStableFlag(String flagName) {
+        if (mStableFlags.isEmpty()) {
+            setStableFlags();
+        }
+        if (!mStableFlags.containsKey(flagName)) {
+            throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
+        }
+        return mStableFlags.get(flagName);
+    }
+
 
     // Group of All Killswitches
     @Override
