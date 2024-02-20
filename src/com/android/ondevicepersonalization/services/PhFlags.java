@@ -63,12 +63,15 @@ public final class PhFlags implements Flags {
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
-    private static final PhFlags sSingleton = new PhFlags();
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
     public static PhFlags getInstance() {
-        return sSingleton;
+        return PhFlagsLazyInstanceHolder.sSingleton;
+    }
+
+    private static class PhFlagsLazyInstanceHolder {
+        private static final PhFlags sSingleton = new PhFlags();
     }
 
     // Group of All Killswitches
