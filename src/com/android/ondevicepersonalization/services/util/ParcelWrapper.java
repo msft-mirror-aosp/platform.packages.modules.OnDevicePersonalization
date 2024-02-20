@@ -30,16 +30,24 @@ public class ParcelWrapper<T extends Parcelable> implements Serializable {
 
     /** Wraps a Parcelable in a Serializable */
     public ParcelWrapper(T value) {
-        Parcel parcel = Parcel.obtain();
-        value.writeToParcel(parcel, 0);
-        mParcelBytes = parcel.marshall();
+        if (value == null) {
+            mParcelBytes = null;
+        } else {
+            Parcel parcel = Parcel.obtain();
+            value.writeToParcel(parcel, 0);
+            mParcelBytes = parcel.marshall();
+        }
     }
 
     /** Unwraps the Parcelable. */
     public T get(Parcelable.Creator<T> creator) {
-        Parcel parcel = Parcel.obtain();
-        parcel.unmarshall(mParcelBytes, 0, mParcelBytes.length);
-        parcel.setDataPosition(0);
-        return creator.createFromParcel(parcel);
+        if (mParcelBytes == null) {
+            return null;
+        } else {
+            Parcel parcel = Parcel.obtain();
+            parcel.unmarshall(mParcelBytes, 0, mParcelBytes.length);
+            parcel.setDataPosition(0);
+            return creator.createFromParcel(parcel);
+        }
     }
 }

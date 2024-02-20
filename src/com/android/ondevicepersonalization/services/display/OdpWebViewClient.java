@@ -22,7 +22,9 @@ import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -43,12 +45,12 @@ import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlHelper;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
-import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
@@ -99,15 +101,19 @@ class OdpWebViewClient extends WebViewClient {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunnerImpl.getInstance();
+            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
+                    ? SharedIsolatedProcessRunner.getInstance()
+                    : ProcessRunnerImpl.getInstance();
         }
     }
 
     @NonNull private final Context mContext;
     @NonNull private final ComponentName mService;
     long mQueryId;
-    @NonNull private final RequestLogRecord mLogRecord;
+    @Nullable private final RequestLogRecord mLogRecord;
     @NonNull private final Injector mInjector;
+
+    @NonNull private IsolatedModelServiceProvider mModelServiceProvider;
 
     OdpWebViewClient(Context context, ComponentName service, long queryId,
             RequestLogRecord logRecord) {
@@ -201,16 +207,20 @@ class OdpWebViewClient extends WebViewClient {
             UserDataAccessor userDataAccessor = new UserDataAccessor();
             UserData userData = userDataAccessor.getUserData();
             serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
+            mModelServiceProvider = new IsolatedModelServiceProvider();
+            IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+            serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
             return FluentFuture.from(
-                    mInjector.getProcessRunner().runIsolatedService(
-                        isolatedServiceInfo,
-                        Constants.OP_WEB_VIEW_EVENT,
-                        serviceParams))
+                            mInjector.getProcessRunner().runIsolatedService(
+                                    isolatedServiceInfo,
+                                    Constants.OP_WEB_VIEW_EVENT,
+                                    serviceParams))
                     .transform(
                             result -> {
-                                writeServiceRequestMetrics(
-                                        result, isolatedServiceInfo.getStartTimeMillis(),
-                                        Constants.STATUS_SUCCESS);
+                                StatsUtils.writeServiceRequestMetrics(
+                                        result, mInjector.getClock(),
+                                        Constants.STATUS_SUCCESS,
+                                        isolatedServiceInfo.getStartTimeMillis());
                                 return result.getParcelable(
                                         Constants.EXTRA_RESULT, EventOutputParcel.class);
                             },
@@ -218,9 +228,10 @@ class OdpWebViewClient extends WebViewClient {
                     .catchingAsync(
                             Exception.class,
                             e -> {
-                                writeServiceRequestMetrics(
-                                        null, isolatedServiceInfo.getStartTimeMillis(),
-                                        Constants.STATUS_INTERNAL_ERROR);
+                                StatsUtils.writeServiceRequestMetrics(
+                                        /* result= */ null, mInjector.getClock(),
+                                        Constants.STATUS_INTERNAL_ERROR,
+                                        isolatedServiceInfo.getStartTimeMillis());
                                 return Futures.immediateFailedFuture(e);
                             },
                             mInjector.getExecutor()
@@ -251,14 +262,13 @@ class OdpWebViewClient extends WebViewClient {
     private ListenableFuture<Void> writeEvent(EventOutputParcel result) {
         try {
             sLogger.d(TAG + ": writeEvent() called. EventOutputParcel: " + result.toString());
-            if (result == null || result.getEventLogRecord() == null) {
+            if (result == null || result.getEventLogRecord() == null
+                    || mLogRecord == null || mLogRecord.getRows() == null) {
+                sLogger.d(TAG + "no EventLogRecord or RequestLogRecord");
                 return Futures.immediateFuture(null);
             }
             EventLogRecord eventData = result.getEventLogRecord();
-            int rowCount = 0;
-            if (mLogRecord.getRows() != null) {
-                rowCount = mLogRecord.getRows().size();
-            }
+            int rowCount = mLogRecord.getRows().size();
             if (eventData.getType() <= 0 || eventData.getRowIndex() < 0
                     || eventData.getRowIndex() >= rowCount) {
                 sLogger.w(TAG + ": rowOffset out of range");
@@ -303,23 +313,14 @@ class OdpWebViewClient extends WebViewClient {
                     );
 
             var unused = Futures.whenAllComplete(loadFuture, doneFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                    mInjector.getExecutor());
+                    .callAsync(() -> {
+                                mModelServiceProvider.unBindFromModelService();
+                                return mInjector.getProcessRunner().unloadIsolatedService(
+                                        loadFuture.get());
+                            },
+                            mInjector.getExecutor());
         } catch (Exception e) {
             sLogger.e(TAG + ": Failed to handle Event", e);
         }
-    }
-
-    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        int overheadLatencyMillis =
-                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EVENT)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }

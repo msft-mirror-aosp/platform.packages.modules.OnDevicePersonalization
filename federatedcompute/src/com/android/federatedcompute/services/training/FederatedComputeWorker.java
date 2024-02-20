@@ -44,6 +44,8 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
@@ -55,7 +57,7 @@ import com.android.federatedcompute.services.examplestore.ExampleConsumptionReco
 import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
-import com.android.federatedcompute.services.security.KeyAttestation;
+import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ComputationResult;
@@ -79,6 +81,7 @@ import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.RetryWindow;
+import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
 import com.google.ondevicepersonalization.federatedcompute.proto.TaskAssignment;
 import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -114,7 +117,6 @@ public class FederatedComputeWorker {
     private HttpFederatedProtocol mHttpFederatedProtocol;
     private AbstractServiceBinder<IExampleStoreService> mExampleStoreServiceBinder;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
-    private KeyAttestation mKeyAttestation;
     private FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
 
     @VisibleForTesting
@@ -131,7 +133,6 @@ public class FederatedComputeWorker {
         this.mTrainingConditionsChecker = trainingConditionsChecker;
         this.mComputationRunner = computationRunner;
         this.mResultCallbackHelper = resultCallbackHelper;
-        this.mKeyAttestation = injector.getKeyAttestationHelper(this.mContext);
         this.mEncryptionKeyManager = keyManager;
         this.mInjector = injector;
     }
@@ -249,36 +250,40 @@ public class FederatedComputeWorker {
             // http requests.
             mHttpFederatedProtocol =
                     mInjector.getHttpFederatedProtocol(
-                            this.mContext,
                             run.mTask.serverAddress(),
+                            PackageUtils.getApexVersion(mContext),
                             run.mTask.populationName(),
                             run.mTrainingEventLogger);
             // By default, the 401 (UNAUTHENTICATED) response is allowed. When receiving 401
             // (UNAUTHENTICATED). The second would not allow 401 (UNAUTHENTICATED).
-            ListenableFuture<CheckinResult> checkinResultFuture =
-                    mHttpFederatedProtocol.issueCheckin(
-                            run.mTask.ownerId(),
-                            run.mTask.ownerIdCertDigest(),
-                            /* allowUnauthenticated= */ true);
-            return FluentFuture.from(checkinResultFuture)
+            AuthorizationContext authContext =
+                    mInjector.createAuthContext(
+                            mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest());
+            return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                     .transformAsync(
-                            checkinResult -> {
-                                if (checkinResult.getRejectionInfo() != null) {
+                            taskAssignmentResponse -> {
+                                if (taskAssignmentResponse.hasRejectionInfo()) {
                                     LogUtil.d(
                                             TAG,
                                             "job %d was rejected during check in, reason %s",
                                             run.mTask.jobId(),
-                                            checkinResult.getRejectionInfo().getReason());
-                                    if (checkinResult.getRejectionInfo().hasAuthMetadata()) {
-                                        return handleUnauthenticatedRejection(run, checkinResult);
-                                    } else if (checkinResult.getRejectionInfo().hasRetryWindow()) {
-                                        return handleRetryRejection(run, checkinResult);
+                                            taskAssignmentResponse.getRejectionInfo().getReason());
+                                    if (taskAssignmentResponse
+                                            .getRejectionInfo()
+                                            .hasAuthMetadata()) {
+                                        return handleUnauthenticatedRejection(
+                                                run, taskAssignmentResponse, authContext);
+                                    } else if (taskAssignmentResponse
+                                            .getRejectionInfo()
+                                            .hasRetryWindow()) {
+                                        return handleRetryRejection(run, taskAssignmentResponse);
                                     }
                                     return Futures.immediateFailedFuture(
                                             new IllegalStateException(
                                                     "Unknown rejection Info from FCP server"));
                                 } else {
-                                    return processCheckinAndDoFlTraining(run, checkinResult);
+                                    return runEligibilityTaskAndDoFlTraining(
+                                            taskAssignmentResponse, run);
                                 }
                             },
                             mInjector.getBgExecutor());
@@ -287,38 +292,25 @@ public class FederatedComputeWorker {
         }
     }
 
-    @androidx.annotation.NonNull
+    @NonNull
     private ListenableFuture<FLRunnerResult> handleUnauthenticatedRejection(
-            TrainingRun run, CheckinResult checkinResult) {
-        // Generate the attestation record.
-        List<String> attestationRecord =
-                getKeyAttestationRecord(
-                        checkinResult
-                                .getRejectionInfo()
-                                .getAuthMetadata()
-                                .getKeyAttestationMetadata()
-                                .getChallenge()
-                                .toByteArray(),
-                        run.mTask.ownerId());
-        // Make the 2nd issueCheckin again to include the attestation record and does not allow
-        // 401 (UNAUTHENTICATED).
-        ListenableFuture<CheckinResult> checkinResultFuture =
-                mHttpFederatedProtocol.issueCheckin(
-                        run.mTask.ownerId(),
-                        run.mTask.ownerIdCertDigest(),
-                        /* allowUnauthenticated= */ false,
-                        attestationRecord);
-        return FluentFuture.from(checkinResultFuture)
+            TrainingRun run,
+            CreateTaskAssignmentResponse createTaskAssignmentResponse,
+            AuthorizationContext authContext) {
+        // Generate attestation record and make 2nd try.
+        authContext.updateAuthState(
+                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata());
+        return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
-                        checkinResultOnUnauthenticated -> {
-                            if (checkinResultOnUnauthenticated.getRejectionInfo() != null) {
+                        taskAssignmentOnUnauthenticated -> {
+                            if (taskAssignmentOnUnauthenticated.hasRejectionInfo()) {
                                 // This function is called only when the device received
                                 // 401 (unauthenticated). Only retry rejection is allowed.
-                                if (checkinResultOnUnauthenticated
+                                if (taskAssignmentOnUnauthenticated
                                         .getRejectionInfo()
                                         .hasRetryWindow()) {
                                     return handleRetryRejection(
-                                            run, checkinResultOnUnauthenticated);
+                                            run, taskAssignmentOnUnauthenticated);
                                 } else {
                                     // TODO: b/322880077 Cancel job when it fails authentication
                                     return Futures.immediateFailedFuture(
@@ -327,38 +319,37 @@ public class FederatedComputeWorker {
                                                             + "solving authentication challenge"));
                                 }
                             } else {
-                                return processCheckinAndDoFlTraining(
-                                        run, checkinResultOnUnauthenticated);
+                                return runEligibilityTaskAndDoFlTraining(
+                                        taskAssignmentOnUnauthenticated, run);
                             }
                         },
                         mInjector.getBgExecutor());
     }
 
-    @androidx.annotation.NonNull
+    @NonNull
     private ListenableFuture<FLRunnerResult> handleRetryRejection(
-            TrainingRun run, CheckinResult checkinResult) {
-
+            TrainingRun run, CreateTaskAssignmentResponse taskAssignmentResponse) {
         mJobManager.onTrainingCompleted(
                 run.mTask.jobId(),
                 run.mTask.populationName(),
                 run.mTask.getTrainingIntervalOptions(),
-                buildTaskRetry(checkinResult.getRejectionInfo()),
+                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()),
                 ContributionResult.FAIL);
         return Futures.immediateFuture(null);
     }
 
-    @androidx.annotation.NonNull
-    private ListenableFuture<FLRunnerResult> processCheckinAndDoFlTraining(
-            TrainingRun run, CheckinResult checkinResult) {
-        String taskName = checkinResult.getTaskAssignment().getTaskName();
+    private ListenableFuture<FLRunnerResult> runEligibilityTaskAndDoFlTraining(
+            CreateTaskAssignmentResponse createTaskAssignmentResponse, TrainingRun run) {
+        String taskName = createTaskAssignmentResponse.getTaskAssignment().getTaskName();
         Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
         synchronized (mLock) {
             mActiveRun.mTaskName = taskName;
         }
 
         // 2. Execute eligibility task if applicable.
-        if (checkinResult.getTaskAssignment().hasEligibilityTaskInfo()) {
-            TaskAssignment taskAssignment = checkinResult.getTaskAssignment();
+        if (createTaskAssignmentResponse.getTaskAssignment().hasEligibilityTaskInfo()
+                && mInjector.isEligibilityTaskEnabled()) {
+            TaskAssignment taskAssignment = createTaskAssignmentResponse.getTaskAssignment();
             LogUtil.d(
                     TAG,
                     "start eligibility task %s %s ",
@@ -386,7 +377,8 @@ public class FederatedComputeWorker {
                                         .setErrorStatus(FLRunnerResult.ErrorStatus.NOT_ELIGIBLE)
                                         .build(),
                                 null),
-                        run.mTask.ownerId());
+                        AuthorizationContext.create(
+                                mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()));
                 // Reschedule the job.
                 mJobManager.onTrainingCompleted(
                         run.mTask.jobId(),
@@ -397,7 +389,17 @@ public class FederatedComputeWorker {
                 return Futures.immediateFuture(null);
             }
         }
+        return FluentFuture.from(
+                        mHttpFederatedProtocol.downloadTaskAssignment(
+                                createTaskAssignmentResponse.getTaskAssignment()))
+                .transformAsync(
+                        checkinResult -> doFederatedComputation(run, checkinResult),
+                        getBackgroundExecutor());
+    }
 
+    @NonNull
+    private ListenableFuture<FLRunnerResult> doFederatedComputation(
+            TrainingRun run, CheckinResult checkinResult) {
         // 3. Fetch Active keys to encrypt the computation result.
         List<FederatedComputeEncryptionKey> activeKeys =
                 mEncryptionKeyManager.getOrFetchActiveKeys(
@@ -420,7 +422,10 @@ public class FederatedComputeWorker {
                                     .build(),
                             null);
             try {
-                reportFailureResultToServer(failedComputationResult, run.mTask.ownerId());
+                reportFailureResultToServer(
+                        failedComputationResult,
+                        AuthorizationContext.create(
+                                mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()));
             } catch (Exception e) {
                 return Futures.immediateFailedFuture(
                         new IllegalStateException(
@@ -454,7 +459,11 @@ public class FederatedComputeWorker {
                                     computationResultFuture,
                                     new ReportFailureToServerCallback()
                                             .getServerFailureReportCallback(
-                                                    completer, run.mTask.ownerId()),
+                                                    completer,
+                                                    AuthorizationContext.create(
+                                                            mContext,
+                                                            run.mTask.ownerId(),
+                                                            run.mTask.ownerIdCertDigest())),
                                     getLightweightExecutor());
                             return "Report computation result failure to the server.";
                         });
@@ -465,7 +474,12 @@ public class FederatedComputeWorker {
                         computationResultAndCallbackFuture,
                         result ->
                                 reportResultWithAuthentication(
-                                        result, encryptionKey, run.mTask.ownerId()),
+                                        result,
+                                        encryptionKey,
+                                        mInjector.createAuthContext(
+                                                mContext,
+                                                run.mTask.ownerId(),
+                                                run.mTask.ownerIdCertDigest())),
                         getLightweightExecutor());
 
         return Futures.whenAllSucceed(reportToServerFuture, computationResultAndCallbackFuture)
@@ -936,53 +950,25 @@ public class FederatedComputeWorker {
         }
     }
 
-    private List<String> getKeyAttestationRecord(byte[] challenge, String ownerId) {
-        return mKeyAttestation.generateAttestationRecord(challenge, ownerId);
-    }
-
     private FluentFuture<RejectionInfo> reportResultWithAuthentication(
             ComputationResult computationResult,
             FederatedComputeEncryptionKey encryptionKey,
-            String ownerId) {
-        return reportResultWithAuthentication(
-                computationResult, encryptionKey, ownerId, /* allowUnauthenticated= */ true, null);
-    }
-
-    private FluentFuture<RejectionInfo> reportResultWithAuthentication(
-            ComputationResult computationResult,
-            FederatedComputeEncryptionKey encryptionKey,
-            String ownerId,
-            boolean allowUnauthenticated,
-            List<String> attestationRecord) {
+            AuthorizationContext authContext) {
         // At most this function will make two calls to mHttpFederatedProtocol.reportResult
         // The first call would allowUnauthenticated, uplon receiving 401 (UNAUTHENTICATED), the
         // device would solve the challenge and make a second call.
         return FluentFuture.from(
                         mHttpFederatedProtocol.reportResult(
-                                computationResult,
-                                encryptionKey,
-                                ownerId,
-                                allowUnauthenticated,
-                                attestationRecord))
+                                computationResult, encryptionKey, authContext))
                 .transformAsync(
                         resp -> {
                             if (resp != null) {
-                                if (resp.hasRetryWindow()) {
-                                    return Futures.immediateFuture(resp);
-                                } else if (allowUnauthenticated && resp.hasAuthMetadata()) {
-                                    List<String> attestationRecordToUse =
-                                            getKeyAttestationRecord(
-                                                    resp.getAuthMetadata()
-                                                            .getKeyAttestationMetadata()
-                                                            .getChallenge()
-                                                            .toByteArray(),
-                                                    ownerId);
+                                if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
+                                    authContext.updateAuthState(resp.getAuthMetadata());
                                     return reportResultWithAuthentication(
-                                            computationResult,
-                                            encryptionKey,
-                                            ownerId,
-                                            /* allowUnauthenticated= */ false,
-                                            attestationRecordToUse);
+                                            computationResult, encryptionKey, authContext);
+                                } else if (resp.hasRetryWindow()) {
+                                    return Futures.immediateFuture(resp);
                                 } else {
                                     // TODO: b/322880077 Cancel job when it fails authentication
                                     return Futures.immediateFailedFuture(
@@ -1027,26 +1013,29 @@ public class FederatedComputeWorker {
             return new TrainingEventLogger();
         }
 
-        KeyAttestation getKeyAttestationHelper(Context context) {
-            return KeyAttestation.getInstance(context);
-        }
-
         HttpFederatedProtocol getHttpFederatedProtocol(
-                Context context,
                 String serverAddress,
+                String clientVersion,
                 String populationName,
                 TrainingEventLogger trainingEventLogger) {
             return HttpFederatedProtocol.create(
-                    context,
                     serverAddress,
-                    "1.0.0.1",
+                    clientVersion,
                     populationName,
                     new HpkeJniEncrypter(),
                     trainingEventLogger);
         }
 
+        AuthorizationContext createAuthContext(Context context, String ownerId, String ownerCert) {
+            return AuthorizationContext.create(context, ownerId, ownerCert);
+        }
+
         EligibilityDecider getEligibilityDecider(Context context) {
             return new EligibilityDecider(FederatedTrainingTaskDao.getInstance(context));
+        }
+
+        boolean isEligibilityTaskEnabled() {
+            return FlagsFactory.getFlags().isEligibilityTaskEnabled();
         }
     }
 
@@ -1074,9 +1063,10 @@ public class FederatedComputeWorker {
 
     private class ReportFailureToServerCallback {
 
-        @androidx.annotation.NonNull
+        @NonNull
         public FutureCallback<ComputationResult> getServerFailureReportCallback(
-                CallbackToFutureAdapter.Completer<ComputationResult> completer, String ownerId) {
+                CallbackToFutureAdapter.Completer<ComputationResult> completer,
+                AuthorizationContext authContext) {
             return new FutureCallback<ComputationResult>() {
                 @Override
                 public void onSuccess(ComputationResult result) {
@@ -1099,7 +1089,7 @@ public class FederatedComputeWorker {
                                                 .setErrorMessage(throwable.getMessage())
                                                 .build(),
                                         null);
-                        reportFailureResultToServer(failedReportComputationResult, ownerId);
+                        reportFailureResultToServer(failedReportComputationResult, authContext);
                         completer.setException(throwable);
                     } catch (Exception e) {
                         completer.setException(e);
@@ -1111,7 +1101,7 @@ public class FederatedComputeWorker {
 
     /** This function is called only when reporting a failure report to server. */
     @VisibleForTesting
-    void reportFailureResultToServer(ComputationResult result, String ownerId) {
-        var unused = reportResultWithAuthentication(result, null, ownerId);
+    void reportFailureResultToServer(ComputationResult result, AuthorizationContext authContext) {
+        var unused = reportResultWithAuthentication(result, null, authContext);
     }
 }

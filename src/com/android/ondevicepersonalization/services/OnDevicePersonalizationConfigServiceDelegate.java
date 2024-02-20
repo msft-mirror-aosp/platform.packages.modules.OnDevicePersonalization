@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services;
 
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
@@ -78,7 +79,7 @@ public class OnDevicePersonalizationConfigServiceDelegate
                         boolean newStatus = userPrivacyStatus.isPersonalizationStatusEnabled();
 
                         if (oldStatus == newStatus) {
-                            callback.onSuccess();
+                            sendSuccess(callback);
                             return;
                         }
 
@@ -92,7 +93,7 @@ public class OnDevicePersonalizationConfigServiceDelegate
                         // TODO(b/302018665): replicate system server storage to T devices.
                         if (!SdkLevel.isAtLeastU()) {
                             userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
-                            callback.onSuccess();
+                            sendSuccess(callback);
                             return;
                         }
                         // Persist in the system server for U+ devices
@@ -101,34 +102,58 @@ public class OnDevicePersonalizationConfigServiceDelegate
                                         OnDevicePersonalizationSystemServiceManager.class);
                         // Cannot find system server on U+.
                         if (systemServiceManager == null) {
-                            callback.onFailure(SERVICE_NOT_IMPLEMENTED);
+                            sendError(callback, SERVICE_NOT_IMPLEMENTED);
                             return;
                         }
                         IOnDevicePersonalizationSystemService systemService =
                                 systemServiceManager.getService();
                         // The system service is not ready.
                         if (systemService == null) {
-                            callback.onFailure(SERVICE_NOT_IMPLEMENTED);
+                            sendError(callback, SERVICE_NOT_IMPLEMENTED);
                             return;
                         }
-                        systemService.setPersonalizationStatus(enabled,
-                                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                    @Override
-                                    public void onResult(Bundle bundle) throws RemoteException {
-                                        userPrivacyStatus.setPersonalizationStatusEnabled(enabled);
-                                        callback.onSuccess();
-                                    }
+                        try {
+                            systemService.setPersonalizationStatus(
+                                    enabled,
+                                    new IOnDevicePersonalizationSystemServiceCallback.Stub() {
+                                        @Override
+                                        public void onResult(Bundle bundle) throws RemoteException {
+                                            userPrivacyStatus.setPersonalizationStatusEnabled(
+                                                    enabled);
+                                            callback.onSuccess();
+                                        }
 
-                                    @Override
-                                    public void onError(int errorCode) throws RemoteException {
-                                        callback.onFailure(errorCode);
-                                    }
-                                });
-                    } catch (RemoteException re) {
-                        sLogger.e(TAG + ": Unable to send result to the callback.", re);
+                                        @Override
+                                        public void onError(int errorCode) throws RemoteException {
+                                            callback.onFailure(errorCode);
+                                        }
+                                    });
+                        } catch (RemoteException re) {
+                            sLogger.e(TAG + ": Unable to send result to the callback.", re);
+                        }
+                    }  catch (Exception e) {
+                        sLogger.e(TAG + ": Failed to set personalization status.", e);
+                        sendError(callback, Constants.STATUS_INTERNAL_ERROR);
                     }
-                }
-        );
+                });
+    }
+
+    private void sendSuccess(
+            @NonNull IOnDevicePersonalizationConfigServiceCallback callback) {
+        try {
+            callback.onSuccess();
+        } catch (RemoteException e) {
+            sLogger.e(TAG + ": Callback error", e);
+        }
+    }
+
+    private void sendError(
+            @NonNull IOnDevicePersonalizationConfigServiceCallback callback, int errorCode) {
+        try {
+            callback.onFailure(errorCode);
+        } catch (RemoteException e) {
+            sLogger.e(TAG + ": Callback error", e);
+        }
     }
 
     private boolean getGlobalKillSwitch() {

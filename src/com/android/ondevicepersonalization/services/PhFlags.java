@@ -19,38 +19,89 @@ package com.android.ondevicepersonalization.services;
 import android.annotation.NonNull;
 import android.provider.DeviceConfig;
 
+import com.android.modules.utils.build.SdkLevel;
+
+import java.util.HashMap;
+import java.util.Map;
+
 /** Flags Implementation that delegates to DeviceConfig. */
-// TODO(b/228037065): Add validation logics for Feature flags read from PH.
 public final class PhFlags implements Flags {
     /*
      * Keys for ALL the flags stored in DeviceConfig.
      */
     // Killswitch keys
-    static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
+    public static final String KEY_GLOBAL_KILL_SWITCH = "global_kill_switch";
 
-    static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
+    public static final String KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE =
             "enable_personalization_status_override";
 
-    static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
+    public static final String KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE =
             "personalization_status_override_value";
 
-    static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
+    public static final String KEY_ISOLATED_SERVICE_DEADLINE_SECONDS =
             "isolated_service_deadline_seconds";
 
-    static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
+    public static final String KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS =
+            "app_request_flow_deadline_seconds";
 
-    static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
+    public static final String KEY_RENDER_FLOW_DEADLINE_SECONDS =
+            "render_flow_deadline_seconds";
+
+    public static final String KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS =
+            "web_view_flow_deadline_seconds";
+
+    public static final String KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS =
+            "web_trigger_flow_deadline_seconds";
+
+    public static final String KEY_TRUSTED_PARTNER_APPS_LIST = "trusted_partner_apps_list";
+
+    public static final String KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED =
             "shared_isolated_process_feature_enabled";
 
+    public static final String KEY_CALLER_APP_ALLOW_LIST = "caller_app_allow_list";
+
+    public static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
+
+    public static final String KEY_USER_CONSENT_CACHE_IN_MILLIS =
+            "user_consent_cache_duration_millis";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
-    static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
-    private static final PhFlags sSingleton = new PhFlags();
+    public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
+
+    private final Map<String, Object> mStableFlags = new HashMap<>();
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
     public static PhFlags getInstance() {
-        return sSingleton;
+        return PhFlagsLazyInstanceHolder.sSingleton;
     }
+
+    private static class PhFlagsLazyInstanceHolder {
+        private static final PhFlags sSingleton = new PhFlags();
+    }
+
+    /** Sets the stable flag map. */
+    public void setStableFlags() {
+        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS, getAppRequestFlowDeadlineSeconds());
+        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS, getRenderFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS, getWebTriggerFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS, getWebViewFlowDeadlineSeconds());
+        mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
+                isSharedIsolatedProcessFeatureEnabled());
+        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
+    }
+
+    /** Gets a stable flag value based on flag name. */
+    public Object getStableFlag(String flagName) {
+        if (mStableFlags.isEmpty()) {
+            setStableFlags();
+        }
+        if (!mStableFlags.containsKey(flagName)) {
+            throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
+        }
+        return mStableFlags.get(flagName);
+    }
+
 
     // Group of All Killswitches
     @Override
@@ -79,7 +130,6 @@ public final class PhFlags implements Flags {
         if (getGlobalKillSwitch()) {
             return false;
         }
-        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
@@ -88,7 +138,6 @@ public final class PhFlags implements Flags {
 
     @Override
     public int getIsolatedServiceDeadlineSeconds() {
-        // The priority of applying the flag values: PH (DeviceConfig), then user hard-coded value.
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ISOLATED_SERVICE_DEADLINE_SECONDS,
@@ -96,18 +145,76 @@ public final class PhFlags implements Flags {
     }
 
     @Override
-    public String getTrustedPartnerAppsList() {
-        return DeviceConfig.getString(
+    public int getAppRequestFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
-                /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST);
+                /* name= */ KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ APP_REQUEST_FLOW_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public int getRenderFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RENDER_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ RENDER_FLOW_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public int getWebViewFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ WEB_VIEW_FLOW_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public int getWebTriggerFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ WEB_TRIGGER_FLOW_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public String getTrustedPartnerAppsList() {
+        return SdkLevel.isAtLeastU()
+                ? DeviceConfig.getString(
+                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                    /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
+                    /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST)
+                : "";
     }
 
     @Override
     public boolean isSharedIsolatedProcessFeatureEnabled() {
-        return DeviceConfig.getBoolean(
+        return SdkLevel.isAtLeastU() && DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+    }
+
+    @Override
+    public String getCallerAppAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_CALLER_APP_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_CALLER_APP_ALLOW_LIST);
+    }
+
+    @Override
+    public String getIsolatedServiceAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
+    }
+
+    @Override
+    public long getUserConsentCacheInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_USER_CONSENT_CACHE_IN_MILLIS,
+                /* defaultValue */ USER_CONSENT_CACHE_IN_MILLIS);
     }
 }

@@ -47,14 +47,16 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.junit.runners.Parameterized;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Base64;
+import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-@RunWith(JUnit4.class)
+@RunWith(Parameterized.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
@@ -76,6 +78,18 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             .setData("extra".getBytes())
             .build();
 
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
@@ -94,6 +108,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
     }
 
     @Test
@@ -117,7 +135,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        callable.call().get(10000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -168,7 +186,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
                 new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(2000, TimeUnit.MILLISECONDS);
+        callable.call().get(5000, TimeUnit.MILLISECONDS);
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {

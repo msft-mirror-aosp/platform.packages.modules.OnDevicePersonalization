@@ -37,4 +37,5 @@ android_test_helper_app {
     min_sdk_version: "Tiramisu",
     manifest: "AndroidManifest.xml",
     certificate: "platform",
+    visibility: ["//visibility:public"],
 }

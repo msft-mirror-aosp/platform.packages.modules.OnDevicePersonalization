@@ -93,6 +93,11 @@ public class LocalDataImpl implements MutableKeyValueStore {
         return resultSet;
     }
 
+    @Override
+    public int getTableId() {
+        return ModelId.TABLE_ID_LOCAL_DATA;
+    }
+
     private Bundle handleAsyncRequest(int op, Bundle params) {
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);

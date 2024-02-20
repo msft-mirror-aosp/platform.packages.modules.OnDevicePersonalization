@@ -16,67 +16,144 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.junit.Assert.assertArrayEquals;
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ExecuteResult;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
-import android.adservices.ondevicepersonalization.aidl.IRegisterWebTriggerCallback;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.content.ComponentName;
 import android.content.Context;
-import android.net.Uri;
+import android.os.Bundle;
 import android.os.IBinder;
-import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.compatibility.common.util.ShellUtils;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.Parameterized;
 
-import java.util.concurrent.CountDownLatch;
+import java.util.Arrays;
+import java.util.Collection;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
-@RunWith(AndroidJUnit4.class)
+@RunWith(Parameterized.class)
 public final class OnDevicePersonalizationManagerTest {
     private static final String TAG = "OnDevicePersonalizationManagerTest";
-    private Context mContext = ApplicationProvider.getApplicationContext();
-    private TestServiceBinder mTestBinder = new TestServiceBinder(
+    private static final String KEY_OP = "op";
+    private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final TestServiceBinder mTestBinder = new TestServiceBinder(
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
-    private OnDevicePersonalizationManager mManager =
+    private final OnDevicePersonalizationManager mManager =
             new OnDevicePersonalizationManager(mContext, mTestBinder);
-    private boolean mCallbackSuccess = false;
-    private boolean mCallbackError = false;
-    private CountDownLatch mLatch = new CountDownLatch(1);
+
+    @Parameterized.Parameter(0)
+    public boolean mIsSipFeatureEnabled;
+
+    @Parameterized.Parameters
+    public static Collection<Object[]> data() {
+        return Arrays.asList(
+                new Object[][] {
+                        {true}, {false}
+                }
+        );
+    }
+
+    @Before
+    public void setUp() {
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "shared_isolated_process_feature_enabled "
+                        + mIsSipFeatureEnabled);
+    }
 
     @Test
     public void testExecuteSuccess() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "ok");
+        var receiver = new ResultReceiver<ExecuteResult>();
         mManager.execute(
                 ComponentName.createRelative("com.example.service", ".Example"),
-                PersistableBundle.EMPTY,
+                params,
                 Executors.newSingleThreadExecutor(),
-                new OutcomeReceiver<SurfacePackageToken, Exception>() {
-                    @Override
-                    public void onResult(SurfacePackageToken token) {
-                        mCallbackSuccess = true;
-                        mLatch.countDown();
-                    }
-                    @Override
-                    public void onError(Exception e) {
-                        mCallbackError = true;
-                        mLatch.countDown();
-                    }
-                });
-        mLatch.await();
-        assertTrue(mCallbackSuccess);
-        assertFalse(mCallbackError);
+                receiver);
+        assertTrue(receiver.isSuccess());
+        assertFalse(receiver.isError());
+        assertNotNull(receiver.getResult());
+        assertEquals(receiver.getResult().getSurfacePackageToken().getTokenString(), "aaaa");
+        assertArrayEquals(receiver.getResult().getOutputData(), new byte[]{1, 2, 3});
+    }
+
+    @Test
+    public void testExecuteError() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        var receiver = new ResultReceiver<ExecuteResult>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+    }
+
+    @Test
+    public void testExecutePropagatesIae() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "iae");
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> mManager.execute(
+                        ComponentName.createRelative("com.example.service", ".Example"),
+                        params,
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<ExecuteResult>()));
+    }
+
+    @Test
+    public void testExecutePropagatesNpe() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "npe");
+        assertThrows(
+                NullPointerException.class,
+                () -> mManager.execute(
+                        ComponentName.createRelative("com.example.service", ".Example"),
+                        params,
+                        Executors.newSingleThreadExecutor(),
+                        new ResultReceiver<ExecuteResult>()));
+    }
+
+    @Test
+    public void testExecuteCatchesOtherExceptions() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "ise");
+        var receiver = new ResultReceiver<ExecuteResult>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof IllegalStateException);
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {
@@ -89,11 +166,37 @@ public final class OnDevicePersonalizationManagerTest {
         public void execute(
                 String callingPackageName,
                 ComponentName handler,
-                PersistableBundle params,
+                Bundle wrappedParams,
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
             try {
-                callback.onSuccess("aaaa");
+                String op;
+                try {
+                    ByteArrayParceledSlice paramsBuffer = wrappedParams.getParcelable(
+                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class);
+                    PersistableBundle params =
+                            PersistableBundleUtils.fromByteArray(paramsBuffer.getByteArray());
+                    op = params.getString(KEY_OP);
+                } catch (Exception e) {
+                    Log.e(TAG, "error extracting params", e);
+                    throw new IllegalStateException(e);
+                }
+                if (op.equals("ok")) {
+                    Bundle bundle = new Bundle();
+                    bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
+                    bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
+                    callback.onSuccess(bundle);
+                } else if (op.equals("error")) {
+                    callback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } else if (op.equals("iae")) {
+                    throw new IllegalArgumentException();
+                } else if (op.equals("npe")) {
+                    throw new NullPointerException();
+                } else if (op.equals("ise")) {
+                    throw new IllegalStateException();
+                } else {
+                    throw new UnsupportedOperationException();
+                }
             } catch (RemoteException e) {
                 Log.e(TAG, "callback error", e);
             }
@@ -112,13 +215,11 @@ public final class OnDevicePersonalizationManagerTest {
         }
 
         @Override
-        public void registerWebTrigger(
-                Uri destinationUrl,
-                Uri registrationUrl,
-                String triggerHeader,
-                String appPackageName,
+        public void registerMeasurementEvent(
+                int eventType,
+                Bundle params,
                 CallerMetadata metadata,
-                IRegisterWebTriggerCallback callback) {
+                IRegisterMeasurementEventCallback callback) {
             throw new UnsupportedOperationException();
         }
     }

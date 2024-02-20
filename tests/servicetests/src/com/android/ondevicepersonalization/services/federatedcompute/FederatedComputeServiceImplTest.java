@@ -37,6 +37,7 @@ import android.os.OutcomeReceiver;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -93,6 +94,7 @@ public class FederatedComputeServiceImplTest {
                         mApplicationContext,
                         mInjector);
         mServiceProxy = IFederatedComputeService.Stub.asInterface(mServiceImpl);
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
     }
 
     @Test
@@ -124,6 +126,35 @@ public class FederatedComputeServiceImplTest {
         String overrideUrl = "https://android.com";
         ShellUtils.runShellCommand(
                 "setprop debug.ondevicepersonalization.override_fc_server_url " + overrideUrl);
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(100)
+                        .setSchedulingMode(1)
+                        .build();
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName("population")
+                        .setTrainingInterval(interval)
+                        .build();
+        mServiceProxy.schedule(options, new TestCallback());
+        mCallbackCapture.getValue().onResult(null);
+        var request = mRequestCapture.getValue();
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertEquals(overrideUrl, request.getTrainingOptions().getServerAddress());
+        assertEquals("population", request.getTrainingOptions().getPopulationName());
+        assertTrue(mOnSuccessCalled);
+    }
+
+    @Test
+    public void testScheduleUrlDeviceConfigOverride() throws Exception {
+        ShellUtils.runShellCommand(
+                "setprop debug.ondevicepersonalization.override_fc_server_url_package "
+                        + mApplicationContext.getPackageName());
+        String overrideUrl = "https://cs.android.com";
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "debug.ondevicepersonalization.override_fc_server_url "
+                        + overrideUrl);
         TrainingInterval interval =
                 new TrainingInterval.Builder()
                         .setMinimumIntervalMillis(100)
