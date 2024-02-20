@@ -27,15 +27,15 @@ public enum ServiceFlowType {
 
     APP_REQUEST_FLOW(
             "AppRequest", OP_EXECUTE,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds()),
+            /* executionTimeout= */ FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds()),
 
     RENDER_FLOW(
             "Render", OP_RENDER,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds()),
+            /* executionTimeout= */ FlagsFactory.getFlags().getRenderFlowDeadlineSeconds()),
 
     WEB_TRIGGER_FLOW(
             "WebTrigger", OP_WEB_TRIGGER,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds());
+            /* executionTimeout= */ FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds());
 
     final String mTaskName;
     final int mOperationCode;
