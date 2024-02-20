@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.services.PhFlags;
 
 /**
@@ -24,10 +25,16 @@ import com.android.ondevicepersonalization.services.PhFlags;
 public final class UserPrivacyStatus {
     public static UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mPersonalizationStatusEnabled;
+    private boolean mProtectedAudienceEnabled;
+    private boolean mMeasurementEnabled;
+    private long mLastUserConsentCacheUpdate;
 
     private UserPrivacyStatus() {
         // Assume the more privacy-safe option until updated.
         mPersonalizationStatusEnabled = false;
+        mProtectedAudienceEnabled = false;
+        mMeasurementEnabled = false;
+        mLastUserConsentCacheUpdate = -1L;
     }
 
     /** Returns an instance of UserPrivacyStatus. */
@@ -53,5 +60,72 @@ public final class UserPrivacyStatus {
             return phFlags.getPersonalizationStatusOverrideValue();
         }
         return mPersonalizationStatusEnabled;
+    }
+
+    /**
+     * Returns the user consent status of Protected Audience (PA).
+     */
+    public boolean isProtectedAudienceEnabled() {
+        UserPrivacyStatus userPrivacyStatus = UserPrivacyStatus.getInstance();
+        if (isUserConsentCacheValid()) {
+            return mProtectedAudienceEnabled;
+        }
+        // TODO(b/318391297): make request to AdServices#getCommonStates API and update cache.
+        return false;
+    }
+
+    /**
+     * Returns the user consent status of Measurement.
+     */
+    public boolean isMeasurementEnabled() {
+        UserPrivacyStatus userPrivacyStatus = UserPrivacyStatus.getInstance();
+        if (isUserConsentCacheValid()) {
+            return mMeasurementEnabled;
+        }
+        // TODO(b/318391297): make request to AdServices#getCommonStates API and update cache.
+        return false;
+    }
+
+    /**
+     * Update user consent cache and timestamp metadata.
+     */
+    @VisibleForTesting
+    void updateUserConsentCache(boolean protectedAudienceEnabled,
+            boolean measurementEnabled) {
+        mProtectedAudienceEnabled = protectedAudienceEnabled;
+        mMeasurementEnabled = measurementEnabled;
+        mLastUserConsentCacheUpdate = System.currentTimeMillis();
+    }
+
+    /**
+     * Returns whether the user consent cache remains valid.
+     */
+    @VisibleForTesting
+    boolean isUserConsentCacheValid() {
+        if (mLastUserConsentCacheUpdate == -1L) {
+            return false;
+        }
+        long cacheDuration = System.currentTimeMillis() - mLastUserConsentCacheUpdate;
+        return cacheDuration >= 0
+                        && cacheDuration < PhFlags.getInstance().getUserConsentCacheInMillis();
+    }
+
+    /**
+     * Reset user consent info for testing.
+     */
+    @VisibleForTesting
+    void resetUserConsentForTesting() {
+        mProtectedAudienceEnabled = false;
+        mMeasurementEnabled = false;
+        mLastUserConsentCacheUpdate = -1L;
+    }
+
+    /**
+     * Invalidate the user consent cache for testing.
+     */
+    @VisibleForTesting
+    void invalidateUserConsentCacheForTesting() {
+        mLastUserConsentCacheUpdate = System.currentTimeMillis()
+                        - 2 * PhFlags.getInstance().getUserConsentCacheInMillis();
     }
 }

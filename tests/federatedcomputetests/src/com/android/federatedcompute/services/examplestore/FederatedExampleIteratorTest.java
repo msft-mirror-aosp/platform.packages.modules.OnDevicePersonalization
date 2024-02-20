@@ -22,7 +22,6 @@ import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ER
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
-import static org.mockito.Mockito.when;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -84,7 +83,6 @@ public final class FederatedExampleIteratorTest {
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        when(mMockFlags.getAppHostedExampleStoreTimeoutSecs()).thenReturn(TIMEOUT_SECS);
     }
 
     @Test
