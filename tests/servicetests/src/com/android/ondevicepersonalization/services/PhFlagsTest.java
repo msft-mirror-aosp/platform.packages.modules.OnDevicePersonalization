@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
@@ -23,6 +24,7 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
@@ -118,6 +120,23 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getPersonalizationStatusOverrideValue()).isEqualTo(phOverridingValue);
+    }
+
+    @Test
+    public void testAppRequestFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds())
+                .isEqualTo(APP_REQUEST_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
     }
 
     @Test
