@@ -24,6 +24,7 @@ public class SampleService extends IsolatedService {
     @Override public IsolatedWorker onRequest(RequestToken requestToken) {
         return new SampleWorker(
                 getLocalData(requestToken),
-                getEventUrlProvider(requestToken));
+                getEventUrlProvider(requestToken),
+                getModelManager(requestToken));
     }
 }

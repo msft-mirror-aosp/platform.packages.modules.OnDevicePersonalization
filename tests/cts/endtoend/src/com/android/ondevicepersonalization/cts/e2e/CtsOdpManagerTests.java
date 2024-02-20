@@ -28,6 +28,7 @@ import android.adservices.ondevicepersonalization.SurfacePackageToken;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager.NameNotFoundException;
+import android.net.Uri;
 import android.os.PersistableBundle;
 import android.util.Base64;
 
@@ -42,14 +43,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 
-
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.concurrent.Executors;
 
-/**
- * CTS Test cases for OnDevicePersonalizationManager APIs.
- */
+/** CTS Test cases for OnDevicePersonalizationManager APIs. */
 @RunWith(Parameterized.class)
 public class CtsOdpManagerTests {
 
@@ -66,11 +66,7 @@ public class CtsOdpManagerTests {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
+        return Arrays.asList(new Object[][] {{true}, {false}});
     }
 
     @Before
@@ -93,11 +89,12 @@ public class CtsOdpManagerTests {
 
         assertThrows(
                 NullPointerException.class,
-                () -> manager.execute(
-                        null,
-                        PersistableBundle.EMPTY,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+                () ->
+                        manager.execute(
+                                null,
+                                PersistableBundle.EMPTY,
+                                Executors.newSingleThreadExecutor(),
+                                new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -108,11 +105,12 @@ public class CtsOdpManagerTests {
 
         assertThrows(
                 NullPointerException.class,
-                () -> manager.execute(
-                        new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                        null,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+                () ->
+                        manager.execute(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                                null,
+                                Executors.newSingleThreadExecutor(),
+                                new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -123,11 +121,12 @@ public class CtsOdpManagerTests {
 
         assertThrows(
                 NullPointerException.class,
-                () -> manager.execute(
-                        new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                        PersistableBundle.EMPTY,
-                        null,
-                        new ResultReceiver<ExecuteResult>()));
+                () ->
+                        manager.execute(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                                PersistableBundle.EMPTY,
+                                null,
+                                new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -138,11 +137,12 @@ public class CtsOdpManagerTests {
 
         assertThrows(
                 NullPointerException.class,
-                () -> manager.execute(
-                        new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
-                        PersistableBundle.EMPTY,
-                        Executors.newSingleThreadExecutor(),
-                        null));
+                () ->
+                        manager.execute(
+                                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                                PersistableBundle.EMPTY,
+                                Executors.newSingleThreadExecutor(),
+                                null));
     }
 
     @Test
@@ -153,11 +153,12 @@ public class CtsOdpManagerTests {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> manager.execute(
-                    new ComponentName("", SERVICE_CLASS),
-                        PersistableBundle.EMPTY,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+                () ->
+                        manager.execute(
+                                new ComponentName("", SERVICE_CLASS),
+                                PersistableBundle.EMPTY,
+                                Executors.newSingleThreadExecutor(),
+                                new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -168,11 +169,12 @@ public class CtsOdpManagerTests {
 
         assertThrows(
                 IllegalArgumentException.class,
-                () -> manager.execute(
-                    new ComponentName(SERVICE_PACKAGE, ""),
-                        PersistableBundle.EMPTY,
-                        Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<ExecuteResult>()));
+                () ->
+                        manager.execute(
+                                new ComponentName(SERVICE_PACKAGE, ""),
+                                PersistableBundle.EMPTY,
+                                Executors.newSingleThreadExecutor(),
+                                new ResultReceiver<ExecuteResult>()));
     }
 
     @Test
@@ -309,8 +311,7 @@ public class CtsOdpManagerTests {
         var receiver = new ResultReceiver<ExecuteResult>();
         PersistableBundle appParams = new PersistableBundle();
         appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_THROW_EXCEPTION);
-        appParams.putString(
-                SampleServiceApi.KEY_EXCEPTION_CLASS, "java.lang.NullPointerException");
+        appParams.putString(SampleServiceApi.KEY_EXCEPTION_CLASS, "java.lang.NullPointerException");
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
@@ -362,8 +363,7 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE,
-                    Base64.encodeToString(new byte[]{'A'}, 0));
+                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                     appParams,
@@ -380,8 +380,7 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE,
-                    Base64.encodeToString(new byte[]{'A'}, 0));
+                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                     appParams,
@@ -398,8 +397,7 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE,
-                    Base64.encodeToString(new byte[]{'A'}, 0));
+                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
             appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -417,8 +415,7 @@ public class CtsOdpManagerTests {
                     SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
             appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
             appParams.putString(
-                    SampleServiceApi.KEY_BASE64_VALUE,
-                    Base64.encodeToString(new byte[]{'A'}, 0));
+                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
             appParams.putInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, LARGE_BLOB_SIZE);
             manager.execute(
                     new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -473,9 +470,7 @@ public class CtsOdpManagerTests {
         for (int i = 0; i < LARGE_BLOB_SIZE; ++i) {
             buffer[i] = 'A';
         }
-        appParams.putString(
-                SampleServiceApi.KEY_BASE64_VALUE,
-                Base64.encodeToString(buffer, 0));
+        appParams.putString(SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(buffer, 0));
         appParams.putInt(SampleServiceApi.KEY_VALUE_LENGTH, LARGE_BLOB_SIZE);
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
@@ -483,5 +478,60 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertTrue(receiver.isSuccess());
+    }
+
+    @Test
+    public void testRunModelInference() throws Exception {
+        final String tableKey = "model_" + System.currentTimeMillis();
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        Uri modelUri =
+                Uri.parse(
+                        "android.resource://"
+                                + ApplicationProvider.getApplicationContext().getPackageName()
+                                + "/raw/model");
+        Context context = ApplicationProvider.getApplicationContext();
+        InputStream in = context.getContentResolver().openInputStream(modelUri);
+        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        byte[] buf = new byte[4096];
+        int bytesRead;
+        while ((bytesRead = in.read(buf)) != -1) {
+            outputStream.write(buf, 0, bytesRead);
+        }
+        byte[] buffer = outputStream.toByteArray();
+        outputStream.close();
+        // Write model to local data.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putString(
+                    SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(buffer, 0));
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Run model inference
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RUN_MODEL_INFERENCE);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            appParams.putDouble(SampleServiceApi.KEY_INFERENCE_RESULT, 0.5922908);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
     }
 }
