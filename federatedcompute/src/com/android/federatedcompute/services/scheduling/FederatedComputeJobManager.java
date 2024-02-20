@@ -450,6 +450,22 @@ public class FederatedComputeJobManager {
                 taskRetry != null
                         ? SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY
                         : SchedulingReason.SCHEDULING_REASON_FAILURE);
+        if (trainingResult == ContributionResult.FAIL) {
+            int rescheduleCount = existingTask.rescheduleCount() + 1;
+            if (rescheduleCount > mFlags.getFcpRescheduleLimit()) {
+                LogUtil.i(
+                        TAG,
+                        "federated task (id: %d) was not rescheduled due to reschedule limit "
+                                + "reached!",
+                        jobId);
+                mJobSchedulerHelper.cancelTask(mContext, newTaskBuilder.build());
+                return false;
+            }
+            newTaskBuilder.rescheduleCount(rescheduleCount);
+        } else {
+            // drop reschedule count to 0 in case it was not a faulty run.
+            newTaskBuilder.rescheduleCount(0);
+        }
         FederatedTrainingTask newTask = newTaskBuilder.build();
         mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);

@@ -32,7 +32,7 @@ android_test {
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
         "kotlin-annotations",
-        "truth-prebuilt",
+        "truth",
         "framework-ondevicepersonalization.impl",
         "framework-statsd.stubs.module_lib", // For WW logging
     ],
@@ -51,6 +51,7 @@ android_test {
         "flatbuffers-java",
         "modules-utils-list-slice",
         "owasp-java-encoder",
+        "tensorflowlite_java",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
@@ -60,4 +61,9 @@ android_test {
     ],
     manifest: "AndroidManifest.xml",
     test_config: "AndroidTest.xml",
+    jni_libs: [
+        "libdexmakerjvmtiagent",
+        "libstaticjvmtiagent",
+        "libfcp_cpp_dep_jni",
+    ],
 }

@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotEquals;
@@ -26,6 +28,7 @@ import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.ModelId;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -33,6 +36,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -48,6 +52,7 @@ import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -60,6 +65,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -205,9 +211,10 @@ public class DataAccessServiceImplTest {
         HashSet<String> resultSet =
                 mResult.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
         assertNotNull(resultSet);
-        assertEquals(2, resultSet.size());
+        assertEquals(3, resultSet.size());
         assertTrue(resultSet.contains("key"));
         assertTrue(resultSet.contains("key2"));
+        assertTrue(resultSet.contains("model"));
     }
 
     @Test
@@ -223,9 +230,10 @@ public class DataAccessServiceImplTest {
         HashSet<String> resultSet =
                 mResult.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
         assertNotNull(resultSet);
-        assertEquals(2, resultSet.size());
+        assertEquals(3, resultSet.size());
         assertTrue(resultSet.contains("localkey"));
         assertTrue(resultSet.contains("localkey2"));
+        assertTrue(resultSet.contains("model"));
     }
 
     @Test
@@ -427,10 +435,100 @@ public class DataAccessServiceImplTest {
                 new TestCallback()));
     }
 
+    @Test
+    public void testGetModelFileDescriptor_badInput() {
+        addTestData();
+        Bundle params = new Bundle();
+
+        assertThrows(
+                NullPointerException.class,
+                () ->
+                        mServiceProxy.onRequest(
+                                Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback()));
+    }
+
+    @Test
+    public void testGetModelFileDescriptor_remoteTable_success() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        ModelId modelId =
+                new ModelId.Builder()
+                        .setTableId(ModelId.TABLE_ID_REMOTE_DATA)
+                        .setKey("model")
+                        .build();
+        params.putParcelable(Constants.EXTRA_MODEL_ID, modelId);
+
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        ParcelFileDescriptor modelFd =
+                mResult.getParcelable(Constants.EXTRA_RESULT, ParcelFileDescriptor.class);
+        assertNotNull(modelFd);
+    }
+
+    @Test
+    public void testGetModelFileDescriptor_remoteTable_fail() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        ModelId modelId =
+                new ModelId.Builder()
+                        .setTableId(ModelId.TABLE_ID_REMOTE_DATA)
+                        .setKey("bad-key2")
+                        .build();
+        params.putParcelable(Constants.EXTRA_MODEL_ID, modelId);
+
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+    }
+
+    @Test
+    public void testGetModelFileDescriptor_localTable_success() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        ModelId modelId =
+                new ModelId.Builder()
+                        .setTableId(ModelId.TABLE_ID_LOCAL_DATA)
+                        .setKey("model")
+                        .build();
+        params.putParcelable(Constants.EXTRA_MODEL_ID, modelId);
+
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
+        mLatch.await();
+        assertNotNull(mResult);
+        ParcelFileDescriptor modelFd =
+                mResult.getParcelable(Constants.EXTRA_RESULT, ParcelFileDescriptor.class);
+        assertNotNull(modelFd);
+    }
+
+    @Test
+    public void testGetModelFileDescriptor_localTable_fail() throws Exception {
+        addTestData();
+        Bundle params = new Bundle();
+        ModelId modelId =
+                new ModelId.Builder()
+                        .setTableId(ModelId.TABLE_ID_LOCAL_DATA)
+                        .setKey("bad-key2")
+                        .build();
+        params.putParcelable(Constants.EXTRA_MODEL_ID, modelId);
+
+        mServiceProxy.onRequest(Constants.DATA_ACCESS_OP_GET_MODEL, params, new TestCallback());
+        mLatch.await();
+        assertTrue(mOnErrorCalled);
+        assertThat(mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
+    }
+
     private void addTestData() {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
         dataList.add(new VendorData.Builder().setKey("key2").setData(new byte[10]).build());
+        String modelPath = IoUtils.writeToTempFile("mode", new byte[] {12, 13});
+        dataList.add(
+                new VendorData.Builder()
+                        .setKey("model")
+                        .setData(modelPath.getBytes(StandardCharsets.UTF_8))
+                        .build());
 
         List<String> retainedKeys = new ArrayList<>();
         retainedKeys.add("key");
@@ -442,7 +540,11 @@ public class DataAccessServiceImplTest {
                 new LocalData.Builder().setKey("localkey").setData(new byte[10]).build());
         mLocalDao.updateOrInsertLocalData(
                 new LocalData.Builder().setKey("localkey2").setData(new byte[10]).build());
-
+        mLocalDao.updateOrInsertLocalData(
+                new LocalData.Builder()
+                        .setKey("model")
+                        .setData(modelPath.getBytes(StandardCharsets.UTF_8))
+                        .build());
 
         ArrayList<ContentValues> rows = new ArrayList<>();
         ContentValues row = new ContentValues();

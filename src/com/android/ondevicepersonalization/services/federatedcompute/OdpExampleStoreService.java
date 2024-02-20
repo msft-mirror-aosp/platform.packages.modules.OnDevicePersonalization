@@ -43,8 +43,7 @@ import com.android.ondevicepersonalization.services.policyengine.UserDataAccesso
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
-import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
@@ -80,7 +79,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         }
 
         ProcessRunner getProcessRunner() {
-            return ProcessRunnerImpl.getInstance();
+            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
+                    ? SharedIsolatedProcessRunner.getInstance()
+                    : ProcessRunnerImpl.getInstance();
         }
     }
 
@@ -253,36 +254,23 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         return FluentFuture.from(result)
                 .transform(
                         val -> {
-                            writeServiceRequestMetrics(
-                                    val,
-                                    isolatedServiceInfo.getStartTimeMillis(),
-                                    Constants.STATUS_SUCCESS);
+                            StatsUtils.writeServiceRequestMetrics(
+                                    val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS,
+                                    isolatedServiceInfo.getStartTimeMillis());
                             return val;
                         },
                         OnDevicePersonalizationExecutors.getBackgroundExecutor())
                 .catchingAsync(
                         Exception.class,
                         e -> {
-                            writeServiceRequestMetrics(
-                                    null,
-                                    isolatedServiceInfo.getStartTimeMillis(),
-                                    Constants.STATUS_INTERNAL_ERROR);
+                            StatsUtils.writeServiceRequestMetrics(
+                                    /* result= */ null, mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR,
+                                    isolatedServiceInfo.getStartTimeMillis());
                             return Futures.immediateFailedFuture(e);
                         },
                         OnDevicePersonalizationExecutors.getBackgroundExecutor());
-    }
-
-    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        int overheadLatencyMillis =
-                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats =
-                new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_TRAINING_EXAMPLE)
-                        .setLatencyMillis(latencyMillis)
-                        .setOverheadLatencyMillis(overheadLatencyMillis)
-                        .setResponseCode(responseCode)
-                        .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
     // used for tests to provide mock/real implementation of context.

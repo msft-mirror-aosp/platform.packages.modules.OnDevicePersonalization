@@ -25,6 +25,9 @@ import android.os.PersistableBundle;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
 
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -40,12 +43,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      * Tests that the ExecuteInput object serializes correctly.
      */
     @Test
-    public void testExecuteInput() {
+    public void testExecuteInput() throws Exception {
         PersistableBundle bundle = new PersistableBundle();
         bundle.putInt("a", 5);
         ExecuteInputParcel data = new ExecuteInputParcel.Builder()
                 .setAppPackageName("com.example.test")
-                .setAppParams(bundle)
+                .setSerializedAppParams(new ByteArrayParceledSlice(
+                        PersistableBundleUtils.toByteArray(bundle)))
                 .build();
 
         Parcel parcel = Parcel.obtain();

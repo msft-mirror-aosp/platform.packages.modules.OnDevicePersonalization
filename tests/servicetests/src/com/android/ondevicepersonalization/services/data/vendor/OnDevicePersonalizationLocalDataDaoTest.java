@@ -34,6 +34,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
@@ -59,12 +60,36 @@ public class OnDevicePersonalizationLocalDataDaoTest {
     public void testBasicDaoOperations() {
         mVendorDao.batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                 System.currentTimeMillis());
+        basicDaoOperations();
+        assertNotEquals(0, mVendorDao.getSyncToken());
+    }
+
+    @Test
+    public void testCreateTable() {
+        mLocalDao.createTable();
+
+        basicDaoOperations();
+        assertEquals(0, mVendorDao.getSyncToken());
+    }
+
+    private void basicDaoOperations() {
+        File dir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                OnDevicePersonalizationLocalDataDao.getTableName(TEST_OWNER, TEST_CERT_DIGEST),
+                mContext.getFilesDir()));
+        assertTrue(dir.isDirectory());
 
         byte[] data = new byte[10];
         LocalData localData = new LocalData.Builder().setKey("key").setData(data).build();
         boolean insertResult = mLocalDao.updateOrInsertLocalData(localData);
         assertTrue(insertResult);
+        LocalData localData2 = new LocalData.Builder().setKey("large").setData(
+                new byte[111111]).build();
+        boolean insertResult2 = mLocalDao.updateOrInsertLocalData(localData2);
+        assertTrue(insertResult2);
         assertArrayEquals(data, mLocalDao.readSingleLocalDataRow("key"));
+        assertArrayEquals(new byte[111111], mLocalDao.readSingleLocalDataRow("large"));
+        assertEquals(1, dir.listFiles().length);
+
         assertEquals(null, mLocalDao.readSingleLocalDataRow("nonExistentKey"));
         assertFalse(mLocalDao.deleteLocalDataRow("nonExistentKey"));
         assertTrue(mLocalDao.deleteLocalDataRow("key"));
@@ -123,5 +148,9 @@ public class OnDevicePersonalizationLocalDataDaoTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+        File vendorDir = new File(mContext.getFilesDir(), "VendorData");
+        File localDir = new File(mContext.getFilesDir(), "LocalData");
+        FileUtils.deleteDirectory(vendorDir);
+        FileUtils.deleteDirectory(localDir);
     }
 }

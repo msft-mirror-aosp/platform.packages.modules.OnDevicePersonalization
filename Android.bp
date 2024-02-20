@@ -118,6 +118,8 @@ android_app {
         "flatbuffers-java",
         "apache-velocity-engine-core",
         "owasp-java-encoder",
+        "tensorflowlite_java",
+        "tensorflow_core_proto_java_lite",
     ],
     sdk_version: "module_current",
     min_sdk_version: "33",
