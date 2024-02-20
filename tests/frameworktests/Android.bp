@@ -38,6 +38,7 @@ android_test {
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
         "mockito-target-minus-junit4",
+        "ondevicepersonalization-testing-utils",
         "truth",
         "compatibility-device-util-axt",
     ],

@@ -194,7 +194,7 @@ public class ProcessRunnerImpl implements ProcessRunner {
                         }
                         @Override public void onFailure(FailureType failure) {
                             completer.setException(new OdpServiceException(
-                                    Constants.STATUS_INTERNAL_ERROR,
+                                    Constants.STATUS_SERVICE_FAILED,
                                     String.format("executePlugin failed: %s", failure.toString())));
                         }
                     });

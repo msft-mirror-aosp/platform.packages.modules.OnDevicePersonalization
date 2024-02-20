@@ -120,57 +120,29 @@ public final class HttpFederatedProtocol {
                 trainingEventLogger);
     }
 
-    /** Helper function to perform check in and download federated task from remote servers. */
-    public ListenableFuture<CheckinResult> issueCheckin(AuthorizationContext authContext) {
+    /** Checks in with remote server to participant in federated computation. */
+    public FluentFuture<CreateTaskAssignmentResponse> createTaskAssignment(
+            AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_ISSUE_CHECKIN, 0);
         // Clear task id before issue checkin request.
         mTrainingEventLogger.setTaskId(0);
         NetworkStats networkStats = new NetworkStats();
 
         return FluentFuture.from(createTaskAssignment(authContext, networkStats))
-                .transformAsync(
-                        federatedComputeHttpResponse -> {
-                            if (authContext.isFirstAuthTry()) {
-                                validateHttpResponseAllowAuthStatus(
-                                        "Start task assignment", federatedComputeHttpResponse);
-                            } else {
-                                validateHttpResponseStatus(
-                                        "Start task assignment", federatedComputeHttpResponse);
-                            }
-                            networkStats.addBytesDownloaded(
-                                    getTotalReceivedBytes(federatedComputeHttpResponse));
-                            CreateTaskAssignmentResponse taskAssignmentResponse;
-                            try {
-                                taskAssignmentResponse =
-                                        CreateTaskAssignmentResponse.parseFrom(
-                                                federatedComputeHttpResponse.getPayload());
-                            } catch (InvalidProtocolBufferException e) {
-                                mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
-                                throw new IllegalStateException(
-                                        "Could not parse StartTaskAssignmentResponse proto", e);
-                            }
-                            if (taskAssignmentResponse.hasRejectionInfo()) {
-                                mTrainingEventLogger.logCheckinRejected(networkStats);
-                                return Futures.immediateFuture(
-                                        new CheckinResult(
-                                                taskAssignmentResponse.getRejectionInfo()));
-                            }
-                            TaskAssignment taskAssignment =
-                                    getTaskAssignment(taskAssignmentResponse);
-                            mTrainingEventLogger.setTaskId(taskAssignment.getTaskName().hashCode());
-                            mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
-                            NetworkStats resourceStats = new NetworkStats();
-                            return checkinSuccessfulTaskAssignment(taskAssignment, resourceStats);
-                        },
-                        getBackgroundExecutor());
+                .transform(
+                        response ->
+                                processCreateTaskAssignmentResponse(
+                                        authContext, response, networkStats),
+                        getLightweightExecutor());
     }
 
-    private ListenableFuture<CheckinResult> checkinSuccessfulTaskAssignment(
-            TaskAssignment taskAssignment, NetworkStats resourceStats) {
+    /** Donwloads model checkpoint and federated compute plan from remote server. */
+    public ListenableFuture<CheckinResult> downloadTaskAssignment(TaskAssignment taskAssignment) {
+        NetworkStats networkStats = new NetworkStats();
         ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
-                fetchTaskResource(taskAssignment.getPlan(), resourceStats);
+                fetchTaskResource(taskAssignment.getPlan(), networkStats);
         ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
-                fetchTaskResource(taskAssignment.getInitCheckpoint(), resourceStats);
+                fetchTaskResource(taskAssignment.getInitCheckpoint(), networkStats);
         return Futures.whenAllSucceed(planDataResponseFuture, checkpointDataResponseFuture)
                 .call(
                         new Callable<CheckinResult>() {
@@ -180,7 +152,7 @@ public final class HttpFederatedProtocol {
                                         planDataResponseFuture,
                                         checkpointDataResponseFuture,
                                         taskAssignment,
-                                        resourceStats);
+                                        networkStats);
                             }
                         },
                         getBackgroundExecutor());
@@ -244,6 +216,33 @@ public final class HttpFederatedProtocol {
                             },
                             getLightweightExecutor());
         }
+    }
+
+    private CreateTaskAssignmentResponse processCreateTaskAssignmentResponse(
+            AuthorizationContext authContext,
+            FederatedComputeHttpResponse response,
+            NetworkStats networkStats) {
+        if (authContext.isFirstAuthTry()) {
+            validateHttpResponseAllowAuthStatus("Start task assignment", response);
+        } else {
+            validateHttpResponseStatus("Start task assignment", response);
+        }
+        networkStats.addBytesDownloaded(getTotalReceivedBytes(response));
+        CreateTaskAssignmentResponse taskAssignmentResponse;
+        try {
+            taskAssignmentResponse = CreateTaskAssignmentResponse.parseFrom(response.getPayload());
+        } catch (InvalidProtocolBufferException e) {
+            mTrainingEventLogger.logCheckinInvalidPayload(networkStats);
+            throw new IllegalStateException("Could not parse StartTaskAssignmentResponse proto", e);
+        }
+        if (taskAssignmentResponse.hasRejectionInfo()) {
+            mTrainingEventLogger.logCheckinRejected(networkStats);
+            return taskAssignmentResponse;
+        }
+        TaskAssignment taskAssignment = getTaskAssignment(taskAssignmentResponse);
+        mTrainingEventLogger.setTaskId(taskAssignment.getTaskName().hashCode());
+        mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
+        return taskAssignmentResponse;
     }
 
     private ListenableFuture<FederatedComputeHttpResponse> createTaskAssignment(

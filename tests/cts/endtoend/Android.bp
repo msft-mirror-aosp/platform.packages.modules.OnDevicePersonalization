@@ -31,6 +31,8 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "compatibility-device-util-axt",
+        "ondevicepersonalization-testing-sample-service-api",
+        "ondevicepersonalization-testing-utils",
     ],
     libs: [
         "android.test.base",
