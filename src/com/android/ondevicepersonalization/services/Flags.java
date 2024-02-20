@@ -54,9 +54,14 @@ public interface Flags {
     int APP_REQUEST_FLOW_DEADLINE_SECONDS = 30;
 
     /**
-     * Executiton deadline for app request flow.
+     * Executiton deadline for render flow.
      */
     int RENDER_FLOW_DEADLINE_SECONDS = 30;
+
+    /**
+     * Executiton deadline for web view flow.
+     */
+    int WEB_VIEW_FLOW_DEADLINE_SECONDS = 30;
 
     /**
      * Default value for the list of trusted partner app names.
@@ -137,6 +142,10 @@ public interface Flags {
 
     default int getRenderFlowDeadlineSeconds() {
         return RENDER_FLOW_DEADLINE_SECONDS;
+    }
+
+    default int getWebViewFlowDeadlineSeconds() {
+        return WEB_VIEW_FLOW_DEADLINE_SECONDS;
     }
 
     default String getTrustedPartnerAppsList() {

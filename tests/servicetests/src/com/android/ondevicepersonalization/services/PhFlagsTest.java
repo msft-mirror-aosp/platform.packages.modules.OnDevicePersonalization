@@ -25,6 +25,7 @@ import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONAL
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.Flags.RENDER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
@@ -34,6 +35,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALI
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -122,6 +124,29 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getPersonalizationStatusOverrideValue()).isEqualTo(phOverridingValue);
+    }
+
+    @Test
+    public void testWebViewFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getWebViewFlowDeadlineSeconds())
+                .isEqualTo(WEB_VIEW_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getWebViewFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                String.valueOf(WEB_VIEW_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
     }
 
     @Test
