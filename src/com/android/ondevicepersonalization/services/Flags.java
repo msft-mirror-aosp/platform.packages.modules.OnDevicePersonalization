@@ -177,4 +177,12 @@ public interface Flags {
     default long getUserConsentCacheInMillis() {
         return USER_CONSENT_CACHE_IN_MILLIS;
     }
+
+    /** Set all stable flags. */
+    default void setStableFlags() {}
+
+    /** Get a stable flag based on the flag name. */
+    default Object getStableFlag(String flagName) {
+        return null;
+    }
 }
