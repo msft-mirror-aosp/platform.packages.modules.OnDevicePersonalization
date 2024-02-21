@@ -404,6 +404,44 @@ public class CtsOdpManagerTests {
             assertTrue(receiver.isSuccess());
         }
 
+        // Remove.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_WRITE_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+
+        // Read and check whether value was removed.
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOCAL_DATA);
+            appParams.putString(SampleServiceApi.KEY_TABLE_KEY, tableKey);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.isSuccess());
+        }
+    }
+
+    @Test
+    public void testExecuteWriteAndReadLargeLocalData() throws InterruptedException {
+        final String tableKey = "testKey_" + System.currentTimeMillis();
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+
         // Write 10MB.
         {
             var receiver = new ResultReceiver<ExecuteResult>();
