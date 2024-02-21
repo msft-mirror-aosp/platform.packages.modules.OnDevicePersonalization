@@ -16,14 +16,11 @@
 
 package com.android.ondevicepersonalization.services.enrollment;
 
-import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 
 /** Check if an entity is enrolled to call ODP */
 public class PartnerEnrollmentChecker {
-    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = PartnerEnrollmentChecker.class.getSimpleName();
 
     /** check if a caller app is enrolled based on package name */
     public static boolean isCallerAppEnrolled(final String packageName) {
@@ -35,8 +32,6 @@ public class PartnerEnrollmentChecker {
                 AllowListUtils.isAllowListed(packageName, callerAppAllowList);
         isEnrolled = isEnrolled && isCallerAppAllowListed;
         if (!isEnrolled) {
-            sLogger.w(TAG + ": caller app " + packageName
-                    + " is not enrolled to call ODP, not in allow list");
             return isEnrolled;
         }
 
@@ -55,8 +50,6 @@ public class PartnerEnrollmentChecker {
                 AllowListUtils.isAllowListed(packageName, isolatedServiceAllowList);
         isEnrolled = isEnrolled && isIsolatedServiceAllowListed;
         if (!isEnrolled) {
-            sLogger.w(TAG + ": isolated service " + packageName
-                    + " is not enrolled to access ODP, not in allow list");
             return isEnrolled;
         }
 

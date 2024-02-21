@@ -33,6 +33,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.common.util.concurrent.Futures;
@@ -88,6 +89,12 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             String packageName = packageInfo.packageName;
             if (AppManifestConfigHelper.manifestContainsOdpSettings(
                     this, packageName)) {
+                if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                    sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled",
+                            packageName);
+                    continue;
+                }
+                sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
                 mFutures.add(Futures.submitAsync(
                         new OnDevicePersonalizationDataProcessingAsyncCallable(packageName,
                                 this),
