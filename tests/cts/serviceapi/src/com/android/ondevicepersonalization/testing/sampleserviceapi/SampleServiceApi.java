@@ -39,5 +39,12 @@ public class SampleServiceApi {
     public static final String OPCODE_READ_LOCAL_DATA = "read_local_data";
     public static final String OPCODE_CHECK_VALUE_LENGTH = "check_value_length";
 
+    // Event types in logs.
+    public static final String KEY_EVENT_TYPE = "type";
+    public static final int EVENT_TYPE_VIEW = 1;
+    public static final int EVENT_TYPE_CLICK = 2;
+    public static final String LINK_TEXT = "Click";
+    public static final String DESTINATION_URL = "https://www.android.com";
+
     private SampleServiceApi() {}
 }

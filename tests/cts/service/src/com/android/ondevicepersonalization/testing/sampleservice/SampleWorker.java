@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.testing.sampleservice;
 
+import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
@@ -26,6 +27,7 @@ import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.util.Base64;
@@ -44,11 +46,18 @@ class SampleWorker implements IsolatedWorker {
 
     private static final int ERROR_SAMPLE_SERVICE_FAILED = 1;
 
+    private static final String TRANSPARENT_PNG_BASE64 =
+            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
+            + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
+    private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
+
     private final MutableKeyValueStore mLocalData;
+    private final EventUrlProvider mEventUrlProvider;
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
 
-    SampleWorker(MutableKeyValueStore localData) {
+    SampleWorker(MutableKeyValueStore localData, EventUrlProvider eventUrlProvider) {
         mLocalData = localData;
+        mEventUrlProvider = eventUrlProvider;
     }
 
     @Override public void onExecute(
@@ -210,13 +219,30 @@ class SampleWorker implements IsolatedWorker {
             RenderInput input,
             OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
         Log.i(TAG, "onRender()");
+        mExecutor.submit(() -> handleOnRender(input, receiver));
+    }
+
+    private void handleOnRender(
+            RenderInput input,
+            OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+        Log.i(TAG, "handleOnRender()");
         var keys = input.getRenderingConfig().getKeys();
-        if (keys.size() > 0) {
-            String html = "<body>" + input.getRenderingConfig().getKeys().get(0) + "</body>";
-            receiver.onResult(new RenderOutput.Builder().setContent(html).build());
-        } else {
-            receiver.onResult(null);
+        if (keys.size() <= 0) {
+            receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+            return;
         }
+        PersistableBundle eventParams = new PersistableBundle();
+        eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_VIEW);
+        String viewUrl = mEventUrlProvider.createEventTrackingUrlWithResponse(
+                eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
+        eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_CLICK);
+        String clickUrl = mEventUrlProvider.createEventTrackingUrlWithRedirect(
+                eventParams, Uri.parse(SampleServiceApi.DESTINATION_URL)).toString();
+        String html =
+                "<body><img src=\"" + viewUrl + "\">\n"
+                + "<a href=\"" + clickUrl + "\">" + SampleServiceApi.LINK_TEXT + "</a></body>";
+        Log.i(TAG, "HTML output: " + html);
+        receiver.onResult(new RenderOutput.Builder().setContent(html).build());
     }
 }
 
