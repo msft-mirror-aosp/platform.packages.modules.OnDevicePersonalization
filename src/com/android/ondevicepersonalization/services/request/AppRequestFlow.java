@@ -44,10 +44,6 @@ import com.android.ondevicepersonalization.services.inference.IsolatedModelServi
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
@@ -74,7 +70,6 @@ import java.util.concurrent.TimeUnit;
 public class AppRequestFlow implements ServiceFlow<Bundle> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AppRequestFlow.class.getSimpleName();
-    private static final String TASK_NAME = "AppRequest";
     @NonNull
     private final String mCallingPackageName;
     @NonNull
@@ -107,12 +102,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
-        }
-
-        ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : ProcessRunnerImpl.getInstance();
         }
 
         boolean isPersonalizationStatusEnabled() {
@@ -167,55 +156,10 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         mInjector = Objects.requireNonNull(injector);
     }
 
-    /** Runs the request processing flow. */
-    public void run() {
-        var unused = Futures.submit(this::processRequest, mInjector.getExecutor());
-    }
-
-    // TO-DO (323554852): Add detailed trace for app request flow.
-    private void processRequest() {
-        try {
-            if (!isServiceFlowReady()) return;
-
-            mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
-            ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                                TASK_NAME, mService);
-
-            ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
-                    .transformAsync(
-                            isolatedServiceInfo ->
-                                    mInjector.getProcessRunner()
-                                            .runIsolatedService(
-                                                    isolatedServiceInfo,
-                                                    Constants.OP_EXECUTE, getServiceParams()),
-                                    mInjector.getExecutor());
-
-            uploadServiceFlowMetrics(runServiceFuture);
-
-            ListenableFuture<Bundle> serviceFlowResultFuture =
-                    getServiceFlowResultFuture(runServiceFuture);
-
-            returnResultThroughCallback(serviceFlowResultFuture);
-
-            var unused =
-                    Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
-                            .callAsync(
-                                    () -> {
-                                        mModelServiceProvider.unBindFromModelService();
-                                        return mInjector
-                                                .getProcessRunner()
-                                                .unloadIsolatedService(loadServiceFuture.get());
-                                    },
-                                    mInjector.getExecutor());
-        } catch (Exception e) {
-            sLogger.e(TAG + ": Could not process request.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-        }
-    }
-
     @Override
     public boolean isServiceFlowReady() {
+        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+
         if (!mInjector.isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is disabled.");
             sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
