@@ -108,22 +108,31 @@ public class OnDevicePersonalizationConfigManager {
                     new IOnDevicePersonalizationConfigServiceCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> {
-                                Binder.clearCallingIdentity();
-                                receiver.onResult(null);
-                                latch.countDown();
-                            });
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> {
+                                    receiver.onResult(null);
+                                    latch.countDown();
+                                });
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
 
                         @Override
                         public void onFailure(int errorCode) {
-                            executor.execute(() -> {
-                                sLogger.w(TAG + ": Unexpected failure from ODP"
-                                        + "config service with error code: " + errorCode);
-                                Binder.clearCallingIdentity();
-                                receiver.onError(new IllegalStateException("Unexpected failure."));
-                                latch.countDown();
-                            });
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> {
+                                    sLogger.w(TAG + ": Unexpected failure from ODP"
+                                            + "config service with error code: " + errorCode);
+                                    receiver.onError(
+                                            new IllegalStateException("Unexpected failure."));
+                                    latch.countDown();
+                                });
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
                     });
         } catch (IllegalArgumentException | NullPointerException e) {
