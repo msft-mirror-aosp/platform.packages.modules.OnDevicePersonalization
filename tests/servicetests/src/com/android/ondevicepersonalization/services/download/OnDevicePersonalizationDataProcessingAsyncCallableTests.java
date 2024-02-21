@@ -27,6 +27,7 @@ import android.database.Cursor;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -119,7 +120,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName));
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         mPopulator.refreshFileGroups(mMdd).get();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
         // Trigger the download immediately.
@@ -170,7 +176,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         OnDevicePersonalizationVendorDataDao dao =
                 OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
                         PackageUtils.getCertDigest(mContext, mPackageName));
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         mPopulator.refreshFileGroups(mMdd).get();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
         // Trigger the download immediately.

@@ -37,8 +37,8 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
@@ -134,12 +134,6 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization caller_app_allow_list "
-                        + mContext.getPackageName());
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization isolated_service_allow_list "
-                        + mContext.getPackageName());
 
         // Clean data up directories
         File vendorDir = new File(mContext.getFilesDir(), "VendorData");
@@ -235,7 +229,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         addEventData(mContext.getPackageName(), 100L);
         addEventData(TEST_OWNER, timestamp);
 
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
                 OnDevicePersonalizationVendorDataDao.getTableName(mContext.getPackageName(),
                         PackageUtils.getCertDigest(mContext, mContext.getPackageName())),
@@ -260,7 +259,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         addTestData(timestamp + 20, mDao);
         assertEquals(6, dir.listFiles().length);
 
+        originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         assertEquals(2, dir.listFiles().length);
         assertTrue(new File(dir, "large_" + (timestamp + 20)).exists());
         assertTrue(new File(dir, "large2_" + (timestamp + 20)).exists());
@@ -312,7 +316,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertEquals(4, vendorDir.listFiles().length);
         assertEquals(3, localDir.listFiles().length);
 
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         assertEquals(1, vendorDir.listFiles().length);
         assertEquals(1, localDir.listFiles().length);
     }
