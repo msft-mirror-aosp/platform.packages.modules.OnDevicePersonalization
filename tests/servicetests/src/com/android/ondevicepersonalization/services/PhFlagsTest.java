@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
@@ -23,13 +24,20 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.Flags.RENDER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -52,6 +60,19 @@ public class PhFlagsTest {
     @Before
     public void setUpContext() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+    }
+
+    @Test(expected = IllegalArgumentException.class)
+    public void testInvalidStableFlags() {
+        FlagsFactory.getFlags().getStableFlag("INVALID_FLAG_NAME");
+    }
+
+    @Test
+    public void testValidStableFlags() {
+        Object isSipFeatureEnabled = FlagsFactory.getFlags()
+                .getStableFlag(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+
+        assertThat(isSipFeatureEnabled).isNotNull();
     }
 
     @Test
@@ -118,6 +139,98 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getPersonalizationStatusOverrideValue()).isEqualTo(phOverridingValue);
+    }
+
+    @Test
+    public void testWebTriggerFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds())
+                .isEqualTo(WEB_TRIGGER_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
+                String.valueOf(WEB_TRIGGER_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
+    }
+
+    @Test
+    public void testWebViewFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getWebViewFlowDeadlineSeconds())
+                .isEqualTo(WEB_VIEW_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getWebViewFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                String.valueOf(WEB_VIEW_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
+    }
+
+    @Test
+    public void testRenderFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds())
+                .isEqualTo(RENDER_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_RENDER_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_RENDER_FLOW_DEADLINE_SECONDS,
+                String.valueOf(RENDER_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
+    }
+
+    @Test
+    public void testAppRequestFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds())
+                .isEqualTo(APP_REQUEST_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                String.valueOf(APP_REQUEST_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
     }
 
     @Test

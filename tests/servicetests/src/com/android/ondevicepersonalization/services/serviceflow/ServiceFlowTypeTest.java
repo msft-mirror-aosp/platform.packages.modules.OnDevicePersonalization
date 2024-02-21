@@ -59,12 +59,11 @@ public class ServiceFlowTypeTest {
 
     @Test
     public void executionTimeoutTest() {
-        int executionTimeout = FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds();
-        assertThat(
-                ServiceFlowType.APP_REQUEST_FLOW.getExecutionTimeout()).isEqualTo(executionTimeout);
-        assertThat(
-                ServiceFlowType.RENDER_FLOW.getExecutionTimeout()).isEqualTo(executionTimeout);
-        assertThat(
-                ServiceFlowType.WEB_TRIGGER_FLOW.getExecutionTimeout()).isEqualTo(executionTimeout);
+        assertThat(ServiceFlowType.APP_REQUEST_FLOW.getExecutionTimeout())
+                .isEqualTo(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds());
+        assertThat(ServiceFlowType.RENDER_FLOW.getExecutionTimeout())
+                .isEqualTo(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds());
+        assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getExecutionTimeout())
+                .isEqualTo(FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds());
     }
 }
