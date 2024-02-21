@@ -49,6 +49,27 @@ public interface Flags {
     int ISOLATED_SERVICE_DEADLINE_SECONDS = 30;
 
     /**
+     * Execution deadline for app request flow.
+     */
+    int APP_REQUEST_FLOW_DEADLINE_SECONDS = 30;
+
+    /**
+     * Executiton deadline for render flow.
+     */
+    int RENDER_FLOW_DEADLINE_SECONDS = 30;
+
+    /**
+     * Executiton deadline for web view flow.
+     */
+    int WEB_VIEW_FLOW_DEADLINE_SECONDS = 30;
+
+    /**
+     * Executiton deadline for web trigger flow.
+     */
+    int WEB_TRIGGER_FLOW_DEADLINE_SECONDS = 30;
+
+
+    /**
      * Default value for the list of trusted partner app names.
      */
     String DEFAULT_TRUSTED_PARTNER_APPS_LIST = "";
@@ -121,6 +142,22 @@ public interface Flags {
         return ISOLATED_SERVICE_DEADLINE_SECONDS;
     }
 
+    default int getAppRequestFlowDeadlineSeconds() {
+        return APP_REQUEST_FLOW_DEADLINE_SECONDS;
+    }
+
+    default int getRenderFlowDeadlineSeconds() {
+        return RENDER_FLOW_DEADLINE_SECONDS;
+    }
+
+    default int getWebViewFlowDeadlineSeconds() {
+        return WEB_VIEW_FLOW_DEADLINE_SECONDS;
+    }
+
+    default int getWebTriggerFlowDeadlineSeconds() {
+        return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
+    }
+
     default String getTrustedPartnerAppsList() {
         return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
     }
@@ -139,5 +176,13 @@ public interface Flags {
 
     default long getUserConsentCacheInMillis() {
         return USER_CONSENT_CACHE_IN_MILLIS;
+    }
+
+    /** Set all stable flags. */
+    default void setStableFlags() {}
+
+    /** Get a stable flag based on the flag name. */
+    default Object getStableFlag(String flagName) {
+        return null;
     }
 }
