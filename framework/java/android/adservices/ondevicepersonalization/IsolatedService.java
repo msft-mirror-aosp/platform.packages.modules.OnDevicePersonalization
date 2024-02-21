@@ -193,12 +193,11 @@ public abstract class IsolatedService extends Service {
     }
 
     /**
-     * Returns an {@link ModelManager} for the current request. The {@link ModelManager} can be ued
+     * Returns an {@link ModelManager} for the current request. The {@link ModelManager} can be used
      * to do model inference. It only supports Tensorflow Lite model inference now.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
      * @return An {@link ModelManager} that can be used for model inference.
-     * @hide
      */
     @NonNull
     public final ModelManager getModelManager(@NonNull RequestToken requestToken) {
