@@ -16,6 +16,9 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -70,6 +73,7 @@ import com.android.federatedcompute.services.http.HttpFederatedProtocol;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.ResultCallbackHelper.CallbackResult;
@@ -78,6 +82,8 @@ import com.android.federatedcompute.services.training.aidl.ITrainingResultCallba
 import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;
@@ -114,8 +120,7 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 import org.tensorflow.example.BytesList;
 import org.tensorflow.example.Example;
 import org.tensorflow.example.Feature;
@@ -127,7 +132,12 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RunWith(JUnit4.class)
+@MockStatic(ClientErrorLogger.class)
 public final class FederatedComputeWorkerTest {
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
     private static final int JOB_ID = 1234;
     private static final String POPULATION_NAME = "barPopulation";
     private static final String TASK_NAME = "barPopulation/task-id";
@@ -262,7 +272,6 @@ public final class FederatedComputeWorkerTest {
                     .setSelectionCriteria(FAKE_CRITERIA.toByteArray())
                     .setExampleCount(100)
                     .build();
-    @Rule public final MockitoRule mocks = MockitoJUnit.rule();
     @Mock TrainingConditionsChecker mTrainingConditionsChecker;
     @Mock FederatedComputeJobManager mMockJobManager;
     private Context mContext;
@@ -277,6 +286,8 @@ public final class FederatedComputeWorkerTest {
     @Mock private FederatedComputeEncryptionKeyManager mMockKeyManager;
 
     private static KeyAttestation sSpyKeyAttestation;
+
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
 
     private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
             new FederatedComputeEncryptionKey.Builder()
@@ -312,6 +323,7 @@ public final class FederatedComputeWorkerTest {
     @Before
     public void doBeforeEachTest() throws Exception {
         mContext = ApplicationProvider.getApplicationContext();
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
         mSpyHttpFederatedProtocol =
                 spy(
                         HttpFederatedProtocol.create(
@@ -756,6 +768,11 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(IllegalStateException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -788,6 +805,11 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(IllegalStateException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -948,6 +970,11 @@ public final class FederatedComputeWorkerTest {
         @Override
         EligibilityDecider getEligibilityDecider(Context context) {
             return new EligibilityDecider(mTrainingTaskDao);
+        }
+
+        @Override
+        boolean isEligibilityTaskEnabled() {
+            return true;
         }
     }
 
