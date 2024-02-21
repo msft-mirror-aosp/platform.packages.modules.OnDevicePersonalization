@@ -37,6 +37,7 @@ import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -83,6 +84,19 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "debug.validate_rendering_config_keys "
                         + false);
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "isolated_service_allow_list "
+                        + "com.android.ondevicepersonalization.testing.sampleservice,"
+                        + "com.example.odptargetingapp2");
+    }
+
+    @After
+    public void reset() {
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "isolated_service_allow_list "
+                        + "null");
     }
 
     @Test
