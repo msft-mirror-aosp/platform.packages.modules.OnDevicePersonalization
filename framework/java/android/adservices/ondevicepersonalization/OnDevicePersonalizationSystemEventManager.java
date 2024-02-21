@@ -26,6 +26,7 @@ import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.annotation.SystemApi;
 import android.content.Context;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 import android.os.SystemClock;
@@ -119,12 +120,22 @@ public class OnDevicePersonalizationSystemEventManager {
                     new IRegisterMeasurementEventCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> receiver.onResult(null));
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> receiver.onResult(null));
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(
-                                    new IllegalStateException("Error: " + errorCode)));
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> receiver.onError(
+                                        new IllegalStateException("Error: " + errorCode)));
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
                     }
             );
