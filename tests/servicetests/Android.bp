@@ -18,6 +18,9 @@ package {
 
 android_test {
     name: "OnDevicePersonalizationManagingServicesTests",
+    defaults: [
+        "modules-utils-testable-device-config-defaults",
+    ],
     srcs: [
         "src/**/*.java",
         "src/**/*.kt",
