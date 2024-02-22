@@ -33,10 +33,12 @@ import android.federatedcompute.common.ScheduleFederatedComputeRequest;
 import android.federatedcompute.common.TrainingInterval;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.OutcomeReceiver;
+import android.provider.DeviceConfig;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
@@ -48,6 +50,7 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -71,6 +74,9 @@ public class FederatedComputeServiceImplTest {
     private FederatedComputeServiceImpl mServiceImpl;
     private IFederatedComputeService mServiceProxy;
     private FederatedComputeManager mMockManager;
+    @Rule
+    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
+            new TestableDeviceConfig.TestableDeviceConfigRule();
 
     @Before
     public void setup() throws Exception {
@@ -151,10 +157,11 @@ public class FederatedComputeServiceImplTest {
                 "setprop debug.ondevicepersonalization.override_fc_server_url_package "
                         + mApplicationContext.getPackageName());
         String overrideUrl = "https://cs.android.com";
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "debug.ondevicepersonalization.override_fc_server_url "
-                        + overrideUrl);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                "debug.ondevicepersonalization.override_fc_server_url",
+                overrideUrl,
+                /* makeDefault= */ false);
         TrainingInterval interval =
                 new TrainingInterval.Builder()
                         .setMinimumIntervalMillis(100)
