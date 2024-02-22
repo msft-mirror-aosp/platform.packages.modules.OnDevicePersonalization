@@ -25,6 +25,7 @@ android_test_helper_app {
     ],
     libs: [
         "framework-ondevicepersonalization.impl",
+        "truth",
     ],
     static_libs: [
         "androidx.annotation_annotation",
