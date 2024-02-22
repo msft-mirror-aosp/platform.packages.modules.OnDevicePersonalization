@@ -16,6 +16,10 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
 import static com.android.federatedcompute.services.common.Constants.ISOLATED_TRAINING_SERVICE_NAME;
 import static com.android.federatedcompute.services.common.Constants.TRACE_WORKER_RUN_FL_COMPUTATION;
@@ -58,6 +62,7 @@ import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.security.AuthorizationContext;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ComputationResult;
@@ -282,7 +287,7 @@ public class FederatedComputeWorker {
                                             new IllegalStateException(
                                                     "Unknown rejection Info from FCP server"));
                                 } else {
-                                    return runEligibilityTaskAndDoFlTraining(
+                                    return runEligibilityCheckAndDoFlTraining(
                                             taskAssignmentResponse, run);
                                 }
                             },
@@ -319,7 +324,7 @@ public class FederatedComputeWorker {
                                                             + "solving authentication challenge"));
                                 }
                             } else {
-                                return runEligibilityTaskAndDoFlTraining(
+                                return runEligibilityCheckAndDoFlTraining(
                                         taskAssignmentOnUnauthenticated, run);
                             }
                         },
@@ -338,7 +343,7 @@ public class FederatedComputeWorker {
         return Futures.immediateFuture(null);
     }
 
-    private ListenableFuture<FLRunnerResult> runEligibilityTaskAndDoFlTraining(
+    private ListenableFuture<FLRunnerResult> runEligibilityCheckAndDoFlTraining(
             CreateTaskAssignmentResponse createTaskAssignmentResponse, TrainingRun run) {
         String taskName = createTaskAssignmentResponse.getTaskAssignment().getTaskName();
         Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
@@ -349,24 +354,7 @@ public class FederatedComputeWorker {
         // 2. Execute eligibility task if applicable.
         if (createTaskAssignmentResponse.getTaskAssignment().hasEligibilityTaskInfo()
                 && mInjector.isEligibilityTaskEnabled()) {
-            TaskAssignment taskAssignment = createTaskAssignmentResponse.getTaskAssignment();
-            LogUtil.d(
-                    TAG,
-                    "start eligibility task %s %s ",
-                    run.mTask.populationName(),
-                    taskAssignment.getTaskId());
-            EligibilityDecider eligibilityDecider = mInjector.getEligibilityDecider(this.mContext);
-            boolean eligibleResult =
-                    eligibilityDecider.computeEligibility(
-                            run.mTask.populationName(),
-                            taskAssignment.getTaskId(),
-                            run.mJobId,
-                            taskAssignment.getEligibilityTaskInfo());
-            LogUtil.i(
-                    TAG,
-                    "eligibility task result %s %b",
-                    taskAssignment.getTaskId(),
-                    eligibleResult);
+            boolean eligibleResult = checkEligibility(createTaskAssignmentResponse, run);
             // If device is not eligible to execute task, report failure result to server.
             if (!eligibleResult) {
                 reportFailureResultToServer(
@@ -395,6 +383,29 @@ public class FederatedComputeWorker {
                 .transformAsync(
                         checkinResult -> doFederatedComputation(run, checkinResult),
                         getBackgroundExecutor());
+    }
+
+    private boolean checkEligibility(
+            CreateTaskAssignmentResponse createTaskAssignmentResponse, TrainingRun run) {
+        TaskAssignment taskAssignment = createTaskAssignmentResponse.getTaskAssignment();
+        LogUtil.d(
+                TAG,
+                "start eligibility task %s %s ",
+                run.mTask.populationName(),
+                taskAssignment.getTaskId());
+        EligibilityDecider eligibilityDecider = mInjector.getEligibilityDecider(this.mContext);
+        boolean eligibleResult =
+                eligibilityDecider.computeEligibility(
+                        run.mTask.populationName(),
+                        taskAssignment.getTaskId(),
+                        run.mJobId,
+                        taskAssignment.getEligibilityTaskInfo());
+        LogUtil.i(
+                TAG,
+                "eligibility task result %s %b",
+                taskAssignment.getTaskId(),
+                eligibleResult);
+        return eligibleResult;
     }
 
     @NonNull
@@ -676,8 +687,14 @@ public class FederatedComputeWorker {
                             + " population name: %s, task name: %s",
                     run.mTask.populationName(),
                     run.mTaskName);
-            return Futures.immediateFailedFuture(
-                    new IllegalStateException("Client plan input tflite graph is empty"));
+            IllegalStateException ex =
+                    new IllegalStateException("Client plan input tflite graph is empty");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            ex,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+            return Futures.immediateFailedFuture(ex);
         }
 
         try {
@@ -721,6 +738,7 @@ public class FederatedComputeWorker {
                                         inputCheckpointFd.close();
                                     }
                                 } catch (IOException e) {
+                                    reportCelFileDescriptorClose(e);
                                     LogUtil.e(TAG, "Failed to close file descriptor", e);
                                 } finally {
                                     // Unbind from IsolatedTrainingService.
@@ -742,8 +760,10 @@ public class FederatedComputeWorker {
                     inputCheckpointFd.close();
                 }
             } catch (IOException t) {
+                reportCelFileDescriptorClose(t);
                 LogUtil.e(TAG, t, "Failed to close file descriptor");
             } finally {
+                reportCelIsolatedTrainingProcess(e);
                 // Unbind from IsolatedTrainingService.
                 LogUtil.i(TAG, "Unbinding from IsolatedTrainingService");
                 unbindFromIsolatedTrainingService();
@@ -751,6 +771,22 @@ public class FederatedComputeWorker {
             }
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private static void reportCelIsolatedTrainingProcess(Exception e) {
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        e,
+                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR,
+                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+    }
+
+    private static void reportCelFileDescriptorClose(IOException e) {
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        e,
+                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR,
+                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
     }
 
     private ComputationResult processIsolatedTrainingResult(
@@ -839,6 +875,10 @@ public class FederatedComputeWorker {
                         runFlComputation(run, checkinResult, outputCheckpointFile, iterator);
                 break;
             default:
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
                 return Futures.immediateFailedFuture(
                         new IllegalArgumentException(
                                 String.format(
