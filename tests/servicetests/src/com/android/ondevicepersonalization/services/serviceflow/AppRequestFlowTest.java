@@ -144,12 +144,8 @@ public class AppRequestFlowTest {
 
         assertTrue(mCallbackSuccess);
         assertNull(mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA));
-        assertEquals(2,
-                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
-        assertEquals(1,
-                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+        assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
     }
 
     @Test
@@ -169,12 +165,13 @@ public class AppRequestFlowTest {
         assertArrayEquals(
                 mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA),
                 new byte[] {1, 2, 3});
-        assertEquals(2,
-                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
-        assertEquals(1,
-                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+        assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
+    }
+
+    private int getDbTableSize(String tableName) {
+        return mDbHelper.getReadableDatabase().query(tableName, null,
+                null, null, null, null, null).getCount();
     }
 
     private void setUpTestData() throws Exception {
