@@ -745,8 +745,7 @@ public class SampleHandler implements IsolatedWorker {
 
     private ListenableFuture<InferenceOutput> runInference(List<Ad> ads) {
         InferenceInput.Params params =
-                InferenceInput.Params.createCpuParams(
-                        mRemoteData, "model1", 1, InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
+                new InferenceInput.Params.Builder(mRemoteData, "model1").build();
         InferenceInput input =
                 new InferenceInput.Builder(
                                 params, generateInputData(ads), generateInferenceOutput(ads.size()))
