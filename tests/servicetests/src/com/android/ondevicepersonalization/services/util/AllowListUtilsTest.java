@@ -46,4 +46,70 @@ public class AllowListUtilsTest {
         assertTrue(AllowListUtils.isAllowListed("com.android.app",
                 " com.android.app , com.play.app "));
     }
+
+    @Test public void testIsPairAllowListed() {
+        // Null flag.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                null));
+        // Empty flag.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                ""));
+        // Not found.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3:ZZZZ;com.test.app4:YYYY"));
+        // Match
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3:ZZZZ;com.test.app4:YYYY,com.test.app1:ABCD;com.test.app2:EFGH"));
+        // Flag contains no cert - Match
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3:ZZZZ;com.test.app4:YYYY,com.test.app1;com.test.app2"));
+        // Second entity cert mismatch.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:ABCD;com.test.app2:PQRS"));
+        // First entity cert mismatch.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:PQRS;com.test.app2:EFGH"));
+        // Second entity missing.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:ABCD"));
+        // Bad flag.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:ABCD;com.test.app2:EFGH;com.test.app3:PQRS"));
+    }
 }
