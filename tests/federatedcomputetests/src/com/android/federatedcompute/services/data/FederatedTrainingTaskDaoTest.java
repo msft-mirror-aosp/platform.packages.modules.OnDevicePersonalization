@@ -57,14 +57,14 @@ public final class FederatedTrainingTaskDaoTest {
     @Rule
     public final ExtendedMockitoRule extendedMockitoRule =
             new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
     private static final String TASK_NAME = "task_name";
     private static final String TASK_ID = "task_id";
     private static final String SERVER_ADDRESS = "https://server.uri/";
     private static final int JOB_ID = 123;
-    private static final String OWNER_ID =
-            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final Long CREATION_TIME = 1233L;
     private static final Long LAST_SCHEDULE_TIME = 1230L;
@@ -86,8 +86,7 @@ public final class FederatedTrainingTaskDaoTest {
     private FederatedTrainingTaskDao mTrainingTaskDao;
     private Context mContext;
 
-    @Mock
-    private ClientErrorLogger mMockClientErrorLogger;
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
 
     @Before
     public void setUp() {
@@ -273,9 +272,9 @@ public final class FederatedTrainingTaskDaoTest {
     }
 
     @Test
-    public void getTaskHistory_nonExist() {
+    public void getLatestTaskHistory_nonExist() {
         TaskHistory taskHistory =
-                mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_NAME);
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID, POPULATION_NAME, TASK_NAME);
 
         assertThat(taskHistory).isNull();
     }
@@ -284,7 +283,8 @@ public final class FederatedTrainingTaskDaoTest {
     public void insertTaskHistory_success() {
         assertTrue(mTrainingTaskDao.updateOrInsertTaskHistory(TASK_HISTORY));
 
-        TaskHistory taskHistory = mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
+        TaskHistory taskHistory =
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
 
         assertThat(taskHistory).isEqualTo(TASK_HISTORY);
     }
@@ -304,7 +304,8 @@ public final class FederatedTrainingTaskDaoTest {
                         .setContributionTime(500L)
                         .build());
 
-        TaskHistory taskHistory = mTrainingTaskDao.getTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
+        TaskHistory taskHistory =
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID, POPULATION_NAME, TASK_ID);
         assertThat(taskHistory.getContributionRound()).isEqualTo(15);
         assertThat(taskHistory.getTotalParticipation()).isEqualTo(3);
         assertThat(taskHistory.getContributionTime()).isEqualTo(500L);
