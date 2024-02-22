@@ -138,6 +138,8 @@ public interface Flags extends ModuleSharedFlags {
                     + "com.example.odptargetingapp1,"
                     + "com.example.odptargetingapp2";
 
+    String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
+
     /**
      * Default value of valid duration of user consent cache in milliseconds (10 minutes).
      */
@@ -193,6 +195,10 @@ public interface Flags extends ModuleSharedFlags {
 
     default long getUserConsentCacheInMillis() {
         return USER_CONSENT_CACHE_IN_MILLIS;
+    }
+
+    default String getOutputDataAllowList() {
+        return DEFAULT_OUTPUT_DATA_ALLOW_LIST;
     }
 
     /** Set all stable flags. */

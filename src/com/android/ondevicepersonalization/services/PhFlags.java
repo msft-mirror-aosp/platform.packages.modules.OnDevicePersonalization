@@ -62,6 +62,8 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
 
+    public static final String KEY_OUTPUT_DATA_ALLOW_LIST = "output_data_allow_list";
+
     public static final String KEY_USER_CONSENT_CACHE_IN_MILLIS =
             "user_consent_cache_duration_millis";
 
@@ -217,6 +219,14 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ISOLATED_SERVICE_ALLOW_LIST,
                 /* defaultValue= */ DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
+    }
+
+    @Override
+    public String getOutputDataAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_OUTPUT_DATA_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_OUTPUT_DATA_ALLOW_LIST);
     }
 
     @Override

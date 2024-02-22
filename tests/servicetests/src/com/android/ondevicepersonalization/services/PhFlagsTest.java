@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
@@ -32,6 +33,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_AP
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
@@ -46,14 +48,20 @@ import android.provider.DeviceConfig;
 import androidx.test.runner.AndroidJUnit4;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 /** Unit tests for {@link com.android.ondevicepersonalization.service.PhFlags} */
 @RunWith(AndroidJUnit4.class)
 public class PhFlagsTest {
+    @Rule
+    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
+            new TestableDeviceConfig.TestableDeviceConfigRule();
+
     /**
      * Get necessary permissions to access Setting.Config API and set up context
      */
@@ -347,5 +355,29 @@ public class PhFlagsTest {
 
         assertThat(FlagsFactory.getFlags().getIsolatedServiceAllowList())
                 .isEqualTo(testIsolatedServiceAllowList);
+    }
+
+    @Test
+    public void testGetOutputDataAllowList() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_OUTPUT_DATA_ALLOW_LIST,
+                DEFAULT_OUTPUT_DATA_ALLOW_LIST,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getOutputDataAllowList())
+                .isEqualTo(DEFAULT_OUTPUT_DATA_ALLOW_LIST);
+
+        final String testOutputDataAllowList =
+                "com.example.odpclient;com.example.odpsamplenetwork";
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_OUTPUT_DATA_ALLOW_LIST,
+                testOutputDataAllowList,
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getOutputDataAllowList())
+                .isEqualTo(testOutputDataAllowList);
     }
 }
