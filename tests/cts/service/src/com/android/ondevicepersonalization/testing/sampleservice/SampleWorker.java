@@ -174,8 +174,7 @@ class SampleWorker implements IsolatedWorker {
         String tableKey =
                 Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         InferenceInput.Params params =
-                InferenceInput.Params.createCpuParams(
-                        mLocalData, tableKey, 1, InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
+                new InferenceInput.Params.Builder(mLocalData, tableKey).build();
         InferenceInput input = buildInferenceInput(params);
         CompletableFuture<InferenceOutput> future = new CompletableFuture<>();
         OutcomeReceiver<InferenceOutput, Exception> callback =
@@ -304,14 +303,26 @@ class SampleWorker implements IsolatedWorker {
         }
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_VIEW);
-        String viewUrl = mEventUrlProvider.createEventTrackingUrlWithResponse(
-                eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
+        String viewUrl =
+                mEventUrlProvider
+                        .createEventTrackingUrlWithResponse(
+                                eventParams, TRANSPARENT_PNG_BYTES, "image/png")
+                        .toString();
         eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_CLICK);
-        String clickUrl = mEventUrlProvider.createEventTrackingUrlWithRedirect(
-                eventParams, Uri.parse(SampleServiceApi.DESTINATION_URL)).toString();
+        String clickUrl =
+                mEventUrlProvider
+                        .createEventTrackingUrlWithRedirect(
+                                eventParams, Uri.parse(SampleServiceApi.DESTINATION_URL))
+                        .toString();
         String html =
-                "<body><img src=\"" + viewUrl + "\">\n"
-                + "<a href=\"" + clickUrl + "\">" + SampleServiceApi.LINK_TEXT + "</a></body>";
+                "<body><img src=\""
+                        + viewUrl
+                        + "\">\n"
+                        + "<a href=\""
+                        + clickUrl
+                        + "\">"
+                        + SampleServiceApi.LINK_TEXT
+                        + "</a></body>";
         Log.i(TAG, "HTML output: " + html);
         receiver.onResult(new RenderOutput.Builder().setContent(html).build());
     }
