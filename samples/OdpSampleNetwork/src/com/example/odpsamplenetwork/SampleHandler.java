@@ -390,7 +390,7 @@ public class SampleHandler implements IsolatedWorker {
                 TrainingInterval interval =
                         new TrainingInterval.Builder()
                                 .setMinimumInterval(Duration.ofSeconds(10))
-                                .setSchedulingMode(2)
+                                .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
                                 .build();
                 FederatedComputeScheduler.Params params =
                         new FederatedComputeScheduler.Params(interval);
