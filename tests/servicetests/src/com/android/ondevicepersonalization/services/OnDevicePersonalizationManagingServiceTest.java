@@ -37,7 +37,6 @@ import android.view.SurfaceControlViewHost;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
-import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -63,13 +62,6 @@ public class OnDevicePersonalizationManagingServiceTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization caller_app_allow_list "
-                        + mContext.getPackageName());
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization isolated_service_allow_list "
-                        + mContext.getPackageName());
-
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
     }
@@ -233,6 +225,51 @@ public class OnDevicePersonalizationManagingServiceTest {
                                 createWrappedAppParams(),
                                 new CallerMetadata.Builder().build(),
                                 null));
+    }
+
+    @Test
+    public void testExecuteThrowsIfCallerNotEnrolled() throws Exception {
+        var callback = new ExecuteCallback();
+        var originalCallerAppAllowList = FlagsFactory.getFlags().getCallerAppAllowList();
+        PhFlagsTestUtil.setCallerAppAllowList("");
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mService.execute(
+                                    mContext.getPackageName(),
+                                    new ComponentName(
+                                            mContext.getPackageName(),
+                                            "com.test.TestPersonalizationHandler"),
+                                    createWrappedAppParams(),
+                                    new CallerMetadata.Builder().build(),
+                                    callback));
+        } finally {
+            PhFlagsTestUtil.setCallerAppAllowList(originalCallerAppAllowList);
+        }
+    }
+
+    @Test
+    public void testExecuteThrowsIfIsolatedServiceNotEnrolled() throws Exception {
+        var callback = new ExecuteCallback();
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList("");
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mService.execute(
+                                    mContext.getPackageName(),
+                                    new ComponentName(
+                                            mContext.getPackageName(),
+                                            "com.test.TestPersonalizationHandler"),
+                                    createWrappedAppParams(),
+                                    new CallerMetadata.Builder().build(),
+                                    callback));
+        } finally {
+            PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
+        }
     }
 
     @Test

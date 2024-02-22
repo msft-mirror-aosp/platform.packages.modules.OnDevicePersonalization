@@ -26,6 +26,7 @@ import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -183,27 +184,38 @@ public class OnDevicePersonalizationManager {
                 @Override
                 public void onSuccess(
                         Bundle callbackResult) {
-                    executor.execute(() -> {
-                        try {
-                            SurfacePackageToken token = null;
-                            if (callbackResult != null) {
-                                String tokenString = callbackResult.getString(
-                                        Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
-                                if (tokenString != null && !tokenString.isBlank()) {
-                                    token = new SurfacePackageToken(tokenString);
+                    final long token = Binder.clearCallingIdentity();
+                    try {
+                        executor.execute(() -> {
+                            try {
+                                SurfacePackageToken surfacePackageToken = null;
+                                if (callbackResult != null) {
+                                    String tokenString = callbackResult.getString(
+                                            Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
+                                    if (tokenString != null && !tokenString.isBlank()) {
+                                        surfacePackageToken = new SurfacePackageToken(tokenString);
+                                    }
                                 }
+                                byte[] data = callbackResult.getByteArray(
+                                        Constants.EXTRA_OUTPUT_DATA);
+                                receiver.onResult(new ExecuteResult(surfacePackageToken, data));
+                            } catch (Exception e) {
+                                receiver.onError(e);
                             }
-                            byte[] data = callbackResult.getByteArray(Constants.EXTRA_OUTPUT_DATA);
-                            receiver.onResult(new ExecuteResult(token, data));
-                        } catch (Exception e) {
-                            receiver.onError(e);
-                        }
-                    });
+                        });
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
                 }
 
                 @Override
                 public void onError(int errorCode) {
-                    executor.execute(() -> receiver.onError(createException(errorCode)));
+                    final long token = Binder.clearCallingIdentity();
+                    try {
+                        executor.execute(() -> receiver.onError(createException(errorCode)));
+                    } finally {
+                        Binder.restoreCallingIdentity(token);
+                    }
                 }
             };
 
@@ -274,14 +286,25 @@ public class OnDevicePersonalizationManager {
                         @Override
                         public void onSuccess(
                                 @NonNull SurfaceControlViewHost.SurfacePackage surfacePackage) {
-                            executor.execute(() -> {
-                                receiver.onResult(surfacePackage);
-                            });
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> {
+                                    receiver.onResult(surfacePackage);
+                                });
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
 
                         @Override
                         public void onError(int errorCode) {
-                            executor.execute(() -> receiver.onError(createException(errorCode)));
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(
+                                        () -> receiver.onError(createException(errorCode)));
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
                     };
 

@@ -28,6 +28,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -206,11 +207,19 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                     for (PackageInfo packageInfo : mContext.getPackageManager()
                             .getInstalledPackages(
                                     PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
+                        String packageName = packageInfo.packageName;
                         if (AppManifestConfigHelper.manifestContainsOdpSettings(
-                                mContext, packageInfo.packageName)) {
+                                mContext, packageName)) {
+                            if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                                sLogger.d(TAG + ": service %s has ODP manifest, "
+                                        + "but not enrolled", packageName);
+                                continue;
+                            }
+                            sLogger.d(TAG + ": service %s has ODP manifest and is enrolled",
+                                    packageName);
                             try {
                                 String groupName = createPackageFileGroupName(
-                                        packageInfo.packageName,
+                                        packageName,
                                         mContext);
                                 fileGroupsToRemove.remove(groupName);
                                 String ownerPackage = mContext.getPackageName();
@@ -218,7 +227,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                 int byteSize = 0;
                                 String checksum = "";
                                 ChecksumType checksumType = ChecksumType.NONE;
-                                String downloadUrl = createDownloadUrl(packageInfo.packageName,
+                                String downloadUrl = createDownloadUrl(packageName,
                                         mContext);
                                 DeviceNetworkPolicy deviceNetworkPolicy =
                                         DeviceNetworkPolicy.DOWNLOAD_ONLY_ON_WIFI;
@@ -236,7 +245,7 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
                                                 dataFileGroup).build()));
                             } catch (Exception e) {
                                 sLogger.e(TAG + ": Failed to create file group for "
-                                        + packageInfo.packageName, e);
+                                        + packageName, e);
                             }
                         }
                     }
