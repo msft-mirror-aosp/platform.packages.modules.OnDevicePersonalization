@@ -178,7 +178,9 @@ public class AppRequestFlowTest {
         EventsDao.getInstanceForTest(mContext);
 
         OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
-                .getInstanceForTest(mContext, mContext.getPackageName(),
+                .getInstanceForTest(mContext,
+                        new ComponentName(mContext.getPackageName(),
+                                "com.test.TestPersonalizationService"),
                         PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
         VendorData vendorData = new VendorData.Builder().setData(new byte[5]).setKey(
                 "bid1").build();
