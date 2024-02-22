@@ -26,6 +26,7 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.Service;
 import android.content.Intent;
+import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.os.OutcomeReceiver;
@@ -193,12 +194,11 @@ public abstract class IsolatedService extends Service {
     }
 
     /**
-     * Returns an {@link ModelManager} for the current request. The {@link ModelManager} can be ued
+     * Returns an {@link ModelManager} for the current request. The {@link ModelManager} can be used
      * to do model inference. It only supports Tensorflow Lite model inference now.
      *
      * @param requestToken an opaque token that identifies the current request to the service.
      * @return An {@link ModelManager} that can be used for model inference.
-     * @hide
      */
     @NonNull
     public final ModelManager getModelManager(@NonNull RequestToken requestToken) {
@@ -216,8 +216,20 @@ public abstract class IsolatedService extends Service {
                 @NonNull IIsolatedServiceCallback resultCallback) {
             Objects.requireNonNull(params);
             Objects.requireNonNull(resultCallback);
+            final long token = Binder.clearCallingIdentity();
             // TODO(b/228200518): Ensure that caller is ODP Service.
             // TODO(b/323592348): Add model inference in other flows.
+            try {
+                performRequest(operationCode, params, resultCallback);
+            } finally {
+                Binder.restoreCallingIdentity(token);
+            }
+        }
+
+        private void performRequest(
+                int operationCode,
+                @NonNull Bundle params,
+                @NonNull IIsolatedServiceCallback resultCallback) {
 
             if (operationCode == Constants.OP_EXECUTE) {
                 performExecute(params, resultCallback);
