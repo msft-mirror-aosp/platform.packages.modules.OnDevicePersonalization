@@ -62,8 +62,8 @@ android_app {
         "guava",
         "libprotobuf-java-lite",
         "modules-utils-preconditions",
-        // Used for client error logging.
-        "adservices-shared-error-logging",
+        // Used for client error logging and background job logging.
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
