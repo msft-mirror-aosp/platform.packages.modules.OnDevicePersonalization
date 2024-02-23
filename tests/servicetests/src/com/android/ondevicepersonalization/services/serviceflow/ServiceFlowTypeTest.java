@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
+import static android.adservices.ondevicepersonalization.Constants.OP_TRAINING_EXAMPLE;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGER;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_EVENT;
 
@@ -41,7 +42,7 @@ public class ServiceFlowTypeTest {
 
     @Test
     public void cardinalityTest() {
-        assertThat(ServiceFlowType.values().length).isEqualTo(4);
+        assertThat(ServiceFlowType.values().length).isEqualTo(5);
     }
 
     @Test
@@ -51,6 +52,8 @@ public class ServiceFlowTypeTest {
         assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getTaskName()).isEqualTo("WebTrigger");
         assertThat(ServiceFlowType.WEB_VIEW_FLOW.getTaskName())
                 .isEqualTo("ComputeEventMetrics");
+        assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getTaskName())
+                .isEqualTo("ExampleStore");
     }
 
     @Test
@@ -59,6 +62,8 @@ public class ServiceFlowTypeTest {
         assertThat(ServiceFlowType.RENDER_FLOW.getOperationCode()).isEqualTo(OP_RENDER);
         assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getOperationCode()).isEqualTo(OP_WEB_TRIGGER);
         assertThat(ServiceFlowType.WEB_VIEW_FLOW.getOperationCode()).isEqualTo(OP_WEB_VIEW_EVENT);
+        assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getOperationCode())
+                .isEqualTo(OP_TRAINING_EXAMPLE);
     }
 
     @Test
@@ -69,5 +74,7 @@ public class ServiceFlowTypeTest {
                 .isEqualTo(FlagsFactory.getFlags().getRenderFlowDeadlineSeconds());
         assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getExecutionTimeout())
                 .isEqualTo(FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds());
+        assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getExecutionTimeout())
+                .isEqualTo(FlagsFactory.getFlags().getExampleStoreFlowDeadlineSeconds());
     }
 }
