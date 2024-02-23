@@ -62,8 +62,19 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_ISOLATED_SERVICE_ALLOW_LIST = "isolated_service_allow_list";
 
+    public static final String KEY_OUTPUT_DATA_ALLOW_LIST = "output_data_allow_list";
+
     public static final String KEY_USER_CONSENT_CACHE_IN_MILLIS =
             "user_consent_cache_duration_millis";
+
+    public static final String KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING =
+            "odp_enable_client_error_logging";
+
+    public static final String KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED =
+            "odp_background_jobs_logging_enabled";
+
+    public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
+            "odp_background_job_sampling_logging_rate";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -191,30 +202,62 @@ public final class PhFlags implements Flags {
         return SdkLevel.isAtLeastU() && DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
-                /* defaultValue */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+                /* defaultValue= */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
     }
 
     @Override
     public String getCallerAppAllowList() {
         return DeviceConfig.getString(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name */ KEY_CALLER_APP_ALLOW_LIST,
-                /* defaultValue */ DEFAULT_CALLER_APP_ALLOW_LIST);
+                /* name= */ KEY_CALLER_APP_ALLOW_LIST,
+                /* defaultValue= */ DEFAULT_CALLER_APP_ALLOW_LIST);
     }
 
     @Override
     public String getIsolatedServiceAllowList() {
         return DeviceConfig.getString(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name */ KEY_ISOLATED_SERVICE_ALLOW_LIST,
-                /* defaultValue */ DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
+                /* name= */ KEY_ISOLATED_SERVICE_ALLOW_LIST,
+                /* defaultValue= */ DEFAULT_ISOLATED_SERVICE_ALLOW_LIST);
+    }
+
+    @Override
+    public String getOutputDataAllowList() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_OUTPUT_DATA_ALLOW_LIST,
+                /* defaultValue */ DEFAULT_OUTPUT_DATA_ALLOW_LIST);
     }
 
     @Override
     public long getUserConsentCacheInMillis() {
         return DeviceConfig.getLong(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name */ KEY_USER_CONSENT_CACHE_IN_MILLIS,
-                /* defaultValue */ USER_CONSENT_CACHE_IN_MILLIS);
+                /* name= */ KEY_USER_CONSENT_CACHE_IN_MILLIS,
+                /* defaultValue= */ USER_CONSENT_CACHE_IN_MILLIS);
+    }
+
+    @Override
+    public boolean getEnableClientErrorLogging() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING,
+                /* defaultValue= */ DEFAULT_CLIENT_ERROR_LOGGING_ENABLED);
+    }
+
+    @Override
+    public boolean getBackgroundJobsLoggingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+    }
+
+    @Override
+    public int getBackgroundJobSamplingLoggingRate() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
+                /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
     }
 }

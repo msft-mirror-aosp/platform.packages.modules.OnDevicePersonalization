@@ -23,9 +23,11 @@ import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.assertTrue;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -158,6 +160,60 @@ public final class IsolatedTrainingServiceImplTest {
                 .logError(
                         eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
                         eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
+    }
+
+    @Test
+    public void runFlTrainingFailureWithRte() throws Exception {
+        when(mComputationRunner.runTaskWithNativeRunner(
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(RuntimeException.class);
+        Bundle bundle = buildInputBundle();
+
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        isA(RuntimeException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
+    }
+
+    @Test
+    public void runFlTrainingFailureWithIae() throws Exception {
+        when(mComputationRunner.runTaskWithNativeRunner(
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(IllegalArgumentException.class);
+        Bundle bundle = buildInputBundle();
+
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        isA(IllegalArgumentException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
+    }
+
+    @Test
+    public void runFlTrainingNullBundle() {
+        var callback = new TestServiceCallback();
+        assertThrows(
+                NullPointerException.class,
+                () -> mIsolatedTrainingService.runFlTraining(null, callback));
+    }
+
+    @Test
+    public void runFlTrainingNullCallback() {
+        Bundle bundle = new Bundle();
+        assertThrows(
+                NullPointerException.class,
+                () -> mIsolatedTrainingService.runFlTraining(bundle, null));
     }
 
     @Test

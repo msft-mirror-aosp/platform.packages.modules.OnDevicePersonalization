@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGER;
+import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_EVENT;
 
 import static com.google.common.truth.Truth.assertThat;
 
@@ -40,7 +41,7 @@ public class ServiceFlowTypeTest {
 
     @Test
     public void cardinalityTest() {
-        assertThat(ServiceFlowType.values().length).isEqualTo(3);
+        assertThat(ServiceFlowType.values().length).isEqualTo(4);
     }
 
     @Test
@@ -48,6 +49,8 @@ public class ServiceFlowTypeTest {
         assertThat(ServiceFlowType.APP_REQUEST_FLOW.getTaskName()).isEqualTo("AppRequest");
         assertThat(ServiceFlowType.RENDER_FLOW.getTaskName()).isEqualTo("Render");
         assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getTaskName()).isEqualTo("WebTrigger");
+        assertThat(ServiceFlowType.WEB_VIEW_FLOW.getTaskName())
+                .isEqualTo("ComputeEventMetrics");
     }
 
     @Test
@@ -55,6 +58,7 @@ public class ServiceFlowTypeTest {
         assertThat(ServiceFlowType.APP_REQUEST_FLOW.getOperationCode()).isEqualTo(OP_EXECUTE);
         assertThat(ServiceFlowType.RENDER_FLOW.getOperationCode()).isEqualTo(OP_RENDER);
         assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getOperationCode()).isEqualTo(OP_WEB_TRIGGER);
+        assertThat(ServiceFlowType.WEB_VIEW_FLOW.getOperationCode()).isEqualTo(OP_WEB_VIEW_EVENT);
     }
 
     @Test

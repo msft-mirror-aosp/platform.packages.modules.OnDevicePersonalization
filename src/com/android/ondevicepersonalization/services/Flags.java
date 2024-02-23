@@ -16,13 +16,15 @@
 
 package com.android.ondevicepersonalization.services;
 
+import com.android.adservices.shared.common.flags.ModuleSharedFlags;
+
 /**
  * OnDevicePersonalization Feature Flags interface. This Flags interface hold the default values
  * of flags. The default values in this class must match with the default values in PH since we
  * will migrate to Flag Codegen in the future. With that migration, the Flags.java file will be
  * generated from the GCL.
  */
-public interface Flags {
+public interface Flags extends ModuleSharedFlags {
     /**
      * Global OnDevicePersonalization Kill Switch. This overrides all other killswitches.
      * The default value is true which means OnDevicePersonalization is disabled.
@@ -79,6 +81,21 @@ public interface Flags {
      */
     boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
 
+    /**
+     * Default value for enabling client error logging.
+     */
+    boolean DEFAULT_CLIENT_ERROR_LOGGING_ENABLED = false;
+
+    /**
+     * Default value for enabling background jobs logging.
+     */
+    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+
+    /**
+     * Default value for background job sampling logging rate.
+     */
+    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -120,6 +137,8 @@ public interface Flags {
                     + "com.example.odpsamplenetwork,"
                     + "com.example.odptargetingapp1,"
                     + "com.example.odptargetingapp2";
+
+    String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
      * Default value of valid duration of user consent cache in milliseconds (10 minutes).
@@ -178,11 +197,19 @@ public interface Flags {
         return USER_CONSENT_CACHE_IN_MILLIS;
     }
 
+    default String getOutputDataAllowList() {
+        return DEFAULT_OUTPUT_DATA_ALLOW_LIST;
+    }
+
     /** Set all stable flags. */
     default void setStableFlags() {}
 
     /** Get a stable flag based on the flag name. */
     default Object getStableFlag(String flagName) {
         return null;
+    }
+
+    default boolean getEnableClientErrorLogging() {
+        return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
     }
 }

@@ -365,7 +365,7 @@ public class FederatedComputeJobManager {
     public synchronized void recordSuccessContribution(
             int jobId, String populationName, TaskAssignment taskAssignment) {
         TaskHistory existingTaskHistory =
-                mFederatedTrainingTaskDao.getTaskHistory(
+                mFederatedTrainingTaskDao.getLatestTaskHistory(
                         jobId, populationName, taskAssignment.getTaskId());
         long roundNumber = 0;
         for (EligibilityPolicyEvalSpec evalSpec :
