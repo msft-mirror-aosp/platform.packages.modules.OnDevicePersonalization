@@ -211,7 +211,7 @@ public interface Flags extends ModuleSharedFlags {
 
     boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
 
-    default boolean getBackgroundJobLoggingEnabled() {
+    default boolean getBackgroundJobsLoggingEnabled() {
         return DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
     }
 

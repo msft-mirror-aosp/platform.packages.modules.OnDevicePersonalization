@@ -73,6 +73,10 @@ public final class PhFlags implements Flags {
             "training_condition_check_period_throttle_period_mills";
 
     static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
+    static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
+    static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
+    static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
+            "fcp_background_job_logging_sampling_rate";
 
     private static final PhFlags sSingleton = new PhFlags();
 
@@ -226,5 +230,29 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ FCP_RESCHEDULE_LIMIT);
+    }
+
+    @Override
+    public boolean getEnableClientErrorLogging() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_ENABLE_CLIENT_ERROR_LOGGING,
+                /* defaultValue= */ ENABLE_CLIENT_ERROR_LOGGING);
+    }
+
+    @Override
+    public boolean getBackgroundJobsLoggingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+    }
+
+    @Override
+    public int getBackgroundJobSamplingLoggingRate() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
+                /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
     }
 }
