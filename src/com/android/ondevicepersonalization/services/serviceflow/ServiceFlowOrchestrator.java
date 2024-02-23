@@ -40,8 +40,13 @@ public class ServiceFlowOrchestrator {
         ServiceFlowTask serviceFlowTask =
                 new ServiceFlowTask(serviceFlowType, serviceFlow);
 
-        var unused =
-                OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                        .submit(serviceFlowTask::run);
+        var unused = switch (serviceFlowType.getPriority()) {
+            case HIGH -> OnDevicePersonalizationExecutors.getHighPriorityBackgroundExecutor()
+                    .submit(serviceFlowTask::run);
+            case NORMAL -> OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                    .submit(serviceFlowTask::run);
+            case LOW -> OnDevicePersonalizationExecutors.getLowPriorityBackgroundExecutor()
+                    .submit(serviceFlowTask::run);
+        };
     }
 }
