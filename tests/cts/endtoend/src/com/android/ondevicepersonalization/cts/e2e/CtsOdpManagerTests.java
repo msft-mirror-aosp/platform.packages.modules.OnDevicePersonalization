@@ -59,6 +59,7 @@ public class CtsOdpManagerTests {
     private static final String SERVICE_CLASS =
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
     private static final int LARGE_BLOB_SIZE = 10485760;
+    private static final int DELAY_MILLIS = 2000;
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
@@ -386,6 +387,8 @@ public class CtsOdpManagerTests {
             assertTrue(receiver.isSuccess());
         }
 
+        Thread.sleep(DELAY_MILLIS);
+
         // Read and check whether value matches written value.
         {
             var receiver = new ResultReceiver<ExecuteResult>();
@@ -417,6 +420,8 @@ public class CtsOdpManagerTests {
                     receiver);
             assertTrue(receiver.isSuccess());
         }
+
+        Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value was removed.
         {
@@ -459,6 +464,8 @@ public class CtsOdpManagerTests {
             assertTrue(receiver.isSuccess());
         }
 
+        Thread.sleep(DELAY_MILLIS);
+
         // Read and check whether value matches written value.
         {
             var receiver = new ResultReceiver<ExecuteResult>();
@@ -491,6 +498,8 @@ public class CtsOdpManagerTests {
                     receiver);
             assertTrue(receiver.isSuccess());
         }
+
+        Thread.sleep(DELAY_MILLIS);
 
         // Read and check whether value was removed.
         {
@@ -569,6 +578,8 @@ public class CtsOdpManagerTests {
                     receiver);
             assertTrue(receiver.isSuccess());
         }
+
+        Thread.sleep(DELAY_MILLIS);
 
         // Run model inference
         {
