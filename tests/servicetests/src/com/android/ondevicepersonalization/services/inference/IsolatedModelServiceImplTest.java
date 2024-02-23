@@ -70,12 +70,7 @@ public class IsolatedModelServiceImplTest {
         mRemoteData =
                 new RemoteDataImpl(
                         IDataAccessService.Stub.asInterface(new TestDataAccessService()));
-        mParams =
-                InferenceInput.Params.createCpuParams(
-                        mRemoteData,
-                        MODEL_KEY,
-                        1,
-                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
+        mParams = new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
     }
 
     @Test
@@ -222,11 +217,8 @@ public class IsolatedModelServiceImplTest {
                 NullPointerException.class,
                 () ->
                         new InferenceInput.Builder(
-                                        InferenceInput.Params.createCpuParams(
-                                                mRemoteData,
-                                                null,
-                                                -1,
-                                                InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
+                                        new InferenceInput.Params.Builder(mRemoteData, null)
+                                                .build(),
                                         generateInferenceInput(1),
                                         generateInferenceOutput(1))
                                 .build());
@@ -246,11 +238,9 @@ public class IsolatedModelServiceImplTest {
         assertThrows(
                 IllegalStateException.class,
                 () ->
-                        InferenceInput.Params.createCpuParams(
-                                mRemoteData,
-                                MODEL_KEY,
-                                -1,
-                                InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE));
+                        new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                                .setRecommendedNumThreads(-1)
+                                .build());
     }
 
     @Test

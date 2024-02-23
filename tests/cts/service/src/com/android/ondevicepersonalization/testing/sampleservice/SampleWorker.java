@@ -19,13 +19,17 @@ package com.android.ondevicepersonalization.testing.sampleservice;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.InferenceInput;
+import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.ModelManager;
 import android.adservices.ondevicepersonalization.MutableKeyValueStore;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.OutcomeReceiver;
@@ -36,8 +40,11 @@ import android.util.Log;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -48,21 +55,27 @@ class SampleWorker implements IsolatedWorker {
 
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
-            + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
+                    + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
 
     private final MutableKeyValueStore mLocalData;
     private final EventUrlProvider mEventUrlProvider;
+    private final ModelManager mModelManager;
+
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
 
-    SampleWorker(MutableKeyValueStore localData, EventUrlProvider eventUrlProvider) {
+    SampleWorker(
+            MutableKeyValueStore localData,
+            EventUrlProvider eventUrlProvider,
+            ModelManager modelManager) {
         mLocalData = localData;
         mEventUrlProvider = eventUrlProvider;
+        mModelManager = modelManager;
     }
 
-    @Override public void onExecute(
-            ExecuteInput input,
-            OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
+    @Override
+    public void onExecute(
+            ExecuteInput input, OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         PersistableBundle appParams = Objects.requireNonNull(input.getAppParams());
         if (appParams == null
                 || appParams.equals(PersistableBundle.EMPTY)
@@ -91,14 +104,17 @@ class SampleWorker implements IsolatedWorker {
             if (op.equals(SampleServiceApi.OPCODE_RENDER_AND_LOG)) {
                 result = handleRenderAndLog(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_FAIL_WITH_ERROR_CODE)) {
-                errorCode = appParams.getInt(
-                        SampleServiceApi.KEY_ERROR_CODE, ERROR_SAMPLE_SERVICE_FAILED);
+                errorCode =
+                        appParams.getInt(
+                                SampleServiceApi.KEY_ERROR_CODE, ERROR_SAMPLE_SERVICE_FAILED);
             } else if (op.equals(SampleServiceApi.OPCODE_WRITE_LOCAL_DATA)) {
                 result = handleWriteLocalData(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_READ_LOCAL_DATA)) {
                 result = handleReadLocalData(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_CHECK_VALUE_LENGTH)) {
                 result = handleCheckValueLength(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_RUN_MODEL_INFERENCE)) {
+                result = handleRunModelInference(appParams);
             }
 
         } catch (Exception e) {
@@ -124,16 +140,15 @@ class SampleWorker implements IsolatedWorker {
             }
         }
         // TODO(b/273826477): Support multiple rows.
-        PersistableBundle logDataBundle = appParams.getPersistableBundle(
-                SampleServiceApi.KEY_LOG_DATA);
+        PersistableBundle logDataBundle =
+                appParams.getPersistableBundle(SampleServiceApi.KEY_LOG_DATA);
         if (logDataBundle != null && !logDataBundle.isEmpty()) {
             ContentValues logData = new ContentValues();
             for (String key : logDataBundle.keySet()) {
                 putObject(logData, key, logDataBundle.get(key));
             }
             if (!logData.isEmpty()) {
-                builder.setRequestLogRecord(
-                        new RequestLogRecord.Builder().addRow(logData).build());
+                builder.setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build());
             }
         }
 
@@ -143,7 +158,7 @@ class SampleWorker implements IsolatedWorker {
     private ExecuteOutput handleWriteLocalData(PersistableBundle appParams) {
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
-        byte[] value = (encodedValue != null) ?  Base64.decode(encodedValue, 0) : null;
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         if (value != null) {
             int repeatCount = appParams.getInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 1);
             byte[] writtenValue = expandByteArray(value, repeatCount);
@@ -154,10 +169,65 @@ class SampleWorker implements IsolatedWorker {
         return new ExecuteOutput.Builder().build();
     }
 
+    private ExecuteOutput handleRunModelInference(PersistableBundle appParams)
+            throws InterruptedException, ExecutionException {
+        String tableKey =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mLocalData, tableKey).build();
+        InferenceInput input = buildInferenceInput(params);
+        CompletableFuture<InferenceOutput> future = new CompletableFuture<>();
+        OutcomeReceiver<InferenceOutput, Exception> callback =
+                new OutcomeReceiver<>() {
+                    @Override
+                    public void onResult(InferenceOutput result) {
+                        Log.i(TAG, "run model inference success");
+                        future.complete(result);
+                    }
+
+                    @Override
+                    public void onError(@NonNull Exception error) {
+                        Log.e(TAG, "Run model inference resulted in an error!", error);
+                        future.complete(null);
+                    }
+                };
+
+        Log.i(TAG, "call ModelManager.run()");
+        mModelManager.run(input, mExecutor, callback);
+        InferenceOutput result = future.get();
+        if (result == null) {
+            return null;
+        }
+        float[] outputData = (float[]) result.getDataOutputs().get(0);
+        double expectedResult = appParams.getDouble(SampleServiceApi.KEY_INFERENCE_RESULT);
+        if (Math.abs(expectedResult - outputData[0]) > 0.01) {
+            return null;
+        }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private InferenceInput buildInferenceInput(InferenceInput.Params params) {
+        float[][] inputData = new float[1][100];
+        for (int j = 0; j < 100; j++) {
+            inputData[0][j] = 1;
+        }
+        float[] output0 = new float[1];
+        HashMap<Integer, Object> outputMap = new HashMap<>();
+        outputMap.put(0, output0);
+        InferenceInput input =
+                new InferenceInput.Builder(
+                                params,
+                                new Object[] {inputData},
+                                new InferenceOutput.Builder().setDataOutputs(outputMap).build())
+                        .setBatchSize(1)
+                        .build();
+        return input;
+    }
+
     private ExecuteOutput handleReadLocalData(PersistableBundle appParams) {
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
-        byte[] value = (encodedValue != null) ?  Base64.decode(encodedValue, 0) : null;
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         boolean success = false;
         if (value != null) {
             int repeatCount = appParams.getInt(SampleServiceApi.KEY_TABLE_VALUE_REPEAT_COUNT, 1);
@@ -177,7 +247,7 @@ class SampleWorker implements IsolatedWorker {
 
     private ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
-        byte[] value = (encodedValue != null) ?  Base64.decode(encodedValue, 0) : null;
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         int expectedLength = appParams.getInt(SampleServiceApi.KEY_VALUE_LENGTH);
 
         if (expectedLength == value.length) {
@@ -197,8 +267,9 @@ class SampleWorker implements IsolatedWorker {
 
     private RuntimeException createException(PersistableBundle appParams) {
         try {
-            String exceptionClass = appParams.getString(
-                    SampleServiceApi.KEY_EXCEPTION_CLASS, "IllegalStateException");
+            String exceptionClass =
+                    appParams.getString(
+                            SampleServiceApi.KEY_EXCEPTION_CLASS, "IllegalStateException");
             var clazz = Class.forName(exceptionClass);
             return (RuntimeException) clazz.getDeclaredConstructor().newInstance();
         } catch (Exception e) {
@@ -215,16 +286,15 @@ class SampleWorker implements IsolatedWorker {
         }
     }
 
-    @Override public void onRender(
-            RenderInput input,
-            OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+    @Override
+    public void onRender(
+            RenderInput input, OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
         Log.i(TAG, "onRender()");
         mExecutor.submit(() -> handleOnRender(input, receiver));
     }
 
     private void handleOnRender(
-            RenderInput input,
-            OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
+            RenderInput input, OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
         Log.i(TAG, "handleOnRender()");
         var keys = input.getRenderingConfig().getKeys();
         if (keys.size() <= 0) {
@@ -233,16 +303,27 @@ class SampleWorker implements IsolatedWorker {
         }
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_VIEW);
-        String viewUrl = mEventUrlProvider.createEventTrackingUrlWithResponse(
-                eventParams, TRANSPARENT_PNG_BYTES, "image/png").toString();
+        String viewUrl =
+                mEventUrlProvider
+                        .createEventTrackingUrlWithResponse(
+                                eventParams, TRANSPARENT_PNG_BYTES, "image/png")
+                        .toString();
         eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_CLICK);
-        String clickUrl = mEventUrlProvider.createEventTrackingUrlWithRedirect(
-                eventParams, Uri.parse(SampleServiceApi.DESTINATION_URL)).toString();
+        String clickUrl =
+                mEventUrlProvider
+                        .createEventTrackingUrlWithRedirect(
+                                eventParams, Uri.parse(SampleServiceApi.DESTINATION_URL))
+                        .toString();
         String html =
-                "<body><img src=\"" + viewUrl + "\">\n"
-                + "<a href=\"" + clickUrl + "\">" + SampleServiceApi.LINK_TEXT + "</a></body>";
+                "<body><img src=\""
+                        + viewUrl
+                        + "\">\n"
+                        + "<a href=\""
+                        + clickUrl
+                        + "\">"
+                        + SampleServiceApi.LINK_TEXT
+                        + "</a></body>";
         Log.i(TAG, "HTML output: " + html);
         receiver.onResult(new RenderOutput.Builder().setContent(html).build());
     }
 }
-
