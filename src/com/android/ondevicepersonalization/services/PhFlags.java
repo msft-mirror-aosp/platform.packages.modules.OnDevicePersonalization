@@ -187,6 +187,17 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ WEB_TRIGGER_FLOW_DEADLINE_SECONDS);
     }
 
+    public static final String KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS =
+            "example_store_flow_deadline_seconds";
+
+    @Override
+    public int getExampleStoreFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ EXAMPLE_STORE_FLOW_DEADLINE_SECONDS);
+    }
+
     @Override
     public String getTrustedPartnerAppsList() {
         return SdkLevel.isAtLeastU()
