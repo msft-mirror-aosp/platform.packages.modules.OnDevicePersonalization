@@ -82,7 +82,7 @@ public class OdpWebViewClientTests {
     private EventUrlPayload mTestEventPayload;
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setServiceName("servicePackageName")
+            .setService(ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS))
             .setQueryData("query".getBytes(StandardCharsets.UTF_8))
             .build();
     private EventsDao mDao;

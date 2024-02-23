@@ -45,13 +45,13 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
-import com.android.ondevicepersonalization.services.data.vendor.DbUtils;
 import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
@@ -115,10 +115,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
                 timestamp));
     }
 
-    private void addEventData(String packageName, long timestamp) {
+    private void addEventData(ComponentName service, long timestamp) {
         Query query = new Query.Builder()
                 .setTimeMillis(timestamp)
-                .setServiceName(packageName)
+                .setService(service)
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
@@ -126,7 +126,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         Event event = new Event.Builder()
                 .setType(1)
                 .setEventData("event".getBytes(StandardCharsets.UTF_8))
-                .setServiceName(packageName)
+                .setService(service)
                 .setQueryId(queryId)
                 .setTimeMillis(timestamp)
                 .setRowIndex(0)
@@ -135,7 +135,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
         EventState eventState = new EventState.Builder()
                 .setTaskIdentifier(TASK_IDENTIFIER)
-                .setServiceName(packageName)
+                .setService(service)
                 .setToken(new byte[]{1})
                 .build();
         mEventsDao.updateOrInsertEventState(eventState);
@@ -216,9 +216,9 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         long timestamp = System.currentTimeMillis();
         addTestData(timestamp, mTestDao);
         addTestData(timestamp, mDao);
-        addEventData(mContext.getPackageName(), timestamp);
-        addEventData(mContext.getPackageName(), 100L);
-        addEventData(TEST_OWNER.getPackageName(), timestamp);
+        addEventData(mService, timestamp);
+        addEventData(mService, 100L);
+        addEventData(TEST_OWNER, timestamp);
 
         var originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
@@ -261,13 +261,13 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertTrue(new File(dir, "large_" + (timestamp + 20)).exists());
         assertTrue(new File(dir, "large2_" + (timestamp + 20)).exists());
 
-        assertNull(mEventsDao.getEventState(TASK_IDENTIFIER, TEST_OWNER.getPackageName()));
-        assertNotNull(mEventsDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
+        assertNull(mEventsDao.getEventState(TASK_IDENTIFIER, TEST_OWNER));
+        assertNotNull(mEventsDao.getEventState(TASK_IDENTIFIER, mService));
 
         assertEquals(2,
-                mEventsDao.readAllNewRowsForPackage(TEST_OWNER.getPackageName(), 0, 0).size());
+                mEventsDao.readAllNewRowsForPackage(TEST_OWNER, 0, 0).size());
         assertEquals(2,
-                mEventsDao.readAllNewRowsForPackage(mContext.getPackageName(), 0, 0).size());
+                mEventsDao.readAllNewRowsForPackage(mService, 0, 0).size());
     }
 
     @Test
