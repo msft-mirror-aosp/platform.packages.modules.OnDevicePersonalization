@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import android.adservices.ondevicepersonalization.EventOutputParcel;
+import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
@@ -24,9 +26,13 @@ import android.content.Context;
 import android.os.Bundle;
 import android.os.IBinder;
 
+import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
+import com.android.ondevicepersonalization.services.display.WebViewFlow;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
+
+import com.google.common.util.concurrent.FutureCallback;
 
 /** Factory for service flow instances. */
 public class ServiceFlowFactory {
@@ -45,6 +51,10 @@ public class ServiceFlowFactory {
             case WEB_TRIGGER_FLOW ->
                     new WebTriggerFlow((Bundle) args[0], (Context) args[1],
                             (IRegisterMeasurementEventCallback) args[2], (long) args[3]);
+            case WEB_VIEW_FLOW ->
+                    new WebViewFlow((Context) args[0], (ComponentName) args[1], (long) args[2],
+                            (RequestLogRecord) args[3], (FutureCallback<EventOutputParcel>) args[4],
+                            (EventUrlPayload) args[5]);
             default -> throw new IllegalArgumentException(
                     "Invalid service flow type: " + serviceFlowType);
         };

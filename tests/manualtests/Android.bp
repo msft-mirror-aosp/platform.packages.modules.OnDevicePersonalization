@@ -53,6 +53,7 @@ android_test {
         "modules-utils-list-slice",
         "owasp-java-encoder",
         "tensorflowlite_java",
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",

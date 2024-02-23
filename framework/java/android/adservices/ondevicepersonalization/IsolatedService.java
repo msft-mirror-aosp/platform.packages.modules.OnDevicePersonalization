@@ -238,79 +238,110 @@ public abstract class IsolatedService extends Service {
             } else if (operationCode == Constants.OP_RENDER) {
                 performRender(params, resultCallback);
             } else if (operationCode == Constants.OP_WEB_VIEW_EVENT) {
+                performOnWebViewEvent(params, resultCallback);
+            } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
+                performOnTrainingExample(params, resultCallback);
+            } else if (operationCode == Constants.OP_WEB_TRIGGER) {
+                performOnWebTrigger(params, resultCallback);
+            } else {
+                throw new IllegalArgumentException("Invalid op code: " + operationCode);
+            }
+        }
 
-                EventInputParcel inputParcel =
+        private void performOnWebTrigger(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
+                WebTriggerInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, EventInputParcel.class));
-                EventInput input = new EventInput(inputParcel);
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                                        Constants.EXTRA_INPUT, WebTriggerInputParcel.class),
+                                () ->
+                                        String.format(
+                                                "Missing '%s' from input params!",
+                                                Constants.EXTRA_INPUT));
+                WebTriggerInput input = new WebTriggerInput(inputParcel);
+                IDataAccessService binder = getDataAccessService(params);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                IIsolatedModelService modelServiceBinder =
-                        IIsolatedModelService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(Constants.EXTRA_MODEL_SERVICE_BINDER)));
-                Objects.requireNonNull(modelServiceBinder);
                 RequestToken requestToken = new RequestToken(binder, null, null, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onEvent(
-                        input, new WrappedCallback<EventOutput, EventOutputParcel>(
-                            resultCallback, requestToken, v -> new EventOutputParcel(v)));
+                IsolatedWorker isolatedWorker = IsolatedService.this.onRequest(requestToken);
+                isolatedWorker.onWebTrigger(
+                        input,
+                        new WrappedCallback<WebTriggerOutput, WebTriggerOutputParcel>(
+                                resultCallback, requestToken, v -> new WebTriggerOutputParcel(v)));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service web trigger operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
+            }
+        }
 
-            } else if (operationCode == Constants.OP_TRAINING_EXAMPLE) {
+        private void performOnTrainingExample(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
                 TrainingExamplesInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, TrainingExamplesInputParcel.class));
+                                        Constants.EXTRA_INPUT, TrainingExamplesInputParcel.class),
+                                () ->
+                                        String.format(
+                                                "Missing '%s' from input params!",
+                                                Constants.EXTRA_INPUT));
                 TrainingExamplesInput input = new TrainingExamplesInput(inputParcel);
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
-                Objects.requireNonNull(binder);
+                IDataAccessService binder = getDataAccessService(params);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, null, null, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onTrainingExamples(
+                IsolatedWorker isolatedWorker = IsolatedService.this.onRequest(requestToken);
+                isolatedWorker.onTrainingExamples(
                         input,
                         new WrappedCallback<TrainingExamplesOutput, TrainingExamplesOutputParcel>(
                                 resultCallback,
                                 requestToken,
-                                v -> new TrainingExamplesOutputParcel.Builder()
-                                    .setTrainingExampleRecords(
-                                        new OdpParceledListSlice<TrainingExampleRecord>(
-                                            v.getTrainingExampleRecords()))
-                                    .build()));
+                                v ->
+                                        new TrainingExamplesOutputParcel.Builder()
+                                                .setTrainingExampleRecords(
+                                                        new OdpParceledListSlice<
+                                                                TrainingExampleRecord>(
+                                                                v.getTrainingExampleRecords()))
+                                                .build()));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service training example operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
+            }
+        }
 
-            } else if (operationCode == Constants.OP_WEB_TRIGGER) {
-                WebTriggerInputParcel inputParcel =
+        private void performOnWebViewEvent(
+                @NonNull Bundle params, @NonNull IIsolatedServiceCallback resultCallback) {
+            try {
+                EventInputParcel inputParcel =
                         Objects.requireNonNull(
-                                params.getParcelable(
-                                        Constants.EXTRA_INPUT, WebTriggerInputParcel.class));
-                WebTriggerInput input = new WebTriggerInput(inputParcel);
-                IDataAccessService binder =
-                        IDataAccessService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(
-                                                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER)));
+                                params.getParcelable(Constants.EXTRA_INPUT, EventInputParcel.class),
+                                () ->
+                                        String.format(
+                                                "Missing '%s' from input params!",
+                                                Constants.EXTRA_INPUT));
+                EventInput input = new EventInput(inputParcel);
+                IDataAccessService binder = getDataAccessService(params);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
-                IIsolatedModelService modelServiceBinder =
-                        IIsolatedModelService.Stub.asInterface(
-                                Objects.requireNonNull(
-                                        params.getBinder(Constants.EXTRA_MODEL_SERVICE_BINDER)));
-                Objects.requireNonNull(modelServiceBinder);
                 RequestToken requestToken = new RequestToken(binder, null, null, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onWebTrigger(
-                        input, new WrappedCallback<WebTriggerOutput, WebTriggerOutputParcel>(
-                            resultCallback, requestToken, v -> new WebTriggerOutputParcel(v)));
-            } else {
-                throw new IllegalArgumentException("Invalid op code: " + operationCode);
+                IsolatedWorker isolatedWorker = IsolatedService.this.onRequest(requestToken);
+                isolatedWorker.onEvent(
+                        input,
+                        new WrappedCallback<EventOutput, EventOutputParcel>(
+                                resultCallback, requestToken, v -> new EventOutputParcel(v)));
+            } catch (Exception e) {
+                sLogger.e(e, "Exception during Isolated Service web view event operation.");
+                try {
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                } catch (RemoteException re) {
+                    sLogger.e(re, "Isolated Service Callback failed.");
+                }
             }
         }
 
@@ -320,13 +351,17 @@ public abstract class IsolatedService extends Service {
                 RenderInputParcel inputParcel =
                         Objects.requireNonNull(
                                 params.getParcelable(
-                                        Constants.EXTRA_INPUT, RenderInputParcel.class));
+                                        Constants.EXTRA_INPUT, RenderInputParcel.class),
+                                () ->
+                                        String.format(
+                                                "Missing '%s' from input params!",
+                                                Constants.EXTRA_INPUT));
                 RenderInput input = new RenderInput(inputParcel);
                 Objects.requireNonNull(input.getRenderingConfig());
                 IDataAccessService binder = getDataAccessService(params);
                 RequestToken requestToken = new RequestToken(binder, null, null, null);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onRender(
+                IsolatedWorker isolatedWorker = IsolatedService.this.onRequest(requestToken);
+                isolatedWorker.onRender(
                         input,
                         new WrappedCallback<RenderOutput, RenderOutputParcel>(
                                 resultCallback, requestToken, v -> new RenderOutputParcel(v)));
@@ -368,8 +403,8 @@ public abstract class IsolatedService extends Service {
                 IFederatedComputeService fcBinder = getFederatedComputeService(params);
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken = new RequestToken(binder, fcBinder, null, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onDownloadCompleted(
+                IsolatedWorker isolatedWorker = IsolatedService.this.onRequest(requestToken);
+                isolatedWorker.onDownloadCompleted(
                         input,
                         new WrappedCallback<DownloadCompletedOutput, DownloadCompletedOutputParcel>(
                                 resultCallback,
@@ -452,8 +487,8 @@ public abstract class IsolatedService extends Service {
                 UserData userData = params.getParcelable(Constants.EXTRA_USER_DATA, UserData.class);
                 RequestToken requestToken =
                         new RequestToken(binder, fcBinder, modelServiceBinder, userData);
-                IsolatedWorker implCallback = IsolatedService.this.onRequest(requestToken);
-                implCallback.onExecute(
+                IsolatedWorker isolatedWorker = IsolatedService.this.onRequest(requestToken);
+                isolatedWorker.onExecute(
                         input,
                         new WrappedCallback<ExecuteOutput, ExecuteOutputParcel>(
                                 resultCallback, requestToken, v -> new ExecuteOutputParcel(v)));

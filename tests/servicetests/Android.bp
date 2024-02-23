@@ -18,6 +18,9 @@ package {
 
 android_test {
     name: "OnDevicePersonalizationManagingServicesTests",
+    defaults: [
+        "modules-utils-testable-device-config-defaults",
+    ],
     srcs: [
         "src/**/*.java",
         "src/**/*.kt",
@@ -55,6 +58,7 @@ android_test {
         "owasp-java-encoder",
         "compatibility-device-util-axt",
         "tensorflowlite_java",
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
