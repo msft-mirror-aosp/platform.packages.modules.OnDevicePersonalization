@@ -177,6 +177,15 @@ public interface Flags extends ModuleSharedFlags {
         return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
     }
 
+    /**
+     * Executiton deadline for example store flow.
+     */
+    int EXAMPLE_STORE_FLOW_DEADLINE_SECONDS = 30;
+
+    default int getExampleStoreFlowDeadlineSeconds() {
+        return EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
+    }
+
     default String getTrustedPartnerAppsList() {
         return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
     }

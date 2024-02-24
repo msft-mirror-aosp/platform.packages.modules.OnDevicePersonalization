@@ -37,6 +37,7 @@ import android.view.SurfaceControlViewHost;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -57,6 +58,9 @@ public class OnDevicePersonalizationManagingServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationManagingServiceDelegate mService;
     private final UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+    @Rule
+    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
+            new TestableDeviceConfig.TestableDeviceConfigRule();
 
     @Before
     public void setup() throws Exception {

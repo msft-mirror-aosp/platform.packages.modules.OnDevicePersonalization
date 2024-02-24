@@ -18,10 +18,12 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
+import static android.adservices.ondevicepersonalization.Constants.OP_TRAINING_EXAMPLE;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGER;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_EVENT;
 
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
@@ -45,7 +47,11 @@ public enum ServiceFlowType {
 
     WEB_VIEW_FLOW(
             "ComputeEventMetrics", OP_WEB_VIEW_EVENT,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS));
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS)),
+
+    EXAMPLE_STORE_FLOW(
+            "ExampleStore", OP_TRAINING_EXAMPLE,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS));
 
     final String mTaskName;
     final int mOperationCode;

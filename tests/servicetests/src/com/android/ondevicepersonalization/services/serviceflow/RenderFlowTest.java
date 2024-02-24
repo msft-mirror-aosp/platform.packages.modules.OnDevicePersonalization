@@ -42,7 +42,6 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.SlotWrapper;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
-import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -104,7 +103,6 @@ public class RenderFlowTest {
         MockitoAnnotations.initMocks(this);
         mSession = ExtendedMockito.mockitoSession()
                 .spyStatic(UserPrivacyStatus.class)
-                .spyStatic(PrivacyUtils.class)
                 .spyStatic(CryptUtils.class)
                 .strictness(Strictness.LENIENT)
                 .startMocking();

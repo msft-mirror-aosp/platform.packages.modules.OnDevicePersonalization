@@ -87,6 +87,7 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+/** Sample IsolatedWorker */
 public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
@@ -600,7 +601,7 @@ public class SampleHandler implements IsolatedWorker {
         }
     }
 
-    public void handleOnWebViewEvent(
+    void handleOnWebViewEvent(
             @NonNull EventInput input,
             @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
         try {
