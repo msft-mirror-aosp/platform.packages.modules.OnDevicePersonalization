@@ -40,10 +40,6 @@ import com.android.ondevicepersonalization.services.inference.IsolatedModelServi
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
@@ -68,9 +64,9 @@ import java.util.concurrent.TimeUnit;
 public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "WebTriggerFlow";
-    private static final String TASK_NAME = "WebTrigger";
     private final IRegisterMeasurementEventCallback mCallback;
     private final long mStartTimeMillis;
+    private long mStartServiceTimeMillis;
 
     @VisibleForTesting
     static class Injector {
@@ -90,11 +86,6 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
 
-        ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : ProcessRunnerImpl.getInstance();
-        }
     }
 
     @NonNull private final Bundle mParams;
@@ -125,50 +116,11 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         mInjector = Objects.requireNonNull(injector);
     }
 
-    /** Schedules the trigger processing flow to run asynchronously and returns immediately. */
-    public void run() {
-        var unused = Futures.submit(this::processRequest, mInjector.getExecutor());
-    }
-
-    private void processRequest() {
-        try {
-            if (!isServiceFlowReady()) return;
-
-            ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                            TASK_NAME, getService());
-
-            ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
-                    .transformAsync(
-                            isolatedServiceInfo ->
-                                    mInjector.getProcessRunner()
-                                            .runIsolatedService(
-                                                    isolatedServiceInfo,
-                                                    Constants.OP_WEB_TRIGGER, getServiceParams()),
-                            mInjector.getExecutor());
-
-            ListenableFuture<WebTriggerOutputParcel> serviceFlowResultFuture =
-                    getServiceFlowResultFuture(runServiceFuture);
-
-            returnResultThroughCallback(serviceFlowResultFuture);
-
-            var unused = Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
-                    .callAsync(
-                            () -> {
-                                mModelServiceProvider.unBindFromModelService();
-                                return mInjector.getProcessRunner().unloadIsolatedService(
-                                        loadServiceFuture.get());
-                            },
-                            mInjector.getExecutor());
-        } catch (Exception e) {
-            sLogger.e(e, TAG + ": Error");
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-        }
-    }
-
     // TO-DO: Add web trigger error codes.
     @Override
     public boolean isServiceFlowReady() {
+        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+
         try {
             if (getGlobalKillSwitch()) {
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
@@ -241,7 +193,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                     .build());
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
-                    mServiceParcel.getIsolatedService().getPackageName(),
+                    mServiceParcel.getIsolatedService(),
                     mContext, /* includeLocalData */ true,
                     /* includeEventData */ true));
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA,

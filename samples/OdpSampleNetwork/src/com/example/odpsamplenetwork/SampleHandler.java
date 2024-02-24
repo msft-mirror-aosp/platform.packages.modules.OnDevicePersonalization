@@ -87,6 +87,7 @@ import java.util.Random;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ThreadFactory;
 
+/** Sample IsolatedWorker */
 public class SampleHandler implements IsolatedWorker {
     public static final String TAG = "OdpSampleNetwork";
     public static final int EVENT_TYPE_IMPRESSION = 1;
@@ -389,7 +390,7 @@ public class SampleHandler implements IsolatedWorker {
                 TrainingInterval interval =
                         new TrainingInterval.Builder()
                                 .setMinimumInterval(Duration.ofSeconds(10))
-                                .setSchedulingMode(2)
+                                .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
                                 .build();
                 FederatedComputeScheduler.Params params =
                         new FederatedComputeScheduler.Params(interval);
@@ -600,7 +601,7 @@ public class SampleHandler implements IsolatedWorker {
         }
     }
 
-    public void handleOnWebViewEvent(
+    void handleOnWebViewEvent(
             @NonNull EventInput input,
             @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
         try {
@@ -745,8 +746,7 @@ public class SampleHandler implements IsolatedWorker {
 
     private ListenableFuture<InferenceOutput> runInference(List<Ad> ads) {
         InferenceInput.Params params =
-                InferenceInput.Params.createCpuParams(
-                        mRemoteData, "model1", 1, InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
+                new InferenceInput.Params.Builder(mRemoteData, "model1").build();
         InferenceInput input =
                 new InferenceInput.Builder(
                                 params, generateInputData(ads), generateInferenceOutput(ads.size()))

@@ -236,12 +236,14 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         sLogger.d(TAG + ": executeOnTrainingExamples() started.");
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
+        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                getContext(), packageName);
         DataAccessServiceImpl binder =
                 new DataAccessServiceImpl(
-                        packageName,
-                        getContext(), /* includeLocalData */
-                        true,
-                        /* includeEventData */ true);
+                        ComponentName.createRelative(packageName, serviceClass),
+                        getContext(),
+                        /* includeLocalData= */ true,
+                        /* includeEventData= */ true);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
