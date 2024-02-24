@@ -289,6 +289,8 @@ public final class FederatedComputeWorkerTest {
 
     @Mock private ClientErrorLogger mMockClientErrorLogger;
 
+    @Mock private FederatedJobService.OnJobFinishedCallback mMockJobServiceOnFinishCallback;
+
     private static final FederatedComputeEncryptionKey ENCRYPTION_KEY =
             new FederatedComputeEncryptionKey.Builder()
                     .setPublicKey("rSJBSUYG0ebvfW1AXCWO0CMGMJhDzpfQm3eLyw1uxX8=")
@@ -379,11 +381,13 @@ public final class FederatedComputeWorkerTest {
     public void testJobNonExist_returnsFail() throws Exception {
         when(mMockJobManager.onTrainingStarted(anyInt())).thenReturn(null);
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
 
         assertNull(result);
-        verify(mMockJobManager, times(0))
+        verify(mMockJobManager, never())
                 .onTrainingCompleted(eq(JOB_ID), eq(POPULATION_NAME), any(), any(), any());
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
 
     @Test
@@ -391,12 +395,14 @@ public final class FederatedComputeWorkerTest {
         when(mTrainingConditionsChecker.checkAllConditionsForFlTraining(any()))
                 .thenReturn(ImmutableSet.of(Condition.BATTERY_NOT_OK));
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
 
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(eq(JOB_ID), eq(POPULATION_NAME), any(), any(), any());
         verify(mMockTrainingEventLogger).logTaskNotStarted();
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
 
     @Test
@@ -415,12 +421,16 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any(), any());
 
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
 
+        verify(mMockJobServiceOnFinishCallback, never()).callJobFinished(eq(false));
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
 
     @Test
@@ -430,12 +440,16 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyHttpFederatedProtocol)
                 .createTaskAssignment(any());
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker
+                        .startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback)
+                        .get();
 
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
     }
 
@@ -451,11 +465,14 @@ public final class FederatedComputeWorkerTest {
                 .createTaskAssignment(any());
 
         // The second auth request will throw exception as http status 401 is not allowed.
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
 
         // verify two issueCheckin calls.
         verify(mSpyHttpFederatedProtocol, times(2)).createTaskAssignment(any());
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
 
     @Test
@@ -480,9 +497,11 @@ public final class FederatedComputeWorkerTest {
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
         doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         mSpyWorker.finish(result);
 
+        verify(mMockJobServiceOnFinishCallback, never()).callJobFinished(eq(false));
         // succeed
         assertNotNull(result);
         // Verify first issueCheckin call.
@@ -495,6 +514,7 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
         verify(mSpyWorker).unbindFromExampleStoreService();
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(true));
     }
 
     @Test
@@ -508,8 +528,10 @@ public final class FederatedComputeWorkerTest {
         ArgumentCaptor<ComputationResult> computationResultCaptor =
                 ArgumentCaptor.forClass(ComputationResult.class);
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
 
+        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
@@ -537,8 +559,11 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any(), any());
 
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
 
+        verify(mMockJobServiceOnFinishCallback, never()).callJobFinished(eq(false));
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
                 .onTrainingCompleted(
@@ -557,7 +582,11 @@ public final class FederatedComputeWorkerTest {
         // the second call to reportResultWithAuthentication would throw exception
         ExecutionException exception =
                 assertThrows(
-                        ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+                        ExecutionException.class,
+                        () ->
+                                mSpyWorker
+                                        .startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback)
+                                        .get());
 
         assertThat(exception.getCause())
                 .hasMessageThat()
@@ -578,7 +607,8 @@ public final class FederatedComputeWorkerTest {
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
         doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         mSpyWorker.finish(result);
 
         // succeed
@@ -603,7 +633,9 @@ public final class FederatedComputeWorkerTest {
         // Mock failure bind to ExampleStoreService.
         doReturn(null).when(mSpyWorker).getExampleStoreService(anyString());
 
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
 
         verify(mMockJobManager)
@@ -637,7 +669,8 @@ public final class FederatedComputeWorkerTest {
                         any()))
                 .thenReturn(FL_RUNNER_FAILURE_RESULT);
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.FAIL);
 
         mSpyWorker.finish(result);
@@ -670,7 +703,9 @@ public final class FederatedComputeWorkerTest {
         ArgumentCaptor<ComputationResult> computationResultCaptor =
                 ArgumentCaptor.forClass(ComputationResult.class);
 
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
 
         verify(mMockJobManager)
@@ -697,7 +732,8 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyResultCallbackHelper)
                 .callHandleResult(eq(TASK_NAME), any(), any());
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
 
         mSpyWorker.finish(result);
@@ -723,7 +759,8 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyResultCallbackHelper)
                 .callHandleResult(eq(TASK_NAME), any(), any());
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
 
         mSpyWorker.finish(result);
@@ -739,7 +776,8 @@ public final class FederatedComputeWorkerTest {
         setUpExampleStoreService();
         setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
 
         mSpyWorker.finish(result);
@@ -758,7 +796,11 @@ public final class FederatedComputeWorkerTest {
 
         ExecutionException exception =
                 assertThrows(
-                        ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+                        ExecutionException.class,
+                        () ->
+                                mSpyWorker
+                                        .startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback)
+                                        .get());
         assertThat(exception.getCause()).isInstanceOf(IllegalStateException.class);
         assertThat(exception.getCause())
                 .hasMessageThat()
@@ -799,7 +841,9 @@ public final class FederatedComputeWorkerTest {
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
         doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
 
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
 
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
@@ -821,7 +865,8 @@ public final class FederatedComputeWorkerTest {
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
         doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
 
         mSpyWorker.finish(result);
@@ -850,7 +895,8 @@ public final class FederatedComputeWorkerTest {
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(captor.capture(), eq(null), any());
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertNull(result);
         ComputationResult actualResult = captor.getValue();
         assertThat(actualResult.getFlRunnerResult().getErrorStatus())
@@ -876,7 +922,8 @@ public final class FederatedComputeWorkerTest {
         doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
         doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
 
-        FLRunnerResult result = mSpyWorker.startTrainingRun(JOB_ID).get();
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mSpyHttpFederatedProtocol).downloadTaskAssignment(any());
     }
@@ -889,7 +936,9 @@ public final class FederatedComputeWorkerTest {
                 .getOrFetchActiveKeys(anyInt(), anyInt());
         setUpReportFailureToServerCallback();
 
-        assertThrows(ExecutionException.class, () -> mSpyWorker.startTrainingRun(JOB_ID).get());
+        assertThrows(
+                ExecutionException.class,
+                () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
 
         verify(mSpyWorker).reportFailureResultToServer(any(), any());
     }
