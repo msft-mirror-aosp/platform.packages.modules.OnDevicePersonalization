@@ -114,8 +114,8 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);
         receiver.onReceive(mContext, intent);
-        // Policy engine should be initialized
-        assertNotNull(ChronicleManager.instance);
+
+        assertNull(ChronicleManager.instance);
 
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
 

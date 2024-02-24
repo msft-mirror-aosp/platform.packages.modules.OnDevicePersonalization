@@ -30,6 +30,7 @@ import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.content.Context;
 import android.federatedcompute.common.TrainingOptions;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
@@ -147,6 +148,53 @@ public class IsolatedServiceExceptionSafetyTest {
         params.putParcelable(Constants.EXTRA_INPUT, input);
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mIsolatedService.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
+        assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnEvent() throws Exception {
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString("ex", operation);
+        Bundle params = new Bundle();
+        params.putParcelable(
+                Constants.EXTRA_INPUT,
+                new EventInputParcel.Builder().setParameters(appParams).build());
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
+        mIsolatedService.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
+        assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnTrainingExamples() throws Exception {
+        TrainingExamplesInputParcel input =
+                new TrainingExamplesInputParcel.Builder()
+                        .setPopulationName("")
+                        .setTaskName(operation)
+                        .setResumptionToken(new byte[] {0})
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        mIsolatedService.onRequest(
+                Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
+        assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testOnWebTrigger() throws Exception {
+        WebTriggerInputParcel input =
+                new WebTriggerInputParcel.Builder(
+                                Uri.parse("http://desturl"), operation, new byte[] {1, 2, 3})
+                        .build();
+        Bundle params = new Bundle();
+        params.putParcelable(Constants.EXTRA_INPUT, input);
+        params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
+        params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
+        mIsolatedService.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
         assertTrue(mLatch.await(5000, TimeUnit.MILLISECONDS));
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }

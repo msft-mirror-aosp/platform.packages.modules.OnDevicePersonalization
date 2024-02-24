@@ -50,8 +50,8 @@ android_test {
         "modules-utils-preconditions",
         "libprotobuf-java-lite",
         "tensorflow_core_proto_java_lite",
-        // Used for client error logging.
-        "adservices-shared-error-logging",
+        // Used for client error logging and background job logging.
+        "adservices-shared-spe",
     ],
     manifest: "AndroidManifest.xml",
     plugins: ["auto_value_plugin"],

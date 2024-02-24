@@ -19,6 +19,9 @@ package com.android.ondevicepersonalization.services.download;
 import static android.app.job.JobScheduler.RESULT_FAILURE;
 import static android.content.pm.PackageManager.GET_META_DATA;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID;
+
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -28,12 +31,12 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 
-
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
-import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
+import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
@@ -55,14 +58,14 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
     public static int schedule(Context context) {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler.getPendingJob(
-                OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID) != null) {
+                DOWNLOAD_PROCESSING_TASK_JOB_ID) != null) {
             sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
             return RESULT_FAILURE;
         }
         ComponentName serviceComponent = new ComponentName(context,
                 OnDevicePersonalizationDownloadProcessingJobService.class);
         JobInfo.Builder builder = new JobInfo.Builder(
-                OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID, serviceComponent);
+                DOWNLOAD_PROCESSING_TASK_JOB_ID, serviceComponent);
 
         // Constraints.
         builder.setRequiresDeviceIdle(true);
@@ -76,8 +79,12 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
     @Override
     public boolean onStartJob(JobParameters params) {
         sLogger.d(TAG + ": onStartJob()");
+        OdpJobServiceLogger.getInstance(this).recordOnStartJob(DOWNLOAD_PROCESSING_TASK_JOB_ID);
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
+            OdpJobServiceLogger.getInstance(this).recordJobSkipped(
+                    DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                    AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
             jobFinished(params, /* wantsReschedule = */ false);
             return true;
         }
@@ -88,6 +95,12 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             String packageName = packageInfo.packageName;
             if (AppManifestConfigHelper.manifestContainsOdpSettings(
                     this, packageName)) {
+                if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(packageName)) {
+                    sLogger.d(TAG + ": service %s has ODP manifest, but not enrolled",
+                            packageName);
+                    continue;
+                }
+                sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
                 mFutures.add(Futures.submitAsync(
                         new OnDevicePersonalizationDataProcessingAsyncCallable(packageName,
                                 this),
@@ -95,7 +108,14 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             }
         }
         var unused = Futures.whenAllComplete(mFutures).call(() -> {
-            jobFinished(params, /* wantsReschedule */ false);
+            boolean wantsReschedule = false;
+            OdpJobServiceLogger.getInstance(
+                    OnDevicePersonalizationDownloadProcessingJobService.this)
+                    .recordJobFinished(
+                            DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                            /* isSuccessful= */ false,
+                            wantsReschedule);
+            jobFinished(params, wantsReschedule);
             return null;
         }, OnDevicePersonalizationExecutors.getLightweightExecutor());
 
@@ -110,6 +130,12 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
             }
         }
         // Reschedule the job since it ended before finishing
-        return true;
+        boolean wantsReschedule = true;
+        OdpJobServiceLogger.getInstance(this)
+                .recordOnStopJob(
+                        params,
+                        DOWNLOAD_PROCESSING_TASK_JOB_ID,
+                        wantsReschedule);
+        return wantsReschedule;
     }
 }

@@ -18,7 +18,15 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
+import static android.adservices.ondevicepersonalization.Constants.OP_TRAINING_EXAMPLE;
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGER;
+import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_EVENT;
+
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS;
 
 import com.android.ondevicepersonalization.services.FlagsFactory;
 
@@ -26,24 +34,34 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 public enum ServiceFlowType {
 
     APP_REQUEST_FLOW(
-            "AppRequest", OP_EXECUTE,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds()),
+            "AppRequest", OP_EXECUTE, Priority.HIGH,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS)),
 
     RENDER_FLOW(
-            "Render", OP_RENDER,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds()),
+            "Render", OP_RENDER, Priority.HIGH,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_RENDER_FLOW_DEADLINE_SECONDS)),
 
     WEB_TRIGGER_FLOW(
-            "WebTrigger", OP_WEB_TRIGGER,
-            /* executionTimeout= */ FlagsFactory.getFlags().getIsolatedServiceDeadlineSeconds());
+            "WebTrigger", OP_WEB_TRIGGER, Priority.NORMAL,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS)),
+
+    WEB_VIEW_FLOW(
+            "ComputeEventMetrics", OP_WEB_VIEW_EVENT, Priority.NORMAL,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS)),
+
+    EXAMPLE_STORE_FLOW(
+            "ExampleStore", OP_TRAINING_EXAMPLE, Priority.NORMAL,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS));
 
     final String mTaskName;
     final int mOperationCode;
+    final Priority mPriority;
     final int mExecutionTimeout;
 
-    ServiceFlowType(String taskName, int operationCode, int executionTimeout) {
+    ServiceFlowType(String taskName, int operationCode, Priority priority, int executionTimeout) {
         mTaskName = taskName;
         mOperationCode = operationCode;
+        mPriority = priority;
         mExecutionTimeout = executionTimeout;
     }
 
@@ -55,7 +73,17 @@ public enum ServiceFlowType {
         return mOperationCode;
     }
 
+    public Priority getPriority() {
+        return mPriority;
+    }
+
     public int getExecutionTimeout() {
         return mExecutionTimeout;
+    }
+
+    public enum Priority {
+        HIGH,
+        NORMAL,
+        LOW
     }
 }

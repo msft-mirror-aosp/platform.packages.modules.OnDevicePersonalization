@@ -329,7 +329,7 @@ public class FederatedTrainingTaskDao {
     }
 
     /** Get a task history based on job id, population name and task name. */
-    public TaskHistory getTaskHistory(int jobId, String populationName, String taskId) {
+    public TaskHistory getLatestTaskHistory(int jobId, String populationName, String taskId) {
         SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         String selection =
                 TaskHistoryContract.TaskHistoryEntry.JOB_ID
@@ -339,6 +339,7 @@ public class FederatedTrainingTaskDao {
                         + TaskHistoryContract.TaskHistoryEntry.TASK_ID
                         + " = ?";
         String[] selectionArgs = {String.valueOf(jobId), populationName, taskId};
+        String orderBy = TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME + " DESC";
         String[] projection = {
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME,
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
@@ -352,7 +353,7 @@ public class FederatedTrainingTaskDao {
                         selectionArgs,
                         /* groupBy= */ null,
                         /* having= */ null,
-                        /* orderBy= */ null)) {
+                        /* orderBy= */ orderBy)) {
             if (cursor.moveToFirst()) {
                 long contributionTime =
                         cursor.getLong(

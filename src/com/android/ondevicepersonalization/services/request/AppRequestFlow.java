@@ -44,17 +44,13 @@ import com.android.ondevicepersonalization.services.inference.IsolatedModelServi
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
+import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
-import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -74,7 +70,6 @@ import java.util.concurrent.TimeUnit;
 public class AppRequestFlow implements ServiceFlow<Bundle> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = AppRequestFlow.class.getSimpleName();
-    private static final String TASK_NAME = "AppRequest";
     @NonNull
     private final String mCallingPackageName;
     @NonNull
@@ -109,20 +104,9 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
 
-        ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : ProcessRunnerImpl.getInstance();
-        }
-
         boolean isPersonalizationStatusEnabled() {
             UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
             return privacyStatus.isPersonalizationStatusEnabled();
-        }
-
-        boolean isOutputDataAllowed(
-                String servicePackageName, String appPackageName, Context context) {
-            return PrivacyUtils.isOutputDataAllowed(servicePackageName, appPackageName, context);
         }
 
         boolean shouldValidateExecuteOutput() {
@@ -167,55 +151,10 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         mInjector = Objects.requireNonNull(injector);
     }
 
-    /** Runs the request processing flow. */
-    public void run() {
-        var unused = Futures.submit(this::processRequest, mInjector.getExecutor());
-    }
-
-    // TO-DO (323554852): Add detailed trace for app request flow.
-    private void processRequest() {
-        try {
-            if (!isServiceFlowReady()) return;
-
-            mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
-            ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                                TASK_NAME, mService);
-
-            ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
-                    .transformAsync(
-                            isolatedServiceInfo ->
-                                    mInjector.getProcessRunner()
-                                            .runIsolatedService(
-                                                    isolatedServiceInfo,
-                                                    Constants.OP_EXECUTE, getServiceParams()),
-                                    mInjector.getExecutor());
-
-            uploadServiceFlowMetrics(runServiceFuture);
-
-            ListenableFuture<Bundle> serviceFlowResultFuture =
-                    getServiceFlowResultFuture(runServiceFuture);
-
-            returnResultThroughCallback(serviceFlowResultFuture);
-
-            var unused =
-                    Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
-                            .callAsync(
-                                    () -> {
-                                        mModelServiceProvider.unBindFromModelService();
-                                        return mInjector
-                                                .getProcessRunner()
-                                                .unloadIsolatedService(loadServiceFuture.get());
-                                    },
-                                    mInjector.getExecutor());
-        } catch (Exception e) {
-            sLogger.e(TAG + ": Could not process request.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-        }
-    }
-
     @Override
     public boolean isServiceFlowReady() {
+        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+
         if (!mInjector.isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is disabled.");
             sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
@@ -271,7 +210,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
-                        mService.getPackageName(),
+                        mService,
                         mContext,
                         /* includeLocalData */ true,
                         /* includeEventData */ true));
@@ -375,7 +314,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             try {
                 OnDevicePersonalizationVendorDataDao vendorDataDao =
                         OnDevicePersonalizationVendorDataDao.getInstance(mContext,
-                                mService.getPackageName(),
+                                mService,
                                 PackageUtils.getCertDigest(mContext, mService.getPackageName()));
                 if (result.getRenderingConfig() != null) {
                     Set<String> keyset = vendorDataDao.readAllVendorDataKeys();
@@ -420,13 +359,26 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             }
             Bundle bundle = new Bundle();
             bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, token);
-            if (mInjector.isOutputDataAllowed(
-                    mService.getPackageName(), mCallingPackageName, mContext)) {
+            if (isOutputDataAllowed()) {
                 bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, result.getOutputData());
             }
             return Futures.immediateFuture(bundle);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private boolean isOutputDataAllowed() {
+        try {
+            return AllowListUtils.isPairAllowListed(
+                    mCallingPackageName,
+                    PackageUtils.getCertDigest(mContext, mCallingPackageName),
+                    mService.getPackageName(),
+                    PackageUtils.getCertDigest(mContext, mService.getPackageName()),
+                    mInjector.getFlags().getOutputDataAllowList());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": allow list error", e);
+            return false;
         }
     }
 
