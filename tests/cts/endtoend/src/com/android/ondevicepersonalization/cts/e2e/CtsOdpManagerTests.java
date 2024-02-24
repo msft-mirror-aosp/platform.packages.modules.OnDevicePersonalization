@@ -94,6 +94,12 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "isolated_service_allow_list "
                         + "null");
+
+        ShellUtils.runShellCommand(
+                "am force-stop com.google.android.ondevicepersonalization.services");
+        ShellUtils.runShellCommand(
+                "am force-stop com.android.ondevicepersonalization.services");
+
     }
 
     @Test
