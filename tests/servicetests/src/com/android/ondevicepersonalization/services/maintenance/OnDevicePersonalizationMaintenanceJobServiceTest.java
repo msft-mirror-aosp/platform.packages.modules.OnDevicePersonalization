@@ -33,11 +33,14 @@ import static org.mockito.Mockito.verify;
 
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
+import android.content.ComponentName;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
@@ -48,6 +51,7 @@ import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.DbUtils;
 import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
@@ -59,10 +63,10 @@ import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
@@ -75,17 +79,25 @@ import java.util.Map;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationMaintenanceJobServiceTest {
-    private static final String TEST_OWNER = "owner";
+    private static final ComponentName TEST_OWNER = new ComponentName("ownerPkg", "ownerCls");
     private static final String TEST_CERT_DIGEST = "certDigest";
     private static final String TASK_IDENTIFIER = "task";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
     private OnDevicePersonalizationVendorDataDao mTestDao;
     private OnDevicePersonalizationVendorDataDao mDao;
+    private ComponentName mService;
 
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
     private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(OnDevicePersonalizationExecutors.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     private static void addTestData(long timestamp, OnDevicePersonalizationVendorDataDao dao) {
         // Add vendor data
@@ -144,8 +156,10 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);
+        mService = new ComponentName(mContext.getPackageName(),
+                "com.test.TestPersonalizationService");
         mDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext,
-                mContext.getPackageName(),
+                mService,
                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
         mEventsDao = EventsDao.getInstanceForTest(mContext);
 
@@ -154,70 +168,47 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     @Test
     public void onStartJobTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
-                OnDevicePersonalizationExecutors.class).strictness(
-                Strictness.LENIENT).startMocking();
-        try {
-            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            doReturn(mContext.getPackageManager()).when(mSpyService).getPackageManager();
-            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
-                    OnDevicePersonalizationExecutors::getBackgroundExecutor);
-            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
-                    OnDevicePersonalizationExecutors::getLightweightExecutor);
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        doReturn(mContext.getPackageManager()).when(mSpyService).getPackageManager();
+        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+                OnDevicePersonalizationExecutors::getBackgroundExecutor);
+        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+                OnDevicePersonalizationExecutors::getLightweightExecutor);
 
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
-            assertTrue(result);
-            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        } finally {
-            session.finishMocking();
-        }
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 
     @Test
     public void onStartJobTestKillSwitchEnabled() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
-        try {
-            doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
-            mSpyService.schedule(mContext);
-            assertTrue(mJobScheduler.getPendingJob(
-                    OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
-                    != null);
-            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
-            assertTrue(result);
-            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-            assertTrue(mJobScheduler.getPendingJob(
-                    OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
-                    == null);
-        } finally {
-            session.finishMocking();
-        }
+        doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
+        mSpyService.schedule(mContext);
+        assertTrue(mJobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
+                != null);
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+        assertTrue(mJobScheduler.getPendingJob(
+                OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
+                == null);
     }
 
     @Test
     public void onStartJobTestPersonalizationBlocked() {
         mPrivacyStatus.setPersonalizationStatusEnabled(false);
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
-        try {
-            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
-            assertTrue(result);
-            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        } finally {
-            session.finishMocking();
-        }
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 
     @Test
     public void onStopJobTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().strictness(
-                Strictness.LENIENT).startMocking();
-        try {
-            assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
-        } finally {
-            session.finishMocking();
-        }
+        assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
     }
 
     @Test
@@ -227,16 +218,17 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         addTestData(timestamp, mDao);
         addEventData(mContext.getPackageName(), timestamp);
         addEventData(mContext.getPackageName(), 100L);
-        addEventData(TEST_OWNER, timestamp);
+        addEventData(TEST_OWNER.getPackageName(), timestamp);
 
         var originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
         PhFlagsTestUtil.setIsolatedServiceAllowList(
-                "com.android.ondevicepersonalization.servicetests");
+                mContext.getPackageName());
         OnDevicePersonalizationMaintenanceJobService.cleanupVendorData(mContext);
         PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         File dir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
-                OnDevicePersonalizationVendorDataDao.getTableName(mContext.getPackageName(),
+                OnDevicePersonalizationVendorDataDao.getTableName(
+                        mService,
                         PackageUtils.getCertDigest(mContext, mContext.getPackageName())),
                 mContext.getFilesDir()));
         File testDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
@@ -252,7 +244,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         List<Map.Entry<String, String>> vendors = OnDevicePersonalizationVendorDataDao.getVendors(
                 mContext);
         assertEquals(1, vendors.size());
-        assertEquals(new AbstractMap.SimpleEntry<>(mContext.getPackageName(),
+        assertEquals(new AbstractMap.SimpleEntry<>(DbUtils.toTableValue(mService),
                 PackageUtils.getCertDigest(mContext, mContext.getPackageName())), vendors.get(0));
 
         addTestData(timestamp + 10, mDao);
@@ -269,10 +261,11 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertTrue(new File(dir, "large_" + (timestamp + 20)).exists());
         assertTrue(new File(dir, "large2_" + (timestamp + 20)).exists());
 
-        assertNull(mEventsDao.getEventState(TASK_IDENTIFIER, TEST_OWNER));
+        assertNull(mEventsDao.getEventState(TASK_IDENTIFIER, TEST_OWNER.getPackageName()));
         assertNotNull(mEventsDao.getEventState(TASK_IDENTIFIER, mContext.getPackageName()));
 
-        assertEquals(2, mEventsDao.readAllNewRowsForPackage(TEST_OWNER, 0, 0).size());
+        assertEquals(2,
+                mEventsDao.readAllNewRowsForPackage(TEST_OWNER.getPackageName(), 0, 0).size());
         assertEquals(2,
                 mEventsDao.readAllNewRowsForPackage(mContext.getPackageName(), 0, 0).size());
     }

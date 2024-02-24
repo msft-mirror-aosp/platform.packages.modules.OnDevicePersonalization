@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
@@ -68,7 +69,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     @NonNull
     private final Context mApplicationContext;
     @NonNull
-    private final String mServicePackageName;
+    private final ComponentName mService;
     @Nullable
     private OnDevicePersonalizationVendorDataDao mVendorDataDao = null;
     @Nullable
@@ -82,34 +83,34 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private Map<String, byte[]> mRemoteData = null;
 
     public DataAccessServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             boolean includeLocalData,
             boolean includeEventData) {
-        this(servicePackageName, applicationContext, null, includeLocalData, includeEventData,
+        this(service, applicationContext, null, includeLocalData, includeEventData,
                 new Injector());
     }
 
     public DataAccessServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             @NonNull Map<String, byte[]> remoteData,
             boolean includeLocalData,
             boolean includeEventData) {
-        this(servicePackageName, applicationContext, remoteData, includeLocalData, includeEventData,
+        this(service, applicationContext, remoteData, includeLocalData, includeEventData,
                 new Injector());
     }
 
     @VisibleForTesting
     public DataAccessServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             Map<String, byte[]> remoteData,
             boolean includeLocalData,
             boolean includeEventData,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
-        mServicePackageName = Objects.requireNonNull(servicePackageName, "servicePackageName");
+        mService = Objects.requireNonNull(service, "servicePackageName");
         mInjector = Objects.requireNonNull(injector, "injector");
         try {
             if (remoteData != null) {
@@ -117,20 +118,22 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 mRemoteData = new HashMap<>(remoteData);
             } else {
                 mVendorDataDao = mInjector.getVendorDataDao(
-                        mApplicationContext, servicePackageName,
-                        PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+                        mApplicationContext, mService,
+                        PackageUtils.getCertDigest(
+                                mApplicationContext, mService.getPackageName()));
             }
             mIncludeLocalData = includeLocalData;
             if (includeLocalData) {
                 mLocalDataDao = mInjector.getLocalDataDao(
-                        mApplicationContext, servicePackageName,
-                        PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+                        mApplicationContext, mService,
+                        PackageUtils.getCertDigest(
+                                mApplicationContext, mService.getPackageName()));
                 mLocalDataDao.createTable();
             } else {
                 mLocalDataDao = null;
             }
         } catch (PackageManager.NameNotFoundException nnfe) {
-            throw new IllegalArgumentException("Package: " + servicePackageName
+            throw new IllegalArgumentException("Service: " + mService.toString()
                     + " does not exist.", nnfe);
         }
         mIncludeEventData = includeEventData;
@@ -364,7 +367,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull IDataAccessServiceCallback callback) {
         try {
             List<Query> queries = mEventsDao.readAllQueries(startTimeMillis, endTimeMillis,
-                    mServicePackageName);
+                    mService.getPackageName());
             List<RequestLogRecord> requestLogRecords = new ArrayList<>();
             for (Query query : queries) {
                 RequestLogRecord record = new RequestLogRecord.Builder()
@@ -389,7 +392,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         try {
             List<JoinedEvent> joinedEvents = mEventsDao.readJoinedTableRows(startTimeMillis,
                     endTimeMillis,
-                    mServicePackageName);
+                    mService.getPackageName());
             List<EventLogRecord> joinedLogRecords = new ArrayList<>();
             for (JoinedEvent joinedEvent : joinedEvents) {
                 RequestLogRecord requestLogRecord = new RequestLogRecord.Builder()
@@ -482,17 +485,17 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
 
         OnDevicePersonalizationVendorDataDao getVendorDataDao(
-                Context context, String packageName, String certDigest
+                Context context, ComponentName service, String certDigest
         ) {
             return OnDevicePersonalizationVendorDataDao.getInstance(context,
-                    packageName, certDigest);
+                    service, certDigest);
         }
 
         OnDevicePersonalizationLocalDataDao getLocalDataDao(
-                Context context, String packageName, String certDigest
+                Context context, ComponentName service, String certDigest
         ) {
             return OnDevicePersonalizationLocalDataDao.getInstance(context,
-                    packageName, certDigest);
+                    service, certDigest);
         }
 
         EventsDao getEventsDao(

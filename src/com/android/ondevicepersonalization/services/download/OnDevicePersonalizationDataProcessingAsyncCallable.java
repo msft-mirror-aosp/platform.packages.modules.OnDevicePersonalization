@@ -196,8 +196,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             return Futures.immediateFuture(null);
         }
 
+        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                mContext, mPackageName);
         mDao = OnDevicePersonalizationVendorDataDao.getInstance(
-                mContext, mPackageName,
+                mContext, ComponentName.createRelative(mPackageName, serviceClass),
                 PackageUtils.getCertDigest(mContext, mPackageName));
         long existingSyncToken = mDao.getSyncToken();
 
@@ -210,11 +212,9 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         Map<String, VendorData> finalVendorDataMap = vendorDataMap;
         long finalSyncToken = syncToken;
         try {
-            String className = AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                    mContext, mPackageName);
             ListenableFuture<IsolatedServiceInfo> loadFuture =
                     mInjector.getProcessRunner().loadIsolatedService(
-                            TASK_NAME, ComponentName.createRelative(mPackageName, className));
+                            TASK_NAME, ComponentName.createRelative(mPackageName, serviceClass));
             var resultFuture = FluentFuture.from(loadFuture)
                     .transformAsync(
                             result -> executeDownloadHandler(result, finalVendorDataMap),
@@ -271,9 +271,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
     private ListenableFuture<Bundle> executeDownloadHandler(
             IsolatedServiceInfo isolatedServiceInfo,
             Map<String, VendorData> vendorDataMap) {
+        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                mContext, mPackageName);
+        ComponentName service = ComponentName.createRelative(mPackageName, serviceClass);
         Bundle pluginParams = new Bundle();
         DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mPackageName, mContext, /* includeLocalData */ true,
+                service, mContext, /* includeLocalData */ true,
                 /* includeEventData */ true);
         pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         FederatedComputeServiceImpl fcpBinder =
@@ -291,7 +294,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         }
 
         DataAccessServiceImpl downloadedContentBinder = new DataAccessServiceImpl(
-                mPackageName, mContext, /* remoteData */ downloadedContent,
+                service, mContext, /* remoteData */ downloadedContent,
                 /* includeLocalData */ false, /* includeEventData */ false);
 
         DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
