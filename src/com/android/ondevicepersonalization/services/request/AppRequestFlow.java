@@ -45,12 +45,12 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
+import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
-import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -107,11 +107,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         boolean isPersonalizationStatusEnabled() {
             UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
             return privacyStatus.isPersonalizationStatusEnabled();
-        }
-
-        boolean isOutputDataAllowed(
-                String servicePackageName, String appPackageName, Context context) {
-            return PrivacyUtils.isOutputDataAllowed(servicePackageName, appPackageName, context);
         }
 
         boolean shouldValidateExecuteOutput() {
@@ -364,13 +359,26 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             }
             Bundle bundle = new Bundle();
             bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, token);
-            if (mInjector.isOutputDataAllowed(
-                    mService.getPackageName(), mCallingPackageName, mContext)) {
+            if (isOutputDataAllowed()) {
                 bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, result.getOutputData());
             }
             return Futures.immediateFuture(bundle);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private boolean isOutputDataAllowed() {
+        try {
+            return AllowListUtils.isPairAllowListed(
+                    mCallingPackageName,
+                    PackageUtils.getCertDigest(mContext, mCallingPackageName),
+                    mService.getPackageName(),
+                    PackageUtils.getCertDigest(mContext, mService.getPackageName()),
+                    mInjector.getFlags().getOutputDataAllowList());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": allow list error", e);
+            return false;
         }
     }
 

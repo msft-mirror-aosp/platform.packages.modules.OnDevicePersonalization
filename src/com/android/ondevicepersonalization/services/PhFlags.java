@@ -97,6 +97,8 @@ public final class PhFlags implements Flags {
         mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS, getRenderFlowDeadlineSeconds());
         mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS, getWebTriggerFlowDeadlineSeconds());
         mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS, getWebViewFlowDeadlineSeconds());
+        mStableFlags.put(
+                KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS, getExampleStoreFlowDeadlineSeconds());
         mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 isSharedIsolatedProcessFeatureEnabled());
         mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
@@ -185,6 +187,17 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
                 /* defaultValue= */ WEB_TRIGGER_FLOW_DEADLINE_SECONDS);
+    }
+
+    public static final String KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS =
+            "example_store_flow_deadline_seconds";
+
+    @Override
+    public int getExampleStoreFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ EXAMPLE_STORE_FLOW_DEADLINE_SECONDS);
     }
 
     @Override
