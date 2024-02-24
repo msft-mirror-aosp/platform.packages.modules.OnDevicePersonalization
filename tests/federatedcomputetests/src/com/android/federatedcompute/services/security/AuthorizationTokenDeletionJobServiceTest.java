@@ -18,12 +18,17 @@ package com.android.federatedcompute.services.security;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.app.job.JobParameters;
@@ -39,6 +44,7 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
@@ -67,6 +73,8 @@ public class AuthorizationTokenDeletionJobServiceTest {
 
     private Context mContext;
 
+    private JobScheduler mJobScheduler;
+
     private Clock mClock;
 
     @Before
@@ -79,9 +87,8 @@ public class AuthorizationTokenDeletionJobServiceTest {
         mSpyAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
         mSpyService = spy(new AuthorizationTokenDeletionJobService(new TestInjector()));
         mClock = MonotonicClock.getInstance();
-
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-        jobScheduler.cancel(FederatedComputeJobInfo.ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID);
+        mJobScheduler = mContext.getSystemService(JobScheduler.class);
+        mJobScheduler.cancel(FederatedComputeJobInfo.ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID);
         mStaticMockSession =
                 ExtendedMockito.mockitoSession()
                         .initMocks(this)
@@ -144,23 +151,37 @@ public class AuthorizationTokenDeletionJobServiceTest {
     @Test
     public void testOnStartJob_enableKillSwitch() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-
-        mSpyService.run(mock(JobParameters.class));
-
-        verify(mSpyService).onStartJob(any());
-        verify(mSpyService).jobFinished(any(), eq(false));
+        doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
+        mSpyService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
+        assertTrue(mJobScheduler.getPendingJob(
+                FederatedComputeJobInfo.ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID)
+                != null);
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mSpyAuthTokenDao, never()).deleteExpiredAuthorizationTokens();
+        assertTrue(mJobScheduler.getPendingJob(
+                FederatedComputeJobInfo.ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID)
+                == null);
     }
 
     @Test
     public void testOnStartJob_disableAuthentication() {
         PhFlagsTestUtil.disableAuthentication();
-
-        mSpyService.run(mock(JobParameters.class));
-
-        verify(mSpyService).onStartJob(any());
-        verify(mSpyService).jobFinished(any(), eq(false));
+        doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
+        mSpyService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
+        assertTrue(mJobScheduler.getPendingJob(
+                FederatedComputeJobInfo.ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID)
+                != null);
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(mSpyAuthTokenDao, never()).deleteExpiredAuthorizationTokens();
+        assertTrue(mJobScheduler.getPendingJob(
+                FederatedComputeJobInfo.ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID)
+                == null);
     }
 
     @Test
