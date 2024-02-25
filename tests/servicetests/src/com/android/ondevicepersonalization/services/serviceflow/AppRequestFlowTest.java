@@ -21,8 +21,6 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
@@ -38,9 +36,12 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -51,16 +52,14 @@ import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonal
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
-import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -79,25 +78,23 @@ public class AppRequestFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private Bundle mExecuteCallback;
-    private MockitoSession mSession;
     private ServiceFlowOrchestrator mSfo;
 
     @Mock
     UserPrivacyStatus mUserPrivacyStatus;
 
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(UserPrivacyStatus.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
+
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization global_kill_switch false");
-
-        MockitoAnnotations.initMocks(this);
-        mSession = ExtendedMockito.mockitoSession()
-                .spyStatic(UserPrivacyStatus.class)
-                .spyStatic(PrivacyUtils.class)
-                .strictness(Strictness.LENIENT)
-                .startMocking();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
 
@@ -111,16 +108,13 @@ public class AppRequestFlowTest {
         mDbHelper.getWritableDatabase().close();
         mDbHelper.getReadableDatabase().close();
         mDbHelper.close();
-        if (mSession != null) {
-            mSession.finishMocking();
-        }
     }
 
     @Test
     public void testAppRequestFlow_PersonalizationDisabled() throws InterruptedException {
         doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
@@ -132,35 +126,26 @@ public class AppRequestFlowTest {
     @Test
     public void testAppRequestFlow_OutputDataBlocked() throws InterruptedException {
         doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-        ExtendedMockito.doReturn(false)
-                .when(
-                        () -> PrivacyUtils.isOutputDataAllowed(
-                                anyString(), anyString(), any(Context.class)));
+        PhFlagsTestUtil.setOutputDataAllowList("");
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
         assertNull(mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA));
-        assertEquals(2,
-                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
-        assertEquals(1,
-                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+        assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
     }
 
     @Test
     public void testAppRequestFlow_OutputDataAllowed() throws InterruptedException {
+        PhFlagsTestUtil.setOutputDataAllowList(
+                mContext.getPackageName() + ";" + mContext.getPackageName());
         doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-        ExtendedMockito.doReturn(true)
-                .when(
-                        () -> PrivacyUtils.isOutputDataAllowed(
-                                anyString(), anyString(), any(Context.class)));
 
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, "abc",
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
@@ -169,12 +154,13 @@ public class AppRequestFlowTest {
         assertArrayEquals(
                 mExecuteCallback.getByteArray(Constants.EXTRA_OUTPUT_DATA),
                 new byte[] {1, 2, 3});
-        assertEquals(2,
-                mDbHelper.getReadableDatabase().query(QueriesContract.QueriesEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
-        assertEquals(1,
-                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+        assertEquals(2, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(1, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
+    }
+
+    private int getDbTableSize(String tableName) {
+        return mDbHelper.getReadableDatabase().query(tableName, null,
+                null, null, null, null, null).getCount();
     }
 
     private void setUpTestData() throws Exception {
@@ -185,15 +171,19 @@ public class AppRequestFlowTest {
         ContentValues row2 = new ContentValues();
         row2.put("b", 2);
         rows.add(row2);
+        ComponentName service = new ComponentName(
+                mContext.getPackageName(), "com.test.TestPersonalizationService");
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                "com.example.test", "AABBCCDD", rows);
+                DbUtils.toTableValue(service), "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setService(service).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
 
         OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
-                .getInstanceForTest(mContext, mContext.getPackageName(),
+                .getInstanceForTest(mContext,
+                        new ComponentName(mContext.getPackageName(),
+                                "com.test.TestPersonalizationService"),
                         PackageUtils.getCertDigest(mContext, mContext.getPackageName()));
         VendorData vendorData = new VendorData.Builder().setData(new byte[5]).setKey(
                 "bid1").build();

@@ -71,11 +71,7 @@ public class ModelManagerTest {
         input[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
                 new InferenceInput.Builder(
-                                InferenceInput.Params.createCpuParams(
-                                        mRemoteData,
-                                        MODEL_KEY,
-                                        1,
-                                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
+                                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build(),
                                 input,
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
@@ -98,11 +94,8 @@ public class ModelManagerTest {
         input[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
                 new InferenceInput.Builder(
-                                InferenceInput.Params.createCpuParams(
-                                        mRemoteData,
-                                        INVALID_MODEL_KEY,
-                                        1,
-                                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
+                                new InferenceInput.Params.Builder(mRemoteData, INVALID_MODEL_KEY)
+                                        .build(),
                                 input,
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();
@@ -131,11 +124,8 @@ public class ModelManagerTest {
         inputData[0] = new float[] {1.2f};
         InferenceInput inferenceContext =
                 new InferenceInput.Builder(
-                                InferenceInput.Params.createCpuParams(
-                                        mRemoteData,
-                                        MISSING_OUTPUT_KEY,
-                                        1,
-                                        InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE),
+                                new InferenceInput.Params.Builder(mRemoteData, MISSING_OUTPUT_KEY)
+                                        .build(),
                                 inputData,
                                 new InferenceOutput.Builder().setDataOutputs(outputData).build())
                         .build();

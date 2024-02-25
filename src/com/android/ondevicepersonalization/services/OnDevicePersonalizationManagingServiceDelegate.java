@@ -31,13 +31,10 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Trace;
 
-import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
-import com.android.ondevicepersonalization.services.request.AppRequestFlow;
-import com.android.ondevicepersonalization.services.request.RenderFlow;
-import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
-
-import com.google.common.util.concurrent.ListeningExecutorService;
+import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
 
 import java.util.Objects;
 
@@ -46,58 +43,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
         extends IOnDevicePersonalizationManagingService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationManagingServiceDelegate";
+    private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
     @NonNull private final Context mContext;
 
-    @VisibleForTesting
-    static class Injector {
-        AppRequestFlow getAppRequestFlow(
-                String callingPackageName,
-                ComponentName handler,
-                Bundle params,
-                IExecuteCallback callback,
-                Context context,
-                long startTimeMillis) {
-            return new AppRequestFlow(
-                    callingPackageName, handler, params, callback, context, startTimeMillis);
-        }
-
-        RenderFlow getRenderFlow(
-                String slotResultToken,
-                IBinder hostToken,
-                int displayId,
-                int width,
-                int height,
-                IRequestSurfacePackageCallback callback,
-                Context context,
-                long startTimeMillis) {
-            return new RenderFlow(
-                    slotResultToken, hostToken, displayId, width, height, callback, context,
-                    startTimeMillis);
-        }
-
-        WebTriggerFlow getWebTriggerFlow(
-                Bundle params, Context context,
-                IRegisterMeasurementEventCallback callback, long startTimeMillis) {
-            return new WebTriggerFlow(params, context, callback, startTimeMillis);
-        }
-
-        ListeningExecutorService getExecutor() {
-            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
-        }
-    }
-
-    @NonNull private final Injector mInjector;
-
     public OnDevicePersonalizationManagingServiceDelegate(@NonNull Context context) {
-        this(context, new Injector());
-    }
-
-    @VisibleForTesting
-    public OnDevicePersonalizationManagingServiceDelegate(
-            @NonNull Context context,
-            @NonNull Injector injector) {
         mContext = Objects.requireNonNull(context);
-        mInjector = Objects.requireNonNull(injector);
     }
 
     @Override
@@ -136,15 +86,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
+        enforceEnrollment(callingPackageName, handler);
 
-        AppRequestFlow flow = mInjector.getAppRequestFlow(
-                callingPackageName,
-                handler,
-                wrappedParams,
-                callback,
-                mContext,
-                metadata.getStartTimeMillis());
-        flow.run();
+        sSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW,
+                callingPackageName, handler, wrappedParams,
+                callback, mContext, metadata.getStartTimeMillis());
         Trace.endSection();
     }
 
@@ -177,16 +123,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalArgumentException("displayId must be >= 0");
         }
 
-        RenderFlow flow = mInjector.getRenderFlow(
-                slotResultToken,
-                hostToken,
-                displayId,
-                width,
-                height,
-                callback,
-                mContext,
-                metadata.getStartTimeMillis());
-        flow.run();
+        sSfo.schedule(ServiceFlowType.RENDER_FLOW,
+                slotResultToken, hostToken, displayId,
+                width, height, callback,
+                mContext, metadata.getStartTimeMillis());
         Trace.endSection();
     }
 
@@ -210,18 +150,17 @@ public class OnDevicePersonalizationManagingServiceDelegate
         Objects.requireNonNull(params);
         Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
-        WebTriggerFlow flow = mInjector.getWebTriggerFlow(
-                params,
-                mContext,
-                callback,
-                metadata.getStartTimeMillis());
-        flow.run();
+
+        sSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW,
+                params, mContext,
+                callback, metadata.getStartTimeMillis());
         Trace.endSection();
     }
 
     private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
         boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
+        FlagsFactory.getFlags().setStableFlags();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
     }
@@ -238,5 +177,26 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new SecurityException(packageName + " does not belong to uid " + uid);
         }
         //TODO(b/242792629): Handle requests from the SDK sandbox.
+    }
+
+    private void enforceEnrollment(@NonNull String callingPackageName,
+                                   @NonNull ComponentName service) {
+        long origId = Binder.clearCallingIdentity();
+
+        try {
+            if (!PartnerEnrollmentChecker.isCallerAppEnrolled(callingPackageName)) {
+                sLogger.d("caller app %s not enrolled to call ODP.", callingPackageName);
+                throw new IllegalStateException(
+                        "Service skipped as the caller app is not enrolled to call ODP.");
+            }
+            if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(service.getPackageName())) {
+                sLogger.d("isolated service %s not enrolled to access ODP.",
+                        service.getPackageName());
+                throw new IllegalStateException(
+                        "Service skipped as the isolated service is not enrolled to access ODP.");
+            }
+        } finally {
+            Binder.restoreCallingIdentity(origId);
+        }
     }
 }
