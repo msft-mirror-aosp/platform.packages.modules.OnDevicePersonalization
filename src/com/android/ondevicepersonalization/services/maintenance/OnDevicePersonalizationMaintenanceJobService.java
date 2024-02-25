@@ -36,9 +36,9 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
-import com.android.ondevicepersonalization.services.data.vendor.DbUtils;
 import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -151,7 +151,7 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
             ComponentName service = DbUtils.fromTableValue(serviceNameStr);
             String certDigest = entry.getValue();
             OnDevicePersonalizationVendorDataDao.deleteVendorData(context, service, certDigest);
-            eventsDao.deleteEventState(service.getPackageName());
+            eventsDao.deleteEventState(service);
         }
 
         // Cleanup event and queries table.

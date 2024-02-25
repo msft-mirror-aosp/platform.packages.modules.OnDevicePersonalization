@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data.vendor;
+package com.android.ondevicepersonalization.services.data;
 
 import android.annotation.NonNull;
 import android.content.ComponentName;
@@ -23,7 +23,8 @@ import java.util.Objects;
 
 /** Database utilities */
 public class DbUtils {
-    static String getTableName(
+    /** Returns the table name for a service */
+    public static String getTableName(
             @NonNull String prefix, @NonNull ComponentName owner, @NonNull String certDigest) {
         String ownerStr = owner.getPackageName() + "__" + owner.getShortClassName();
         ownerStr = ownerStr.replace(".", "_");

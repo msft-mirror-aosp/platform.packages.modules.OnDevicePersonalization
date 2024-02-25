@@ -154,7 +154,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                         public void onResult(Object result) {
                             mInjector.getEventsDao(mApplicationContext).updateOrInsertEventState(
                                     new EventState.Builder()
-                                            .setServiceName(mCallingService.getPackageName())
+                                            .setService(mCallingService)
                                             .setTaskIdentifier(trainingOptions.getPopulationName())
                                             .setToken(new byte[]{})
                                             .build());
@@ -177,7 +177,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     public void cancel(String populationName,
             IFederatedComputeCallback callback) {
         EventState eventState = mInjector.getEventsDao(mApplicationContext).getEventState(
-                populationName, mCallingService.getPackageName());
+                populationName, mCallingService);
         if (eventState == null) {
             sLogger.d("No population registered for package: " + mCallingService.getPackageName());
             sendSuccess(callback);
