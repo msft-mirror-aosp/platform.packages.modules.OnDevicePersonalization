@@ -56,6 +56,7 @@ import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStora
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -88,7 +89,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
     private long mStartServiceTimeMillis;
-    private Exception mException;
     private ComponentName mService;
     private Map<String, VendorData> mProcessedVendorDataMap;
     private long mProcessedSyncToken;
@@ -107,9 +107,22 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
         ListeningExecutorService getExecutor() {
             return OnDevicePersonalizationExecutors.getBackgroundExecutor();
         }
+
+        FutureCallback<DownloadCompletedOutputParcel> getCallback() {
+            return new FutureCallback<>() {
+                @Override
+                public void onSuccess(DownloadCompletedOutputParcel result) {
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                }
+            };
+        }
     }
 
     private final Injector mInjector;
+    private final FutureCallback<DownloadCompletedOutputParcel> mCallback;
 
     public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
             Context context) {
@@ -121,6 +134,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
         mPackageName = packageName;
         mContext = context;
         mInjector = injector;
+        mCallback = mInjector.getCallback();
     }
 
     @Override
@@ -151,20 +165,20 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
                 }
             } catch (IOException e) {
                 sLogger.d(TAG + mPackageName + " Failed to process downloaded JSON file");
-                mException = e;
+                mCallback.onFailure(e);
                 return false;
             }
 
             if (syncToken == -1 || !validateSyncToken(syncToken)) {
                 sLogger.d(TAG + mPackageName
                         + " downloaded JSON file has invalid syncToken provided");
-                mException = new IllegalArgumentException("Invalid syncToken provided.");
+                mCallback.onFailure(new IllegalArgumentException("Invalid syncToken provided."));
                 return false;
             }
 
             if (vendorDataMap == null || vendorDataMap.size() == 0) {
                 sLogger.d(TAG + mPackageName + " downloaded JSON file has no content provided");
-                mException = new IllegalArgumentException("No content provided.");
+                mCallback.onFailure(new IllegalArgumentException("No content provided."));
                 return false;
             }
 
@@ -176,7 +190,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
             // no new data.
             if (existingSyncToken >= syncToken) {
                 sLogger.d(TAG + ": syncToken is not newer than existing token.");
-                mException = new IllegalArgumentException("SyncToken is stale.");
+                mCallback.onFailure(new IllegalArgumentException("SyncToken is stale."));
                 return false;
             }
 
@@ -185,7 +199,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
 
             return true;
         } catch (Exception e) {
-            mException = e;
+            mCallback.onFailure(e);
             return false;
         }
     }
@@ -302,6 +316,29 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
     }
 
     @Override
+    public void returnResultThroughCallback(
+            ListenableFuture<DownloadCompletedOutputParcel> serviceFlowResultFuture) {
+        try {
+            MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
+            String fileGroupName =
+                    OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                            mPackageName, mContext);
+
+            ListenableFuture<Boolean> removaeFileGroupFuture =
+                    FluentFuture.from(serviceFlowResultFuture)
+                            .transformAsync(
+                                    result -> mdd.removeFileGroup(
+                                            RemoveFileGroupRequest.newBuilder()
+                                                    .setGroupName(fileGroupName).build()),
+                                    mInjector.getExecutor());
+
+            Futures.addCallback(serviceFlowResultFuture, mCallback, mInjector.getExecutor());
+        } catch (Exception e) {
+            mCallback.onFailure(e);
+        }
+    }
+
+    @Override
     public void cleanUpServiceParams() {
         mModelServiceProvider.unBindFromModelService();
     }
@@ -334,6 +371,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
             ListenableFuture<DownloadCompletedOutputParcel> serviceFlowResultFuture =
                     getServiceFlowResultFuture(runServiceFuture);
 
+            returnResultThroughCallback(serviceFlowResultFuture);
+
             var unused = Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
                     .callAsync(() -> {
                         cleanUpServiceParams();
@@ -341,18 +380,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
                                 .unloadIsolatedService(loadServiceFuture.get());
                     }, mInjector.getExecutor());
 
-            MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
-            String fileGroupName =
-                    OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
-                            mPackageName, mContext);
-            return FluentFuture.from(serviceFlowResultFuture)
-                    .transformAsync(result -> mdd.removeFileGroup(
-                                    RemoveFileGroupRequest.newBuilder().setGroupName(
-                                            fileGroupName).build()),
-                            mInjector.getExecutor());
+
         } catch (Exception e) {
             sLogger.d("Could not finish download flow.");
-            mException = e;
+            mCallback.onFailure(e);
         }
 
         return Futures.immediateFuture(null);
@@ -418,7 +449,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
 
         if (cfg == null || cfg.getStatus() != ClientFileGroup.Status.DOWNLOADED) {
             sLogger.d(TAG + mPackageName + " has no completed downloads.");
-            mException = new IllegalArgumentException("No completed downloads.");
+            mCallback.onFailure(new IllegalArgumentException("No completed downloads."));
             return null;
         }
 
@@ -427,7 +458,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
             sLogger.d(TAG + ": package : "
                     + mPackageName + " has "
                     + cfg.getFileCount() + " files in the fileGroup");
-            mException = new IllegalArgumentException("Invalid file count.");
+            mCallback.onFailure(new IllegalArgumentException("Invalid file count."));
             return null;
         }
 
