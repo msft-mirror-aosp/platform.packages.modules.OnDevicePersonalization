@@ -49,6 +49,10 @@ public class AuthorizationTokenDeletionJobService extends JobService {
 
     private final Injector mInjector;
 
+    public AuthorizationTokenDeletionJobService() {
+        mInjector = new Injector();
+    }
+
     @VisibleForTesting
     public AuthorizationTokenDeletionJobService(Injector injector) {
         mInjector = injector;
@@ -90,13 +94,27 @@ public class AuthorizationTokenDeletionJobService extends JobService {
                     @Override
                     public void onSuccess(Integer result) {
                         LogUtil.d(TAG, "Deleted %d expired tokens.", result);
-                        jobFinished(params, /* wantsReschedule= */ false);
+                        boolean wantsReschedule = false;
+                        FederatedComputeJobServiceLogger.getInstance(
+                                        AuthorizationTokenDeletionJobService.this)
+                                .recordJobFinished(
+                                        AUTH_TOKEN_DELETION_JOB_ID,
+                                        /* isSuccessful= */ true,
+                                        wantsReschedule);
+                        jobFinished(params, /* wantsReschedule= */ wantsReschedule);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
                         LogUtil.e(TAG, t, "Exception encountered when deleting expired tokens");
-                        jobFinished(params, /* wantsReschedule= */ false);
+                        boolean wantsReschedule = false;
+                        FederatedComputeJobServiceLogger.getInstance(
+                                        AuthorizationTokenDeletionJobService.this)
+                                .recordJobFinished(
+                                        AUTH_TOKEN_DELETION_JOB_ID,
+                                        /* isSuccessful= */ false,
+                                        wantsReschedule);
+                        jobFinished(params, /* wantsReschedule= */ wantsReschedule);
                     }
                 },
                 FederatedComputeExecutors.getLightweightExecutor());
