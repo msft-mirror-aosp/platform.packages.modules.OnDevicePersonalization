@@ -334,7 +334,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         sLogger.d(TAG + ": logQuery() started.");
         return LogUtils.writeLogRecords(
                 mContext,
-                mService.getPackageName(),
+                mService,
                 result.getRequestLogRecord(),
                 result.getEventLogRecords());
     }

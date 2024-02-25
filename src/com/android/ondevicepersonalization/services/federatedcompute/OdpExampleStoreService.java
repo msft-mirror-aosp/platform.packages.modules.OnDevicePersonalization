@@ -111,7 +111,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             // Cancel job if on longer valid. This is written to the table during scheduling
             // via {@link FederatedComputeServiceImpl} and deleted either during cancel or
             // during maintenance for uninstalled packages.
-            EventState eventStatePopulation = eventDao.getEventState(populationName, packageName);
+            ComponentName owner = ComponentName.createRelative(packageName, ownerClassName);
+            EventState eventStatePopulation = eventDao.getEventState(populationName, owner);
             if (eventStatePopulation == null) {
                 sLogger.w("Job was either cancelled or package was uninstalled");
                 // Cancel job.
@@ -123,7 +124,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     return;
                 }
                 FCManager.cancel(
-                        ComponentName.createRelative(packageName, ownerClassName),
+                        owner,
                         populationName,
                         OnDevicePersonalizationExecutors.getBackgroundExecutor(),
                         new OutcomeReceiver<Object, Exception>() {
@@ -146,7 +147,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             // Get resumptionToken
             EventState eventState =
                     eventDao.getEventState(
-                            getTaskIdentifier(populationName, taskName), packageName);
+                            getTaskIdentifier(populationName, taskName), owner);
             byte[] resumptionToken = null;
             if (eventState != null) {
                 resumptionToken = eventState.getToken();
