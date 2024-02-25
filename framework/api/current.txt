@@ -122,14 +122,23 @@ package android.adservices.ondevicepersonalization {
   }
 
   public static class InferenceInput.Params {
-    method @NonNull public static android.adservices.ondevicepersonalization.InferenceInput.Params createCpuParams(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String, @IntRange(from=1) int, int);
-    method @IntRange(from=1) public int getCpuNumThread();
     method public int getDelegateType();
     method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getKeyValueStore();
     method @NonNull public String getModelKey();
     method public int getModelType();
+    method @IntRange(from=1) public int getRecommendedNumThreads();
     field public static final int DELEGATE_CPU = 1; // 0x1
     field public static final int MODEL_TYPE_TENSORFLOW_LITE = 1; // 0x1
+  }
+
+  public static final class InferenceInput.Params.Builder {
+    ctor public InferenceInput.Params.Builder(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params build();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setDelegateType(int);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setKeyValueStore(@NonNull android.adservices.ondevicepersonalization.KeyValueStore);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setModelKey(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setModelType(int);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setRecommendedNumThreads(@IntRange(from=1) int);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class InferenceOutput {
@@ -149,6 +158,7 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public final android.adservices.ondevicepersonalization.FederatedComputeScheduler getFederatedComputeScheduler(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.MutableKeyValueStore getLocalData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.LogReader getLogReader(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+    method @NonNull public final android.adservices.ondevicepersonalization.ModelManager getModelManager(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.KeyValueStore getRemoteData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @Nullable public final android.adservices.ondevicepersonalization.UserData getUserData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @Nullable public android.os.IBinder onBind(@NonNull android.content.Intent);

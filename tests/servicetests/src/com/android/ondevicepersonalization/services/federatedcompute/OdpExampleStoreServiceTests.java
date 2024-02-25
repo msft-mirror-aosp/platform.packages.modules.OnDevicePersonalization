@@ -29,6 +29,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -64,10 +65,13 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
 public class OdpExampleStoreServiceTests {
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     @Mock Context mMockContext;
     @InjectMocks OdpExampleStoreService mService;
     private CountDownLatch mLatch;
+    private ComponentName mIsolatedService;
+
     private boolean mIteratorCallbackOnSuccessCalled = false;
     private boolean mIteratorCallbackOnFailureCalled = false;
 
@@ -95,7 +99,7 @@ public class OdpExampleStoreServiceTests {
         mQueryCallbackOnSuccessCalled = false;
         mQueryCallbackOnFailureCalled = false;
         mLatch = new CountDownLatch(1);
-
+        mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
         ShellUtils.runShellCommand(
@@ -109,7 +113,7 @@ public class OdpExampleStoreServiceTests {
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")
-                        .setServiceName(mContext.getPackageName())
+                        .setService(mIsolatedService)
                         .setToken()
                         .build());
         mService.onCreate();
@@ -120,7 +124,8 @@ public class OdpExampleStoreServiceTests {
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(mContext.getPackageName());
+        ContextData contextData = new ContextData(
+                mIsolatedService.getPackageName(), mIsolatedService.getClassName());
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
@@ -166,7 +171,8 @@ public class OdpExampleStoreServiceTests {
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(mContext.getPackageName());
+        ContextData contextData = new ContextData(
+                mIsolatedService.getPackageName(), mIsolatedService.getClassName());
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");

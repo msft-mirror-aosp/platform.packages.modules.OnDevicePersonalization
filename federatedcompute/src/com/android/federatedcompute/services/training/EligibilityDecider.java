@@ -65,7 +65,7 @@ public class EligibilityDecider {
     private boolean computePerTaskMinSeparation(
             MinimumSeparationPolicy minSepPolicy, String populationName, String taskId, int jobId) {
         TaskHistory taskHistory =
-                mFederatedTrainingTaskDao.getTaskHistory(jobId, populationName, taskId);
+                mFederatedTrainingTaskDao.getLatestTaskHistory(jobId, populationName, taskId);
         // Treat null as the task never run before, then device is qualified.
         if (taskHistory == null) {
             LogUtil.d(

@@ -21,8 +21,10 @@ import static com.android.federatedcompute.services.data.FederatedComputeEncrypt
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -76,6 +78,8 @@ public class BackgroundKeyFetchJobServiceTest {
 
     private Context mContext;
 
+    private JobScheduler mJobScheduler;
+
     private HttpClient mHttpClient;
 
     public FederatedComputeEncryptionKeyDao mEncryptionDao;
@@ -97,8 +101,8 @@ public class BackgroundKeyFetchJobServiceTest {
         mSpyService = spy(new BackgroundKeyFetchJobService(new TestInjector()));
         doReturn(mSpyService).when(mSpyService).getApplicationContext();
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-        JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
-        jobScheduler.cancel(FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID);
+        mJobScheduler = mContext.getSystemService(JobScheduler.class);
+        mJobScheduler.cancel(FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID);
         mSpyKeyManager =
                 spy(
                         new FederatedComputeEncryptionKeyManager(
@@ -213,13 +217,20 @@ public class BackgroundKeyFetchJobServiceTest {
         doReturn(FluentFuture.from(Futures.immediateFuture(emptyKeyList)))
                 .when(keyManager)
                 .fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION, /* isScheduledJob= */ true);
-
-        mSpyService.run(mock(JobParameters.class));
-
-        verify(mSpyService, times(1)).onStartJob(any());
-        verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
+        mSpyService.scheduleJobIfNeeded(mContext, FlagsFactory.getFlags());
+        assertTrue(mJobScheduler.getPendingJob(
+                FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID)
+                != null);
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         verify(keyManager, never()).fetchAndPersistActiveKeys(KEY_TYPE_ENCRYPTION,
                 /* isScheduledJob= */ true);
+        assertTrue(mJobScheduler.getPendingJob(
+                FederatedComputeJobInfo.ENCRYPTION_KEY_FETCH_JOB_ID)
+                == null);
     }
 
     @Test
