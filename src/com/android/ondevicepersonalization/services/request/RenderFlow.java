@@ -39,10 +39,6 @@ import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
@@ -65,7 +61,6 @@ import java.util.concurrent.TimeUnit;
 public class RenderFlow implements ServiceFlow<SurfacePackage> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "RenderFlow";
-    private static final String TASK_NAME = "Render";
 
     @VisibleForTesting
     static class Injector {
@@ -87,12 +82,6 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
 
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
-        }
-
-        ProcessRunner getProcessRunner() {
-            return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
-                    ? SharedIsolatedProcessRunner.getInstance()
-                    : ProcessRunnerImpl.getInstance();
         }
     }
 
@@ -157,48 +146,10 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         mDisplayHelper = Objects.requireNonNull(displayHelper);
     }
 
-    /** Runs the request processing flow. */
-    public void run() {
-        var unused = Futures.submit(this::processRequest, mInjector.getExecutor());
-    }
-
-    private void processRequest() {
-        try {
-            if (!isServiceFlowReady()) return;
-
-            mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
-            ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                            TASK_NAME, mService);
-
-            ListenableFuture<Bundle> runServiceFuture = FluentFuture.from(loadServiceFuture)
-                    .transformAsync(
-                            isolatedServiceInfo ->
-                                    mInjector.getProcessRunner()
-                                            .runIsolatedService(
-                                                    isolatedServiceInfo,
-                                                    Constants.OP_RENDER, getServiceParams()),
-                            mInjector.getExecutor());
-
-            uploadServiceFlowMetrics(runServiceFuture);
-
-            ListenableFuture<SurfacePackage> serviceFlowResultFuture =
-                    getServiceFlowResultFuture(runServiceFuture);
-
-            returnResultThroughCallback(serviceFlowResultFuture);
-
-            var unused = Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                                    loadServiceFuture.get()),
-                    mInjector.getExecutor());
-        } catch (Exception e) {
-            sLogger.e(TAG + ": Could not process request.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-        }
-    }
-
     @Override
     public boolean isServiceFlowReady() {
+        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+
         try {
             if (!isPersonalizationStatusEnabled()) {
                 sLogger.d(TAG + ": Personalization is disabled.");
@@ -241,7 +192,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new DataAccessServiceImpl(
-                        mService.getPackageName(), mContext, /* includeLocalData */ false,
+                        mService, mContext, /* includeLocalData */ false,
                         /* includeEventData */ false));
 
         return serviceParams;
@@ -285,7 +236,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         mInjector.getExecutor())
                 .transform(
                         result -> mDisplayHelper.generateHtml(
-                                result, mService.getPackageName()),
+                                result, mService),
                         mInjector.getExecutor())
                 .transformAsync(
                         result -> mDisplayHelper.displayHtml(

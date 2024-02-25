@@ -120,6 +120,7 @@ android_app {
         "owasp-java-encoder",
         "tensorflowlite_java",
         "tensorflow_core_proto_java_lite",
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     min_sdk_version: "33",

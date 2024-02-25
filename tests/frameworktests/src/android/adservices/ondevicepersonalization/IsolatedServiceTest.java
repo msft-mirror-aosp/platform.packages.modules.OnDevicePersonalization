@@ -422,12 +422,9 @@ public class IsolatedServiceTest {
     public void testOnWebViewEventThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(
-                            Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -436,12 +433,9 @@ public class IsolatedServiceTest {
         params.putParcelable(
                 Constants.EXTRA_INPUT,
                 new EventInputParcel.Builder().setParameters(PersistableBundle.EMPTY).build());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(
-                            Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -503,12 +497,9 @@ public class IsolatedServiceTest {
                         .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(
-                            Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_TRAINING_EXAMPLE, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -582,11 +573,9 @@ public class IsolatedServiceTest {
     public void testOnWebTriggerThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test
@@ -599,11 +588,9 @@ public class IsolatedServiceTest {
                     .build();
         Bundle params = new Bundle();
         params.putParcelable(Constants.EXTRA_INPUT, input);
-        assertThrows(
-                NullPointerException.class,
-                () -> {
-                    mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
-                });
+        mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
+        mLatch.await();
+        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
     }
 
     @Test

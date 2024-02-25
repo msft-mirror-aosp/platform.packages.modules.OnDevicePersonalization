@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.federatedcompute;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
+import android.content.ComponentName;
 import android.federatedcompute.ResultHandlingService;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
@@ -49,7 +50,8 @@ public class OdpResultHandlingService extends ResultHandlingService {
                     ContextData.fromByteArray(
                             Objects.requireNonNull(
                                     params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
-            String packageName = contextData.getPackageName();
+            ComponentName service = ComponentName.createRelative(
+                    contextData.getPackageName(), contextData.getClassName());
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
             String taskName =
@@ -71,7 +73,7 @@ public class OdpResultHandlingService extends ResultHandlingService {
                     Futures.submit(
                             () ->
                                     processExampleConsumptions(
-                                            consumptionList, populationName, taskName, packageName),
+                                            consumptionList, populationName, taskName, service),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
             Futures.addCallback(
                     result,
@@ -103,7 +105,7 @@ public class OdpResultHandlingService extends ResultHandlingService {
             List<ExampleConsumption> exampleConsumptions,
             String populationName,
             String taskName,
-            String packageName) {
+            ComponentName service) {
         List<EventState> eventStates = new ArrayList<>();
         for (ExampleConsumption consumption : exampleConsumptions) {
             String taskIdentifier =
@@ -112,7 +114,7 @@ public class OdpResultHandlingService extends ResultHandlingService {
             if (resumptionToken != null) {
                 eventStates.add(
                         new EventState.Builder()
-                                .setServiceName(packageName)
+                                .setService(service)
                                 .setTaskIdentifier(taskIdentifier)
                                 .setToken(resumptionToken)
                                 .build());
