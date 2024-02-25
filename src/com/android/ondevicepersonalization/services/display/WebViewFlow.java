@@ -242,7 +242,7 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
             Event event = new Event.Builder()
                     .setType(eventData.getType())
                     .setQueryId(mQueryId)
-                    .setServiceName(mService.getPackageName())
+                    .setService(mService)
                     .setTimeMillis(mInjector.getClock().currentTimeMillis())
                     .setRowIndex(eventData.getRowIndex())
                     .setEventData(data)

@@ -81,6 +81,11 @@ public final class PhFlags implements Flags {
 
     private final Map<String, Object> mStableFlags = new HashMap<>();
 
+    PhFlags() {
+        // This is only called onece so stable flags require process restart to be reset.
+        setStableFlags();
+    }
+
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
     public static PhFlags getInstance() {
@@ -93,12 +98,16 @@ public final class PhFlags implements Flags {
 
     /** Sets the stable flag map. */
     public void setStableFlags() {
-        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS, getAppRequestFlowDeadlineSeconds());
-        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS, getRenderFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS, getWebTriggerFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS, getWebViewFlowDeadlineSeconds());
-        mStableFlags.put(
-                KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS, getExampleStoreFlowDeadlineSeconds());
+        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                getAppRequestFlowDeadlineSeconds());
+        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS,
+                getRenderFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
+                getWebTriggerFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                getWebViewFlowDeadlineSeconds());
+        mStableFlags.put(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
+                getExampleStoreFlowDeadlineSeconds());
         mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 isSharedIsolatedProcessFeatureEnabled());
         mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
@@ -106,15 +115,11 @@ public final class PhFlags implements Flags {
 
     /** Gets a stable flag value based on flag name. */
     public Object getStableFlag(String flagName) {
-        if (mStableFlags.isEmpty()) {
-            setStableFlags();
-        }
         if (!mStableFlags.containsKey(flagName)) {
             throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
         }
         return mStableFlags.get(flagName);
     }
-
 
     // Group of All Killswitches
     @Override

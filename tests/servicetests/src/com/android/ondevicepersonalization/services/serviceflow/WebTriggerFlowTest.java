@@ -40,6 +40,7 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
@@ -241,10 +242,12 @@ public class WebTriggerFlowTest {
         ContentValues row2 = new ContentValues();
         row2.put("b", 2);
         rows.add(row2);
+        ComponentName service = new ComponentName("com.example.test", "cls");
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                "com.example.test", "AABBCCDD", rows);
+                DbUtils.toTableValue(service),
+                "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setService(service).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
     }

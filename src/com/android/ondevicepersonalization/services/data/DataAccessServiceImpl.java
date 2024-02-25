@@ -366,8 +366,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private void getRequests(long startTimeMillis, long endTimeMillis,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            List<Query> queries = mEventsDao.readAllQueries(startTimeMillis, endTimeMillis,
-                    mService.getPackageName());
+            List<Query> queries = mEventsDao.readAllQueries(
+                    startTimeMillis, endTimeMillis, mService);
             List<RequestLogRecord> requestLogRecords = new ArrayList<>();
             for (Query query : queries) {
                 RequestLogRecord record = new RequestLogRecord.Builder()
@@ -390,9 +390,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private void getJoinedEvents(long startTimeMillis, long endTimeMillis,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            List<JoinedEvent> joinedEvents = mEventsDao.readJoinedTableRows(startTimeMillis,
-                    endTimeMillis,
-                    mService.getPackageName());
+            List<JoinedEvent> joinedEvents = mEventsDao.readJoinedTableRows(
+                    startTimeMillis, endTimeMillis, mService);
             List<EventLogRecord> joinedLogRecords = new ArrayList<>();
             for (JoinedEvent joinedEvent : joinedEvents) {
                 RequestLogRecord requestLogRecord = new RequestLogRecord.Builder()
