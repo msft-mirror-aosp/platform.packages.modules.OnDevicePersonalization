@@ -106,8 +106,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
             ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-            String taskName =
-                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+            String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
 
             ParcelFileDescriptor inputCheckpointFd =
                     Objects.requireNonNull(
@@ -139,7 +138,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                     Futures.submit(
                             () ->
                                     mComputationRunner.runTaskWithNativeRunner(
-                                            taskName,
+                                            taskId,
                                             populationName,
                                             getFileDescriptorForTensorflow(inputCheckpointFd),
                                             getFileDescriptorForTensorflow(outputCheckpointFd),
