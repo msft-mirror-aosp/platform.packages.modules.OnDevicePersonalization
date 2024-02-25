@@ -22,6 +22,7 @@ import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATE
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
@@ -31,6 +32,7 @@ import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLO
 import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
@@ -263,6 +265,29 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
                 String.valueOf(EXAMPLE_STORE_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
+    }
+
+    @Test
+    public void testDownloadFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getExampleStoreFlowDeadlineSeconds())
+                .isEqualTo(DOWNLOAD_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getDownloadFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                String.valueOf(DOWNLOAD_FLOW_DEADLINE_SECONDS),
                 /* makeDefault */ false);
     }
 

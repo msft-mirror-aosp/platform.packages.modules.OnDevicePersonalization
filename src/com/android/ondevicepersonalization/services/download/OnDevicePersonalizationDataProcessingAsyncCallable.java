@@ -379,8 +379,6 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable
                         return mInjector.getProcessRunner()
                                 .unloadIsolatedService(loadServiceFuture.get());
                     }, mInjector.getExecutor());
-
-
         } catch (Exception e) {
             sLogger.d("Could not finish download flow.");
             mCallback.onFailure(e);
