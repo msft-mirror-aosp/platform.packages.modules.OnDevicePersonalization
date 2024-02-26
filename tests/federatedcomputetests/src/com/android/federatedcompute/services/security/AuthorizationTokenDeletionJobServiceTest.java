@@ -82,7 +82,6 @@ public class AuthorizationTokenDeletionJobServiceTest {
     public void setUp() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        PhFlagsTestUtil.enableAuthentication();
         mContext = ApplicationProvider.getApplicationContext();
         mSpyAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
         mSpyService = spy(new AuthorizationTokenDeletionJobService(new TestInjector()));

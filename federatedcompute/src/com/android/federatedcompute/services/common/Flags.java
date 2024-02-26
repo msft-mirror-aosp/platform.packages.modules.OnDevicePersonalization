@@ -166,13 +166,6 @@ public interface Flags extends ModuleSharedFlags {
         return HTTP_REQUEST_RETRY_LIMIT;
     }
 
-    Boolean AUTHENTICATION_ENABLED = false;
-
-    /** Whether to enable authentication when uploading results. */
-    default Boolean isAuthenticationEnabled() {
-        return AUTHENTICATION_ENABLED;
-    }
-
     Boolean ENCRYPTION_ENABLED = true;
 
     /** Whether to enable encryption when uploading results. */
