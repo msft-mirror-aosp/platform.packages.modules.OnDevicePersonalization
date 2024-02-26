@@ -23,7 +23,9 @@ import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
+import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -31,6 +33,9 @@ import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.internal.annotations.VisibleForTesting;
 
+import com.google.common.util.concurrent.FutureCallback;
+import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.internal.federatedcompute.v1.AuthenticationMetadata;
 
 import org.json.JSONArray;
@@ -39,9 +44,15 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class AuthorizationContext {
+
+    private static final String TAG = AuthorizationContext.class.getSimpleName();
+
     @NonNull private final String mOwnerId;
     @NonNull private final String mOwnerCert;
 
@@ -51,6 +62,8 @@ public class AuthorizationContext {
     private final KeyAttestation mKeyAttestation;
     private final ODPAuthorizationTokenDao mAuthorizationTokenDao;
     private final Clock mClock;
+
+    private static final int BLOCKING_QUEUE_TIMEOUT_IN_SECONDS = 2;
 
     @VisibleForTesting
     public AuthorizationContext(
@@ -120,29 +133,96 @@ public class AuthorizationContext {
     /** Generates authentication header used for http request. */
     public Map<String, String> generateAuthHeaders() {
         Map<String, String> headers = new HashMap<>();
-        if (mAttestationRecord != null) {
-            // Only when the device is solving challenge, the attestation record is not null.
-            JSONArray attestationArr = new JSONArray(mAttestationRecord);
-            headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());
-            // generate a UUID and the UUID would serve as the authorization token.
-            String authTokenUUID = UUID.randomUUID().toString();
-            headers.put(ODP_AUTHORIZATION_KEY, authTokenUUID);
-            mAuthorizationTokenDao.insertAuthorizationToken(
-                    new ODPAuthorizationToken.Builder()
-                            .setAuthorizationToken(authTokenUUID)
-                            .setOwnerIdentifier(mOwnerId)
-                            .setCreationTime(mClock.currentTimeMillis())
-                            .setExpiryTime(
-                                    mClock.currentTimeMillis()
-                                            + FlagsFactory.getFlags().getOdpAuthorizationTokenTtl())
-                            .build());
-        } else {
-            ODPAuthorizationToken authToken =
-                    mAuthorizationTokenDao.getUnexpiredAuthorizationToken(mOwnerId);
-            if (authToken != null) {
-                headers.put(ODP_AUTHORIZATION_KEY, authToken.getAuthorizationToken());
+        try {
+            if (mAttestationRecord != null) {
+                // Only when the device is solving challenge, the attestation record is not null.
+                JSONArray attestationArr = new JSONArray(mAttestationRecord);
+                headers.put(ODP_AUTHENTICATION_KEY, attestationArr.toString());
+                // generate a UUID and the UUID would serve as the authorization token.
+                String authTokenUUID = UUID.randomUUID().toString();
+                headers.put(ODP_AUTHORIZATION_KEY, authTokenUUID);
+                ODPAuthorizationToken authToken =
+                        new ODPAuthorizationToken.Builder()
+                                .setAuthorizationToken(authTokenUUID)
+                                .setOwnerIdentifier(mOwnerId)
+                                .setCreationTime(mClock.currentTimeMillis())
+                                .setExpiryTime(
+                                        mClock.currentTimeMillis()
+                                                + FlagsFactory.getFlags()
+                                                        .getOdpAuthorizationTokenTtl())
+                                .build();
+                var unused =
+                        Futures.submit(
+                                () -> mAuthorizationTokenDao.insertAuthorizationToken(authToken),
+                                FederatedComputeExecutors.getBackgroundExecutor());
+            } else {
+                BlockingQueue<AuthTokenCallbackResult> authTokenBlockingQueue =
+                        new ArrayBlockingQueue<>(1);
+                ListenableFuture<AuthTokenCallbackResult> authTokenFuture =
+                        Futures.submit(
+                                () ->
+                                        convertODPAuthToken(
+                                                mAuthorizationTokenDao
+                                                        .getUnexpiredAuthorizationToken(mOwnerId)),
+                                FederatedComputeExecutors.getBackgroundExecutor());
+                Futures.addCallback(
+                        authTokenFuture,
+                        createCallbackForBlockingQueue(authTokenBlockingQueue),
+                        FederatedComputeExecutors.getLightweightExecutor());
+                AuthTokenCallbackResult callbackResult =
+                        authTokenBlockingQueue.poll(
+                                BLOCKING_QUEUE_TIMEOUT_IN_SECONDS, TimeUnit.SECONDS);
+                if (!callbackResult.isEmpty()) {
+                    LogUtil.e(TAG, "checking blocking queue");
+                    headers.put(
+                            ODP_AUTHORIZATION_KEY,
+                            callbackResult.getAuthToken().getAuthorizationToken());
+                }
             }
+        } catch (InterruptedException exception) {
+            LogUtil.e(
+                    TAG,
+                    "Exception encountered when when reading auth token: "
+                            + exception.getMessage());
         }
         return headers;
+    }
+
+    private FutureCallback<AuthTokenCallbackResult> createCallbackForBlockingQueue(
+            BlockingQueue<AuthTokenCallbackResult> authorizationTokenBlockingQueue) {
+        return new FutureCallback<>() {
+            @Override
+            public void onSuccess(AuthTokenCallbackResult result) {
+                authorizationTokenBlockingQueue.add(result);
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                LogUtil.e(TAG, "Exception encountered when reading auth token: " + t.getMessage());
+            }
+        };
+    }
+
+    private AuthTokenCallbackResult convertODPAuthToken(ODPAuthorizationToken authToken) {
+        return new AuthTokenCallbackResult(authToken, authToken == null);
+    }
+
+    private static class AuthTokenCallbackResult {
+        final ODPAuthorizationToken mAuthToken;
+
+        final boolean mIsEmpty;
+
+        AuthTokenCallbackResult(ODPAuthorizationToken authToken, boolean isEmpty) {
+            mAuthToken = authToken;
+            mIsEmpty = isEmpty;
+        }
+
+        ODPAuthorizationToken getAuthToken() {
+            return mAuthToken;
+        }
+
+        Boolean isEmpty() {
+            return mIsEmpty;
+        }
     }
 }

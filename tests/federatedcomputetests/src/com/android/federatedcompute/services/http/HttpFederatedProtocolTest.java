@@ -16,7 +16,6 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.common.PhFlagsTestUtil.enableEncryption;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
@@ -55,6 +54,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.NetworkStats;
+import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
@@ -66,6 +66,7 @@ import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
@@ -100,8 +101,7 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
 import java.io.File;
 import java.io.InputStream;
@@ -112,7 +112,13 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RunWith(Parameterized.class)
+@ExtendedMockitoRule.MockStatic(PhFlags.class)
 public final class HttpFederatedProtocolTest {
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String TASK_ASSIGNMENT_TARGET_URI = "https://test-server.com/";
     private static final String PLAN_URI = "https://fake.uri/plan";
     private static final String CHECKPOINT_URI = "https://fake.uri/checkpoint";
@@ -186,7 +192,6 @@ public final class HttpFederatedProtocolTest {
 
     @Captor private ArgumentCaptor<FederatedComputeHttpRequest> mHttpRequestCaptor;
 
-    @Rule public MockitoRule rule = MockitoJUnit.rule();
     @Mock private HttpClient mMockHttpClient;
 
     @Parameterized.Parameter(0)
@@ -209,6 +214,8 @@ public final class HttpFederatedProtocolTest {
 
     @Mock private KeyAttestation mMockKeyAttestation;
 
+    @Mock private PhFlags mMocKFlags;
+
     @Before
     public void setUp() throws Exception {
         mODPAuthorizationTokenDao =
@@ -227,7 +234,8 @@ public final class HttpFederatedProtocolTest {
         doNothing().when(mTrainingEventLogger).logReportResultAuthSucceeded();
         doNothing().when(mTrainingEventLogger).logTaskAssignmentUnauthorized();
         doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
-        enableEncryption();
+        doReturn(true).when(mMocKFlags).isEncryptionEnabled();
+        when(PhFlags.getInstance()).thenReturn(mMocKFlags);
     }
 
     @After
