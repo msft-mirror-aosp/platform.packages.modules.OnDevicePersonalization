@@ -67,6 +67,20 @@ public class ServiceFlowTypeTest {
     }
 
     @Test
+    public void priorityTest() {
+        assertThat(ServiceFlowType.APP_REQUEST_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.HIGH);
+        assertThat(ServiceFlowType.RENDER_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.HIGH);
+        assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.NORMAL);
+        assertThat(ServiceFlowType.WEB_VIEW_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.NORMAL);
+        assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.NORMAL);
+    }
+
+    @Test
     public void executionTimeoutTest() {
         assertThat(ServiceFlowType.APP_REQUEST_FLOW.getExecutionTimeout())
                 .isEqualTo(FlagsFactory.getFlags().getAppRequestFlowDeadlineSeconds());
