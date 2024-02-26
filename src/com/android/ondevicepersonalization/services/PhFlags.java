@@ -265,10 +265,14 @@ public final class PhFlags implements Flags {
 
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+        // needs stable: execution stats may be less accurate if flag changed during job execution
+        return (boolean) mStableFlags.computeIfAbsent(KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                key -> {
+                    return DeviceConfig.getBoolean(
+                            /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                            /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                            /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+                });
     }
 
     @Override
