@@ -108,6 +108,8 @@ public final class PhFlags implements Flags {
                 getWebViewFlowDeadlineSeconds());
         mStableFlags.put(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
                 getExampleStoreFlowDeadlineSeconds());
+        mStableFlags.put(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                getDownloadFlowDeadlineSeconds());
         mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 isSharedIsolatedProcessFeatureEnabled());
         mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
@@ -203,6 +205,17 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
                 /* defaultValue= */ EXAMPLE_STORE_FLOW_DEADLINE_SECONDS);
+    }
+
+    public static final String KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS =
+            "download_flow_deadline_seconds";
+
+    @Override
+    public int getDownloadFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ DOWNLOAD_FLOW_DEADLINE_SECONDS);
     }
 
     @Override
