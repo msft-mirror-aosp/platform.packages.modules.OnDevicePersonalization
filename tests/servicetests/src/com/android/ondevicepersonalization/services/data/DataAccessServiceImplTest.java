@@ -79,6 +79,7 @@ public class DataAccessServiceImplTest {
     private static final double DELTA = 0.001;
     private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private static final int EVENT_TYPE_B2D = 1;
+    private static final String SERVICE_CLASS = "TestClass";
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     private long mTimeMillis = 1000;
     private EventUrlPayload mEventUrlPayload;
@@ -559,25 +560,25 @@ public class DataAccessServiceImplTest {
 
         Query query1 = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryData(queryDataBytes)
                 .build();
         long queryId1 = mEventsDao.insertQuery(query1);
         Query query2 = new Query.Builder()
                 .setTimeMillis(10L)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryData(queryDataBytes)
                 .build();
         long queryId2 = mEventsDao.insertQuery(query2);
         Query query3 = new Query.Builder()
                 .setTimeMillis(100L)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryData(queryDataBytes)
                 .build();
         long queryId3 = mEventsDao.insertQuery(query3);
         Query query4 = new Query.Builder()
                 .setTimeMillis(100L)
-                .setServiceName("packageA")
+                .setService(new ComponentName("packageA", "classA"))
                 .setQueryData(queryDataBytes)
                 .build();
         mEventsDao.insertQuery(query4);
@@ -589,7 +590,7 @@ public class DataAccessServiceImplTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(eventData)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId1)
                 .setTimeMillis(2L)
                 .setRowIndex(0)
@@ -598,7 +599,7 @@ public class DataAccessServiceImplTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(eventData)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId2)
                 .setTimeMillis(11L)
                 .setRowIndex(0)
@@ -607,7 +608,7 @@ public class DataAccessServiceImplTest {
         Event event3 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(eventData)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId3)
                 .setTimeMillis(101L)
                 .setRowIndex(0)

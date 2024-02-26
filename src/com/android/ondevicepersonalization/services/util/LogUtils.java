@@ -20,10 +20,12 @@ import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
@@ -42,10 +44,11 @@ public class LogUtils {
     /** Writes the provided records to the REQUESTS and EVENTS tables. */
     public static ListenableFuture<Long> writeLogRecords(
             @NonNull Context context,
-            @NonNull String serviceName,
+            @NonNull ComponentName service,
             @Nullable RequestLogRecord requestLogRecord,
             @NonNull List<EventLogRecord> eventLogRecords) {
         sLogger.d(TAG + ": writeLogRecords() started.");
+        String serviceName = DbUtils.toTableValue(service);
         EventsDao eventsDao = EventsDao.getInstance(context);
         // Insert query
         long queryId = -1;
@@ -54,7 +57,7 @@ public class LogUtils {
             byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                     serviceName, null, rows);
             Query query = new Query.Builder()
-                    .setServiceName(serviceName)
+                    .setService(service)
                     .setQueryData(queryData)
                     .setTimeMillis(System.currentTimeMillis())
                     .build();
@@ -74,8 +77,7 @@ public class LogUtils {
                 continue;
             }
             // Make sure query exists for package in QUERY table
-            Query queryRow = eventsDao.readSingleQueryRow(parent.getRequestId(),
-                    serviceName);
+            Query queryRow = eventsDao.readSingleQueryRow(parent.getRequestId(), service);
             if (queryRow == null || eventLogRecord.getRowIndex()
                     >= OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
                     queryRow.getQueryData())) {
@@ -86,7 +88,7 @@ public class LogUtils {
                             eventLogRecord.getData()))
                     .setQueryId(parent.getRequestId())
                     .setRowIndex(eventLogRecord.getRowIndex())
-                    .setServiceName(serviceName)
+                    .setService(service)
                     .setTimeMillis(System.currentTimeMillis())
                     .setType(eventLogRecord.getType())
                     .build();
