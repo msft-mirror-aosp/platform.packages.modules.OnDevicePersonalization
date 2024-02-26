@@ -192,7 +192,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new DataAccessServiceImpl(
-                        mService.getPackageName(), mContext, /* includeLocalData */ false,
+                        mService, mContext, /* includeLocalData */ false,
                         /* includeEventData */ false));
 
         return serviceParams;
@@ -236,7 +236,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         mInjector.getExecutor())
                 .transform(
                         result -> mDisplayHelper.generateHtml(
-                                result, mService.getPackageName()),
+                                result, mService),
                         mInjector.getExecutor())
                 .transformAsync(
                         result -> mDisplayHelper.displayHtml(

@@ -136,7 +136,7 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
 
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
-                        mService.getPackageName(), mContext,
+                        mService, mContext,
                         /* includeLocalData */ true, /* includeEventData */ true));
         serviceParams.putParcelable(Constants.EXTRA_INPUT,
                 new EventInputParcel.Builder()

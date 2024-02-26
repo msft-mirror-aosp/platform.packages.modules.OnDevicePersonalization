@@ -64,7 +64,7 @@ public class DisplayHelper {
     /** Generates an HTML string from the template data in RenderOutputParcel. */
     @NonNull public String generateHtml(
             @NonNull RenderOutputParcel renderContentResult,
-            @NonNull String servicePackageName) {
+            @NonNull ComponentName service) {
         // If htmlContent is provided, do not render the template.
         String htmlContent = renderContentResult.getContent();
         if (null != htmlContent && !htmlContent.isEmpty()) {
@@ -79,8 +79,8 @@ public class DisplayHelper {
         try {
             byte[] templateBytes = OnDevicePersonalizationVendorDataDao.getInstance(
                     mContext,
-                    servicePackageName,
-                    PackageUtils.getCertDigest(mContext, servicePackageName))
+                    service,
+                    PackageUtils.getCertDigest(mContext, service.getPackageName()))
                     .readSingleVendorDataRow(templateId);
             if (null == templateBytes) {
                 throw new IllegalArgumentException(
@@ -88,7 +88,8 @@ public class DisplayHelper {
             }
             String templateContent = new String(templateBytes, StandardCharsets.UTF_8);
             // Move the template into a temp file to pass to Velocity.
-            String templateFileName = createTempTemplateFile(templateContent, servicePackageName);
+            String templateFileName = createTempTemplateFile(
+                    templateContent, service.getPackageName());
             VelocityEngine ve = VelocityEngineFactory.getVelocityEngine(mContext);
             Template template = ve.getTemplate(templateFileName);
             org.apache.velocity.context.Context ctx =

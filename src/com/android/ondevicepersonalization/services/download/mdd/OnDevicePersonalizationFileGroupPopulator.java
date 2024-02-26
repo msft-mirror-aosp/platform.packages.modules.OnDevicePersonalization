@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.download.mdd;
 
 import static android.content.pm.PackageManager.GET_META_DATA;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
@@ -183,7 +184,10 @@ public class OnDevicePersonalizationFileGroupPopulator implements FileGroupPopul
     private static String addDownloadUrlQueryParameters(Uri uri, String packageName,
             Context context)
             throws PackageManager.NameNotFoundException {
-        long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
+        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                context, packageName);
+        ComponentName service = ComponentName.createRelative(packageName, serviceClass);
+        long syncToken = OnDevicePersonalizationVendorDataDao.getInstance(context, service,
                 PackageUtils.getCertDigest(context, packageName)).getSyncToken();
         if (syncToken != -1) {
             uri = uri.buildUpon().appendQueryParameter("syncToken",

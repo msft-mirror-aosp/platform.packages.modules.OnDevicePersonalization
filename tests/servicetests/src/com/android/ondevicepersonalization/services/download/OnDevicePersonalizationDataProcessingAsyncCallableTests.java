@@ -21,6 +21,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.database.Cursor;
 
@@ -79,6 +80,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             .setData("extra".getBytes())
             .build();
 
+    private ComponentName mService;
+
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
 
@@ -94,6 +97,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
+        mService = ComponentName.createRelative(
+                mPackageName, "com.test.TestPersonalizationService");
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
@@ -104,7 +109,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         MobileDataDownloadFactory.getMdd(mContext).removeFileGroupsByFilter(request).get();
 
         // Initialize the DB as a test instance
-        OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+        OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                 PackageUtils.getCertDigest(mContext, mPackageName));
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
@@ -118,7 +123,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     @Test
     public void testRun() throws Exception {
         OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                         PackageUtils.getCertDigest(mContext, mPackageName));
         var originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
@@ -174,7 +179,7 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     @Test
     public void testRunOldDataDownloaded() throws Exception {
         OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                         PackageUtils.getCertDigest(mContext, mPackageName));
         var originalIsolatedServiceAllowList =
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
