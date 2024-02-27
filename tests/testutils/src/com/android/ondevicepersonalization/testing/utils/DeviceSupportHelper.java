@@ -25,7 +25,7 @@ public final class DeviceSupportHelper {
 
     /**
      * Check whether the device is supported.
-     * OnDevicePersonalization module doesn't support Wear, Auto, TV
+     * OnDevicePersonalization module doesn't support Wear, Auto, TV, Go device
      * @return if the device is supported.
      */
     public static boolean isDeviceSupported() {
@@ -33,6 +33,9 @@ public final class DeviceSupportHelper {
         final PackageManager pm = instrumentation.getContext().getPackageManager();
         return !pm.hasSystemFeature(PackageManager.FEATURE_WATCH)
                 && !pm.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
-                && !pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK);
+                // Android TV
+                && !pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+                // Android Go
+                && !pm.hasSystemFeature(PackageManager.FEATURE_RAM_LOW);
     }
 }
