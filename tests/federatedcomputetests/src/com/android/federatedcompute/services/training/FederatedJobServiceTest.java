@@ -111,13 +111,13 @@ public final class FederatedJobServiceTest {
     public void testOnStartJob() throws Exception {
         doReturn(Futures.immediateFuture(FL_RUNNER_SUCCESS_RESULT))
                 .when(mMockWorker)
-                .startTrainingRun(anyInt());
+                .startTrainingRun(anyInt(), any());
         doNothing().when(mMockWorker).finish(eq(FL_RUNNER_SUCCESS_RESULT));
 
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
 
         assertTrue(result);
-        verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        verify(mMockWorker, times(1)).finish(eq(FL_RUNNER_SUCCESS_RESULT));
     }
 
     @Test
@@ -127,7 +127,7 @@ public final class FederatedJobServiceTest {
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
 
         assertTrue(result);
-        verify(mMockWorker, never()).startTrainingRun(anyInt());
+        verify(mMockWorker, never()).startTrainingRun(anyInt(), any());
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 
