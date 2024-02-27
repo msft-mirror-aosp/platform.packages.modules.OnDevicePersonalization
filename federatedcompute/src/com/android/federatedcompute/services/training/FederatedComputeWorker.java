@@ -16,8 +16,8 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
@@ -304,7 +304,8 @@ public class FederatedComputeWorker {
             AuthorizationContext authContext) {
         // Generate attestation record and make 2nd try.
         authContext.updateAuthState(
-                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata());
+                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
+                mInjector.getTrainingEventLogger());
         return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
@@ -400,11 +401,7 @@ public class FederatedComputeWorker {
                         taskAssignment.getTaskId(),
                         run.mJobId,
                         taskAssignment.getEligibilityTaskInfo());
-        LogUtil.i(
-                TAG,
-                "eligibility task result %s %b",
-                taskAssignment.getTaskId(),
-                eligibleResult);
+        LogUtil.i(TAG, "eligibility task result %s %b", taskAssignment.getTaskId(), eligibleResult);
         return eligibleResult;
     }
 
@@ -1004,7 +1001,9 @@ public class FederatedComputeWorker {
                         resp -> {
                             if (resp != null) {
                                 if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                    authContext.updateAuthState(resp.getAuthMetadata());
+                                    authContext.updateAuthState(
+                                            resp.getAuthMetadata(),
+                                            mInjector.getTrainingEventLogger());
                                     return reportResultWithAuthentication(
                                             computationResult, encryptionKey, authContext);
                                 } else if (resp.hasRetryWindow()) {

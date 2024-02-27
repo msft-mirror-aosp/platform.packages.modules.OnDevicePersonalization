@@ -38,6 +38,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -222,6 +223,10 @@ public final class HttpFederatedProtocolTest {
                         new HpkeJniEncrypter(),
                         mTrainingEventLogger);
         doReturn(KA_RECORD).when(mMockKeyAttestation).generateAttestationRecord(any(), any());
+        doNothing().when(mTrainingEventLogger).logReportResultUnauthorized();
+        doNothing().when(mTrainingEventLogger).logReportResultAuthSucceeded();
+        doNothing().when(mTrainingEventLogger).logTaskAssignmentUnauthorized();
+        doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
         enableEncryption();
     }
 
@@ -354,7 +359,7 @@ public final class HttpFederatedProtocolTest {
                 SUCCESS_EMPTY_HTTP_RESPONSE);
 
         AuthorizationContext authContext = createAuthContext();
-        authContext.updateAuthState(AUTH_METADATA);
+        authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
@@ -415,6 +420,7 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(true);
         assertThat(actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_AUTHORIZATION_KEY))
                 .isNotNull();
+        verify(mTrainingEventLogger, times(1)).logTaskAssignmentAuthSucceeded();
         // A new authorization token is stored in DB
         assertThat(
                         mODPAuthorizationTokenDao
@@ -436,6 +442,23 @@ public final class HttpFederatedProtocolTest {
             expectedHeaders.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
         }
         assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+    }
+
+    @Test
+    public void testCreateTaskAssignment_unauthorized() {
+        setUpHttpFederatedProtocol(
+                createUnauthorizedResponse(),
+                createPlanHttpResponse(),
+                checkpointHttpResponse(),
+                createReportResultHttpResponse(),
+                SUCCESS_EMPTY_HTTP_RESPONSE);
+
+        AuthorizationContext authContext = createAuthContextWithAttestationRecord();
+
+        assertThrows(
+                ExecutionException.class,
+                () -> mHttpFederatedProtocol.createTaskAssignment(authContext).get());
+        verify(mTrainingEventLogger, times(1)).logTaskAssignmentUnauthorized();
     }
 
     @Test
@@ -760,6 +783,36 @@ public final class HttpFederatedProtocolTest {
                                 .getOrDefault(ODP_AUTHORIZATION_KEY, "")
                                 .length())
                 .isEqualTo(36); // UUID Length
+        verify(mTrainingEventLogger).logReportResultAuthSucceeded();
+    }
+
+    @Test
+    public void testReportResult_unauthorized() throws Exception {
+        setUpHttpFederatedProtocol(
+                createStartTaskAssignmentHttpResponse(),
+                createPlanHttpResponse(),
+                checkpointHttpResponse(),
+                createUnauthorizedResponse(),
+                SUCCESS_EMPTY_HTTP_RESPONSE);
+
+        CreateTaskAssignmentResponse taskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
+                .get();
+        ComputationResult computationResult =
+                new ComputationResult(createOutputCheckpointFile(), FL_RUNNER_SUCCESS_RESULT, null);
+
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mHttpFederatedProtocol
+                                .reportResult(
+                                        computationResult,
+                                        ENCRYPTION_KEY,
+                                        createAuthContextWithAttestationRecord())
+                                .get());
+        verify(mTrainingEventLogger).logReportResultUnauthorized();
     }
 
     @Test
@@ -780,7 +833,7 @@ public final class HttpFederatedProtocolTest {
                 .get();
         // Pretend 1st auth retry already failed.
         AuthorizationContext authContext = createAuthContext();
-        authContext.updateAuthState(AUTH_METADATA);
+        authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
 
         ExecutionException exception =
                 assertThrows(
@@ -853,7 +906,7 @@ public final class HttpFederatedProtocolTest {
                         mMockKeyAttestation,
                         mClock);
         // Pretend 1st try failed.
-        authContext.updateAuthState(AUTH_METADATA);
+        authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
         return authContext;
     }
 
@@ -975,6 +1028,10 @@ public final class HttpFederatedProtocolTest {
                 .setStatusCode(200)
                 .setPayload(createTaskAssignmentResponse.toByteArray())
                 .build();
+    }
+
+    private FederatedComputeHttpResponse createUnauthorizedResponse() {
+        return new FederatedComputeHttpResponse.Builder().setStatusCode(403).build();
     }
 
     private CreateTaskAssignmentResponse createCreateTaskAssignmentResponse(

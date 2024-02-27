@@ -28,6 +28,7 @@ import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNE
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_OR_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
+import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHORIZED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
 import static com.android.federatedcompute.services.http.HttpClientUtil.getTotalReceivedBytes;
@@ -176,7 +177,12 @@ public final class HttpFederatedProtocol {
                                 if (authContext.isFirstAuthTry()) {
                                     validateHttpResponseAllowAuthStatus("ReportResult", reportResp);
                                 } else {
-                                    validateHttpResponseStatus("ReportResult", reportResp);
+                                    if (reportResp.getStatusCode() == HTTP_UNAUTHORIZED_STATUS) {
+                                        mTrainingEventLogger.logReportResultUnauthorized();
+                                    } else {
+                                        validateHttpResponseStatus("ReportResult", reportResp);
+                                        mTrainingEventLogger.logReportResultAuthSucceeded();
+                                    }
                                 }
                                 ReportResultResponse reportResultResponse =
                                         ReportResultResponse.parseFrom(reportResp.getPayload());
@@ -225,7 +231,12 @@ public final class HttpFederatedProtocol {
         if (authContext.isFirstAuthTry()) {
             validateHttpResponseAllowAuthStatus("Start task assignment", response);
         } else {
-            validateHttpResponseStatus("Start task assignment", response);
+            if (response.getStatusCode() == HTTP_UNAUTHORIZED_STATUS) {
+                mTrainingEventLogger.logTaskAssignmentUnauthorized();
+            } else {
+                validateHttpResponseStatus("Start task assignment", response);
+                mTrainingEventLogger.logTaskAssignmentAuthSucceeded();
+            }
         }
         networkStats.addBytesDownloaded(getTotalReceivedBytes(response));
         CreateTaskAssignmentResponse taskAssignmentResponse;

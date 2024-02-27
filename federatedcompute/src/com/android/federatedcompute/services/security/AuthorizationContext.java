@@ -26,6 +26,7 @@ import android.content.Context;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.MonotonicClock;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.ODPAuthorizationToken;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.internal.annotations.VisibleForTesting;
@@ -98,17 +99,21 @@ public class AuthorizationContext {
     /**
      * Updates authentication state e.g. update retry count, generate attestation record if needed.
      */
-    public void updateAuthState(AuthenticationMetadata authMetadata) {
+    public void updateAuthState(
+            AuthenticationMetadata authMetadata, TrainingEventLogger trainingEventLogger) {
         // TODO: introduce auth state if we plan to auth more than twice.
         // After first authentication failed, we will clean up expired token and generate
         // key attestation records using server provided challenge for second try.
         if (mTryCount.get() == 1) {
             mTryCount.incrementAndGet();
             mAuthorizationTokenDao.deleteAuthorizationToken(mOwnerId);
+            long kaStartTime = mClock.currentTimeMillis();
             mAttestationRecord =
                     mKeyAttestation.generateAttestationRecord(
                             authMetadata.getKeyAttestationMetadata().getChallenge().toByteArray(),
                             mOwnerId);
+            trainingEventLogger.logKeyAttestationLatencyEvent(
+                    mClock.currentTimeMillis() - kaStartTime);
         }
     }
 
