@@ -22,6 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ComponentName;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -41,7 +42,7 @@ import java.util.Set;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationLocalDataDaoTest {
-    private static final String TEST_OWNER = "owner";
+    private static final ComponentName TEST_OWNER = new ComponentName("ownerPkg", "ownerCls");
     private static final String TEST_CERT_DIGEST = "certDigest";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationLocalDataDao mLocalDao;
@@ -128,15 +129,17 @@ public class OnDevicePersonalizationLocalDataDaoTest {
 
     @Test
     public void testGetInstance() {
+        ComponentName owner1 = new ComponentName("owner1", "cls1");
         OnDevicePersonalizationLocalDataDao instance1Owner1 =
-                OnDevicePersonalizationLocalDataDao.getInstance(mContext, "owner1",
+                OnDevicePersonalizationLocalDataDao.getInstance(mContext, owner1,
                         TEST_CERT_DIGEST);
         OnDevicePersonalizationLocalDataDao instance2Owner1 =
-                OnDevicePersonalizationLocalDataDao.getInstance(mContext, "owner1",
+                OnDevicePersonalizationLocalDataDao.getInstance(mContext, owner1,
                         TEST_CERT_DIGEST);
         assertEquals(instance1Owner1, instance2Owner1);
+        ComponentName owner2 = new ComponentName("owner2", "cls2");
         OnDevicePersonalizationLocalDataDao instance1Owner2 =
-                OnDevicePersonalizationLocalDataDao.getInstance(mContext, "owner2",
+                OnDevicePersonalizationLocalDataDao.getInstance(mContext, owner2,
                         TEST_CERT_DIGEST);
         assertNotEquals(instance1Owner1, instance1Owner2);
     }

@@ -81,6 +81,11 @@ public final class PhFlags implements Flags {
 
     private final Map<String, Object> mStableFlags = new HashMap<>();
 
+    PhFlags() {
+        // This is only called onece so stable flags require process restart to be reset.
+        setStableFlags();
+    }
+
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
     public static PhFlags getInstance() {
@@ -93,12 +98,18 @@ public final class PhFlags implements Flags {
 
     /** Sets the stable flag map. */
     public void setStableFlags() {
-        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS, getAppRequestFlowDeadlineSeconds());
-        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS, getRenderFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS, getWebTriggerFlowDeadlineSeconds());
-        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS, getWebViewFlowDeadlineSeconds());
-        mStableFlags.put(
-                KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS, getExampleStoreFlowDeadlineSeconds());
+        mStableFlags.put(KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS,
+                getAppRequestFlowDeadlineSeconds());
+        mStableFlags.put(KEY_RENDER_FLOW_DEADLINE_SECONDS,
+                getRenderFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS,
+                getWebTriggerFlowDeadlineSeconds());
+        mStableFlags.put(KEY_WEB_VIEW_FLOW_DEADLINE_SECONDS,
+                getWebViewFlowDeadlineSeconds());
+        mStableFlags.put(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS,
+                getExampleStoreFlowDeadlineSeconds());
+        mStableFlags.put(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                getDownloadFlowDeadlineSeconds());
         mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 isSharedIsolatedProcessFeatureEnabled());
         mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
@@ -106,15 +117,11 @@ public final class PhFlags implements Flags {
 
     /** Gets a stable flag value based on flag name. */
     public Object getStableFlag(String flagName) {
-        if (mStableFlags.isEmpty()) {
-            setStableFlags();
-        }
         if (!mStableFlags.containsKey(flagName)) {
             throw new IllegalArgumentException("Flag " + flagName + " is not stable.");
         }
         return mStableFlags.get(flagName);
     }
-
 
     // Group of All Killswitches
     @Override
@@ -200,6 +207,17 @@ public final class PhFlags implements Flags {
                 /* defaultValue= */ EXAMPLE_STORE_FLOW_DEADLINE_SECONDS);
     }
 
+    public static final String KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS =
+            "download_flow_deadline_seconds";
+
+    @Override
+    public int getDownloadFlowDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                /* defaultValue= */ DOWNLOAD_FLOW_DEADLINE_SECONDS);
+    }
+
     @Override
     public String getTrustedPartnerAppsList() {
         return SdkLevel.isAtLeastU()
@@ -260,10 +278,14 @@ public final class PhFlags implements Flags {
 
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+        // needs stable: execution stats may be less accurate if flag changed during job execution
+        return (boolean) mStableFlags.computeIfAbsent(KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                key -> {
+                    return DeviceConfig.getBoolean(
+                            /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                            /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                            /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+                });
     }
 
     @Override

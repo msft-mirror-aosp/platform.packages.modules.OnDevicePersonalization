@@ -26,6 +26,7 @@ import android.os.RemoteException;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
@@ -73,8 +74,7 @@ public class RemoteDataImpl implements KeyValueStore {
             ByteArrayParceledSlice data = result.getParcelable(
                             Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
             if (null == data) {
-                sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-                throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
+                return null;
             }
             return data.getByteArray();
         } catch (InterruptedException | RemoteException e) {
@@ -109,8 +109,7 @@ public class RemoteDataImpl implements KeyValueStore {
             HashSet<String> resultSet =
                     result.getSerializable(Constants.EXTRA_RESULT, HashSet.class);
             if (null == resultSet) {
-                sLogger.e(TAG + ": No EXTRA_RESULT was present in bundle");
-                throw new IllegalStateException("Bundle missing EXTRA_RESULT.");
+                return Collections.emptySet();
             }
             return resultSet;
         } catch (InterruptedException | RemoteException e) {

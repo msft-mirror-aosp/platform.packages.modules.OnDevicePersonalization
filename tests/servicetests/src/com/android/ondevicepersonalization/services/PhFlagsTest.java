@@ -18,10 +18,12 @@ package com.android.ondevicepersonalization.services;
 
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
@@ -31,10 +33,14 @@ import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLO
 import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
@@ -267,6 +273,29 @@ public class PhFlagsTest {
     }
 
     @Test
+    public void testDownloadFlowDeadlineSeconds() {
+        assertThat(FlagsFactory.getFlags().getExampleStoreFlowDeadlineSeconds())
+                .isEqualTo(DOWNLOAD_FLOW_DEADLINE_SECONDS);
+
+        final int test_deadline = 10;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                String.valueOf(test_deadline),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().getDownloadFlowDeadlineSeconds())
+                .isEqualTo(test_deadline);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS,
+                String.valueOf(DOWNLOAD_FLOW_DEADLINE_SECONDS),
+                /* makeDefault */ false);
+    }
+
+    @Test
     public void testGetTrustedPartnerAppsList() {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -404,5 +433,66 @@ public class PhFlagsTest {
 
         assertThat(FlagsFactory.getFlags().getOutputDataAllowList())
                 .isEqualTo(testOutputDataAllowList);
+    }
+
+    @Test
+    public void testGetEnableClientErrorLogging() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING,
+                Boolean.toString(DEFAULT_CLIENT_ERROR_LOGGING_ENABLED),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging())
+                .isEqualTo(DEFAULT_CLIENT_ERROR_LOGGING_ENABLED);
+
+        // Overriding the value in device config.
+        boolean overrideEnable = !DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING,
+                Boolean.toString(overrideEnable),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging())
+                .isEqualTo(overrideEnable);
+    }
+
+    @Test
+    public void testGetBackgroundJobsLoggingEnabled() {
+        // read a stable flag value
+        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
+                .isEqualTo(stableValue);
+    }
+
+    @Test
+    public void testGetBackgroundJobSamplingLoggingRate() {
+        int currentValue = 10;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
+                Integer.toString(currentValue),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
+                .isEqualTo(currentValue);
+
+        // Override the value in device config.
+        int overrideRate = 1;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
+                Integer.toString(overrideRate),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
+                .isEqualTo(overrideRate);
     }
 }

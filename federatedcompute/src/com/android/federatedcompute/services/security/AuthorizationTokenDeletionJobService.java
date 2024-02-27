@@ -35,7 +35,9 @@ import com.android.federatedcompute.services.data.ODPAuthorizationTokenDao;
 import com.android.federatedcompute.services.statsd.joblogging.FederatedComputeJobServiceLogger;
 import com.android.internal.annotations.VisibleForTesting;
 
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
+import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
 
 public class AuthorizationTokenDeletionJobService extends JobService {
@@ -47,7 +49,6 @@ public class AuthorizationTokenDeletionJobService extends JobService {
 
     private final Injector mInjector;
 
-    /** Empty Constructor for AuthorizationTokenDeletionJobService. */
     public AuthorizationTokenDeletionJobService() {
         mInjector = new Injector();
     }
@@ -67,51 +68,56 @@ public class AuthorizationTokenDeletionJobService extends JobService {
         }
     }
 
-    /** Runs the background key fetch and persist keys job. The method is for testing only. */
-    @VisibleForTesting
-    public void run(JobParameters params) {
-        var unused = Futures.submit(() -> onStartJob(params), mInjector.getExecutor());
-    }
-
     @Override
     public boolean onStartJob(JobParameters params) {
         LogUtil.d(TAG, "AuthorizationTokenDeletionJobService.onStartJob %d", params.getJobId());
         FederatedComputeJobServiceLogger.getInstance(this)
                 .recordOnStartJob(AUTH_TOKEN_DELETION_JOB_ID);
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()
-                || !FlagsFactory.getFlags().isAuthenticationEnabled()) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             LogUtil.d(TAG, "GlobalKillSwitch enabled or authentication disabled, finishing job.");
-            return FederatedComputeJobUtil.cancelAndFinishJob(this, params,
+            return FederatedComputeJobUtil.cancelAndFinishJob(
+                    this,
+                    params,
                     AUTH_TOKEN_DELETION_JOB_ID,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
-        boolean jobSuccess = true;
-        try {
-            int rowsDeleted =
-                    mInjector.getODPAuthorizationTokenDao(this).deleteExpiredAuthorizationTokens();
-            LogUtil.d(TAG, "Deleted %d expired tokens.", rowsDeleted);
+        ListenableFuture<Integer> rowDeletedFuture =
+                Futures.submit(
+                        () ->
+                                mInjector
+                                        .getODPAuthorizationTokenDao(this)
+                                        .deleteExpiredAuthorizationTokens(),
+                        mInjector.getExecutor());
+        Futures.addCallback(
+                rowDeletedFuture,
+                new FutureCallback<Integer>() {
+                    @Override
+                    public void onSuccess(Integer result) {
+                        LogUtil.d(TAG, "Deleted %d expired tokens.", result);
+                        boolean wantsReschedule = false;
+                        FederatedComputeJobServiceLogger.getInstance(
+                                        AuthorizationTokenDeletionJobService.this)
+                                .recordJobFinished(
+                                        AUTH_TOKEN_DELETION_JOB_ID,
+                                        /* isSuccessful= */ true,
+                                        wantsReschedule);
+                        jobFinished(params, /* wantsReschedule= */ wantsReschedule);
+                    }
 
-        } catch (Exception e) {
-            LogUtil.d(TAG, "Exception encountered when deleting expired tokens: " + e.getMessage());
-            jobSuccess = false;
-        } finally {
-            boolean wantsReschedule = false;
-            if (jobSuccess) {
-                FederatedComputeJobServiceLogger.getInstance(this)
-                        .recordJobFinished(
-                                AUTH_TOKEN_DELETION_JOB_ID,
-                                /* isSuccessful= */ true,
-                                wantsReschedule);
-            } else {
-                FederatedComputeJobServiceLogger.getInstance(this)
-                        .recordJobFinished(
-                                AUTH_TOKEN_DELETION_JOB_ID,
-                                /* isSuccessful= */ false,
-                                wantsReschedule);
-            }
-            jobFinished(params, wantsReschedule);
-        }
-
+                    @Override
+                    public void onFailure(Throwable t) {
+                        LogUtil.e(TAG, t, "Exception encountered when deleting expired tokens");
+                        boolean wantsReschedule = false;
+                        FederatedComputeJobServiceLogger.getInstance(
+                                        AuthorizationTokenDeletionJobService.this)
+                                .recordJobFinished(
+                                        AUTH_TOKEN_DELETION_JOB_ID,
+                                        /* isSuccessful= */ false,
+                                        wantsReschedule);
+                        jobFinished(params, /* wantsReschedule= */ wantsReschedule);
+                    }
+                },
+                FederatedComputeExecutors.getLightweightExecutor());
         return true;
     }
 
@@ -120,10 +126,7 @@ public class AuthorizationTokenDeletionJobService extends JobService {
         LogUtil.d(TAG, "AuthorizationTokenDeletionJobService.onStopJob %d", params.getJobId());
         boolean wantsReschedule = false;
         FederatedComputeJobServiceLogger.getInstance(this)
-                .recordOnStopJob(
-                        params,
-                        AUTH_TOKEN_DELETION_JOB_ID,
-                        wantsReschedule);
+                .recordOnStopJob(params, AUTH_TOKEN_DELETION_JOB_ID, wantsReschedule);
         return wantsReschedule;
     }
 

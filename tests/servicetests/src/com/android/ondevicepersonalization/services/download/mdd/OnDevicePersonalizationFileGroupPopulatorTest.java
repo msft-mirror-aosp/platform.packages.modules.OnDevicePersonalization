@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ComponentName;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -150,7 +151,9 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     @Test
     public void testCreateDownloadUrlQueryParameters() throws Exception {
         long timestamp = System.currentTimeMillis();
-        assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+        ComponentName service = ComponentName.createRelative(
+                mPackageName, "com.test.TestPersonalizationService");
+        assertTrue(OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, service,
                         PackageUtils.getCertDigest(mContext, mPackageName))
                 .batchUpdateOrInsertVendorDataTransaction(new ArrayList<>(), new ArrayList<>(),
                         timestamp));

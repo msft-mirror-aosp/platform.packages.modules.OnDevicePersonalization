@@ -109,11 +109,20 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
         }
         var unused = Futures.whenAllComplete(mFutures).call(() -> {
             boolean wantsReschedule = false;
+            boolean allSuccess = true;
+            for (ListenableFuture<Void> future : mFutures) {
+                try {
+                    future.get();
+                } catch (Exception e) {
+                    allSuccess = false;
+                    break;
+                }
+            }
             OdpJobServiceLogger.getInstance(
                     OnDevicePersonalizationDownloadProcessingJobService.this)
                     .recordJobFinished(
                             DOWNLOAD_PROCESSING_TASK_JOB_ID,
-                            /* isSuccessful= */ false,
+                            /* isSuccessful= */ allSuccess,
                             wantsReschedule);
             jobFinished(params, wantsReschedule);
             return null;

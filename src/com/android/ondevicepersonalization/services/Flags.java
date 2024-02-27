@@ -186,6 +186,15 @@ public interface Flags extends ModuleSharedFlags {
         return EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
     }
 
+    /**
+     * Executiton deadline for download flow.
+     */
+    int DOWNLOAD_FLOW_DEADLINE_SECONDS = 30;
+
+    default int getDownloadFlowDeadlineSeconds() {
+        return DOWNLOAD_FLOW_DEADLINE_SECONDS;
+    }
+
     default String getTrustedPartnerAppsList() {
         return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
     }

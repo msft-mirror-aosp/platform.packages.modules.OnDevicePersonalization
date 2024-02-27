@@ -63,6 +63,7 @@ import java.util.concurrent.TimeUnit;
 @RunWith(JUnit4.class)
 public class FederatedComputeServiceImplTest {
     private static final String FC_SERVER_URL = "https://google.com";
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     ArgumentCaptor<OutcomeReceiver<Object, Exception>> mCallbackCapture;
     ArgumentCaptor<ScheduleFederatedComputeRequest> mRequestCapture;
@@ -74,12 +75,15 @@ public class FederatedComputeServiceImplTest {
     private FederatedComputeServiceImpl mServiceImpl;
     private IFederatedComputeService mServiceProxy;
     private FederatedComputeManager mMockManager;
+    private ComponentName mIsolatedService;
+
     @Rule
     public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
             new TestableDeviceConfig.TestableDeviceConfigRule();
 
     @Before
     public void setup() throws Exception {
+        mIsolatedService = new ComponentName(mApplicationContext.getPackageName(), SERVICE_CLASS);
         mInjector = new TestInjector();
         mMockManager = Mockito.mock(FederatedComputeManager.class);
         mCallbackCapture = ArgumentCaptor.forClass(OutcomeReceiver.class);
@@ -205,7 +209,7 @@ public class FederatedComputeServiceImplTest {
         EventsDao.getInstanceForTest(mApplicationContext)
                 .updateOrInsertEventState(
                         new EventState.Builder()
-                                .setServiceName(mApplicationContext.getPackageName())
+                                .setService(mIsolatedService)
                                 .setTaskIdentifier("population")
                                 .setToken(new byte[] {})
                                 .build());
@@ -228,7 +232,7 @@ public class FederatedComputeServiceImplTest {
         EventsDao.getInstanceForTest(mApplicationContext)
                 .updateOrInsertEventState(
                         new EventState.Builder()
-                                .setServiceName(mApplicationContext.getPackageName())
+                                .setService(mIsolatedService)
                                 .setTaskIdentifier("population")
                                 .setToken(new byte[] {})
                                 .build());
