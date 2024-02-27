@@ -79,7 +79,7 @@ public interface Flags extends ModuleSharedFlags {
     /**
      * Default value for the shared isolated process feature.
      */
-    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
+    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = true;
 
     /**
      * Default value for enabling client error logging.
