@@ -77,7 +77,7 @@ public final class ResultHandlingServiceTest {
     @Test
     public void testHandleResult_success() throws Exception {
         Bundle input = new Bundle();
-        input.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        input.putString(ClientConstants.EXTRA_TASK_ID, TASK_NAME);
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, TEST_POPULATION);
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
         input.putParcelableArrayList(
@@ -93,7 +93,7 @@ public final class ResultHandlingServiceTest {
     @Test
     public void testHandleResult_failure() throws Exception {
         Bundle input = new Bundle();
-        input.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        input.putString(ClientConstants.EXTRA_TASK_ID, TASK_NAME);
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, TEST_POPULATION);
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
         input.putParcelableArrayList(ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, null);
@@ -125,7 +125,7 @@ public final class ResultHandlingServiceTest {
         ArrayList<ExampleConsumption> exampleList = new ArrayList<>();
         exampleList.add(
                 new ExampleConsumption.Builder()
-                        .setTaskName("taskName")
+                        .setTaskId("taskName")
                         .setExampleCount(100)
                         .setSelectionCriteria(SELECTION_CRITERIA)
                         .build());
