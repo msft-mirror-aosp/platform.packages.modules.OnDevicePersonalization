@@ -36,6 +36,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
@@ -126,25 +127,31 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                 }
                 sLogger.d(TAG + ": service %s has ODP manifest and is enrolled", packageName);
                 String certDigest = PackageUtils.getCertDigest(context, packageName);
+                String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
+                        context, packageName);
+                ComponentName service = ComponentName.createRelative(packageName, serviceClass);
                 // Remove valid packages from set
-                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));
+                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(
+                        DbUtils.toTableValue(service), certDigest));
 
                 // Add valid package to new set
-                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(packageName, certDigest));
+                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(
+                        DbUtils.toTableValue(service), certDigest));
                 validTables.add(OnDevicePersonalizationLocalDataDao
-                        .getTableName(packageName, certDigest));
+                        .getTableName(service, certDigest));
                 validTables.add(OnDevicePersonalizationVendorDataDao
-                        .getTableName(packageName, certDigest));
+                        .getTableName(service, certDigest));
             }
         }
 
         sLogger.d(TAG + ": Deleting: " + vendors);
         // Delete the remaining tables for packages not found onboarded
         for (Map.Entry<String, String> entry : vendors) {
-            String packageName = entry.getKey();
+            String serviceNameStr = entry.getKey();
+            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
             String certDigest = entry.getValue();
-            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, packageName, certDigest);
-            eventsDao.deleteEventState(entry.getKey());
+            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, service, certDigest);
+            eventsDao.deleteEventState(service);
         }
 
         // Cleanup event and queries table.
@@ -153,23 +160,24 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
 
         // Cleanup files from internal storage for valid packages.
         for (Map.Entry<String, String> entry : validVendors) {
-            String packageName = entry.getKey();
+            String serviceNameStr = entry.getKey();
+            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
             String certDigest = entry.getValue();
             // VendorDao
             OnDevicePersonalizationVendorDataDao vendorDao =
-                    OnDevicePersonalizationVendorDataDao.getInstance(context, packageName,
+                    OnDevicePersonalizationVendorDataDao.getInstance(context, service,
                             certDigest);
             File vendorDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
-                    OnDevicePersonalizationVendorDataDao.getTableName(packageName, certDigest),
+                    OnDevicePersonalizationVendorDataDao.getTableName(service, certDigest),
                     context.getFilesDir()));
             FileUtils.cleanUpFilesDir(vendorDao.readAllVendorDataKeys(), vendorDir);
 
             // LocalDao
             OnDevicePersonalizationLocalDataDao localDao =
-                    OnDevicePersonalizationLocalDataDao.getInstance(context, packageName,
+                    OnDevicePersonalizationLocalDataDao.getInstance(context, service,
                             certDigest);
             File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
-                    OnDevicePersonalizationLocalDataDao.getTableName(packageName, certDigest),
+                    OnDevicePersonalizationLocalDataDao.getTableName(service, certDigest),
                     context.getFilesDir()));
             FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
         }

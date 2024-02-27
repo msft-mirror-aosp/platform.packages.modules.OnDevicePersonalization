@@ -25,6 +25,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
@@ -58,7 +59,7 @@ public class OdpResultHandlingServiceTests {
     @Rule public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
-
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private boolean mCallbackOnSuccessCalled = false;
     private boolean mCallbackOnFailureCalled = false;
 
@@ -86,7 +87,8 @@ public class OdpResultHandlingServiceTests {
         assertNotNull(binder);
 
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(mContext.getPackageName());
+        ContextData contextData = new ContextData(
+                mContext.getPackageName(), SERVICE_CLASS);
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
@@ -111,7 +113,7 @@ public class OdpResultHandlingServiceTests {
         EventState state1 =
                 mEventsDao.getEventState(
                         OdpExampleStoreService.getTaskIdentifier("population", "task_name"),
-                        mContext.getPackageName());
+                        new ComponentName(mContext.getPackageName(), SERVICE_CLASS));
         assertArrayEquals(new byte[] {10, 0, 1}, state1.getToken());
     }
 
@@ -123,7 +125,7 @@ public class OdpResultHandlingServiceTests {
         assertNotNull(binder);
 
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(mContext.getPackageName());
+        ContextData contextData = new ContextData(mContext.getPackageName(), SERVICE_CLASS);
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");

@@ -210,7 +210,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
-                        mService.getPackageName(),
+                        mService,
                         mContext,
                         /* includeLocalData */ true,
                         /* includeEventData */ true));
@@ -314,7 +314,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             try {
                 OnDevicePersonalizationVendorDataDao vendorDataDao =
                         OnDevicePersonalizationVendorDataDao.getInstance(mContext,
-                                mService.getPackageName(),
+                                mService,
                                 PackageUtils.getCertDigest(mContext, mService.getPackageName()));
                 if (result.getRenderingConfig() != null) {
                     Set<String> keyset = vendorDataDao.readAllVendorDataKeys();
@@ -334,7 +334,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         sLogger.d(TAG + ": logQuery() started.");
         return LogUtils.writeLogRecords(
                 mContext,
-                mService.getPackageName(),
+                mService,
                 result.getRequestLogRecord(),
                 result.getEventLogRecords());
     }

@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static android.adservices.ondevicepersonalization.Constants.OP_DOWNLOAD;
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
 import static android.adservices.ondevicepersonalization.Constants.OP_TRAINING_EXAMPLE;
@@ -42,7 +43,7 @@ public class ServiceFlowTypeTest {
 
     @Test
     public void cardinalityTest() {
-        assertThat(ServiceFlowType.values().length).isEqualTo(5);
+        assertThat(ServiceFlowType.values().length).isEqualTo(6);
     }
 
     @Test
@@ -54,6 +55,8 @@ public class ServiceFlowTypeTest {
                 .isEqualTo("ComputeEventMetrics");
         assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getTaskName())
                 .isEqualTo("ExampleStore");
+        assertThat(ServiceFlowType.DOWNLOAD_FLOW.getTaskName())
+                .isEqualTo("DownloadJob");
     }
 
     @Test
@@ -64,6 +67,24 @@ public class ServiceFlowTypeTest {
         assertThat(ServiceFlowType.WEB_VIEW_FLOW.getOperationCode()).isEqualTo(OP_WEB_VIEW_EVENT);
         assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getOperationCode())
                 .isEqualTo(OP_TRAINING_EXAMPLE);
+        assertThat(ServiceFlowType.DOWNLOAD_FLOW.getOperationCode())
+                .isEqualTo(OP_DOWNLOAD);
+    }
+
+    @Test
+    public void priorityTest() {
+        assertThat(ServiceFlowType.APP_REQUEST_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.HIGH);
+        assertThat(ServiceFlowType.RENDER_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.HIGH);
+        assertThat(ServiceFlowType.WEB_TRIGGER_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.NORMAL);
+        assertThat(ServiceFlowType.WEB_VIEW_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.NORMAL);
+        assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.NORMAL);
+        assertThat(ServiceFlowType.DOWNLOAD_FLOW.getPriority())
+                .isEqualTo(ServiceFlowType.Priority.LOW);
     }
 
     @Test
@@ -76,5 +97,7 @@ public class ServiceFlowTypeTest {
                 .isEqualTo(FlagsFactory.getFlags().getWebTriggerFlowDeadlineSeconds());
         assertThat(ServiceFlowType.EXAMPLE_STORE_FLOW.getExecutionTimeout())
                 .isEqualTo(FlagsFactory.getFlags().getExampleStoreFlowDeadlineSeconds());
+        assertThat(ServiceFlowType.DOWNLOAD_FLOW.getExecutionTimeout())
+                .isEqualTo(FlagsFactory.getFlags().getDownloadFlowDeadlineSeconds());
     }
 }
