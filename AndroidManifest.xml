@@ -40,6 +40,10 @@
     <permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"
                 android:protectionLevel="signature|privileged"/>
 
+    <!-- Required for sending measurement events -->
+    <permission android:name="android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT"
+                android:protectionLevel="signature|privileged"/>
+
     <application android:name=".OnDevicePersonalizationApplication"
                  android:forceQueryable="true">
         <service android:name=".OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
