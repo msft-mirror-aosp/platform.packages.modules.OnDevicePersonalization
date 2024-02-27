@@ -193,7 +193,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                     .build());
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
-                    mServiceParcel.getIsolatedService().getPackageName(),
+                    mServiceParcel.getIsolatedService(),
                     mContext, /* includeLocalData */ true,
                     /* includeEventData */ true));
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA,
@@ -262,7 +262,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         var unused = FluentFuture.from(
                         LogUtils.writeLogRecords(
                                 mContext,
-                                wtparams.getIsolatedService().getPackageName(),
+                                wtparams.getIsolatedService(),
                                 result.getRequestLogRecord(),
                                 result.getEventLogRecords()))
                 .transform(v -> null, MoreExecutors.newDirectExecutorService());

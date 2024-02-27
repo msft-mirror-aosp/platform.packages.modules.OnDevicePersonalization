@@ -77,7 +77,7 @@ public class WebViewFlowTest {
         mDao = EventsDao.getInstanceForTest(mContext);
         Query mTestQuery = new Query.Builder()
                 .setTimeMillis(1L)
-                .setServiceName("servicePackageName")
+                .setService(new ComponentName("pkg", "cls"))
                 .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         // Insert query for FK constraint

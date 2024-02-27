@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.display;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
@@ -82,7 +84,7 @@ public class OdpWebViewClientTests {
     private EventUrlPayload mTestEventPayload;
     private final Query mTestQuery = new Query.Builder()
             .setTimeMillis(1L)
-            .setServiceName("servicePackageName")
+            .setService(ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS))
             .setQueryData("query".getBytes(StandardCharsets.UTF_8))
             .build();
     private EventsDao mDao;
@@ -250,18 +252,13 @@ public class OdpWebViewClientTests {
     }
 
     @Test
-    public void testInvalidUrl() throws Exception {
+    public void testNonOdpUrl() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(
                 Uri.parse("https://www.google.com"));
 
-        assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await();
-
-        assertTrue(mCallbackFailure);
-        assertEquals(0,
-                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+        assertNull(webViewClient.shouldInterceptRequest(mWebView, webResourceRequest));
+        assertFalse(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
     }
 
     @Test

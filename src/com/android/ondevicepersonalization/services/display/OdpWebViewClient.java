@@ -115,10 +115,19 @@ public class OdpWebViewClient extends WebViewClient {
         FutureCallback<EventOutputParcel> callback = mInjector.getFutureCallback();
 
         try {
+            if (!EventUrlHelper.isOdpUrl(request.getUrl().toString())) {
+                return null;
+            }
+
             EventUrlPayload payload = getPayLoadFromRequest(webView, request);
 
-            sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW, mContext,
-                    mService, mQueryId, mLogRecord, callback, payload);
+            try {
+                sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW, mContext,
+                        mService, mQueryId, mLogRecord, callback, payload);
+            } catch (Exception e) {
+                sLogger.e(e, TAG + ": shouldInterceptRequest: WebViewFlow failed.");
+                callback.onFailure(e);
+            }
 
             byte[] responseData = payload.getResponseData();
             if (responseData == null || responseData.length == 0) {
@@ -131,7 +140,6 @@ public class OdpWebViewClient extends WebViewClient {
             }
         } catch (Exception e) {
             sLogger.e(e, TAG + ": shouldInterceptRequest failed.");
-            callback.onFailure(e);
             return null;
         }
     }
@@ -142,21 +150,29 @@ public class OdpWebViewClient extends WebViewClient {
         FutureCallback<EventOutputParcel> callback = mInjector.getFutureCallback();
 
         try {
+            if (!EventUrlHelper.isOdpUrl(request.getUrl().toString())) {
+                return false;
+            }
+
             EventUrlPayload payload = getPayLoadFromRequest(webView, request);
 
-            sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW, mContext,
-                    mService, mQueryId, mLogRecord, mInjector.getFutureCallback(), payload);
+            try {
+                sSfo.schedule(ServiceFlowType.WEB_VIEW_FLOW, mContext,
+                        mService, mQueryId, mLogRecord, mInjector.getFutureCallback(), payload);
+            } catch (Exception e) {
+                sLogger.e(e, TAG + ": shouldOverrideUrlLoading: WebViewFlow failed.");
+                callback.onFailure(e);
+            }
 
             String landingPage = request.getUrl().getQueryParameter(
                         EventUrlHelper.URL_LANDING_PAGE_EVENT_KEY);
             mInjector.openUrl(landingPage, webView.getContext());
+
+            return true;
         } catch (Exception e) {
             sLogger.e(e, TAG + ": shouldOverrideUrlLoading failed.");
-            callback.onFailure(e);
+            return false;
         }
-
-        // Cancel the current load
-        return true;
     }
 
     private EventUrlPayload getPayLoadFromRequest(
