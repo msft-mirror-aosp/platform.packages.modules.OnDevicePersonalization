@@ -240,7 +240,8 @@ public final class HttpFederatedProtocol {
             return taskAssignmentResponse;
         }
         TaskAssignment taskAssignment = getTaskAssignment(taskAssignmentResponse);
-        mTrainingEventLogger.setTaskId(taskAssignment.getTaskName().hashCode());
+        String taskName = taskAssignment.getPopulationName() + "/" + taskAssignment.getTaskId();
+        mTrainingEventLogger.setTaskId(taskName.hashCode());
         mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
         return taskAssignmentResponse;
     }
@@ -290,8 +291,8 @@ public final class HttpFederatedProtocol {
         TaskAssignment taskAssignment = taskAssignmentResponse.getTaskAssignment();
         LogUtil.d(
                 TAG,
-                "Receive CreateTaskAssignmentResponse: task name %s assignment id %s",
-                taskAssignment.getTaskName(),
+                "Receive CreateTaskAssignmentResponse: task id %s assignment id %s",
+                taskAssignment.getTaskId(),
                 taskAssignment.getAssignmentId());
         return taskAssignment;
     }

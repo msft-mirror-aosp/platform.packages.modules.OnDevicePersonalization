@@ -16,8 +16,8 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
@@ -353,10 +353,10 @@ public class FederatedComputeWorker {
 
     private ListenableFuture<FLRunnerResult> runEligibilityCheckAndDoFlTraining(
             CreateTaskAssignmentResponse createTaskAssignmentResponse, TrainingRun run) {
-        String taskName = createTaskAssignmentResponse.getTaskAssignment().getTaskName();
-        Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
+        String taskId = createTaskAssignmentResponse.getTaskAssignment().getTaskId();
+        Preconditions.checkArgument(!taskId.isEmpty(), "Task id should not be empty");
         synchronized (mLock) {
-            mActiveRun.mTaskName = taskName;
+            mActiveRun.mTaskId = taskId;
         }
 
         // 2. Execute eligibility task if applicable.
@@ -409,11 +409,7 @@ public class FederatedComputeWorker {
                         taskAssignment.getTaskId(),
                         run.mJobId,
                         taskAssignment.getEligibilityTaskInfo());
-        LogUtil.i(
-                TAG,
-                "eligibility task result %s %b",
-                taskAssignment.getTaskId(),
-                eligibleResult);
+        LogUtil.i(TAG, "eligibility task result %s %b", taskAssignment.getTaskId(), eligibleResult);
         return eligibleResult;
     }
 
@@ -458,11 +454,7 @@ public class FederatedComputeWorker {
         // 4. Bind to client app implemented ExampleStoreService based on ExampleSelector.
         // Set active run's task name.
         ListenableFuture<IExampleStoreIterator> iteratorFuture =
-                getExampleStoreIterator(
-                        run,
-                        run.mTask.appPackageName(),
-                        run.mTaskName,
-                        getExampleSelector(checkinResult));
+                getExampleStoreIterator(run, getExampleSelector(checkinResult));
 
         // 5. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
@@ -524,7 +516,7 @@ public class FederatedComputeWorker {
                                                 null);
                                 var unused =
                                         mResultCallbackHelper.callHandleResult(
-                                                run.mTaskName,
+                                                run.mTaskId,
                                                 run.mTask,
                                                 failedReportComputationResult);
                                 performFinishRoutines(
@@ -552,7 +544,7 @@ public class FederatedComputeWorker {
                             // ResultHandlingService.
                             var unused =
                                     mResultCallbackHelper.callHandleResult(
-                                            run.mTaskName, run.mTask, computationResult);
+                                            run.mTaskId, run.mTask, computationResult);
                             return computationResult.getFlRunnerResult();
                         },
                         mInjector.getBgExecutor());
@@ -709,7 +701,7 @@ public class FederatedComputeWorker {
                     "ClientOnlyPlan input tflite graph is empty."
                             + " population name: %s, task name: %s",
                     run.mTask.populationName(),
-                    run.mTaskName);
+                    run.mTaskId);
             IllegalStateException ex =
                     new IllegalStateException("Client plan input tflite graph is empty");
             ClientErrorLogger.getInstance()
@@ -738,7 +730,7 @@ public class FederatedComputeWorker {
             Bundle bundle = new Bundle();
             bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, exampleSelector.toByteArray());
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_NAME, run.mTaskName);
+            bundle.putString(ClientConstants.EXTRA_TASK_ID, run.mTaskId);
             bundle.putParcelable(Constants.EXTRA_CLIENT_ONLY_PLAN_FD, clientPlanFd);
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
@@ -922,7 +914,7 @@ public class FederatedComputeWorker {
         ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
         FLRunnerResult runResult =
                 mComputationRunner.runTaskWithNativeRunner(
-                        run.mTaskName,
+                        run.mTaskId,
                         run.mTask.populationName(),
                         checkinResult.getInputCheckpointFile(),
                         outputCheckpointFile,
@@ -984,15 +976,15 @@ public class FederatedComputeWorker {
     }
 
     private ListenableFuture<IExampleStoreIterator> getExampleStoreIterator(
-            TrainingRun run, String packageName, String taskName, ExampleSelector exampleSelector) {
+            TrainingRun run, ExampleSelector exampleSelector) {
         try {
-            run.mTaskName = taskName;
-
-            IExampleStoreService exampleStoreService = getExampleStoreService(packageName);
+            IExampleStoreService exampleStoreService =
+                    getExampleStoreService(run.mTask.appPackageName());
             if (exampleStoreService == null) {
                 return Futures.immediateFailedFuture(
                         new IllegalStateException(
-                                "Could not bind to ExampleStoreService " + packageName));
+                                "Could not bind to ExampleStoreService "
+                                        + run.mTask.appPackageName()));
             }
             run.mExampleStoreService = exampleStoreService;
 
@@ -1000,7 +992,7 @@ public class FederatedComputeWorker {
             byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
+            bundle.putString(ClientConstants.EXTRA_TASK_ID, run.mTaskId);
             bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, run.mTask.contextData());
             bundle.putByteArray(
                     ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
@@ -1105,7 +1097,7 @@ public class FederatedComputeWorker {
     private static final class TrainingRun {
         private final int mJobId;
 
-        private String mTaskName;
+        private String mTaskId;
         private final FederatedTrainingTask mTask;
 
         private final TrainingEventLogger mTrainingEventLogger;
