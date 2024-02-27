@@ -55,6 +55,7 @@ import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
+import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
@@ -164,22 +165,23 @@ public class FederatedComputeWorker {
     }
 
     /** Starts a training run with the given job Id. */
-    public ListenableFuture<FLRunnerResult> startTrainingRun(int jobId) {
+    public ListenableFuture<FLRunnerResult> startTrainingRun(
+            int jobId, FederatedJobService.OnJobFinishedCallback callback) {
         LogUtil.d(TAG, "startTrainingRun() %d", jobId);
         TrainingEventLogger trainingEventLogger = mInjector.getTrainingEventLogger();
         return FluentFuture.from(
                         mInjector
                                 .getBgExecutor()
                                 .submit(
-                                        () -> {
-                                            return getTrainableTask(jobId, trainingEventLogger);
-                                        }))
+                                        () ->
+                                                getTrainableTask(
+                                                        jobId, trainingEventLogger, callback)))
                 .transformAsync(
                         task -> {
                             if (task == null) {
                                 return Futures.immediateFuture(null);
                             }
-                            return startTrainingRun(jobId, task, trainingEventLogger);
+                            return startTrainingRun(jobId, task, trainingEventLogger, callback);
                         },
                         mInjector.getBgExecutor());
     }
@@ -187,11 +189,12 @@ public class FederatedComputeWorker {
     private ListenableFuture<FLRunnerResult> startTrainingRun(
             int jobId,
             FederatedTrainingTask trainingTask,
-            TrainingEventLogger trainingEventLogger) {
+            TrainingEventLogger trainingEventLogger,
+            FederatedJobService.OnJobFinishedCallback callback) {
         synchronized (mLock) {
             // Only allows one concurrent job running.
             Trace.beginAsyncSection(TRACE_WORKER_START_TRAINING_RUN, jobId);
-            TrainingRun run = new TrainingRun(jobId, trainingTask, trainingEventLogger);
+            TrainingRun run = new TrainingRun(jobId, trainingTask, trainingEventLogger, callback);
             mActiveRun = run;
             ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
             var unused =
@@ -211,20 +214,23 @@ public class FederatedComputeWorker {
 
     @Nullable
     private FederatedTrainingTask getTrainableTask(
-            int jobId, TrainingEventLogger trainingEventLogger) {
+            int jobId, TrainingEventLogger trainingEventLogger,
+            FederatedJobService.OnJobFinishedCallback callback) {
         FederatedTrainingTask trainingTask = mJobManager.onTrainingStarted(jobId);
         if (trainingTask == null) {
             LogUtil.i(TAG, "Could not find task to run for job ID %s", jobId);
+            callback.callJobFinished(/* isSuccessful= */ false);
             return null;
         }
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
-            mJobManager.onTrainingCompleted(
+            performFinishRoutines(
+                    callback,
+                    ContributionResult.FAIL,
                     jobId,
                     trainingTask.populationName(),
                     trainingTask.getTrainingIntervalOptions(),
-                    /* taskRetry= */ null,
-                    ContributionResult.FAIL);
+                    /* taskRetry= */ null);
             LogUtil.i(TAG, "Training conditions not satisfied (before bindService)!");
             return null;
         }
@@ -236,12 +242,13 @@ public class FederatedComputeWorker {
                         "Delaying %d/%s another run is already active!",
                         jobId,
                         trainingTask.populationName());
-                mJobManager.onTrainingCompleted(
+                performFinishRoutines(
+                        callback,
+                        ContributionResult.FAIL,
                         jobId,
                         trainingTask.populationName(),
                         trainingTask.getTrainingIntervalOptions(),
-                        /* taskRetry= */ null,
-                        ContributionResult.FAIL);
+                        /* taskRetry= */ null);
                 return null;
             }
             return trainingTask;
@@ -334,12 +341,13 @@ public class FederatedComputeWorker {
     @NonNull
     private ListenableFuture<FLRunnerResult> handleRetryRejection(
             TrainingRun run, CreateTaskAssignmentResponse taskAssignmentResponse) {
-        mJobManager.onTrainingCompleted(
+        performFinishRoutines(
+                run.mCallback,
+                ContributionResult.FAIL,
                 run.mTask.jobId(),
                 run.mTask.populationName(),
                 run.mTask.getTrainingIntervalOptions(),
-                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()),
-                ContributionResult.FAIL);
+                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()));
         return Futures.immediateFuture(null);
     }
 
@@ -368,12 +376,13 @@ public class FederatedComputeWorker {
                         AuthorizationContext.create(
                                 mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()));
                 // Reschedule the job.
-                mJobManager.onTrainingCompleted(
+                performFinishRoutines(
+                        run.mCallback,
+                        ContributionResult.FAIL,
                         run.mTask.jobId(),
                         run.mTask.populationName(),
                         run.mTask.getTrainingIntervalOptions(),
-                        null,
-                        ContributionResult.FAIL);
+                        /* taskRetry= */null);
                 return Futures.immediateFuture(null);
             }
         }
@@ -518,12 +527,13 @@ public class FederatedComputeWorker {
                                                 run.mTaskName,
                                                 run.mTask,
                                                 failedReportComputationResult);
-                                mJobManager.onTrainingCompleted(
+                                performFinishRoutines(
+                                        run.mCallback,
+                                        ContributionResult.FAIL,
                                         run.mTask.jobId(),
                                         run.mTask.populationName(),
                                         run.mTask.getTrainingIntervalOptions(),
-                                        buildTaskRetry(reportToServer),
-                                        ContributionResult.FAIL);
+                                        buildTaskRetry(reportToServer));
                                 return null;
                             }
 
@@ -607,12 +617,25 @@ public class FederatedComputeWorker {
             }
         }
 
-        mJobManager.onTrainingCompleted(
+        performFinishRoutines(
+                runToFinish.mCallback,
+                contributionResult,
                 runToFinish.mJobId,
                 runToFinish.mTask.populationName(),
                 runToFinish.mTask.getTrainingIntervalOptions(),
-                taskRetry,
-                contributionResult);
+                taskRetry);
+    }
+
+    private void performFinishRoutines(
+            FederatedJobService.OnJobFinishedCallback callback,
+            ContributionResult contributionResult,
+            int jobId,
+            String populationName,
+            TrainingIntervalOptions trainingIntervalOptions,
+            TaskRetry taskRetry) {
+        callback.callJobFinished(ContributionResult.SUCCESS.equals(contributionResult));
+        mJobManager.onTrainingCompleted(
+                jobId, populationName, trainingIntervalOptions, taskRetry, contributionResult);
     }
 
     private void unBindServicesIfNecessary(TrainingRun runToFinish) {
@@ -1093,11 +1116,17 @@ public class FederatedComputeWorker {
 
         @Nullable private IExampleStoreService mExampleStoreService = null;
 
+        private FederatedJobService.OnJobFinishedCallback mCallback;
+
         private TrainingRun(
-                int jobId, FederatedTrainingTask task, TrainingEventLogger trainingEventLogger) {
+                int jobId,
+                FederatedTrainingTask task,
+                TrainingEventLogger trainingEventLogger,
+                FederatedJobService.OnJobFinishedCallback callback) {
             this.mJobId = jobId;
             this.mTask = task;
             this.mTrainingEventLogger = trainingEventLogger;
+            this.mCallback = callback;
         }
     }
 
