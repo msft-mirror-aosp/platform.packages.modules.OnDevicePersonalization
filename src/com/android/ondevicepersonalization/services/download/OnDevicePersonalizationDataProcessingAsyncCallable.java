@@ -19,12 +19,10 @@ package com.android.ondevicepersonalization.services.download;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
-import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 import android.util.JsonReader;
@@ -45,6 +43,7 @@ import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -57,8 +56,10 @@ import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStora
 import com.google.android.libraries.mobiledatadownload.file.openers.ReadStreamOpener;
 import com.google.common.util.concurrent.AsyncCallable;
 import com.google.common.util.concurrent.FluentFuture;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFile;
 import com.google.mobiledatadownload.ClientConfigProto.ClientFileGroup;
 
@@ -71,12 +72,13 @@ import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutionException;
+import java.util.Objects;
 
 /**
  * AsyncCallable to handle the processing of the downloaded vendor data
  */
-public class OnDevicePersonalizationDataProcessingAsyncCallable implements AsyncCallable {
+public class OnDevicePersonalizationDataProcessingAsyncCallable
+        implements AsyncCallable, ServiceFlow<DownloadCompletedOutputParcel> {
     public static final String TASK_NAME = "DownloadJob";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDataProcessingAsyncCallable";
@@ -86,6 +88,10 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
 
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
+    private long mStartServiceTimeMillis;
+    private ComponentName mService;
+    private Map<String, VendorData> mProcessedVendorDataMap;
+    private long mProcessedSyncToken;
 
     static class Injector {
         Clock getClock() {
@@ -97,9 +103,26 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
                     ? SharedIsolatedProcessRunner.getInstance()
                     : ProcessRunnerImpl.getInstance();
         }
+
+        ListeningExecutorService getExecutor() {
+            return OnDevicePersonalizationExecutors.getBackgroundExecutor();
+        }
+
+        FutureCallback<DownloadCompletedOutputParcel> getCallback() {
+            return new FutureCallback<>() {
+                @Override
+                public void onSuccess(DownloadCompletedOutputParcel result) {
+                }
+
+                @Override
+                public void onFailure(Throwable t) {
+                }
+            };
+        }
     }
 
     private final Injector mInjector;
+    private final FutureCallback<DownloadCompletedOutputParcel> mCallback;
 
     public OnDevicePersonalizationDataProcessingAsyncCallable(String packageName,
             Context context) {
@@ -111,11 +134,213 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
         mPackageName = packageName;
         mContext = context;
         mInjector = injector;
+        mCallback = mInjector.getCallback();
     }
 
-    private static boolean validateSyncToken(long syncToken) {
-        // TODO(b/249813538) Add any additional requirements
-        return syncToken % 3600 == 0;
+    @Override
+    public boolean isServiceFlowReady() {
+        try {
+            mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+
+            Uri uri = Objects.requireNonNull(getClientFileUri());
+
+            long syncToken = -1;
+            Map<String, VendorData> vendorDataMap = null;
+
+            SynchronousFileStorage fileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
+            try (InputStream in = fileStorage.open(uri, ReadStreamOpener.create())) {
+                try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
+                    reader.beginObject();
+                    while (reader.hasNext()) {
+                        String name = reader.nextName();
+                        if (name.equals("syncToken")) {
+                            syncToken = reader.nextLong();
+                        } else if (name.equals("contents")) {
+                            vendorDataMap = readContentsArray(reader);
+                        } else {
+                            reader.skipValue();
+                        }
+                    }
+                    reader.endObject();
+                }
+            } catch (IOException e) {
+                sLogger.d(TAG + mPackageName + " Failed to process downloaded JSON file");
+                mCallback.onFailure(e);
+                return false;
+            }
+
+            if (syncToken == -1 || !validateSyncToken(syncToken)) {
+                sLogger.d(TAG + mPackageName
+                        + " downloaded JSON file has invalid syncToken provided");
+                mCallback.onFailure(new IllegalArgumentException("Invalid syncToken provided."));
+                return false;
+            }
+
+            if (vendorDataMap == null || vendorDataMap.size() == 0) {
+                sLogger.d(TAG + mPackageName + " downloaded JSON file has no content provided");
+                mCallback.onFailure(new IllegalArgumentException("No content provided."));
+                return false;
+            }
+
+            mDao = OnDevicePersonalizationVendorDataDao.getInstance(mContext, getService(),
+                    PackageUtils.getCertDigest(mContext, mPackageName));
+            long existingSyncToken = mDao.getSyncToken();
+
+            // If existingToken is greaterThan or equal to the new token, skip as there is
+            // no new data.
+            if (existingSyncToken >= syncToken) {
+                sLogger.d(TAG + ": syncToken is not newer than existing token.");
+                mCallback.onFailure(new IllegalArgumentException("SyncToken is stale."));
+                return false;
+            }
+
+            mProcessedVendorDataMap = vendorDataMap;
+            mProcessedSyncToken = syncToken;
+
+            return true;
+        } catch (Exception e) {
+            mCallback.onFailure(e);
+            return false;
+        }
+    }
+
+    @Override
+    public ComponentName getService() {
+        if (mService != null) return mService;
+
+        mService = ComponentName.createRelative(mPackageName,
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(mContext, mPackageName));
+        return mService;
+    }
+
+    @Override
+    public Bundle getServiceParams() {
+        Bundle serviceParams = new Bundle();
+
+        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
+                new DataAccessServiceImpl(getService(), mContext, /* includeLocalData */ true,
+                        /* includeEventData */ true));
+
+        serviceParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new FederatedComputeServiceImpl(getService(), mContext));
+
+        Map<String, byte[]> downloadedContent = new HashMap<>();
+        for (String key : mProcessedVendorDataMap.keySet()) {
+            downloadedContent.put(key, mProcessedVendorDataMap.get(key).getData());
+        }
+
+        DataAccessServiceImpl downloadedContentBinder = new DataAccessServiceImpl(
+                getService(), mContext, /* remoteData */ downloadedContent,
+                /* includeLocalData */ false, /* includeEventData */ false);
+
+        serviceParams.putParcelable(Constants.EXTRA_INPUT,
+                new DownloadInputParcel.Builder()
+                        .setDataAccessServiceBinder(downloadedContentBinder)
+                        .build());
+
+        serviceParams.putParcelable(Constants.EXTRA_USER_DATA,
+                new UserDataAccessor().getUserData());
+
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
+
+        return serviceParams;
+    }
+
+    @Override
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        var unused = FluentFuture.from(runServiceFuture)
+                .transform(
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    val, mInjector.getClock(), Constants.STATUS_SUCCESS,
+                                    mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor())
+                .catchingAsync(
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    /* result= */ null, mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR,
+                                    mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor());
+    }
+
+    @Override
+    public ListenableFuture<DownloadCompletedOutputParcel> getServiceFlowResultFuture(
+            ListenableFuture<Bundle> runServiceFuture) {
+        return FluentFuture.from(runServiceFuture)
+                .transform(
+                        result -> {
+                            DownloadCompletedOutputParcel downloadResult =
+                                    result.getParcelable(Constants.EXTRA_RESULT,
+                                            DownloadCompletedOutputParcel.class);
+
+                            List<String> retainedKeys = downloadResult.getRetainedKeys();
+                            if (retainedKeys == null) {
+                                // TODO(b/270710021): Determine how to correctly handle null
+                                //  retainedKeys.
+                                return null;
+                            }
+
+                            List<VendorData> filteredList = new ArrayList<>();
+                            for (String key : retainedKeys) {
+                                if (mProcessedVendorDataMap.containsKey(key)) {
+                                    filteredList.add(mProcessedVendorDataMap.get(key));
+                                }
+                            }
+
+                            boolean transactionResult =
+                                    mDao.batchUpdateOrInsertVendorDataTransaction(filteredList,
+                                            retainedKeys, mProcessedSyncToken);
+
+                            sLogger.d(TAG + ": filter and store data completed, transaction"
+                                    + " successful: "
+                                    + transactionResult);
+
+                            return downloadResult;
+                        },
+                        mInjector.getExecutor())
+                .catching(
+                        Exception.class,
+                        e -> {
+                            sLogger.e(TAG + ": Processing failed.", e);
+                            return null;
+                        },
+                        mInjector.getExecutor());
+    }
+
+    @Override
+    public void returnResultThroughCallback(
+            ListenableFuture<DownloadCompletedOutputParcel> serviceFlowResultFuture) {
+        try {
+            MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
+            String fileGroupName =
+                    OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                            mPackageName, mContext);
+
+            ListenableFuture<Boolean> removaeFileGroupFuture =
+                    FluentFuture.from(serviceFlowResultFuture)
+                            .transformAsync(
+                                    result -> mdd.removeFileGroup(
+                                            RemoveFileGroupRequest.newBuilder()
+                                                    .setGroupName(fileGroupName).build()),
+                                    mInjector.getExecutor());
+
+            Futures.addCallback(serviceFlowResultFuture, mCallback, mInjector.getExecutor());
+        } catch (Exception e) {
+            mCallback.onFailure(e);
+        }
+    }
+
+    @Override
+    public void cleanUpServiceParams() {
+        mModelServiceProvider.unBindFromModelService();
     }
 
     /**
@@ -123,219 +348,43 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
      * vendor tables
      */
     public ListenableFuture<Boolean> call() {
-        sLogger.d(TAG + ": Package Name: " + mPackageName);
-        MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
         try {
-            String fileGroupName =
-                    OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
-                            mPackageName, mContext);
-            ClientFileGroup clientFileGroup = mdd.getFileGroup(
-                    GetFileGroupRequest.newBuilder().setGroupName(fileGroupName).build()).get();
-            if (clientFileGroup == null) {
-                sLogger.d(TAG + mPackageName + " has no completed downloads.");
-                return Futures.immediateFuture(null);
+            if (!isServiceFlowReady()) {
+                return Futures.immediateFuture(false);
             }
-            // It is currently expected that we will only download a single file per package.
-            if (clientFileGroup.getFileCount() != 1) {
-                sLogger.d(TAG + mPackageName + " has " + clientFileGroup.getFileCount()
-                        + " files in the fileGroup");
-                return Futures.immediateFuture(null);
-            }
-            ClientFile clientFile = clientFileGroup.getFile(0);
-            Uri androidUri = Uri.parse(clientFile.getFileUri());
-            // Manually remove fileGroup after processing. Any fileGroups not removed here, will
-            // be caught by MDD maintenance based on stale and expiration settings.
-            return FluentFuture.from(processDownloadedJsonFile(androidUri))
-                    .transformAsync(unused -> mdd.removeFileGroup(
-                                    RemoveFileGroupRequest.newBuilder().setGroupName(
-                                            fileGroupName).build()),
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
-        } catch (PackageManager.NameNotFoundException e) {
-            sLogger.d(TAG + ": NameNotFoundException for package: " + mPackageName);
-        } catch (ExecutionException e) {
-            sLogger.e(TAG + ": Exception for package: " + mPackageName, e);
-        } catch (InterruptedException e) {
-            sLogger.d(TAG + mPackageName + " was interrupted.");
-        }
-        return Futures.immediateFuture(null);
-    }
 
-    private ListenableFuture<Void> processDownloadedJsonFile(Uri uri) throws
-            PackageManager.NameNotFoundException, InterruptedException, ExecutionException {
-        sLogger.d(TAG + ": begin processDownloadJsonFile");
-        long syncToken = -1;
-        Map<String, VendorData> vendorDataMap = null;
+            ListenableFuture<IsolatedServiceInfo> loadServiceFuture =
+                    mInjector.getProcessRunner().loadIsolatedService(TASK_NAME, getService());
 
-        SynchronousFileStorage fileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
-        try (InputStream in = fileStorage.open(uri, ReadStreamOpener.create())) {
-            try (JsonReader reader = new JsonReader(new InputStreamReader(in))) {
-                reader.beginObject();
-                while (reader.hasNext()) {
-                    String name = reader.nextName();
-                    if (name.equals("syncToken")) {
-                        syncToken = reader.nextLong();
-                    } else if (name.equals("contents")) {
-                        vendorDataMap = readContentsArray(reader);
-                    } else {
-                        reader.skipValue();
-                    }
-                }
-                reader.endObject();
-            }
-        } catch (IOException e) {
-            sLogger.d(TAG + mPackageName + " Failed to process downloaded JSON file");
-            return Futures.immediateFuture(null);
-        }
+            ListenableFuture<Bundle> runServiceFuture =
+                    FluentFuture.from(loadServiceFuture)
+                            .transformAsync(
+                                    isolatedServiceInfo -> mInjector.getProcessRunner()
+                                            .runIsolatedService(
+                                                    isolatedServiceInfo,
+                                                    Constants.OP_DOWNLOAD,
+                                                    getServiceParams()),
+                                    mInjector.getExecutor());
 
-        if (syncToken == -1 || !validateSyncToken(syncToken)) {
-            sLogger.d(TAG + mPackageName + " downloaded JSON file has invalid syncToken provided");
-            return Futures.immediateFuture(null);
-        }
-        if (vendorDataMap == null || vendorDataMap.size() == 0) {
-            sLogger.d(TAG + mPackageName + " downloaded JSON file has no content provided");
-            return Futures.immediateFuture(null);
-        }
+            uploadServiceFlowMetrics(runServiceFuture);
 
-        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                mContext, mPackageName);
-        mDao = OnDevicePersonalizationVendorDataDao.getInstance(
-                mContext, ComponentName.createRelative(mPackageName, serviceClass),
-                PackageUtils.getCertDigest(mContext, mPackageName));
-        long existingSyncToken = mDao.getSyncToken();
+            ListenableFuture<DownloadCompletedOutputParcel> serviceFlowResultFuture =
+                    getServiceFlowResultFuture(runServiceFuture);
 
-        // If existingToken is greaterThan or equal to the new token, skip as there is no new data.
-        if (existingSyncToken >= syncToken) {
-            sLogger.d(TAG + ": syncToken is not newer than existing token.");
-            return Futures.immediateFuture(null);
-        }
+            returnResultThroughCallback(serviceFlowResultFuture);
 
-        Map<String, VendorData> finalVendorDataMap = vendorDataMap;
-        long finalSyncToken = syncToken;
-        try {
-            ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                            TASK_NAME, ComponentName.createRelative(mPackageName, serviceClass));
-            var resultFuture = FluentFuture.from(loadFuture)
-                    .transformAsync(
-                            result -> executeDownloadHandler(result, finalVendorDataMap),
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor())
-                    .transform(pluginResult -> filterAndStoreData(pluginResult, finalSyncToken,
-                                    finalVendorDataMap),
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor())
-                    .catching(
-                            Exception.class,
-                            e -> {
-                                sLogger.e(TAG + ": Processing failed.", e);
-                                return null;
-                            },
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
-
-            var unused = Futures.whenAllComplete(loadFuture, resultFuture)
+            var unused = Futures.whenAllComplete(loadServiceFuture, serviceFlowResultFuture)
                     .callAsync(() -> {
-                                mModelServiceProvider.unBindFromModelService();
-                                return mInjector.getProcessRunner().unloadIsolatedService(
-                                        loadFuture.get());
-                            },
-                            OnDevicePersonalizationExecutors.getBackgroundExecutor());
-
-            return resultFuture;
+                        cleanUpServiceParams();
+                        return mInjector.getProcessRunner()
+                                .unloadIsolatedService(loadServiceFuture.get());
+                    }, mInjector.getExecutor());
         } catch (Exception e) {
-            sLogger.e(TAG + ": Could not run isolated service.", e);
-            return Futures.immediateFuture(null);
-        }
-    }
-
-    private Void filterAndStoreData(Bundle pluginResult, long syncToken,
-            Map<String, VendorData> vendorDataMap) {
-        sLogger.d(TAG + ": Plugin filter code completed successfully");
-        List<VendorData> filteredList = new ArrayList<>();
-        DownloadCompletedOutputParcel downloadResult = pluginResult.getParcelable(
-                Constants.EXTRA_RESULT, DownloadCompletedOutputParcel.class);
-        List<String> retainedKeys = downloadResult.getRetainedKeys();
-        if (retainedKeys == null) {
-            // TODO(b/270710021): Determine how to correctly handle null retainedKeys.
-            return null;
-        }
-        for (String key : retainedKeys) {
-            if (vendorDataMap.containsKey(key)) {
-                filteredList.add(vendorDataMap.get(key));
-            }
-        }
-        boolean transactionResult = mDao.batchUpdateOrInsertVendorDataTransaction(
-                filteredList, retainedKeys, syncToken);
-        sLogger.d(TAG + ": filter and store data completed, transaction successful: "
-                + transactionResult);
-        return null;
-    }
-
-    private ListenableFuture<Bundle> executeDownloadHandler(
-            IsolatedServiceInfo isolatedServiceInfo,
-            Map<String, VendorData> vendorDataMap) {
-        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                mContext, mPackageName);
-        ComponentName service = ComponentName.createRelative(mPackageName, serviceClass);
-        Bundle pluginParams = new Bundle();
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                service, mContext, /* includeLocalData */ true,
-                /* includeEventData */ true);
-        pluginParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder =
-                new FederatedComputeServiceImpl(
-                        ComponentName.createRelative(
-                                mPackageName,
-                                AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                                        mContext, mPackageName)),
-                        mContext);
-        pluginParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
-
-        Map<String, byte[]> downloadedContent = new HashMap<>();
-        for (String key : vendorDataMap.keySet()) {
-            downloadedContent.put(key, vendorDataMap.get(key).getData());
+            sLogger.d("Could not finish download flow.");
+            mCallback.onFailure(e);
         }
 
-        DataAccessServiceImpl downloadedContentBinder = new DataAccessServiceImpl(
-                service, mContext, /* remoteData */ downloadedContent,
-                /* includeLocalData */ false, /* includeEventData */ false);
-
-        DownloadInputParcel downloadInputParcel = new DownloadInputParcel.Builder()
-                .setDataAccessServiceBinder(downloadedContentBinder)
-                .build();
-
-        mModelServiceProvider = new IsolatedModelServiceProvider();
-        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
-        pluginParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
-
-        pluginParams.putParcelable(Constants.EXTRA_INPUT, downloadInputParcel);
-
-        UserDataAccessor userDataAccessor = new UserDataAccessor();
-        UserData userData = userDataAccessor.getUserData();
-        pluginParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo,
-                Constants.OP_DOWNLOAD,
-                pluginParams);
-        return FluentFuture.from(result)
-                .transform(
-                        val -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    val, mInjector.getClock(),
-                                    Constants.STATUS_SUCCESS,
-                                    isolatedServiceInfo.getStartTimeMillis());
-                            return val;
-                        },
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                )
-                .catchingAsync(
-                        Exception.class,
-                        e -> {
-                            StatsUtils.writeServiceRequestMetrics(
-                                    /* result= */ null, mInjector.getClock(),
-                                    Constants.STATUS_INTERNAL_ERROR,
-                                    isolatedServiceInfo.getStartTimeMillis());
-                            return Futures.immediateFailedFuture(e);
-                        },
-                        OnDevicePersonalizationExecutors.getBackgroundExecutor()
-                );
+        return Futures.immediateFuture(null);
     }
 
     private Map<String, VendorData> readContentsArray(JsonReader reader) throws IOException {
@@ -381,5 +430,42 @@ public class OnDevicePersonalizationDataProcessingAsyncCallable implements Async
             }
         }
         return new VendorData.Builder().setKey(key).setData(data).build();
+    }
+
+    private Uri getClientFileUri() throws Exception {
+        MobileDataDownload mdd = MobileDataDownloadFactory.getMdd(mContext);
+
+        String fileGroupName =
+                OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
+                        mPackageName, mContext);
+
+        ClientFileGroup cfg = mdd.getFileGroup(
+                        GetFileGroupRequest.newBuilder()
+                                .setGroupName(fileGroupName)
+                                .build())
+                .get();
+
+        if (cfg == null || cfg.getStatus() != ClientFileGroup.Status.DOWNLOADED) {
+            sLogger.d(TAG + mPackageName + " has no completed downloads.");
+            mCallback.onFailure(new IllegalArgumentException("No completed downloads."));
+            return null;
+        }
+
+        // It is currently expected that we will only download a single file per package.
+        if (cfg.getFileCount() != 1) {
+            sLogger.d(TAG + ": package : "
+                    + mPackageName + " has "
+                    + cfg.getFileCount() + " files in the fileGroup");
+            mCallback.onFailure(new IllegalArgumentException("Invalid file count."));
+            return null;
+        }
+
+        ClientFile clientFile = cfg.getFile(0);
+        return Uri.parse(clientFile.getFileUri());
+    }
+
+    private static boolean validateSyncToken(long syncToken) {
+        // TODO(b/249813538) Add any additional requirements
+        return syncToken % 3600 == 0;
     }
 }
