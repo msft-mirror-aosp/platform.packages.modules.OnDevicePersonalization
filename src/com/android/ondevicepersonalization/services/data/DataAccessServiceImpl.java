@@ -18,15 +18,18 @@ package com.android.ondevicepersonalization.services.data;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
+import android.adservices.ondevicepersonalization.ModelId;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
@@ -43,6 +46,7 @@ import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -65,7 +69,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     @NonNull
     private final Context mApplicationContext;
     @NonNull
-    private final String mServicePackageName;
+    private final ComponentName mService;
     @Nullable
     private OnDevicePersonalizationVendorDataDao mVendorDataDao = null;
     @Nullable
@@ -79,34 +83,34 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private Map<String, byte[]> mRemoteData = null;
 
     public DataAccessServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             boolean includeLocalData,
             boolean includeEventData) {
-        this(servicePackageName, applicationContext, null, includeLocalData, includeEventData,
+        this(service, applicationContext, null, includeLocalData, includeEventData,
                 new Injector());
     }
 
     public DataAccessServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             @NonNull Map<String, byte[]> remoteData,
             boolean includeLocalData,
             boolean includeEventData) {
-        this(servicePackageName, applicationContext, remoteData, includeLocalData, includeEventData,
+        this(service, applicationContext, remoteData, includeLocalData, includeEventData,
                 new Injector());
     }
 
     @VisibleForTesting
     public DataAccessServiceImpl(
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull Context applicationContext,
             Map<String, byte[]> remoteData,
             boolean includeLocalData,
             boolean includeEventData,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
-        mServicePackageName = Objects.requireNonNull(servicePackageName, "servicePackageName");
+        mService = Objects.requireNonNull(service, "servicePackageName");
         mInjector = Objects.requireNonNull(injector, "injector");
         try {
             if (remoteData != null) {
@@ -114,19 +118,22 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 mRemoteData = new HashMap<>(remoteData);
             } else {
                 mVendorDataDao = mInjector.getVendorDataDao(
-                        mApplicationContext, servicePackageName,
-                        PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+                        mApplicationContext, mService,
+                        PackageUtils.getCertDigest(
+                                mApplicationContext, mService.getPackageName()));
             }
             mIncludeLocalData = includeLocalData;
             if (includeLocalData) {
                 mLocalDataDao = mInjector.getLocalDataDao(
-                        mApplicationContext, servicePackageName,
-                        PackageUtils.getCertDigest(mApplicationContext, servicePackageName));
+                        mApplicationContext, mService,
+                        PackageUtils.getCertDigest(
+                                mApplicationContext, mService.getPackageName()));
+                mLocalDataDao.createTable();
             } else {
                 mLocalDataDao = null;
             }
         } catch (PackageManager.NameNotFoundException nnfe) {
-            throw new IllegalArgumentException("Package: " + servicePackageName
+            throw new IllegalArgumentException("Service: " + mService.toString()
                     + " does not exist.", nnfe);
         }
         mIncludeEventData = includeEventData;
@@ -239,6 +246,12 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 }
                 mInjector.getExecutor().execute(
                         () -> getJoinedEvents(eventTimes[0], eventTimes[1], callback));
+                break;
+            case Constants.DATA_ACCESS_OP_GET_MODEL:
+                ModelId modelId =
+                        Objects.requireNonNull(
+                                params.getParcelable(Constants.EXTRA_MODEL_ID, ModelId.class));
+                mInjector.getExecutor().execute(() -> getModelFileDescriptor(modelId, callback));
                 break;
             default:
                 sendError(callback);
@@ -353,8 +366,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private void getRequests(long startTimeMillis, long endTimeMillis,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            List<Query> queries = mEventsDao.readAllQueries(startTimeMillis, endTimeMillis,
-                    mServicePackageName);
+            List<Query> queries = mEventsDao.readAllQueries(
+                    startTimeMillis, endTimeMillis, mService);
             List<RequestLogRecord> requestLogRecords = new ArrayList<>();
             for (Query query : queries) {
                 RequestLogRecord record = new RequestLogRecord.Builder()
@@ -377,9 +390,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private void getJoinedEvents(long startTimeMillis, long endTimeMillis,
             @NonNull IDataAccessServiceCallback callback) {
         try {
-            List<JoinedEvent> joinedEvents = mEventsDao.readJoinedTableRows(startTimeMillis,
-                    endTimeMillis,
-                    mServicePackageName);
+            List<JoinedEvent> joinedEvents = mEventsDao.readJoinedTableRows(
+                    startTimeMillis, endTimeMillis, mService);
             List<EventLogRecord> joinedLogRecords = new ArrayList<>();
             for (JoinedEvent joinedEvent : joinedEvents) {
                 RequestLogRecord requestLogRecord = new RequestLogRecord.Builder()
@@ -403,6 +415,42 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                     new OdpParceledListSlice<>(joinedLogRecords));
             sendResult(result, callback);
         } catch (Exception e) {
+            sendError(callback);
+        }
+    }
+
+    private void getModelFileDescriptor(
+            ModelId modelId, @NonNull IDataAccessServiceCallback callback) {
+        try {
+            byte[] modelData = null;
+            switch (modelId.getTableId()) {
+                case ModelId.TABLE_ID_REMOTE_DATA:
+                    modelData = mVendorDataDao.readSingleVendorDataRow(modelId.getKey());
+                    break;
+                case ModelId.TABLE_ID_LOCAL_DATA:
+                    modelData = mLocalDataDao.readSingleLocalDataRow(modelId.getKey());
+                    break;
+                default:
+                    throw new IllegalStateException(
+                            "Unsupported table name " + modelId.getTableId());
+            }
+
+            if (modelData == null) {
+                sLogger.e(TAG + " Failed to find model data from database: " + modelId.getKey());
+                sendError(callback);
+                return;
+            }
+            String modelFile =
+                    IoUtils.writeToTempFile(
+                            modelId.getKey() + "_" + mInjector.getTimeMillis(), modelData);
+            ParcelFileDescriptor modelFd =
+                    IoUtils.createFileDescriptor(modelFile, ParcelFileDescriptor.MODE_READ_ONLY);
+
+            Bundle result = new Bundle();
+            result.putParcelable(Constants.EXTRA_RESULT, modelFd);
+            sendResult(result, callback);
+        } catch (Exception e) {
+            sLogger.e(TAG + " Failed to find model data: " + modelId.getKey(), e);
             sendError(callback);
         }
     }
@@ -436,17 +484,17 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
         }
 
         OnDevicePersonalizationVendorDataDao getVendorDataDao(
-                Context context, String packageName, String certDigest
+                Context context, ComponentName service, String certDigest
         ) {
             return OnDevicePersonalizationVendorDataDao.getInstance(context,
-                    packageName, certDigest);
+                    service, certDigest);
         }
 
         OnDevicePersonalizationLocalDataDao getLocalDataDao(
-                Context context, String packageName, String certDigest
+                Context context, ComponentName service, String certDigest
         ) {
             return OnDevicePersonalizationLocalDataDao.getInstance(context,
-                    packageName, certDigest);
+                    service, certDigest);
         }
 
         EventsDao getEventsDao(

@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.Constants.TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING;
 
 import android.annotation.NonNull;
@@ -32,6 +34,7 @@ import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
@@ -42,17 +45,17 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
+import com.google.intelligence.fcp.client.RetryInfo;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
+import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-/**
- * The implementation of {@link IsolatedTrainingService}.
- */
+/** The implementation of {@link IsolatedTrainingService}. */
 public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     private static final String TAG = IsolatedTrainingServiceImpl.class.getSimpleName();
     private final AtomicBoolean mInterruptFlag = new AtomicBoolean(false);
@@ -63,7 +66,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     private final ComputationRunner mComputationRunner;
 
     public IsolatedTrainingServiceImpl() {
-        mComputationRunner = new ComputationRunner();
+        this(new ComputationRunner());
     }
 
     @VisibleForTesting
@@ -75,108 +78,174 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
     public void runFlTraining(@NonNull Bundle params, @NonNull ITrainingResultCallback callback) {
         Objects.requireNonNull(params);
         Objects.requireNonNull(callback);
+        FederatedComputeExecutors.getBackgroundExecutor()
+                .execute(() -> runTraining(params, callback));
+    }
+
+    private void runTraining(Bundle params, ITrainingResultCallback callback) {
         Trace.beginAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
-
-        IExampleStoreIterator exampleStoreIteratorBinder =
-                IExampleStoreIterator.Stub.asInterface(
-                        Objects.requireNonNull(
-                                params.getBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER)));
-        Objects.requireNonNull(exampleStoreIteratorBinder);
-
-        byte[] exampleSelectorBytes =
-                Objects.requireNonNull(params.getByteArray(Constants.EXTRA_EXAMPLE_SELECTOR));
-        ExampleSelector exampleSelector;
         try {
-            exampleSelector = ExampleSelector.parseFrom(exampleSelectorBytes);
-        } catch (InvalidProtocolBufferException e) {
-            throw new IllegalArgumentException("ExampleSelector proto is invalid", e);
-        }
-        ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
-        String populationName =
-                Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-        String taskName = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+            IExampleStoreIterator exampleStoreIteratorBinder =
+                    IExampleStoreIterator.Stub.asInterface(
+                            Objects.requireNonNull(
+                                    params.getBinder(
+                                            Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER)));
+            Objects.requireNonNull(exampleStoreIteratorBinder);
 
-        ParcelFileDescriptor inputCheckpointFd =
-                Objects.requireNonNull(
-                        params.getParcelable(
-                                Constants.EXTRA_INPUT_CHECKPOINT_FD, ParcelFileDescriptor.class));
-        ParcelFileDescriptor outputCheckpointFd =
-                Objects.requireNonNull(
-                        params.getParcelable(
-                                Constants.EXTRA_OUTPUT_CHECKPOINT_FD, ParcelFileDescriptor.class));
-        ParcelFileDescriptor clientPlanFd =
-                Objects.requireNonNull(
-                        params.getParcelable(
-                                Constants.EXTRA_CLIENT_ONLY_PLAN_FD, ParcelFileDescriptor.class));
+            byte[] exampleSelectorBytes =
+                    Objects.requireNonNull(params.getByteArray(Constants.EXTRA_EXAMPLE_SELECTOR));
+            ExampleSelector exampleSelector;
+            try {
+                exampleSelector = ExampleSelector.parseFrom(exampleSelectorBytes);
+            } catch (InvalidProtocolBufferException e) {
+                LogUtil.e(TAG, e, "ExampleSelector proto is invalid");
+                reportCelWithException(e);
+                sendResult(createFailedResult(), callback);
+                return;
+            }
+            ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
+            String populationName =
+                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
+            String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
 
-        byte[] clientPlanBytes = FileUtils.readFileDescriptorAsByteArray(clientPlanFd);
-        ClientOnlyPlan clientPlan;
-        try {
-            clientPlan = ClientOnlyPlan.parseFrom(clientPlanBytes);
-        } catch (InvalidProtocolBufferException e) {
-            throw new IllegalArgumentException("ClientOnlyPlan proto is invalid", e);
-        }
+            ParcelFileDescriptor inputCheckpointFd =
+                    Objects.requireNonNull(
+                            params.getParcelable(
+                                    Constants.EXTRA_INPUT_CHECKPOINT_FD,
+                                    ParcelFileDescriptor.class));
+            ParcelFileDescriptor outputCheckpointFd =
+                    Objects.requireNonNull(
+                            params.getParcelable(
+                                    Constants.EXTRA_OUTPUT_CHECKPOINT_FD,
+                                    ParcelFileDescriptor.class));
+            ParcelFileDescriptor clientPlanFd =
+                    Objects.requireNonNull(
+                            params.getParcelable(
+                                    Constants.EXTRA_CLIENT_ONLY_PLAN_FD,
+                                    ParcelFileDescriptor.class));
 
-        ListenableFuture<FLRunnerResult> resultFuture =
-                Futures.submit(
-                        () ->
-                                mComputationRunner.runTaskWithNativeRunner(
-                                        taskName,
+            byte[] clientPlanBytes = FileUtils.readFileDescriptorAsByteArray(clientPlanFd);
+            ClientOnlyPlan clientPlan;
+            try {
+                clientPlan = ClientOnlyPlan.parseFrom(clientPlanBytes);
+            } catch (InvalidProtocolBufferException e) {
+                LogUtil.e(TAG, e, "ClientOnlyPlan proto is invalid");
+                sendResult(createFailedResult(), callback);
+                return;
+            }
+
+            ListenableFuture<FLRunnerResult> resultFuture =
+                    Futures.submit(
+                            () ->
+                                    mComputationRunner.runTaskWithNativeRunner(
+                                            taskId,
+                                            populationName,
+                                            getFileDescriptorForTensorflow(inputCheckpointFd),
+                                            getFileDescriptorForTensorflow(outputCheckpointFd),
+                                            clientPlan,
+                                            exampleSelector,
+                                            recorder,
+                                            exampleStoreIteratorBinder,
+                                            mInterruptState),
+                            FederatedComputeExecutors.getBackgroundExecutor());
+
+            Futures.addCallback(
+                    resultFuture,
+                    new FutureCallback<FLRunnerResult>() {
+                        @Override
+                        public void onSuccess(FLRunnerResult result) {
+                            Bundle bundle = new Bundle();
+
+                            ArrayList<ExampleConsumption> exampleConsumptionArrayList =
+                                    recorder.finishRecordingAndGet();
+                            int numExamples = 0;
+                            for (ExampleConsumption exampleConsumption :
+                                    exampleConsumptionArrayList) {
+                                numExamples += exampleConsumption.getExampleCount();
+                            }
+                            if (result.getContributionResult() == ContributionResult.SUCCESS) {
+                                LogUtil.i(
+                                        TAG,
+                                        "training task %s: result %s, used %d examples",
                                         populationName,
-                                        getFileDescriptorForTensorflow(inputCheckpointFd),
-                                        getFileDescriptorForTensorflow(outputCheckpointFd),
-                                        clientPlan,
-                                        exampleSelector,
-                                        recorder,
-                                        exampleStoreIteratorBinder,
-                                        mInterruptState),
-                        FederatedComputeExecutors.getBackgroundExecutor());
-
-        Futures.addCallback(
-                resultFuture,
-                new FutureCallback<FLRunnerResult>() {
-                    @Override
-                    public void onSuccess(FLRunnerResult result) {
-                        Bundle bundle = new Bundle();
-                        bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
-                        ArrayList<ExampleConsumption> exampleConsumptionArrayList =
-                                recorder.finishRecordingAndGet();
-                        int numExamples = 0;
-                        for (ExampleConsumption exampleConsumption : exampleConsumptionArrayList) {
-                            numExamples += exampleConsumption.getExampleCount();
+                                        result.getContributionResult(),
+                                        numExamples);
+                            } else {
+                                LogUtil.i(
+                                        TAG,
+                                        "training task %s: result %s, error message %s",
+                                        populationName,
+                                        result.getContributionResult(),
+                                        result.getErrorMessage());
+                                reportCel();
+                                result =
+                                        result.toBuilder()
+                                                .setRetryInfo(
+                                                        RetryInfo.newBuilder()
+                                                                .setMinimumDelay(
+                                                                        Duration.newBuilder()
+                                                                                // Set retry to 24
+                                                                                // hours
+                                                                                // in case TF failed
+                                                                                // to
+                                                                                // do computation
+                                                                                .setSeconds(86400)))
+                                                .build();
+                            }
+                            bundle.putByteArray(
+                                    Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
+                            bundle.putParcelableArrayList(
+                                    ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
+                                    exampleConsumptionArrayList);
+                            sendResult(bundle, callback);
+                            Trace.endAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
                         }
-                        if (result.getContributionResult() == ContributionResult.SUCCESS) {
-                            LogUtil.i(
-                                    TAG,
-                                    "training task %s: result %s, used %d examples",
-                                    populationName,
-                                    result.getContributionResult(),
-                                    numExamples);
-                        } else {
-                            LogUtil.i(TAG, "training task %s: result %s, error message %s",
-                                    populationName, result.getContributionResult(),
-                                    result.getErrorMessage());
-                        }
-                        bundle.putParcelableArrayList(
-                                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST,
-                                exampleConsumptionArrayList);
-                        sendResult(bundle, callback);
-                        Trace.endAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
-                    }
 
-                    @Override
-                    public void onFailure(Throwable t) {
-                        LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
-                        Bundle bundle = new Bundle();
-                        FLRunnerResult result =
-                                FLRunnerResult.newBuilder()
-                                        .setContributionResult(ContributionResult.FAIL)
-                                        .build();
-                        bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
-                        sendResult(bundle, callback);
-                    }
-                },
-                FederatedComputeExecutors.getLightweightExecutor());
+                        @Override
+                        public void onFailure(Throwable t) {
+                            LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
+                            reportCelWithException(t);
+                            sendResult(createFailedResult(), callback);
+                        }
+                    },
+                    FederatedComputeExecutors.getLightweightExecutor());
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Got exception when run FL training");
+            reportCelWithException(e);
+            sendResult(createFailedResult(), callback);
+        }
+    }
+
+    private static void reportCel() {
+        ClientErrorLogger.getInstance()
+                .logError(
+                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR,
+                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+    }
+
+    private static void reportCelWithException(Throwable e) {
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        e,
+                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR,
+                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+    }
+
+    private Bundle createFailedResult() {
+        Bundle bundle = new Bundle();
+        FLRunnerResult result =
+                FLRunnerResult.newBuilder()
+                        .setContributionResult(ContributionResult.FAIL)
+                        .setRetryInfo(
+                                RetryInfo.newBuilder()
+                                        .setMinimumDelay(
+                                                Duration.newBuilder()
+                                                        // Set retry to 24 hours in case TF failed
+                                                        // to do computation
+                                                        .setSeconds(86400)))
+                        .build();
+        bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
+        return bundle;
     }
 
     // We implement a customized tensorflow filesystem which support file descriptor for read and

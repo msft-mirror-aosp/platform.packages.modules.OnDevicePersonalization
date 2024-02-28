@@ -19,7 +19,6 @@ package android.adservices.ondevicepersonalization;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -65,7 +64,7 @@ public class LocalDataTest {
     @Test
     public void testLookupError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLocalData.get("z"));
+        assertNull(mLocalData.get("z"));
     }
 
     @Test
@@ -88,8 +87,7 @@ public class LocalDataTest {
     @Test
     public void testPutError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLocalData.put("z",
-                new byte[10]));
+        assertNull(mLocalData.put("z", new byte[10]));
     }
 
     @Test
@@ -102,7 +100,7 @@ public class LocalDataTest {
     @Test
     public void testRemoveError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mLocalData.remove("z"));
+        assertNull(mLocalData.remove("z"));
     }
 
     public static class LocalDataService extends IDataAccessService.Stub {

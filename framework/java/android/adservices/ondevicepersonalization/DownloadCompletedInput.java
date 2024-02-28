@@ -26,7 +26,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The input data for {@link
- * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
+ * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, android.os.OutcomeReceiver)}.
  *
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)

@@ -16,40 +16,43 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_EXECUTE;
+
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
 import android.adservices.ondevicepersonalization.RenderingConfig;
-import android.adservices.ondevicepersonalization.UserData;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.federatedcompute.FederatedComputeServiceImpl;
+import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
-import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
+import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
-import com.android.ondevicepersonalization.services.util.PrivacyUtils;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -60,26 +63,30 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Handles a surface package request from an app or SDK.
  */
-public class AppRequestFlow {
+public class AppRequestFlow implements ServiceFlow<Bundle> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "AppRequestFlow";
-    private static final String TASK_NAME = "AppRequest";
+    private static final String TAG = AppRequestFlow.class.getSimpleName();
     @NonNull
     private final String mCallingPackageName;
     @NonNull
     private final ComponentName mService;
     @NonNull
-    private final PersistableBundle mParams;
+    private final Bundle mWrappedParams;
     @NonNull
     private final IExecuteCallback mCallback;
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
+    @NonNull
+    private IsolatedModelServiceProvider mModelServiceProvider;
+    private long mStartServiceTimeMillis;
+    private byte[] mSerializedAppParams;
 
     @VisibleForTesting
     static class Injector {
@@ -99,18 +106,16 @@ public class AppRequestFlow {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
 
-        ProcessRunner getProcessRunner() {
-            return ProcessRunnerImpl.getInstance();
-        }
-
         boolean isPersonalizationStatusEnabled() {
             UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
             return privacyStatus.isPersonalizationStatusEnabled();
         }
 
-        boolean isOutputDataAllowed(
-                String servicePackageName, String appPackageName, Context context) {
-            return PrivacyUtils.isOutputDataAllowed(servicePackageName, appPackageName, context);
+        boolean shouldValidateExecuteOutput() {
+            return DeviceConfig.getBoolean(
+                    /* namespace= */ "on_device_personalization",
+                    /* name= */ "debug.validate_rendering_config_keys",
+                    /* defaultValue= */ true);
         }
     }
 
@@ -120,11 +125,11 @@ public class AppRequestFlow {
     public AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis) {
-        this(callingPackageName, service, params,
+        this(callingPackageName, service, wrappedParams,
                 callback, context, startTimeMillis,
                 new Injector());
     }
@@ -133,7 +138,7 @@ public class AppRequestFlow {
     AppRequestFlow(
             @NonNull String callingPackageName,
             @NonNull ComponentName service,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis,
@@ -141,147 +146,198 @@ public class AppRequestFlow {
         sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
         mService = Objects.requireNonNull(service);
-        mParams = Objects.requireNonNull(params);
+        mWrappedParams = Objects.requireNonNull(wrappedParams);
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
         mStartTimeMillis = startTimeMillis;
         mInjector = Objects.requireNonNull(injector);
     }
 
-    /** Runs the request processing flow. */
-    public void run() {
-        var unused = Futures.submit(() -> this.processRequest(), mInjector.getExecutor());
+    @Override
+    public boolean isServiceFlowReady() {
+        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
+
+        if (!mInjector.isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is disabled.");
+            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+            return false;
+        }
+
+        try {
+            ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
+                    mWrappedParams.getParcelable(
+                            Constants.EXTRA_APP_PARAMS_SERIALIZED, ByteArrayParceledSlice.class));
+            mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": Failed to extract app params.", e);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            return false;
+        }
+
+        AppManifestConfig config = null;
+        try {
+            config = Objects.requireNonNull(
+                    AppManifestConfigHelper.getAppManifestConfig(
+                            mContext, mService.getPackageName()));
+        } catch (Exception e) {
+            sLogger.d(TAG + ": Failed to read manifest.", e);
+            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND);
+            return false;
+        }
+
+        if (!mService.getClassName().equals(config.getServiceName())) {
+            sLogger.d(TAG + "service class not found");
+            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
+            return false;
+        }
+
+        return true;
     }
 
-    private void processRequest() {
-        try {
-            if (!mInjector.isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": Personalization is disabled.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
-                return;
-            }
-            AppManifestConfig config = null;
-            try {
-                config = Objects.requireNonNull(
-                        AppManifestConfigHelper.getAppManifestConfig(
-                        mContext, mService.getPackageName()));
-            } catch (Exception e) {
-                sLogger.d(TAG + ": Failed to read manifest.", e);
-                sendErrorResult(Constants.STATUS_NAME_NOT_FOUND);
-                return;
-            }
-            if (!mService.getClassName().equals(config.getServiceName())) {
-                sLogger.d(TAG + "service class not found");
-                sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
-                return;
-            }
-            ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                        TASK_NAME, mService);
-            ListenableFuture<ExecuteOutputParcel> executeResultFuture =
-                    FluentFuture.from(loadFuture)
-                    .transformAsync(
-                            result -> executeAppRequest(result),
-                            mInjector.getExecutor()
-                    )
-                    .transform(
-                            result -> {
-                                return result.getParcelable(
-                                        Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
-                            },
-                            mInjector.getExecutor()
-                    );
+    @Override
+    public ComponentName getService() {
+        return mService;
+    }
 
-            ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
-                    .transformAsync(input -> logQuery(input), mInjector.getExecutor());
+    @Override
+    public Bundle getServiceParams() {
+        Bundle serviceParams = new Bundle();
 
-            ListenableFuture<Bundle> outputResultFuture =
-                    FluentFuture.from(
-                            Futures.whenAllSucceed(executeResultFuture, queryIdFuture)
-                                .callAsync(
-                                        () -> createResultBundle(
-                                                executeResultFuture, queryIdFuture),
-                                        mInjector.getExecutor()))
-                            .withTimeout(
+        serviceParams.putParcelable(
+                Constants.EXTRA_INPUT,
+                new ExecuteInputParcel.Builder()
+                        .setAppPackageName(mCallingPackageName)
+                        .setSerializedAppParams(new ByteArrayParceledSlice(mSerializedAppParams))
+                        .build());
+        serviceParams.putBinder(
+                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
+                new DataAccessServiceImpl(
+                        mService,
+                        mContext,
+                        /* includeLocalData */ true,
+                        /* includeEventData */ true));
+        serviceParams.putBinder(
+                Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
+                new FederatedComputeServiceImpl(mService, mContext));
+        serviceParams.putParcelable(
+                Constants.EXTRA_USER_DATA,
+                new UserDataAccessor().getUserData());
+        mModelServiceProvider = new IsolatedModelServiceProvider();
+        IIsolatedModelService modelService = mModelServiceProvider.getModelService(mContext);
+        serviceParams.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, modelService.asBinder());
+
+        return serviceParams;
+    }
+
+    @Override
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        var unused = FluentFuture.from(runServiceFuture)
+                .transform(
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    API_SERVICE_ON_EXECUTE, val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor()
+                )
+                .catchingAsync(
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    API_SERVICE_ON_EXECUTE, /* result= */ null,
+                                    mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor()
+                );
+    }
+
+    @Override
+    public ListenableFuture<Bundle> getServiceFlowResultFuture(
+            ListenableFuture<Bundle> runServiceFuture) {
+        ListenableFuture<ExecuteOutputParcel> executeResultFuture =
+                FluentFuture.from(runServiceFuture)
+                        .transform(
+                                result -> result.getParcelable(
+                                        Constants.EXTRA_RESULT, ExecuteOutputParcel.class),
+                                mInjector.getExecutor()
+                        );
+
+        ListenableFuture<Long> queryIdFuture = FluentFuture.from(executeResultFuture)
+                .transformAsync(this::validateExecuteOutput, mInjector.getExecutor())
+                .transformAsync(this::logQuery, mInjector.getExecutor());
+
+        return FluentFuture.from(
+                                Futures.whenAllSucceed(executeResultFuture, queryIdFuture)
+                                        .callAsync(
+                                                () -> createResultBundle(
+                                                        executeResultFuture, queryIdFuture),
+                                                mInjector.getExecutor()))
+                        .withTimeout(
                                 mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
                                 TimeUnit.SECONDS,
                                 mInjector.getScheduledExecutor()
-                            );
-
-            Futures.addCallback(
-                    outputResultFuture,
-                    new FutureCallback<Bundle>() {
-                        @Override
-                        public void onSuccess(Bundle bundle) {
-                            sendSuccessResult(bundle);
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
-                            sLogger.w(TAG + ": Request failed.", t);
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-                        }
-                    },
-                    mInjector.getExecutor());
-
-            var unused = Futures.whenAllComplete(loadFuture, outputResultFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                    mInjector.getExecutor());
-        } catch (Exception e) {
-            sLogger.e(TAG + ": Could not process request.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-        }
+                        );
     }
 
-    private ListenableFuture<Bundle> executeAppRequest(
-            IsolatedServiceInfo isolatedServiceInfo) {
-        sLogger.d(TAG + ": executeAppRequest() started.");
-        Bundle serviceParams = new Bundle();
-        ExecuteInputParcel input =
-                new ExecuteInputParcel.Builder()
-                        .setAppPackageName(mCallingPackageName)
-                        .setAppParams(mParams)
-                        .build();
-        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mService.getPackageName(), mContext, /* includeLocalData */ true,
-                /* includeEventData */ true);
-        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        FederatedComputeServiceImpl fcpBinder = new FederatedComputeServiceImpl(mService, mContext);
-        serviceParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER, fcpBinder);
-        UserDataAccessor userDataAccessor = new UserDataAccessor();
-        UserData userData = userDataAccessor.getUserData();
-        serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
-        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, Constants.OP_EXECUTE, serviceParams);
-        return FluentFuture.from(result)
-                .transform(
-                    val -> {
-                        writeServiceRequestMetrics(
-                                val, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_SUCCESS);
-                        return val;
-                    },
-                    mInjector.getExecutor()
-                )
-                .catchingAsync(
-                    Exception.class,
-                    e -> {
-                        writeServiceRequestMetrics(
-                                null, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_INTERNAL_ERROR);
-                        return Futures.immediateFailedFuture(e);
-                    },
-                    mInjector.getExecutor()
-                );
+    @Override
+    public void returnResultThroughCallback(ListenableFuture<Bundle> serviceFlowResultFuture) {
+        Futures.addCallback(
+                serviceFlowResultFuture,
+                new FutureCallback<Bundle>() {
+                    @Override
+                    public void onSuccess(Bundle bundle) {
+                        sendSuccessResult(bundle);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.w(TAG + ": Request failed.", t);
+                        if (t instanceof OdpServiceException) {
+                            sendErrorResult(((OdpServiceException) t).getErrorCode());
+                        } else {
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                        }
+                    }
+                },
+                mInjector.getExecutor());
+    }
+
+    @Override
+    public void cleanUpServiceParams() {
+        mModelServiceProvider.unBindFromModelService();
+    }
+
+    private ListenableFuture<ExecuteOutputParcel> validateExecuteOutput(
+            ExecuteOutputParcel result) {
+        sLogger.d(TAG + ": validateExecuteOutput() started.");
+        if (mInjector.shouldValidateExecuteOutput()) {
+            try {
+                OnDevicePersonalizationVendorDataDao vendorDataDao =
+                        OnDevicePersonalizationVendorDataDao.getInstance(mContext,
+                                mService,
+                                PackageUtils.getCertDigest(mContext, mService.getPackageName()));
+                if (result.getRenderingConfig() != null) {
+                    Set<String> keyset = vendorDataDao.readAllVendorDataKeys();
+                    if (!keyset.containsAll(result.getRenderingConfig().getKeys())) {
+                        return Futures.immediateFailedFuture(
+                                new OdpServiceException(Constants.STATUS_SERVICE_FAILED));
+                    }
+                }
+            } catch (Exception e) {
+                return Futures.immediateFailedFuture(e);
+            }
+        }
+        return Futures.immediateFuture(result);
     }
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
         sLogger.d(TAG + ": logQuery() started.");
         return LogUtils.writeLogRecords(
                 mContext,
-                mService.getPackageName(),
+                mService,
                 result.getRequestLogRecord(),
                 result.getEventLogRecords());
     }
@@ -306,13 +362,26 @@ public class AppRequestFlow {
             }
             Bundle bundle = new Bundle();
             bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, token);
-            if (mInjector.isOutputDataAllowed(
-                    mService.getPackageName(), mCallingPackageName, mContext)) {
+            if (isOutputDataAllowed()) {
                 bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, result.getOutputData());
             }
             return Futures.immediateFuture(bundle);
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
+        }
+    }
+
+    private boolean isOutputDataAllowed() {
+        try {
+            return AllowListUtils.isPairAllowListed(
+                    mCallingPackageName,
+                    PackageUtils.getCertDigest(mContext, mCallingPackageName),
+                    mService.getPackageName(),
+                    PackageUtils.getCertDigest(mContext, mService.getPackageName()),
+                    mInjector.getFlags().getOutputDataAllowList());
+        } catch (Exception e) {
+            sLogger.d(TAG + ": allow list error", e);
+            return false;
         }
     }
 
@@ -324,7 +393,7 @@ public class AppRequestFlow {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(responseCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
@@ -334,29 +403,8 @@ public class AppRequestFlow {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(errorCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
         }
-    }
-
-    private void writeAppRequestMetrics(int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
-                .setLatencyMillis(latencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
-    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        int overheadLatencyMillis =
-                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_EXECUTE)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 }
 

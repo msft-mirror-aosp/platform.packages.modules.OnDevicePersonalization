@@ -20,6 +20,7 @@ import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.internal.annotations.VisibleForTesting;
 
 /**
  * An opaque reference to content that can be displayed in a {@link android.view.SurfaceView}. This
@@ -34,7 +35,9 @@ public class SurfacePackageToken {
         mTokenString = tokenString;
     }
 
-    @NonNull String getTokenString() {
+    /** @hide */
+    @VisibleForTesting
+    @NonNull public String getTokenString() {
         return mTokenString;
     }
 }

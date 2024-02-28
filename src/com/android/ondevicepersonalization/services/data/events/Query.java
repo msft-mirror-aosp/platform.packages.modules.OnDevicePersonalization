@@ -18,9 +18,11 @@ package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 
 /**
  * Query object for the Query table
@@ -38,11 +40,16 @@ public class Query {
 
     /** Name of the service that handled the request */
     @NonNull
-    private final String mServiceName;
+    private final ComponentName mService;
 
     /** Blob representing the query. */
     @NonNull
     private final byte[] mQueryData;
+
+    /** The name of the service */
+    public String getServiceName() {
+        return DbUtils.toTableValue(mService);
+    }
 
 
 
@@ -63,13 +70,13 @@ public class Query {
     /* package-private */ Query(
             long queryId,
             long timeMillis,
-            @NonNull String serviceName,
+            @NonNull ComponentName service,
             @NonNull byte[] queryData) {
         this.mQueryId = queryId;
         this.mTimeMillis = timeMillis;
-        this.mServiceName = serviceName;
+        this.mService = service;
         AnnotationValidations.validate(
-                NonNull.class, null, mServiceName);
+                NonNull.class, null, mService);
         this.mQueryData = queryData;
         AnnotationValidations.validate(
                 NonNull.class, null, mQueryData);
@@ -97,8 +104,8 @@ public class Query {
      * Name of the service that handled the request
      */
     @DataClass.Generated.Member
-    public @NonNull String getServiceName() {
-        return mServiceName;
+    public @NonNull ComponentName getService() {
+        return mService;
     }
 
     /**
@@ -124,7 +131,7 @@ public class Query {
         return true
                 && mQueryId == that.mQueryId
                 && mTimeMillis == that.mTimeMillis
-                && java.util.Objects.equals(mServiceName, that.mServiceName)
+                && java.util.Objects.equals(mService, that.mService)
                 && java.util.Arrays.equals(mQueryData, that.mQueryData);
     }
 
@@ -137,7 +144,7 @@ public class Query {
         int _hash = 1;
         _hash = 31 * _hash + Long.hashCode(mQueryId);
         _hash = 31 * _hash + Long.hashCode(mTimeMillis);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mServiceName);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mService);
         _hash = 31 * _hash + java.util.Arrays.hashCode(mQueryData);
         return _hash;
     }
@@ -151,7 +158,7 @@ public class Query {
 
         private long mQueryId;
         private long mTimeMillis;
-        private @NonNull String mServiceName;
+        private @NonNull ComponentName mService;
         private @NonNull byte[] mQueryData;
 
         private long mBuilderFieldsSet = 0L;
@@ -166,7 +173,7 @@ public class Query {
          *   The id of the query.
          * @param timeMillis
          *   Time of the query in milliseconds.
-         * @param serviceName
+         * @param service
          *   Name of the service that handled the request
          * @param queryData
          *   Blob representing the query.
@@ -174,13 +181,13 @@ public class Query {
         public Builder(
                 long queryId,
                 long timeMillis,
-                @NonNull String serviceName,
+                @NonNull ComponentName service,
                 @NonNull byte[] queryData) {
             mQueryId = queryId;
             mTimeMillis = timeMillis;
-            mServiceName = serviceName;
+            mService = service;
             AnnotationValidations.validate(
-                    NonNull.class, null, mServiceName);
+                    NonNull.class, null, mService);
             mQueryData = queryData;
             AnnotationValidations.validate(
                     NonNull.class, null, mQueryData);
@@ -212,10 +219,10 @@ public class Query {
          * Name of the service that handled the request
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setServiceName(@NonNull String value) {
+        public @NonNull Builder setService(@NonNull ComponentName value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
-            mServiceName = value;
+            mService = value;
             return this;
         }
 
@@ -238,7 +245,7 @@ public class Query {
             Query o = new Query(
                     mQueryId,
                     mTimeMillis,
-                    mServiceName,
+                    mService,
                     mQueryData);
             return o;
         }
@@ -252,10 +259,10 @@ public class Query {
     }
 
     @DataClass.Generated(
-            time = 1706637243750L,
+            time = 1708721575103L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/Query.java",
-            inputSignatures = "private final  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull java.lang.String mServiceName\nprivate final @android.annotation.NonNull byte[] mQueryData\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final  long mQueryId\nprivate final  long mTimeMillis\nprivate final @android.annotation.NonNull android.content.ComponentName mService\nprivate final @android.annotation.NonNull byte[] mQueryData\npublic  java.lang.String getServiceName()\nclass Query extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
