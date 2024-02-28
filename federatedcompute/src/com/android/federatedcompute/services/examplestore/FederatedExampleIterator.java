@@ -19,6 +19,11 @@ package com.android.federatedcompute.services.examplestore;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR__NEXT_TIMEOUT;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
+
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import android.federatedcompute.aidl.IExampleStoreIterator;
@@ -31,6 +36,7 @@ import android.util.Pair;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.util.Preconditions;
 
 import com.google.common.util.concurrent.SettableFuture;
@@ -171,6 +177,11 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 mExampleStoreIterator.next(mIteratorCallback);
             } catch (RemoteException e) {
                 close();
+                ClientErrorLogger.getInstance()
+                        .logErrorWithExceptionInfo(
+                                e,
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
                 throw ErrorStatusException.create(
                         Code.UNAVAILABLE_VALUE, e, "Failed to call next()");
             }
@@ -180,19 +191,35 @@ public final class FederatedExampleIterator implements ExampleIterator {
                 resultOrFailure = resultOrErrorCodeFuture.get(TIMEOUT_SECS, SECONDS);
             } catch (ExecutionException e) {
                 close();
+                ClientErrorLogger.getInstance()
+                        .logErrorWithExceptionInfo(
+                                e,
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
                 throw new IllegalStateException("Failed to get iterator result", e);
             } catch (TimeoutException e) {
                 close();
+                ClientErrorLogger.getInstance()
+                        .logErrorWithExceptionInfo(
+                                e,
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR__NEXT_TIMEOUT,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
                 throw ErrorStatusException.create(
                         Code.UNAVAILABLE_VALUE, "next() timed out (%ss)", TIMEOUT_SECS);
             }
 
             if (resultOrFailure.second != null) {
                 close();
-                throw ErrorStatusException.create(
+                ErrorStatusException e = ErrorStatusException.create(
                         Code.UNAVAILABLE_VALUE,
                         "OnIteratorNextFailure: %s",
                         resultOrFailure.second);
+                ClientErrorLogger.getInstance()
+                        .logErrorWithExceptionInfo(
+                                e,
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+                throw e;
             }
             if (resultOrFailure.first == null) {
                 close();
@@ -211,6 +238,11 @@ public final class FederatedExampleIterator implements ExampleIterator {
                     mExampleStoreIterator.close();
                 } catch (RemoteException e) {
                     LogUtil.w(TAG, e, "Exception during call to IExampleStoreIterator.close");
+                    ClientErrorLogger.getInstance()
+                            .logErrorWithExceptionInfo(
+                                    e,
+                                    AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION,
+                                    AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
                 }
             }
         }
