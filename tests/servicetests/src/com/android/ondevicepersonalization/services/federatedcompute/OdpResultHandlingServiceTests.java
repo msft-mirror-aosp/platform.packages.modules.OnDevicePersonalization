@@ -87,17 +87,16 @@ public class OdpResultHandlingServiceTests {
         assertNotNull(binder);
 
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(
-                mContext.getPackageName(), SERVICE_CLASS);
+        ContextData contextData = new ContextData(mContext.getPackageName(), SERVICE_CLASS);
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
-        input.putString(ClientConstants.EXTRA_TASK_NAME, "task_name");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "task_name");
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
         ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
         exampleConsumptions.add(
                 new ExampleConsumption.Builder()
-                        .setTaskName("task_name")
+                        .setTaskId("task_name")
                         .setExampleCount(100)
                         .setSelectionCriteria(new byte[] {10, 0, 1})
                         .setResumptionToken(new byte[] {10, 0, 1})
@@ -129,12 +128,12 @@ public class OdpResultHandlingServiceTests {
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
-        input.putString(ClientConstants.EXTRA_TASK_NAME, "task_name");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "task_name");
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_TRAINING_FAILED);
         ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
         exampleConsumptions.add(
                 new ExampleConsumption.Builder()
-                        .setTaskName("task")
+                        .setTaskId("task")
                         .setExampleCount(100)
                         .setSelectionCriteria(new byte[] {10, 0, 1})
                         .setResumptionToken(new byte[] {10, 0, 1})

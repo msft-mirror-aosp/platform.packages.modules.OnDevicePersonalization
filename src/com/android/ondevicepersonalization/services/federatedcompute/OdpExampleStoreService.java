@@ -88,8 +88,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
     private final Injector mInjector = new Injector();
 
     /** Generates a unique task identifier from the given strings */
-    public static String getTaskIdentifier(String populationName, String taskName) {
-        return populationName + "_" + taskName;
+    public static String getTaskIdentifier(String populationName, String taskId) {
+        return populationName + "_" + taskId;
     }
 
     @Override
@@ -103,8 +103,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             String ownerClassName = contextData.getClassName();
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-            String taskName =
-                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+            String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
 
             EventsDao eventDao = EventsDao.getInstance(getContext());
 
@@ -146,8 +145,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             // Get resumptionToken
             EventState eventState =
-                    eventDao.getEventState(
-                            getTaskIdentifier(populationName, taskName), owner);
+                    eventDao.getEventState(getTaskIdentifier(populationName, taskId), owner);
             byte[] resumptionToken = null;
             if (eventState != null) {
                 resumptionToken = eventState.getToken();
@@ -157,7 +155,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     new TrainingExamplesInputParcel.Builder()
                             .setResumptionToken(resumptionToken)
                             .setPopulationName(populationName)
-                            .setTaskName(taskName)
+                            .setTaskName(taskId)
                             .build();
 
             String className =
@@ -237,8 +235,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         sLogger.d(TAG + ": executeOnTrainingExamples() started.");
         Bundle serviceParams = new Bundle();
         serviceParams.putParcelable(Constants.EXTRA_INPUT, exampleInput);
-        String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                getContext(), packageName);
+        String serviceClass =
+                AppManifestConfigHelper.getServiceNameFromOdpSettings(getContext(), packageName);
         DataAccessServiceImpl binder =
                 new DataAccessServiceImpl(
                         ComponentName.createRelative(packageName, serviceClass),
@@ -258,7 +256,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    val, mInjector.getClock(),
+                                    val,
+                                    mInjector.getClock(),
                                     Constants.STATUS_SUCCESS,
                                     isolatedServiceInfo.getStartTimeMillis());
                             return val;
@@ -268,7 +267,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    /* result= */ null, mInjector.getClock(),
+                                    /* result= */ null,
+                                    mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR,
                                     isolatedServiceInfo.getStartTimeMillis());
                             return Futures.immediateFailedFuture(e);
