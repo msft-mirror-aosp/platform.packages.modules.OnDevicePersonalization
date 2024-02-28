@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -28,6 +29,7 @@ import android.os.IBinder;
 
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
 import com.android.ondevicepersonalization.services.display.WebViewFlow;
+import com.android.ondevicepersonalization.services.download.DownloadFlow;
 import com.android.ondevicepersonalization.services.request.AppRequestFlow;
 import com.android.ondevicepersonalization.services.request.RenderFlow;
 import com.android.ondevicepersonalization.services.webtrigger.WebTriggerFlow;
@@ -55,6 +57,9 @@ public class ServiceFlowFactory {
                     new WebViewFlow((Context) args[0], (ComponentName) args[1], (long) args[2],
                             (RequestLogRecord) args[3], (FutureCallback<EventOutputParcel>) args[4],
                             (EventUrlPayload) args[5]);
+            case DOWNLOAD_FLOW ->
+                    new DownloadFlow((String) args[0], (Context) args[1],
+                            (FutureCallback<DownloadCompletedOutputParcel>) args[2]);
             default -> throw new IllegalArgumentException(
                     "Invalid service flow type: " + serviceFlowType);
         };

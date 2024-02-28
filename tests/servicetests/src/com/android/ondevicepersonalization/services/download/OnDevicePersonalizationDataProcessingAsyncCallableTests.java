@@ -46,6 +46,7 @@ import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStora
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.After;
 import org.junit.Before;
@@ -258,7 +259,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
 
     class TestInjector extends OnDevicePersonalizationDataProcessingAsyncCallable.Injector {
         @Override
-        FutureCallback<DownloadCompletedOutputParcel> getCallback() {
+        FutureCallback<DownloadCompletedOutputParcel> getFutureCallback(
+                SettableFuture<Boolean> settableFuture) {
             return mTestCallback;
         }
     }

@@ -306,7 +306,7 @@ public final class IsolatedTrainingServiceImplTest {
     private Bundle buildInputBundle() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
-        bundle.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        bundle.putString(ClientConstants.EXTRA_TASK_ID, TASK_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
