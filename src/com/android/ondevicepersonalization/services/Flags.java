@@ -203,6 +203,15 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
     }
 
+    /**
+     * The ART image loading optimization is disabled by default.
+     */
+    boolean IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED = false;
+
+    default boolean isArtImageLoadingOptimizationEnabled() {
+        return IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
+    }
+
     default String getCallerAppAllowList() {
         return DEFAULT_CALLER_APP_ALLOW_LIST;
     }
