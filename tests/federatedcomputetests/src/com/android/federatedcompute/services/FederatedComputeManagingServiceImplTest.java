@@ -28,6 +28,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
+import com.android.federatedcompute.services.security.AuthorizationTokenDeletionJobService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -42,10 +43,15 @@ public final class FederatedComputeManagingServiceImplTest {
 
     @Test
     public void testBindableFederatedComputeService() {
-        MockitoSession session = ExtendedMockito.mockitoSession()
-                .spyStatic(BackgroundKeyFetchJobService.class).startMocking();
+        MockitoSession session =
+                ExtendedMockito.mockitoSession()
+                        .spyStatic(BackgroundKeyFetchJobService.class)
+                        .spyStatic(AuthorizationTokenDeletionJobService.class)
+                        .startMocking();
         ExtendedMockito.doReturn(true)
                 .when(() -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(any(), any()));
+        ExtendedMockito.doReturn(true)
+                .when(() -> AuthorizationTokenDeletionJobService.scheduleJobIfNeeded(any(), any()));
         try {
             FederatedComputeManagingServiceImpl spyFcpService =
                     spy(new FederatedComputeManagingServiceImpl());
@@ -55,8 +61,11 @@ public final class FederatedComputeManagingServiceImplTest {
                             ApplicationProvider.getApplicationContext(),
                             FederatedComputeManagingServiceImpl.class);
             IBinder binder = spyFcpService.onBind(intent);
-            ExtendedMockito.verify(() -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(
-                    any(), any()), times(1));
+            ExtendedMockito.verify(
+                    () -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(any(), any()), times(1));
+            ExtendedMockito.verify(
+                    () -> AuthorizationTokenDeletionJobService.scheduleJobIfNeeded(any(), any()),
+                    times(1));
             assertNotNull(binder);
         } finally {
             session.finishMocking();

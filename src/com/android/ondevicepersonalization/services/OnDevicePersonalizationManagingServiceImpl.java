@@ -20,6 +20,7 @@ import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationM
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
+import android.os.Trace;
 
 /** Implementation of OnDevicePersonalization Service */
 public class OnDevicePersonalizationManagingServiceImpl extends Service {
@@ -27,7 +28,9 @@ public class OnDevicePersonalizationManagingServiceImpl extends Service {
 
     @Override
     public void onCreate() {
+        Trace.beginSection("OdpManagingService#Initialization");
         mBinder = new OnDevicePersonalizationManagingServiceDelegate(this);
+        Trace.endSection();
     }
 
     @Override

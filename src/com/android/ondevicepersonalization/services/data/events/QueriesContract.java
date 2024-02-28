@@ -36,7 +36,7 @@ public class QueriesContract {
         public static final String TIME_MILLIS = "timeMillis";
 
         /** Name of the package that handled the request */
-        public static final String SERVICE_PACKAGE_NAME = "servicePackageName";
+        public static final String SERVICE_NAME = "serviceName";
 
         /** Blob representing the common query fields. */
         public static final String QUERY_DATA = "queryData";
@@ -45,7 +45,7 @@ public class QueriesContract {
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
                     + QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + TIME_MILLIS + " INTEGER NOT NULL,"
-                    + SERVICE_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + SERVICE_NAME + " TEXT NOT NULL,"
                     + QUERY_DATA + " BLOB NOT NULL)";
 
         private QueriesEntry() {}

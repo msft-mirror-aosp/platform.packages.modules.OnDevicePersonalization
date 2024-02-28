@@ -17,9 +17,11 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 
 import com.android.ondevicepersonalization.internal.util.AnnotationValidations;
 import com.android.ondevicepersonalization.internal.util.DataClass;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 
 /**
  * EventState object for the EventState table
@@ -35,11 +37,16 @@ public class EventState {
 
     /** Name of the service package for this event */
     @NonNull
-    private final String mServicePackageName;
+    private final ComponentName mService;
 
     /** Unique identifier of the task for processing this event */
     @NonNull
     private final String mTaskIdentifier;
+
+    /** The name of the service */
+    public String getServiceName() {
+        return DbUtils.toTableValue(mService);
+    }
 
 
 
@@ -59,14 +66,14 @@ public class EventState {
     @DataClass.Generated.Member
     /* package-private */ EventState(
             @NonNull byte[] token,
-            @NonNull String servicePackageName,
+            @NonNull ComponentName service,
             @NonNull String taskIdentifier) {
         this.mToken = token;
         AnnotationValidations.validate(
                 NonNull.class, null, mToken);
-        this.mServicePackageName = servicePackageName;
+        this.mService = service;
         AnnotationValidations.validate(
-                NonNull.class, null, mServicePackageName);
+                NonNull.class, null, mService);
         this.mTaskIdentifier = taskIdentifier;
         AnnotationValidations.validate(
                 NonNull.class, null, mTaskIdentifier);
@@ -86,8 +93,8 @@ public class EventState {
      * Name of the service package for this event
      */
     @DataClass.Generated.Member
-    public @NonNull String getServicePackageName() {
-        return mServicePackageName;
+    public @NonNull ComponentName getService() {
+        return mService;
     }
 
     /**
@@ -112,7 +119,7 @@ public class EventState {
         //noinspection PointlessBooleanExpression
         return true
                 && java.util.Arrays.equals(mToken, that.mToken)
-                && java.util.Objects.equals(mServicePackageName, that.mServicePackageName)
+                && java.util.Objects.equals(mService, that.mService)
                 && java.util.Objects.equals(mTaskIdentifier, that.mTaskIdentifier);
     }
 
@@ -124,7 +131,7 @@ public class EventState {
 
         int _hash = 1;
         _hash = 31 * _hash + java.util.Arrays.hashCode(mToken);
-        _hash = 31 * _hash + java.util.Objects.hashCode(mServicePackageName);
+        _hash = 31 * _hash + java.util.Objects.hashCode(mService);
         _hash = 31 * _hash + java.util.Objects.hashCode(mTaskIdentifier);
         return _hash;
     }
@@ -137,33 +144,34 @@ public class EventState {
     public static class Builder {
 
         private @NonNull byte[] mToken;
-        private @NonNull String mServicePackageName;
+        private @NonNull ComponentName mService;
         private @NonNull String mTaskIdentifier;
 
         private long mBuilderFieldsSet = 0L;
 
-        public Builder() {}
+        public Builder() {
+        }
 
         /**
          * Creates a new Builder.
          *
          * @param token
          *   Token representing the event state.
-         * @param servicePackageName
+         * @param service
          *   Name of the service package for this event
          * @param taskIdentifier
          *   Unique identifier of the task for processing this event
          */
         public Builder(
                 @NonNull byte[] token,
-                @NonNull String servicePackageName,
+                @NonNull ComponentName service,
                 @NonNull String taskIdentifier) {
             mToken = token;
             AnnotationValidations.validate(
                     NonNull.class, null, mToken);
-            mServicePackageName = servicePackageName;
+            mService = service;
             AnnotationValidations.validate(
-                    NonNull.class, null, mServicePackageName);
+                    NonNull.class, null, mService);
             mTaskIdentifier = taskIdentifier;
             AnnotationValidations.validate(
                     NonNull.class, null, mTaskIdentifier);
@@ -184,10 +192,10 @@ public class EventState {
          * Name of the service package for this event
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setServicePackageName(@NonNull String value) {
+        public @NonNull Builder setService(@NonNull ComponentName value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
-            mServicePackageName = value;
+            mService = value;
             return this;
         }
 
@@ -209,7 +217,7 @@ public class EventState {
 
             EventState o = new EventState(
                     mToken,
-                    mServicePackageName,
+                    mService,
                     mTaskIdentifier);
             return o;
         }
@@ -223,10 +231,10 @@ public class EventState {
     }
 
     @DataClass.Generated(
-            time = 1695678195125L,
+            time = 1708721665919L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/data/events/EventState.java",
-            inputSignatures = "private final @android.annotation.NonNull byte[] mToken\nprivate final @android.annotation.NonNull java.lang.String mServicePackageName\nprivate final @android.annotation.NonNull java.lang.String mTaskIdentifier\nclass EventState extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private final @android.annotation.NonNull byte[] mToken\nprivate final @android.annotation.NonNull android.content.ComponentName mService\nprivate final @android.annotation.NonNull java.lang.String mTaskIdentifier\npublic  java.lang.String getServiceName()\nclass EventState extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
