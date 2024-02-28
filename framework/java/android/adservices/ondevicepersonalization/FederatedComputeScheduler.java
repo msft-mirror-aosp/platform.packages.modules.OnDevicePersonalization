@@ -142,8 +142,21 @@ public class FederatedComputeScheduler {
             TrainingInterval interval) {
         return new android.federatedcompute.common.TrainingInterval.Builder()
                 .setMinimumIntervalMillis(interval.getMinimumInterval().toMillis())
-                .setSchedulingMode(interval.getSchedulingMode())
+                .setSchedulingMode(convertSchedulingMode(interval))
                 .build();
+    }
+
+    private @android.federatedcompute.common.TrainingInterval.SchedulingMode int
+            convertSchedulingMode(TrainingInterval interval) {
+        switch (interval.getSchedulingMode()) {
+            case TrainingInterval.SCHEDULING_MODE_ONE_TIME:
+                return android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
+            case TrainingInterval.SCHEDULING_MODE_RECURRENT:
+                return android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_RECURRENT;
+            default:
+                throw new IllegalStateException(
+                        "Unsupported scheduling mode " + interval.getSchedulingMode());
+        }
     }
 
     /** The parameters related to job scheduling. */

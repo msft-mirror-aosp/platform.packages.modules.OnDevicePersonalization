@@ -28,28 +28,31 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * The result returned by
- * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}.
- *
- * @hide
+ * The result that should be returned by
+ * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}.
+ * This class contains data that should be written to the REQUESTS or EVENTS tables.
+ * The contents of these tables can be consumed by Federated Learning facilitated model training,
+ * or Federated Analytics facilitated cross-device statistical analysis.
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public final class WebTriggerOutput {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
-     * completes. If null, no persistent data will be written.
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
+     * completes. This can be {@code null} if no data needs to be written to
+     * the REQUESTS table.
      */
+    @DataClass.MaySetToNull
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
-     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord} from
-     * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} that was previously written
-     * by this service, the {@link EventLogRecord} is not written.
-     *
+     * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+     * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+     * the REQUESTS table, specified using
+     * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+     * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+     * written. The list can be empty if no data needs to be written to the EVENTS table.
      */
     @DataClass.PluralOf("eventLogRecord")
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
@@ -83,8 +86,9 @@ public final class WebTriggerOutput {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
-     * completes. If null, no persistent data will be written.
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
+     * completes. This can be {@code null} if no data needs to be written to
+     * the REQUESTS table.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -92,11 +96,12 @@ public final class WebTriggerOutput {
     }
 
     /**
-     * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-     * them with requests with the specified corresponding {@link RequestLogRecord} from
-     * {@link EventLogRecord#getRequestLogRecord()}.
-     * If the event does not contain a {@link RequestLogRecord} that was previously written
-     * by this service, the {@link EventLogRecord} is not written.
+     * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+     * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+     * the REQUESTS table, specified using
+     * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+     * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+     * written. The list can be empty if no data needs to be written to the EVENTS table.
      */
     @DataClass.Generated.Member
     public @NonNull List<EventLogRecord> getEventLogRecords() {
@@ -149,11 +154,12 @@ public final class WebTriggerOutput {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
-         * completes. If null, no persistent data will be written.
+         * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
+         * completes. This can be {@code null} if no data needs to be written to
+         * the REQUESTS table.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
+        public @NonNull Builder setRequestLogRecord(@Nullable RequestLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRequestLogRecord = value;
@@ -161,11 +167,12 @@ public final class WebTriggerOutput {
         }
 
         /**
-         * A list of {@link EventLogRecord}. Writes events to the EVENTS table and associates
-         * them with requests with the specified corresponding {@link RequestLogRecord} from
-         * {@link EventLogRecord#getRequestLogRecord()}.
-         * If the event does not contain a {@link RequestLogRecord} that was previously written
-         * by this service, the {@link EventLogRecord} is not written.
+         * A list of {@link EventLogRecord} objects to be written to the EVENTS table. Each
+         * {@link EventLogRecord} must be associated with an existing {@link RequestLogRecord} in
+         * the REQUESTS table, specified using
+         * {@link EventLogRecord.Builder#setRequestLogRecord(RequestLogRecord)}.
+         * If the {@link RequestLogRecord} is not specified, the {@link EventLogRecord} will not be
+         * written. The list can be empty if no data needs to be written to the EVENTS table.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setEventLogRecords(@NonNull List<EventLogRecord> value) {
@@ -209,10 +216,10 @@ public final class WebTriggerOutput {
     }
 
     @DataClass.Generated(
-            time = 1704482032122L,
+            time = 1707251898683L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass WebTriggerOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nclass WebTriggerOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

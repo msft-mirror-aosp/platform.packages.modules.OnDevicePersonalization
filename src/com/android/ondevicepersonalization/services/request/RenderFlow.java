@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_RENDER;
+
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderInputParcel;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
@@ -39,11 +41,7 @@ import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
-import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
@@ -62,10 +60,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * Handles a surface package request from an app or SDK.
  */
-public class RenderFlow {
+public class RenderFlow implements ServiceFlow<SurfacePackage> {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "RenderFlow";
-    private static final String TASK_NAME = "Render";
 
     @VisibleForTesting
     static class Injector {
@@ -88,10 +85,6 @@ public class RenderFlow {
         ListeningScheduledExecutorService getScheduledExecutor() {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
-
-        ProcessRunner getProcessRunner() {
-            return ProcessRunnerImpl.getInstance();
-        }
     }
 
     @NonNull
@@ -112,6 +105,8 @@ public class RenderFlow {
     private final DisplayHelper mDisplayHelper;
     @NonNull
     private ComponentName mService;
+    private SlotWrapper mSlotWrapper;
+    private long mStartServiceTimeMillis;
 
     public RenderFlow(
             @NonNull String slotResultToken,
@@ -153,144 +148,139 @@ public class RenderFlow {
         mDisplayHelper = Objects.requireNonNull(displayHelper);
     }
 
-    /** Runs the request processing flow. */
-    public void run() {
-        var unused = Futures.submit(() -> this.processRequest(), mInjector.getExecutor());
-    }
+    @Override
+    public boolean isServiceFlowReady() {
+        mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
 
-    private void processRequest() {
         try {
             if (!isPersonalizationStatusEnabled()) {
                 sLogger.d(TAG + ": Personalization is disabled.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
-                return;
+                return false;
             }
-            SlotWrapper slotWrapper = Objects.requireNonNull(
+
+            mSlotWrapper = Objects.requireNonNull(
                     mInjector.decryptToken(mSlotResultToken));
             String servicePackageName = Objects.requireNonNull(
-                    slotWrapper.getServicePackageName());
+                    mSlotWrapper.getServicePackageName());
             String serviceClassName = Objects.requireNonNull(
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
-                        mContext, servicePackageName));
+                            mContext, servicePackageName));
             mService = ComponentName.createRelative(servicePackageName, serviceClassName);
-
-            ListenableFuture<IsolatedServiceInfo> loadFuture =
-                    mInjector.getProcessRunner().loadIsolatedService(
-                            TASK_NAME, mService);
-            ListenableFuture<SurfacePackage> surfacePackageFuture =
-                    FluentFuture.from(renderContent(loadFuture, slotWrapper))
-                    .withTimeout(
-                            mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
-                            TimeUnit.SECONDS,
-                            mInjector.getScheduledExecutor()
-                    );
-
-            Futures.addCallback(
-                    surfacePackageFuture,
-                    new FutureCallback<SurfacePackage>() {
-                        @Override
-                        public void onSuccess(SurfacePackage surfacePackage) {
-                            sendDisplayResult(surfacePackage);
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
-                            sLogger.w(TAG + ": Request failed.", t);
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
-                        }
-                    },
-                    mInjector.getExecutor());
-
-            var unused = Futures.whenAllComplete(loadFuture, surfacePackageFuture)
-                    .callAsync(() -> mInjector.getProcessRunner().unloadIsolatedService(
-                            loadFuture.get()),
-                    mInjector.getExecutor());
         } catch (Exception e) {
-            sLogger.e(TAG + ": Could not process request.", e);
             sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            return false;
         }
+        return true;
     }
 
-    private ListenableFuture<SurfacePackage> renderContent(
-            @NonNull ListenableFuture<IsolatedServiceInfo> loadFuture,
-            @NonNull SlotWrapper slotWrapper
-    ) {
-        try {
-            sLogger.d(TAG + ": renderContentForSlot() started.");
-            Objects.requireNonNull(slotWrapper);
-            RequestLogRecord logRecord = Objects.requireNonNull(slotWrapper.getLogRecord());
-            RenderingConfig renderingConfig =
-                    Objects.requireNonNull(slotWrapper.getRenderingConfig());
-            long queryId = slotWrapper.getQueryId();
-
-            return FluentFuture.from(loadFuture)
-                    .transformAsync(
-                            loadResult -> executeRenderContentRequest(
-                                    loadResult, renderingConfig),
-                            mInjector.getExecutor())
-                    .transform(result -> {
-                        return result.getParcelable(
-                                Constants.EXTRA_RESULT, RenderOutputParcel.class);
-                    }, mInjector.getExecutor())
-                    .transform(
-                            result -> mDisplayHelper.generateHtml(
-                                    result, mService.getPackageName()),
-                            mInjector.getExecutor())
-                    .transformAsync(
-                            result -> mDisplayHelper.displayHtml(
-                                    result,
-                                    logRecord,
-                                    queryId,
-                                    mService,
-                                    mHostToken,
-                                    mDisplayId,
-                                    mWidth,
-                                    mHeight),
-                            mInjector.getExecutor());
-        } catch (Exception e) {
-            return Futures.immediateFailedFuture(e);
-        }
+    @Override
+    public ComponentName getService() {
+        return mService;
     }
 
-    private ListenableFuture<Bundle> executeRenderContentRequest(
-            IsolatedServiceInfo isolatedServiceInfo,
-            RenderingConfig renderingConfig) {
-        sLogger.d(TAG + "executeRenderContentRequest() started.");
+    @Override
+    public Bundle getServiceParams() {
+        RenderingConfig renderingConfig =
+                Objects.requireNonNull(mSlotWrapper.getRenderingConfig());
+
         Bundle serviceParams = new Bundle();
-        RenderInputParcel input =
-                new RenderInputParcel.Builder()
-                    .setHeight(mHeight)
-                    .setWidth(mWidth)
-                    .setRenderingConfig(renderingConfig)
-                    .build();
-        serviceParams.putParcelable(Constants.EXTRA_INPUT, input);
-        DataAccessServiceImpl binder = new DataAccessServiceImpl(
-                mService.getPackageName(), mContext, /* includeLocalData */ false,
-                /* includeEventData */ false);
-        serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
-        ListenableFuture<Bundle> result = mInjector.getProcessRunner().runIsolatedService(
-                isolatedServiceInfo, Constants.OP_RENDER, serviceParams);
-        return FluentFuture.from(result)
+
+        serviceParams.putParcelable(
+                Constants.EXTRA_INPUT, new RenderInputParcel.Builder()
+                        .setHeight(mHeight)
+                        .setWidth(mWidth)
+                        .setRenderingConfig(renderingConfig)
+                        .build());
+        serviceParams.putBinder(
+                Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new DataAccessServiceImpl(
+                        mService, mContext, /* includeLocalData */ false,
+                        /* includeEventData */ false));
+
+        return serviceParams;
+    }
+
+    @Override
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        var unused = FluentFuture.from(runServiceFuture)
                 .transform(
-                    val -> {
-                        writeServiceRequestMetrics(
-                                val, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_SUCCESS);
-                        return val;
-                    },
-                    mInjector.getExecutor()
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    API_SERVICE_ON_RENDER, val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor()
                 )
                 .catchingAsync(
-                    Exception.class,
-                    e -> {
-                        writeServiceRequestMetrics(
-                                null, isolatedServiceInfo.getStartTimeMillis(),
-                                Constants.STATUS_INTERNAL_ERROR);
-                        return Futures.immediateFailedFuture(e);
-                    },
-                    mInjector.getExecutor()
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    API_SERVICE_ON_RENDER, /* result= */ null,
+                                    mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor()
                 );
     }
+
+    @Override
+    public ListenableFuture<SurfacePackage> getServiceFlowResultFuture(
+            ListenableFuture<Bundle> runServiceFuture) {
+        RequestLogRecord logRecord = mSlotWrapper.getLogRecord();
+        long queryId = mSlotWrapper.getQueryId();
+
+        return FluentFuture.from(runServiceFuture)
+                .transform(
+                        result ->
+                                result.getParcelable(
+                                        Constants.EXTRA_RESULT, RenderOutputParcel.class),
+                        mInjector.getExecutor())
+                .transform(
+                        result -> mDisplayHelper.generateHtml(
+                                result, mService),
+                        mInjector.getExecutor())
+                .transformAsync(
+                        result -> mDisplayHelper.displayHtml(
+                                result,
+                                logRecord,
+                                queryId,
+                                mService,
+                                mHostToken,
+                                mDisplayId,
+                                mWidth,
+                                mHeight),
+                        mInjector.getExecutor())
+                .withTimeout(
+                        mInjector.getFlags().getIsolatedServiceDeadlineSeconds(),
+                        TimeUnit.SECONDS,
+                        mInjector.getScheduledExecutor()
+                );
+    }
+
+    @Override
+    public  void returnResultThroughCallback(
+            ListenableFuture<SurfacePackage> serviceFlowResultFuture) {
+        Futures.addCallback(
+                serviceFlowResultFuture,
+                new FutureCallback<>() {
+                    @Override
+                    public void onSuccess(SurfacePackage surfacePackage) {
+                        sendDisplayResult(surfacePackage);
+                    }
+
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.w(TAG + ": Request failed.", t);
+                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                    }
+                },
+                mInjector.getExecutor());
+    }
+
+    @Override
+    public void cleanUpServiceParams() {}
 
     private void sendDisplayResult(SurfacePackage surfacePackage) {
         if (surfacePackage != null) {
@@ -309,7 +299,7 @@ public class RenderFlow {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(responseCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
@@ -319,29 +309,8 @@ public class RenderFlow {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            writeAppRequestMetrics(errorCode);
+            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
         }
-    }
-
-    private void writeAppRequestMetrics(int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - mStartTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_REQUEST_SURFACE_PACKAGE)
-                .setLatencyMillis(latencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
-    }
-
-    private void writeServiceRequestMetrics(Bundle result, long startTimeMillis, int responseCode) {
-        int latencyMillis = (int) (mInjector.getClock().elapsedRealtime() - startTimeMillis);
-        int overheadLatencyMillis =
-                (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
-                .setLatencyMillis(latencyMillis)
-                .setOverheadLatencyMillis(overheadLatencyMillis)
-                .setResponseCode(responseCode)
-                .build();
-        OdpStatsdLogger.getInstance().logApiCallStats(callStats);
     }
 
     private boolean isPersonalizationStatusEnabled() {
