@@ -115,7 +115,10 @@ public final class PhFlags implements Flags {
                 getDownloadFlowDeadlineSeconds());
         mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 isSharedIsolatedProcessFeatureEnabled());
-        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
+        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST,
+                getTrustedPartnerAppsList());
+        mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
+                isArtImageLoadingOptimizationEnabled());
     }
 
     /** Gets a stable flag value based on flag name. */

@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner.TRUSTED_PARTNER_APPS_SIP;
 import static com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner.UNKNOWN_APPS_SIP;
@@ -63,13 +64,25 @@ public class SharedIsolatedProcessRunnerTest {
     }
 
     @Test
+    public void testGetSipInstanceName_artImageLoadingOptimizationEnabled() {
+        doReturn(true).when(mFlags)
+                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+        assertThat(sSipRunner.getSipInstanceName(TRUSTED_APP_NAME))
+                .isEqualTo(TRUSTED_PARTNER_APPS_SIP + "_disable_art_image_");
+    }
+
+    @Test
     public void testGetSipInstanceName_trustedApp() {
+        doReturn(false).when(mFlags)
+                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
         assertThat(sSipRunner.getSipInstanceName(TRUSTED_APP_NAME))
                 .isEqualTo(TRUSTED_PARTNER_APPS_SIP);
     }
 
     @Test
     public void testGetSipInstanceName_unknownApp() {
+        doReturn(false).when(mFlags)
+                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
         assertThat(sSipRunner.getSipInstanceName("unknown_app_name"))
                 .isEqualTo(UNKNOWN_APPS_SIP);
     }
