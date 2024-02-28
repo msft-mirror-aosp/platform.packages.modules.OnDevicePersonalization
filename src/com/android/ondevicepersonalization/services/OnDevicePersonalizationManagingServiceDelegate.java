@@ -17,68 +17,37 @@
 package com.android.ondevicepersonalization.services;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
+import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.os.Binder;
+import android.os.Bundle;
 import android.os.IBinder;
-import android.os.PersistableBundle;
+import android.os.Trace;
 
-import com.android.internal.annotations.VisibleForTesting;
-import com.android.ondevicepersonalization.services.request.AppRequestFlow;
-import com.android.ondevicepersonalization.services.request.RenderFlow;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
+import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
 
 import java.util.Objects;
 
 /** Implementation of OnDevicePersonalizationManagingService */
 public class OnDevicePersonalizationManagingServiceDelegate
         extends IOnDevicePersonalizationManagingService.Stub {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "OnDevicePersonalizationManagingServiceDelegate";
+    private static final ServiceFlowOrchestrator sSfo = ServiceFlowOrchestrator.getInstance();
     @NonNull private final Context mContext;
 
-    @VisibleForTesting
-    static class Injector {
-        AppRequestFlow getAppRequestFlow(
-                String callingPackageName,
-                ComponentName handler,
-                PersistableBundle params,
-                IExecuteCallback callback,
-                Context context,
-                long startTimeMillis) {
-            return new AppRequestFlow(
-                    callingPackageName, handler, params, callback, context, startTimeMillis);
-        }
-
-        RenderFlow getRenderFlow(
-                String slotResultToken,
-                IBinder hostToken,
-                int displayId,
-                int width,
-                int height,
-                IRequestSurfacePackageCallback callback,
-                Context context,
-                long startTimeMillis) {
-            return new RenderFlow(
-                    slotResultToken, hostToken, displayId, width, height, callback, context,
-                    startTimeMillis);
-        }
-    }
-
-    @NonNull private final Injector mInjector;
-
     public OnDevicePersonalizationManagingServiceDelegate(@NonNull Context context) {
-        this(context, new Injector());
-    }
-
-    @VisibleForTesting
-    public OnDevicePersonalizationManagingServiceDelegate(
-            @NonNull Context context,
-            @NonNull Injector injector) {
         mContext = Objects.requireNonNull(context);
-        mInjector = Objects.requireNonNull(injector);
     }
 
     @Override
@@ -90,18 +59,19 @@ public class OnDevicePersonalizationManagingServiceDelegate
     public void execute(
             @NonNull String callingPackageName,
             @NonNull ComponentName handler,
-            @NonNull PersistableBundle params,
+            @NonNull Bundle wrappedParams,
             @NonNull CallerMetadata metadata,
             @NonNull IExecuteCallback callback) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        Trace.beginSection("OdpManagingServiceDelegate#Execute");
         Objects.requireNonNull(callingPackageName);
         Objects.requireNonNull(handler);
         Objects.requireNonNull(handler.getPackageName());
         Objects.requireNonNull(handler.getClassName());
-        Objects.requireNonNull(params);
+        Objects.requireNonNull(wrappedParams);
         Objects.requireNonNull(metadata);
         Objects.requireNonNull(callback);
         if (callingPackageName.isEmpty()) {
@@ -116,15 +86,12 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         final int uid = Binder.getCallingUid();
         enforceCallingPackageBelongsToUid(callingPackageName, uid);
+        enforceEnrollment(callingPackageName, handler);
 
-        AppRequestFlow flow = mInjector.getAppRequestFlow(
-                callingPackageName,
-                handler,
-                params,
-                callback,
-                mContext,
-                metadata.getStartTimeMillis());
-        flow.run();
+        sSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW,
+                callingPackageName, handler, wrappedParams,
+                callback, mContext, metadata.getStartTimeMillis());
+        Trace.endSection();
     }
 
     @Override
@@ -140,6 +107,7 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        Trace.beginSection("OdpManagingServiceDelegate#RequestSurfacePackage");
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
         Objects.requireNonNull(callback);
@@ -155,24 +123,48 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalArgumentException("displayId must be >= 0");
         }
 
-        RenderFlow flow = mInjector.getRenderFlow(
-                slotResultToken,
-                hostToken,
-                displayId,
-                width,
-                height,
-                callback,
-                mContext,
-                metadata.getStartTimeMillis());
-        flow.run();
+        sSfo.schedule(ServiceFlowType.RENDER_FLOW,
+                slotResultToken, hostToken, displayId,
+                width, height, callback,
+                mContext, metadata.getStartTimeMillis());
+        Trace.endSection();
+    }
+
+    // TODO(b/301732670): Move to a new service.
+    @Override
+    public void registerMeasurementEvent(
+            @NonNull int measurementEventType,
+            @NonNull Bundle params,
+            @NonNull CallerMetadata metadata,
+            @NonNull IRegisterMeasurementEventCallback callback
+    ) {
+        if (getGlobalKillSwitch()) {
+            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
+        if (measurementEventType
+                != Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER) {
+            throw new IllegalStateException("invalid measurementEventType");
+        }
+        Objects.requireNonNull(params);
+        Objects.requireNonNull(metadata);
+        Objects.requireNonNull(callback);
+
+        sSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW,
+                params, mContext,
+                callback, metadata.getStartTimeMillis());
+        Trace.endSection();
     }
 
     private boolean getGlobalKillSwitch() {
         long origId = Binder.clearCallingIdentity();
         boolean globalKillSwitch = FlagsFactory.getFlags().getGlobalKillSwitch();
+        FlagsFactory.getFlags().setStableFlags();
         Binder.restoreCallingIdentity(origId);
         return globalKillSwitch;
     }
+
     private void enforceCallingPackageBelongsToUid(@NonNull String packageName, int uid) {
         int packageUid;
         PackageManager pm = mContext.getPackageManager();
@@ -185,5 +177,26 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new SecurityException(packageName + " does not belong to uid " + uid);
         }
         //TODO(b/242792629): Handle requests from the SDK sandbox.
+    }
+
+    private void enforceEnrollment(@NonNull String callingPackageName,
+                                   @NonNull ComponentName service) {
+        long origId = Binder.clearCallingIdentity();
+
+        try {
+            if (!PartnerEnrollmentChecker.isCallerAppEnrolled(callingPackageName)) {
+                sLogger.d("caller app %s not enrolled to call ODP.", callingPackageName);
+                throw new IllegalStateException(
+                        "Service skipped as the caller app is not enrolled to call ODP.");
+            }
+            if (!PartnerEnrollmentChecker.isIsolatedServiceEnrolled(service.getPackageName())) {
+                sLogger.d("isolated service %s not enrolled to access ODP.",
+                        service.getPackageName());
+                throw new IllegalStateException(
+                        "Service skipped as the isolated service is not enrolled to access ODP.");
+            }
+        } finally {
+            Binder.restoreCallingIdentity(origId);
+        }
     }
 }

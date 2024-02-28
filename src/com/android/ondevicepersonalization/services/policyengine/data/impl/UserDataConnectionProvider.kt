@@ -16,11 +16,8 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
-import android.adservices.ondevicepersonalization.UserData
-import android.adservices.ondevicepersonalization.Location
 import android.adservices.ondevicepersonalization.AppInfo
-import android.adservices.ondevicepersonalization.AppUsageStatus
-import android.adservices.ondevicepersonalization.LocationStatus
+import android.adservices.ondevicepersonalization.UserData
 import android.util.ArrayMap
 
 import com.android.ondevicepersonalization.services.data.user.RawUserData
@@ -61,16 +58,7 @@ class UserDataConnectionProvider() : ConnectionProvider {
                     .setBatteryPercentage(rawUserData.batteryPercentage)
                     .setCarrier(rawUserData.carrier.toString())
                     .setDataNetworkType(rawUserData.dataNetworkType)
-                    .setCurrentLocation(Location.Builder()
-                            .setTimestampSeconds(rawUserData.currentLocation.timeMillis / 1000)
-                            .setLatitude(rawUserData.currentLocation.latitude)
-                            .setLongitude(rawUserData.currentLocation.longitude)
-                            .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
-                            .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
-                            .build())
                     .setAppInfos(getAppInfos(rawUserData))
-                    .setAppUsageHistory(getAppUsageHistory(rawUserData))
-                    .setLocationHistory(getLocationHistory(rawUserData))
             // TODO (b/299683848): follow up the codegen bug
             if (rawUserData.networkCapabilities != null) {
                 builder.setNetworkCapabilities(rawUserData.networkCapabilities)
@@ -87,29 +75,6 @@ class UserDataConnectionProvider() : ConnectionProvider {
                             .build())
             }
             return res
-        }
-
-        private fun getAppUsageHistory(rawUserData: RawUserData): List<AppUsageStatus> {
-            var res = ArrayList<AppUsageStatus>()
-            rawUserData.appUsageHistory.forEach {
-                (key, value) -> res.add(AppUsageStatus.Builder()
-                        .setPackageName(key)
-                        .setTotalTimeUsedInMillis(value)
-                        .build())
-            }
-            return res.sortedWith(compareBy({ it.getTotalTimeUsedInMillis() }))
-        }
-
-        private fun getLocationHistory(rawUserData: RawUserData): List<LocationStatus> {
-            var res = ArrayList<LocationStatus>()
-            rawUserData.locationHistory.forEach {
-                (key, value) -> res.add(LocationStatus.Builder()
-                        .setLatitude(key.latitude)
-                        .setLongitude(key.longitude)
-                        .setDurationMillis(value)
-                        .build())
-            }
-            return res.sortedWith(compareBy({ it.getDurationMillis() }))
         }
     }
 }

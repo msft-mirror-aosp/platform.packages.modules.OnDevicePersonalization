@@ -82,7 +82,13 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
     /** Called when the broadcast is received. OnDevicePersonalization jobs will be started here. */
     public void onReceive(Context context, Intent intent) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch on, skipped broadcast.");
+            return;
+        }
+
         sLogger.d(TAG + ": onReceive() with intent + " + intent.getAction());
+
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
@@ -135,10 +141,8 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
         // Schedule maintenance task
         OnDevicePersonalizationMaintenanceJobService.schedule(context);
-
         // Schedule user data collection task
         UserDataCollectionJobService.schedule(context);
-
         final PendingResult pendingResult = goAsync();
         // Schedule MDD to download scripts periodically.
         Futures.addCallback(
@@ -149,7 +153,6 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                         sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
                         pendingResult.finish();
                     }
-
                     @Override
                     public void onFailure(Throwable t) {
                         sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);

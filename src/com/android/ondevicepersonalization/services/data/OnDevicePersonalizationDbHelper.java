@@ -26,7 +26,6 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
-import com.android.ondevicepersonalization.services.data.user.UserDataTables;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 /**
@@ -82,14 +81,6 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
-
-        // User data tables and indexes.
-        db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
-        db.execSQL(UserDataTables.LocationHistory.CREATE_INDEXES_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TABLE_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_STARTING_TIME_SEC_INDEX_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_ENDING_TIME_SEC_INDEX_STATEMENT);
-        db.execSQL(UserDataTables.AppUsageHistory.CREATE_TOTAL_TIME_USED_SEC_INDEX_STATEMENT);
     }
 
     @Override
@@ -98,6 +89,14 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
         throw new UnsupportedOperationException(
                 "Database upgrade for OnDevicePersonalization is unsupported");
+    }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        sLogger.d(TAG + ": DB downgrade from " + newVersion + " to " + oldVersion);
+        // All data is retained for the package between upgrades and rollbacks. Update the
+        // DB version to the oldVersion, but maintain the data and schema from the new Version. It
+        // is assumed that the new version will be fully backward compatible.
     }
 
     @Override

@@ -16,8 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.annotation.FlaggedApi;
@@ -29,6 +27,8 @@ import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
+
 import java.util.Objects;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -37,12 +37,11 @@ import java.util.concurrent.BlockingQueue;
  * Generates event tracking URLs for a request. The service can embed these URLs within the
  * HTML output as needed. When the HTML is rendered within an ODP WebView, ODP will intercept
  * requests to these URLs, call
- * {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}, and log the returned
+ * {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}, and log the returned
  * output in the EVENTS table.
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class EventUrlProvider {
     private static final long ASYNC_TIMEOUT_MS = 1000;
 
@@ -59,7 +58,7 @@ public class EventUrlProvider {
      * response data is empty.
      *
      * @param eventParams The data to be passed to
-     *     {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}
+     *     {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}
      *     when the event occurs.
      * @param responseData The content to be returned to the WebView when the URL is fetched.
      * @param mimeType The Mime Type of the URL response.
@@ -82,7 +81,7 @@ public class EventUrlProvider {
      * clicked in an ODP webview.
      *
      * @param eventParams The data to be passed to
-     *     {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}
+     *     {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}
      *     when the event occurs
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.

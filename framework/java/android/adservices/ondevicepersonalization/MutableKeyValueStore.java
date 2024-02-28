@@ -16,12 +16,12 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.annotation.WorkerThread;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 /**
  * An interface to a read-write key-value store.
@@ -30,9 +30,8 @@ import android.annotation.WorkerThread;
  *
  * @see IsolatedService#getLocalData(RequestToken)
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public interface MutableKeyValueStore extends KeyValueStore {
     /**
      * Associates the specified value with the specified key.

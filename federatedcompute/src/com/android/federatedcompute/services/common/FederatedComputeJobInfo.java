@@ -16,10 +16,24 @@
 
 package com.android.federatedcompute.services.common;
 
+import java.util.Map;
+
 public class FederatedComputeJobInfo {
 
     private FederatedComputeJobInfo() {}
 
     /** JOB ID to periodically download encryption key. */
     public static final int ENCRYPTION_KEY_FETCH_JOB_ID = 1000;
+    public static final String ENCRYPTION_KEY_FETCH_JOB_NAME = "ENCRYPTION_KEY_FETCH_JOB";
+
+    public static final int ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID = 1001;
+    public static final String ODP_AUTHORIZATION_TOKEN_DELETION_JOB_NAME =
+            "ODP_AUTHORIZATION_TOKEN_DELETION_JOB";
+
+    public static final Map<Integer, String> JOB_ID_TO_NAME_MAP = Map.of(
+            ENCRYPTION_KEY_FETCH_JOB_ID,
+            ENCRYPTION_KEY_FETCH_JOB_NAME,
+            ODP_AUTHORIZATION_TOKEN_DELETION_JOB_ID,
+            ODP_AUTHORIZATION_TOKEN_DELETION_JOB_NAME
+    );
 }

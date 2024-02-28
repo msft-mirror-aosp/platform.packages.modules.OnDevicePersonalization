@@ -16,30 +16,31 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
+import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.os.SystemClock;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.util.Objects;
 
 /**
  * An opaque token that identifies the current request to an {@link IsolatedService}. This token
  * must be passed as a parameter to all service methods that depend on per-request state.
- *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class RequestToken {
     @NonNull
     private final IDataAccessService mDataAccessService;
 
     @Nullable
     private final IFederatedComputeService mFcService;
+
+    @Nullable private final IIsolatedModelService mModelService;
 
     @Nullable
     private final UserData mUserData;
@@ -50,9 +51,11 @@ public class RequestToken {
     RequestToken(
             @NonNull IDataAccessService binder,
             @Nullable IFederatedComputeService fcServiceBinder,
+            @Nullable IIsolatedModelService modelServiceBinder,
             @Nullable UserData userData) {
         mDataAccessService = Objects.requireNonNull(binder);
         mFcService = fcServiceBinder;
+        mModelService = modelServiceBinder;
         mUserData = userData;
         mStartTimeMillis = SystemClock.elapsedRealtime();
     }
@@ -67,6 +70,12 @@ public class RequestToken {
     @Nullable
     IFederatedComputeService getFederatedComputeService() {
         return mFcService;
+    }
+
+    /** @hide */
+    @Nullable
+    IIsolatedModelService getModelService() {
+        return mModelService;
     }
 
     /** @hide */

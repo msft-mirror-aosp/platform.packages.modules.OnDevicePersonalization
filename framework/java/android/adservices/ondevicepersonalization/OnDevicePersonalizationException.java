@@ -16,10 +16,10 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
 import android.annotation.IntDef;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -27,9 +27,8 @@ import java.lang.annotation.RetentionPolicy;
 /**
  * Exception thrown by OnDevicePersonalization APIs.
  *
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationException extends Exception {
     /**
      * The {@link IsolatedService} that was invoked failed to run.
@@ -37,8 +36,8 @@ public class OnDevicePersonalizationException extends Exception {
     public static final int ERROR_ISOLATED_SERVICE_FAILED = 1;
 
     /**
-     * Personalization is disabled.
-     * @hide
+     * The {@link IsolatedService} was not started because personalization is disabled by
+     * device configuration.
      */
     public static final int ERROR_PERSONALIZATION_DISABLED = 2;
 
