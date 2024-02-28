@@ -31,6 +31,10 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.app.job.JobParameters;
+import android.app.job.JobScheduler;
+import android.content.Context;
+
+import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
@@ -68,6 +72,10 @@ public final class FederatedJobServiceTest {
     private FederatedJobService mSpyService;
     @Mock private FederatedComputeWorker mMockWorker;
 
+    private Context mContext;
+
+    private JobScheduler mJobScheduler;
+
     private MockitoSession mStaticMockSession;
 
     @Before
@@ -78,6 +86,8 @@ public final class FederatedJobServiceTest {
         mSpyService = spy(new FederatedJobService());
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
         doReturn(mSpyService).when(mSpyService).getApplicationContext();
+        mContext = ApplicationProvider.getApplicationContext();
+        mJobScheduler = mContext.getSystemService(JobScheduler.class);
         mStaticMockSession =
                 ExtendedMockito.mockitoSession()
                         .spyStatic(FederatedComputeExecutors.class)
@@ -101,23 +111,23 @@ public final class FederatedJobServiceTest {
     public void testOnStartJob() throws Exception {
         doReturn(Futures.immediateFuture(FL_RUNNER_SUCCESS_RESULT))
                 .when(mMockWorker)
-                .startTrainingRun(anyInt());
+                .startTrainingRun(anyInt(), any());
         doNothing().when(mMockWorker).finish(eq(FL_RUNNER_SUCCESS_RESULT));
 
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
 
         assertTrue(result);
-        verify(mSpyService, times(1)).jobFinished(any(), anyBoolean());
+        verify(mMockWorker, times(1)).finish(eq(FL_RUNNER_SUCCESS_RESULT));
     }
 
     @Test
     public void testOnStartJobKillSwitch() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-
+        doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
         boolean result = mSpyService.onStartJob(mock(JobParameters.class));
 
         assertTrue(result);
-        verify(mMockWorker, never()).startTrainingRun(anyInt());
+        verify(mMockWorker, never()).startTrainingRun(anyInt(), any());
         verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 

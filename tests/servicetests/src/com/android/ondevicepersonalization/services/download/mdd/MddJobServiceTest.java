@@ -153,8 +153,29 @@ public class MddJobServiceTest {
         mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
         try {
+            JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
+            PersistableBundle extras = new PersistableBundle();
+            extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
+            JobInfo jobInfo =
+                    new JobInfo.Builder(
+                            MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                            new ComponentName(mContext, MddJobService.class))
+                            .setRequiresDeviceIdle(true)
+                            .setRequiresCharging(false)
+                            .setRequiresBatteryNotLow(true)
+                            .setPeriodic(21_600_000L)
+                            .setPersisted(true)
+                            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                            .setExtras(extras)
+                            .build();
+            mJobScheduler.schedule(jobInfo);
+            assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
+                    != null);
+            doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
             doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+            JobParameters jobParameters = mock(JobParameters.class);
+            doReturn(extras).when(jobParameters).getExtras();
+            boolean result = mSpyService.onStartJob(jobParameters);
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));
             verify(mMockJobScheduler, times(0)).schedule(any());
@@ -213,7 +234,12 @@ public class MddJobServiceTest {
         MockitoSession session = ExtendedMockito.mockitoSession().strictness(
                 Strictness.LENIENT).startMocking();
         try {
-            assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
+            JobParameters jobParameters = mock(JobParameters.class);
+            PersistableBundle extras = new PersistableBundle();
+            extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
+            doReturn(extras).when(jobParameters).getExtras();
+
+            assertTrue(mSpyService.onStopJob(jobParameters));
             verify(mMockJobScheduler, times(0)).schedule(any());
         } finally {
             session.finishMocking();

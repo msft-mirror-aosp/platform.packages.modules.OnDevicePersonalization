@@ -29,9 +29,9 @@ import java.util.List;
 
 /**
  * Information returned by
- * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+ * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
  * that is used in a subesequent call to
- * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)} to identify the
+ * {@link IsolatedWorker#onRender(RenderInput, android.os.OutcomeReceiver)} to identify the
  * content to be displayed in a single {@link android.view.View}.
  *
  */

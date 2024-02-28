@@ -25,7 +25,7 @@ android_test {
         "android.test.base",
         "android.test.runner",
         "framework-ondevicepersonalization.impl",
-        "truth-prebuilt",
+        "truth",
     ],
     static_libs: [
         "androidx.test.ext.junit",

@@ -28,7 +28,7 @@ import java.util.List;
 
 /**
  * The result returned by {@link
- * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, java.util.function.Consumer)}.
+ * IsolatedWorker#onDownloadCompleted(DownloadCompletedInput, android.os.OutcomeReceiver)}.
  *
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
