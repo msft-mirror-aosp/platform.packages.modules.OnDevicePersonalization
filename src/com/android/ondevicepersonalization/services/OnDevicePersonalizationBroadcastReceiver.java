@@ -39,6 +39,7 @@ import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonal
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
 import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy;
+import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -84,6 +85,11 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
     public void onReceive(Context context, Intent intent) {
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             sLogger.d(TAG + ": GlobalKillSwitch on, skipped broadcast.");
+            return;
+        }
+
+        if (!DeviceUtils.isOdpSupported(context)) {
+            sLogger.d(TAG + ": Unsupported device, skipped broadcast.");
             return;
         }
 
