@@ -22,6 +22,9 @@ import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 /** A placeholder class for PhFlag. */
 public final class PhFlags implements Flags {
     /*
@@ -44,8 +47,6 @@ public final class PhFlags implements Flags {
 
     static final String HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME =
             "http_request_retry_limit";
-
-    static final String FCP_ENABLE_AUTHENTICATION = "fcp_enable_authentication";
 
     static final String FCP_ENABLE_ENCRYPTION = "fcp_enable_encryption";
 
@@ -73,8 +74,23 @@ public final class PhFlags implements Flags {
             "training_condition_check_period_throttle_period_mills";
 
     static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
+    static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
+    static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
+    static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
+            "fcp_background_job_logging_sampling_rate";
 
     private static final PhFlags sSingleton = new PhFlags();
+
+    // Flag values here remain stable within a process lifecycle, refresh upon process restart
+    private static final Map<String, Object> sStableFlags = new ConcurrentHashMap<>();
+
+    private PhFlags() {
+        setStableFlags();
+    }
+
+    // Set group of flags that needs to remain stable together at beginning of a workflow
+    // You can also set one stable flag value at the flag's read time if don't need this guarantee
+    private void setStableFlags() {}
 
     /** Returns the singleton instance of the PhFlags. */
     @NonNull
@@ -122,15 +138,6 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ HTTP_REQUEST_RETRY_LIMIT);
-    }
-
-    @Override
-    public Boolean isAuthenticationEnabled() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ FCP_ENABLE_AUTHENTICATION,
-                /* defaultValue= */ AUTHENTICATION_ENABLED
-        );
     }
 
     public Boolean isEncryptionEnabled() {
@@ -226,5 +233,33 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ FCP_RESCHEDULE_LIMIT);
+    }
+
+    @Override
+    public boolean getEnableClientErrorLogging() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_ENABLE_CLIENT_ERROR_LOGGING,
+                /* defaultValue= */ ENABLE_CLIENT_ERROR_LOGGING);
+    }
+
+    @Override
+    public boolean getBackgroundJobsLoggingEnabled() {
+        // needs stable: execution stats may be less accurate if value changed during job execution
+        return (boolean) sStableFlags.computeIfAbsent(FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                key -> {
+                    return DeviceConfig.getBoolean(
+                            /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                            /* name= */ FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                            /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+                });
+    }
+
+    @Override
+    public int getBackgroundJobSamplingLoggingRate() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
+                /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
     }
 }

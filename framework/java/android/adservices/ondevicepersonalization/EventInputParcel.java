@@ -32,7 +32,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 public final class EventInputParcel implements Parcelable {
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
@@ -72,7 +72,7 @@ public final class EventInputParcel implements Parcelable {
 
     /**
      * The {@link RequestLogRecord} that was returned as a result of
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
      */
     @DataClass.Generated.Member
     public @Nullable RequestLogRecord getRequestLogRecord() {
@@ -157,7 +157,7 @@ public final class EventInputParcel implements Parcelable {
 
         /**
          * The {@link RequestLogRecord} that was returned as a result of
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}.
+         * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}.
          */
         @DataClass.Generated.Member
         public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {

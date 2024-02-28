@@ -55,13 +55,6 @@ public class TaskHistoryContract {
                         + CONTRIBUTION_ROUND
                         + " INTEGER NOT NULL,"
                         + TOTAL_PARTICIPATION
-                        + " INTEGER NOT NULL,"
-                        + "UNIQUE("
-                        + JOB_ID
-                        + ","
-                        + POPULATION_NAME
-                        + ","
-                        + TASK_ID
-                        + "))";
+                        + " INTEGER NOT NULL)";
     }
 }

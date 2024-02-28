@@ -25,11 +25,13 @@ android_test_helper_app {
     ],
     libs: [
         "framework-ondevicepersonalization.impl",
+        "truth",
     ],
     static_libs: [
         "androidx.annotation_annotation",
         "androidx.core_core",
         "guava",
+        "ondevicepersonalization-testing-sample-service-api",
     ],
     resource_dirs: [
         "res",

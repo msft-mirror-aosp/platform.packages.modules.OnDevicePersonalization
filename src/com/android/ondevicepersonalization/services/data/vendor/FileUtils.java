@@ -38,40 +38,40 @@ public class FileUtils {
         // Delete any non-recent files with same key or non-existent key.
         List<File> filesToDelete = new ArrayList<>();
         Map<String, File> filesSeen = new HashMap<>();
-        for (File f : dir.listFiles()) {
-            try {
-                String[] fileNameList = f.getName().split("_");
-                long timestamp = Long.parseLong(fileNameList[1]);
-                String fKey = fileNameList[0];
+        if (dir.isDirectory()) {
+            for (File f : dir.listFiles()) {
+                try {
+                    String[] fileNameList = f.getName().split("_");
+                    long timestamp = Long.parseLong(fileNameList[1]);
+                    String fKey = fileNameList[0];
 
-                // Key no longer exists in DB. Mark for deletion
-                if (!keySet.contains(fKey)) {
-                    filesToDelete.add(f);
-                }
-
-                // If duplicate key, mark oldest key for deletion
-                if (filesSeen.containsKey(fKey)) {
-                    File existingFile = filesSeen.get(fKey);
-                    if (timestamp < Long.parseLong(existingFile.getName().split("_")[1])) {
+                    // Key no longer exists in DB. Mark for deletion
+                    if (!keySet.contains(fKey)) {
                         filesToDelete.add(f);
+                    }
+
+                    // If duplicate key, mark oldest key for deletion
+                    if (filesSeen.containsKey(fKey)) {
+                        File existingFile = filesSeen.get(fKey);
+                        if (timestamp < Long.parseLong(existingFile.getName().split("_")[1])) {
+                            filesToDelete.add(f);
+                        } else {
+                            filesToDelete.add(existingFile);
+                            filesSeen.put(fKey, f);
+                        }
                     } else {
-                        filesToDelete.add(existingFile);
                         filesSeen.put(fKey, f);
                     }
-                } else {
-                    filesSeen.put(fKey, f);
+                } catch (Exception e) {
+                    // Delete any files that do not match expected format.
+                    sLogger.w(TAG + " :Failed to parse file: " + f.getName(), e);
+                    filesToDelete.add(f);
                 }
-            } catch (Exception e) {
-                // Delete any files that do not match expected format.
-                sLogger.w(TAG + " :Failed to parse file: " + f.getName(), e);
-                filesToDelete.add(f);
             }
-
         }
         for (File f : filesToDelete) {
             f.delete();
         }
-        dir.delete();
     }
 
     /**

@@ -167,8 +167,6 @@ public final class FederatedComputeJobManagerTest {
 
     @After
     public void tearDown() {
-        // Manually clean up the database.
-        mTrainingTaskDao.clearDatabase();
         FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
@@ -1104,7 +1102,7 @@ public final class FederatedComputeJobManagerTest {
                         .build(),
                 ContributionResult.FAIL);
 
-        //check that intermediate task rescheduled with reschedule counter incremented
+        // check that intermediate task rescheduled with reschedule counter incremented
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
         FederatedTrainingTask expectedTask =
@@ -1217,7 +1215,7 @@ public final class FederatedComputeJobManagerTest {
 
         // Verify task history is recorded.
         TaskHistory taskHistory =
-                mTrainingTaskDao.getTaskHistory(JOB_ID1, POPULATION_NAME1, TASK_ID);
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID1, POPULATION_NAME1, TASK_ID);
         assertThat(taskHistory.getContributionRound()).isEqualTo(10);
         assertThat(taskHistory.getTotalParticipation()).isEqualTo(1);
         assertThat(taskHistory.getContributionTime()).isEqualTo(1000);
@@ -1239,7 +1237,7 @@ public final class FederatedComputeJobManagerTest {
 
         // Verify task history is updated.
         TaskHistory taskHistory =
-                mTrainingTaskDao.getTaskHistory(JOB_ID1, POPULATION_NAME1, TASK_ID);
+                mTrainingTaskDao.getLatestTaskHistory(JOB_ID1, POPULATION_NAME1, TASK_ID);
         assertThat(taskHistory.getContributionRound()).isEqualTo(10);
         assertThat(taskHistory.getTotalParticipation()).isEqualTo(1);
         assertThat(taskHistory.getContributionTime()).isEqualTo(1000);

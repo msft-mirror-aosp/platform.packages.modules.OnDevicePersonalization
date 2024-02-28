@@ -29,7 +29,7 @@ import java.util.List;
 
 /**
  * The result that should be returned by
- * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}.
+ * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}.
  * This class contains data that should be written to the REQUESTS or EVENTS tables.
  * The contents of these tables can be consumed by Federated Learning facilitated model training,
  * or Federated Analytics facilitated cross-device statistical analysis.
@@ -39,7 +39,7 @@ import java.util.List;
 public final class WebTriggerOutput {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
      * completes. This can be {@code null} if no data needs to be written to
      * the REQUESTS table.
      */
@@ -86,7 +86,7 @@ public final class WebTriggerOutput {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
      * completes. This can be {@code null} if no data needs to be written to
      * the REQUESTS table.
      */
@@ -154,7 +154,7 @@ public final class WebTriggerOutput {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, java.util.function.Consumer)}
+         * {@link IsolatedWorker#onWebTrigger(WebTriggerInput, android.os.OutcomeReceiver)}
          * completes. This can be {@code null} if no data needs to be written to
          * the REQUESTS table.
          */

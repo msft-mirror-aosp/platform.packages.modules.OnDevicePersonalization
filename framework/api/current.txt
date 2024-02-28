@@ -122,12 +122,23 @@ package android.adservices.ondevicepersonalization {
   }
 
   public static class InferenceInput.Params {
-    method @NonNull public static android.adservices.ondevicepersonalization.InferenceInput.Params createCpuParams(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String, @IntRange(from=1) int);
-    method @IntRange(from=1) public int getCpuNumThread();
     method public int getDelegateType();
     method @NonNull public android.adservices.ondevicepersonalization.KeyValueStore getKeyValueStore();
     method @NonNull public String getModelKey();
+    method public int getModelType();
+    method @IntRange(from=1) public int getRecommendedNumThreads();
     field public static final int DELEGATE_CPU = 1; // 0x1
+    field public static final int MODEL_TYPE_TENSORFLOW_LITE = 1; // 0x1
+  }
+
+  public static final class InferenceInput.Params.Builder {
+    ctor public InferenceInput.Params.Builder(@NonNull android.adservices.ondevicepersonalization.KeyValueStore, @NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params build();
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setDelegateType(int);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setKeyValueStore(@NonNull android.adservices.ondevicepersonalization.KeyValueStore);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setModelKey(@NonNull String);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setModelType(int);
+    method @NonNull public android.adservices.ondevicepersonalization.InferenceInput.Params.Builder setRecommendedNumThreads(@IntRange(from=1) int);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class InferenceOutput {
@@ -147,19 +158,24 @@ package android.adservices.ondevicepersonalization {
     method @NonNull public final android.adservices.ondevicepersonalization.FederatedComputeScheduler getFederatedComputeScheduler(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.MutableKeyValueStore getLocalData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.LogReader getLogReader(@NonNull android.adservices.ondevicepersonalization.RequestToken);
+    method @NonNull public final android.adservices.ondevicepersonalization.ModelManager getModelManager(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @NonNull public final android.adservices.ondevicepersonalization.KeyValueStore getRemoteData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @Nullable public final android.adservices.ondevicepersonalization.UserData getUserData(@NonNull android.adservices.ondevicepersonalization.RequestToken);
     method @Nullable public android.os.IBinder onBind(@NonNull android.content.Intent);
     method @NonNull public abstract android.adservices.ondevicepersonalization.IsolatedWorker onRequest(@NonNull android.adservices.ondevicepersonalization.RequestToken);
   }
 
+  @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class IsolatedServiceException extends java.lang.Exception {
+    ctor public IsolatedServiceException(@IntRange(from=1, to=127) int);
+  }
+
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface IsolatedWorker {
-    method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.DownloadCompletedOutput>);
-    method public default void onEvent(@NonNull android.adservices.ondevicepersonalization.EventInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.EventOutput>);
-    method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.ExecuteOutput>);
-    method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.RenderOutput>);
-    method public default void onTrainingExamples(@NonNull android.adservices.ondevicepersonalization.TrainingExamplesInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.TrainingExamplesOutput>);
-    method public default void onWebTrigger(@NonNull android.adservices.ondevicepersonalization.WebTriggerInput, @NonNull java.util.function.Consumer<android.adservices.ondevicepersonalization.WebTriggerOutput>);
+    method public default void onDownloadCompleted(@NonNull android.adservices.ondevicepersonalization.DownloadCompletedInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.DownloadCompletedOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onEvent(@NonNull android.adservices.ondevicepersonalization.EventInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.EventOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onExecute(@NonNull android.adservices.ondevicepersonalization.ExecuteInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.ExecuteOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onRender(@NonNull android.adservices.ondevicepersonalization.RenderInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.RenderOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onTrainingExamples(@NonNull android.adservices.ondevicepersonalization.TrainingExamplesInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.TrainingExamplesOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
+    method public default void onWebTrigger(@NonNull android.adservices.ondevicepersonalization.WebTriggerInput, @NonNull android.os.OutcomeReceiver<android.adservices.ondevicepersonalization.WebTriggerOutput,android.adservices.ondevicepersonalization.IsolatedServiceException>);
   }
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public interface KeyValueStore {
@@ -314,7 +330,7 @@ package android.adservices.ondevicepersonalization {
 
   @FlaggedApi("com.android.adservices.ondevicepersonalization.flags.on_device_personalization_apis_enabled") public final class WebTriggerInput {
     method @NonNull public String getAppPackageName();
-    method @NonNull public String getData();
+    method @NonNull public byte[] getData();
     method @NonNull public android.net.Uri getDestinationUrl();
   }
 

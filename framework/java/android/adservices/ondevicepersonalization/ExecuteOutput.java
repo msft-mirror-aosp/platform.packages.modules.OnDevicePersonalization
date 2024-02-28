@@ -29,7 +29,7 @@ import java.util.List;
 
 /**
  * The result returned by
- * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)} in response to a call to
+ * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} in response to a call to
  * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
  * java.util.concurrent.Executor, OutcomeReceiver)}
  * from a client app.
@@ -39,7 +39,7 @@ import java.util.List;
 public final class ExecuteOutput {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @DataClass.MaySetToNull
@@ -108,7 +108,7 @@ public final class ExecuteOutput {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member
@@ -204,7 +204,7 @@ public final class ExecuteOutput {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+         * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
          * completes. If null, no persistent data will be written.
          */
         @DataClass.Generated.Member

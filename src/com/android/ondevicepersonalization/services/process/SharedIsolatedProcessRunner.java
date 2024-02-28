@@ -16,21 +16,27 @@
 
 package com.android.ondevicepersonalization.services.process;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageManager;
+import android.content.pm.ServiceInfo;
 import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
@@ -41,8 +47,16 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 
 import java.util.Objects;
 
-/** Utilities for running remote isolated services in a shared isolated process. */
+/** Utilities for running remote isolated services in a shared isolated process (SIP). Note that
+ *  this runner is only selected when the shared_isolated_process_feature_enabled flag is enabled.
+ */
 public class SharedIsolatedProcessRunner implements ProcessRunner  {
+
+    // SIP that hosts services from all trusted partners, as well as internal isolated services.
+    public static final String TRUSTED_PARTNER_APPS_SIP = "trusted_partner_apps_sip";
+
+    // SIP that hosts unknown remote services.
+    public static final String UNKNOWN_APPS_SIP = "unknown_apps_sip";
 
     private final Context mApplicationContext;
     private final Injector mInjector;
@@ -83,7 +97,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         try {
             ListenableFuture<AbstractServiceBinder<IIsolatedService>> isolatedServiceFuture =
                     mInjector.getExecutor().submit(
-                            () -> getIsolatedServiceBinder(mApplicationContext, componentName));
+                            () -> getIsolatedServiceBinder(componentName));
 
             return FluentFuture.from(isolatedServiceFuture)
                     .transformAsync(
@@ -99,8 +113,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                     .catchingAsync(
                             Exception.class,
                             Futures::immediateFailedFuture,
-                            mInjector.getExecutor()
-                    );
+                            mInjector.getExecutor());
         } catch (Exception e) {
             return Futures.immediateFailedFuture(e);
         }
@@ -112,7 +125,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     public ListenableFuture<Bundle> runIsolatedService(
             @NonNull IsolatedServiceInfo isolatedProcessInfo, int operationCode,
             @NonNull Bundle serviceParams) {
-            return CallbackToFutureAdapter.getFuture(
+        return CallbackToFutureAdapter.getFuture(
                 completer -> {
                     isolatedProcessInfo.getIsolatedServiceBinder()
                             .getService(Runnable::run)
@@ -126,7 +139,8 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                         // TO-DO (323882182): Granular isolated servce failures.
                                         @Override public void onError(int errorCode) {
                                             completer.setException(
-                                                new OdpServiceException(ERROR_ISOLATED_SERVICE_FAILED));
+                                                    new OdpServiceException(
+                                                            Constants.STATUS_SERVICE_FAILED));
                                         }
                                     });
                     return null;
@@ -147,14 +161,34 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     }
 
     private AbstractServiceBinder<IIsolatedService> getIsolatedServiceBinder(
-            @NonNull Context context, @NonNull ComponentName service) {
+            @NonNull ComponentName service) throws Exception {
+        boolean isSipRequested = isSharedIsolatedProcessRequested(service);
+
+        // null instance name results in regular isolated service being created.
+        String instanceName = isSipRequested ? getSipInstanceName(service.getPackageName()) : null;
+        int bindFlag = isSipRequested
+                ? Context.BIND_SHARED_ISOLATED_PROCESS
+                : Context.BIND_AUTO_CREATE;
+
         return AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
-                        context,
-                        service.getClassName(),
-                        service.getPackageName(),
-                        // TO-DO (323427279): Put trusted apps into a separate SIP.
-                        "trustedSip",
-                        Context.BIND_SHARED_ISOLATED_PROCESS,
-                        IIsolatedService.Stub::asInterface);
+                mApplicationContext,
+                service.getClassName(), service.getPackageName(),
+                instanceName, bindFlag, IIsolatedService.Stub::asInterface);
+    }
+
+    String getSipInstanceName(String packageName) {
+        String partnerAppsList =
+                (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
+        boolean isPartnerApp = AllowListUtils.isAllowListed(packageName, partnerAppsList);
+        return isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+    }
+
+    boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
+        if (!SdkLevel.isAtLeastU()) {
+            return false;
+        }
+        PackageManager pm = mApplicationContext.getPackageManager();
+        ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
+        return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;
     }
 }
