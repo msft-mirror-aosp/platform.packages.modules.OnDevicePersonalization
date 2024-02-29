@@ -16,12 +16,19 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static junit.framework.Assert.assertTrue;
 
+import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.federatedcompute.common.ClientConstants;
@@ -32,9 +39,12 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -45,15 +55,16 @@ import com.google.intelligence.fcp.client.engine.TaskRetry;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
 import com.google.protobuf.Duration;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
@@ -61,7 +72,14 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
+@MockStatic(ClientErrorLogger.class)
+@MockStatic(FederatedComputeExecutors.class)
 public final class IsolatedTrainingServiceImplTest {
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String POPULATION_NAME = "population_name";
     private static final String TASK_NAME = "task_name";
     private static final long RUN_ID = 12345L;
@@ -85,18 +103,15 @@ public final class IsolatedTrainingServiceImplTest {
     private IsolatedTrainingServiceImpl mIsolatedTrainingService;
     private Bundle mCallbackResult;
     @Mock private ComputationRunner mComputationRunner;
-    private MockitoSession mStaticMockSession;
     private ParcelFileDescriptor mInputCheckpointFd;
     private ParcelFileDescriptor mOutputCheckpointFd;
+
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        mStaticMockSession =
-                ExtendedMockito.mockitoSession()
-                        .spyStatic(FederatedComputeExecutors.class)
-                        .strictness(Strictness.LENIENT)
-                        .startMocking();
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
                 .when(FederatedComputeExecutors::getBackgroundExecutor);
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
@@ -109,7 +124,6 @@ public final class IsolatedTrainingServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
-        mStaticMockSession.finishMocking();
         mInputCheckpointFd.close();
         mOutputCheckpointFd.close();
     }
@@ -142,6 +156,64 @@ public final class IsolatedTrainingServiceImplTest {
 
         assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
         assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logError(
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
+    }
+
+    @Test
+    public void runFlTrainingFailureWithRte() throws Exception {
+        when(mComputationRunner.runTaskWithNativeRunner(
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(RuntimeException.class);
+        Bundle bundle = buildInputBundle();
+
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        isA(RuntimeException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
+    }
+
+    @Test
+    public void runFlTrainingFailureWithIae() throws Exception {
+        when(mComputationRunner.runTaskWithNativeRunner(
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(IllegalArgumentException.class);
+        Bundle bundle = buildInputBundle();
+
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        isA(IllegalArgumentException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
+    }
+
+    @Test
+    public void runFlTrainingNullBundle() {
+        var callback = new TestServiceCallback();
+        assertThrows(
+                NullPointerException.class,
+                () -> mIsolatedTrainingService.runFlTraining(null, callback));
+    }
+
+    @Test
+    public void runFlTrainingNullCallback() {
+        Bundle bundle = new Bundle();
+        assertThrows(
+                NullPointerException.class,
+                () -> mIsolatedTrainingService.runFlTraining(bundle, null));
     }
 
     @Test
@@ -158,6 +230,11 @@ public final class IsolatedTrainingServiceImplTest {
 
         assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
         assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(NullPointerException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -176,6 +253,11 @@ public final class IsolatedTrainingServiceImplTest {
 
         assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
         assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(InvalidProtocolBufferException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -193,6 +275,11 @@ public final class IsolatedTrainingServiceImplTest {
 
         assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
         assertFailResult();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(NullPointerException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
     }
 
     @Test
@@ -219,7 +306,7 @@ public final class IsolatedTrainingServiceImplTest {
     private Bundle buildInputBundle() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
-        bundle.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        bundle.putString(ClientConstants.EXTRA_TASK_ID, TASK_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());

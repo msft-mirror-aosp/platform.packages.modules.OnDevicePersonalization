@@ -20,6 +20,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_AP
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
 
 import android.provider.DeviceConfig;
 
@@ -92,6 +93,17 @@ public class PhFlagsTestUtil {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_ISOLATED_SERVICE_ALLOW_LIST,
                 isolatedServiceAllowList,
+                /* makeDefault */ false);
+    }
+
+    /**
+     * Set up output data allow list in device config
+     */
+    public static void setOutputDataAllowList(final String outputDataAllowList) {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_OUTPUT_DATA_ALLOW_LIST,
+                outputDataAllowList,
                 /* makeDefault */ false);
     }
 }

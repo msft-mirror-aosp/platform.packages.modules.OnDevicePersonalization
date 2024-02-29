@@ -16,10 +16,12 @@
 
 package com.android.federatedcompute.services.common;
 
+import com.android.adservices.shared.common.flags.ModuleSharedFlags;
+
 import java.util.concurrent.TimeUnit;
 
 /** FederatedCompute feature flags interface. This Flags interface hold the default values */
-public interface Flags {
+public interface Flags extends ModuleSharedFlags {
     /**
      * Global FederatedCompute APK Kill Switch. This overrides all other killswitches under
      * federatedcompute APK. The default value is false which means FederatedCompute is enabled.
@@ -164,13 +166,6 @@ public interface Flags {
         return HTTP_REQUEST_RETRY_LIMIT;
     }
 
-    Boolean AUTHENTICATION_ENABLED = false;
-
-    /** Whether to enable authentication when uploading results. */
-    default Boolean isAuthenticationEnabled() {
-        return AUTHENTICATION_ENABLED;
-    }
-
     Boolean ENCRYPTION_ENABLED = true;
 
     /** Whether to enable encryption when uploading results. */
@@ -205,5 +200,18 @@ public interface Flags {
 
     default boolean getEnableClientErrorLogging() {
         return ENABLE_CLIENT_ERROR_LOGGING;
+    }
+
+    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+
+    default boolean getBackgroundJobsLoggingEnabled() {
+        return DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
+    }
+
+    /** Default logging rate in percent */
+    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+
+    default int getBackgroundJobSamplingLoggingRate() {
+        return DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
     }
 }

@@ -41,14 +41,14 @@ public interface ServiceFlow<R> {
     Bundle getServiceParams();
 
     /** Uploads service flow metrics. */
-    void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture);
+    default void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {}
 
     /** Gets service flow results. */
     ListenableFuture<R> getServiceFlowResultFuture(ListenableFuture<Bundle> runServiceFuture);
 
     /** Returns the service flow result through a callback. */
-    void returnResultThroughCallback(ListenableFuture<R> serviceFlowResultFuture);
+    default void returnResultThroughCallback(ListenableFuture<R> serviceFlowResultFuture) {}
 
     /** Frees up resources used by service. */
-    void cleanUpServiceParams();
+    default void cleanUpServiceParams() {}
 }

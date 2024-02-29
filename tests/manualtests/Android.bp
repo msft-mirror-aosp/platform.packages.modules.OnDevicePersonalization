@@ -28,6 +28,7 @@ android_test {
     libs: [
         "android.test.base",
         "android.test.runner",
+        "framework-adservices", // For user consent
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
@@ -53,6 +54,7 @@ android_test {
         "modules-utils-list-slice",
         "owasp-java-encoder",
         "tensorflowlite_java",
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     target_sdk_version: "current",
