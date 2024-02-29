@@ -25,6 +25,7 @@ import android.os.Build;
 import android.provider.Settings;
 
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 
 import java.util.Objects;
@@ -48,6 +49,9 @@ public class DebugUtils {
             @NonNull ComponentName service,
             @NonNull OdpServiceException e) {
         try {
+            if (!FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()) {
+                return 0;
+            }
             if (isDeveloperModeEnabled(context)
                     && PackageUtils.isPackageDebuggable(context, service.getPackageName())) {
                 if (e.getCause() != null && e.getCause() instanceof IsolatedServiceException) {
