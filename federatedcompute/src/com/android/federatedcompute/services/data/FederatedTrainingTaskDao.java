@@ -36,6 +36,7 @@ import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** DAO for accessing training task table. */
@@ -328,8 +329,19 @@ public class FederatedTrainingTaskDao {
         return false;
     }
 
-    /** Get a task history based on job id, population name and task name. */
-    public TaskHistory getTaskHistory(int jobId, String populationName, String taskId) {
+    /** Gets the list of task history based on provided job id, population name and task id. */
+    public List<TaskHistory> getTaskHistoryList(int jobId, String populationName, String taskId) {
+        return getTaskHistory(jobId, populationName, taskId, false);
+    }
+
+    /** Get the latest record of task history based on job id, population name and task name. */
+    public TaskHistory getLatestTaskHistory(int jobId, String populationName, String taskId) {
+        List<TaskHistory> taskList = getTaskHistory(jobId, populationName, taskId, true);
+        return taskList.isEmpty() ? null : taskList.get(0);
+    }
+
+    private List<TaskHistory> getTaskHistory(
+            int jobId, String populationName, String taskId, boolean latest) {
         SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         String selection =
                 TaskHistoryContract.TaskHistoryEntry.JOB_ID
@@ -339,11 +351,13 @@ public class FederatedTrainingTaskDao {
                         + TaskHistoryContract.TaskHistoryEntry.TASK_ID
                         + " = ?";
         String[] selectionArgs = {String.valueOf(jobId), populationName, taskId};
+        String orderBy = TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME + " DESC";
         String[] projection = {
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME,
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
             TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION
         };
+        List<TaskHistory> taskList = new ArrayList<>();
         try (Cursor cursor =
                 db.query(
                         TaskHistoryContract.TaskHistoryEntry.TABLE_NAME,
@@ -352,8 +366,8 @@ public class FederatedTrainingTaskDao {
                         selectionArgs,
                         /* groupBy= */ null,
                         /* having= */ null,
-                        /* orderBy= */ null)) {
-            if (cursor.moveToFirst()) {
+                        /* orderBy= */ orderBy)) {
+            while (cursor.moveToNext()) {
                 long contributionTime =
                         cursor.getLong(
                                 cursor.getColumnIndexOrThrow(
@@ -366,20 +380,40 @@ public class FederatedTrainingTaskDao {
                         cursor.getLong(
                                 cursor.getColumnIndexOrThrow(
                                         TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION));
-
-                return new TaskHistory.Builder()
-                        .setJobId(jobId)
-                        .setTaskId(taskId)
-                        .setPopulationName(populationName)
-                        .setContributionRound(contributionRound)
-                        .setContributionTime(contributionTime)
-                        .setTotalParticipation(totalParticipation)
-                        .build();
+                taskList.add(
+                        new TaskHistory.Builder()
+                                .setJobId(jobId)
+                                .setTaskId(taskId)
+                                .setPopulationName(populationName)
+                                .setContributionRound(contributionRound)
+                                .setContributionTime(contributionTime)
+                                .setTotalParticipation(totalParticipation)
+                                .build());
+                if (latest) {
+                    cursor.close();
+                    return taskList;
+                }
             }
+            cursor.close();
+            return taskList;
         } catch (SQLiteException e) {
             LogUtil.e(TAG, "Failed to read TaskHistory db", e);
         }
         return null;
+    }
+
+    /** Batch delete expired task history records. */
+    public int deleteExpiredTaskHistory(long deleteTime) {
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            throw new SQLiteException(TAG + ": Failed to open database.");
+        }
+        String whereClause = TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME + " < ?";
+        String[] whereArgs = {String.valueOf(deleteTime)};
+        int deletedRows =
+                db.delete(TaskHistoryContract.TaskHistoryEntry.TABLE_NAME, whereClause, whereArgs);
+        LogUtil.d(TAG, "Deleted %d expired tokens", deletedRows);
+        return deletedRows;
     }
 
     private String[] selectionArgs(Number... args) {

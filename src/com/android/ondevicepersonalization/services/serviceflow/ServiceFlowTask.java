@@ -23,8 +23,8 @@ import android.os.Bundle;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
+import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 
 import com.google.common.util.concurrent.FluentFuture;
@@ -53,7 +53,7 @@ public class ServiceFlowTask {
                 (boolean) FlagsFactory.getFlags()
                         .getStableFlag(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED)
                         ? SharedIsolatedProcessRunner.getInstance()
-                        : ProcessRunnerImpl.getInstance();
+                        : PluginProcessRunner.getInstance();
     }
 
     public ServiceFlowType getServiceFlowType() {

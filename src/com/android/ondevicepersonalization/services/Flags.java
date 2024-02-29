@@ -16,13 +16,15 @@
 
 package com.android.ondevicepersonalization.services;
 
+import com.android.adservices.shared.common.flags.ModuleSharedFlags;
+
 /**
  * OnDevicePersonalization Feature Flags interface. This Flags interface hold the default values
  * of flags. The default values in this class must match with the default values in PH since we
  * will migrate to Flag Codegen in the future. With that migration, the Flags.java file will be
  * generated from the GCL.
  */
-public interface Flags {
+public interface Flags extends ModuleSharedFlags {
     /**
      * Global OnDevicePersonalization Kill Switch. This overrides all other killswitches.
      * The default value is true which means OnDevicePersonalization is disabled.
@@ -77,7 +79,27 @@ public interface Flags {
     /**
      * Default value for the shared isolated process feature.
      */
-    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
+    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = true;
+
+    /**
+     * Default value for enabling client error logging.
+     */
+    boolean DEFAULT_CLIENT_ERROR_LOGGING_ENABLED = false;
+
+    /**
+     * Default value for enabling background jobs logging.
+     */
+    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+
+    /**
+     * Default value for background job sampling logging rate.
+     */
+    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+
+    /**
+     * Default value for isolated service debugging flag.
+     */
+    boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
 
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
@@ -121,6 +143,8 @@ public interface Flags {
                     + "com.example.odptargetingapp1,"
                     + "com.example.odptargetingapp2";
 
+    String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
+
     /**
      * Default value of valid duration of user consent cache in milliseconds (10 minutes).
      */
@@ -158,12 +182,39 @@ public interface Flags {
         return WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
     }
 
+    /**
+     * Executiton deadline for example store flow.
+     */
+    int EXAMPLE_STORE_FLOW_DEADLINE_SECONDS = 30;
+
+    default int getExampleStoreFlowDeadlineSeconds() {
+        return EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
+    }
+
+    /**
+     * Executiton deadline for download flow.
+     */
+    int DOWNLOAD_FLOW_DEADLINE_SECONDS = 30;
+
+    default int getDownloadFlowDeadlineSeconds() {
+        return DOWNLOAD_FLOW_DEADLINE_SECONDS;
+    }
+
     default String getTrustedPartnerAppsList() {
         return DEFAULT_TRUSTED_PARTNER_APPS_LIST;
     }
 
     default boolean isSharedIsolatedProcessFeatureEnabled() {
         return DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+    }
+
+    /**
+     * The ART image loading optimization is disabled by default.
+     */
+    boolean IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED = false;
+
+    default boolean isArtImageLoadingOptimizationEnabled() {
+        return IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
     }
 
     default String getCallerAppAllowList() {
@@ -178,11 +229,23 @@ public interface Flags {
         return USER_CONSENT_CACHE_IN_MILLIS;
     }
 
+    default String getOutputDataAllowList() {
+        return DEFAULT_OUTPUT_DATA_ALLOW_LIST;
+    }
+
+    default boolean isIsolatedServiceDebuggingEnabled() {
+        return DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED;
+    }
+
     /** Set all stable flags. */
     default void setStableFlags() {}
 
     /** Get a stable flag based on the flag name. */
     default Object getStableFlag(String flagName) {
         return null;
+    }
+
+    default boolean getEnableClientErrorLogging() {
+        return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
     }
 }

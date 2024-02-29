@@ -59,6 +59,32 @@ public class IsolatedServiceExceptionSafetyTestImpl extends IsolatedService {
             constructAndThrowException(exName);
         }
 
+        @Override
+        public void onEvent(
+                @NonNull EventInput input,
+                @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
+            String exName = input.getParameters().getString("ex", "n/a");
+            constructAndThrowException(exName);
+        }
+
+        @Override
+        public void onTrainingExamples(
+                @NonNull TrainingExamplesInput input,
+                @NonNull
+                        OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException>
+                                receiver) {
+            String exName = input.getTaskName();
+            constructAndThrowException(exName);
+        }
+
+        @Override
+        public void onWebTrigger(
+                @NonNull WebTriggerInput input,
+                @NonNull OutcomeReceiver<WebTriggerOutput, IsolatedServiceException> receiver) {
+            String exName = input.getAppPackageName();
+            constructAndThrowException(exName);
+        }
+
         private static void constructAndThrowException(String exName) {
             Class<?> aClass;
             try {
