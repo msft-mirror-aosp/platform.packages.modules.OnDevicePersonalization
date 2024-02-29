@@ -36,8 +36,15 @@
     <!-- Required for reading device configs -->
     <uses-permission android:name="android.permission.READ_DEVICE_CONFIG"/>
 
+    <!-- Required for reading common states from AdServices -->
+    <uses-permission android:name="android.permission.ACCESS_ADSERVICES_STATE"/>
+
     <!-- Required for modifying personalization state -->
     <permission android:name="android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE"
+                android:protectionLevel="signature|privileged"/>
+
+    <!-- Required for sending measurement events -->
+    <permission android:name="android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT"
                 android:protectionLevel="signature|privileged"/>
 
     <application android:name=".OnDevicePersonalizationApplication"
@@ -92,6 +99,12 @@
             <intent-filter>
                 <action android:name="android.federatedcompute.COMPUTATION_RESULT" />
             </intent-filter>
+        </service>
+        <service
+            android:name="com.android.ondevicepersonalization.services.inference.IsolatedModelService"
+            android:isolatedProcess="true"
+            android:allowSharedIsolatedProcess="true"
+            android:exported="false">
         </service>
 
         <!-- On BOOT_COMPLETED receiver for registering jobs -->

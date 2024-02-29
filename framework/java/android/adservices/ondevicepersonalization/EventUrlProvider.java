@@ -37,7 +37,7 @@ import java.util.concurrent.BlockingQueue;
  * Generates event tracking URLs for a request. The service can embed these URLs within the
  * HTML output as needed. When the HTML is rendered within an ODP WebView, ODP will intercept
  * requests to these URLs, call
- * {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}, and log the returned
+ * {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}, and log the returned
  * output in the EVENTS table.
  *
  */
@@ -58,7 +58,7 @@ public class EventUrlProvider {
      * response data is empty.
      *
      * @param eventParams The data to be passed to
-     *     {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}
+     *     {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}
      *     when the event occurs.
      * @param responseData The content to be returned to the WebView when the URL is fetched.
      * @param mimeType The Mime Type of the URL response.
@@ -81,7 +81,7 @@ public class EventUrlProvider {
      * clicked in an ODP webview.
      *
      * @param eventParams The data to be passed to
-     *     {@code IsolatedWorker#onEvent(EventInput, java.util.function.Consumer)}
+     *     {@code IsolatedWorker#onEvent(EventInput, android.os.OutcomeReceiver)}
      *     when the event occurs
      * @param destinationUrl The URL to redirect to.
      * @return An ODP event URL that can be inserted into a WebView.

@@ -29,7 +29,7 @@ import java.util.List;
 
 /**
  * The result returned by
- * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)} in response to a call to
+ * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)} in response to a call to
  * {@code OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle,
  * java.util.concurrent.Executor, OutcomeReceiver)}
  * from a client app.
@@ -39,15 +39,17 @@ import java.util.List;
 public final class ExecuteOutput {
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
+    @DataClass.MaySetToNull
     @Nullable private RequestLogRecord mRequestLogRecord = null;
 
     /**
      * A {@link RenderingConfig} object that contains information about the content to be rendered
      * in the client app view. Can be null if no content is to be rendered.
      */
+    @DataClass.MaySetToNull
     @Nullable private RenderingConfig mRenderingConfig = null;
 
     /**
@@ -62,14 +64,15 @@ public final class ExecuteOutput {
     @NonNull private List<EventLogRecord> mEventLogRecords = Collections.emptyList();
 
     /**
-     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
-     * this array is returned to the caller of
+     * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
+     * by setting this field to a non-null value.
+     * The contents of this array will be returned to the caller of
      * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-     * if the (calling app package, isolated service package) pair is present in an allow list
-     * that permits data to be returned to the caller.
-     *
-     * @hide
+     * if returning data from isolated processes is allowed by policy and the
+     * (calling app package, isolated service package) pair is present in an allowlist that
+     * permits data to be returned.
      */
+    @DataClass.MaySetToNull
     @Nullable private byte[] mOutputData = null;
 
 
@@ -105,7 +108,7 @@ public final class ExecuteOutput {
 
     /**
      * Persistent data to be written to the REQUESTS table after
-     * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+     * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
      * completes. If null, no persistent data will be written.
      */
     @DataClass.Generated.Member
@@ -136,13 +139,13 @@ public final class ExecuteOutput {
     }
 
     /**
-     * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
-     * this array is returned to the caller of
+     * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
+     * by setting this field to a non-null value.
+     * The contents of this array will be returned to the caller of
      * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-     * if the (calling app package, isolated service package) pair is present in an allow list
-     * that permits data to be returned to the caller.
-     *
-     * @hide
+     * if returning data from isolated processes is allowed by policy and the
+     * (calling app package, isolated service package) pair is present in an allowlist that
+     * permits data to be returned.
      */
     @DataClass.Generated.Member
     public @Nullable byte[] getOutputData() {
@@ -201,11 +204,11 @@ public final class ExecuteOutput {
 
         /**
          * Persistent data to be written to the REQUESTS table after
-         * {@link IsolatedWorker#onExecute(ExecuteInput, java.util.function.Consumer)}
+         * {@link IsolatedWorker#onExecute(ExecuteInput, android.os.OutcomeReceiver)}
          * completes. If null, no persistent data will be written.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRequestLogRecord(@NonNull RequestLogRecord value) {
+        public @NonNull Builder setRequestLogRecord(@Nullable RequestLogRecord value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mRequestLogRecord = value;
@@ -217,7 +220,7 @@ public final class ExecuteOutput {
          * in the client app view. Can be null if no content is to be rendered.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setRenderingConfig(@NonNull RenderingConfig value) {
+        public @NonNull Builder setRenderingConfig(@Nullable RenderingConfig value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mRenderingConfig = value;
@@ -249,16 +252,16 @@ public final class ExecuteOutput {
         }
 
         /**
-         * A byte array returned by an {@link IsolatedService} to a calling app. The contents of
-         * this array is returned to the caller of
+         * A byte array that an {@link IsolatedService} may optionally return to to a calling app,
+         * by setting this field to a non-null value.
+         * The contents of this array will be returned to the caller of
          * {@link OnDevicePersonalizationManager#execute(ComponentName, PersistableBundle, java.util.concurrent.Executor, OutcomeReceiver)}
-         * if the (calling app package, isolated service package) pair is present in an allow list
-         * that permits data to be returned to the caller.
-         *
-         * @hide
+         * if returning data from isolated processes is allowed by policy and the
+         * (calling app package, isolated service package) pair is present in an allowlist that
+         * permits data to be returned.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setOutputData(@NonNull byte... value) {
+        public @NonNull Builder setOutputData(@Nullable byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mOutputData = value;
@@ -299,10 +302,10 @@ public final class ExecuteOutput {
     }
 
     @DataClass.Generated(
-            time = 1706683855882L,
+            time = 1707251143585L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/ExecuteOutput.java",
-            inputSignatures = "private @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nprivate @android.annotation.Nullable byte[] mOutputData\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable android.adservices.ondevicepersonalization.RequestLogRecord mRequestLogRecord\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable android.adservices.ondevicepersonalization.RenderingConfig mRenderingConfig\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.PluralOf(\"eventLogRecord\") @android.annotation.NonNull java.util.List<android.adservices.ondevicepersonalization.EventLogRecord> mEventLogRecords\nprivate @com.android.ondevicepersonalization.internal.util.DataClass.MaySetToNull @android.annotation.Nullable byte[] mOutputData\nclass ExecuteOutput extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

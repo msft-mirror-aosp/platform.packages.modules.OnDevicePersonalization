@@ -19,6 +19,10 @@
 
     <application android:label="FrameworkOnDevicePersonalizationTests">
         <uses-library android:name="android.test.runner" />
+        <service
+            android:name="android.adservices.ondevicepersonalization.IsolatedServiceExceptionSafetyTestImpl"
+            android:exported="true"
+            android:isolatedProcess="true" />
     </application>
     <instrumentation android:name="androidx.test.runner.AndroidJUnitRunner"
                      android:targetPackage="android.ondevicepersonalization"
