@@ -21,6 +21,9 @@ android_library {
     srcs: [
         "src/**/*.java",
     ],
+    static_libs: [
+        "androidx.test.runner",
+    ],
     target_sdk_version: "Tiramisu",
     min_sdk_version: "Tiramisu",
     apex_available: [

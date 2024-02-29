@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -37,16 +38,20 @@ import android.view.SurfaceControlViewHost;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.rule.ServiceTestRule;
 
-import com.android.compatibility.common.util.ShellUtils;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.quality.Strictness;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeoutException;
@@ -58,19 +63,19 @@ public class OnDevicePersonalizationManagingServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationManagingServiceDelegate mService;
     private final UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(DeviceUtils.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization caller_app_allow_list "
-                        + mContext.getPackageName());
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization isolated_service_allow_list "
-                        + mContext.getPackageName());
-
         mPrivacyStatus.setPersonalizationStatusEnabled(true);
+        ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
     }
     @Test
@@ -98,6 +103,23 @@ public class OnDevicePersonalizationManagingServiceTest {
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }
+    }
+
+    @Test
+    public void testUnsupportedDeviceOnExecute() throws Exception {
+        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.execute(
+                                mContext.getPackageName(),
+                                new ComponentName(
+                                        mContext.getPackageName(),
+                                        "com.test.TestPersonalizationHandler"),
+                                createWrappedAppParams(),
+                                new CallerMetadata.Builder().build(),
+                                new ExecuteCallback()
+                        ));
     }
 
     @Test
@@ -236,6 +258,52 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
+    public void testExecuteThrowsIfCallerNotEnrolled() throws Exception {
+        var callback = new ExecuteCallback();
+        var originalCallerAppAllowList = FlagsFactory.getFlags().getCallerAppAllowList();
+        PhFlagsTestUtil.setCallerAppAllowList("");
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mService.execute(
+                                    mContext.getPackageName(),
+                                    new ComponentName(
+                                            mContext.getPackageName(),
+                                            "com.test.TestPersonalizationHandler"),
+                                    createWrappedAppParams(),
+                                    new CallerMetadata.Builder().build(),
+                                    callback));
+        } finally {
+            PhFlagsTestUtil.setCallerAppAllowList(originalCallerAppAllowList);
+        }
+    }
+
+    @Test
+    public void testExecuteThrowsIfIsolatedServiceNotEnrolled() throws Exception {
+        var callback = new ExecuteCallback();
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList("");
+        try {
+            assertThrows(
+                    IllegalStateException.class,
+                    () ->
+                            mService.execute(
+                                    mContext.getPackageName(),
+                                    new ComponentName(
+                                            mContext.getPackageName(),
+                                            "com.test.TestPersonalizationHandler"),
+                                    createWrappedAppParams(),
+                                    new CallerMetadata.Builder().build(),
+                                    callback));
+        } finally {
+            PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
+        }
+    }
+
+
+    @Test
     public void testEnabledGlobalKillSwitchOnRequestSurfacePackage() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
@@ -255,6 +323,24 @@ public class OnDevicePersonalizationManagingServiceTest {
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }
+    }
+
+    @Test
+    public void testUnsupportedDeviceOnRequestSurfacePackage() throws Exception {
+        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
+        var callback = new RequestSurfacePackageCallback();
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.requestSurfacePackage(
+                                "resultToken",
+                                new Binder(),
+                                0,
+                                100,
+                                50,
+                                new CallerMetadata.Builder().build(),
+                                callback
+                        ));
     }
 
     @Test
@@ -401,6 +487,19 @@ public class OnDevicePersonalizationManagingServiceTest {
     }
 
     @Test
+    public void testUnsupportedDeviceOnRegisterMeasurementEvent() throws Exception {
+        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
+        assertThrows(
+                IllegalStateException.class,
+                () ->
+                        mService.registerMeasurementEvent(
+                                Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
+                                Bundle.EMPTY,
+                                new CallerMetadata.Builder().build(),
+                                new RegisterMeasurementEventCallback()));
+    }
+
+    @Test
     public void testRegisterMeasurementEventInvokesWebTriggerFlow() throws Exception {
         var callback = new RegisterMeasurementEventCallback();
         mService.registerMeasurementEvent(
@@ -434,6 +533,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mSuccess = false;
         public boolean mError = false;
         public int mErrorCode = 0;
+        public int mIsolatedServiceErrorCode = 0;
         public String mToken = null;
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
@@ -448,10 +548,11 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
+            mIsolatedServiceErrorCode = isolatedServiceErrorCode;
             mLatch.countDown();
         }
 
@@ -465,6 +566,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mSuccess = false;
         public boolean mError = false;
         public int mErrorCode = 0;
+        public int mIsolatedServiceErrorCode = 0;
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
@@ -475,10 +577,11 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
+            mIsolatedServiceErrorCode = isolatedServiceErrorCode;
             mLatch.countDown();
         }
 
