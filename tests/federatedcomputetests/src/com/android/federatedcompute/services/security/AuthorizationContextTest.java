@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.security;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.federatedcompute.services.common.Flags.ODP_AUTHORIZATION_TOKEN_TTL;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_AUTHORIZATION_KEY;
 
@@ -32,6 +33,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.timeout;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -59,6 +61,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
 
 public class AuthorizationContextTest {
     private static final String OWNER_ID = "com.android.pckg.name/com.android.class.name";
@@ -86,7 +89,7 @@ public class AuthorizationContextTest {
         MockitoAnnotations.initMocks(this);
         mContext = ApplicationProvider.getApplicationContext();
         doReturn(KA_RECORD).when(mMocKeyAttestation).generateAttestationRecord(any(), anyString());
-        mAuthTokenDao = ODPAuthorizationTokenDao.getInstanceForTest(mContext);
+        mAuthTokenDao = spy(ODPAuthorizationTokenDao.getInstanceForTest(mContext));
         mClock = MonotonicClock.getInstance();
         doNothing().when(mMockTrainingEventLogger).logKeyAttestationLatencyEvent(anyLong());
     }
@@ -147,7 +150,7 @@ public class AuthorizationContextTest {
     }
 
     @Test
-    public void generateAuthHeader_attestationRecord() {
+    public void generateAuthHeader_attestationRecord() throws InterruptedException {
         AuthorizationContext authContext =
                 new AuthorizationContext(
                         OWNER_ID,
@@ -155,11 +158,23 @@ public class AuthorizationContextTest {
                         mAuthTokenDao,
                         mMocKeyAttestation,
                         MonotonicClock.getInstance());
+
+        CountDownLatch latch = new CountDownLatch(1);
+        doAnswer(
+                        invocation -> {
+                            invocation.callRealMethod();
+                            latch.countDown();
+                            return true;
+                        })
+                .when(mAuthTokenDao)
+                .insertAuthorizationToken(any(ODPAuthorizationToken.class));
         authContext.updateAuthState(AUTH_METADATA, mMockTrainingEventLogger);
         assertNull(mAuthTokenDao.getUnexpiredAuthorizationToken(OWNER_ID));
         verify(mMockTrainingEventLogger, times(1)).logKeyAttestationLatencyEvent(anyLong());
 
         Map<String, String> headerMap = authContext.generateAuthHeaders();
+        latch.await();
+
         assertNotNull(headerMap.get(ODP_AUTHORIZATION_KEY));
         assertNotNull(mAuthTokenDao.getUnexpiredAuthorizationToken(OWNER_ID));
         verify(mMocKeyAttestation).generateAttestationRecord(eq(CHALLENGE), anyString());
