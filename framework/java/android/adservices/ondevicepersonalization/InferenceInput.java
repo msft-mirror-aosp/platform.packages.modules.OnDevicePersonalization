@@ -296,7 +296,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setKeyValueStore(@NonNull KeyValueStore value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x1;
                 mKeyValueStore = value;
                 return this;
@@ -308,7 +307,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setModelKey(@NonNull String value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x2;
                 mModelKey = value;
                 return this;
@@ -319,7 +317,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setDelegateType(@Delegate int value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x4;
                 mDelegateType = value;
                 return this;
@@ -331,7 +328,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setModelType(@ModelType int value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x8;
                 mModelType = value;
                 return this;
@@ -344,7 +340,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setRecommendedNumThreads(@IntRange(from = 1) int value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x10;
                 mRecommendedNumThreads = value;
                 return this;
@@ -352,7 +347,6 @@ public final class InferenceInput {
 
             /** Builds the instance. This builder should not be touched after calling this! */
             public @NonNull Params build() {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x20; // Mark builder used
 
                 if ((mBuilderFieldsSet & 0x4) == 0) {
@@ -372,13 +366,6 @@ public final class InferenceInput {
                                 mModelType,
                                 mRecommendedNumThreads);
                 return o;
-            }
-
-            private void checkNotUsed() {
-                if ((mBuilderFieldsSet & 0x20) != 0) {
-                    throw new IllegalStateException(
-                            "This Builder should not be reused. Use a new Builder instance instead");
-                }
             }
         }
 
@@ -569,7 +556,6 @@ public final class InferenceInput {
         /** The configuration that controls runtime interpreter behavior. */
         @DataClass.Generated.Member
         public @NonNull Builder setParams(@NonNull Params value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mParams = value;
             return this;
@@ -591,7 +577,6 @@ public final class InferenceInput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setInputData(@NonNull Object... value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mInputData = value;
             return this;
@@ -603,7 +588,6 @@ public final class InferenceInput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setBatchSize(int value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mBatchSize = value;
             return this;
@@ -625,7 +609,6 @@ public final class InferenceInput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setExpectedOutputStructure(@NonNull InferenceOutput value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mExpectedOutputStructure = value;
             return this;
@@ -633,7 +616,6 @@ public final class InferenceInput {
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull InferenceInput build() {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x4) == 0) {
@@ -642,13 +624,6 @@ public final class InferenceInput {
             InferenceInput o =
                     new InferenceInput(mParams, mInputData, mBatchSize, mExpectedOutputStructure);
             return o;
-        }
-
-        private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
-                throw new IllegalStateException(
-                        "This Builder should not be reused. Use a new Builder instance instead");
-            }
         }
     }
 
