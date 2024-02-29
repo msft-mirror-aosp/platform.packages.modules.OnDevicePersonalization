@@ -95,7 +95,8 @@ public class OnDevicePersonalizationPlugin implements Plugin {
                                 sLogger.e(TAG + ": Callback error.", e);
                             }
                         }
-                        @Override public void onError(int errorCode) {
+                        @Override public void onError(
+                                int errorCode, int isolatedServiceErrorCode) {
                             try {
                                 mPluginCallback.onFailure(FailureType.ERROR_EXECUTING_PLUGIN);
                             } catch (RemoteException e) {

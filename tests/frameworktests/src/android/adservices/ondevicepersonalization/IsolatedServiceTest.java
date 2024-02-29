@@ -61,7 +61,7 @@ public class IsolatedServiceTest {
     private final TestService mTestService = new TestService();
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private IIsolatedService mBinder;
-    private boolean mSelectContentCalled;
+    private boolean mOnExecuteCalled;
     private boolean mOnDownloadCalled;
     private boolean mOnRenderCalled;
     private boolean mOnEventCalled;
@@ -69,6 +69,7 @@ public class IsolatedServiceTest {
     private boolean mOnWebTriggerCalled;
     private Bundle mCallbackResult;
     private int mCallbackErrorCode;
+    private int mIsolatedServiceErrorCode;
 
     @Before
     public void setUp() {
@@ -104,7 +105,7 @@ public class IsolatedServiceTest {
         params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
-        assertTrue(mSelectContentCalled);
+        assertTrue(mOnExecuteCalled);
         ExecuteOutputParcel result =
                 mCallbackResult.getParcelable(Constants.EXTRA_RESULT, ExecuteOutputParcel.class);
         assertEquals(5, result.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
@@ -130,8 +131,9 @@ public class IsolatedServiceTest {
         params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
-        assertTrue(mSelectContentCalled);
-        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+        assertTrue(mOnExecuteCalled);
+        assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
+        assertEquals(1, mIsolatedServiceErrorCode);
     }
 
     @Test
@@ -146,7 +148,7 @@ public class IsolatedServiceTest {
         params.putBinder(Constants.EXTRA_MODEL_SERVICE_BINDER, new TestIsolatedModelService());
         mBinder.onRequest(Constants.OP_EXECUTE, params, new TestServiceCallback());
         mLatch.await();
-        assertTrue(mSelectContentCalled);
+        assertTrue(mOnExecuteCalled);
     }
 
     @Test
@@ -323,7 +325,7 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_RENDER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnRenderCalled);
-        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+        assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
     }
 
     @Test
@@ -406,11 +408,11 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnEventCalled);
-        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+        assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
     }
 
     @Test
-    public void testOnWebViewEventThrowsIfParamsMissing() throws Exception {
+    public void testOnEventThrowsIfParamsMissing() throws Exception {
         assertThrows(
                 NullPointerException.class,
                 () -> {
@@ -419,7 +421,7 @@ public class IsolatedServiceTest {
     }
 
     @Test
-    public void testOnWebViewEventThrowsIfInputMissing() throws Exception {
+    public void testOnEventThrowsIfInputMissing() throws Exception {
         Bundle params = new Bundle();
         params.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new TestDataAccessService());
         mBinder.onRequest(Constants.OP_WEB_VIEW_EVENT, params, new TestServiceCallback());
@@ -428,7 +430,7 @@ public class IsolatedServiceTest {
     }
 
     @Test
-    public void testOnWebViewEventThrowsIfDataAccessServiceMissing() throws Exception {
+    public void testOnEventThrowsIfDataAccessServiceMissing() throws Exception {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
@@ -439,7 +441,7 @@ public class IsolatedServiceTest {
     }
 
     @Test
-    public void testOnWebViewEventThrowsIfCallbackMissing() throws Exception {
+    public void testOnEventThrowsIfCallbackMissing() throws Exception {
         Bundle params = new Bundle();
         params.putParcelable(
                 Constants.EXTRA_INPUT,
@@ -557,7 +559,7 @@ public class IsolatedServiceTest {
         mBinder.onRequest(Constants.OP_WEB_TRIGGER, params, new TestServiceCallback());
         mLatch.await();
         assertTrue(mOnWebTriggerCalled);
-        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+        assertEquals(Constants.STATUS_SERVICE_FAILED, mCallbackErrorCode);
     }
 
     @Test
@@ -628,7 +630,7 @@ public class IsolatedServiceTest {
         public void onExecute(
                 ExecuteInput input,
                 OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
-            mSelectContentCalled = true;
+            mOnExecuteCalled = true;
             if (input.getAppParams() != null && input.getAppParams().getInt("error") > 0) {
                 receiver.onError(new IsolatedServiceException(1));
             } else {
@@ -738,8 +740,9 @@ public class IsolatedServiceTest {
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode) {
             mCallbackErrorCode = errorCode;
+            mIsolatedServiceErrorCode = isolatedServiceErrorCode;
             mLatch.countDown();
         }
     }
