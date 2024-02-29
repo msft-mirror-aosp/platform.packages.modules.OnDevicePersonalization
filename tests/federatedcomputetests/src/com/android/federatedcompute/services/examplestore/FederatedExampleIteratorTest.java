@@ -19,9 +19,15 @@ package com.android.federatedcompute.services.examplestore;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.when;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
@@ -33,6 +39,9 @@ import android.os.RemoteException;
 import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -44,11 +53,12 @@ import com.google.internal.federatedcompute.v1.Code;
 import junit.framework.AssertionFailedError;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.quality.Strictness;
 
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -62,14 +72,17 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(JUnit4.class)
+@MockStatic(ClientErrorLogger.class)
 public final class FederatedExampleIteratorTest {
-    private static final String APP_ID = "com.foo.bar";
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
     private static final String FAKE_TASK_NAME = "task-name";
     private static final byte[] FAKE_CRITERIA = new byte[] {10, 0, 1};
     private static final byte[] RESUMPTION_TOKEN = "token1".getBytes(Charset.defaultCharset());
     private static final byte[] EXAMPLE_1 = "example1".getBytes(Charset.defaultCharset());
     private static final byte[] EXAMPLE_2 = "example2".getBytes(Charset.defaultCharset());
-    private static final long TIMEOUT_SECS = 5L;
 
     private static final ListeningExecutorService EXECUTOR =
             MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
@@ -79,10 +92,12 @@ public final class FederatedExampleIteratorTest {
 
     private FederatedExampleIterator mIterator;
     @Mock private Flags mMockFlags;
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
+
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
     }
 
     @Test
@@ -192,6 +207,11 @@ public final class FederatedExampleIteratorTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::next));
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        isA(ExecutionException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
         assertThat(exception).hasCauseThat().isInstanceOf(ErrorStatusException.class);
         ErrorStatusException errorStatusException = (ErrorStatusException) exception.getCause();
         assertThat(errorStatusException.getStatus().getCode()).isEqualTo(Code.UNAVAILABLE_VALUE);
@@ -215,6 +235,11 @@ public final class FederatedExampleIteratorTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::hasNext));
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        isA(ExecutionException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
         assertThat(exception).hasCauseThat().isInstanceOf(ErrorStatusException.class);
         ErrorStatusException errorStatusException = (ErrorStatusException) exception.getCause();
         assertThat(errorStatusException.getStatus().getCode()).isEqualTo(Code.UNAVAILABLE_VALUE);
@@ -238,6 +263,11 @@ public final class FederatedExampleIteratorTest {
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::hasNext));
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        isA(ExecutionException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
         exception =
                 assertThrows(

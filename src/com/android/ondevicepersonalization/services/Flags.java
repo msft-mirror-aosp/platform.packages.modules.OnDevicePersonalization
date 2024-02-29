@@ -79,7 +79,7 @@ public interface Flags extends ModuleSharedFlags {
     /**
      * Default value for the shared isolated process feature.
      */
-    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = false;
+    boolean DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED = true;
 
     /**
      * Default value for enabling client error logging.
@@ -201,6 +201,15 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean isSharedIsolatedProcessFeatureEnabled() {
         return DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+    }
+
+    /**
+     * The ART image loading optimization is disabled by default.
+     */
+    boolean IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED = false;
+
+    default boolean isArtImageLoadingOptimizationEnabled() {
+        return IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
     }
 
     default String getCallerAppAllowList() {

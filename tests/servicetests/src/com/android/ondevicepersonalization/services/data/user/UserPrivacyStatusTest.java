@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
+
 @RunWith(JUnit4.class)
 public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
@@ -35,22 +36,16 @@ public final class UserPrivacyStatusTest {
     }
 
     @Test
-    public void testUpdateUserConsent() {
-        mUserPrivacyStatus.updateUserConsentCache(true, true);
-        UserPrivacyStatus userPrivacyStatus = UserPrivacyStatus.getInstance();
-        assertTrue(userPrivacyStatus.isProtectedAudienceEnabled());
-        assertTrue(userPrivacyStatus.isMeasurementEnabled());
-    }
-
-    @Test
     public void testEmptyUserConsentCache() {
         assertFalse(mUserPrivacyStatus.isUserConsentCacheValid());
     }
 
     @Test
-    public void testValidUserConsentCache() {
-        mUserPrivacyStatus.updateUserConsentCache(false, false);
+    public void testUpdateConsentWithValidCache() {
+        mUserPrivacyStatus.updateUserConsentCache(true, true);
         assertTrue(mUserPrivacyStatus.isUserConsentCacheValid());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
     }
 
     @Test

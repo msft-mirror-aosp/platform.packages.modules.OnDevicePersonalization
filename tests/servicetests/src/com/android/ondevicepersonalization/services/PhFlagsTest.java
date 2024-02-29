@@ -27,6 +27,7 @@ import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_D
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
 import static com.android.ondevicepersonalization.services.Flags.EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.GLOBAL_KILL_SWITCH;
+import static com.android.ondevicepersonalization.services.Flags.IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.Flags.RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
@@ -38,6 +39,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PE
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
@@ -385,6 +387,29 @@ public class PhFlagsTest {
 
         assertThat(FlagsFactory.getFlags().getCallerAppAllowList())
                 .isEqualTo(testCallerAppAllowList);
+    }
+
+    @Test
+    public void testIsArtImageLoadingOptimizationEnabled() {
+        assertThat(FlagsFactory.getFlags().isArtImageLoadingOptimizationEnabled())
+                .isEqualTo(IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+
+        boolean testValue = !IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
+                String.valueOf(testValue),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().isArtImageLoadingOptimizationEnabled())
+                .isEqualTo(testValue);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
+                String.valueOf(IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED),
+                /* makeDefault */ false);
     }
 
     @Test

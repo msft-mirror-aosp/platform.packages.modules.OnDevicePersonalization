@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.federatedcompute;
 
+import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_TRAINING_EXAMPLE;
+
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesInputParcel;
@@ -256,8 +258,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    val,
-                                    mInjector.getClock(),
+                                    API_SERVICE_ON_TRAINING_EXAMPLE,
+                                    val, mInjector.getClock(),
                                     Constants.STATUS_SUCCESS,
                                     isolatedServiceInfo.getStartTimeMillis());
                             return val;
@@ -267,8 +269,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    /* result= */ null,
-                                    mInjector.getClock(),
+                                    API_SERVICE_ON_TRAINING_EXAMPLE,
+                                    /* result= */ null, mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR,
                                     isolatedServiceInfo.getStartTimeMillis());
                             return Futures.immediateFailedFuture(e);

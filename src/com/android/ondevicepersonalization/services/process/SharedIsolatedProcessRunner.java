@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import android.adservices.ondevicepersonalization.Constants;
@@ -180,7 +181,10 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         String partnerAppsList =
                 (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
         boolean isPartnerApp = AllowListUtils.isAllowListed(packageName, partnerAppsList);
-        return isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+        String sipInstanceName = isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+        return (boolean) FlagsFactory.getFlags()
+                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
+                    ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 
     boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {

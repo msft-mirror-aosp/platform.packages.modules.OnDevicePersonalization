@@ -53,11 +53,11 @@ public class StatsUtils {
 
     /** Writes service request usage to statsd. */
     public static void writeServiceRequestMetrics(
-            Bundle result, Clock clock, int responseCode, long startTimeMillis) {
+            int apiName, Bundle result, Clock clock, int responseCode, long startTimeMillis) {
         int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
         int overheadLatencyMillis =
                 (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
+        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
                 .setLatencyMillis(latencyMillis)
                 .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)

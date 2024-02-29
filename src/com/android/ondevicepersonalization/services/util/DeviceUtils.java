@@ -1,5 +1,5 @@
 /*
- * Copyright 2024 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,24 +13,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package com.android.ondevicepersonalization.testing.utils;
 
-import android.app.Instrumentation;
+package com.android.ondevicepersonalization.services.util;
+
+import android.annotation.NonNull;
+import android.content.Context;
 import android.content.pm.PackageManager;
 
-import androidx.test.platform.app.InstrumentationRegistry;
-
-/** Helper to check if device is enabled or supports OnDevicePersonalization module */
-public final class DeviceSupportHelper {
-
-    /**
-     * Check whether the device is supported.
-     * OnDevicePersonalization module doesn't support Wear, Auto, TV, Go device
-     * @return if the device is supported.
-     */
-    public static boolean isDeviceSupported() {
-        final Instrumentation instrumentation = InstrumentationRegistry.getInstrumentation();
-        final PackageManager pm = instrumentation.getContext().getPackageManager();
+/** Device properties. */
+public class DeviceUtils {
+    /** Returns true if the device supports ODP. */
+    public static boolean isOdpSupported(@NonNull Context context) {
+        final PackageManager pm = context.getPackageManager();
         return !pm.hasSystemFeature(PackageManager.FEATURE_WATCH)
                 && !pm.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
                 // Android TV
@@ -38,4 +32,6 @@ public final class DeviceSupportHelper {
                 // Android Go
                 && !pm.hasSystemFeature(PackageManager.FEATURE_RAM_LOW);
     }
+
+    private DeviceUtils() {}
 }

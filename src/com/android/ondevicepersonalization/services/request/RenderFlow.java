@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_RENDER;
+
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderInputParcel;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
@@ -204,7 +206,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    val, mInjector.getClock(),
+                                    API_SERVICE_ON_RENDER, val, mInjector.getClock(),
                                     Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
                             return val;
                         },
@@ -214,7 +216,8 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    /* result= */ null, mInjector.getClock(),
+                                    API_SERVICE_ON_RENDER, /* result= */ null,
+                                    mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
                             return Futures.immediateFailedFuture(e);
                         },

@@ -76,6 +76,9 @@ public final class PhFlags implements Flags {
     public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
             "odp_background_job_sampling_logging_rate";
 
+    public static final String KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED =
+            "is_art_image_loading_optimization_enabled";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -112,7 +115,10 @@ public final class PhFlags implements Flags {
                 getDownloadFlowDeadlineSeconds());
         mStableFlags.put(KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 isSharedIsolatedProcessFeatureEnabled());
-        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST, getTrustedPartnerAppsList());
+        mStableFlags.put(KEY_TRUSTED_PARTNER_APPS_LIST,
+                getTrustedPartnerAppsList());
+        mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
+                isArtImageLoadingOptimizationEnabled());
     }
 
     /** Gets a stable flag value based on flag name. */
@@ -294,5 +300,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
                 /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+    }
+
+    @Override
+    public boolean isArtImageLoadingOptimizationEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
+                /* defaultValue= */ IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
     }
 }

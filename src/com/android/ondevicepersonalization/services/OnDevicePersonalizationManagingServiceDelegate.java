@@ -35,6 +35,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
+import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import java.util.Objects;
 
@@ -64,6 +65,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull IExecuteCallback callback) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
         }
 
         Trace.beginSection("OdpManagingServiceDelegate#Execute");
@@ -107,6 +112,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
+        }
+
         Trace.beginSection("OdpManagingServiceDelegate#RequestSurfacePackage");
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
@@ -140,6 +149,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
     ) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
         }
 
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
