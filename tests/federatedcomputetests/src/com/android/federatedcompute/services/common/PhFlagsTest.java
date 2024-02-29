@@ -16,12 +16,14 @@
 
 package com.android.federatedcompute.services.common;
 
-import static com.android.federatedcompute.services.common.Flags.AUTHENTICATION_ENABLED;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_SCHEDULING_PERIOD_SECS;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_THERMAL_STATUS_TO_THROTTLE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAINING_MIN_BATTERY_LEVEL;
+import static com.android.federatedcompute.services.common.Flags.ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.Flags.ENCRYPTION_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.FCP_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
@@ -35,7 +37,9 @@ import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_
 import static com.android.federatedcompute.services.common.PhFlags.DEFAULT_SCHEDULING_PERIOD_SECS_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_ELIGIBILITY_TASK;
-import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_AUTHENTICATION;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_BACKGROUND_JOBS_LOGGING;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
@@ -82,11 +86,6 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
                 Boolean.toString(USE_BACKGROUND_ENCRYPTION_KEY_FETCH),
-                /* makeDefault= */ false);
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(AUTHENTICATION_ENABLED),
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -142,6 +141,21 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 Integer.toString(FCP_RESCHEDULE_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_CLIENT_ERROR_LOGGING,
+                Boolean.toString(ENABLE_CLIENT_ERROR_LOGGING),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                Boolean.toString(DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
+                Integer.toString(DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE),
                 /* makeDefault= */ false);
     }
 
@@ -249,29 +263,6 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getHttpRequestRetryLimit()).isEqualTo(overrideHttpRequestRetryLimit);
-    }
-
-    @Test
-    public void testEnableAuthentication() {
-        // Without Overriding
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(AUTHENTICATION_ENABLED),
-                /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().isAuthenticationEnabled())
-                .isEqualTo(AUTHENTICATION_ENABLED);
-
-        // Now overriding the value from PH
-        boolean overrideEnableAuth = !AUTHENTICATION_ENABLED;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(overrideEnableAuth),
-                /* makeDefault */ false);
-
-        Flags phFlags = FlagsFactory.getFlags();
-        assertThat(phFlags.isAuthenticationEnabled()).isEqualTo(overrideEnableAuth);
     }
 
     @Test
@@ -520,8 +511,7 @@ public class PhFlagsTest {
                 FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 Integer.toString(FCP_RESCHEDULE_LIMIT),
                 /* makeDefault= */ false);
-        assertThat(FlagsFactory.getFlags().getFcpRescheduleLimit())
-                .isEqualTo(FCP_RESCHEDULE_LIMIT);
+        assertThat(FlagsFactory.getFlags().getFcpRescheduleLimit()).isEqualTo(FCP_RESCHEDULE_LIMIT);
 
         // Now overriding the value from PH.
         int overrideFcpRescheduleLimit = 4;
@@ -533,5 +523,66 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getFcpRescheduleLimit()).isEqualTo(overrideFcpRescheduleLimit);
+    }
+
+    @Test
+    public void testGetEnableClientErrorLogging() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_CLIENT_ERROR_LOGGING,
+                Boolean.toString(ENABLE_CLIENT_ERROR_LOGGING),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging())
+                .isEqualTo(ENABLE_CLIENT_ERROR_LOGGING);
+
+        // Now overriding the value from PH.
+        boolean overrideEnable = !ENABLE_CLIENT_ERROR_LOGGING;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_CLIENT_ERROR_LOGGING,
+                Boolean.toString(overrideEnable),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging()).isEqualTo(overrideEnable);
+    }
+
+    @Test
+    public void testGetBackgroundJobsLoggingEnabled() {
+        // read a stable flag value
+        boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
+
+        // Now overriding the value from PH.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled())
+                .isEqualTo(stableValue);
+    }
+
+    @Test
+    public void testGetBackgroundJobSamplingLoggingRate() {
+        int currentValue = 10;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
+                Integer.toString(currentValue),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
+                .isEqualTo(currentValue);
+
+        // Now overriding the value from PH.
+        int overrideRate = 1;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
+                Integer.toString(overrideRate),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
+                .isEqualTo(overrideRate);
     }
 }

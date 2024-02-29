@@ -24,6 +24,7 @@ import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCallback;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.os.Binder;
@@ -35,6 +36,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
@@ -42,7 +44,6 @@ import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.request.SlotWrapper;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
-import com.android.ondevicepersonalization.services.util.PrivacyUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -71,6 +72,7 @@ public class RenderFlowTest {
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
     private int mCallbackErrorCode;
+    private int mIsolatedServiceErrorCode;
     private Bundle mCallbackResult;
     private MockitoSession mSession;
     private ServiceFlowOrchestrator mSfo;
@@ -104,7 +106,6 @@ public class RenderFlowTest {
         MockitoAnnotations.initMocks(this);
         mSession = ExtendedMockito.mockitoSession()
                 .spyStatic(UserPrivacyStatus.class)
-                .spyStatic(PrivacyUtils.class)
                 .spyStatic(CryptUtils.class)
                 .strictness(Strictness.LENIENT)
                 .startMocking();
@@ -177,10 +178,12 @@ public class RenderFlowTest {
         ContentValues row2 = new ContentValues();
         row2.put("b", 2);
         rows.add(row2);
+        ComponentName service = new ComponentName(
+                mContext.getPackageName(), "com.test.TestPersonalizationService");
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                "com.example.test", "AABBCCDD", rows);
+                DbUtils.toTableValue(service), "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setServiceName(mContext.getPackageName()).setQueryData(
+                new Query.Builder().setService(service).setQueryData(
                         queryDataBytes).build());
         EventsDao.getInstanceForTest(mContext);
     }
@@ -190,9 +193,10 @@ public class RenderFlowTest {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
-        @Override public void onError(int errorCode) {
+        @Override public void onError(int errorCode, int isolatedServiceErrorCode) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
+            mIsolatedServiceErrorCode = isolatedServiceErrorCode;
             mLatch.countDown();
         }
     }

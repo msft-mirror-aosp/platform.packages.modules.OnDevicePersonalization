@@ -16,7 +16,6 @@
 
 package com.android.federatedcompute.services.http;
 
-import static com.android.federatedcompute.services.common.PhFlagsTestUtil.enableEncryption;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.CONTENT_LENGTH_HDR;
@@ -38,6 +37,7 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -54,6 +54,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.NetworkStats;
+import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
@@ -65,6 +66,7 @@ import com.android.federatedcompute.services.security.AuthorizationContext;
 import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;
@@ -99,8 +101,7 @@ import org.junit.runners.Parameterized;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.quality.Strictness;
 
 import java.io.File;
 import java.io.InputStream;
@@ -111,7 +112,13 @@ import java.util.List;
 import java.util.concurrent.ExecutionException;
 
 @RunWith(Parameterized.class)
+@ExtendedMockitoRule.MockStatic(PhFlags.class)
 public final class HttpFederatedProtocolTest {
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String TASK_ASSIGNMENT_TARGET_URI = "https://test-server.com/";
     private static final String PLAN_URI = "https://fake.uri/plan";
     private static final String CHECKPOINT_URI = "https://fake.uri/checkpoint";
@@ -185,7 +192,6 @@ public final class HttpFederatedProtocolTest {
 
     @Captor private ArgumentCaptor<FederatedComputeHttpRequest> mHttpRequestCaptor;
 
-    @Rule public MockitoRule rule = MockitoJUnit.rule();
     @Mock private HttpClient mMockHttpClient;
 
     @Parameterized.Parameter(0)
@@ -208,6 +214,8 @@ public final class HttpFederatedProtocolTest {
 
     @Mock private KeyAttestation mMockKeyAttestation;
 
+    @Mock private PhFlags mMocKFlags;
+
     @Before
     public void setUp() throws Exception {
         mODPAuthorizationTokenDao =
@@ -222,7 +230,12 @@ public final class HttpFederatedProtocolTest {
                         new HpkeJniEncrypter(),
                         mTrainingEventLogger);
         doReturn(KA_RECORD).when(mMockKeyAttestation).generateAttestationRecord(any(), any());
-        enableEncryption();
+        doNothing().when(mTrainingEventLogger).logReportResultUnauthorized();
+        doNothing().when(mTrainingEventLogger).logReportResultAuthSucceeded();
+        doNothing().when(mTrainingEventLogger).logTaskAssignmentUnauthorized();
+        doNothing().when(mTrainingEventLogger).logTaskAssignmentAuthSucceeded();
+        doReturn(true).when(mMocKFlags).isEncryptionEnabled();
+        when(PhFlags.getInstance()).thenReturn(mMocKFlags);
     }
 
     @After
@@ -354,7 +367,7 @@ public final class HttpFederatedProtocolTest {
                 SUCCESS_EMPTY_HTTP_RESPONSE);
 
         AuthorizationContext authContext = createAuthContext();
-        authContext.updateAuthState(AUTH_METADATA);
+        authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class,
@@ -415,6 +428,7 @@ public final class HttpFederatedProtocolTest {
                 .isEqualTo(true);
         assertThat(actualStartTaskAssignmentRequest.getExtraHeaders().get(ODP_AUTHORIZATION_KEY))
                 .isNotNull();
+        verify(mTrainingEventLogger, times(1)).logTaskAssignmentAuthSucceeded();
         // A new authorization token is stored in DB
         assertThat(
                         mODPAuthorizationTokenDao
@@ -436,6 +450,23 @@ public final class HttpFederatedProtocolTest {
             expectedHeaders.put(ACCEPT_ENCODING_HDR, GZIP_ENCODING_HDR);
         }
         assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
+    }
+
+    @Test
+    public void testCreateTaskAssignment_unauthorized() {
+        setUpHttpFederatedProtocol(
+                createUnauthorizedResponse(),
+                createPlanHttpResponse(),
+                checkpointHttpResponse(),
+                createReportResultHttpResponse(),
+                SUCCESS_EMPTY_HTTP_RESPONSE);
+
+        AuthorizationContext authContext = createAuthContextWithAttestationRecord();
+
+        assertThrows(
+                ExecutionException.class,
+                () -> mHttpFederatedProtocol.createTaskAssignment(authContext).get());
+        verify(mTrainingEventLogger, times(1)).logTaskAssignmentUnauthorized();
     }
 
     @Test
@@ -760,6 +791,36 @@ public final class HttpFederatedProtocolTest {
                                 .getOrDefault(ODP_AUTHORIZATION_KEY, "")
                                 .length())
                 .isEqualTo(36); // UUID Length
+        verify(mTrainingEventLogger).logReportResultAuthSucceeded();
+    }
+
+    @Test
+    public void testReportResult_unauthorized() throws Exception {
+        setUpHttpFederatedProtocol(
+                createStartTaskAssignmentHttpResponse(),
+                createPlanHttpResponse(),
+                checkpointHttpResponse(),
+                createUnauthorizedResponse(),
+                SUCCESS_EMPTY_HTTP_RESPONSE);
+
+        CreateTaskAssignmentResponse taskAssignmentResponse =
+                mHttpFederatedProtocol.createTaskAssignment(createAuthContext()).get();
+        mHttpFederatedProtocol
+                .downloadTaskAssignment(taskAssignmentResponse.getTaskAssignment())
+                .get();
+        ComputationResult computationResult =
+                new ComputationResult(createOutputCheckpointFile(), FL_RUNNER_SUCCESS_RESULT, null);
+
+        assertThrows(
+                ExecutionException.class,
+                () ->
+                        mHttpFederatedProtocol
+                                .reportResult(
+                                        computationResult,
+                                        ENCRYPTION_KEY,
+                                        createAuthContextWithAttestationRecord())
+                                .get());
+        verify(mTrainingEventLogger).logReportResultUnauthorized();
     }
 
     @Test
@@ -780,7 +841,7 @@ public final class HttpFederatedProtocolTest {
                 .get();
         // Pretend 1st auth retry already failed.
         AuthorizationContext authContext = createAuthContext();
-        authContext.updateAuthState(AUTH_METADATA);
+        authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
 
         ExecutionException exception =
                 assertThrows(
@@ -853,7 +914,7 @@ public final class HttpFederatedProtocolTest {
                         mMockKeyAttestation,
                         mClock);
         // Pretend 1st try failed.
-        authContext.updateAuthState(AUTH_METADATA);
+        authContext.updateAuthState(AUTH_METADATA, mTrainingEventLogger);
         return authContext;
     }
 
@@ -975,6 +1036,10 @@ public final class HttpFederatedProtocolTest {
                 .setStatusCode(200)
                 .setPayload(createTaskAssignmentResponse.toByteArray())
                 .build();
+    }
+
+    private FederatedComputeHttpResponse createUnauthorizedResponse() {
+        return new FederatedComputeHttpResponse.Builder().setStatusCode(403).build();
     }
 
     private CreateTaskAssignmentResponse createCreateTaskAssignmentResponse(

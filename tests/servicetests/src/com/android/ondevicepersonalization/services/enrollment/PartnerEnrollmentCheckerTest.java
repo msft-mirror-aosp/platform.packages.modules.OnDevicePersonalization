@@ -19,15 +19,20 @@ package com.android.ondevicepersonalization.services.enrollment;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class PartnerEnrollmentCheckerTest {
+    @Rule
+    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
+            new TestableDeviceConfig.TestableDeviceConfigRule();
 
     @Before
     public void setup() throws Exception {
