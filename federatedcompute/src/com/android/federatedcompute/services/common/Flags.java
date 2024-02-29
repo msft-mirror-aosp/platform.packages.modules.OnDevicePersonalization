@@ -202,6 +202,13 @@ public interface Flags extends ModuleSharedFlags {
         return ENABLE_CLIENT_ERROR_LOGGING;
     }
 
+    // 7 days in milliseconds
+    long DEFAULT_TASK_HISTORY_TTL_MILLIS = 7 * 24 * 60 * 60 * 1000L;
+
+    default long getTaskHistoryTtl() {
+        return DEFAULT_TASK_HISTORY_TTL_MILLIS;
+    }
+
     boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
 
     default boolean getBackgroundJobsLoggingEnabled() {
