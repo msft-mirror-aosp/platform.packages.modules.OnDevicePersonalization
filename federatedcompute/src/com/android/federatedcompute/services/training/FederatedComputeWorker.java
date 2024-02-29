@@ -619,6 +619,19 @@ public class FederatedComputeWorker {
                 taskRetry);
     }
 
+    /**
+     * To clean up active run for subsequent executions.
+     */
+    public void cleanUpActiveRun() {
+        synchronized (mLock) {
+            if (mActiveRun == null) {
+                return;
+            }
+
+            mActiveRun = null;
+        }
+    }
+
     private void performFinishRoutines(
             FederatedJobService.OnJobFinishedCallback callback,
             ContributionResult contributionResult,
