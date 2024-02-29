@@ -60,7 +60,8 @@ public class FederatedComputeStatsdLogger {
                 trainingEvent.getDurationInMillis(),
                 trainingEvent.getExampleSize(),
                 trainingEvent.getDataTransferDurationMillis(),
+                trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
-                trainingEvent.getBytesDownloaded());
+                trainingEvent.getKeyAttestationLatencyMillis());
     }
 }

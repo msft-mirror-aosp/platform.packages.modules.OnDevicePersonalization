@@ -19,6 +19,7 @@ package com.android.ondevicepersonalization.services.display;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.annotation.NonNull;
+import android.annotation.Nullable;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.pm.PackageManager;
@@ -63,7 +64,7 @@ public class DisplayHelper {
     /** Generates an HTML string from the template data in RenderOutputParcel. */
     @NonNull public String generateHtml(
             @NonNull RenderOutputParcel renderContentResult,
-            @NonNull String servicePackageName) {
+            @NonNull ComponentName service) {
         // If htmlContent is provided, do not render the template.
         String htmlContent = renderContentResult.getContent();
         if (null != htmlContent && !htmlContent.isEmpty()) {
@@ -78,8 +79,8 @@ public class DisplayHelper {
         try {
             byte[] templateBytes = OnDevicePersonalizationVendorDataDao.getInstance(
                     mContext,
-                    servicePackageName,
-                    PackageUtils.getCertDigest(mContext, servicePackageName))
+                    service,
+                    PackageUtils.getCertDigest(mContext, service.getPackageName()))
                     .readSingleVendorDataRow(templateId);
             if (null == templateBytes) {
                 throw new IllegalArgumentException(
@@ -87,7 +88,8 @@ public class DisplayHelper {
             }
             String templateContent = new String(templateBytes, StandardCharsets.UTF_8);
             // Move the template into a temp file to pass to Velocity.
-            String templateFileName = createTempTemplateFile(templateContent, servicePackageName);
+            String templateFileName = createTempTemplateFile(
+                    templateContent, service.getPackageName());
             VelocityEngine ve = VelocityEngineFactory.getVelocityEngine(mContext);
             Template template = ve.getTemplate(templateFileName);
             org.apache.velocity.context.Context ctx =
@@ -113,7 +115,7 @@ public class DisplayHelper {
 
     /** Creates a webview and displays the provided HTML. */
     @NonNull public ListenableFuture<SurfacePackage> displayHtml(
-            @NonNull String html, @NonNull RequestLogRecord logRecord,
+            @NonNull String html, @Nullable RequestLogRecord logRecord,
             long queryId, @NonNull ComponentName service,
             @NonNull IBinder hostToken, int displayId, int width, int height) {
         SettableFuture<SurfacePackage> result = SettableFuture.create();
@@ -130,7 +132,7 @@ public class DisplayHelper {
     }
 
     private void createWebView(
-            @NonNull String html, @NonNull RequestLogRecord logRecord, long queryId,
+            @NonNull String html, @Nullable RequestLogRecord logRecord, long queryId,
             @NonNull ComponentName service,
             @NonNull IBinder hostToken, int displayId, int width, int height,
             @NonNull SettableFuture<SurfacePackage> resultFuture) {
