@@ -104,7 +104,7 @@ public final class InferenceInput {
         @Retention(RetentionPolicy.SOURCE)
         public @interface Delegate {}
 
-        /** The delegate to run model inference. */
+        /** The delegate to run model inference. If not set, the default value is DELEGATE_CPU. */
         private @Delegate int mDelegateType = DELEGATE_CPU;
 
         /** The model is a tensorflow lite model. */
@@ -121,7 +121,10 @@ public final class InferenceInput {
         @Retention(RetentionPolicy.SOURCE)
         public @interface ModelType {}
 
-        /** The type of the pre-trained model, only support tensorflow lite model now. */
+        /**
+         * The type of the pre-trained model. If not set, the default value is
+         * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         */
         private @ModelType int mModelType = MODEL_TYPE_TENSORFLOW_LITE;
 
         /**
@@ -151,9 +154,10 @@ public final class InferenceInput {
          *     supports TFLite model now.
          * @param modelKey The key of the table where the corresponding value stores a pre-trained
          *     model. Only supports TFLite model now.
-         * @param delegateType The delegate to run model inference.
-         * @param modelType The type of the pre-trained model, only support tensorflow lite model
-         *     now.
+         * @param delegateType The delegate to run model inference. If not set, the default value is
+         *     DELEGATE_CPU.
+         * @param modelType The type of the pre-trained model. If not set, the default value is
+         *     MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
          * @param recommendedNumThreads The number of threads used for intraop parallelism on CPU,
          *     must be positive number. Adopters can set this field based on model architecture. The
          *     actual thread number depends on system resources and other constraints.
@@ -198,13 +202,16 @@ public final class InferenceInput {
             return mModelKey;
         }
 
-        /** The delegate to run model inference. */
+        /** The delegate to run model inference. If not set, the default value is DELEGATE_CPU. */
         @DataClass.Generated.Member
         public @Delegate int getDelegateType() {
             return mDelegateType;
         }
 
-        /** The type of the pre-trained model, only support tensorflow lite model now. */
+        /**
+         * The type of the pre-trained model. If not set, the default value is
+         * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         */
         @DataClass.Generated.Member
         public @ModelType int getModelType() {
             return mModelType;
@@ -307,7 +314,9 @@ public final class InferenceInput {
                 return this;
             }
 
-            /** The delegate to run model inference. */
+            /**
+             * The delegate to run model inference. If not set, the default value is DELEGATE_CPU.
+             */
             @DataClass.Generated.Member
             public @NonNull Builder setDelegateType(@Delegate int value) {
                 checkNotUsed();
@@ -316,7 +325,10 @@ public final class InferenceInput {
                 return this;
             }
 
-            /** The type of the pre-trained model, only support tensorflow lite model now. */
+            /**
+             * The type of the pre-trained model. If not set, the default value is
+             * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+             */
             @DataClass.Generated.Member
             public @NonNull Builder setModelType(@ModelType int value) {
                 checkNotUsed();
@@ -371,7 +383,7 @@ public final class InferenceInput {
         }
 
         @DataClass.Generated(
-                time = 1708583825752L,
+                time = 1709170984204L,
                 codegenVersion = "1.0.23",
                 sourceFile =
                         "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
@@ -641,7 +653,7 @@ public final class InferenceInput {
     }
 
     @DataClass.Generated(
-            time = 1708583825773L,
+            time = 1709170984223L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
