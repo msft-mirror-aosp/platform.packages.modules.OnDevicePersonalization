@@ -16,8 +16,6 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.Constants.TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING;
 
 import android.annotation.NonNull;
@@ -34,7 +32,6 @@ import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
-import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
 import com.android.federatedcompute.services.training.util.ListenableSupplier;
@@ -99,7 +96,6 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 exampleSelector = ExampleSelector.parseFrom(exampleSelectorBytes);
             } catch (InvalidProtocolBufferException e) {
                 LogUtil.e(TAG, e, "ExampleSelector proto is invalid");
-                reportCelWithException(e);
                 sendResult(createFailedResult(), callback);
                 return;
             }
@@ -177,7 +173,6 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                         populationName,
                                         result.getContributionResult(),
                                         result.getErrorMessage());
-                                reportCel();
                                 result =
                                         result.toBuilder()
                                                 .setRetryInfo(
@@ -204,31 +199,14 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         @Override
                         public void onFailure(Throwable t) {
                             LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
-                            reportCelWithException(t);
                             sendResult(createFailedResult(), callback);
                         }
                     },
                     FederatedComputeExecutors.getLightweightExecutor());
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Got exception when run FL training");
-            reportCelWithException(e);
             sendResult(createFailedResult(), callback);
         }
-    }
-
-    private static void reportCel() {
-        ClientErrorLogger.getInstance()
-                .logError(
-                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR,
-                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
-    }
-
-    private static void reportCelWithException(Throwable e) {
-        ClientErrorLogger.getInstance()
-                .logErrorWithExceptionInfo(
-                        e,
-                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR,
-                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
     }
 
     private Bundle createFailedResult() {
