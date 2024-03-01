@@ -121,6 +121,19 @@ public final class FederatedJobServiceTest {
     }
 
     @Test
+    public void testOnStartJobNullRunnerResult() throws Exception {
+        doReturn(Futures.immediateFuture(null))
+                .when(mMockWorker)
+                .startTrainingRun(anyInt(), any());
+
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+
+        assertTrue(result);
+        verify(mMockWorker, never()).finish(any());
+        verify(mMockWorker).cleanUpActiveRun();
+    }
+
+    @Test
     public void testOnStartJobKillSwitch() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
