@@ -96,6 +96,11 @@ public interface Flags extends ModuleSharedFlags {
      */
     int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
 
+    /**
+     * Default value for isolated service debugging flag.
+     */
+    boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -226,6 +231,10 @@ public interface Flags extends ModuleSharedFlags {
 
     default String getOutputDataAllowList() {
         return DEFAULT_OUTPUT_DATA_ALLOW_LIST;
+    }
+
+    default boolean isIsolatedServiceDebuggingEnabled() {
+        return DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED;
     }
 
     /** Set all stable flags. */

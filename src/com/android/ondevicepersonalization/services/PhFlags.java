@@ -79,6 +79,9 @@ public final class PhFlags implements Flags {
     public static final String KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED =
             "is_art_image_loading_optimization_enabled";
 
+    public static final String KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED =
+            "isolated_service_debugging_enabled";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -240,6 +243,14 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED,
                 /* defaultValue= */ DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED);
+    }
+
+    @Override
+    public boolean isIsolatedServiceDebuggingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED,
+                /* defaultValue= */ DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED);
     }
 
     @Override

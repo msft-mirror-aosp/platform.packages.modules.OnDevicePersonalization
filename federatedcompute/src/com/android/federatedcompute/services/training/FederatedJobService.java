@@ -60,6 +60,8 @@ public class FederatedJobService extends JobService {
                         LogUtil.d(TAG, "Federated computation job %d is done!", params.getJobId());
                         if (flRunnerResult != null) {
                             worker.finish(flRunnerResult);
+                        } else {
+                            worker.cleanUpActiveRun();
                         }
                     }
 
@@ -87,6 +89,10 @@ public class FederatedJobService extends JobService {
          * To be called each time we are about to reschedule the job.
          */
         public void callJobFinished(boolean isSuccessful) {
+            LogUtil.d(
+                    TAG,
+                    "Job Finished called for Federated computation job %d!",
+                    mParams.getJobId());
             boolean wantsReschedule = false;
             FederatedComputeJobServiceLogger.getInstance(mJobService)
                     .recordJobFinished(

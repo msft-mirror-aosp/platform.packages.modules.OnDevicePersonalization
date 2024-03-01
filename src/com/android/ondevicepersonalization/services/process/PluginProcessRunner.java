@@ -45,7 +45,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 import java.util.Objects;
 
 /** Utilities to support loading and executing plugins. */
-public class ProcessRunnerImpl implements ProcessRunner {
+public class PluginProcessRunner implements ProcessRunner {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "ProcessUtils";
     private static final String ENTRY_POINT_CLASS =
@@ -68,7 +68,7 @@ public class ProcessRunnerImpl implements ProcessRunner {
     private final Injector mInjector;
 
     /** Creates a ProcessRunner. */
-    ProcessRunnerImpl(
+    PluginProcessRunner(
             @NonNull Context applicationContext,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext);
@@ -76,16 +76,16 @@ public class ProcessRunnerImpl implements ProcessRunner {
     }
 
 
-    private static class ProcessRunnerImplLazyInstanceHolder {
-        static final ProcessRunnerImpl LAZY_INSTANCE =
-                new ProcessRunnerImpl(
+    private static class PluginProcessRunnerLazyInstanceHolder {
+        static final PluginProcessRunner LAZY_INSTANCE =
+                new PluginProcessRunner(
                         OnDevicePersonalizationApplication.getAppContext(),
                         new Injector());
     }
 
     /** Returns the global ProcessRunner */
-    @NonNull public static ProcessRunnerImpl getInstance() {
-        return ProcessRunnerImplLazyInstanceHolder.LAZY_INSTANCE;
+    @NonNull public static PluginProcessRunner getInstance() {
+        return PluginProcessRunnerLazyInstanceHolder.LAZY_INSTANCE;
     }
 
     /** Loads a service in an isolated process */
@@ -131,7 +131,7 @@ public class ProcessRunnerImpl implements ProcessRunner {
     @NonNull
     static PluginManager getPluginManager(@NonNull Context applicationContext) {
         if (sPluginManager == null) {
-            synchronized (ProcessRunnerImpl.class) {
+            synchronized (PluginProcessRunner.class) {
                 if (sPluginManager == null) {
                     sPluginManager = new PluginManagerImpl(applicationContext);
                 }

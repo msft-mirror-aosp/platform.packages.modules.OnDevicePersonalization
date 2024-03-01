@@ -50,6 +50,7 @@ import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -159,7 +160,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
         if (!mInjector.isPersonalizationStatusEnabled()) {
             sLogger.d(TAG + ": Personalization is disabled.");
-            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
             return false;
         }
 
@@ -170,7 +171,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to extract app params.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
             return false;
         }
 
@@ -181,13 +182,13 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND);
+            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, 0);
             return false;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
             sLogger.d(TAG + "service class not found");
-            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND);
+            sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND, 0);
             return false;
         }
 
@@ -296,9 +297,13 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     public void onFailure(Throwable t) {
                         sLogger.w(TAG + ": Request failed.", t);
                         if (t instanceof OdpServiceException) {
-                            sendErrorResult(((OdpServiceException) t).getErrorCode());
+                            OdpServiceException e = (OdpServiceException) t;
+                            sendErrorResult(
+                                    e.getErrorCode(),
+                                    DebugUtils.getIsolatedServiceExceptionCode(
+                                        mContext, mService, e));
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
                         }
                     }
                 },
@@ -397,9 +402,9 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
     }
 
-    private void sendErrorResult(int errorCode) {
+    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
         try {
-            mCallback.onError(errorCode);
+            mCallback.onError(errorCode, isolatedServiceErrorCode);
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {

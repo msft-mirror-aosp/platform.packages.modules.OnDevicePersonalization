@@ -56,6 +56,13 @@ public class OnDevicePersonalizationException extends Exception {
         mErrorCode = errorCode;
     }
 
+    /** @hide */
+    public OnDevicePersonalizationException(
+            @ErrorCode int errorCode, Throwable cause) {
+        super(cause);
+        mErrorCode = errorCode;
+    }
+
     /** Returns the error code for this exception. */
     public @ErrorCode int getErrorCode() {
         return mErrorCode;

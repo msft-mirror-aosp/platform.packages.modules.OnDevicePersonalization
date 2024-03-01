@@ -52,7 +52,6 @@ public class FederatedComputeStatsdLogger {
      * execution.
      */
     public void logTrainingEventReported(TrainingEventReported trainingEvent) {
-        // TODO(b/326286023): Implement KA latency in milliseconds
         FederatedComputeStatsLog.write(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED,
                 trainingEvent.getClientVersion(),
@@ -63,6 +62,6 @@ public class FederatedComputeStatsdLogger {
                 trainingEvent.getDataTransferDurationMillis(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
-                0);
+                trainingEvent.getKeyAttestationLatencyMillis());
     }
 }

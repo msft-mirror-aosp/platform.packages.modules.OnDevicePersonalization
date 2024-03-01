@@ -30,7 +30,6 @@ import static org.mockito.Mockito.when;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
@@ -46,11 +45,9 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
-@RunWith(AndroidJUnit4.class)
 @MockStatic(ClientErrorLogger.class)
 public final class FederatedTrainingTaskDaoTest {
 
@@ -309,6 +306,40 @@ public final class FederatedTrainingTaskDaoTest {
         assertThat(taskHistory.getContributionRound()).isEqualTo(15);
         assertThat(taskHistory.getTotalParticipation()).isEqualTo(3);
         assertThat(taskHistory.getContributionTime()).isEqualTo(500L);
+    }
+
+    @Test
+    public void deleteExpiredTaskHistory_success() {
+        TaskHistory record1 =
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setTaskId(TASK_ID)
+                        .setContributionRound(15)
+                        .setTotalParticipation(3)
+                        .setContributionTime(100)
+                        .build();
+        TaskHistory record2 =
+                new TaskHistory.Builder()
+                        .setJobId(JOB_ID)
+                        .setPopulationName(POPULATION_NAME)
+                        .setTaskId(TASK_ID)
+                        .setContributionRound(15)
+                        .setTotalParticipation(3)
+                        .setContributionTime(300)
+                        .build();
+        mTrainingTaskDao.updateOrInsertTaskHistory(record1);
+        mTrainingTaskDao.updateOrInsertTaskHistory(record2);
+
+        assertThat(mTrainingTaskDao.getTaskHistoryList(JOB_ID, POPULATION_NAME, TASK_ID))
+                .containsExactly(record1, record2);
+
+        // record1 is expired because contribution time (100) < deletion time (200).
+        int rowDeleted = mTrainingTaskDao.deleteExpiredTaskHistory(200);
+
+        assertThat(rowDeleted).isEqualTo(1);
+        assertThat(mTrainingTaskDao.getTaskHistoryList(JOB_ID, POPULATION_NAME, TASK_ID))
+                .containsExactly(record2);
     }
 
     private static byte[] createDefaultTrainingConstraints() {

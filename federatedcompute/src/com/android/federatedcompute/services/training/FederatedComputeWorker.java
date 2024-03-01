@@ -311,7 +311,8 @@ public class FederatedComputeWorker {
             AuthorizationContext authContext) {
         // Generate attestation record and make 2nd try.
         authContext.updateAuthState(
-                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata());
+                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
+                mInjector.getTrainingEventLogger());
         return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
@@ -616,6 +617,19 @@ public class FederatedComputeWorker {
                 runToFinish.mTask.populationName(),
                 runToFinish.mTask.getTrainingIntervalOptions(),
                 taskRetry);
+    }
+
+    /**
+     * To clean up active run for subsequent executions.
+     */
+    public void cleanUpActiveRun() {
+        synchronized (mLock) {
+            if (mActiveRun == null) {
+                return;
+            }
+
+            mActiveRun = null;
+        }
     }
 
     private void performFinishRoutines(
@@ -1019,7 +1033,9 @@ public class FederatedComputeWorker {
                         resp -> {
                             if (resp != null) {
                                 if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                    authContext.updateAuthState(resp.getAuthMetadata());
+                                    authContext.updateAuthState(
+                                            resp.getAuthMetadata(),
+                                            mInjector.getTrainingEventLogger());
                                     return reportResultWithAuthentication(
                                             computationResult, encryptionKey, authContext);
                                 } else if (resp.hasRetryWindow()) {

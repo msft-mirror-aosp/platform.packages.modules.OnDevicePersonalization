@@ -30,18 +30,19 @@ import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
-public class ProcessRunnerImplTest {
-    ProcessRunner mProcessRunner = new ProcessRunnerImpl(
+public class PluginProcessRunnerTest {
+    ProcessRunner mProcessRunner = new PluginProcessRunner(
             ApplicationProvider.getApplicationContext(),
-            new ProcessRunnerImpl.Injector());
+            new PluginProcessRunner.Injector());
     @Test
     public void testGetArchiveList_NullApkList() throws Exception {
-        assertTrue(ProcessRunnerImpl.getArchiveList(null).isEmpty());
+        assertTrue(PluginProcessRunner.getArchiveList(null).isEmpty());
     }
 
     @Test
     public void testGetArchiveList() throws Exception {
-        ImmutableList<PluginInfo.ArchiveInfo> result = ProcessRunnerImpl.getArchiveList("fakeApk");
+        ImmutableList<PluginInfo.ArchiveInfo> result =
+                PluginProcessRunner.getArchiveList("fakeApk");
         assertEquals(1, result.size());
         assertEquals("fakeApk", result.get(0).packageName());
     }

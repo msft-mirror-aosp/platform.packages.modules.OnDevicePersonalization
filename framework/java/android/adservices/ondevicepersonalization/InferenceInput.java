@@ -104,7 +104,7 @@ public final class InferenceInput {
         @Retention(RetentionPolicy.SOURCE)
         public @interface Delegate {}
 
-        /** The delegate to run model inference. */
+        /** The delegate to run model inference. If not set, the default value is DELEGATE_CPU. */
         private @Delegate int mDelegateType = DELEGATE_CPU;
 
         /** The model is a tensorflow lite model. */
@@ -121,7 +121,10 @@ public final class InferenceInput {
         @Retention(RetentionPolicy.SOURCE)
         public @interface ModelType {}
 
-        /** The type of the pre-trained model, only support tensorflow lite model now. */
+        /**
+         * The type of the pre-trained model. If not set, the default value is
+         * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         */
         private @ModelType int mModelType = MODEL_TYPE_TENSORFLOW_LITE;
 
         /**
@@ -151,9 +154,10 @@ public final class InferenceInput {
          *     supports TFLite model now.
          * @param modelKey The key of the table where the corresponding value stores a pre-trained
          *     model. Only supports TFLite model now.
-         * @param delegateType The delegate to run model inference.
-         * @param modelType The type of the pre-trained model, only support tensorflow lite model
-         *     now.
+         * @param delegateType The delegate to run model inference. If not set, the default value is
+         *     DELEGATE_CPU.
+         * @param modelType The type of the pre-trained model. If not set, the default value is
+         *     MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
          * @param recommendedNumThreads The number of threads used for intraop parallelism on CPU,
          *     must be positive number. Adopters can set this field based on model architecture. The
          *     actual thread number depends on system resources and other constraints.
@@ -198,13 +202,16 @@ public final class InferenceInput {
             return mModelKey;
         }
 
-        /** The delegate to run model inference. */
+        /** The delegate to run model inference. If not set, the default value is DELEGATE_CPU. */
         @DataClass.Generated.Member
         public @Delegate int getDelegateType() {
             return mDelegateType;
         }
 
-        /** The type of the pre-trained model, only support tensorflow lite model now. */
+        /**
+         * The type of the pre-trained model. If not set, the default value is
+         * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         */
         @DataClass.Generated.Member
         public @ModelType int getModelType() {
             return mModelType;
@@ -289,7 +296,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setKeyValueStore(@NonNull KeyValueStore value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x1;
                 mKeyValueStore = value;
                 return this;
@@ -301,25 +307,27 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setModelKey(@NonNull String value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x2;
                 mModelKey = value;
                 return this;
             }
 
-            /** The delegate to run model inference. */
+            /**
+             * The delegate to run model inference. If not set, the default value is DELEGATE_CPU.
+             */
             @DataClass.Generated.Member
             public @NonNull Builder setDelegateType(@Delegate int value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x4;
                 mDelegateType = value;
                 return this;
             }
 
-            /** The type of the pre-trained model, only support tensorflow lite model now. */
+            /**
+             * The type of the pre-trained model. If not set, the default value is
+             * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+             */
             @DataClass.Generated.Member
             public @NonNull Builder setModelType(@ModelType int value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x8;
                 mModelType = value;
                 return this;
@@ -332,7 +340,6 @@ public final class InferenceInput {
              */
             @DataClass.Generated.Member
             public @NonNull Builder setRecommendedNumThreads(@IntRange(from = 1) int value) {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x10;
                 mRecommendedNumThreads = value;
                 return this;
@@ -340,7 +347,6 @@ public final class InferenceInput {
 
             /** Builds the instance. This builder should not be touched after calling this! */
             public @NonNull Params build() {
-                checkNotUsed();
                 mBuilderFieldsSet |= 0x20; // Mark builder used
 
                 if ((mBuilderFieldsSet & 0x4) == 0) {
@@ -361,17 +367,10 @@ public final class InferenceInput {
                                 mRecommendedNumThreads);
                 return o;
             }
-
-            private void checkNotUsed() {
-                if ((mBuilderFieldsSet & 0x20) != 0) {
-                    throw new IllegalStateException(
-                            "This Builder should not be reused. Use a new Builder instance instead");
-                }
-            }
         }
 
         @DataClass.Generated(
-                time = 1708583825752L,
+                time = 1709170984204L,
                 codegenVersion = "1.0.23",
                 sourceFile =
                         "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
@@ -557,7 +556,6 @@ public final class InferenceInput {
         /** The configuration that controls runtime interpreter behavior. */
         @DataClass.Generated.Member
         public @NonNull Builder setParams(@NonNull Params value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mParams = value;
             return this;
@@ -579,7 +577,6 @@ public final class InferenceInput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setInputData(@NonNull Object... value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mInputData = value;
             return this;
@@ -591,7 +588,6 @@ public final class InferenceInput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setBatchSize(int value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mBatchSize = value;
             return this;
@@ -613,7 +609,6 @@ public final class InferenceInput {
          */
         @DataClass.Generated.Member
         public @NonNull Builder setExpectedOutputStructure(@NonNull InferenceOutput value) {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mExpectedOutputStructure = value;
             return this;
@@ -621,7 +616,6 @@ public final class InferenceInput {
 
         /** Builds the instance. This builder should not be touched after calling this! */
         public @NonNull InferenceInput build() {
-            checkNotUsed();
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x4) == 0) {
@@ -631,17 +625,10 @@ public final class InferenceInput {
                     new InferenceInput(mParams, mInputData, mBatchSize, mExpectedOutputStructure);
             return o;
         }
-
-        private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x10) != 0) {
-                throw new IllegalStateException(
-                        "This Builder should not be reused. Use a new Builder instance instead");
-            }
-        }
     }
 
     @DataClass.Generated(
-            time = 1708583825773L,
+            time = 1709170984223L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
