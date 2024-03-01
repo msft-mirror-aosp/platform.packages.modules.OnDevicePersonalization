@@ -72,6 +72,7 @@ public class RenderFlowTest {
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
     private int mCallbackErrorCode;
+    private int mIsolatedServiceErrorCode;
     private Bundle mCallbackResult;
     private MockitoSession mSession;
     private ServiceFlowOrchestrator mSfo;
@@ -192,9 +193,10 @@ public class RenderFlowTest {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
-        @Override public void onError(int errorCode) {
+        @Override public void onError(int errorCode, int isolatedServiceErrorCode) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
+            mIsolatedServiceErrorCode = isolatedServiceErrorCode;
             mLatch.countDown();
         }
     }

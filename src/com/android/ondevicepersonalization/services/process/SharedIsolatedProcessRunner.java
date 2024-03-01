@@ -20,6 +20,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IM
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
@@ -138,10 +139,20 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                         }
 
                                         // TO-DO (323882182): Granular isolated servce failures.
-                                        @Override public void onError(int errorCode) {
-                                            completer.setException(
-                                                    new OdpServiceException(
-                                                            Constants.STATUS_SERVICE_FAILED));
+                                        @Override public void onError(
+                                                int errorCode, int isolatedServiceErrorCode) {
+                                            if (isolatedServiceErrorCode > 0
+                                                        && isolatedServiceErrorCode < 128) {
+                                                completer.setException(
+                                                        new OdpServiceException(
+                                                                Constants.STATUS_SERVICE_FAILED,
+                                                                new IsolatedServiceException(
+                                                                    isolatedServiceErrorCode)));
+                                            } else {
+                                                completer.setException(
+                                                        new OdpServiceException(
+                                                                Constants.STATUS_SERVICE_FAILED));
+                                            }
                                         }
                                     });
                     return null;
