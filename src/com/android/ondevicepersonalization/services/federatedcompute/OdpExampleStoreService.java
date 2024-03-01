@@ -43,8 +43,8 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
+import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
@@ -83,7 +83,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         ProcessRunner getProcessRunner() {
             return FlagsFactory.getFlags().isSharedIsolatedProcessFeatureEnabled()
                     ? SharedIsolatedProcessRunner.getInstance()
-                    : ProcessRunnerImpl.getInstance();
+                    : PluginProcessRunner.getInstance();
         }
     }
 
