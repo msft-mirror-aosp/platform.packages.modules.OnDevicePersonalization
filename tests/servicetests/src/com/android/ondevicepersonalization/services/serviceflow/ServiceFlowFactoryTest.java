@@ -100,12 +100,12 @@ public class ServiceFlowFactoryTest {
         @Override
         public void onSuccess(Bundle bundle) {}
         @Override
-        public void onError(int errorCode) {}
+        public void onError(int errorCode, int isolatedServiceErrorCode) {}
     }
 
     class TestRenderFlowCallback extends IRequestSurfacePackageCallback.Stub {
         @Override public void onSuccess(SurfaceControlViewHost.SurfacePackage surfacePackage) {}
-        @Override public void onError(int errorCode) {}
+        @Override public void onError(int errorCode, int isolatedServiceErrorCode) {}
     }
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {

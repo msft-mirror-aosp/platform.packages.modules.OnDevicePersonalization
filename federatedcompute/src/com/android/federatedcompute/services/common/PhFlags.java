@@ -45,10 +45,7 @@ public final class PhFlags implements Flags {
     static final String ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH =
             "enable_background_encryption_key_fetch";
 
-    static final String HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME =
-            "http_request_retry_limit";
-
-    static final String FCP_ENABLE_AUTHENTICATION = "fcp_enable_authentication";
+    static final String HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME = "http_request_retry_limit";
 
     static final String FCP_ENABLE_ENCRYPTION = "fcp_enable_encryption";
 
@@ -61,8 +58,7 @@ public final class PhFlags implements Flags {
     static final String DEFAULT_SCHEDULING_PERIOD_SECS_CONFIG_NAME =
             "default_scheduling_period_secs";
 
-    static final String MAX_SCHEDULING_PERIOD_SECS_CONFIG_NAME =
-            "max_scheduling_period_secs";
+    static final String MAX_SCHEDULING_PERIOD_SECS_CONFIG_NAME = "max_scheduling_period_secs";
 
     static final String TRANSIENT_ERROR_RETRY_DELAY_JITTER_PERCENT_CONFIG_NAME =
             "transient_error_retry_delay_jitter_percent";
@@ -74,6 +70,7 @@ public final class PhFlags implements Flags {
     static final String ENABLE_ELIGIBILITY_TASK = "enable_eligibility_task";
     static final String TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS =
             "training_condition_check_period_throttle_period_mills";
+    static final String TASK_HISTORY_TTL_MILLIS = "task_history_ttl_millis";
 
     static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
     static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
@@ -140,15 +137,6 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ HTTP_REQUEST_RETRY_LIMIT);
-    }
-
-    @Override
-    public Boolean isAuthenticationEnabled() {
-        return DeviceConfig.getBoolean(
-                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ FCP_ENABLE_AUTHENTICATION,
-                /* defaultValue= */ AUTHENTICATION_ENABLED
-        );
     }
 
     public Boolean isEncryptionEnabled() {
@@ -247,6 +235,14 @@ public final class PhFlags implements Flags {
     }
 
     @Override
+    public long getTaskHistoryTtl() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ TASK_HISTORY_TTL_MILLIS,
+                /* defaultValue= */ DEFAULT_TASK_HISTORY_TTL_MILLIS);
+    }
+
+    @Override
     public boolean getEnableClientErrorLogging() {
         return DeviceConfig.getBoolean(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -257,13 +253,15 @@ public final class PhFlags implements Flags {
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
         // needs stable: execution stats may be less accurate if value changed during job execution
-        return (boolean) sStableFlags.computeIfAbsent(FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                key -> {
-                    return DeviceConfig.getBoolean(
-                            /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                            /* name= */ FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
-                            /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
-                });
+        return (boolean)
+                sStableFlags.computeIfAbsent(
+                        FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                        key -> {
+                            return DeviceConfig.getBoolean(
+                                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                                    /* name= */ FCP_ENABLE_BACKGROUND_JOBS_LOGGING,
+                                    /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
+                        });
     }
 
     @Override

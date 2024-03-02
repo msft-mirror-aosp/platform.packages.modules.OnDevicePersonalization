@@ -19,10 +19,15 @@ package com.android.ondevicepersonalization.services.util;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.when;
 
+import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.quality.Strictness.LENIENT;
 
+import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
+import android.content.ComponentName;
 import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
@@ -30,6 +35,9 @@ import android.provider.Settings;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 
 import org.junit.After;
 import org.junit.Before;
@@ -45,6 +53,8 @@ public class DebugUtilsTest {
         mSession = ExtendedMockito.mockitoSession()
                 .mockStatic(Build.class)
                 .mockStatic(Settings.Global.class)
+                .mockStatic(FlagsFactory.class)
+                .mockStatic(PackageUtils.class)
                 .strictness(LENIENT)
                 .startMocking();
     }
@@ -82,6 +92,63 @@ public class DebugUtilsTest {
         assertTrue(DebugUtils.isDeveloperModeEnabled(mContext));
     }
 
+    @Test
+    public void testReturnsExceptionCodeIfDebuggableAndFlagEnabled() {
+        doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
+        doReturn(true).when(() -> PackageUtils.isPackageDebuggable(any(), any()));
+        enableDeveloperOptions();
+        assertEquals(42,
+                DebugUtils.getIsolatedServiceExceptionCode(
+                        mContext,
+                        new ComponentName("a", "b"),
+                        new OdpServiceException(
+                                Constants.STATUS_SERVICE_FAILED,
+                                new IsolatedServiceException(42))));
+    }
+
+    @Test
+    public void testDoesNotReturnExceptionCodeIfFlagDisabled() {
+        doReturn(new TestFlags(false)).when(FlagsFactory::getFlags);
+        doReturn(true).when(() -> PackageUtils.isPackageDebuggable(any(), any()));
+        enableDeveloperOptions();
+        assertEquals(0,
+                DebugUtils.getIsolatedServiceExceptionCode(
+                        mContext,
+                        new ComponentName("a", "b"),
+                        new OdpServiceException(
+                                Constants.STATUS_SERVICE_FAILED,
+                                new IsolatedServiceException(42))));
+    }
+
+    @Test
+    public void testDoesNotReturnExceptionCodeIfPackageNotDebuggable() {
+        doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
+        doReturn(false).when(() -> PackageUtils.isPackageDebuggable(any(), any()));
+        enableDeveloperOptions();
+        assertEquals(0,
+                DebugUtils.getIsolatedServiceExceptionCode(
+                        mContext,
+                        new ComponentName("a", "b"),
+                        new OdpServiceException(
+                                Constants.STATUS_SERVICE_FAILED,
+                                new IsolatedServiceException(42))));
+    }
+
+    @Test
+    public void testDoesNotReturnExceptionCodeIfDeviceNotDebuggable() {
+        doReturn(new TestFlags(true)).when(FlagsFactory::getFlags);
+        doReturn(true).when(() -> PackageUtils.isPackageDebuggable(any(), any()));
+        doReturn(false).when(Build::isDebuggable);
+        disableDeveloperOptions();
+        assertEquals(0,
+                DebugUtils.getIsolatedServiceExceptionCode(
+                        mContext,
+                        new ComponentName("a", "b"),
+                        new OdpServiceException(
+                                Constants.STATUS_SERVICE_FAILED,
+                                new IsolatedServiceException(42))));
+    }
+
     private void enableDeveloperOptions() {
         when(Settings.Global.getInt(
                 mContext.getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0))
@@ -92,5 +159,15 @@ public class DebugUtilsTest {
         when(Settings.Global.getInt(
                 mContext.getContentResolver(), Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0))
                 .thenReturn(0);
+    }
+
+    class TestFlags implements Flags {
+        public boolean mIsolatedServiceDebuggingEnabled;
+        TestFlags(boolean value) {
+            mIsolatedServiceDebuggingEnabled = value;
+        }
+        @Override public boolean isIsolatedServiceDebuggingEnabled() {
+            return mIsolatedServiceDebuggingEnabled;
+        }
     }
 }

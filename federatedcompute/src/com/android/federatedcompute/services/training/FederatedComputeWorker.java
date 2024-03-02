@@ -16,8 +16,8 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__CLIENT_PLAN_SPEC_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__FILE_DESCRIPTOR_CLOSE_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.Constants.CLIENT_ONLY_PLAN_FILE_NAME;
@@ -55,6 +55,7 @@ import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
+import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
@@ -164,22 +165,23 @@ public class FederatedComputeWorker {
     }
 
     /** Starts a training run with the given job Id. */
-    public ListenableFuture<FLRunnerResult> startTrainingRun(int jobId) {
+    public ListenableFuture<FLRunnerResult> startTrainingRun(
+            int jobId, FederatedJobService.OnJobFinishedCallback callback) {
         LogUtil.d(TAG, "startTrainingRun() %d", jobId);
         TrainingEventLogger trainingEventLogger = mInjector.getTrainingEventLogger();
         return FluentFuture.from(
                         mInjector
                                 .getBgExecutor()
                                 .submit(
-                                        () -> {
-                                            return getTrainableTask(jobId, trainingEventLogger);
-                                        }))
+                                        () ->
+                                                getTrainableTask(
+                                                        jobId, trainingEventLogger, callback)))
                 .transformAsync(
                         task -> {
                             if (task == null) {
                                 return Futures.immediateFuture(null);
                             }
-                            return startTrainingRun(jobId, task, trainingEventLogger);
+                            return startTrainingRun(jobId, task, trainingEventLogger, callback);
                         },
                         mInjector.getBgExecutor());
     }
@@ -187,11 +189,12 @@ public class FederatedComputeWorker {
     private ListenableFuture<FLRunnerResult> startTrainingRun(
             int jobId,
             FederatedTrainingTask trainingTask,
-            TrainingEventLogger trainingEventLogger) {
+            TrainingEventLogger trainingEventLogger,
+            FederatedJobService.OnJobFinishedCallback callback) {
         synchronized (mLock) {
             // Only allows one concurrent job running.
             Trace.beginAsyncSection(TRACE_WORKER_START_TRAINING_RUN, jobId);
-            TrainingRun run = new TrainingRun(jobId, trainingTask, trainingEventLogger);
+            TrainingRun run = new TrainingRun(jobId, trainingTask, trainingEventLogger, callback);
             mActiveRun = run;
             ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
             var unused =
@@ -211,20 +214,23 @@ public class FederatedComputeWorker {
 
     @Nullable
     private FederatedTrainingTask getTrainableTask(
-            int jobId, TrainingEventLogger trainingEventLogger) {
+            int jobId, TrainingEventLogger trainingEventLogger,
+            FederatedJobService.OnJobFinishedCallback callback) {
         FederatedTrainingTask trainingTask = mJobManager.onTrainingStarted(jobId);
         if (trainingTask == null) {
             LogUtil.i(TAG, "Could not find task to run for job ID %s", jobId);
+            callback.callJobFinished(/* isSuccessful= */ false);
             return null;
         }
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
-            mJobManager.onTrainingCompleted(
+            performFinishRoutines(
+                    callback,
+                    ContributionResult.FAIL,
                     jobId,
                     trainingTask.populationName(),
                     trainingTask.getTrainingIntervalOptions(),
-                    /* taskRetry= */ null,
-                    ContributionResult.FAIL);
+                    /* taskRetry= */ null);
             LogUtil.i(TAG, "Training conditions not satisfied (before bindService)!");
             return null;
         }
@@ -236,12 +242,13 @@ public class FederatedComputeWorker {
                         "Delaying %d/%s another run is already active!",
                         jobId,
                         trainingTask.populationName());
-                mJobManager.onTrainingCompleted(
+                performFinishRoutines(
+                        callback,
+                        ContributionResult.FAIL,
                         jobId,
                         trainingTask.populationName(),
                         trainingTask.getTrainingIntervalOptions(),
-                        /* taskRetry= */ null,
-                        ContributionResult.FAIL);
+                        /* taskRetry= */ null);
                 return null;
             }
             return trainingTask;
@@ -304,7 +311,8 @@ public class FederatedComputeWorker {
             AuthorizationContext authContext) {
         // Generate attestation record and make 2nd try.
         authContext.updateAuthState(
-                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata());
+                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
+                mInjector.getTrainingEventLogger());
         return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
@@ -334,21 +342,22 @@ public class FederatedComputeWorker {
     @NonNull
     private ListenableFuture<FLRunnerResult> handleRetryRejection(
             TrainingRun run, CreateTaskAssignmentResponse taskAssignmentResponse) {
-        mJobManager.onTrainingCompleted(
+        performFinishRoutines(
+                run.mCallback,
+                ContributionResult.FAIL,
                 run.mTask.jobId(),
                 run.mTask.populationName(),
                 run.mTask.getTrainingIntervalOptions(),
-                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()),
-                ContributionResult.FAIL);
+                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()));
         return Futures.immediateFuture(null);
     }
 
     private ListenableFuture<FLRunnerResult> runEligibilityCheckAndDoFlTraining(
             CreateTaskAssignmentResponse createTaskAssignmentResponse, TrainingRun run) {
-        String taskName = createTaskAssignmentResponse.getTaskAssignment().getTaskName();
-        Preconditions.checkArgument(!taskName.isEmpty(), "Task name should not be empty");
+        String taskId = createTaskAssignmentResponse.getTaskAssignment().getTaskId();
+        Preconditions.checkArgument(!taskId.isEmpty(), "Task id should not be empty");
         synchronized (mLock) {
-            mActiveRun.mTaskName = taskName;
+            mActiveRun.mTaskId = taskId;
         }
 
         // 2. Execute eligibility task if applicable.
@@ -368,12 +377,13 @@ public class FederatedComputeWorker {
                         AuthorizationContext.create(
                                 mContext, run.mTask.ownerId(), run.mTask.ownerIdCertDigest()));
                 // Reschedule the job.
-                mJobManager.onTrainingCompleted(
+                performFinishRoutines(
+                        run.mCallback,
+                        ContributionResult.FAIL,
                         run.mTask.jobId(),
                         run.mTask.populationName(),
                         run.mTask.getTrainingIntervalOptions(),
-                        null,
-                        ContributionResult.FAIL);
+                        /* taskRetry= */null);
                 return Futures.immediateFuture(null);
             }
         }
@@ -400,11 +410,7 @@ public class FederatedComputeWorker {
                         taskAssignment.getTaskId(),
                         run.mJobId,
                         taskAssignment.getEligibilityTaskInfo());
-        LogUtil.i(
-                TAG,
-                "eligibility task result %s %b",
-                taskAssignment.getTaskId(),
-                eligibleResult);
+        LogUtil.i(TAG, "eligibility task result %s %b", taskAssignment.getTaskId(), eligibleResult);
         return eligibleResult;
     }
 
@@ -449,11 +455,7 @@ public class FederatedComputeWorker {
         // 4. Bind to client app implemented ExampleStoreService based on ExampleSelector.
         // Set active run's task name.
         ListenableFuture<IExampleStoreIterator> iteratorFuture =
-                getExampleStoreIterator(
-                        run,
-                        run.mTask.appPackageName(),
-                        run.mTaskName,
-                        getExampleSelector(checkinResult));
+                getExampleStoreIterator(run, getExampleSelector(checkinResult));
 
         // 5. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
@@ -515,15 +517,16 @@ public class FederatedComputeWorker {
                                                 null);
                                 var unused =
                                         mResultCallbackHelper.callHandleResult(
-                                                run.mTaskName,
+                                                run.mTaskId,
                                                 run.mTask,
                                                 failedReportComputationResult);
-                                mJobManager.onTrainingCompleted(
+                                performFinishRoutines(
+                                        run.mCallback,
+                                        ContributionResult.FAIL,
                                         run.mTask.jobId(),
                                         run.mTask.populationName(),
                                         run.mTask.getTrainingIntervalOptions(),
-                                        buildTaskRetry(reportToServer),
-                                        ContributionResult.FAIL);
+                                        buildTaskRetry(reportToServer));
                                 return null;
                             }
 
@@ -542,7 +545,7 @@ public class FederatedComputeWorker {
                             // ResultHandlingService.
                             var unused =
                                     mResultCallbackHelper.callHandleResult(
-                                            run.mTaskName, run.mTask, computationResult);
+                                            run.mTaskId, run.mTask, computationResult);
                             return computationResult.getFlRunnerResult();
                         },
                         mInjector.getBgExecutor());
@@ -607,12 +610,38 @@ public class FederatedComputeWorker {
             }
         }
 
-        mJobManager.onTrainingCompleted(
+        performFinishRoutines(
+                runToFinish.mCallback,
+                contributionResult,
                 runToFinish.mJobId,
                 runToFinish.mTask.populationName(),
                 runToFinish.mTask.getTrainingIntervalOptions(),
-                taskRetry,
-                contributionResult);
+                taskRetry);
+    }
+
+    /**
+     * To clean up active run for subsequent executions.
+     */
+    public void cleanUpActiveRun() {
+        synchronized (mLock) {
+            if (mActiveRun == null) {
+                return;
+            }
+
+            mActiveRun = null;
+        }
+    }
+
+    private void performFinishRoutines(
+            FederatedJobService.OnJobFinishedCallback callback,
+            ContributionResult contributionResult,
+            int jobId,
+            String populationName,
+            TrainingIntervalOptions trainingIntervalOptions,
+            TaskRetry taskRetry) {
+        callback.callJobFinished(ContributionResult.SUCCESS.equals(contributionResult));
+        mJobManager.onTrainingCompleted(
+                jobId, populationName, trainingIntervalOptions, taskRetry, contributionResult);
     }
 
     private void unBindServicesIfNecessary(TrainingRun runToFinish) {
@@ -686,7 +715,7 @@ public class FederatedComputeWorker {
                     "ClientOnlyPlan input tflite graph is empty."
                             + " population name: %s, task name: %s",
                     run.mTask.populationName(),
-                    run.mTaskName);
+                    run.mTaskId);
             IllegalStateException ex =
                     new IllegalStateException("Client plan input tflite graph is empty");
             ClientErrorLogger.getInstance()
@@ -715,7 +744,7 @@ public class FederatedComputeWorker {
             Bundle bundle = new Bundle();
             bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, exampleSelector.toByteArray());
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_NAME, run.mTaskName);
+            bundle.putString(ClientConstants.EXTRA_TASK_ID, run.mTaskId);
             bundle.putParcelable(Constants.EXTRA_CLIENT_ONLY_PLAN_FD, clientPlanFd);
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
@@ -899,7 +928,7 @@ public class FederatedComputeWorker {
         ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
         FLRunnerResult runResult =
                 mComputationRunner.runTaskWithNativeRunner(
-                        run.mTaskName,
+                        run.mTaskId,
                         run.mTask.populationName(),
                         checkinResult.getInputCheckpointFile(),
                         outputCheckpointFile,
@@ -961,15 +990,15 @@ public class FederatedComputeWorker {
     }
 
     private ListenableFuture<IExampleStoreIterator> getExampleStoreIterator(
-            TrainingRun run, String packageName, String taskName, ExampleSelector exampleSelector) {
+            TrainingRun run, ExampleSelector exampleSelector) {
         try {
-            run.mTaskName = taskName;
-
-            IExampleStoreService exampleStoreService = getExampleStoreService(packageName);
+            IExampleStoreService exampleStoreService =
+                    getExampleStoreService(run.mTask.appPackageName());
             if (exampleStoreService == null) {
                 return Futures.immediateFailedFuture(
                         new IllegalStateException(
-                                "Could not bind to ExampleStoreService " + packageName));
+                                "Could not bind to ExampleStoreService "
+                                        + run.mTask.appPackageName()));
             }
             run.mExampleStoreService = exampleStoreService;
 
@@ -977,7 +1006,7 @@ public class FederatedComputeWorker {
             byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_NAME, taskName);
+            bundle.putString(ClientConstants.EXTRA_TASK_ID, run.mTaskId);
             bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, run.mTask.contextData());
             bundle.putByteArray(
                     ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
@@ -1004,7 +1033,9 @@ public class FederatedComputeWorker {
                         resp -> {
                             if (resp != null) {
                                 if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                    authContext.updateAuthState(resp.getAuthMetadata());
+                                    authContext.updateAuthState(
+                                            resp.getAuthMetadata(),
+                                            mInjector.getTrainingEventLogger());
                                     return reportResultWithAuthentication(
                                             computationResult, encryptionKey, authContext);
                                 } else if (resp.hasRetryWindow()) {
@@ -1082,7 +1113,7 @@ public class FederatedComputeWorker {
     private static final class TrainingRun {
         private final int mJobId;
 
-        private String mTaskName;
+        private String mTaskId;
         private final FederatedTrainingTask mTask;
 
         private final TrainingEventLogger mTrainingEventLogger;
@@ -1093,11 +1124,17 @@ public class FederatedComputeWorker {
 
         @Nullable private IExampleStoreService mExampleStoreService = null;
 
+        private FederatedJobService.OnJobFinishedCallback mCallback;
+
         private TrainingRun(
-                int jobId, FederatedTrainingTask task, TrainingEventLogger trainingEventLogger) {
+                int jobId,
+                FederatedTrainingTask task,
+                TrainingEventLogger trainingEventLogger,
+                FederatedJobService.OnJobFinishedCallback callback) {
             this.mJobId = jobId;
             this.mTask = task;
             this.mTrainingEventLogger = trainingEventLogger;
+            this.mCallback = callback;
         }
     }
 
