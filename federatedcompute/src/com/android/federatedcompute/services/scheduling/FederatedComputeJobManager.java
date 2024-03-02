@@ -365,7 +365,7 @@ public class FederatedComputeJobManager {
     public synchronized void recordSuccessContribution(
             int jobId, String populationName, TaskAssignment taskAssignment) {
         TaskHistory existingTaskHistory =
-                mFederatedTrainingTaskDao.getTaskHistory(
+                mFederatedTrainingTaskDao.getLatestTaskHistory(
                         jobId, populationName, taskAssignment.getTaskId());
         long roundNumber = 0;
         for (EligibilityPolicyEvalSpec evalSpec :
@@ -452,7 +452,19 @@ public class FederatedComputeJobManager {
                         : SchedulingReason.SCHEDULING_REASON_FAILURE);
         if (trainingResult == ContributionResult.FAIL) {
             int rescheduleCount = existingTask.rescheduleCount() + 1;
+            if (rescheduleCount > mFlags.getFcpRescheduleLimit()) {
+                LogUtil.i(
+                        TAG,
+                        "federated task (id: %d) was not rescheduled due to reschedule limit "
+                                + "reached!",
+                        jobId);
+                mJobSchedulerHelper.cancelTask(mContext, newTaskBuilder.build());
+                return false;
+            }
             newTaskBuilder.rescheduleCount(rescheduleCount);
+        } else {
+            // drop reschedule count to 0 in case it was not a faulty run.
+            newTaskBuilder.rescheduleCount(0);
         }
         FederatedTrainingTask newTask = newTaskBuilder.build();
         mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);

@@ -39,6 +39,7 @@ import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonal
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
 import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy;
+import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
@@ -82,7 +83,18 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
     /** Called when the broadcast is received. OnDevicePersonalization jobs will be started here. */
     public void onReceive(Context context, Intent intent) {
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch on, skipped broadcast.");
+            return;
+        }
+
+        if (!DeviceUtils.isOdpSupported(context)) {
+            sLogger.d(TAG + ": Unsupported device, skipped broadcast.");
+            return;
+        }
+
         sLogger.d(TAG + ": onReceive() with intent + " + intent.getAction());
+
         if (!Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction())) {
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
@@ -133,34 +145,26 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
                 new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),
                 new HashSet<>(Arrays.asList(DataIngressPolicy.NPA_DATA_POLICY)));
 
-        // Schedule recurring jobs if kill switch is off
-        if (!FlagsFactory.getFlags().getGlobalKillSwitch()) {
-            // Schedule maintenance task
-            OnDevicePersonalizationMaintenanceJobService.schedule(context);
-
-            // Schedule user data collection task
-            UserDataCollectionJobService.schedule(context);
-
-            final PendingResult pendingResult = goAsync();
-            // Schedule MDD to download scripts periodically.
-            Futures.addCallback(
-                    MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
-                    new FutureCallback<Void>() {
-                        @Override
-                        public void onSuccess(Void result) {
-                            sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
-                            pendingResult.finish();
-                        }
-
-                        @Override
-                        public void onFailure(Throwable t) {
-                            sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
-                            pendingResult.finish();
-                        }
-                    },
-                    mExecutor);
-        } else {
-            sLogger.d(TAG + ": GlobalKillSwitch on, skipped scheduling jobs.");
-        }
+        // Schedule maintenance task
+        OnDevicePersonalizationMaintenanceJobService.schedule(context);
+        // Schedule user data collection task
+        UserDataCollectionJobService.schedule(context);
+        final PendingResult pendingResult = goAsync();
+        // Schedule MDD to download scripts periodically.
+        Futures.addCallback(
+                MobileDataDownloadFactory.getMdd(context).schedulePeriodicBackgroundTasks(),
+                new FutureCallback<Void>() {
+                    @Override
+                    public void onSuccess(Void result) {
+                        sLogger.d(TAG + ": Successfully scheduled MDD tasks.");
+                        pendingResult.finish();
+                    }
+                    @Override
+                    public void onFailure(Throwable t) {
+                        sLogger.e(TAG + ": Failed to schedule MDD tasks.", t);
+                        pendingResult.finish();
+                    }
+                },
+                mExecutor);
     }
 }

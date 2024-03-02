@@ -23,6 +23,7 @@ import static org.junit.Assert.assertTrue;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
@@ -41,6 +42,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
     private OnDevicePersonalizationFileGroupPopulator mPopulator;
     private MobileDataDownload mMdd;
     private String mPackageName;
+    private static final String READ_DEVICE_CONFIG_PERMISSION =
+            "android.permission.READ_DEVICE_CONFIG";
 
     @Before
     public void setup() throws Exception {
@@ -50,6 +53,8 @@ public class OnDevicePersonalizationFileGroupPopulatorTest {
         RemoveFileGroupsByFilterRequest request =
                 RemoveFileGroupsByFilterRequest.newBuilder().build();
         MobileDataDownloadFactory.getMdd(mContext).removeFileGroupsByFilter(request).get();
+        InstrumentationRegistry.getInstrumentation().getUiAutomation()
+                .adoptShellPermissionIdentity(READ_DEVICE_CONFIG_PERMISSION);
     }
 
     @Test
