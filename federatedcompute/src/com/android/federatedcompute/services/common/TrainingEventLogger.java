@@ -27,10 +27,14 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_DOWNLOAD_TURNED_AWAY;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOADED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOAD_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_INITIATE_REPORT_RESULT_AUTH_SUCCEEDED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_NOT_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_REPORT_RESULT_UNAUTHORIZED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOADED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOAD_SERVER_ABORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOAD_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_AUTH_SUCCEEDED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_UNAUTHORIZED;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
@@ -187,6 +191,44 @@ public class TrainingEventLogger {
         logEvent(event);
     }
 
+    /** Logs when devices are unauthorized to create task assignment. */
+    public void logTaskAssignmentUnauthorized() {
+        logKeyAttestationEvent(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_UNAUTHORIZED);
+    }
+
+    /** Logs when devices are successfully authenticated to create task assignment.*/
+    public void logTaskAssignmentAuthSucceeded() {
+        logKeyAttestationEvent(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_AUTH_SUCCEEDED);
+    }
+
+    /** Logs when devices are not authorized to report result. */
+    public void logReportResultUnauthorized() {
+        logKeyAttestationEvent(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_REPORT_RESULT_UNAUTHORIZED);
+    }
+
+    /** Logs when devices are successfully authenticated to report result. */
+    public void logReportResultAuthSucceeded() {
+        logKeyAttestationEvent(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_INITIATE_REPORT_RESULT_AUTH_SUCCEEDED);
+    }
+
+    /** Logs the latency of calling key attestation on device */
+    public void logKeyAttestationLatencyEvent(long latencyMillis) {
+        TrainingEventReported.Builder event = new TrainingEventReported.Builder()
+                .setKeyAttestationLatencyMillis(latencyMillis);
+        logEvent(event);
+    }
+
+    private void logKeyAttestationEvent(int eventKind) {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder()
+                        .setEventKind(eventKind);
+        logEvent(event);
+    }
+
     private void logEvent(TrainingEventReported.Builder event) {
         if (mTaskId != 0) {
             event.setTaskId(mTaskId);
@@ -197,11 +239,13 @@ public class TrainingEventLogger {
         TrainingEventReported trainingEvent = event.build();
         LogUtil.i(
                 TAG,
-                "Log event kind %d, network upload %d download %d example stats %d",
+                "Log event kind %d, network upload %d download %d example stats %d"
+                + "key attestation stats %d",
                 trainingEvent.getEventKind(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
-                trainingEvent.getExampleSize());
+                trainingEvent.getExampleSize(),
+                trainingEvent.getKeyAttestationLatencyMillis());
         FederatedComputeStatsdLogger.getInstance().logTrainingEventReported(trainingEvent);
     }
 }

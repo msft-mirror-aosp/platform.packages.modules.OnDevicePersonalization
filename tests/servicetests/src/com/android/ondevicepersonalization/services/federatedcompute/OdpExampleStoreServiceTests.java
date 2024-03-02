@@ -85,11 +85,7 @@ public class OdpExampleStoreServiceTests {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
+        return Arrays.asList(new Object[][] {{true}, {false}});
     }
 
     @Before
@@ -124,12 +120,12 @@ public class OdpExampleStoreServiceTests {
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(
-                mIsolatedService.getPackageName(), mIsolatedService.getClassName());
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
-        input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
 
         binder.startQuery(input, callback);
         assertTrue(
@@ -171,12 +167,12 @@ public class OdpExampleStoreServiceTests {
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(
-                mIsolatedService.getPackageName(), mIsolatedService.getClassName());
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
-        input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
 
         ((IExampleStoreService.Stub) binder).startQuery(input, callback);
         mLatch.await(1000, TimeUnit.MILLISECONDS);

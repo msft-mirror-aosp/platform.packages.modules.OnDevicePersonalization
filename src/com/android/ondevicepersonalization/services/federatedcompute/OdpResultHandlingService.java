@@ -50,12 +50,12 @@ public class OdpResultHandlingService extends ResultHandlingService {
                     ContextData.fromByteArray(
                             Objects.requireNonNull(
                                     params.getByteArray(ClientConstants.EXTRA_CONTEXT_DATA)));
-            ComponentName service = ComponentName.createRelative(
-                    contextData.getPackageName(), contextData.getClassName());
+            ComponentName service =
+                    ComponentName.createRelative(
+                            contextData.getPackageName(), contextData.getClassName());
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
-            String taskName =
-                    Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_NAME));
+            String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
             int computationResult = params.getInt(ClientConstants.EXTRA_COMPUTATION_RESULT);
             ArrayList<ExampleConsumption> consumptionList =
                     Objects.requireNonNull(
@@ -73,7 +73,7 @@ public class OdpResultHandlingService extends ResultHandlingService {
                     Futures.submit(
                             () ->
                                     processExampleConsumptions(
-                                            consumptionList, populationName, taskName, service),
+                                            consumptionList, populationName, taskId, service),
                             OnDevicePersonalizationExecutors.getBackgroundExecutor());
             Futures.addCallback(
                     result,
@@ -104,12 +104,12 @@ public class OdpResultHandlingService extends ResultHandlingService {
     private Boolean processExampleConsumptions(
             List<ExampleConsumption> exampleConsumptions,
             String populationName,
-            String taskName,
+            String taskId,
             ComponentName service) {
         List<EventState> eventStates = new ArrayList<>();
         for (ExampleConsumption consumption : exampleConsumptions) {
             String taskIdentifier =
-                    OdpExampleStoreService.getTaskIdentifier(populationName, taskName);
+                    OdpExampleStoreService.getTaskIdentifier(populationName, taskId);
             byte[] resumptionToken = consumption.getResumptionToken();
             if (resumptionToken != null) {
                 eventStates.add(
