@@ -16,11 +16,8 @@
 
 package com.android.federatedcompute.services.common;
 
-import static com.android.federatedcompute.services.common.Flags.ENCRYPTION_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.USE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
-import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_AUTHENTICATION;
-import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
 import static com.android.federatedcompute.services.common.PhFlags.KEY_FEDERATED_COMPUTE_KILL_SWITCH;
 
 import android.provider.DeviceConfig;
@@ -80,33 +77,6 @@ public class PhFlagsTestUtil {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
                 Boolean.toString(false),
-                /* makeDefault= */ false);
-    }
-
-    /** Enable authentication for token deletion service. */
-    public static void enableAuthentication() {
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(true),
-                /* makeDefault= */ false);
-    }
-
-    /** Disable authentication for token deletion service. */
-    public static void disableAuthentication() {
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(false),
-                /* makeDefault= */ false);
-    }
-
-    /** Enable encryption when uploading results. */
-    public static void enableEncryption() {
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_ENCRYPTION,
-                Boolean.toString(ENCRYPTION_ENABLED),
                 /* makeDefault= */ false);
     }
 }

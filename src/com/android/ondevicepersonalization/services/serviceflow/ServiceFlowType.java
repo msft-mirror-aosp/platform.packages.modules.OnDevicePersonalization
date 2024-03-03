@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
+import static android.adservices.ondevicepersonalization.Constants.OP_DOWNLOAD;
 import static android.adservices.ondevicepersonalization.Constants.OP_EXECUTE;
 import static android.adservices.ondevicepersonalization.Constants.OP_RENDER;
 import static android.adservices.ondevicepersonalization.Constants.OP_TRAINING_EXAMPLE;
@@ -23,6 +24,7 @@ import static android.adservices.ondevicepersonalization.Constants.OP_WEB_TRIGGE
 import static android.adservices.ondevicepersonalization.Constants.OP_WEB_VIEW_EVENT;
 
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
@@ -51,7 +53,11 @@ public enum ServiceFlowType {
 
     EXAMPLE_STORE_FLOW(
             "ExampleStore", OP_TRAINING_EXAMPLE, Priority.NORMAL,
-            (int) FlagsFactory.getFlags().getStableFlag(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS));
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS)),
+
+    DOWNLOAD_FLOW(
+            "DownloadJob", OP_DOWNLOAD, Priority.LOW,
+            (int) FlagsFactory.getFlags().getStableFlag(KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS));
 
     final String mTaskName;
     final int mOperationCode;
