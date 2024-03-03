@@ -16,9 +16,11 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
@@ -137,10 +139,20 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                         }
 
                                         // TO-DO (323882182): Granular isolated servce failures.
-                                        @Override public void onError(int errorCode) {
-                                            completer.setException(
-                                                    new OdpServiceException(
-                                                            Constants.STATUS_SERVICE_FAILED));
+                                        @Override public void onError(
+                                                int errorCode, int isolatedServiceErrorCode) {
+                                            if (isolatedServiceErrorCode > 0
+                                                        && isolatedServiceErrorCode < 128) {
+                                                completer.setException(
+                                                        new OdpServiceException(
+                                                                Constants.STATUS_SERVICE_FAILED,
+                                                                new IsolatedServiceException(
+                                                                    isolatedServiceErrorCode)));
+                                            } else {
+                                                completer.setException(
+                                                        new OdpServiceException(
+                                                                Constants.STATUS_SERVICE_FAILED));
+                                            }
                                         }
                                     });
                     return null;
@@ -180,7 +192,10 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         String partnerAppsList =
                 (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
         boolean isPartnerApp = AllowListUtils.isAllowListed(packageName, partnerAppsList);
-        return isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+        String sipInstanceName = isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+        return (boolean) FlagsFactory.getFlags()
+                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
+                    ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 
     boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
