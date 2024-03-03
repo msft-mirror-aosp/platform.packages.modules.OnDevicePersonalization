@@ -166,13 +166,6 @@ public interface Flags extends ModuleSharedFlags {
         return HTTP_REQUEST_RETRY_LIMIT;
     }
 
-    Boolean AUTHENTICATION_ENABLED = false;
-
-    /** Whether to enable authentication when uploading results. */
-    default Boolean isAuthenticationEnabled() {
-        return AUTHENTICATION_ENABLED;
-    }
-
     Boolean ENCRYPTION_ENABLED = true;
 
     /** Whether to enable encryption when uploading results. */
@@ -207,6 +200,13 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getEnableClientErrorLogging() {
         return ENABLE_CLIENT_ERROR_LOGGING;
+    }
+
+    // 7 days in milliseconds
+    long DEFAULT_TASK_HISTORY_TTL_MILLIS = 7 * 24 * 60 * 60 * 1000L;
+
+    default long getTaskHistoryTtl() {
+        return DEFAULT_TASK_HISTORY_TTL_MILLIS;
     }
 
     boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;

@@ -16,7 +16,6 @@
 
 package com.android.federatedcompute.services.common;
 
-import static com.android.federatedcompute.services.common.Flags.AUTHENTICATION_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
@@ -39,7 +38,6 @@ import static com.android.federatedcompute.services.common.PhFlags.DEFAULT_SCHED
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
-import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_AUTHENTICATION;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_BACKGROUND_JOBS_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
@@ -88,11 +86,6 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH,
                 Boolean.toString(USE_BACKGROUND_ENCRYPTION_KEY_FETCH),
-                /* makeDefault= */ false);
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(AUTHENTICATION_ENABLED),
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -270,29 +263,6 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getHttpRequestRetryLimit()).isEqualTo(overrideHttpRequestRetryLimit);
-    }
-
-    @Test
-    public void testEnableAuthentication() {
-        // Without Overriding
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(AUTHENTICATION_ENABLED),
-                /* makeDefault */ false);
-        assertThat(FlagsFactory.getFlags().isAuthenticationEnabled())
-                .isEqualTo(AUTHENTICATION_ENABLED);
-
-        // Now overriding the value from PH
-        boolean overrideEnableAuth = !AUTHENTICATION_ENABLED;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                FCP_ENABLE_AUTHENTICATION,
-                Boolean.toString(overrideEnableAuth),
-                /* makeDefault */ false);
-
-        Flags phFlags = FlagsFactory.getFlags();
-        assertThat(phFlags.isAuthenticationEnabled()).isEqualTo(overrideEnableAuth);
     }
 
     @Test
@@ -541,8 +511,7 @@ public class PhFlagsTest {
                 FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 Integer.toString(FCP_RESCHEDULE_LIMIT),
                 /* makeDefault= */ false);
-        assertThat(FlagsFactory.getFlags().getFcpRescheduleLimit())
-                .isEqualTo(FCP_RESCHEDULE_LIMIT);
+        assertThat(FlagsFactory.getFlags().getFcpRescheduleLimit()).isEqualTo(FCP_RESCHEDULE_LIMIT);
 
         // Now overriding the value from PH.
         int overrideFcpRescheduleLimit = 4;
@@ -574,8 +543,7 @@ public class PhFlagsTest {
                 FCP_ENABLE_CLIENT_ERROR_LOGGING,
                 Boolean.toString(overrideEnable),
                 /* makeDefault= */ false);
-        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging())
-                .isEqualTo(overrideEnable);
+        assertThat(FlagsFactory.getFlags().getEnableClientErrorLogging()).isEqualTo(overrideEnable);
     }
 
     @Test
