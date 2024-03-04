@@ -23,6 +23,7 @@ import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
 import android.adservices.ondevicepersonalization.KeyValueStore;
 import android.adservices.ondevicepersonalization.RenderInput;
@@ -36,6 +37,7 @@ import android.adservices.ondevicepersonalization.WebTriggerInput;
 import android.adservices.ondevicepersonalization.WebTriggerOutput;
 import android.annotation.NonNull;
 import android.content.ContentValues;
+import android.os.OutcomeReceiver;
 import android.util.Log;
 
 import java.util.ArrayList;
@@ -43,7 +45,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.function.Consumer;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
 public class TestPersonalizationHandler implements IsolatedWorker {
@@ -56,7 +57,8 @@ public class TestPersonalizationHandler implements IsolatedWorker {
 
     @Override
     public void onDownloadCompleted(
-            DownloadCompletedInput input, Consumer<DownloadCompletedOutput> consumer) {
+            DownloadCompletedInput input,
+            OutcomeReceiver<DownloadCompletedOutput, IsolatedServiceException> receiver) {
         try {
             Log.d(TAG, "Starting filterData.");
             Log.d(TAG, "Data keys: " + input.getDownloadedContents().keySet());
@@ -69,14 +71,16 @@ public class TestPersonalizationHandler implements IsolatedWorker {
             // Get the keys to keep from the downloaded data
             DownloadCompletedOutput result =
                     new DownloadCompletedOutput.Builder().setRetainedKeys(keysToRetain).build();
-            consumer.accept(result);
+            receiver.onResult(result);
         } catch (Exception e) {
             Log.e(TAG, "Error occurred in onDownload", e);
         }
     }
 
     @Override
-    public void onExecute(@NonNull ExecuteInput input, @NonNull Consumer<ExecuteOutput> consumer) {
+    public void onExecute(
+            @NonNull ExecuteInput input,
+            @NonNull OutcomeReceiver<ExecuteOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onExecute() started.");
         ContentValues logData = new ContentValues();
         logData.put("id", "bid1");
@@ -99,11 +103,13 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                                         .build())
                         .setOutputData(new byte[] {1, 2, 3})
                         .build();
-        consumer.accept(result);
+        receiver.onResult(result);
     }
 
     @Override
-    public void onRender(@NonNull RenderInput input, @NonNull Consumer<RenderOutput> consumer) {
+    public void onRender(
+            @NonNull RenderInput input,
+            @NonNull OutcomeReceiver<RenderOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onRender() started.");
         RenderOutput result =
                 new RenderOutput.Builder()
@@ -112,11 +118,13 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                                         + String.join(",", input.getRenderingConfig().getKeys())
                                         + "<p>")
                         .build();
-        consumer.accept(result);
+        receiver.onResult(result);
     }
 
     @Override
-    public void onEvent(@NonNull EventInput input, @NonNull Consumer<EventOutput> consumer) {
+    public void onEvent(
+            @NonNull EventInput input,
+            @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onEvent() started.");
         long longValue = 0;
         if (input.getParameters() != null) {
@@ -134,7 +142,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                                         .build())
                         .build();
         Log.d(TAG, "onEvent() result: " + result.toString());
-        consumer.accept(result);
+        receiver.onResult(result);
     }
 
     private List<String> getFilteredKeys(KeyValueStore data) {
@@ -147,7 +155,7 @@ public class TestPersonalizationHandler implements IsolatedWorker {
     @Override
     public void onTrainingExamples(
             @NonNull TrainingExamplesInput input,
-            @NonNull Consumer<TrainingExamplesOutput> consumer) {
+            @NonNull OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onTrainingExamples() started.");
         Log.d(TAG, "Population name: " + input.getPopulationName());
         Log.d(TAG, "Task name: " + input.getTaskName());
@@ -170,13 +178,13 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                 new TrainingExamplesOutput.Builder()
                         .setTrainingExampleRecords(exampleRecordList)
                         .build();
-        consumer.accept(output);
+        receiver.onResult(output);
     }
 
     @Override
     public void onWebTrigger(
             @NonNull WebTriggerInput input,
-            @NonNull Consumer<WebTriggerOutput> consumer) {
+            @NonNull OutcomeReceiver<WebTriggerOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onWebTrigger() started.");
         ContentValues logData = new ContentValues();
         logData.put("id", "trig1");
@@ -196,6 +204,6 @@ public class TestPersonalizationHandler implements IsolatedWorker {
                                         .setRowIndex(1)
                                         .build())
                         .build();
-        consumer.accept(output);
+        receiver.onResult(output);
     }
 }

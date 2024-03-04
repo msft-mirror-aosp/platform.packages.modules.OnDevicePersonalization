@@ -18,6 +18,8 @@ package com.android.federatedcompute.services.training;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import static junit.framework.Assert.assertTrue;
+
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -34,6 +36,8 @@ import com.android.federatedcompute.services.common.FileUtils;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -43,25 +47,34 @@ import com.google.intelligence.fcp.client.RetryInfo;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
 import com.google.internal.federated.plan.ClientOnlyPlan;
 import com.google.internal.federated.plan.ExampleSelector;
+import com.google.protobuf.Duration;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.io.File;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 @RunWith(JUnit4.class)
+@MockStatic(FederatedComputeExecutors.class)
 public final class IsolatedTrainingServiceImplTest {
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String POPULATION_NAME = "population_name";
     private static final String TASK_NAME = "task_name";
     private static final long RUN_ID = 12345L;
+    private static final long TIMEOUT_MILLI = 5000;
     private static final FakeExampleStoreIterator FAKE_EXAMPLE_STORE_ITERATOR =
             new FakeExampleStoreIterator(ImmutableList.of());
     private static final ExampleSelector EXAMPLE_SELECTOR =
@@ -77,29 +90,16 @@ public final class IsolatedTrainingServiceImplTest {
                                     .build())
                     .build();
     private static final FLRunnerResult FL_RUNNER_FAIL_RESULT =
-            FLRunnerResult.newBuilder()
-                    .setContributionResult(ContributionResult.FAIL)
-                    .setRetryInfo(
-                            RetryInfo.newBuilder()
-                                    .setRetryToken(TASK_RETRY.getRetryToken())
-                                    .build())
-                    .build();
-    private final CountDownLatch mLatch = new CountDownLatch(1);
+            FLRunnerResult.newBuilder().setContributionResult(ContributionResult.FAIL).build();
     private IsolatedTrainingServiceImpl mIsolatedTrainingService;
     private Bundle mCallbackResult;
     @Mock private ComputationRunner mComputationRunner;
-    private MockitoSession mStaticMockSession;
     private ParcelFileDescriptor mInputCheckpointFd;
     private ParcelFileDescriptor mOutputCheckpointFd;
 
     @Before
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
-        mStaticMockSession =
-                ExtendedMockito.mockitoSession()
-                        .spyStatic(FederatedComputeExecutors.class)
-                        .strictness(Strictness.LENIENT)
-                        .startMocking();
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
                 .when(FederatedComputeExecutors::getBackgroundExecutor);
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService())
@@ -112,7 +112,6 @@ public final class IsolatedTrainingServiceImplTest {
 
     @After
     public void tearDown() throws Exception {
-        mStaticMockSession.finishMocking();
         mInputCheckpointFd.close();
         mOutputCheckpointFd.close();
     }
@@ -122,10 +121,12 @@ public final class IsolatedTrainingServiceImplTest {
         when(mComputationRunner.runTaskWithNativeRunner(
                         anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_SUCCESS_RESULT);
-
         Bundle bundle = buildInputBundle();
-        mIsolatedTrainingService.runFlTraining(bundle, new TestServiceCallback());
 
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
         byte[] flRunnerResultBytes = mCallbackResult.getByteArray(Constants.EXTRA_FL_RUNNER_RESULT);
         FLRunnerResult flRunnerResult = FLRunnerResult.parseFrom(flRunnerResultBytes);
         assertThat(flRunnerResult).isEqualTo(FL_RUNNER_SUCCESS_RESULT);
@@ -136,17 +137,61 @@ public final class IsolatedTrainingServiceImplTest {
         when(mComputationRunner.runTaskWithNativeRunner(
                         anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
                 .thenReturn(FL_RUNNER_FAIL_RESULT);
-
         Bundle bundle = buildInputBundle();
-        mIsolatedTrainingService.runFlTraining(bundle, new TestServiceCallback());
 
-        byte[] flRunnerResultBytes = mCallbackResult.getByteArray(Constants.EXTRA_FL_RUNNER_RESULT);
-        FLRunnerResult flRunnerResult = FLRunnerResult.parseFrom(flRunnerResultBytes);
-        assertThat(flRunnerResult).isEqualTo(FL_RUNNER_FAIL_RESULT);
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
     }
 
     @Test
-    public void runFlTrainingMissingExampleSelector_returnsFailure() {
+    public void runFlTrainingFailureWithRte() throws Exception {
+        when(mComputationRunner.runTaskWithNativeRunner(
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(RuntimeException.class);
+        Bundle bundle = buildInputBundle();
+
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
+    }
+
+    @Test
+    public void runFlTrainingFailureWithIae() throws Exception {
+        when(mComputationRunner.runTaskWithNativeRunner(
+                        anyString(), anyString(), any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(IllegalArgumentException.class);
+        Bundle bundle = buildInputBundle();
+
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
+    }
+
+    @Test
+    public void runFlTrainingNullBundle() {
+        var callback = new TestServiceCallback();
+        assertThrows(
+                NullPointerException.class,
+                () -> mIsolatedTrainingService.runFlTraining(null, callback));
+    }
+
+    @Test
+    public void runFlTrainingNullCallback() {
+        Bundle bundle = new Bundle();
+        assertThrows(
+                NullPointerException.class,
+                () -> mIsolatedTrainingService.runFlTraining(bundle, null));
+    }
+
+    @Test
+    public void runFlTrainingMissingExampleSelector_returnsFailure() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
@@ -154,13 +199,15 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
 
-        assertThrows(
-                NullPointerException.class,
-                () -> mIsolatedTrainingService.runFlTraining(bundle, new TestServiceCallback()));
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
     }
 
     @Test
-    public void runFlTrainingInvalidExampleSelector_returnsFailure() {
+    public void runFlTrainingInvalidExampleSelector_returnsFailure() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
@@ -170,9 +217,11 @@ public final class IsolatedTrainingServiceImplTest {
 
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, "exampleselector".getBytes());
 
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> mIsolatedTrainingService.runFlTraining(bundle, new TestServiceCallback()));
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
     }
 
     @Test
@@ -185,9 +234,11 @@ public final class IsolatedTrainingServiceImplTest {
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
 
-        assertThrows(
-                NullPointerException.class,
-                () -> mIsolatedTrainingService.runFlTraining(bundle, new TestServiceCallback()));
+        var callback = new TestServiceCallback();
+        mIsolatedTrainingService.runFlTraining(bundle, callback);
+
+        assertTrue(callback.mLatch.await(TIMEOUT_MILLI, TimeUnit.MILLISECONDS));
+        assertFailResult();
     }
 
     @Test
@@ -198,10 +249,23 @@ public final class IsolatedTrainingServiceImplTest {
         assertThat(mIsolatedTrainingService.mInterruptState.get()).isTrue();
     }
 
+    private void assertFailResult() throws Exception {
+        byte[] flRunnerResultBytes = mCallbackResult.getByteArray(Constants.EXTRA_FL_RUNNER_RESULT);
+        FLRunnerResult flRunnerResult = FLRunnerResult.parseFrom(flRunnerResultBytes);
+        assertThat(flRunnerResult)
+                .isEqualTo(
+                        FL_RUNNER_FAIL_RESULT.toBuilder()
+                                .setRetryInfo(
+                                        RetryInfo.newBuilder()
+                                                .setMinimumDelay(
+                                                        Duration.newBuilder().setSeconds(86400)))
+                                .build());
+    }
+
     private Bundle buildInputBundle() throws Exception {
         Bundle bundle = new Bundle();
         bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, POPULATION_NAME);
-        bundle.putString(ClientConstants.EXTRA_TASK_NAME, TASK_NAME);
+        bundle.putString(ClientConstants.EXTRA_TASK_ID, TASK_NAME);
         bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, mInputCheckpointFd);
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
@@ -230,6 +294,8 @@ public final class IsolatedTrainingServiceImplTest {
     }
 
     class TestServiceCallback extends ITrainingResultCallback.Stub {
+        private final CountDownLatch mLatch = new CountDownLatch(1);
+
         @Override
         public void onResult(Bundle result) {
             mCallbackResult = result;

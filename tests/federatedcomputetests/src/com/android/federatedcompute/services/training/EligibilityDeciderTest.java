@@ -64,8 +64,6 @@ public class EligibilityDeciderTest {
 
     @After
     public void tearDown() {
-        // Manually clean up the database.
-        mTrainingTaskDao.clearDatabase();
         FederatedComputeDbHelper dbHelper = FederatedComputeDbHelper.getInstanceForTest(mContext);
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();

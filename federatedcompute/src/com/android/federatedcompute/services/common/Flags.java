@@ -16,10 +16,12 @@
 
 package com.android.federatedcompute.services.common;
 
+import com.android.adservices.shared.common.flags.ModuleSharedFlags;
+
 import java.util.concurrent.TimeUnit;
 
 /** FederatedCompute feature flags interface. This Flags interface hold the default values */
-public interface Flags {
+public interface Flags extends ModuleSharedFlags {
     /**
      * Global FederatedCompute APK Kill Switch. This overrides all other killswitches under
      * federatedcompute APK. The default value is false which means FederatedCompute is enabled.
@@ -130,7 +132,7 @@ public interface Flags {
     }
 
     Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS =
-            TimeUnit.DAYS.toSeconds(14 /* duration= */);
+            TimeUnit.DAYS.toSeconds(14/* duration= */ );
 
     /**
      * @return default max age in seconds for federated compute ecryption keys.
@@ -152,7 +154,7 @@ public interface Flags {
     }
 
     Long ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs =
-            TimeUnit.DAYS.toSeconds(1 /* duration= */);
+            TimeUnit.DAYS.toSeconds(1/* duration= */ );
 
     default Long getAuthorizationTokenDeletionPeriodSeconds() {
         return ODP_AUTHORIZATION_TOKEN_DELETION_PERIOD_SECONDs;
@@ -162,13 +164,6 @@ public interface Flags {
 
     default int getHttpRequestRetryLimit() {
         return HTTP_REQUEST_RETRY_LIMIT;
-    }
-
-    Boolean AUTHENTICATION_ENABLED = false;
-
-    /** Whether to enable authentication when uploading results. */
-    default Boolean isAuthenticationEnabled() {
-        return AUTHENTICATION_ENABLED;
     }
 
     Boolean ENCRYPTION_ENABLED = true;
@@ -182,5 +177,48 @@ public interface Flags {
 
     default boolean isEligibilityTaskEnabled() {
         return DEFAULT_ENABLE_ELIGIBILITY_TASK;
+    }
+
+    int FCP_RESCHEDULE_LIMIT = 6;
+
+    /**
+     * Limitation of how many times that FCP task job can be rescheduled if it failed, if federated
+     * compute job retry times exceeds this limit, the job will be canceled/abort.
+     */
+    default int getFcpRescheduleLimit() {
+        return FCP_RESCHEDULE_LIMIT;
+    }
+
+    // 7 days in milliseconds
+    long ODP_AUTHORIZATION_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000L;
+
+    default long getOdpAuthorizationTokenTtl() {
+        return ODP_AUTHORIZATION_TOKEN_TTL;
+    }
+
+    boolean ENABLE_CLIENT_ERROR_LOGGING = false;
+
+    default boolean getEnableClientErrorLogging() {
+        return ENABLE_CLIENT_ERROR_LOGGING;
+    }
+
+    // 7 days in milliseconds
+    long DEFAULT_TASK_HISTORY_TTL_MILLIS = 7 * 24 * 60 * 60 * 1000L;
+
+    default long getTaskHistoryTtl() {
+        return DEFAULT_TASK_HISTORY_TTL_MILLIS;
+    }
+
+    boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
+
+    default boolean getBackgroundJobsLoggingEnabled() {
+        return DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED;
+    }
+
+    /** Default logging rate in percent */
+    int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
+
+    default int getBackgroundJobSamplingLoggingRate() {
+        return DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
     }
 }

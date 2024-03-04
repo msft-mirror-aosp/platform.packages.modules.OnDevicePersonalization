@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.data;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 
 import android.annotation.NonNull;
@@ -26,14 +28,15 @@ import android.database.Cursor;
 import android.database.SQLException;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.Iterables;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /** DAO for accessing training task table. */
@@ -41,10 +44,10 @@ public class FederatedTrainingTaskDao {
 
     private static final String TAG = FederatedTrainingTaskDao.class.getSimpleName();
 
-    private final SQLiteOpenHelper mDbHelper;
+    private final FederatedComputeDbHelper mDbHelper;
     private static volatile FederatedTrainingTaskDao sSingletonInstance;
 
-    private FederatedTrainingTaskDao(SQLiteOpenHelper dbHelper) {
+    private FederatedTrainingTaskDao(FederatedComputeDbHelper dbHelper) {
         this.mDbHelper = dbHelper;
     }
 
@@ -78,8 +81,12 @@ public class FederatedTrainingTaskDao {
 
     /** Deletes a training task in FederatedTrainingTask table. */
     private void deleteFederatedTrainingTask(String selection, String[] selectionArgs) {
-        SQLiteDatabase db = getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
+            ClientErrorLogger.getInstance()
+                    .logError(
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return;
         }
         db.delete(FEDERATED_TRAINING_TASKS_TABLE, selection, selectionArgs);
@@ -88,7 +95,7 @@ public class FederatedTrainingTaskDao {
     /** Insert a training task or update it if task already exists. */
     public boolean updateOrInsertFederatedTrainingTask(FederatedTrainingTask trainingTask) {
         try {
-            SQLiteDatabase db = getWritableDatabase();
+            SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
             if (db == null) {
                 return false;
             }
@@ -107,7 +114,7 @@ public class FederatedTrainingTaskDao {
     @Nullable
     public List<FederatedTrainingTask> getFederatedTrainingTask(
             String selection, String[] selectionArgs) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         if (db == null) {
             return null;
         }
@@ -124,10 +131,20 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
             LogUtil.e(TAG, e, "Failed to delete federated training task by job id %d", jobId);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -141,6 +158,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -149,6 +171,11 @@ public class FederatedTrainingTaskDao {
                     e,
                     "Failed to delete federated training task by population name %s",
                     populationName);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -167,6 +194,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -177,6 +209,11 @@ public class FederatedTrainingTaskDao {
                             + "population name %s and calling package: %s",
                     populationName,
                     callingPackage);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -197,6 +234,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -206,6 +248,11 @@ public class FederatedTrainingTaskDao {
                     "Failed to delete federated training task by population name %s and ATP: %s",
                     populationName,
                     ownerId);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -224,6 +271,11 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
+            } else {
+                ClientErrorLogger.getInstance()
+                        .logError(
+                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -233,6 +285,11 @@ public class FederatedTrainingTaskDao {
                     "Failed to delete federated training task by population name %s and job id %d",
                     populationName,
                     jobId);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             return null;
         }
     }
@@ -240,7 +297,7 @@ public class FederatedTrainingTaskDao {
     /** Insert a training task history record or update it if task already exists. */
     public boolean updateOrInsertTaskHistory(TaskHistory taskHistory) {
         try {
-            SQLiteDatabase db = mDbHelper.getWritableDatabase();
+            SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
             ContentValues values = new ContentValues();
             values.put(TaskHistoryContract.TaskHistoryEntry.JOB_ID, taskHistory.getJobId());
             values.put(
@@ -272,9 +329,20 @@ public class FederatedTrainingTaskDao {
         return false;
     }
 
-    /** Get a task history based on job id, population name and task name. */
-    public TaskHistory getTaskHistory(int jobId, String populationName, String taskId) {
-        SQLiteDatabase db = mDbHelper.getReadableDatabase();
+    /** Gets the list of task history based on provided job id, population name and task id. */
+    public List<TaskHistory> getTaskHistoryList(int jobId, String populationName, String taskId) {
+        return getTaskHistory(jobId, populationName, taskId, false);
+    }
+
+    /** Get the latest record of task history based on job id, population name and task name. */
+    public TaskHistory getLatestTaskHistory(int jobId, String populationName, String taskId) {
+        List<TaskHistory> taskList = getTaskHistory(jobId, populationName, taskId, true);
+        return taskList.isEmpty() ? null : taskList.get(0);
+    }
+
+    private List<TaskHistory> getTaskHistory(
+            int jobId, String populationName, String taskId, boolean latest) {
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         String selection =
                 TaskHistoryContract.TaskHistoryEntry.JOB_ID
                         + " = ? AND "
@@ -283,11 +351,13 @@ public class FederatedTrainingTaskDao {
                         + TaskHistoryContract.TaskHistoryEntry.TASK_ID
                         + " = ?";
         String[] selectionArgs = {String.valueOf(jobId), populationName, taskId};
+        String orderBy = TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME + " DESC";
         String[] projection = {
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME,
             TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_ROUND,
             TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION
         };
+        List<TaskHistory> taskList = new ArrayList<>();
         try (Cursor cursor =
                 db.query(
                         TaskHistoryContract.TaskHistoryEntry.TABLE_NAME,
@@ -296,8 +366,8 @@ public class FederatedTrainingTaskDao {
                         selectionArgs,
                         /* groupBy= */ null,
                         /* having= */ null,
-                        /* orderBy= */ null)) {
-            if (cursor.moveToFirst()) {
+                        /* orderBy= */ orderBy)) {
+            while (cursor.moveToNext()) {
                 long contributionTime =
                         cursor.getLong(
                                 cursor.getColumnIndexOrThrow(
@@ -310,20 +380,40 @@ public class FederatedTrainingTaskDao {
                         cursor.getLong(
                                 cursor.getColumnIndexOrThrow(
                                         TaskHistoryContract.TaskHistoryEntry.TOTAL_PARTICIPATION));
-
-                return new TaskHistory.Builder()
-                        .setJobId(jobId)
-                        .setTaskId(taskId)
-                        .setPopulationName(populationName)
-                        .setContributionRound(contributionRound)
-                        .setContributionTime(contributionTime)
-                        .setTotalParticipation(totalParticipation)
-                        .build();
+                taskList.add(
+                        new TaskHistory.Builder()
+                                .setJobId(jobId)
+                                .setTaskId(taskId)
+                                .setPopulationName(populationName)
+                                .setContributionRound(contributionRound)
+                                .setContributionTime(contributionTime)
+                                .setTotalParticipation(totalParticipation)
+                                .build());
+                if (latest) {
+                    cursor.close();
+                    return taskList;
+                }
             }
+            cursor.close();
+            return taskList;
         } catch (SQLiteException e) {
             LogUtil.e(TAG, "Failed to read TaskHistory db", e);
         }
         return null;
+    }
+
+    /** Batch delete expired task history records. */
+    public int deleteExpiredTaskHistory(long deleteTime) {
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
+        if (db == null) {
+            throw new SQLiteException(TAG + ": Failed to open database.");
+        }
+        String whereClause = TaskHistoryContract.TaskHistoryEntry.CONTRIBUTION_TIME + " < ?";
+        String[] whereArgs = {String.valueOf(deleteTime)};
+        int deletedRows =
+                db.delete(TaskHistoryContract.TaskHistoryEntry.TABLE_NAME, whereClause, whereArgs);
+        LogUtil.d(TAG, "Deleted %d expired tokens", deletedRows);
+        return deletedRows;
     }
 
     private String[] selectionArgs(Number... args) {
@@ -332,27 +422,5 @@ public class FederatedTrainingTaskDao {
             values[i] = String.valueOf(args[i]);
         }
         return values;
-    }
-
-    /** It's only public to unit test. Clears all records in task table. */
-    @VisibleForTesting
-    public boolean clearDatabase() {
-        SQLiteDatabase db = getWritableDatabase();
-        if (db == null) {
-            return false;
-        }
-        db.delete(FEDERATED_TRAINING_TASKS_TABLE, null, null);
-        return true;
-    }
-
-    /* Returns a writable database object or null if error occurs. */
-    @Nullable
-    private SQLiteDatabase getWritableDatabase() {
-        try {
-            return mDbHelper.getWritableDatabase();
-        } catch (SQLiteException e) {
-            LogUtil.e(TAG, e, "Failed to open the database.");
-        }
-        return null;
     }
 }

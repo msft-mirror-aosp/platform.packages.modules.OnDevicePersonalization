@@ -29,8 +29,6 @@ import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.OutcomeReceiver;
-import android.os.PersistableBundle;
 import android.os.RemoteException;
 import android.util.Log;
 
@@ -38,11 +36,11 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.ondevicepersonalization.testing.utils.ResultReceiver;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
@@ -57,99 +55,77 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
             new OnDevicePersonalizationSystemEventManager(mContext, mTestBinder);
 
     @Test
-    public void testregisterMeasurementEventSuccess() throws Exception {
-        var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+    public void testnotifyMeasurementEventSuccess() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
-                        Uri.parse("http://landingpage"),
+                        Uri.parse("http://ok"),
                         "com.example.browser",
                         ComponentName.createRelative("com.example", ".Example"))
-                            .setEventData("ok").build(),
+                            .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertTrue(receiver.mCallbackSuccess);
-        assertFalse(receiver.mCallbackError);
+        assertTrue(receiver.isSuccess());
+        assertFalse(receiver.isError());
     }
 
     @Test
-    public void testregisterMeasurementEventError() throws Exception {
-        var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+    public void testnotifyMeasurementEventError() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
-                        Uri.parse("http://landingpage"),
+                        Uri.parse("http://error"),
                         "com.example.browser",
                         ComponentName.createRelative("com.example", ".Example"))
-                            .setEventData("error").build(),
+                            .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
     }
 
     @Test
-    public void testregisterMeasurementEventPropagatesIae() throws Exception {
+    public void testnotifyMeasurementEventPropagatesIae() throws Exception {
         assertThrows(
                 IllegalArgumentException.class,
-                () -> mManager.registerMeasurementEvent(
+                () -> mManager.notifyMeasurementEvent(
                         new MeasurementWebTriggerEventParams.Builder(
-                            Uri.parse("http://landingpage"),
+                            Uri.parse("http://iae"),
                             "com.example.browser",
                             ComponentName.createRelative("com.example", ".Example"))
-                                .setEventData("iae").build(),
+                                .build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Object>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
-    public void testregisterMeasurementEventPropagatesNpe() throws Exception {
+    public void testnotifyMeasurementEventPropagatesNpe() throws Exception {
         assertThrows(
                 NullPointerException.class,
-                () -> mManager.registerMeasurementEvent(
+                () -> mManager.notifyMeasurementEvent(
                         new MeasurementWebTriggerEventParams.Builder(
-                            Uri.parse("http://landingpage"),
+                            Uri.parse("http://npe"),
                             "com.example.browser",
                             ComponentName.createRelative("com.example", ".Example"))
-                                .setEventData("npe").build(),
+                                .build(),
                         Executors.newSingleThreadExecutor(),
-                        new ResultReceiver<Object>()));
+                        new ResultReceiver<Void>()));
     }
 
     @Test
-    public void testregisterMeasurementEventCatchesExceptions() throws Exception {
-        var receiver = new ResultReceiver<Object>();
-        mManager.registerMeasurementEvent(
+    public void testnotifyMeasurementEventCatchesExceptions() throws Exception {
+        var receiver = new ResultReceiver<Void>();
+        mManager.notifyMeasurementEvent(
                 new MeasurementWebTriggerEventParams.Builder(
-                        Uri.parse("http://landingpage"),
+                        Uri.parse("http://ise"),
                         "com.example.browser",
                         ComponentName.createRelative("com.example", ".Example"))
-                            .setEventData("ise").build(),
+                            .build(),
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        receiver.mLatch.await();
-        assertFalse(receiver.mCallbackSuccess);
-        assertTrue(receiver.mCallbackError);
-        assertTrue(receiver.mException instanceof IllegalStateException);
-    }
-
-    class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
-        boolean mCallbackSuccess = false;
-        boolean mCallbackError = false;
-        T mResult = null;
-        Exception mException = null;
-        CountDownLatch mLatch = new CountDownLatch(1);
-        @Override public void onResult(T value) {
-            mCallbackSuccess = true;
-            mResult = value;
-            mLatch.countDown();
-        }
-        @Override
-        public void onError(Exception e) {
-            mCallbackError = true;
-            mException = e;
-            mLatch.countDown();
-        }
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertTrue(receiver.getException() instanceof IllegalStateException);
     }
 
     class TestService extends IOnDevicePersonalizationManagingService.Stub {
@@ -162,7 +138,7 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
         public void execute(
                 String callingPackageName,
                 ComponentName handler,
-                PersistableBundle params,
+                Bundle params,
                 CallerMetadata metadata,
                 IExecuteCallback callback) {
             throw new UnsupportedOperationException();
@@ -190,13 +166,14 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 MeasurementWebTriggerEventParamsParcel wtparams = params.getParcelable(
                         Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
                         MeasurementWebTriggerEventParamsParcel.class);
-                if (wtparams.getEventData().equals("error")) {
+                String url = wtparams.getDestinationUrl().toString();
+                if (url.equals("http://error")) {
                     callback.onError(Constants.STATUS_INTERNAL_ERROR);
-                } else if (wtparams.getEventData().equals("iae")) {
+                } else if (url.equals("http://iae")) {
                     throw new IllegalArgumentException();
-                } else if (wtparams.getEventData().equals("npe")) {
+                } else if (url.equals("http://npe")) {
                     throw new NullPointerException();
-                } else if (wtparams.getEventData().equals("ise")) {
+                } else if (url.equals("http://ise")) {
                     throw new IllegalStateException();
                 } else {
                     callback.onSuccess();

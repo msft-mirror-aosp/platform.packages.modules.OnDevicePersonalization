@@ -36,7 +36,7 @@ public final class WebTriggerInputParcel implements Parcelable {
     @NonNull private String mAppPackageName;
 
     /** The data to be sent to the isolated service.  */
-    @NonNull private String mData;
+    @NonNull private byte[] mData;
 
 
 
@@ -57,7 +57,7 @@ public final class WebTriggerInputParcel implements Parcelable {
     /* package-private */ WebTriggerInputParcel(
             @NonNull Uri destinationUrl,
             @NonNull String appPackageName,
-            @NonNull String data) {
+            @NonNull byte[] data) {
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
                 NonNull.class, null, mDestinationUrl);
@@ -91,7 +91,7 @@ public final class WebTriggerInputParcel implements Parcelable {
      * The data to be sent to the isolated service.
      */
     @DataClass.Generated.Member
-    public @NonNull String getData() {
+    public @NonNull byte[] getData() {
         return mData;
     }
 
@@ -103,7 +103,7 @@ public final class WebTriggerInputParcel implements Parcelable {
 
         dest.writeTypedObject(mDestinationUrl, flags);
         dest.writeString(mAppPackageName);
-        dest.writeString(mData);
+        dest.writeByteArray(mData);
     }
 
     @Override
@@ -119,7 +119,7 @@ public final class WebTriggerInputParcel implements Parcelable {
 
         Uri destinationUrl = (Uri) in.readTypedObject(Uri.CREATOR);
         String appPackageName = in.readString();
-        String data = in.readString();
+        byte[] data = in.createByteArray();
 
         this.mDestinationUrl = destinationUrl;
         AnnotationValidations.validate(
@@ -158,7 +158,7 @@ public final class WebTriggerInputParcel implements Parcelable {
 
         private @NonNull Uri mDestinationUrl;
         private @NonNull String mAppPackageName;
-        private @NonNull String mData;
+        private @NonNull byte[] mData;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -175,7 +175,7 @@ public final class WebTriggerInputParcel implements Parcelable {
         public Builder(
                 @NonNull Uri destinationUrl,
                 @NonNull String appPackageName,
-                @NonNull String data) {
+                @NonNull byte[] data) {
             mDestinationUrl = destinationUrl;
             AnnotationValidations.validate(
                     NonNull.class, null, mDestinationUrl);
@@ -213,7 +213,7 @@ public final class WebTriggerInputParcel implements Parcelable {
          * The data to be sent to the isolated service.
          */
         @DataClass.Generated.Member
-        public @NonNull Builder setData(@NonNull String value) {
+        public @NonNull Builder setData(@NonNull byte... value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mData = value;
@@ -241,10 +241,10 @@ public final class WebTriggerInputParcel implements Parcelable {
     }
 
     @DataClass.Generated(
-            time = 1707167071051L,
+            time = 1707510196470L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/WebTriggerInputParcel.java",
-            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull java.lang.String mData\nclass WebTriggerInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
+            inputSignatures = "private @android.annotation.NonNull android.net.Uri mDestinationUrl\nprivate @android.annotation.NonNull java.lang.String mAppPackageName\nprivate @android.annotation.NonNull byte[] mData\nclass WebTriggerInputParcel extends java.lang.Object implements [android.os.Parcelable]\n@com.android.ondevicepersonalization.internal.util.DataClass(genAidl=false, genHiddenBuilder=true)")
     @Deprecated
     private void __metadata() {}
 
