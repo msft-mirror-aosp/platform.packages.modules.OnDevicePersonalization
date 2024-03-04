@@ -146,9 +146,9 @@ public interface Flags extends ModuleSharedFlags {
     String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
-     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     * Default value of valid duration of user control cache in milliseconds (10 minutes).
      */
-    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+    long USER_CONTROL_CACHE_IN_MILLIS = 600000;
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
@@ -225,8 +225,8 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
     }
 
-    default long getUserConsentCacheInMillis() {
-        return USER_CONSENT_CACHE_IN_MILLIS;
+    default long getUserControlCacheInMillis() {
+        return USER_CONTROL_CACHE_IN_MILLIS;
     }
 
     default String getOutputDataAllowList() {

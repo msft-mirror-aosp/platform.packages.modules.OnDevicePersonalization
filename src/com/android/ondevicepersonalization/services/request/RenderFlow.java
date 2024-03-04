@@ -161,6 +161,12 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                 return false;
             }
 
+            if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
+                sLogger.d(TAG + ": User control is not given for targeting.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
+                return false;
+            }
+
             mSlotWrapper = Objects.requireNonNull(
                     mInjector.decryptToken(mSlotResultToken));
             String servicePackageName = Objects.requireNonNull(

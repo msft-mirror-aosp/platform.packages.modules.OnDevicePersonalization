@@ -36,6 +36,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -124,6 +125,18 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         try {
             if (getGlobalKillSwitch()) {
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                return false;
+            }
+
+            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+                sLogger.d(TAG + ": Personalization is disabled.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+                return false;
+            }
+
+            if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+                sLogger.d(TAG + ": User control is not given for measurement.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return false;
             }
 

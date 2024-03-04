@@ -278,11 +278,11 @@ public final class PhFlags implements Flags {
     }
 
     @Override
-    public long getUserConsentCacheInMillis() {
+    public long getUserControlCacheInMillis() {
         return DeviceConfig.getLong(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_USER_CONSENT_CACHE_IN_MILLIS,
-                /* defaultValue= */ USER_CONSENT_CACHE_IN_MILLIS);
+                /* defaultValue= */ USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     @Override
