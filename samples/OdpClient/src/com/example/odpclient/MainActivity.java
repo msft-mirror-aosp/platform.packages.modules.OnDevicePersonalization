@@ -194,11 +194,23 @@ public class MainActivity extends Activity {
         try {
             var odpManager = getOdpManager();
             CountDownLatch latch = new CountDownLatch(1);
-            Log.i(TAG, "Starting execute() " + getResources().getString(R.string.schedule_training)
-                    + " with " + mScheduleTrainingTextBox.getHint().toString() + ": "
-                    + mScheduleTrainingTextBox.getText().toString());
+            Log.i(
+                    TAG,
+                    "Starting execute() "
+                            + getResources().getString(R.string.schedule_training)
+                            + " with "
+                            + mScheduleTrainingTextBox.getHint().toString()
+                            + ": "
+                            + mScheduleTrainingTextBox.getText().toString());
             PersistableBundle appParams = new PersistableBundle();
             appParams.putString("schedule_training", mScheduleTrainingTextBox.getText().toString());
+            if (mScheduleIntervalTextBox.getText() != null
+                    && mScheduleIntervalTextBox.getText().toString() != null
+                    && !mScheduleIntervalTextBox.getText().toString().isBlank()) {
+                appParams.putLong(
+                        "schedule_interval",
+                        Long.parseUnsignedLong(mScheduleIntervalTextBox.getText().toString()));
+            }
 
             Trace.beginAsyncSection("OdpClient:scheduleTraining:odpManager.execute", 0);
             odpManager.execute(
