@@ -45,6 +45,7 @@ android_test {
     libs: [
         "android.test.runner",
         "android.test.base",
+        "framework-connectivity",
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
