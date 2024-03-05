@@ -91,6 +91,7 @@ public final class InferenceInput {
          */
         @NonNull private String mModelKey;
 
+        /** The model inference will run on CPU. */
         public static final int DELEGATE_CPU = 1;
 
         /**
@@ -104,7 +105,10 @@ public final class InferenceInput {
         @Retention(RetentionPolicy.SOURCE)
         public @interface Delegate {}
 
-        /** The delegate to run model inference. If not set, the default value is DELEGATE_CPU. */
+        /**
+         * The delegate to run model inference. If not set, the default value is {@link
+         * #DELEGATE_CPU}.
+         */
         private @Delegate int mDelegateType = DELEGATE_CPU;
 
         /** The model is a tensorflow lite model. */
@@ -122,8 +126,8 @@ public final class InferenceInput {
         public @interface ModelType {}
 
         /**
-         * The type of the pre-trained model. If not set, the default value is
-         * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         * The type of the pre-trained model. If not set, the default value is {@link
+         * #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link #MODEL_TYPE_TENSORFLOW_LITE} for now.
          */
         private @ModelType int mModelType = MODEL_TYPE_TENSORFLOW_LITE;
 
@@ -155,9 +159,10 @@ public final class InferenceInput {
          * @param modelKey The key of the table where the corresponding value stores a pre-trained
          *     model. Only supports TFLite model now.
          * @param delegateType The delegate to run model inference. If not set, the default value is
-         *     DELEGATE_CPU.
+         *     {@link #DELEGATE_CPU}.
          * @param modelType The type of the pre-trained model. If not set, the default value is
-         *     MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         *     {@link #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link
+         *     #MODEL_TYPE_TENSORFLOW_LITE} for now.
          * @param recommendedNumThreads The number of threads used for intraop parallelism on CPU,
          *     must be positive number. Adopters can set this field based on model architecture. The
          *     actual thread number depends on system resources and other constraints.
@@ -202,15 +207,18 @@ public final class InferenceInput {
             return mModelKey;
         }
 
-        /** The delegate to run model inference. If not set, the default value is DELEGATE_CPU. */
+        /**
+         * The delegate to run model inference. If not set, the default value is {@link
+         * #DELEGATE_CPU}.
+         */
         @DataClass.Generated.Member
         public @Delegate int getDelegateType() {
             return mDelegateType;
         }
 
         /**
-         * The type of the pre-trained model. If not set, the default value is
-         * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+         * The type of the pre-trained model. If not set, the default value is {@link
+         * #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link #MODEL_TYPE_TENSORFLOW_LITE} for now.
          */
         @DataClass.Generated.Member
         public @ModelType int getModelType() {
@@ -313,7 +321,8 @@ public final class InferenceInput {
             }
 
             /**
-             * The delegate to run model inference. If not set, the default value is DELEGATE_CPU.
+             * The delegate to run model inference. If not set, the default value is {@link
+             * #DELEGATE_CPU}.
              */
             @DataClass.Generated.Member
             public @NonNull Builder setDelegateType(@Delegate int value) {
@@ -323,8 +332,9 @@ public final class InferenceInput {
             }
 
             /**
-             * The type of the pre-trained model. If not set, the default value is
-             * MODEL_TYPE_TENSORFLOW_LITE. Only supports MODEL_TYPE_TENSORFLOW_LITE for now.
+             * The type of the pre-trained model. If not set, the default value is {@link
+             * #MODEL_TYPE_TENSORFLOW_LITE} . Only supports {@link #MODEL_TYPE_TENSORFLOW_LITE} for
+             * now.
              */
             @DataClass.Generated.Member
             public @NonNull Builder setModelType(@ModelType int value) {
@@ -345,7 +355,7 @@ public final class InferenceInput {
                 return this;
             }
 
-            /** Builds the instance. This builder should not be touched after calling this! */
+            /** Builds the instance. */
             public @NonNull Params build() {
                 mBuilderFieldsSet |= 0x20; // Mark builder used
 
@@ -370,7 +380,7 @@ public final class InferenceInput {
         }
 
         @DataClass.Generated(
-                time = 1709170984204L,
+                time = 1709250081597L,
                 codegenVersion = "1.0.23",
                 sourceFile =
                         "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
@@ -614,7 +624,7 @@ public final class InferenceInput {
             return this;
         }
 
-        /** Builds the instance. This builder should not be touched after calling this! */
+        /** Builds the instance. */
         public @NonNull InferenceInput build() {
             mBuilderFieldsSet |= 0x10; // Mark builder used
 
@@ -628,7 +638,7 @@ public final class InferenceInput {
     }
 
     @DataClass.Generated(
-            time = 1709170984223L,
+            time = 1709250081618L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/InferenceInput.java",
