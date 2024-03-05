@@ -383,6 +383,7 @@ public class SampleHandler implements IsolatedWorker {
             if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("schedule_training") != null) {
+                Log.d(TAG, "onExecute() performing schedule training.");
                 if (input.getAppParams().getString("schedule_training").isEmpty()) {
                     receiver.onResult(null);
                     return;
@@ -400,6 +401,23 @@ public class SampleHandler implements IsolatedWorker {
                                         input.getAppParams().getString("schedule_training"))
                                 .build();
                 mFCScheduler.schedule(params, fcInput);
+
+                ExecuteOutput result = new ExecuteOutput.Builder().build();
+                receiver.onResult(result);
+            } else if (input != null
+                    && input.getAppParams() != null
+                    && input.getAppParams().getString("cancel_training") != null) {
+                Log.d(TAG, "onExecute() performing cancel training.");
+                if (input.getAppParams().getString("cancel_training").isEmpty()) {
+                    receiver.onResult(null);
+                    return;
+                }
+                FederatedComputeInput fcInput =
+                        new FederatedComputeInput.Builder()
+                                .setPopulationName(
+                                        input.getAppParams().getString("cancel_training"))
+                                .build();
+                mFCScheduler.cancel(fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
                 receiver.onResult(result);

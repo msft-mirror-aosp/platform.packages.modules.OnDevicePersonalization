@@ -48,7 +48,9 @@ public class MainActivity extends Activity {
     private EditText mTextBox;
     private Button mGetAdButton;
     private EditText mScheduleTrainingTextBox;
+    private EditText mScheduleIntervalTextBox;
     private Button mScheduleTrainingButton;
+    private Button mCancelTrainingButton;
     private EditText mReportConversionTextBox;
     private Button mReportConversionButton;
     private SurfaceView mRenderedView;
@@ -79,13 +81,16 @@ public class MainActivity extends Activity {
         mRenderedView.getHolder().addCallback(new SurfaceCallback());
         mGetAdButton = findViewById(R.id.get_ad_button);
         mScheduleTrainingButton = findViewById(R.id.schedule_training_button);
+        mCancelTrainingButton = findViewById(R.id.cancel_training_button);
         mReportConversionButton = findViewById(R.id.report_conversion_button);
         mTextBox = findViewById(R.id.text_box);
         mScheduleTrainingTextBox = findViewById(R.id.schedule_training_text_box);
+        mScheduleIntervalTextBox = findViewById(R.id.schedule_interval_text_box);
         mReportConversionTextBox = findViewById(R.id.report_conversion_text_box);
         registerGetAdButton();
         registerScheduleTrainingButton();
         registerReportConversionButton();
+        registerCancelTrainingButton();
     }
 
     private void registerGetAdButton() {
@@ -221,6 +226,53 @@ public class MainActivity extends Activity {
                     });
             latch.await();
             Log.d(TAG, "scheduleTraining:odpManager.execute wait success");
+        } catch (Exception e) {
+            Log.e(TAG, "Error", e);
+        }
+    }
+
+    private void registerCancelTrainingButton() {
+        mCancelTrainingButton.setOnClickListener(
+                v -> cancelTraining());
+    }
+
+    private void cancelTraining() {
+        Log.d(TAG, "Odp Client Cancel Training called!");
+        try {
+            var odpManager = getOdpManager();
+            CountDownLatch latch = new CountDownLatch(1);
+            Log.i(TAG, "Starting execute() " + getResources().getString(R.string.cancel_training)
+                    + " with " + mScheduleTrainingTextBox.getHint().toString() + ": "
+                    + mScheduleTrainingTextBox.getText().toString());
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString("cancel_training", mScheduleTrainingTextBox.getText().toString());
+
+            Trace.beginAsyncSection("OdpClient:cancelTraining:odpManager.execute", 0);
+            odpManager.execute(
+                    ComponentName.createRelative(
+                            "com.example.odpsamplenetwork",
+                            "com.example.odpsamplenetwork.SampleService"),
+                    appParams,
+                    sCallbackExecutor,
+                    new OutcomeReceiver<ExecuteResult, Exception>() {
+                        @Override
+                        public void onResult(ExecuteResult result) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:cancelTraining:odpManager.execute", 0);
+                            Log.i(TAG, "execute() success: " + result);
+                            latch.countDown();
+                        }
+
+                        @Override
+                        public void onError(Exception e) {
+                            Trace.endAsyncSection(
+                                    "OdpClient:cancelTraining:odpManager.execute", 0);
+                            makeToast("execute() error: " + e.toString());
+                            latch.countDown();
+                        }
+                    });
+            latch.await();
+            Log.d(TAG, "cancelTraining:odpManager.execute wait success");
         } catch (Exception e) {
             Log.e(TAG, "Error", e);
         }
