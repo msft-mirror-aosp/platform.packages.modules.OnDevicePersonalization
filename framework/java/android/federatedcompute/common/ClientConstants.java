@@ -28,7 +28,7 @@ public final class ClientConstants {
     public static final int STATUS_TRAINING_FAILED = 2;
     public static final String EXTRA_POPULATION_NAME = "android.federatedcompute.population_name";
 
-    public static final String EXTRA_TASK_NAME = "android.federatedcompute.task_name";
+    public static final String EXTRA_TASK_ID = "android.federatedcompute.task_id";
 
     public static final String EXTRA_CONTEXT_DATA = "android.federatedcompute.context_data";
 
@@ -50,6 +50,8 @@ public final class ClientConstants {
     // ResultHandlingService related constants.
     public static final String RESULT_HANDLING_SERVICE_ACTION =
             "android.federatedcompute.COMPUTATION_RESULT";
+
+    public static final String ODP_APEX_KEYWORD = "ondevicepersonalization";
 
     private ClientConstants() {}
 }

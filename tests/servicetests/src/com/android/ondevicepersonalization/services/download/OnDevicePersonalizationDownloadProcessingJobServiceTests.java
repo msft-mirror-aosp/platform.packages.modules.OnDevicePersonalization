@@ -74,7 +74,7 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     }
 
     @Test
-    public void onStartJobTest() {
+    public void onStartJobTest() throws Exception {
         MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
                 OnDevicePersonalizationExecutors.class).strictness(
                 Strictness.LENIENT).startMocking();
@@ -87,6 +87,10 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
 
             boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+
+            // Wait for the future to complete (fail on no data being downloaded in this case).
+            Thread.sleep(5 * 1000);
+
             assertTrue(result);
             verify(mSpyService, times(1)).jobFinished(any(), eq(false));
         } finally {

@@ -18,6 +18,7 @@ package android.federatedcompute;
 
 import android.annotation.CallbackExecutor;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
@@ -122,6 +123,7 @@ public final class FederatedComputeManager {
      * @hide
      */
     public void cancel(
+            @NonNull ComponentName ownerComponent,
             @NonNull String populationName,
             @NonNull @CallbackExecutor Executor executor,
             @NonNull OutcomeReceiver<Object, Exception> callback) {
@@ -150,7 +152,7 @@ public final class FederatedComputeManager {
                             unbindFromService();
                         }
                     };
-            service.cancel(mContext.getPackageName(), populationName, federatedComputeCallback);
+            service.cancel(ownerComponent, populationName, federatedComputeCallback);
         } catch (RemoteException e) {
             LogUtil.e(TAG, e, "Remote Exception");
             executor.execute(() -> callback.onError(e));

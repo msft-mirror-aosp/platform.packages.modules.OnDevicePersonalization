@@ -19,13 +19,11 @@ package com.android.federatedcompute.services.data;
 import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
-import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
@@ -41,13 +39,13 @@ import java.util.List;
 public class FederatedComputeEncryptionKeyDao {
     private static final String TAG = FederatedComputeEncryptionKeyDao.class.getSimpleName();
 
-    private final SQLiteOpenHelper mDbHelper;
+    private final FederatedComputeDbHelper mDbHelper;
 
     private final Clock mClock;
 
     private static volatile FederatedComputeEncryptionKeyDao sSingletonInstance;
 
-    private FederatedComputeEncryptionKeyDao(SQLiteOpenHelper dbHelper, Clock clock) {
+    private FederatedComputeEncryptionKeyDao(FederatedComputeDbHelper dbHelper, Clock clock) {
         mDbHelper = dbHelper;
         mClock = clock;
     }
@@ -88,8 +86,7 @@ public class FederatedComputeEncryptionKeyDao {
 
     /** Insert a key to the encryption_key table. */
     public boolean insertEncryptionKey(FederatedComputeEncryptionKey key) {
-
-        SQLiteDatabase db = getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
@@ -116,7 +113,7 @@ public class FederatedComputeEncryptionKeyDao {
     public List<FederatedComputeEncryptionKey> readFederatedComputeEncryptionKeysFromDatabase(
             String selection, String[] selectionArgs, String orderBy, int count) {
         List<FederatedComputeEncryptionKey> keyList = new ArrayList<>();
-        SQLiteDatabase db = getReadableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
@@ -137,14 +134,10 @@ public class FederatedComputeEncryptionKeyDao {
                             selectColumns,
                             selection,
                             selectionArgs,
-                            null
-                            /* groupBy= */ ,
-                            null
-                            /* having= */ ,
-                            orderBy
-                            /* orderBy= */ ,
-                            String.valueOf(count)
-                            /* limit= */);
+                            /* groupBy= */ null,
+                            /* having= */ null,
+                            /* orderBy= */ orderBy,
+                            /* limit= */ String.valueOf(count));
             while (cursor.moveToNext()) {
                 FederatedComputeEncryptionKey.Builder encryptionKeyBuilder =
                         new FederatedComputeEncryptionKey.Builder()
@@ -201,7 +194,7 @@ public class FederatedComputeEncryptionKeyDao {
      * @return number of keys deleted.
      */
     public int deleteExpiredKeys() {
-        SQLiteDatabase db = getWritableDatabase();
+        SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             throw new SQLiteException(TAG + ": Failed to open database.");
         }
@@ -210,26 +203,5 @@ public class FederatedComputeEncryptionKeyDao {
         int deletedRows = db.delete(ENCRYPTION_KEY_TABLE, whereClause, whereArgs);
         LogUtil.d(TAG, "Deleted %s expired keys from database", deletedRows);
         return deletedRows;
-    }
-
-    @Nullable
-    private SQLiteDatabase getReadableDatabase() {
-        try {
-            return mDbHelper.getReadableDatabase();
-        } catch (SQLiteException e) {
-            LogUtil.e(TAG, e, "Failed to open the database.");
-        }
-        return null;
-    }
-
-    /* @return a writable database object or null if error occurs. */
-    @Nullable
-    private SQLiteDatabase getWritableDatabase() {
-        try {
-            return mDbHelper.getWritableDatabase();
-        } catch (SQLiteException e) {
-            LogUtil.e(TAG, e, "Failed to open the database.");
-        }
-        return null;
     }
 }

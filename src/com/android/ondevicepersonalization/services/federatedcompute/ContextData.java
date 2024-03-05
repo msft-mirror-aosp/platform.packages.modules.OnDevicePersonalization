@@ -33,8 +33,12 @@ public class ContextData implements Serializable {
     @NonNull
     String mPackageName;
 
-    public ContextData(@NonNull String packageName) {
-        mPackageName = packageName;
+    @NonNull
+    String mClassName;
+
+    public ContextData(@NonNull String packageName, @NonNull String className) {
+        this.mPackageName = packageName;
+        this.mClassName = className;
     }
 
     /**
@@ -62,5 +66,10 @@ public class ContextData implements Serializable {
     @NonNull
     public String getPackageName() {
         return mPackageName;
+    }
+
+    @NonNull
+    public String getClassName() {
+        return mClassName;
     }
 }

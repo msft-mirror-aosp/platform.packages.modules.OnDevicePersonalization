@@ -45,17 +45,16 @@ public class FederatedComputeSchedulerTest {
     private boolean mCancelCalled = false;
     private boolean mScheduleCalled = false;
 
-
     @Test
     public void testScheduleSuccess() {
-        TrainingInterval interval = new TrainingInterval.Builder()
-                .setMinimumInterval(Duration.ofHours(10))
-                .setSchedulingMode(1)
-                .build();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofHours(10))
+                        .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                        .build();
         FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
-        FederatedComputeInput input = new FederatedComputeInput.Builder()
-                .setPopulationName("population")
-                .build();
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("population").build();
         mFederatedComputeScheduler.schedule(params, input);
         assertTrue(mScheduleCalled);
     }
@@ -63,52 +62,61 @@ public class FederatedComputeSchedulerTest {
     @Test
     public void testScheduleNull() {
         FederatedComputeScheduler fcs = new FederatedComputeScheduler(null);
-        TrainingInterval interval = new TrainingInterval.Builder()
-                .setMinimumInterval(Duration.ofHours(10))
-                .setSchedulingMode(1)
-                .build();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofHours(10))
+                        .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                        .build();
         FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
-        FederatedComputeInput input = new FederatedComputeInput.Builder()
-                .setPopulationName("population")
-                .build();
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("population").build();
         assertThrows(IllegalStateException.class, () -> fcs.schedule(params, input));
     }
 
     @Test
     public void testScheduleErr() {
-        TrainingInterval interval = new TrainingInterval.Builder()
-                .setMinimumInterval(Duration.ofHours(10))
-                .setSchedulingMode(1)
-                .build();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofHours(10))
+                        .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                        .build();
         FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
-        FederatedComputeInput input = new FederatedComputeInput.Builder()
-                .setPopulationName("err")
-                .build();
-        assertThrows(IllegalStateException.class,
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("err").build();
+        assertThrows(
+                IllegalStateException.class,
                 () -> mFederatedComputeScheduler.schedule(params, input));
     }
 
     @Test
     public void testCancelSuccess() {
-        mFederatedComputeScheduler.cancel("population");
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("population").build();
+        mFederatedComputeScheduler.cancel(input);
         assertTrue(mCancelCalled);
     }
 
     @Test
     public void testCancelNull() {
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("population").build();
         FederatedComputeScheduler fcs = new FederatedComputeScheduler(null);
-        assertThrows(IllegalStateException.class, () -> fcs.cancel("population"));
+        assertThrows(IllegalStateException.class, () -> fcs.cancel(input));
     }
 
     @Test
     public void testCancelErr() {
-        assertThrows(IllegalStateException.class, () -> mFederatedComputeScheduler.cancel("err"));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName("err").build();
+        assertThrows(IllegalStateException.class, () -> mFederatedComputeScheduler.cancel(input));
     }
 
     class FederatedComputeService extends IFederatedComputeService.Stub {
         @Override
-        public void schedule(TrainingOptions trainingOptions,
-                IFederatedComputeCallback iFederatedComputeCallback) throws RemoteException {
+        public void schedule(
+                TrainingOptions trainingOptions,
+                IFederatedComputeCallback iFederatedComputeCallback)
+                throws RemoteException {
             mScheduleCalled = true;
             if (trainingOptions.getPopulationName().equals("err")) {
                 iFederatedComputeCallback.onFailure(1);

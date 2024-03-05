@@ -16,14 +16,20 @@
 
 package android.adservices.ondevicepersonalization;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 
+import android.content.ComponentName;
 import android.content.ContentValues;
+import android.net.Uri;
 import android.os.Parcel;
 import android.os.PersistableBundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
+
+import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
+import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -40,12 +46,13 @@ public class OnDevicePersonalizationFrameworkClassesTest {
      * Tests that the ExecuteInput object serializes correctly.
      */
     @Test
-    public void testExecuteInput() {
+    public void testExecuteInput() throws Exception {
         PersistableBundle bundle = new PersistableBundle();
         bundle.putInt("a", 5);
         ExecuteInputParcel data = new ExecuteInputParcel.Builder()
                 .setAppPackageName("com.example.test")
-                .setAppParams(bundle)
+                .setSerializedAppParams(new ByteArrayParceledSlice(
+                        PersistableBundleUtils.toByteArray(bundle)))
                 .build();
 
         Parcel parcel = Parcel.obtain();
@@ -68,7 +75,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         ExecuteOutput data =
                 new ExecuteOutput.Builder()
                     .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
-                    .addRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
+                    .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                     .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
                     .build();
         ExecuteOutputParcel result = new ExecuteOutputParcel(data);
@@ -80,7 +87,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
 
         assertEquals(
                 5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
-        assertEquals("abc", result2.getRenderingConfigs().get(0).getKeys().get(0));
+        assertEquals("abc", result2.getRenderingConfig().getKeys().get(0));
         assertEquals(1, result2.getEventLogRecords().get(0).getType());
     }
 
@@ -92,7 +99,6 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         RenderInputParcel data = new RenderInputParcel.Builder()
                 .setWidth(10)
                 .setHeight(20)
-                .setRenderingConfigIndex(5)
                 .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                 .build();
 
@@ -104,7 +110,6 @@ public class OnDevicePersonalizationFrameworkClassesTest {
 
         assertEquals(10, result.getWidth());
         assertEquals(20, result.getHeight());
-        assertEquals(5, result.getRenderingConfigIndex());
         assertEquals("abc", result.getRenderingConfig().getKeys().get(0));
     }
 
@@ -227,7 +232,7 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(1, logRecord.getRequestId());
     }
 
-    /** Test for RequestLogRecord class. */
+    /** Test for EventLogRecord class. */
     @Test
     public void testEventLogRecord() {
         ContentValues row = new ContentValues();
@@ -243,5 +248,90 @@ public class OnDevicePersonalizationFrameworkClassesTest {
         assertEquals(5, logRecord.getData().getAsInteger("a").intValue());
         assertEquals(5, logRecord.getRequestLogRecord().getRows()
                 .get(0).getAsInteger("a").intValue());
+    }
+
+    @Test
+    public void testWebTriggerOutput() {
+        ContentValues row = new ContentValues();
+        row.put("a", 5);
+        WebTriggerOutput data =
+                new WebTriggerOutput.Builder()
+                    .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
+                    .setEventLogRecords(new ArrayList<>())
+                    .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                    .build();
+
+        assertEquals(
+                5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+        assertEquals(1, data.getEventLogRecords().get(0).getType());
+
+        WebTriggerOutputParcel result = new WebTriggerOutputParcel(data);
+
+        Parcel parcel = Parcel.obtain();
+        result.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        WebTriggerOutputParcel result2 = WebTriggerOutputParcel.CREATOR.createFromParcel(parcel);
+
+        assertEquals(
+                5, result2.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
+        assertEquals(1, result2.getEventLogRecords().get(0).getType());
+    }
+
+    @Test
+    public void testMeasurementWebTriggerEventParams() {
+        MeasurementWebTriggerEventParams data =
+                new MeasurementWebTriggerEventParams.Builder(
+                        Uri.parse("http://example.com"),
+                        "com.example.testapp",
+                        ComponentName.createRelative("com.example.service", ".ServiceClass"))
+                    .setCertDigest("ABCD")
+                    .setEventData(new byte[] {1, 2, 3})
+                    .build();
+
+        assertEquals("http://example.com", data.getDestinationUrl().toString());
+        assertEquals("com.example.testapp", data.getAppPackageName());
+        assertEquals("com.example.service", data.getIsolatedService().getPackageName());
+        assertEquals(
+                "com.example.service.ServiceClass",
+                data.getIsolatedService().getClassName());
+        assertEquals("ABCD", data.getCertDigest());
+        assertArrayEquals(new byte[]{1, 2, 3}, data.getEventData());
+
+        MeasurementWebTriggerEventParamsParcel parcelData =
+                new MeasurementWebTriggerEventParamsParcel(data);
+
+        Parcel parcel = Parcel.obtain();
+        parcelData.writeToParcel(parcel, 0);
+        parcel.setDataPosition(0);
+        MeasurementWebTriggerEventParamsParcel parcelData2 =
+                MeasurementWebTriggerEventParamsParcel.CREATOR.createFromParcel(parcel);
+
+        assertEquals("http://example.com", parcelData2.getDestinationUrl().toString());
+        assertEquals("com.example.testapp", parcelData2.getAppPackageName());
+        assertEquals("com.example.service", parcelData2.getIsolatedService().getPackageName());
+        assertEquals(
+                "com.example.service.ServiceClass",
+                parcelData2.getIsolatedService().getClassName());
+        assertEquals("ABCD", parcelData2.getCertDigest());
+        assertArrayEquals(new byte[]{1, 2, 3}, parcelData2.getEventData());
+
+        MeasurementWebTriggerEventParams data2 =
+                new MeasurementWebTriggerEventParams.Builder(
+                        Uri.parse("http://example.com"),
+                        "com.example.testapp",
+                        ComponentName.createRelative("a", "b"))
+                    .setDestinationUrl(Uri.parse("http://example.com/2"))
+                    .setAppPackageName("app2")
+                    .setIsolatedService(ComponentName.createRelative("x", "y"))
+                    .build();
+        assertEquals("app2", data2.getAppPackageName());
+        assertEquals("http://example.com/2", data2.getDestinationUrl().toString());
+        assertEquals("x", data2.getIsolatedService().getPackageName());
+        assertEquals("y", data2.getIsolatedService().getClassName());
+    }
+
+    @Test
+    public void testIsolatedServiceException() {
+        assertEquals(42, new IsolatedServiceException(42).getErrorCode());
     }
 }
