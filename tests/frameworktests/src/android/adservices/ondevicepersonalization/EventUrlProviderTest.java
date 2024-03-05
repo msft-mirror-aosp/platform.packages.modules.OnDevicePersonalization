@@ -122,5 +122,7 @@ public class EventUrlProviderTest {
                 throw new IllegalStateException("Unexpected test input");
             }
         }
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }
