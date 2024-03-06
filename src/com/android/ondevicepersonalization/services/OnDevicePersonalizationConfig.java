@@ -20,42 +20,43 @@ import com.android.ondevicepersonalization.services.data.user.UserDataCollection
 import com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 
-/**
- * Hard-coded configs for OnDevicePersonalization
- */
+/** Hard-coded configs for OnDevicePersonalization */
 public class OnDevicePersonalizationConfig {
-    private OnDevicePersonalizationConfig() {
-    }
+    private OnDevicePersonalizationConfig() {}
 
-    /** Job ID for Mdd Maintenance Task
-     * ({@link com.android.ondevicepersonalization.services.download.mdd.MddJobService}) */
+    /**
+     * Job ID for Mdd Maintenance Task ({@link
+     * com.android.ondevicepersonalization.services.download.mdd.MddJobService})
+     */
     public static final int MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID = 1000;
 
     /**
-     * Job ID for Mdd Charging Periodic Task
-     * ({@link com.android.ondevicepersonalization.services.download.mdd.MddJobService})
+     * Job ID for Mdd Charging Periodic Task ({@link
+     * com.android.ondevicepersonalization.services.download.mdd.MddJobService})
      */
     public static final int MDD_CHARGING_PERIODIC_TASK_JOB_ID = 1001;
 
     /**
-     * Job ID for Mdd Cellular Charging Task
-     * ({@link com.android.ondevicepersonalization.services.download.mdd.MddJobService})
+     * Job ID for Mdd Cellular Charging Task ({@link
+     * com.android.ondevicepersonalization.services.download.mdd.MddJobService})
      */
     public static final int MDD_CELLULAR_CHARGING_PERIODIC_TASK_JOB_ID = 1002;
 
-    /** Job ID for Mdd Wifi Charging Task
-     * ({@link com.android.ondevicepersonalization.services.download.mdd.MddJobService}) */
+    /**
+     * Job ID for Mdd Wifi Charging Task ({@link
+     * com.android.ondevicepersonalization.services.download.mdd.MddJobService})
+     */
     public static final int MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID = 1003;
 
-    /** Job ID for Download Processing Task
-     * ({@link OnDevicePersonalizationDownloadProcessingJobService}) */
+    /**
+     * Job ID for Download Processing Task ({@link
+     * OnDevicePersonalizationDownloadProcessingJobService})
+     */
     public static final int DOWNLOAD_PROCESSING_TASK_JOB_ID = 1004;
 
-    /** Job ID for Maintenance Task
-     * ({@link OnDevicePersonalizationMaintenanceJobService}) */
+    /** Job ID for Maintenance Task ({@link OnDevicePersonalizationMaintenanceJobService}) */
     public static final int MAINTENANCE_TASK_JOB_ID = 1005;
 
-    /** Job ID for User Data Collection Task
-     * ({@link UserDataCollectionJobService}) */
+    /** Job ID for User Data Collection Task ({@link UserDataCollectionJobService}) */
     public static final int USER_DATA_COLLECTION_ID = 1006;
 }

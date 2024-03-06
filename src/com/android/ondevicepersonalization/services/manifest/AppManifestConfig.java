@@ -22,10 +22,12 @@ package com.android.ondevicepersonalization.services.manifest;
 public class AppManifestConfig {
     private final String mDownloadUrl;
     private final String mServiceName;
+    private final String mFcRemoteServerUrl;
 
-    public AppManifestConfig(String downloadUrl, String serviceName) {
+    public AppManifestConfig(String downloadUrl, String serviceName, String fcRemoteServerUrl) {
         mDownloadUrl = downloadUrl;
         mServiceName = serviceName;
+        mFcRemoteServerUrl = fcRemoteServerUrl;
     }
 
     /**
@@ -40,5 +42,12 @@ public class AppManifestConfig {
      */
     public String getServiceName() {
         return mServiceName;
+    }
+
+    /**
+     * @return The federated compute service remote server url configured in manifest
+     */
+    public String getFcRemoteServerUrl() {
+        return mFcRemoteServerUrl;
     }
 }

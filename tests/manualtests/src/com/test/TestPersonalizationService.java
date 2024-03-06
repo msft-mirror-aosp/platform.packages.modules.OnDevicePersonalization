@@ -16,13 +16,14 @@
 
 package com.test;
 
+import android.adservices.ondevicepersonalization.IsolatedService;
+import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.RequestToken;
 import android.annotation.NonNull;
-import android.ondevicepersonalization.IsolatedComputationHandler;
-import android.ondevicepersonalization.IsolatedComputationService;
 
 // TODO(b/249345663) Move this class and related manifest to separate APK for more realistic testing
-public class TestPersonalizationService extends IsolatedComputationService {
-    @NonNull @Override public IsolatedComputationHandler getHandler() {
-        return new TestPersonalizationHandler();
+public class TestPersonalizationService extends IsolatedService {
+    @NonNull @Override public IsolatedWorker onRequest(RequestToken token) {
+        return new TestPersonalizationHandler(getRemoteData(token));
     }
 }

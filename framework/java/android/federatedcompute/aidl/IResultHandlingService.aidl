@@ -29,7 +29,5 @@ import android.federatedcompute.aidl.IFederatedComputeCallback;
 interface IResultHandlingService {
 
   /** The app will implement this method to handle results. */
-  oneway void handleResult(in TrainingOptions trainingOptions,
-      boolean success, in List<ExampleConsumption> exampleConsumptionList,
-      in IFederatedComputeCallback callback);
+  oneway void handleResult(in Bundle params, in IFederatedComputeCallback callback);
 }

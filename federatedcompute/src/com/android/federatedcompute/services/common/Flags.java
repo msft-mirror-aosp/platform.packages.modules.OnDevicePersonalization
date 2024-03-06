@@ -16,10 +16,25 @@
 
 package com.android.federatedcompute.services.common;
 
+import java.util.concurrent.TimeUnit;
+
 /** FederatedCompute feature flags interface. This Flags interface hold the default values */
 public interface Flags {
+    /**
+     * Global FederatedCompute APK Kill Switch. This overrides all other killswitches under
+     * federatedcompute APK. The default value is false which means FederatedCompute is enabled.
+     * This flag is used for emergency turning off.
+     */
+    boolean FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH = true;
 
-    /** Flags for {@link FederatedComputeJobManager}. */
+    default boolean getGlobalKillSwitch() {
+        return FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
+    }
+
+    /**
+     * Flags for {@link
+     * com.android.federatedcompute.services.scheduling.FederatedComputeJobManager}.
+     */
     long DEFAULT_SCHEDULING_PERIOD_SECS = 60 * 5; // 5 minutes
 
     default long getDefaultSchedulingPeriodSecs() {
@@ -70,7 +85,7 @@ public interface Flags {
         return TRANSIENT_ERROR_RETRY_DELAY_SECS;
     }
 
-    /** Flags for {@link FederatedExampleIterator}. */
+    /** Flags for ExampleStoreService. */
     long APP_HOSTED_EXAMPLE_STORE_TIMEOUT_SECS = 30;
 
     default long getAppHostedExampleStoreTimeoutSecs() {
@@ -89,5 +104,66 @@ public interface Flags {
 
     default long getResultHandlingServiceCallbackTimeoutSecs() {
         return RESULT_HANDLING_SERVICE_CALLBACK_TIMEOUT_SECS;
+    }
+
+    /**
+     * The minimum percentage (expressed as an integer between 0 and 100) of battery charge that
+     * must be remaining in order start training as well as continue it once started.
+     */
+    int TRAINING_MIN_BATTERY_LEVEL = 30;
+
+    default int getTrainingMinBatteryLevel() {
+        return TRAINING_MIN_BATTERY_LEVEL;
+    }
+
+    /**
+     * The thermal status reported by `PowerManager#getCurrentThermalStatus()` at which to interrupt
+     * training. Must be one of:
+     *
+     * <p>THERMAL_STATUS_NONE = 0;<br>
+     * THERMAL_STATUS_LIGHT = 1; <br>
+     * THERMAL_STATUS_MODERATE = 2; <br>
+     * THERMAL_STATUS_SEVERE = 3; <br>
+     * THERMAL_STATUS_CRITICAL = 4;<br>
+     * THERMAL_STATUS_EMERGENCY = 5; <br>
+     * THERMAL_STATUS_SHUTDOWN = 6; <br>
+     */
+    int THERMAL_STATUS_TO_THROTTLE = 2;
+
+    default int getThermalStatusToThrottle() {
+        return THERMAL_STATUS_TO_THROTTLE;
+    }
+
+    /** The minimum duration between two training condition checks in milliseconds. */
+    long TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS = 1000;
+
+    default long getTrainingConditionCheckThrottlePeriodMillis() {
+        return TRAINING_CONDITION_CHECK_THROTTLE_PERIOD_MILLIS;
+    }
+
+    String ENCRYPTION_KEY_FETCH_URL =
+            "https://fake-coordinator/v1alpha/publicKeys";
+
+    /**
+     * @return Url to fetch encryption key for federated compute.
+     */
+    default String getEncryptionKeyFetchUrl() {
+        return ENCRYPTION_KEY_FETCH_URL;
+    }
+
+    Long FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS =
+            TimeUnit.DAYS.toSeconds(14/* duration= */);
+
+    /**
+     * @return default max age in seconds for federated compute ecryption keys.
+     */
+    default Long getFederatedComputeEncryptionKeyMaxAgeSeconds() {
+        return FEDERATED_COMPUTE_ENCRYPTION_KEY_MAX_AGE_SECONDS;
+    }
+
+    Long ENCRYPTION_KEY_FETCH_PERIOD_SECONDS = 60 * 60 * 24L; // every 24 h
+
+    default Long getEncryptionKeyFetchPeriodSeconds() {
+        return ENCRYPTION_KEY_FETCH_PERIOD_SECONDS;
     }
 }

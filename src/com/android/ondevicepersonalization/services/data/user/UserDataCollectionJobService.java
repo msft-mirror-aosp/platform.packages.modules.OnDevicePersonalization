@@ -24,8 +24,10 @@ import android.app.job.JobScheduler;
 import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
-import android.util.Log;
 
+
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 
@@ -37,7 +39,8 @@ import com.google.common.util.concurrent.ListenableFuture;
  * JobService to collect user data in the background thread.
  */
 public class UserDataCollectionJobService extends JobService {
-    public static final String TAG = "UserDataCollectionJobService";
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = "UserDataCollectionJobService";
     // 4-hour interval.
     private static final long PERIOD_SECONDS = 14400;
     private ListenableFuture<Void> mFuture;
@@ -51,7 +54,7 @@ public class UserDataCollectionJobService extends JobService {
         JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID) != null) {
-            Log.d(TAG, "Job is already scheduled. Doing nothing,");
+            sLogger.d(TAG + ": Job is already scheduled. Doing nothing,");
             return RESULT_FAILURE;
         }
         ComponentName serviceComponent = new ComponentName(context,
@@ -73,19 +76,28 @@ public class UserDataCollectionJobService extends JobService {
 
     @Override
     public boolean onStartJob(JobParameters params) {
-        // TODO(b/265856477): return false to disable data collection if kid status is enabled.
-        Log.d(TAG, "onStartJob()");
+        sLogger.d(TAG + ": onStartJob()");
+        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+            sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
+            jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
+        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
+            jobFinished(params, /* wantsReschedule = */ false);
+            return true;
+        }
         mUserDataCollector = UserDataCollector.getInstance(this);
         mUserData = RawUserData.getInstance();
         mFuture = Futures.submit(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "Running user data collection job");
+                sLogger.d(TAG + ": Running user data collection job");
                 try {
                     // TODO(b/262749958): add multi-threading support if necessary.
                     mUserDataCollector.updateUserData(mUserData);
                 } catch (Exception e) {
-                    Log.e(TAG, "Failed to collect user data", e);
+                    sLogger.e(TAG + ": Failed to collect user data", e);
                 }
             }
         }, OnDevicePersonalizationExecutors.getBackgroundExecutor());
@@ -95,13 +107,13 @@ public class UserDataCollectionJobService extends JobService {
                 new FutureCallback<Void>() {
                     @Override
                     public void onSuccess(Void result) {
-                        Log.d(TAG, "User data collection job completed.");
+                        sLogger.d(TAG + ": User data collection job completed.");
                         jobFinished(params, /* wantsReschedule = */ false);
                     }
 
                     @Override
                     public void onFailure(Throwable t) {
-                        Log.e(TAG, "Failed to handle JobService: " + params.getJobId(), t);
+                        sLogger.e(TAG + ": Failed to handle JobService: " + params.getJobId(), t);
                         //  When failure, also tell the JobScheduler that the job has completed and
                         // does not need to be rescheduled.
                         jobFinished(params, /* wantsReschedule = */ false);
