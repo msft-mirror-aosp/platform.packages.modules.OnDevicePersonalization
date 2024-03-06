@@ -41,12 +41,12 @@ public final class UserPrivacyStatusTest {
     }
 
     @Test
-    public void testEmptyUserConsentCache() {
+    public void testEmptyUserControlCache() {
         assertFalse(mUserPrivacyStatus.isUserControlCacheValid());
     }
 
     @Test
-    public void testUpdateConsentWithValidCache() {
+    public void testUpdateControlWithValidCache() {
         mUserPrivacyStatus.updateUserControlCache(true, true);
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
@@ -54,7 +54,7 @@ public final class UserPrivacyStatusTest {
     }
 
     @Test
-    public void testExpiredUserConsentCache() {
+    public void testExpiredUserControlCache() {
         mUserPrivacyStatus.invalidateUserControlCacheForTesting();
         assertFalse(mUserPrivacyStatus.isUserControlCacheValid());
     }

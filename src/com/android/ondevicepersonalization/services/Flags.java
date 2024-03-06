@@ -146,9 +146,9 @@ public interface Flags extends ModuleSharedFlags {
     String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
-     * Default value of valid duration of user control cache in milliseconds (10 minutes).
+     * Default value of valid duration of user control cache in milliseconds (24 hours).
      */
-    long USER_CONTROL_CACHE_IN_MILLIS = 600000;
+    long USER_CONTROL_CACHE_IN_MILLIS = 86400000;
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
