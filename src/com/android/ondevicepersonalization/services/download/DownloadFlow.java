@@ -16,8 +16,6 @@
 
 package com.android.ondevicepersonalization.services.download;
 
-import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_DOWNLOAD_COMPLETED;
-
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
 import android.adservices.ondevicepersonalization.DownloadInputParcel;
@@ -221,7 +219,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_DOWNLOAD_COMPLETED,
+                                    Constants.API_NAME_SERVICE_ON_DOWNLOAD_COMPLETED,
                                     val, mInjector.getClock(), Constants.STATUS_SUCCESS,
                                     mStartServiceTimeMillis);
                             return val;
@@ -231,7 +229,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_DOWNLOAD_COMPLETED,
+                                    Constants.API_NAME_SERVICE_ON_DOWNLOAD_COMPLETED,
                                     /* result= */ null, mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR,
                                     mStartServiceTimeMillis);

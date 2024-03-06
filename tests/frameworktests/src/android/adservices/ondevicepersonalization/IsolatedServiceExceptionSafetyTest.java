@@ -240,6 +240,9 @@ public class IsolatedServiceExceptionSafetyTest {
                 }
             }
         }
+
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 
     static class TestFederatedComputeService extends IFederatedComputeService.Stub {

@@ -55,7 +55,7 @@
             android:lines="1"
             android:layout_height="wrap_content"
             android:layout_width="match_parent"
-            android:hint="Recurring training interval" />
+            android:hint="Recurring training interval (in seconds)" />
 
         <Button
             android:id="@+id/schedule_training_button"

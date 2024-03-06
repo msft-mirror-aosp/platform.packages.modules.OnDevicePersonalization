@@ -388,11 +388,27 @@ public class SampleHandler implements IsolatedWorker {
                     receiver.onResult(null);
                     return;
                 }
-                TrainingInterval interval =
-                        new TrainingInterval.Builder()
-                                .setMinimumInterval(Duration.ofSeconds(10))
-                                .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
-                                .build();
+                TrainingInterval interval;
+                if (input.getAppParams().getLong("schedule_interval") > 0L) {
+                    long intervalSeconds = input.getAppParams().getLong("schedule_interval");
+                    Log.d(
+                            TAG,
+                            String.format(
+                                    "onExecute() performing schedule training received"
+                                            + " schedule interval of (%d) seconds!",
+                                    intervalSeconds));
+                    interval =
+                            new TrainingInterval.Builder()
+                                    .setMinimumInterval(Duration.ofSeconds(intervalSeconds))
+                                    .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_RECURRENT)
+                                    .build();
+                } else {
+                    interval =
+                            new TrainingInterval.Builder()
+                                    .setMinimumInterval(Duration.ofSeconds(10))
+                                    .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                                    .build();
+                }
                 FederatedComputeScheduler.Params params =
                         new FederatedComputeScheduler.Params(interval);
                 FederatedComputeInput fcInput =

@@ -127,5 +127,8 @@ public class RemoteDataTest {
                 // Ignored.
             }
         }
+
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }

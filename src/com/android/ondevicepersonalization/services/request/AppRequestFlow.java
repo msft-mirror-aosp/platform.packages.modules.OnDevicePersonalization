@@ -16,8 +16,6 @@
 
 package com.android.ondevicepersonalization.services.request;
 
-import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_EXECUTE;
-
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
@@ -236,7 +234,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_EXECUTE, val, mInjector.getClock(),
+                                    Constants.API_NAME_SERVICE_ON_EXECUTE,
+                                    val, mInjector.getClock(),
                                     Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
                             return val;
                         },
@@ -246,7 +245,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_EXECUTE, /* result= */ null,
+                                    Constants.API_NAME_SERVICE_ON_EXECUTE, /* result= */ null,
                                     mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
                             return Futures.immediateFailedFuture(e);
@@ -398,7 +397,9 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
+            StatsUtils.writeAppRequestMetrics(
+                    Constants.API_NAME_EXECUTE, mInjector.getClock(), responseCode,
+                    mStartTimeMillis);
         }
     }
 
@@ -408,7 +409,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
+            StatsUtils.writeAppRequestMetrics(
+                    Constants.API_NAME_EXECUTE, mInjector.getClock(), errorCode, mStartTimeMillis);
         }
     }
 }
