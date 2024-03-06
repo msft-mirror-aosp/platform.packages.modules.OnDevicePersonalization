@@ -829,7 +829,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunStartTime(2000L)
                         .lastRunEndTime(3000L)
                         .schedulingReason(
-                                SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
+                                SchedulingReason.SCHEDULING_REASON_FAILURE)
                         .earliestNextRunTime(3000 + serverRetryDelayMillis)
                         .rescheduleCount(1)
                         .build();
@@ -890,6 +890,62 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunEndTime(3000L) // Match the time of calling onTrainingCompleted()
                         .schedulingReason(
                                 SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
+                        .earliestNextRunTime(3000 + userDefinedIntervalMillis)
+                        .build();
+        assertThat(taskList).containsExactly(expectedTask);
+
+        assertThat(mJobScheduler.getAllPendingJobs()).hasSize(1);
+        assertJobInfosMatch(
+                mJobScheduler.getPendingJob(JOB_ID1),
+                buildExpectedJobInfo(JOB_ID1, userDefinedIntervalMillis));
+    }
+
+    @Test
+    public void testRescheduleFLTask_recurrent_userDefinedInterval_NotGeneric() throws Exception {
+        // The user defined interval is larger than the server specified interval.
+        long userDefinedIntervalMillis = 4000_000;
+        TrainingOptions trainerOptions =
+                basicFLOptionsBuilder(POPULATION_NAME1)
+                        .setTrainingInterval(
+                                new TrainingInterval.Builder()
+                                        .setSchedulingMode(
+                                                TrainingInterval.SCHEDULING_MODE_RECURRENT)
+                                        .setMinimumIntervalMillis(userDefinedIntervalMillis)
+                                        .build())
+                        .build();
+        long nowMillis = 1000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
+
+        nowMillis = 2000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainingStarted(JOB_ID1);
+
+        nowMillis = 3000;
+        byte[] intervalOptions =
+                createTrainingIntervalOptions(SchedulingMode.RECURRENT, userDefinedIntervalMillis);
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainingCompleted(
+                JOB_ID1,
+                POPULATION_NAME1,
+                TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
+                        ByteBuffer.wrap(intervalOptions)),
+                // no retry info from server or TF run
+                null,
+                ContributionResult.SUCCESS);
+
+        List<FederatedTrainingTask> taskList =
+                mTrainingTaskDao.getFederatedTrainingTask(null, null);
+        FederatedTrainingTask expectedTask =
+                basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, intervalOptions)
+                        .creationTime(1000L)
+                        .lastScheduledTime(1000L)
+                        .lastRunStartTime(2000L) // Match the time of calling onTrainingStarted()
+                        .lastRunEndTime(3000L) // Match the time of calling onTrainingCompleted()
+                        .schedulingReason(
+                                SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
+                        // we expect user defined interval to be picked up,
+                        // instead of randm generic one
                         .earliestNextRunTime(3000 + userDefinedIntervalMillis)
                         .build();
         assertThat(taskList).containsExactly(expectedTask);
@@ -1007,7 +1063,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunStartTime(2000L) // Match the time of calling onTrainingStarted()
                         .lastRunEndTime(3000L) // Match the time of calling onTrainingCompleted()
                         .schedulingReason(
-                                SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
+                                SchedulingReason.SCHEDULING_REASON_FAILURE)
                         .earliestNextRunTime(3000 + serverDefinedIntervalMillis)
                         .rescheduleCount(1)
                         .build();
@@ -1112,7 +1168,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunStartTime(2000L) // Match the time of calling onTrainingStarted()
                         .lastRunEndTime(3000L) // Match the time of calling onTrainingCompleted()
                         .schedulingReason(
-                                SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY)
+                                SchedulingReason.SCHEDULING_REASON_FAILURE)
                         .earliestNextRunTime(3000 + serverDefinedIntervalMillis)
                         .rescheduleCount(1)
                         .build();
