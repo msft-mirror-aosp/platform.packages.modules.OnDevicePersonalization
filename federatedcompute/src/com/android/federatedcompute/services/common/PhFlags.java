@@ -73,6 +73,7 @@ public final class PhFlags implements Flags {
     static final String TASK_HISTORY_TTL_MILLIS = "task_history_ttl_millis";
 
     static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
+    static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
     static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
     static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
     static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
@@ -234,6 +235,14 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 /* defaultValue= */ FCP_RESCHEDULE_LIMIT);
+    }
+
+    @Override
+    public long getFcpTfErrorRescheduleSeconds() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME,
+                /* defaultValue= */ FCP_TF_ERROR_RESCHEDULE_SECONDS);
     }
 
     @Override
