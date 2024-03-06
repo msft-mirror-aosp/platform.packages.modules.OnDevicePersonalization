@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doReturn;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -51,6 +52,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
 import org.mockito.quality.Strictness;
 
 import java.util.concurrent.CountDownLatch;
@@ -62,10 +64,13 @@ public class OnDevicePersonalizationManagingServiceTest {
     public final ServiceTestRule serviceRule = new ServiceTestRule();
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private OnDevicePersonalizationManagingServiceDelegate mService;
-    private final UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+
+    @Mock
+    private UserPrivacyStatus mUserPrivacyStatus;
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
             .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(UserPrivacyStatus.class)
             .spyStatic(DeviceUtils.class)
             .setStrictness(Strictness.LENIENT)
             .build();
@@ -74,8 +79,11 @@ public class OnDevicePersonalizationManagingServiceTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        mPrivacyStatus.setPersonalizationStatusEnabled(true);
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
+        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
     }
     @Test
