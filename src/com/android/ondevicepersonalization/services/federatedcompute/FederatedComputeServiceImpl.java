@@ -37,6 +37,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -91,44 +92,67 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     public void schedule(TrainingOptions trainingOptions,
             IFederatedComputeCallback callback) {
         try {
-            String url = AppManifestConfigHelper.getFcRemoteServerUrlFromOdpSettings(
-                    mApplicationContext, mCallingService.getPackageName());
+            final long originalCallingIdentity = Binder.clearCallingIdentity();
+            String url;
+            try {
+                if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+                    sLogger.d(TAG + ": personalization is disabled.");
+                    sendError(callback);
+                    return;
+                }
 
-            // Check for override manifest url property, if package is debuggable
-            if (PackageUtils.isPackageDebuggable(
-                    mApplicationContext, mCallingService.getPackageName())) {
-                if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "").equals(
-                        mCallingService.getPackageName())) {
-                    String overrideManifestUrl = SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
-                    if (!overrideManifestUrl.isEmpty()) {
-                        sLogger.d(TAG + ": Overriding fc server URL for package "
-                                + mCallingService.getPackageName() + " to " + overrideManifestUrl);
-                        url = overrideManifestUrl;
-                    }
-                    final long originalCallingIdentity = Binder.clearCallingIdentity();
-                    try {
-                        String deviceConfigOverrideUrl = DeviceConfig.getString(
-                                /* namespace= */ "on_device_personalization",
-                                /* name= */ OVERRIDE_FC_SERVER_URL,
-                                /* defaultValue= */ "");
+                if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+                    sLogger.d(TAG + ": measurement control is revoked.");
+                    sendError(callback);
+                    return;
+                }
+
+                url =
+                        AppManifestConfigHelper.getFcRemoteServerUrlFromOdpSettings(
+                                mApplicationContext, mCallingService.getPackageName());
+
+                // Check for override manifest url property, if package is debuggable
+                if (PackageUtils.isPackageDebuggable(
+                        mApplicationContext, mCallingService.getPackageName())) {
+                    if (SystemProperties.get(OVERRIDE_FC_SERVER_URL_PACKAGE, "")
+                            .equals(mCallingService.getPackageName())) {
+                        String overrideManifestUrl =
+                                SystemProperties.get(OVERRIDE_FC_SERVER_URL, "");
+                        if (!overrideManifestUrl.isEmpty()) {
+                            sLogger.d(
+                                    TAG
+                                            + ": Overriding fc server URL for package "
+                                            + mCallingService.getPackageName()
+                                            + " to "
+                                            + overrideManifestUrl);
+                            url = overrideManifestUrl;
+                        }
+                        String deviceConfigOverrideUrl =
+                                DeviceConfig.getString(
+                                        /* namespace= */ "on_device_personalization",
+                                        /* name= */ OVERRIDE_FC_SERVER_URL,
+                                        /* defaultValue= */ "");
                         if (!deviceConfigOverrideUrl.isEmpty()) {
-                            sLogger.d(TAG + ": Overriding fc server URL for package "
-                                    + mCallingService.getPackageName() + " to "
-                                    + deviceConfigOverrideUrl);
+                            sLogger.d(
+                                    TAG
+                                            + ": Overriding fc server URL for package "
+                                            + mCallingService.getPackageName()
+                                            + " to "
+                                            + deviceConfigOverrideUrl);
                             url = deviceConfigOverrideUrl;
                         }
-                    } finally {
-                        Binder.restoreCallingIdentity(originalCallingIdentity);
                     }
                 }
-            }
 
-            if (url == null) {
-                sLogger.d(
-                        "Missing remote server URL for package: "
-                                + mCallingService.getPackageName());
-                sendError(callback);
-                return;
+                if (url == null) {
+                    sLogger.d(
+                            "Missing remote server URL for package: "
+                                    + mCallingService.getPackageName());
+                    sendError(callback);
+                    return;
+                }
+            } finally {
+                Binder.restoreCallingIdentity(originalCallingIdentity);
             }
 
             ContextData contextData =
