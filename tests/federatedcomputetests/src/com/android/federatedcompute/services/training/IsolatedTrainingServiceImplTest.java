@@ -67,6 +67,7 @@ import java.util.concurrent.TimeUnit;
 @MockStatic(FederatedComputeExecutors.class)
 public final class IsolatedTrainingServiceImplTest {
 
+    public static final int TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE = 86400;
     @Rule
     public final ExtendedMockitoRule extendedMockitoRule =
             new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
@@ -198,6 +199,11 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
+        bundle.putParcelable(
+                ClientConstants.EXTRA_TRAINING_FLAGS,
+                new IsolatedTrainingFlagsInput.Builder()
+                        .setTfErrorRescheduleSeconds(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE)
+                        .build());
 
         var callback = new TestServiceCallback();
         mIsolatedTrainingService.runFlTraining(bundle, callback);
@@ -214,6 +220,11 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
+        bundle.putParcelable(
+                ClientConstants.EXTRA_TRAINING_FLAGS,
+                new IsolatedTrainingFlagsInput.Builder()
+                        .setTfErrorRescheduleSeconds(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE)
+                        .build());
 
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, "exampleselector".getBytes());
 
@@ -233,6 +244,11 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
+        bundle.putParcelable(
+                ClientConstants.EXTRA_TRAINING_FLAGS,
+                new IsolatedTrainingFlagsInput.Builder()
+                        .setTfErrorRescheduleSeconds(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE)
+                        .build());
 
         var callback = new TestServiceCallback();
         mIsolatedTrainingService.runFlTraining(bundle, callback);
@@ -258,7 +274,9 @@ public final class IsolatedTrainingServiceImplTest {
                                 .setRetryInfo(
                                         RetryInfo.newBuilder()
                                                 .setMinimumDelay(
-                                                        Duration.newBuilder().setSeconds(86400)))
+                                                        Duration.newBuilder()
+                                                                .setSeconds(
+                                                        TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE)))
                                 .build());
     }
 
@@ -279,6 +297,11 @@ public final class IsolatedTrainingServiceImplTest {
                 Constants.EXTRA_CLIENT_ONLY_PLAN_FD,
                 FileUtils.createTempFileDescriptor(
                         clientPlanFile, ParcelFileDescriptor.MODE_READ_ONLY));
+        bundle.putParcelable(
+                ClientConstants.EXTRA_TRAINING_FLAGS,
+                new IsolatedTrainingFlagsInput.Builder()
+                        .setTfErrorRescheduleSeconds(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE)
+                        .build());
         return bundle;
     }
 
