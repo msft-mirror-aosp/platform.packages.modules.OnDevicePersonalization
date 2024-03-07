@@ -221,4 +221,10 @@ public interface Flags extends ModuleSharedFlags {
     default int getBackgroundJobSamplingLoggingRate() {
         return DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
     }
+
+    int DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC = 10;
+
+    default int getExampleStoreServiceCallbackTimeoutSec() {
+        return DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC;
+    }
 }

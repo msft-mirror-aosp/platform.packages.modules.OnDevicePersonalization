@@ -111,6 +111,8 @@ public class RenderFlowTest {
                 .startMocking();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo = new ServiceFlowOrchestrator();
     }
@@ -138,9 +140,19 @@ public class RenderFlowTest {
     }
 
     @Test
-    public void testRunRenderFlow_InvalidToken() throws Exception {
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+    public void testRenderFlow_TargetingControlRevoked() throws Exception {
+        doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
+        mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
+                100, 50, new TestRenderFlowCallback(), mContext, 100L);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testRunRenderFlow_InvalidToken() throws Exception {
         mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
                 100, 50, new TestRenderFlowCallback(), mContext, 100L);
         mLatch.await();
@@ -151,7 +163,6 @@ public class RenderFlowTest {
 
     @Test
     public void testRunRenderFlow_Success() throws Exception {
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         ExtendedMockito.doReturn(
                         new SlotWrapper(
                                 new RequestLogRecord.Builder()

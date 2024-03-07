@@ -37,6 +37,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
@@ -91,6 +92,18 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     public void schedule(TrainingOptions trainingOptions,
             IFederatedComputeCallback callback) {
         try {
+            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+                sLogger.d(TAG + ": personalization is disabled.");
+                sendError(callback);
+                return;
+            }
+
+            if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+                sLogger.d(TAG + ": measurement control is revoked.");
+                sendError(callback);
+                return;
+            }
+
             String url = AppManifestConfigHelper.getFcRemoteServerUrlFromOdpSettings(
                     mApplicationContext, mCallingService.getPackageName());
 

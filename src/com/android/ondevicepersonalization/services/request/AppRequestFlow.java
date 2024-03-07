@@ -162,6 +162,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return false;
         }
 
+        if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+            sLogger.d(TAG + ": User control is not given for measurement.");
+            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
+            return false;
+        }
+
         try {
             ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
                     mWrappedParams.getParcelable(
@@ -351,6 +357,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             ListenableFuture<Long> queryIdFuture) {
         try {
             sLogger.d(TAG + ": createResultBundle() started.");
+
+            if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
+                sLogger.d(TAG + ": user control is not given for targeting.");
+                return Futures.immediateFuture(Bundle.EMPTY);
+            }
+
             ExecuteOutputParcel result = Futures.getDone(resultFuture);
             long queryId = Futures.getDone(queryIdFuture);
             RenderingConfig renderingConfig = result.getRenderingConfig();

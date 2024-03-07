@@ -64,14 +64,13 @@ public class MddJobServiceTest {
 
     private JobScheduler mMockJobScheduler;
     private MddJobService mSpyService;
-    private UserPrivacyStatus mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+    private UserPrivacyStatus mUserPrivacyStatus;
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        PhFlagsTestUtil.disablePersonalizationStatusOverride();
-        mUserPrivacyStatus.setPersonalizationStatusEnabled(true);
+        mUserPrivacyStatus = spy(UserPrivacyStatus.getInstance());
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
         MobileDataDownloadFactory.getMdd(mContext, executorService, executorService);
 
@@ -87,14 +86,20 @@ public class MddJobServiceTest {
     @Test
     public void onStartJobTest() {
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
-                OnDevicePersonalizationExecutors.class).strictness(
-                Strictness.LENIENT).startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .spyStatic(OnDevicePersonalizationExecutors.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getBackgroundExecutor);
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
+            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+            ExtendedMockito.doReturn(true)
+                            .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+            ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+            ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
             JobParameters jobParameters = mock(JobParameters.class);
             PersistableBundle extras = new PersistableBundle();
@@ -113,7 +118,9 @@ public class MddJobServiceTest {
     @Test
     public void onStartJobTestKillSwitchEnabled() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
             PersistableBundle extras = new PersistableBundle();
@@ -150,9 +157,57 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobTestPersonalizationBlocked() {
-        mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
+            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+            ExtendedMockito.doReturn(false)
+                            .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+            JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
+            PersistableBundle extras = new PersistableBundle();
+            extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
+            JobInfo jobInfo =
+                    new JobInfo.Builder(
+                            MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
+                            new ComponentName(mContext, MddJobService.class))
+                            .setRequiresDeviceIdle(true)
+                            .setRequiresCharging(false)
+                            .setRequiresBatteryNotLow(true)
+                            .setPeriodic(21_600_000L)
+                            .setPersisted(true)
+                            .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                            .setExtras(extras)
+                            .build();
+            mJobScheduler.schedule(jobInfo);
+            assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID)
+                    != null);
+            doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
+            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+            JobParameters jobParameters = mock(JobParameters.class);
+            doReturn(extras).when(jobParameters).getExtras();
+            boolean result = mSpyService.onStartJob(jobParameters);
+            assertTrue(result);
+            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
+            verify(mMockJobScheduler, times(0)).schedule(any());
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestUserControlRevoked() {
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .spyStatic(OnDevicePersonalizationExecutors.class)
+                .strictness(Strictness.LENIENT).startMocking();
+
+        try {
+            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+            ExtendedMockito.doReturn(true)
+                            .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+            ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+            ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
             JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
             PersistableBundle extras = new PersistableBundle();
             extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
@@ -186,9 +241,10 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobNoTaskTagTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
-                OnDevicePersonalizationExecutors.class).strictness(
-                Strictness.LENIENT).startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .spyStatic(OnDevicePersonalizationExecutors.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getBackgroundExecutor);
@@ -206,9 +262,10 @@ public class MddJobServiceTest {
 
     @Test
     public void onStartJobFailHandleTaskTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
-                OnDevicePersonalizationExecutors.class).strictness(
-                Strictness.LENIENT).startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .spyStatic(OnDevicePersonalizationExecutors.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getBackgroundExecutor);
@@ -231,8 +288,9 @@ public class MddJobServiceTest {
 
     @Test
     public void onStopJobTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().strictness(
-                Strictness.LENIENT).startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(OnDevicePersonalizationExecutors.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             JobParameters jobParameters = mock(JobParameters.class);
             PersistableBundle extras = new PersistableBundle();

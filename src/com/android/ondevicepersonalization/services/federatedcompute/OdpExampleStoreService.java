@@ -38,6 +38,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
@@ -107,12 +108,24 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             EventsDao eventDao = EventsDao.getInstance(getContext());
 
+            boolean privacyStatusEligible = true;
+
+            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+                privacyStatusEligible = false;
+                sLogger.w(TAG + ": Personalization is disabled.");
+            }
+
+            if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+                privacyStatusEligible = false;
+                sLogger.w(TAG + ": Measurement control is not given.");
+            }
+
             // Cancel job if on longer valid. This is written to the table during scheduling
             // via {@link FederatedComputeServiceImpl} and deleted either during cancel or
             // during maintenance for uninstalled packages.
             ComponentName owner = ComponentName.createRelative(packageName, ownerClassName);
             EventState eventStatePopulation = eventDao.getEventState(populationName, owner);
-            if (eventStatePopulation == null) {
+            if (!privacyStatusEligible || eventStatePopulation == null) {
                 sLogger.w("Job was either cancelled or package was uninstalled");
                 // Cancel job.
                 FederatedComputeManager FCManager =

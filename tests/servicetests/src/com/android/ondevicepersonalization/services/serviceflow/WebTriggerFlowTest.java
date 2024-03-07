@@ -20,6 +20,7 @@ import static android.adservices.ondevicepersonalization.OnDevicePersonalization
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.when;
 
@@ -88,6 +89,8 @@ public class WebTriggerFlowTest {
         PhFlagsTestUtil.disableGlobalKillSwitch();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         setUpTestData();
 
@@ -111,6 +114,30 @@ public class WebTriggerFlowTest {
 
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_PersonalizationDisabled() throws Exception {
+        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
+                new TestWebCallback(), 100L);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testWebTriggerFlow_MeasurementControlRevoked() throws Exception {
+        doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
+
+        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
+                new TestWebCallback(), 100L);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
     }
 
     @Test

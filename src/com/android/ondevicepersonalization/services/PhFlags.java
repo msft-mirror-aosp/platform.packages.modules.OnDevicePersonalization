@@ -64,8 +64,8 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_OUTPUT_DATA_ALLOW_LIST = "output_data_allow_list";
 
-    public static final String KEY_USER_CONSENT_CACHE_IN_MILLIS =
-            "user_consent_cache_duration_millis";
+    public static final String KEY_USER_CONTROL_CACHE_IN_MILLIS =
+            "user_control_cache_duration_millis";
 
     public static final String KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING =
             "odp_enable_client_error_logging";
@@ -231,9 +231,9 @@ public final class PhFlags implements Flags {
     public String getTrustedPartnerAppsList() {
         return SdkLevel.isAtLeastU()
                 ? DeviceConfig.getString(
-                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                    /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
-                    /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST)
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_TRUSTED_PARTNER_APPS_LIST,
+                /* defaultValue */ DEFAULT_TRUSTED_PARTNER_APPS_LIST)
                 : "";
     }
 
@@ -278,11 +278,11 @@ public final class PhFlags implements Flags {
     }
 
     @Override
-    public long getUserConsentCacheInMillis() {
+    public long getUserControlCacheInMillis() {
         return DeviceConfig.getLong(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                /* name= */ KEY_USER_CONSENT_CACHE_IN_MILLIS,
-                /* defaultValue= */ USER_CONSENT_CACHE_IN_MILLIS);
+                /* name= */ KEY_USER_CONTROL_CACHE_IN_MILLIS,
+                /* defaultValue= */ USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     @Override

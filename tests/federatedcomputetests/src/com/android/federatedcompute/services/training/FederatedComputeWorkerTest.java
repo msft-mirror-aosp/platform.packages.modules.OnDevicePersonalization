@@ -68,6 +68,7 @@ import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
+import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
 import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
@@ -280,6 +281,7 @@ public final class FederatedComputeWorkerTest {
 
     @Mock private TrainingEventLogger mMockTrainingEventLogger;
     private ResultCallbackHelper mSpyResultCallbackHelper;
+    private ExampleStoreServiceProvider mSpyExampleStoreProvider;
     private FederatedTrainingTaskDao mTrainingTaskDao;
 
     @Mock private FederatedComputeEncryptionKeyManager mMockKeyManager;
@@ -334,6 +336,7 @@ public final class FederatedComputeWorkerTest {
                                 new HpkeJniEncrypter(),
                                 mMockTrainingEventLogger));
         mSpyResultCallbackHelper = spy(new ResultCallbackHelper(mContext));
+        mSpyExampleStoreProvider = spy(new ExampleStoreServiceProvider());
         mTrainingTaskDao = FederatedTrainingTaskDao.getInstanceForTest(mContext);
         sSpyKeyAttestation = spy(KeyAttestation.getInstance(mContext));
         mSpyWorker =
@@ -345,6 +348,7 @@ public final class FederatedComputeWorkerTest {
                                 mMockComputationRunner,
                                 mSpyResultCallbackHelper,
                                 mMockKeyManager,
+                                mSpyExampleStoreProvider,
                                 new TestInjector()));
         when(mTrainingConditionsChecker.checkAllConditionsForFlTraining(any()))
                 .thenReturn(EnumSet.noneOf(Condition.class));
@@ -440,9 +444,7 @@ public final class FederatedComputeWorkerTest {
                 .createTaskAssignment(any());
 
         FLRunnerResult result =
-                mSpyWorker
-                        .startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback)
-                        .get();
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
 
         assertNull(result);
         verify(mMockJobManager)
@@ -512,8 +514,6 @@ public final class FederatedComputeWorkerTest {
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
-        verify(mSpyWorker).unbindFromExampleStoreService();
-        verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(true));
     }
 
     @Test
@@ -567,7 +567,6 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
-        verify(mSpyWorker).unbindFromExampleStoreService();
     }
 
     @Test
@@ -621,7 +620,6 @@ public final class FederatedComputeWorkerTest {
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
-        verify(mSpyWorker).unbindFromExampleStoreService();
     }
 
     @Test
@@ -630,7 +628,7 @@ public final class FederatedComputeWorkerTest {
                 ArgumentCaptor.forClass(ComputationResult.class);
         setUpHttpFederatedProtocol(FL_CHECKIN_RESULT);
         // Mock failure bind to ExampleStoreService.
-        doReturn(null).when(mSpyWorker).getExampleStoreService(anyString());
+        doReturn(null).when(mSpyExampleStoreProvider).getExampleStoreService(anyString(), any());
 
         assertThrows(
                 ExecutionException.class,
@@ -640,7 +638,7 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
-        verify(mSpyWorker, times(0)).unbindFromExampleStoreService();
+        verify(mSpyExampleStoreProvider, times(0)).unbindFromExampleStoreService();
         verify(mSpyWorker, times(1))
                 .reportFailureResultToServer(computationResultCaptor.capture(), any());
         ComputationResult computationResult = computationResultCaptor.getValue();
@@ -676,7 +674,7 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
-        verify(mSpyWorker).unbindFromExampleStoreService();
+
         verify(mMockTrainingEventLogger).logComputationInvalidArgument(any());
     }
 
@@ -710,7 +708,7 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
-        verify(mSpyWorker).unbindFromExampleStoreService();
+
         verify(mSpyWorker, times(1))
                 .reportFailureResultToServer(computationResultCaptor.capture(), any());
         ComputationResult computationResult = computationResultCaptor.getValue();
@@ -739,7 +737,6 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
-        verify(mSpyWorker).unbindFromExampleStoreService();
     }
 
     @Test
@@ -766,7 +763,6 @@ public final class FederatedComputeWorkerTest {
         verify(mMockJobManager)
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
-        verify(mSpyWorker).unbindFromExampleStoreService();
         verify(mSpyResultCallbackHelper).callHandleResult(eq(TASK_ID), any(), any());
     }
 
@@ -873,7 +869,6 @@ public final class FederatedComputeWorkerTest {
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
-        verify(mSpyWorker).unbindFromExampleStoreService();
         verify(mMockTrainingEventLogger).logComputationCompleted(any());
     }
 
@@ -944,8 +939,10 @@ public final class FederatedComputeWorkerTest {
 
     private void setUpExampleStoreService() {
         TestExampleStoreService testExampleStoreService = new TestExampleStoreService();
-        doReturn(testExampleStoreService).when(mSpyWorker).getExampleStoreService(anyString());
-        doNothing().when(mSpyWorker).unbindFromExampleStoreService();
+        doReturn(testExampleStoreService)
+                .when(mSpyExampleStoreProvider)
+                .getExampleStoreService(anyString(), any());
+        doNothing().when(mSpyExampleStoreProvider).unbindFromExampleStoreService();
     }
 
     private void setUpHttpFederatedProtocol(CheckinResult checkinResult) {
