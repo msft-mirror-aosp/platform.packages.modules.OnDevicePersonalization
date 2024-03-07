@@ -189,13 +189,6 @@ public interface Flags extends ModuleSharedFlags {
         return FCP_RESCHEDULE_LIMIT;
     }
 
-    long FCP_TF_ERROR_RESCHEDULE_SECONDS = 86400; // 24 hours in seconds
-
-    /** Reschedule FCP jobs in case of TF failure. */
-    default long getFcpTfErrorRescheduleSeconds() {
-        return FCP_TF_ERROR_RESCHEDULE_SECONDS;
-    }
-
     // 7 days in milliseconds
     long ODP_AUTHORIZATION_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000L;
 
