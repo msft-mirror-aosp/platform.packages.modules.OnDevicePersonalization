@@ -30,6 +30,9 @@ public final class ClientConstants {
 
     public static final String EXTRA_TASK_ID = "android.federatedcompute.task_id";
 
+    public static final String EXTRA_TRAINING_FLAGS =
+            "android.federatedcompute.training_flags";
+
     public static final String EXTRA_CONTEXT_DATA = "android.federatedcompute.context_data";
 
     public static final String EXTRA_COMPUTATION_RESULT =
