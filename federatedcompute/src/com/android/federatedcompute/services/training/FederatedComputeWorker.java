@@ -47,7 +47,6 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FileUtils;
-import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -773,12 +772,6 @@ public class FederatedComputeWorker {
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
             bundle.putBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, iterator.asBinder());
-            Flags flags = FlagsFactory.getFlags();
-            bundle.putParcelable(
-                    ClientConstants.EXTRA_TRAINING_FLAGS,
-                    new IsolatedTrainingFlagsInput.Builder()
-                            .setTfErrorRescheduleSeconds(flags.getFcpTfErrorRescheduleSeconds())
-                            .build());
 
             return FluentFuture.from(runIsolatedTrainingProcess(run, bundle))
                     .transform(

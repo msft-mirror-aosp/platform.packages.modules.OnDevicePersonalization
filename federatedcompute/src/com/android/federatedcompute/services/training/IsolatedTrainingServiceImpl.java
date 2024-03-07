@@ -81,13 +81,6 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private void runTraining(Bundle params, ITrainingResultCallback callback) {
         Trace.beginAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
-        IsolatedTrainingFlagsInput trainingFlagsInput =
-                Objects.requireNonNull(
-                        params.getParcelable(
-                                ClientConstants.EXTRA_TRAINING_FLAGS,
-                                IsolatedTrainingFlagsInput.class),
-                        "Flags Input empty when run FL training!");
-        long tfErrorRescheduleSeconds = trainingFlagsInput.getTfErrorRescheduleSeconds();
         try {
             IExampleStoreIterator exampleStoreIteratorBinder =
                     IExampleStoreIterator.Stub.asInterface(
@@ -103,7 +96,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 exampleSelector = ExampleSelector.parseFrom(exampleSelectorBytes);
             } catch (InvalidProtocolBufferException e) {
                 LogUtil.e(TAG, e, "ExampleSelector proto is invalid");
-                sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
+                sendResult(createFailedResult(), callback);
                 return;
             }
             ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
@@ -133,7 +126,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                 clientPlan = ClientOnlyPlan.parseFrom(clientPlanBytes);
             } catch (InvalidProtocolBufferException e) {
                 LogUtil.e(TAG, e, "ClientOnlyPlan proto is invalid");
-                sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
+                sendResult(createFailedResult(), callback);
                 return;
             }
 
@@ -186,11 +179,12 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                                         RetryInfo.newBuilder()
                                                                 .setMinimumDelay(
                                                                         Duration.newBuilder()
-                                                                                // Set retry to
-                                                                                // provided flag
-                                                                                // value
-                                                                                .setSeconds(
-                                                                        tfErrorRescheduleSeconds)))
+                                                                                // Set retry to 24
+                                                                                // hours
+                                                                                // in case TF failed
+                                                                                // to
+                                                                                // do computation
+                                                                                .setSeconds(86400)))
                                                 .build();
                             }
                             bundle.putByteArray(
@@ -205,17 +199,17 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                         @Override
                         public void onFailure(Throwable t) {
                             LogUtil.e(TAG, t, "Failed to runTaskWithNativeRunner");
-                            sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
+                            sendResult(createFailedResult(), callback);
                         }
                     },
                     FederatedComputeExecutors.getLightweightExecutor());
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Got exception when run FL training");
-            sendResult(createFailedResult(tfErrorRescheduleSeconds), callback);
+            sendResult(createFailedResult(), callback);
         }
     }
 
-    private Bundle createFailedResult(long tfErrorRescheduleSeconds) {
+    private Bundle createFailedResult() {
         Bundle bundle = new Bundle();
         FLRunnerResult result =
                 FLRunnerResult.newBuilder()
@@ -224,10 +218,9 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                 RetryInfo.newBuilder()
                                         .setMinimumDelay(
                                                 Duration.newBuilder()
-                                                        // Set retry to value coming from outside
-                                                        // from flag in case TF failed to do
-                                                        // computation
-                                                        .setSeconds(tfErrorRescheduleSeconds)))
+                                                        // Set retry to 24 hours in case TF failed
+                                                        // to do computation
+                                                        .setSeconds(86400)))
                         .build();
         bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());
         return bundle;
