@@ -190,7 +190,9 @@ public abstract class IsolatedService extends Service {
     @NonNull
     public final FederatedComputeScheduler getFederatedComputeScheduler(
             @NonNull RequestToken requestToken) {
-        return new FederatedComputeScheduler(requestToken.getFederatedComputeService());
+        return new FederatedComputeScheduler(
+                requestToken.getFederatedComputeService(),
+                requestToken.getDataAccessService());
     }
 
     /**

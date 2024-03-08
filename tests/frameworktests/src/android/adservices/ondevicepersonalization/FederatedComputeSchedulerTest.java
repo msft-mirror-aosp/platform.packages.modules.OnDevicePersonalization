@@ -19,9 +19,12 @@ package android.adservices.ondevicepersonalization;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
+import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.federatedcompute.common.TrainingOptions;
+import android.os.Bundle;
 import android.os.RemoteException;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -40,7 +43,8 @@ import java.time.Duration;
 public class FederatedComputeSchedulerTest {
     FederatedComputeScheduler mFederatedComputeScheduler = new FederatedComputeScheduler(
             IFederatedComputeService.Stub.asInterface(
-                    new FederatedComputeService()));
+                    new FederatedComputeService()),
+            IDataAccessService.Stub.asInterface(new TestDataService()));
 
     private boolean mCancelCalled = false;
     private boolean mScheduleCalled = false;
@@ -61,7 +65,8 @@ public class FederatedComputeSchedulerTest {
 
     @Test
     public void testScheduleNull() {
-        FederatedComputeScheduler fcs = new FederatedComputeScheduler(null);
+        FederatedComputeScheduler fcs = new FederatedComputeScheduler(
+                null, new TestDataService());
         TrainingInterval interval =
                 new TrainingInterval.Builder()
                         .setMinimumInterval(Duration.ofHours(10))
@@ -100,7 +105,8 @@ public class FederatedComputeSchedulerTest {
     public void testCancelNull() {
         FederatedComputeInput input =
                 new FederatedComputeInput.Builder().setPopulationName("population").build();
-        FederatedComputeScheduler fcs = new FederatedComputeScheduler(null);
+        FederatedComputeScheduler fcs = new FederatedComputeScheduler(
+                null, new TestDataService());
         assertThrows(IllegalStateException.class, () -> fcs.cancel(input));
     }
 
@@ -133,5 +139,15 @@ public class FederatedComputeSchedulerTest {
             }
             iFederatedComputeCallback.onSuccess();
         }
+    }
+
+    public static class TestDataService extends IDataAccessService.Stub {
+        @Override
+        public void onRequest(
+                int operation,
+                Bundle params,
+                IDataAccessServiceCallback callback) {}
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }

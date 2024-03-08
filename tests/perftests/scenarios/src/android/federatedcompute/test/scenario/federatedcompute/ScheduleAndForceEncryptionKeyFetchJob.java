@@ -46,7 +46,7 @@ public class ScheduleAndForceEncryptionKeyFetchJob {
     public void setup() throws IOException {
         mTestHelper.pressHome();
         mTestHelper.openTestApp();
-        mTestHelper.inputPopulationForScheduleTraining();
+        mTestHelper.inputNonExistentPopulationForScheduleTraining();
     }
 
     @Test
