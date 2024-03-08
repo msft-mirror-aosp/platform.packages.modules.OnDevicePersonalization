@@ -47,8 +47,8 @@ import java.io.IOException;
 import java.util.Objects;
 
 /**
- * A class that exports methods that plugin code in the isolated process
- * can use to schedule federatedCompute jobs.
+ * A class that exports methods that plugin code in the isolated process can use to schedule
+ * federatedCompute jobs.
  */
 public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
@@ -59,16 +59,11 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private static final String OVERRIDE_FC_SERVER_URL =
             "debug.ondevicepersonalization.override_fc_server_url";
 
+    @NonNull private final Context mApplicationContext;
+    @NonNull private ComponentName mCallingService;
+    @NonNull private final Injector mInjector;
 
-    @NonNull
-    private final Context mApplicationContext;
-    @NonNull
-    private ComponentName mCallingService;
-    @NonNull
-    private final Injector mInjector;
-
-    @NonNull
-    private final FederatedComputeManager mFederatedComputeManager;
+    @NonNull private final FederatedComputeManager mFederatedComputeManager;
 
     @VisibleForTesting
     public FederatedComputeServiceImpl(
@@ -78,19 +73,22 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
         this.mApplicationContext = Objects.requireNonNull(applicationContext);
         this.mCallingService = Objects.requireNonNull(service);
         this.mInjector = Objects.requireNonNull(injector);
-        this.mFederatedComputeManager = Objects.requireNonNull(
-                injector.getFederatedComputeManager(mApplicationContext));
+        this.mFederatedComputeManager =
+                Objects.requireNonNull(injector.getFederatedComputeManager(mApplicationContext));
     }
 
     public FederatedComputeServiceImpl(
-            @NonNull ComponentName service,
-            @NonNull Context applicationContext) {
+            @NonNull ComponentName service, @NonNull Context applicationContext) {
         this(service, applicationContext, new Injector());
     }
 
     @Override
-    public void schedule(TrainingOptions trainingOptions,
-            IFederatedComputeCallback callback) {
+    public void schedule(TrainingOptions trainingOptions, IFederatedComputeCallback callback) {
+        mInjector.getExecutor().execute(() -> handleSchedule(trainingOptions, callback));
+    }
+
+    private void handleSchedule(
+            TrainingOptions trainingOptions, IFederatedComputeCallback callback) {
         try {
             final long originalCallingIdentity = Binder.clearCallingIdentity();
             String url;
@@ -176,12 +174,15 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                     new OutcomeReceiver<>() {
                         @Override
                         public void onResult(Object result) {
-                            mInjector.getEventsDao(mApplicationContext).updateOrInsertEventState(
-                                    new EventState.Builder()
-                                            .setService(mCallingService)
-                                            .setTaskIdentifier(trainingOptions.getPopulationName())
-                                            .setToken(new byte[]{})
-                                            .build());
+                            mInjector
+                                    .getEventsDao(mApplicationContext)
+                                    .updateOrInsertEventState(
+                                            new EventState.Builder()
+                                                    .setService(mCallingService)
+                                                    .setTaskIdentifier(
+                                                            trainingOptions.getPopulationName())
+                                                    .setToken(new byte[] {})
+                                                    .build());
                             sendSuccess(callback);
                         }
 
@@ -198,10 +199,11 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     }
 
     @Override
-    public void cancel(String populationName,
-            IFederatedComputeCallback callback) {
-        EventState eventState = mInjector.getEventsDao(mApplicationContext).getEventState(
-                populationName, mCallingService);
+    public void cancel(String populationName, IFederatedComputeCallback callback) {
+        EventState eventState =
+                mInjector
+                        .getEventsDao(mApplicationContext)
+                        .getEventState(populationName, mCallingService);
         if (eventState == null) {
             sLogger.d("No population registered for package: " + mCallingService.getPackageName());
             sendSuccess(callback);
@@ -225,8 +227,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                 });
     }
 
-    private void sendSuccess(
-            @NonNull IFederatedComputeCallback callback) {
+    private void sendSuccess(@NonNull IFederatedComputeCallback callback) {
         try {
             callback.onSuccess();
         } catch (RemoteException e) {
@@ -252,9 +253,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
             return context.getSystemService(FederatedComputeManager.class);
         }
 
-        EventsDao getEventsDao(
-                Context context
-        ) {
+        EventsDao getEventsDao(Context context) {
             return EventsDao.getInstance(context);
         }
     }
