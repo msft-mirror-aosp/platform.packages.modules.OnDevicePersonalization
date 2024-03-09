@@ -447,9 +447,9 @@ public class FederatedComputeJobManager {
                         .lastRunEndTime(nowMillis)
                         .earliestNextRunTime(earliestNextRunTime);
         newTaskBuilder.schedulingReason(
-                taskRetry != null
-                        ? SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY
-                        : SchedulingReason.SCHEDULING_REASON_FAILURE);
+                trainingResult != ContributionResult.SUCCESS
+                                ? SchedulingReason.SCHEDULING_REASON_FAILURE
+                                : SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY);
         if (trainingResult == ContributionResult.FAIL) {
             int rescheduleCount = existingTask.rescheduleCount() + 1;
             if (rescheduleCount > mFlags.getFcpRescheduleLimit()) {

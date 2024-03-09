@@ -40,8 +40,8 @@ public class TestAppHelper {
     private static final String TAG = TestAppHelper.class.getSimpleName();
     private static final UiDevice sUiDevice = UiDevice.getInstance(getInstrumentation());
     private static UiScrollable sUiScrollable;
-    private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
-    private static final long UI_ROTATE_IDLE_TIMEOUT = 2500;
+    private static final long UI_FIND_RESOURCE_TIMEOUT = 15_000;
+    private static final long UI_ROTATE_IDLE_TIMEOUT = 5000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String GET_AD_BUTTON_RESOURCE_ID = "get_ad_button";
     private static final String RENDERED_VIEW_RESOURCE_ID = "rendered_view";
