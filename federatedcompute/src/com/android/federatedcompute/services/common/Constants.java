@@ -45,5 +45,7 @@ public class Constants {
     public static final String TRACE_WORKER_RUN_FL_COMPUTATION = "Worker#runFlComputation";
     public static final String TRACE_WORKER_START_TRAINING_RUN = "Worker#startTrainingRun";
 
+    public static final String EXTRA_TRAINING_FLAGS = "android.federatedcompute.training_flags";
+
     private Constants() {}
 }

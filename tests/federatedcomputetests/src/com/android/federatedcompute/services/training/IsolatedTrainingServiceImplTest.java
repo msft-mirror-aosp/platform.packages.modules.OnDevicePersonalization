@@ -33,6 +33,7 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
@@ -41,6 +42,7 @@ import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.RetryInfo;
@@ -66,6 +68,7 @@ import java.util.concurrent.TimeUnit;
 @RunWith(JUnit4.class)
 @MockStatic(FederatedComputeExecutors.class)
 public final class IsolatedTrainingServiceImplTest {
+    public static final int TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE = 86400;
 
     @Rule
     public final ExtendedMockitoRule extendedMockitoRule =
@@ -198,6 +201,9 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
+        bundle.putByteArray(
+                Constants.EXTRA_TRAINING_FLAGS,
+                buildTrainingFlags(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE));
 
         var callback = new TestServiceCallback();
         mIsolatedTrainingService.runFlTraining(bundle, callback);
@@ -214,6 +220,9 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, mOutputCheckpointFd);
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
+        bundle.putByteArray(
+                Constants.EXTRA_TRAINING_FLAGS,
+                buildTrainingFlags(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE));
 
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, "exampleselector".getBytes());
 
@@ -233,6 +242,9 @@ public final class IsolatedTrainingServiceImplTest {
         bundle.putBinder(
                 Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, FAKE_EXAMPLE_STORE_ITERATOR);
         bundle.putByteArray(Constants.EXTRA_EXAMPLE_SELECTOR, EXAMPLE_SELECTOR.toByteArray());
+        bundle.putByteArray(
+                Constants.EXTRA_TRAINING_FLAGS,
+                buildTrainingFlags(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE));
 
         var callback = new TestServiceCallback();
         mIsolatedTrainingService.runFlTraining(bundle, callback);
@@ -258,7 +270,9 @@ public final class IsolatedTrainingServiceImplTest {
                                 .setRetryInfo(
                                         RetryInfo.newBuilder()
                                                 .setMinimumDelay(
-                                                        Duration.newBuilder().setSeconds(86400)))
+                                                        Duration.newBuilder()
+                                                                .setSeconds(
+                                                                        TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE)))
                                 .build());
     }
 
@@ -279,7 +293,16 @@ public final class IsolatedTrainingServiceImplTest {
                 Constants.EXTRA_CLIENT_ONLY_PLAN_FD,
                 FileUtils.createTempFileDescriptor(
                         clientPlanFile, ParcelFileDescriptor.MODE_READ_ONLY));
+        bundle.putByteArray(
+                Constants.EXTRA_TRAINING_FLAGS,
+                buildTrainingFlags(TF_ERROR_RESCHEDULE_SECONDS_FLAG_VALUE));
         return bundle;
+    }
+
+    private static byte[] buildTrainingFlags(long tfErrorRescheduleSeconds) {
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(TrainingFlags.createTrainingFlags(builder, tfErrorRescheduleSeconds, false));
+        return builder.sizedByteArray();
     }
 
     private ParcelFileDescriptor getInputCheckpointFd() throws Exception {
