@@ -149,5 +149,7 @@ public class InferenceInputTest {
     static class TestDataAccessService extends IDataAccessService.Stub {
         @Override
         public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }

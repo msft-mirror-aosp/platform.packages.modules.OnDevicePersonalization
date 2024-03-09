@@ -36,6 +36,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfig;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -45,7 +46,6 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
-import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -124,6 +124,18 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         try {
             if (getGlobalKillSwitch()) {
                 sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                return false;
+            }
+
+            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
+                sLogger.d(TAG + ": Personalization is disabled.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+                return false;
+            }
+
+            if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+                sLogger.d(TAG + ": User control is not given for measurement.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return false;
             }
 
@@ -283,7 +295,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
+            // TODO(b/327683908) - define enum for notifyMeasurementApi
         }
     }
 
@@ -293,7 +305,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
+            // TODO(b/327683908) - define enum for notifyMeasurementApi
         }
     }
 }

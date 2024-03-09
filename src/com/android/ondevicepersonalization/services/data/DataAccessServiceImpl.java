@@ -46,6 +46,8 @@ import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -255,6 +257,26 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 break;
             default:
                 sendError(callback);
+        }
+    }
+
+    @Override
+    public void logApiCallStats(
+            int apiName, long latencyMillis, int responseCode) {
+        mInjector.getExecutor().execute(
+                () -> handleLogApiCallStats(apiName, latencyMillis, responseCode));
+    }
+
+    private void handleLogApiCallStats(
+            int apiName, long latencyMillis, int responseCode) {
+        try {
+            OdpStatsdLogger.getInstance().logApiCallStats(
+                    new ApiCallStats.Builder(apiName)
+                        .setResponseCode(responseCode)
+                        .setLatencyMillis((int) latencyMillis)
+                        .build());
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": error logging api call stats");
         }
     }
 
