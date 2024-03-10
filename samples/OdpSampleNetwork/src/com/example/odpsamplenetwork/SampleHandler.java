@@ -383,15 +383,32 @@ public class SampleHandler implements IsolatedWorker {
             if (input != null
                     && input.getAppParams() != null
                     && input.getAppParams().getString("schedule_training") != null) {
+                Log.d(TAG, "onExecute() performing schedule training.");
                 if (input.getAppParams().getString("schedule_training").isEmpty()) {
                     receiver.onResult(null);
                     return;
                 }
-                TrainingInterval interval =
-                        new TrainingInterval.Builder()
-                                .setMinimumInterval(Duration.ofSeconds(10))
-                                .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
-                                .build();
+                TrainingInterval interval;
+                if (input.getAppParams().getLong("schedule_interval") > 0L) {
+                    long intervalSeconds = input.getAppParams().getLong("schedule_interval");
+                    Log.d(
+                            TAG,
+                            String.format(
+                                    "onExecute() performing schedule training received"
+                                            + " schedule interval of (%d) seconds!",
+                                    intervalSeconds));
+                    interval =
+                            new TrainingInterval.Builder()
+                                    .setMinimumInterval(Duration.ofSeconds(intervalSeconds))
+                                    .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_RECURRENT)
+                                    .build();
+                } else {
+                    interval =
+                            new TrainingInterval.Builder()
+                                    .setMinimumInterval(Duration.ofSeconds(10))
+                                    .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                                    .build();
+                }
                 FederatedComputeScheduler.Params params =
                         new FederatedComputeScheduler.Params(interval);
                 FederatedComputeInput fcInput =
@@ -400,6 +417,23 @@ public class SampleHandler implements IsolatedWorker {
                                         input.getAppParams().getString("schedule_training"))
                                 .build();
                 mFCScheduler.schedule(params, fcInput);
+
+                ExecuteOutput result = new ExecuteOutput.Builder().build();
+                receiver.onResult(result);
+            } else if (input != null
+                    && input.getAppParams() != null
+                    && input.getAppParams().getString("cancel_training") != null) {
+                Log.d(TAG, "onExecute() performing cancel training.");
+                if (input.getAppParams().getString("cancel_training").isEmpty()) {
+                    receiver.onResult(null);
+                    return;
+                }
+                FederatedComputeInput fcInput =
+                        new FederatedComputeInput.Builder()
+                                .setPopulationName(
+                                        input.getAppParams().getString("cancel_training"))
+                                .build();
+                mFCScheduler.cancel(fcInput);
 
                 ExecuteOutput result = new ExecuteOutput.Builder().build();
                 receiver.onResult(result);
