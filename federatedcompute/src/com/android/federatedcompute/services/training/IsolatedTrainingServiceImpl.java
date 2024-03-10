@@ -31,6 +31,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
 import com.android.federatedcompute.services.training.aidl.IIsolatedTrainingService;
 import com.android.federatedcompute.services.training.aidl.ITrainingResultCallback;
@@ -48,6 +49,7 @@ import com.google.internal.federated.plan.ExampleSelector;
 import com.google.protobuf.Duration;
 import com.google.protobuf.InvalidProtocolBufferException;
 
+import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -81,13 +83,11 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private void runTraining(Bundle params, ITrainingResultCallback callback) {
         Trace.beginAsyncSection(TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING, 0);
-        IsolatedTrainingFlagsInput trainingFlagsInput =
-                Objects.requireNonNull(
-                        params.getParcelable(
-                                ClientConstants.EXTRA_TRAINING_FLAGS,
-                                IsolatedTrainingFlagsInput.class),
-                        "Flags Input empty when run FL training!");
-        long tfErrorRescheduleSeconds = trainingFlagsInput.getTfErrorRescheduleSeconds();
+        byte[] flagsBytes =
+                Objects.requireNonNull(params.getByteArray(Constants.EXTRA_TRAINING_FLAGS));
+        TrainingFlags trainingFlags = getTrainingFlags(flagsBytes);
+
+        long tfErrorRescheduleSeconds = trainingFlags.tfErrorRescheduleSeconds();
         try {
             IExampleStoreIterator exampleStoreIteratorBinder =
                     IExampleStoreIterator.Stub.asInterface(
@@ -190,7 +190,7 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                                                                 // provided flag
                                                                                 // value
                                                                                 .setSeconds(
-                                                                        tfErrorRescheduleSeconds)))
+                                                                                        tfErrorRescheduleSeconds)))
                                                 .build();
                             }
                             bundle.putByteArray(
@@ -215,6 +215,10 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
         }
     }
 
+    private TrainingFlags getTrainingFlags(byte[] data) {
+        return TrainingFlags.getRootAsTrainingFlags(ByteBuffer.wrap(data));
+    }
+
     private Bundle createFailedResult(long tfErrorRescheduleSeconds) {
         Bundle bundle = new Bundle();
         FLRunnerResult result =
@@ -224,9 +228,8 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
                                 RetryInfo.newBuilder()
                                         .setMinimumDelay(
                                                 Duration.newBuilder()
-                                                        // Set retry to value coming from outside
-                                                        // from flag in case TF failed to do
-                                                        // computation
+                                                        // Set retry to 24 hours in case TF failed
+                                                        // to do computation
                                                         .setSeconds(tfErrorRescheduleSeconds)))
                         .build();
         bundle.putByteArray(Constants.EXTRA_FL_RUNNER_RESULT, result.toByteArray());

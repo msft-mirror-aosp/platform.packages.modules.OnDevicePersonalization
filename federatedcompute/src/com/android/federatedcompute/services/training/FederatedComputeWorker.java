@@ -55,6 +55,7 @@ import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
+import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
@@ -80,6 +81,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.RetryInfo;
@@ -773,12 +775,7 @@ public class FederatedComputeWorker {
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
             bundle.putBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, iterator.asBinder());
-            Flags flags = FlagsFactory.getFlags();
-            bundle.putParcelable(
-                    ClientConstants.EXTRA_TRAINING_FLAGS,
-                    new IsolatedTrainingFlagsInput.Builder()
-                            .setTfErrorRescheduleSeconds(flags.getFcpTfErrorRescheduleSeconds())
-                            .build());
+            bundle.putByteArray(Constants.EXTRA_TRAINING_FLAGS, buildTrainingFlags());
 
             return FluentFuture.from(runIsolatedTrainingProcess(run, bundle))
                     .transform(
@@ -830,6 +827,17 @@ public class FederatedComputeWorker {
             }
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private static byte[] buildTrainingFlags() {
+        Flags flags = FlagsFactory.getFlags();
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(
+                TrainingFlags.createTrainingFlags(
+                        builder,
+                        flags.getFcpTfErrorRescheduleSeconds(),
+                        flags.getEnableClientErrorLogging()));
+        return builder.sizedByteArray();
     }
 
     private static void reportCelIsolatedTrainingProcess(Exception e) {
