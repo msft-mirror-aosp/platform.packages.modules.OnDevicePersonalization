@@ -39,6 +39,7 @@ import java.io.IOException;
 public class TestAppHelper {
     private static final String TAG = TestAppHelper.class.getSimpleName();
     private static final UiDevice sUiDevice = UiDevice.getInstance(getInstrumentation());
+    private static final DownloadHelper sDownloadHelper = new DownloadHelper();
     private static UiScrollable sUiScrollable;
     private static final long UI_FIND_RESOURCE_TIMEOUT = 15_000;
     private static final long UI_ROTATE_IDLE_TIMEOUT = 5000;
@@ -78,10 +79,7 @@ public class TestAppHelper {
                 "cmd jobscheduler run -f "
                     + "com.google.android.ondevicepersonalization.services 1006");
         SystemClock.sleep(5000);
-        executeShellCommand(
-                "cmd jobscheduler run -f "
-                    + "com.google.android.ondevicepersonalization.services 1003");
-        SystemClock.sleep(5000);
+        sDownloadHelper.downloadVendorData();
         executeShellCommand(
                 "cmd jobscheduler run -f "
                     + "com.google.android.ondevicepersonalization.services 1004");
