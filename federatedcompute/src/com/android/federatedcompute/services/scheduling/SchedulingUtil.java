@@ -44,30 +44,34 @@ public class SchedulingUtil {
             boolean hasContributed,
             Flags flags) {
         long newLatencyMillis;
-        if (taskRetry == null || (taskRetry.getDelayMin() <= 0 && taskRetry.getDelayMax() <= 0)) {
+        long serverSpecifiedLatency = 0L;
+        if (taskRetry != null
+                && (taskRetry.getDelayMin() > 0 && taskRetry.getDelayMax() > 0)) {
+            long unsanitizedMillis =
+                    generateMinimumDelayMillisFromRange(
+                            taskRetry.getDelayMin(), taskRetry.getDelayMax());
+            serverSpecifiedLatency =
+                    sanitizeMinimumLatencyMillis(
+                            unsanitizedMillis, SchedulingMode.UNDEFINED, flags);
+        }
+        if (interval.schedulingMode() == SchedulingMode.RECURRENT && hasContributed) {
+            // Only use the user-specified retry latency if we actually successfully published a
+            // result to the server.
+            long userSpecifiedLatency = interval.minIntervalMillis();
+            userSpecifiedLatency =
+                    sanitizeMinimumLatencyMillis(
+                            userSpecifiedLatency, SchedulingMode.RECURRENT, flags);
+            newLatencyMillis = max(userSpecifiedLatency, serverSpecifiedLatency);
+        } else {
+            // Use server defined retry window
+            newLatencyMillis = serverSpecifiedLatency;
+        }
+        // get generaic scheduling in case there is no server or recurrent one
+        if (newLatencyMillis == 0L) {
             TaskRetry transientErrorRetry = generateTransientErrorTaskRetry(flags);
             newLatencyMillis =
                     generateMinimumDelayMillisFromRange(
                             transientErrorRetry.getDelayMin(), transientErrorRetry.getDelayMax());
-        } else {
-            long unsanitizedMillis =
-                    generateMinimumDelayMillisFromRange(
-                            taskRetry.getDelayMin(), taskRetry.getDelayMax());
-            long serverSpecifiedLatency =
-                    sanitizeMinimumLatencyMillis(
-                            unsanitizedMillis, SchedulingMode.UNDEFINED, flags);
-            if (interval.schedulingMode() == SchedulingMode.RECURRENT && hasContributed) {
-                // Only use the user-specified retry latency if we actually successfully published a
-                // result to the server.
-                long userSpecifiedLatency = interval.minIntervalMillis();
-                userSpecifiedLatency =
-                        sanitizeMinimumLatencyMillis(
-                                userSpecifiedLatency, SchedulingMode.RECURRENT, flags);
-                newLatencyMillis = max(userSpecifiedLatency, serverSpecifiedLatency);
-            } else {
-                // Use server defined retry window
-                newLatencyMillis = serverSpecifiedLatency;
-            }
         }
         return nowMs + newLatencyMillis;
     }

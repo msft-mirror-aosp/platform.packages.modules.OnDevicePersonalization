@@ -32,7 +32,6 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
-import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
 import android.federatedcompute.common.ClientConstants;
@@ -48,6 +47,7 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FileUtils;
+import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -55,10 +55,12 @@ import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
+import com.android.federatedcompute.services.data.fbs.TrainingFlags;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.federatedcompute.services.encryption.FederatedComputeEncryptionKeyManager;
 import com.android.federatedcompute.services.encryption.HpkeJniEncrypter;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
+import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
 import com.android.federatedcompute.services.http.CheckinResult;
 import com.android.federatedcompute.services.http.HttpFederatedProtocol;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
@@ -79,6 +81,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningExecutorService;
+import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.RetryInfo;
@@ -121,7 +124,7 @@ public class FederatedComputeWorker {
     private TrainingRun mActiveRun = null;
 
     private HttpFederatedProtocol mHttpFederatedProtocol;
-    private AbstractServiceBinder<IExampleStoreService> mExampleStoreServiceBinder;
+    private ExampleStoreServiceProvider mExampleStoreServiceProvider;
     private AbstractServiceBinder<IIsolatedTrainingService> mIsolatedTrainingServiceBinder;
     private FederatedComputeEncryptionKeyManager mEncryptionKeyManager;
 
@@ -133,6 +136,7 @@ public class FederatedComputeWorker {
             ComputationRunner computationRunner,
             ResultCallbackHelper resultCallbackHelper,
             FederatedComputeEncryptionKeyManager keyManager,
+            ExampleStoreServiceProvider exampleStoreServiceProvider,
             Injector injector) {
         this.mContext = context.getApplicationContext();
         this.mJobManager = jobManager;
@@ -141,6 +145,7 @@ public class FederatedComputeWorker {
         this.mResultCallbackHelper = resultCallbackHelper;
         this.mEncryptionKeyManager = keyManager;
         this.mInjector = injector;
+        this.mExampleStoreServiceProvider = exampleStoreServiceProvider;
     }
 
     /** Gets an instance of {@link FederatedComputeWorker}. */
@@ -157,6 +162,7 @@ public class FederatedComputeWorker {
                                     new ComputationRunner(),
                                     new ResultCallbackHelper(context),
                                     FederatedComputeEncryptionKeyManager.getInstance(context),
+                                    new ExampleStoreServiceProvider(),
                                     new Injector());
                 }
             }
@@ -214,7 +220,8 @@ public class FederatedComputeWorker {
 
     @Nullable
     private FederatedTrainingTask getTrainableTask(
-            int jobId, TrainingEventLogger trainingEventLogger,
+            int jobId,
+            TrainingEventLogger trainingEventLogger,
             FederatedJobService.OnJobFinishedCallback callback) {
         FederatedTrainingTask trainingTask = mJobManager.onTrainingStarted(jobId);
         if (trainingTask == null) {
@@ -311,7 +318,8 @@ public class FederatedComputeWorker {
             AuthorizationContext authContext) {
         // Generate attestation record and make 2nd try.
         authContext.updateAuthState(
-                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata());
+                createTaskAssignmentResponse.getRejectionInfo().getAuthMetadata(),
+                mInjector.getTrainingEventLogger());
         return FluentFuture.from(mHttpFederatedProtocol.createTaskAssignment(authContext))
                 .transformAsync(
                         taskAssignmentOnUnauthenticated -> {
@@ -382,7 +390,7 @@ public class FederatedComputeWorker {
                         run.mTask.jobId(),
                         run.mTask.populationName(),
                         run.mTask.getTrainingIntervalOptions(),
-                        /* taskRetry= */null);
+                        /* taskRetry= */ null);
                 return Futures.immediateFuture(null);
             }
         }
@@ -405,10 +413,10 @@ public class FederatedComputeWorker {
         EligibilityDecider eligibilityDecider = mInjector.getEligibilityDecider(this.mContext);
         boolean eligibleResult =
                 eligibilityDecider.computeEligibility(
-                        run.mTask.populationName(),
+                        run.mTask,
                         taskAssignment.getTaskId(),
-                        run.mJobId,
-                        taskAssignment.getEligibilityTaskInfo());
+                        taskAssignment.getEligibilityTaskInfo(),
+                        this.mContext);
         LogUtil.i(TAG, "eligibility task result %s %b", taskAssignment.getTaskId(), eligibleResult);
         return eligibleResult;
     }
@@ -566,6 +574,27 @@ public class FederatedComputeWorker {
         return taskRetryBuilder.build();
     }
 
+    private ListenableFuture<IExampleStoreIterator> getExampleStoreIterator(
+            TrainingRun run, ExampleSelector exampleSelector) {
+        try {
+            IExampleStoreService exampleStoreService =
+                    mExampleStoreServiceProvider.getExampleStoreService(
+                            run.mTask.appPackageName(), mContext);
+            if (exampleStoreService == null) {
+                return Futures.immediateFailedFuture(
+                        new IllegalStateException(
+                                "Could not bind to ExampleStoreService "
+                                        + run.mTask.appPackageName()));
+            }
+            run.mExampleStoreService = exampleStoreService;
+            return mExampleStoreServiceProvider.getExampleStoreIterator(
+                    run.mExampleStoreService, run.mTask, run.mTaskId, exampleSelector);
+        } catch (Exception e) {
+            LogUtil.e(TAG, "StartQuery failure: " + e.getMessage());
+            return Futures.immediateFailedFuture(e);
+        }
+    }
+
     /**
      * Completes the running job , schedule recurrent job, and unbind from ExampleStoreService and
      * ResultHandlingService etc.
@@ -618,6 +647,17 @@ public class FederatedComputeWorker {
                 taskRetry);
     }
 
+    /** To clean up active run for subsequent executions. */
+    public void cleanUpActiveRun() {
+        synchronized (mLock) {
+            if (mActiveRun == null) {
+                return;
+            }
+
+            mActiveRun = null;
+        }
+    }
+
     private void performFinishRoutines(
             FederatedJobService.OnJobFinishedCallback callback,
             ContributionResult contributionResult,
@@ -638,7 +678,7 @@ public class FederatedComputeWorker {
         }
         if (runToFinish.mExampleStoreService != null) {
             LogUtil.i(TAG, "Unbinding from ExampleStoreService");
-            unbindFromExampleStoreService();
+            mExampleStoreServiceProvider.unbindFromExampleStoreService();
             runToFinish.mExampleStoreService = null;
         }
     }
@@ -735,6 +775,7 @@ public class FederatedComputeWorker {
             bundle.putParcelable(Constants.EXTRA_INPUT_CHECKPOINT_FD, inputCheckpointFd);
             bundle.putParcelable(Constants.EXTRA_OUTPUT_CHECKPOINT_FD, outputCheckpointFd);
             bundle.putBinder(Constants.EXTRA_EXAMPLE_STORE_ITERATOR_BINDER, iterator.asBinder());
+            bundle.putByteArray(Constants.EXTRA_TRAINING_FLAGS, buildTrainingFlags());
 
             return FluentFuture.from(runIsolatedTrainingProcess(run, bundle))
                     .transform(
@@ -786,6 +827,17 @@ public class FederatedComputeWorker {
             }
             return Futures.immediateFailedFuture(e);
         }
+    }
+
+    private static byte[] buildTrainingFlags() {
+        Flags flags = FlagsFactory.getFlags();
+        FlatBufferBuilder builder = new FlatBufferBuilder();
+        builder.finish(
+                TrainingFlags.createTrainingFlags(
+                        builder,
+                        flags.getFcpTfErrorRescheduleSeconds(),
+                        flags.getEnableClientErrorLogging()));
+        return builder.sizedByteArray();
     }
 
     private static void reportCelIsolatedTrainingProcess(Exception e) {
@@ -929,82 +981,6 @@ public class FederatedComputeWorker {
                 new ComputationResult(outputCheckpointFile, runResult, exampleConsumptions));
     }
 
-    @VisibleForTesting
-    IExampleStoreService getExampleStoreService(String packageName) {
-        mExampleStoreServiceBinder =
-                AbstractServiceBinder.getServiceBinderByIntent(
-                        mContext,
-                        ClientConstants.EXAMPLE_STORE_ACTION,
-                        packageName,
-                        IExampleStoreService.Stub::asInterface);
-        return mExampleStoreServiceBinder.getService(Runnable::run);
-    }
-
-    @VisibleForTesting
-    void unbindFromExampleStoreService() {
-        mExampleStoreServiceBinder.unbindFromService();
-    }
-
-    private ListenableFuture<IExampleStoreIterator> runExampleStoreStartQuery(
-            TrainingRun run, Bundle input) {
-        return CallbackToFutureAdapter.getFuture(
-                completer -> {
-                    try {
-                        run.mExampleStoreService.startQuery(
-                                input,
-                                new IExampleStoreCallback.Stub() {
-                                    @Override
-                                    public void onStartQuerySuccess(
-                                            IExampleStoreIterator iterator) {
-                                        LogUtil.d(TAG, "Acquire iterator");
-                                        completer.set(iterator);
-                                    }
-
-                                    @Override
-                                    public void onStartQueryFailure(int errorCode) {
-                                        LogUtil.e(TAG, "Could not acquire iterator: " + errorCode);
-                                        completer.setException(
-                                                new IllegalStateException(
-                                                        "StartQuery failed: " + errorCode));
-                                    }
-                                });
-                    } catch (Exception e) {
-                        completer.setException(e);
-                    }
-                    return "runExampleStoreStartQuery";
-                });
-    }
-
-    private ListenableFuture<IExampleStoreIterator> getExampleStoreIterator(
-            TrainingRun run, ExampleSelector exampleSelector) {
-        try {
-            IExampleStoreService exampleStoreService =
-                    getExampleStoreService(run.mTask.appPackageName());
-            if (exampleStoreService == null) {
-                return Futures.immediateFailedFuture(
-                        new IllegalStateException(
-                                "Could not bind to ExampleStoreService "
-                                        + run.mTask.appPackageName()));
-            }
-            run.mExampleStoreService = exampleStoreService;
-
-            byte[] criteria = exampleSelector.getCriteria().toByteArray();
-            byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
-            Bundle bundle = new Bundle();
-            bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, run.mTask.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_ID, run.mTaskId);
-            bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, run.mTask.contextData());
-            bundle.putByteArray(
-                    ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
-            bundle.putByteArray(ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
-
-            return runExampleStoreStartQuery(run, bundle);
-        } catch (Exception e) {
-            LogUtil.e(TAG, "StartQuery failure: " + e.getMessage());
-            return Futures.immediateFailedFuture(e);
-        }
-    }
-
     private FluentFuture<RejectionInfo> reportResultWithAuthentication(
             ComputationResult computationResult,
             FederatedComputeEncryptionKey encryptionKey,
@@ -1019,7 +995,9 @@ public class FederatedComputeWorker {
                         resp -> {
                             if (resp != null) {
                                 if (authContext.isFirstAuthTry() && resp.hasAuthMetadata()) {
-                                    authContext.updateAuthState(resp.getAuthMetadata());
+                                    authContext.updateAuthState(
+                                            resp.getAuthMetadata(),
+                                            mInjector.getTrainingEventLogger());
                                     return reportResultWithAuthentication(
                                             computationResult, encryptionKey, authContext);
                                 } else if (resp.hasRetryWindow()) {

@@ -16,8 +16,6 @@
 
 package com.android.ondevicepersonalization.services.request;
 
-import static com.android.ondevicepersonalization.services.statsd.ApiCallStats.API_SERVICE_ON_RENDER;
-
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderInputParcel;
 import android.adservices.ondevicepersonalization.RenderOutputParcel;
@@ -36,6 +34,7 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
@@ -44,6 +43,7 @@ import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHe
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.CryptUtils;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
@@ -155,7 +155,13 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         try {
             if (!isPersonalizationStatusEnabled()) {
                 sLogger.d(TAG + ": Personalization is disabled.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
+                return false;
+            }
+
+            if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
+                sLogger.d(TAG + ": User control is not given for targeting.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
                 return false;
             }
 
@@ -168,7 +174,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                             mContext, servicePackageName));
             mService = ComponentName.createRelative(servicePackageName, serviceClassName);
         } catch (Exception e) {
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
             return false;
         }
         return true;
@@ -206,7 +212,8 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_RENDER, val, mInjector.getClock(),
+                                    Constants.API_NAME_SERVICE_ON_RENDER,
+                                    val, mInjector.getClock(),
                                     Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
                             return val;
                         },
@@ -216,7 +223,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
-                                    API_SERVICE_ON_RENDER, /* result= */ null,
+                                    Constants.API_NAME_SERVICE_ON_RENDER, /* result= */ null,
                                     mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
                             return Futures.immediateFailedFuture(e);
@@ -273,7 +280,15 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                     @Override
                     public void onFailure(Throwable t) {
                         sLogger.w(TAG + ": Request failed.", t);
-                        sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+                        if (t instanceof OdpServiceException) {
+                            OdpServiceException e = (OdpServiceException) t;
+                            sendErrorResult(
+                                    e.getErrorCode(),
+                                    DebugUtils.getIsolatedServiceExceptionCode(
+                                            mContext, mService, e));
+                        } else {
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+                        }
                     }
                 },
                 mInjector.getExecutor());
@@ -287,7 +302,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             sendSuccessResult(surfacePackage);
         } else {
             sLogger.w(TAG + ": surfacePackages is null or empty");
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
         }
     }
 
@@ -299,17 +314,21 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), responseCode, mStartTimeMillis);
+            StatsUtils.writeAppRequestMetrics(
+                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
+                    mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
-    private void sendErrorResult(int errorCode) {
+    private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
         try {
-            mCallback.onError(errorCode);
+            mCallback.onError(errorCode, isolatedServiceErrorCode);
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
-            StatsUtils.writeAppRequestMetrics(mInjector.getClock(), errorCode, mStartTimeMillis);
+            StatsUtils.writeAppRequestMetrics(
+                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
+                    mInjector.getClock(), errorCode, mStartTimeMillis);
         }
     }
 

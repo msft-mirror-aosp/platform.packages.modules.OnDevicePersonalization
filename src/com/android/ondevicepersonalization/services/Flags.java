@@ -96,6 +96,11 @@ public interface Flags extends ModuleSharedFlags {
      */
     int DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 5;
 
+    /**
+     * Default value for isolated service debugging flag.
+     */
+    boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -141,9 +146,9 @@ public interface Flags extends ModuleSharedFlags {
     String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
-     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     * Default value of valid duration of user control cache in milliseconds (24 hours).
      */
-    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+    long USER_CONTROL_CACHE_IN_MILLIS = 86400000;
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
@@ -220,12 +225,16 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
     }
 
-    default long getUserConsentCacheInMillis() {
-        return USER_CONSENT_CACHE_IN_MILLIS;
+    default long getUserControlCacheInMillis() {
+        return USER_CONTROL_CACHE_IN_MILLIS;
     }
 
     default String getOutputDataAllowList() {
         return DEFAULT_OUTPUT_DATA_ALLOW_LIST;
+    }
+
+    default boolean isIsolatedServiceDebuggingEnabled() {
+        return DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED;
     }
 
     /** Set all stable flags. */

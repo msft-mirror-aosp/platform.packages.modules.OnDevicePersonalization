@@ -202,6 +202,13 @@ public interface Flags extends ModuleSharedFlags {
         return ENABLE_CLIENT_ERROR_LOGGING;
     }
 
+    // 7 days in milliseconds
+    long DEFAULT_TASK_HISTORY_TTL_MILLIS = 7 * 24 * 60 * 60 * 1000L;
+
+    default long getTaskHistoryTtl() {
+        return DEFAULT_TASK_HISTORY_TTL_MILLIS;
+    }
+
     boolean DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED = false;
 
     default boolean getBackgroundJobsLoggingEnabled() {
@@ -213,5 +220,18 @@ public interface Flags extends ModuleSharedFlags {
 
     default int getBackgroundJobSamplingLoggingRate() {
         return DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+    }
+
+    int DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC = 10;
+
+    default int getExampleStoreServiceCallbackTimeoutSec() {
+        return DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC;
+    }
+
+    long FCP_TF_ERROR_RESCHEDULE_SECONDS = 86400; // 24 hours in seconds
+
+    /** Reschedule FCP jobs in case of TF failure. */
+    default long getFcpTfErrorRescheduleSeconds() {
+        return FCP_TF_ERROR_RESCHEDULE_SECONDS;
     }
 }

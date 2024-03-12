@@ -190,7 +190,9 @@ public abstract class IsolatedService extends Service {
     @NonNull
     public final FederatedComputeScheduler getFederatedComputeScheduler(
             @NonNull RequestToken requestToken) {
-        return new FederatedComputeScheduler(requestToken.getFederatedComputeService());
+        return new FederatedComputeScheduler(
+                requestToken.getFederatedComputeService(),
+                requestToken.getDataAccessService());
     }
 
     /**
@@ -271,7 +273,7 @@ public abstract class IsolatedService extends Service {
             } catch (Exception e) {
                 sLogger.e(e, "Exception during Isolated Service web trigger operation.");
                 try {
-                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
                     sLogger.e(re, "Isolated Service Callback failed.");
                 }
@@ -309,7 +311,7 @@ public abstract class IsolatedService extends Service {
             } catch (Exception e) {
                 sLogger.e(e, "Exception during Isolated Service training example operation.");
                 try {
-                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
                     sLogger.e(re, "Isolated Service Callback failed.");
                 }
@@ -338,7 +340,7 @@ public abstract class IsolatedService extends Service {
             } catch (Exception e) {
                 sLogger.e(e, "Exception during Isolated Service web view event operation.");
                 try {
-                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
                     sLogger.e(re, "Isolated Service Callback failed.");
                 }
@@ -368,7 +370,7 @@ public abstract class IsolatedService extends Service {
             } catch (Exception e) {
                 sLogger.e(e, "Exception during Isolated Service render operation.");
                 try {
-                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
                     sLogger.e(re, "Isolated Service Callback failed.");
                 }
@@ -413,7 +415,7 @@ public abstract class IsolatedService extends Service {
             } catch (Exception e) {
                 sLogger.e(e, "Exception during Isolated Service download operation.");
                 try {
-                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
                     sLogger.e(re, "Isolated Service Callback failed.");
                 }
@@ -495,7 +497,7 @@ public abstract class IsolatedService extends Service {
             } catch (Exception e) {
                 sLogger.e(e, "Exception during Isolated Service execute operation.");
                 try {
-                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
                     sLogger.e(re, "Isolated Service Callback failed.");
                 }
@@ -524,7 +526,7 @@ public abstract class IsolatedService extends Service {
                     SystemClock.elapsedRealtime() - mRequestToken.getStartTimeMillis();
             if (result == null) {
                 try {
-                    mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                    mCallback.onError(Constants.STATUS_SERVICE_FAILED, 0);
                 } catch (RemoteException e) {
                     sLogger.w(TAG + ": Callback failed.", e);
                 }
@@ -548,7 +550,7 @@ public abstract class IsolatedService extends Service {
         public void onError(IsolatedServiceException e) {
             try {
                 // TODO(b/324478256): Log and report the error code from e.
-                mCallback.onError(Constants.STATUS_INTERNAL_ERROR);
+                mCallback.onError(Constants.STATUS_SERVICE_FAILED, e.getErrorCode());
             } catch (RemoteException re) {
                 sLogger.w(TAG + ": Callback failed.", re);
             }
