@@ -23,6 +23,7 @@ import androidx.test.uiautomator.UiDevice;
 import org.junit.Assert;
 
 import java.io.IOException;
+import java.util.List;
 
 /** Helper class for interacting with download flow. */
 public class DownloadHelper {
@@ -32,12 +33,11 @@ public class DownloadHelper {
     private static final String MAINTENANCE_TASK_JOB_ID = "1005";
     private static final String DOWNLOAD_JOB_SUCCESS_LOG =
             "MddJobService: MddJobService.MddHandleTask succeeded!";
-    private static final String PLUGIN_CODE_COMPLETED_LOG =
-            "OnDevicePersonalizationDataProcessingAsyncCallable: "
-                    + "Plugin filter code completed successfully";
     private static final String FILTER_AND_STORE_DATA_SUCCESS_LOG =
-            "OnDevicePersonalizationDataProcessingAsyncCallable: "
+            "DownloadFlow: "
                     + "filter and store data completed, transaction successful: true";
+    private static final String FILTER_AND_STORE_NOT_NEW_LOG =
+            "DownloadFlow: syncToken is not newer than existing token.";
     private static final long DOWNLOAD_JOB_COMPLETION_TIMEOUT = 120_000;
     private static final long DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT = 120_000;
 
@@ -120,43 +120,68 @@ public class DownloadHelper {
         }
     }
 
+    /**
+     * Process downloaded vendor data assuming it is new data.
+     */
     public void processDownloadedVendorData() throws IOException {
+        processDownloadVendorData(true);
+    }
+
+    /**
+     * Process downloaded vendor data, ignoring whether it is new or existing downloaded data.
+     */
+    public void processExistingOrNewDownloadedVendorData() throws IOException {
+        processDownloadVendorData(false);
+    }
+
+    private void processDownloadVendorData(boolean newDownload) throws IOException {
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.ondevicepersonalization.services "
                         + DOWNLOAD_PROCESSING_TASK_JOB_ID);
 
-        boolean foundPlugInCodeCompletionLog = findLog(
-                PLUGIN_CODE_COMPLETED_LOG,
-                DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT,
-                5000);
+        if (newDownload) {
+            boolean foundFilterAndStoreDataSuccessLog = findLog(
+                    FILTER_AND_STORE_DATA_SUCCESS_LOG,
+                    DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT,
+                    5000);
 
-        if (!foundPlugInCodeCompletionLog) {
-            Assert.fail(String.format(
-                    "Failed to find plugin code completion log %s within test window %d ms",
-                    PLUGIN_CODE_COMPLETED_LOG,
-                    DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT));
-        }
+            if (!foundFilterAndStoreDataSuccessLog) {
+                Assert.fail(String.format(
+                        "Failed to find filter and store data success log %s within test window "
+                                + "%d ms",
+                        foundFilterAndStoreDataSuccessLog,
+                        DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT));
+            }
+        } else {
+            boolean foundFilterAndStoreDataSuccessLog = findLog(
+                    List.of(FILTER_AND_STORE_DATA_SUCCESS_LOG, FILTER_AND_STORE_NOT_NEW_LOG),
+                    DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT,
+                    5000);
 
-        boolean foundFilterAndStoreDataSuccessLog = findLog(
-                FILTER_AND_STORE_DATA_SUCCESS_LOG,
-                DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT,
-                5000);
-
-        if (!foundFilterAndStoreDataSuccessLog) {
-            Assert.fail(String.format(
-                    "Failed to find filter and store data success log %s within test window %d ms",
-                    foundFilterAndStoreDataSuccessLog,
-                    DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT));
+            if (!foundFilterAndStoreDataSuccessLog) {
+                Assert.fail(String.format(
+                        "Failed to find filter and store data success log %s within test window "
+                                + "%d ms",
+                        foundFilterAndStoreDataSuccessLog,
+                        DOWNLOAD_PROCESSING_JOB_COMPLETION_TIMEOUT));
+            }
         }
     }
 
     /** Attempt to find a specific log entry within the timeout window */
     private boolean findLog(final String targetLog, long timeoutMillis,
                             long queryIntervalMillis) throws IOException {
+        return findLog(List.of(targetLog), timeoutMillis, queryIntervalMillis);
+    }
+
+    /** Attempt to find a one of specific log entries within the timeout window */
+    private boolean findLog(final List<String> targetLogs, long timeoutMillis,
+            long queryIntervalMillis) throws IOException {
 
         long startTime = System.currentTimeMillis();
         while (System.currentTimeMillis() - startTime < timeoutMillis) {
-            if (getUiDevice().executeShellCommand("logcat -d").contains(targetLog)) {
+            String logcat = getUiDevice().executeShellCommand("logcat -d");
+            if (targetLogs.stream().anyMatch(logcat::contains)) {
                 return true;
             }
             SystemClock.sleep(queryIntervalMillis);
