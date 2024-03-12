@@ -95,4 +95,5 @@ apex {
     defaults: ["t-launched-apex-module"],
     prebuilts: ["current_sdkinfo"],
     jni_libs: ["libfcp_cpp_dep_jni"],
+    visibility: ["//packages/modules/common/build"],
 }
