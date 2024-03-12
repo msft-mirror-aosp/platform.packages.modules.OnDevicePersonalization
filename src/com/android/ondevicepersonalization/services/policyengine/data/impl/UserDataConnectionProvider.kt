@@ -16,17 +16,14 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
-import android.ondevicepersonalization.UserData
-import android.ondevicepersonalization.OSVersion
-import android.ondevicepersonalization.DeviceMetrics
-import android.ondevicepersonalization.Location
-import android.ondevicepersonalization.AppInstallStatus
-import android.ondevicepersonalization.AppUsageStatus
-import android.ondevicepersonalization.LocationStatus
+import android.adservices.ondevicepersonalization.UserData
+import android.adservices.ondevicepersonalization.Location
+import android.adservices.ondevicepersonalization.AppInfo
+import android.adservices.ondevicepersonalization.AppUsageStatus
+import android.adservices.ondevicepersonalization.LocationStatus
+import android.util.ArrayMap
 
-import com.android.ondevicepersonalization.services.data.user.UserDataDao
 import com.android.ondevicepersonalization.services.data.user.RawUserData
-import com.android.ondevicepersonalization.services.data.user.UserDataCollector
 import com.android.libraries.pcc.chronicle.api.Connection
 import com.android.libraries.pcc.chronicle.api.ConnectionProvider
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
@@ -39,9 +36,6 @@ import com.android.ondevicepersonalization.services.policyengine.data.USER_DATA_
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
 
 import java.time.Duration
-
-import kotlinx.coroutines.CoroutineDispatcher
-import kotlinx.coroutines.withContext
 
 /** [ConnectionProvider] implementation for ODA use data. */
 class UserDataConnectionProvider() : ConnectionProvider {
@@ -58,58 +52,39 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
     class UserDataReaderImpl : UserDataReader {
         override fun readUserData(): UserData? {
-            val rawUserData: RawUserData? = RawUserData.getInstance();
-            if (rawUserData == null) {
-                return null;
-            }
-
+            val rawUserData: RawUserData = RawUserData.getInstance() ?: return null
             // TODO(b/267013762): more privacy-preserving processing may be needed
-            return UserData.Builder()
-                    .setTimeSec(rawUserData.timeMillis / 1000)
-                    .setTimezone(rawUserData.utcOffset)
+            val builder: UserData.Builder = UserData.Builder()
+                    .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
-                    .setAvailableBytesMB(rawUserData.availableBytesMB)
-                    .setBatteryPct(rawUserData.batteryPct)
-                    .setCountry(rawUserData.country.ordinal)
-                    .setLanguage(rawUserData.language.ordinal)
-                    .setCarrier(rawUserData.carrier.ordinal)
-                    .setOsVersions(OSVersion.Builder()
-                            .setMajor(rawUserData.osVersions.major)
-                            .setMinor(rawUserData.osVersions.minor)
-                            .setMicro(rawUserData.osVersions.micro)
-                            .build())
-                    .setConnectionType(rawUserData.connectionType.ordinal)
-                    .setConnectionSpeedKbps(rawUserData.connectionSpeedKbps)
-                    .setNetworkMetered(rawUserData.networkMeteredStatus)
-                    .setDeviceMetrics(DeviceMetrics.Builder()
-                            .setMake(rawUserData.deviceMetrics.make.ordinal)
-                            .setModel(rawUserData.deviceMetrics.model.ordinal)
-                            .setScreenHeights(rawUserData.deviceMetrics.screenHeight)
-                            .setScreenWidth(rawUserData.deviceMetrics.screenWidth)
-                            .setXdpi(rawUserData.deviceMetrics.xdpi)
-                            .setYdpi(rawUserData.deviceMetrics.ydpi)
-                            .setPxRatio(rawUserData.deviceMetrics.pxRatio)
-                            .build())
+                    .setAvailableStorageBytes(rawUserData.availableStorageBytes)
+                    .setBatteryPercentage(rawUserData.batteryPercentage)
+                    .setCarrier(rawUserData.carrier.toString())
+                    .setDataNetworkType(rawUserData.dataNetworkType)
                     .setCurrentLocation(Location.Builder()
-                            .setTimeSec(rawUserData.currentLocation.timeMillis / 1000)
+                            .setTimestampSeconds(rawUserData.currentLocation.timeMillis / 1000)
                             .setLatitude(rawUserData.currentLocation.latitude)
                             .setLongitude(rawUserData.currentLocation.longitude)
                             .setLocationProvider(rawUserData.currentLocation.provider.ordinal)
                             .setPreciseLocation(rawUserData.currentLocation.isPreciseLocation)
                             .build())
-                    .setAppInstalledHistory(getAppInstalledHistory(rawUserData))
+                    .setAppInfos(getAppInfos(rawUserData))
                     .setAppUsageHistory(getAppUsageHistory(rawUserData))
                     .setLocationHistory(getLocationHistory(rawUserData))
-                    .build()
+            // TODO (b/299683848): follow up the codegen bug
+            if (rawUserData.networkCapabilities != null) {
+                builder.setNetworkCapabilities(rawUserData.networkCapabilities)
+            }
+            return builder.build()
         }
 
-        private fun getAppInstalledHistory(rawUserData: RawUserData): List<AppInstallStatus> {
-            var res = ArrayList<AppInstallStatus>()
+        private fun getAppInfos(rawUserData: RawUserData): Map<String, AppInfo> {
+            var res = ArrayMap<String, AppInfo>()
             for (appInfo in rawUserData.appsInfo) {
-                res.add(AppInstallStatus.Builder()
-                        .setPackageName(appInfo.packageName)
-                        .setInstalled(appInfo.installed)
-                        .build())
+                res.put(appInfo.packageName,
+                        AppInfo.Builder()
+                            .setInstalled(appInfo.installed)
+                            .build())
             }
             return res
         }

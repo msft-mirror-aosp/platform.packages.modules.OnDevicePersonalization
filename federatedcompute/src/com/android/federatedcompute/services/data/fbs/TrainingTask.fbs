@@ -2,7 +2,7 @@ namespace com.android.federatedcompute.services.data.fbs;
 
 table TrainingConstraints {
     requires_scheduler_idle:bool;
-    requires_scheduler_charging:bool;
+    requires_scheduler_battery_not_low:bool;
     requires_scheduler_unmetered_network:bool;
 }
 

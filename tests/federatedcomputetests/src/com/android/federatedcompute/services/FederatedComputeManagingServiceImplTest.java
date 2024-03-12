@@ -17,7 +17,9 @@
 package com.android.federatedcompute.services;
 
 import static org.junit.Assert.assertNotNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.times;
 
 import android.content.Intent;
 import android.os.IBinder;
@@ -25,6 +27,7 @@ import android.os.IBinder;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -39,7 +42,10 @@ public final class FederatedComputeManagingServiceImplTest {
 
     @Test
     public void testBindableFederatedComputeService() {
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(BackgroundKeyFetchJobService.class).startMocking();
+        ExtendedMockito.doReturn(true)
+                .when(() -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(any(), any()));
         try {
             FederatedComputeManagingServiceImpl spyFcpService =
                     spy(new FederatedComputeManagingServiceImpl());
@@ -49,6 +55,8 @@ public final class FederatedComputeManagingServiceImplTest {
                             ApplicationProvider.getApplicationContext(),
                             FederatedComputeManagingServiceImpl.class);
             IBinder binder = spyFcpService.onBind(intent);
+            ExtendedMockito.verify(() -> BackgroundKeyFetchJobService.scheduleJobIfNeeded(
+                    any(), any()), times(1));
             assertNotNull(binder);
         } finally {
             session.finishMocking();

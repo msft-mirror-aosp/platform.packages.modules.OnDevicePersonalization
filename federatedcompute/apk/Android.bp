@@ -17,6 +17,23 @@ package {
     default_applicable_licenses: ["Android-Apache-2.0"],
 }
 
+genrule {
+    name: "statslog-federatedcompute-java-gen",
+    tools: ["stats-log-api-gen"],
+    cmd: "$(location stats-log-api-gen) --java $(out) --module ondevicepersonalization" +
+         " --javaPackage com.android.federatedcompute.services.stats" +
+         " --javaClass FederatedComputeStatsLog",
+    out: ["com/android/federatedcompute/services/stats/FederatedComputeStatsLog.java"],
+    visibility: [
+      "//packages/modules/OnDevicePersonalization:__subpackages__"
+    ],
+}
+
+filegroup {
+    name: "fcp-apk-jarjar",
+    srcs: ["jarjar_rules.txt"]
+}
+
 android_app_certificate {
     name: "com.android.federatedcompute.certificate",
     certificate: "com.android.federatedcompute",
@@ -27,26 +44,35 @@ android_app {
     srcs: [
         ":federatedcompute-sources",
         ":federatedcompute-fbs",
+        ":statslog-federatedcompute-java-gen",
+        ":fcp_native_wrapper",
     ],
     libs: [
         "auto_value_annotations",
-        "flatbuffers-java",
         "framework-ondevicepersonalization.impl",
         "framework-annotations-lib",
+        "framework-configinfrastructure", // For PH flags
+        "framework-statsd.stubs.module_lib", // For WW logging
     ],
     plugins: ["auto_value_plugin"],
     static_libs: [
-        "federatedcompute-service-proto-lite",
+        "flatbuffers-java",
+        "androidx.concurrent_concurrent-futures",
+        "federated-compute-java-proto-lite",
         "guava",
-        "modules-utils-preconditions",
         "libprotobuf-java-lite",
+        "modules-utils-preconditions",
     ],
     sdk_version: "module_current",
     min_sdk_version: "Tiramisu",
+    jarjar_rules: ":fcp-apk-jarjar",
     updatable: true,
     certificate: ":com.android.federatedcompute.certificate",
     apex_available: ["com.android.ondevicepersonalization"],
     defaults: [
         "federatedcompute-java-defaults",
     ],
+    optimize: {
+        proguard_flags_files: ["proguard.flags"],
+    },
 }

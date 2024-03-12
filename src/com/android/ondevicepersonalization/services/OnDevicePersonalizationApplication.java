@@ -16,8 +16,10 @@
 
 package com.android.ondevicepersonalization.services;
 
+import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.app.Application;
+import android.content.Context;
 
 import com.android.ondevicepersonalization.libraries.plugin.PluginApplication;
 import com.android.ondevicepersonalization.libraries.plugin.PluginHost;
@@ -26,7 +28,18 @@ import com.android.ondevicepersonalization.services.process.OnDevicePersonalizat
 /** The Application class for OnDevicePersonalization. */
 public final class OnDevicePersonalizationApplication
         extends Application implements PluginApplication {
+    @NonNull private static Context sApplicationContext;
+
     @Override public @Nullable PluginHost getPluginHost() {
         return new OnDevicePersonalizationPluginHost(this);
+    }
+
+    @Override public void onCreate() {
+        super.onCreate();
+        sApplicationContext = getApplicationContext();
+    }
+
+    @NonNull public static Context getAppContext() {
+        return sApplicationContext;
     }
 }

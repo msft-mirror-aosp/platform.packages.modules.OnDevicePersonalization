@@ -22,13 +22,22 @@ import com.android.ondevicepersonalization.libraries.plugin.PluginController;
 
 /** Wraps an instance of a loaded isolated service */
 public class IsolatedServiceInfo {
+    @NonNull private final long mStartTimeMillis;
     @NonNull private final PluginController mPluginController;
 
-    IsolatedServiceInfo(@NonNull PluginController pluginController) {
+    IsolatedServiceInfo(
+            long startTimeMillis,
+            @NonNull PluginController pluginController) {
+        mStartTimeMillis = startTimeMillis;
         mPluginController = pluginController;
     }
 
     PluginController getPluginController() {
         return mPluginController;
+    }
+
+    /** Returns the service start time. */
+    public long getStartTimeMillis() {
+        return mStartTimeMillis;
     }
 }

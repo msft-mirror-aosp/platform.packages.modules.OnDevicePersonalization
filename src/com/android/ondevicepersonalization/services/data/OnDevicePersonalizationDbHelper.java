@@ -19,9 +19,11 @@ package com.android.ondevicepersonalization.services.data;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
-import android.util.Log;
+
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataTables;
@@ -32,12 +34,13 @@ import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsCo
  */
 public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
 
     private static final int DATABASE_VERSION = 1;
     private static final String DATABASE_NAME = "ondevicepersonalization.db";
 
-    private static OnDevicePersonalizationDbHelper sSingleton = null;
+    private static volatile OnDevicePersonalizationDbHelper sSingleton = null;
 
     private OnDevicePersonalizationDbHelper(Context context, String dbName) {
         super(context, dbName, null, DATABASE_VERSION);
@@ -45,12 +48,15 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
     /** Returns an instance of the OnDevicePersonalizationDbHelper given a context. */
     public static OnDevicePersonalizationDbHelper getInstance(Context context) {
-        synchronized (OnDevicePersonalizationDbHelper.class) {
-            if (sSingleton == null) {
-                sSingleton = new OnDevicePersonalizationDbHelper(context, DATABASE_NAME);
+        if (sSingleton == null) {
+            synchronized (OnDevicePersonalizationDbHelper.class) {
+                if (sSingleton == null) {
+                    sSingleton = new OnDevicePersonalizationDbHelper(
+                            context.getApplicationContext(), DATABASE_NAME);
+                }
             }
-            return sSingleton;
         }
+        return sSingleton;
     }
 
     /**
@@ -75,6 +81,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         // Queries and events tables.
         db.execSQL(QueriesContract.QueriesEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
 
         // User data tables and indexes.
         db.execSQL(UserDataTables.LocationHistory.CREATE_TABLE_STATEMENT);
@@ -88,7 +95,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
-        Log.d(TAG, "DB upgrade from " + oldVersion + " to " + newVersion);
+        sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
         throw new UnsupportedOperationException(
                 "Database upgrade for OnDevicePersonalization is unsupported");
     }
