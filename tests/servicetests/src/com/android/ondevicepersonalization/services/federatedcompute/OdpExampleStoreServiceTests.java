@@ -118,11 +118,8 @@ public class OdpExampleStoreServiceTests {
         mLatch = new CountDownLatch(1);
         mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
     }
 
     @Test

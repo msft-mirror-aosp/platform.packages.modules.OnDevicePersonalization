@@ -80,10 +80,7 @@ public class TestAppHelper {
                     + "com.google.android.ondevicepersonalization.services 1006");
         SystemClock.sleep(5000);
         sDownloadHelper.downloadVendorData();
-        executeShellCommand(
-                "cmd jobscheduler run -f "
-                    + "com.google.android.ondevicepersonalization.services 1004");
-        SystemClock.sleep(5000);
+        sDownloadHelper.processExistingOrNewDownloadedVendorData();
     }
 
     /** Kill running processes to get performance measurement under cold start */
