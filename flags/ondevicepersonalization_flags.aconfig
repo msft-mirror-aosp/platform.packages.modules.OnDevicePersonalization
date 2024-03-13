@@ -3,6 +3,7 @@ container: "com.android.ondevicepersonalization"
 
 flag {
     name: "on_device_personalization_apis_enabled"
+    is_exported: true
     namespace: "on_device_personalization"
     # TODO(b/320156647): Add bug number and description
     bug: "320156647"
