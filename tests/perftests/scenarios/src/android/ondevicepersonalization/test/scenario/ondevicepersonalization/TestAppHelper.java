@@ -80,6 +80,7 @@ public class TestAppHelper {
                     + "com.google.android.ondevicepersonalization.services 1006");
         SystemClock.sleep(5000);
         sDownloadHelper.downloadVendorData();
+        SystemClock.sleep(5000);
         sDownloadHelper.processExistingOrNewDownloadedVendorData();
     }
 
