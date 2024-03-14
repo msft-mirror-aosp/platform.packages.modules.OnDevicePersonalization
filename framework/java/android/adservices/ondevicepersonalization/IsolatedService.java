@@ -271,11 +271,11 @@ public abstract class IsolatedService extends Service {
                         new WrappedCallback<WebTriggerOutput, WebTriggerOutputParcel>(
                                 resultCallback, requestToken, v -> new WebTriggerOutputParcel(v)));
             } catch (Exception e) {
-                sLogger.e(e, "Exception during Isolated Service web trigger operation.");
+                sLogger.e(e, TAG + ": Exception during Isolated Service web trigger operation.");
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Isolated Service Callback failed.");
+                    sLogger.e(re, TAG + ": Isolated Service Callback failed.");
                 }
             }
         }
@@ -309,11 +309,12 @@ public abstract class IsolatedService extends Service {
                                                                 v.getTrainingExampleRecords()))
                                                 .build()));
             } catch (Exception e) {
-                sLogger.e(e, "Exception during Isolated Service training example operation.");
+                sLogger.e(e,
+                        TAG + ": Exception during Isolated Service training example operation.");
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Isolated Service Callback failed.");
+                    sLogger.e(re, TAG + ": Isolated Service Callback failed.");
                 }
             }
         }
@@ -338,11 +339,11 @@ public abstract class IsolatedService extends Service {
                         new WrappedCallback<EventOutput, EventOutputParcel>(
                                 resultCallback, requestToken, v -> new EventOutputParcel(v)));
             } catch (Exception e) {
-                sLogger.e(e, "Exception during Isolated Service web view event operation.");
+                sLogger.e(e, TAG + ": Exception during Isolated Service web view event operation.");
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Isolated Service Callback failed.");
+                    sLogger.e(re, TAG + ": Isolated Service Callback failed.");
                 }
             }
         }
@@ -368,11 +369,11 @@ public abstract class IsolatedService extends Service {
                         new WrappedCallback<RenderOutput, RenderOutputParcel>(
                                 resultCallback, requestToken, v -> new RenderOutputParcel(v)));
             } catch (Exception e) {
-                sLogger.e(e, "Exception during Isolated Service render operation.");
+                sLogger.e(e, TAG + ": Exception during Isolated Service render operation.");
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Isolated Service Callback failed.");
+                    sLogger.e(re, TAG + ": Isolated Service Callback failed.");
                 }
             }
         }
@@ -413,11 +414,11 @@ public abstract class IsolatedService extends Service {
                                 requestToken,
                                 v -> new DownloadCompletedOutputParcel(v)));
             } catch (Exception e) {
-                sLogger.e(e, "Exception during Isolated Service download operation.");
+                sLogger.e(e, TAG + ": Exception during Isolated Service download operation.");
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Isolated Service Callback failed.");
+                    sLogger.e(re, TAG + ": Isolated Service Callback failed.");
                 }
             }
         }
@@ -495,11 +496,11 @@ public abstract class IsolatedService extends Service {
                         new WrappedCallback<ExecuteOutput, ExecuteOutputParcel>(
                                 resultCallback, requestToken, v -> new ExecuteOutputParcel(v)));
             } catch (Exception e) {
-                sLogger.e(e, "Exception during Isolated Service execute operation.");
+                sLogger.e(e, TAG + ": Exception during Isolated Service execute operation.");
                 try {
                     resultCallback.onError(Constants.STATUS_INTERNAL_ERROR, 0);
                 } catch (RemoteException re) {
-                    sLogger.e(re, "Isolated Service Callback failed.");
+                    sLogger.e(re, TAG + ": Isolated Service Callback failed.");
                 }
             }
         }
