@@ -21,5 +21,5 @@ import android.view.SurfaceControlViewHost.SurfacePackage;
 /** @hide */
 oneway interface IRequestSurfacePackageCallback {
     void onSuccess(in SurfacePackage surfacePackage);
-    void onError(int errorCode, int isolatedServiceErrorCode);
+    void onError(int errorCode, int isolatedServiceErrorCode, String errorMessage);
 }

@@ -140,6 +140,7 @@ public final class HttpFederatedProtocol {
     /** Donwloads model checkpoint and federated compute plan from remote server. */
     public ListenableFuture<CheckinResult> downloadTaskAssignment(TaskAssignment taskAssignment) {
         NetworkStats networkStats = new NetworkStats();
+        networkStats.recordStartTimeNow();
         ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
                 fetchTaskResource(taskAssignment.getPlan(), networkStats);
         ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
@@ -165,15 +166,16 @@ public final class HttpFederatedProtocol {
             FederatedComputeEncryptionKey encryptionKey,
             AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
-        NetworkStats uploadStats = new NetworkStats();
+        NetworkStats reportResultStats = new NetworkStats();
         if (computationResult != null
                 && computationResult.isResultSuccess()
                 && encryptionKey != null) {
             return FluentFuture.from(
-                            performReportResult(computationResult, authContext, uploadStats))
+                            performReportResult(computationResult, authContext, reportResultStats))
                     .transformAsync(
                             reportResp -> {
-                                uploadStats.addBytesDownloaded(getTotalReceivedBytes(reportResp));
+                                reportResultStats.addBytesDownloaded(
+                                        getTotalReceivedBytes(reportResp));
                                 if (authContext.isFirstAuthTry()) {
                                     validateHttpResponseAllowAuthStatus("ReportResult", reportResp);
                                 } else {
@@ -187,10 +189,12 @@ public final class HttpFederatedProtocol {
                                 ReportResultResponse reportResultResponse =
                                         ReportResultResponse.parseFrom(reportResp.getPayload());
                                 if (reportResultResponse.hasRejectionInfo()) {
-                                    mTrainingEventLogger.logResultUploadRejected(uploadStats);
+                                    mTrainingEventLogger.logResultUploadRejected(reportResultStats);
                                     return Futures.immediateFuture(
                                             reportResultResponse.getRejectionInfo());
                                 }
+                                // TODO (b/328789639): add a event to track ReportResult success.
+                                NetworkStats uploadStats = new NetworkStats();
                                 return FluentFuture.from(
                                                 processReportResultResponseAndUploadResult(
                                                         reportResultResponse,
@@ -199,6 +203,7 @@ public final class HttpFederatedProtocol {
                                                         uploadStats))
                                         .transform(
                                                 resp -> {
+                                                    uploadStats.recordEndTimeNow();
                                                     validateHttpResponseStatus(
                                                             "Upload result", resp);
                                                     mTrainingEventLogger.logResultUploadCompleted(
@@ -211,13 +216,16 @@ public final class HttpFederatedProtocol {
                             },
                             getBackgroundExecutor());
         } else {
+            reportResultStats.recordStartTimeNow();
             return FluentFuture.from(
-                            performReportResult(computationResult, authContext, uploadStats))
+                            performReportResult(computationResult, authContext, reportResultStats))
                     .transform(
                             resp -> {
+                                reportResultStats.recordEndTimeNow();
                                 validateHttpResponseStatus("Report failure result", resp);
-                                uploadStats.addBytesDownloaded(getTotalReceivedBytes(resp));
-                                mTrainingEventLogger.logFailureResultUploadCompleted(uploadStats);
+                                reportResultStats.addBytesDownloaded(getTotalReceivedBytes(resp));
+                                mTrainingEventLogger.logFailureResultUploadCompleted(
+                                        reportResultStats);
                                 return null;
                             },
                             getLightweightExecutor());
@@ -228,6 +236,7 @@ public final class HttpFederatedProtocol {
             AuthorizationContext authContext,
             FederatedComputeHttpResponse response,
             NetworkStats networkStats) {
+        networkStats.recordEndTimeNow();
         if (authContext.isFirstAuthTry()) {
             validateHttpResponseAllowAuthStatus("Start task assignment", response);
         } else {
@@ -287,6 +296,7 @@ public final class HttpFederatedProtocol {
                         /* isProtobufEncoded= */ true);
         mTrainingEventLogger.logCheckinStarted();
         networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
+        networkStats.recordStartTimeNow();
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
@@ -330,7 +340,7 @@ public final class HttpFederatedProtocol {
             TaskAssignment taskAssignment,
             NetworkStats networkStats)
             throws Exception {
-
+        networkStats.recordEndTimeNow();
         FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
         FederatedComputeHttpResponse checkpointDataResponse =
                 Futures.getDone(checkpointDataResponseFuture);
@@ -448,6 +458,7 @@ public final class HttpFederatedProtocol {
                             HttpMethod.PUT,
                             requestHeader,
                             outputBytes);
+            networkStats.recordStartTimeNow();
             networkStats.addBytesUploaded(getTotalSentBytes(httpUploadRequest));
             return mHttpClient.performRequestAsyncWithRetry(httpUploadRequest);
         } catch (Exception e) {

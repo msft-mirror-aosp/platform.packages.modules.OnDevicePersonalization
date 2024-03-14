@@ -21,5 +21,5 @@ import android.os.Bundle;
 /** @hide */
 oneway interface IExecuteCallback {
     void onSuccess(in Bundle result);
-    void onError(int errorCode, int isolatedServiceErrorCode);
+    void onError(int errorCode, int isolatedServiceErrorCode, String errorMessage);
 }

@@ -139,6 +139,7 @@ public class TrainingEventLogger {
         TrainingEventReported.Builder event =
                 new TrainingEventReported.Builder()
                         .setEventKind(eventKind)
+                        .setExampleCount(exampleStats.getExampleCount())
                         .setExampleSize(exampleStats.getExampleSizeBytes());
         logEvent(event);
     }
@@ -186,6 +187,8 @@ public class TrainingEventLogger {
         TrainingEventReported.Builder event =
                 new TrainingEventReported.Builder()
                         .setEventKind(eventKind)
+                        .setDataTransferDurationMillis(
+                                networkStats.getDataTransferDurationInMillis())
                         .setBytesUploaded(networkStats.getTotalBytesUploaded())
                         .setBytesDownloaded(networkStats.getTotalBytesDownloaded());
         logEvent(event);
@@ -197,7 +200,7 @@ public class TrainingEventLogger {
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_UNAUTHORIZED);
     }
 
-    /** Logs when devices are successfully authenticated to create task assignment.*/
+    /** Logs when devices are successfully authenticated to create task assignment. */
     public void logTaskAssignmentAuthSucceeded() {
         logKeyAttestationEvent(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_TASK_ASSIGNMENT_AUTH_SUCCEEDED);
@@ -217,15 +220,14 @@ public class TrainingEventLogger {
 
     /** Logs the latency of calling key attestation on device */
     public void logKeyAttestationLatencyEvent(long latencyMillis) {
-        TrainingEventReported.Builder event = new TrainingEventReported.Builder()
-                .setKeyAttestationLatencyMillis(latencyMillis);
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setKeyAttestationLatencyMillis(latencyMillis);
         logEvent(event);
     }
 
     private void logKeyAttestationEvent(int eventKind) {
         TrainingEventReported.Builder event =
-                new TrainingEventReported.Builder()
-                        .setEventKind(eventKind);
+                new TrainingEventReported.Builder().setEventKind(eventKind);
         logEvent(event);
     }
 
@@ -239,12 +241,13 @@ public class TrainingEventLogger {
         TrainingEventReported trainingEvent = event.build();
         LogUtil.i(
                 TAG,
-                "Log event kind %d, network upload %d download %d example stats %d"
-                + "key attestation stats %d",
+                "Log event kind %d, network upload %d download %d data transfer time %d "
+                        + "example stats %d key attestation stats %d",
                 trainingEvent.getEventKind(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
-                trainingEvent.getExampleSize(),
+                trainingEvent.getDataTransferDurationMillis(),
+                trainingEvent.getExampleCount(),
                 trainingEvent.getKeyAttestationLatencyMillis());
         FederatedComputeStatsdLogger.getInstance().logTrainingEventReported(trainingEvent);
     }

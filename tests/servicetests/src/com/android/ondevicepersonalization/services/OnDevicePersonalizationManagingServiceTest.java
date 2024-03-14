@@ -542,6 +542,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mError = false;
         public int mErrorCode = 0;
         public int mIsolatedServiceErrorCode = 0;
+        public String mErrorMessage = null;
         public String mToken = null;
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
@@ -556,11 +557,12 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
 
@@ -575,6 +577,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         public boolean mError = false;
         public int mErrorCode = 0;
         public int mIsolatedServiceErrorCode = 0;
+        public String mErrorMessage = null;
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
@@ -585,11 +588,12 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
 

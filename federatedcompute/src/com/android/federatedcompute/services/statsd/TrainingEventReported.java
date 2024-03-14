@@ -28,6 +28,8 @@ public class TrainingEventReported {
     private int mEventKind;
     private long mTaskId;
     private long mDurationInMillis;
+
+    private long mExampleCount = 0;
     private long mExampleSize = 0;
     private long mDataTransferDurationMillis = 0;
     private long mBytesUploaded = 0;
@@ -41,12 +43,12 @@ public class TrainingEventReported {
     // CHECKSTYLE:OFF Generated code
     //
     // To regenerate run:
-    // $ codegen $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/statsd/TrainingEventReported.java
+    // $ codegen
+    // $ANDROID_BUILD_TOP/packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/statsd/TrainingEventReported.java
     //
     // To exclude the generated code from IntelliJ auto-formatting enable (one-time):
     //   Settings > Editor > Code Style > Formatter Control
-    //@formatter:off
-
+    // @formatter:off
 
     @DataClass.Generated.Member
     /* package-private */ TrainingEventReported(
@@ -54,6 +56,7 @@ public class TrainingEventReported {
             int eventKind,
             long taskId,
             long durationInMillis,
+            long exampleCount,
             long exampleSize,
             long dataTransferDurationMillis,
             long bytesUploaded,
@@ -63,6 +66,7 @@ public class TrainingEventReported {
         this.mEventKind = eventKind;
         this.mTaskId = taskId;
         this.mDurationInMillis = durationInMillis;
+        this.mExampleCount = exampleCount;
         this.mExampleSize = exampleSize;
         this.mDataTransferDurationMillis = dataTransferDurationMillis;
         this.mBytesUploaded = bytesUploaded;
@@ -90,6 +94,11 @@ public class TrainingEventReported {
     @DataClass.Generated.Member
     public long getDurationInMillis() {
         return mDurationInMillis;
+    }
+
+    @DataClass.Generated.Member
+    public long getExampleCount() {
+        return mExampleCount;
     }
 
     @DataClass.Generated.Member
@@ -134,6 +143,7 @@ public class TrainingEventReported {
                 && mEventKind == that.mEventKind
                 && mTaskId == that.mTaskId
                 && mDurationInMillis == that.mDurationInMillis
+                && mExampleCount == that.mExampleCount
                 && mExampleSize == that.mExampleSize
                 && mDataTransferDurationMillis == that.mDataTransferDurationMillis
                 && mBytesUploaded == that.mBytesUploaded
@@ -152,6 +162,7 @@ public class TrainingEventReported {
         _hash = 31 * _hash + mEventKind;
         _hash = 31 * _hash + Long.hashCode(mTaskId);
         _hash = 31 * _hash + Long.hashCode(mDurationInMillis);
+        _hash = 31 * _hash + Long.hashCode(mExampleCount);
         _hash = 31 * _hash + Long.hashCode(mExampleSize);
         _hash = 31 * _hash + Long.hashCode(mDataTransferDurationMillis);
         _hash = 31 * _hash + Long.hashCode(mBytesUploaded);
@@ -160,9 +171,7 @@ public class TrainingEventReported {
         return _hash;
     }
 
-    /**
-     * A builder for {@link TrainingEventReported}
-     */
+    /** A builder for {@link TrainingEventReported} */
     @SuppressWarnings("WeakerAccess")
     @DataClass.Generated.Member
     public static class Builder {
@@ -171,6 +180,7 @@ public class TrainingEventReported {
         private int mEventKind;
         private long mTaskId;
         private long mDurationInMillis;
+        private long mExampleCount;
         private long mExampleSize;
         private long mDataTransferDurationMillis;
         private long mBytesUploaded;
@@ -180,17 +190,6 @@ public class TrainingEventReported {
         private long mBuilderFieldsSet = 0L;
 
         public Builder() {}
-
-        public Builder(
-                long clientVersion,
-                int eventKind,
-                long taskId,
-                long durationInMillis) {
-            mClientVersion = clientVersion;
-            mEventKind = eventKind;
-            mTaskId = taskId;
-            mDurationInMillis = durationInMillis;
-        }
 
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setClientVersion(long value) {
@@ -225,9 +224,17 @@ public class TrainingEventReported {
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setExampleSize(long value) {
+        public @android.annotation.NonNull Builder setExampleCount(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10;
+            mExampleCount = value;
+            return this;
+        }
+
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setExampleSize(long value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x20;
             mExampleSize = value;
             return this;
         }
@@ -235,7 +242,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setDataTransferDurationMillis(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x20;
+            mBuilderFieldsSet |= 0x40;
             mDataTransferDurationMillis = value;
             return this;
         }
@@ -243,7 +250,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setBytesUploaded(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x40;
+            mBuilderFieldsSet |= 0x80;
             mBytesUploaded = value;
             return this;
         }
@@ -251,7 +258,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setBytesDownloaded(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x80;
+            mBuilderFieldsSet |= 0x100;
             mBytesDownloaded = value;
             return this;
         }
@@ -259,7 +266,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setKeyAttestationLatencyMillis(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x100;
+            mBuilderFieldsSet |= 0x200;
             mKeyAttestationLatencyMillis = value;
             return this;
         }
@@ -267,38 +274,43 @@ public class TrainingEventReported {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull TrainingEventReported build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x200; // Mark builder used
+            mBuilderFieldsSet |= 0x400; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x10) == 0) {
-                mExampleSize = 0;
+                mExampleCount = 0;
             }
             if ((mBuilderFieldsSet & 0x20) == 0) {
-                mDataTransferDurationMillis = 0;
+                mExampleSize = 0;
             }
             if ((mBuilderFieldsSet & 0x40) == 0) {
-                mBytesUploaded = 0;
+                mDataTransferDurationMillis = 0;
             }
             if ((mBuilderFieldsSet & 0x80) == 0) {
-                mBytesDownloaded = 0;
+                mBytesUploaded = 0;
             }
             if ((mBuilderFieldsSet & 0x100) == 0) {
+                mBytesDownloaded = 0;
+            }
+            if ((mBuilderFieldsSet & 0x200) == 0) {
                 mKeyAttestationLatencyMillis = 0;
             }
-            TrainingEventReported o = new TrainingEventReported(
-                    mClientVersion,
-                    mEventKind,
-                    mTaskId,
-                    mDurationInMillis,
-                    mExampleSize,
-                    mDataTransferDurationMillis,
-                    mBytesUploaded,
-                    mBytesDownloaded,
-                    mKeyAttestationLatencyMillis);
+            TrainingEventReported o =
+                    new TrainingEventReported(
+                            mClientVersion,
+                            mEventKind,
+                            mTaskId,
+                            mDurationInMillis,
+                            mExampleCount,
+                            mExampleSize,
+                            mDataTransferDurationMillis,
+                            mBytesUploaded,
+                            mBytesDownloaded,
+                            mKeyAttestationLatencyMillis);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x200) != 0) {
+            if ((mBuilderFieldsSet & 0x400) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -306,14 +318,16 @@ public class TrainingEventReported {
     }
 
     @DataClass.Generated(
-            time = 1708991387334L,
+            time = 1709944987148L,
             codegenVersion = "1.0.23",
-            sourceFile = "packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/statsd/TrainingEventReported.java",
-            inputSignatures = "private  long mClientVersion\nprivate  int mEventKind\nprivate  long mTaskId\nprivate  long mDurationInMillis\nprivate  long mExampleSize\nprivate  long mDataTransferDurationMillis\nprivate  long mBytesUploaded\nprivate  long mBytesDownloaded\nprivate  long mKeyAttestationLatencyMillis\nclass TrainingEventReported extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            sourceFile =
+                    "packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/statsd/TrainingEventReported.java",
+            inputSignatures =
+                    "private  long mClientVersion\nprivate  int mEventKind\nprivate  long mTaskId\nprivate  long mDurationInMillis\nprivate  long mExampleCount\nprivate  long mExampleSize\nprivate  long mDataTransferDurationMillis\nprivate  long mBytesUploaded\nprivate  long mBytesDownloaded\nprivate  long mKeyAttestationLatencyMillis\nclass TrainingEventReported extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
-    //@formatter:on
+    // @formatter:on
     // End of generated code
 
 }

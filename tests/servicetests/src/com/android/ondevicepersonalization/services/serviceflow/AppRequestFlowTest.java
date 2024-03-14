@@ -78,6 +78,7 @@ public class AppRequestFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private String mErrorMessage;
     private Bundle mExecuteCallback;
     private ServiceFlowOrchestrator mSfo;
 
@@ -244,10 +245,11 @@ public class AppRequestFlowTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
     }

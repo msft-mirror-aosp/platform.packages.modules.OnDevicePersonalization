@@ -91,6 +91,10 @@ public class CtsOdpManagerTests {
                         + "isolated_service_allow_list "
                         + "com.android.ondevicepersonalization.testing.sampleservice,"
                         + "com.example.odptargetingapp2");
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "isolated_service_debugging_enabled "
+                        + true);
     }
 
     @After
@@ -260,7 +264,7 @@ public class CtsOdpManagerTests {
                 PersistableBundle.EMPTY,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNull(token);
     }
@@ -283,7 +287,7 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
     }
@@ -302,7 +306,7 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
     }
@@ -324,7 +328,7 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNull(token);
     }
@@ -395,7 +399,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -414,7 +418,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         // Remove.
@@ -429,7 +433,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -446,7 +450,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
     }
 
@@ -472,7 +476,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -492,7 +496,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         // Remove.
@@ -507,7 +511,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -524,7 +528,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
     }
 
@@ -549,7 +553,7 @@ public class CtsOdpManagerTests {
                 appParams,
                 Executors.newSingleThreadExecutor(),
                 receiver);
-        assertTrue(receiver.isSuccess());
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 
     @Test
@@ -587,7 +591,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
         Thread.sleep(DELAY_MILLIS);
@@ -605,7 +609,7 @@ public class CtsOdpManagerTests {
                     appParams,
                     Executors.newSingleThreadExecutor(),
                     receiver);
-            assertTrue(receiver.isSuccess());
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
     }
 }
