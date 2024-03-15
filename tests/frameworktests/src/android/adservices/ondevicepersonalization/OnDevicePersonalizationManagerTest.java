@@ -60,6 +60,7 @@ public final class OnDevicePersonalizationManagerTest {
     private static final String KEY_OP = "op";
     private static final String KEY_STATUS_CODE = "status";
     private static final String KEY_SERVICE_ERROR_CODE = "serviceerror";
+    private static final String KEY_ERROR_MESSAGE = "errormessage";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final TestServiceBinder mTestBinder = new TestServiceBinder(
             IOnDevicePersonalizationManagingService.Stub.asInterface(new TestService()));
@@ -148,13 +149,29 @@ public final class OnDevicePersonalizationManagerTest {
                 receiver);
         assertFalse(receiver.isSuccess());
         assertTrue(receiver.isError());
-        //assertEquals("a", receiver.getException().getClass().getSimpleName());
         assertTrue(receiver.getException() instanceof OnDevicePersonalizationException);
         assertEquals(OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
                 ((OnDevicePersonalizationException) receiver.getException()).getErrorCode());
         assertTrue(receiver.getException().getCause() instanceof IsolatedServiceException);
         assertEquals(42,
                 ((IsolatedServiceException) receiver.getException().getCause()).getErrorCode());
+    }
+
+    @Test
+    public void testExecuteErrorWithMessage() throws Exception {
+        PersistableBundle params = new PersistableBundle();
+        params.putString(KEY_OP, "error");
+        params.putInt(KEY_STATUS_CODE, Constants.STATUS_SERVICE_FAILED);
+        params.putString(KEY_ERROR_MESSAGE, "TestErrorMessage");
+        var receiver = new ResultReceiver<ExecuteResult>();
+        mManager.execute(
+                ComponentName.createRelative("com.example.service", ".Example"),
+                params,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertFalse(receiver.isSuccess());
+        assertTrue(receiver.isError());
+        assertEquals("TestErrorMessage", receiver.getException().getMessage());
     }
 
     @Test
@@ -232,7 +249,8 @@ public final class OnDevicePersonalizationManagerTest {
                     int statusCode = params.getInt(KEY_STATUS_CODE,
                             Constants.STATUS_INTERNAL_ERROR);
                     int serviceErrorCode = params.getInt(KEY_SERVICE_ERROR_CODE, 0);
-                    callback.onError(statusCode, serviceErrorCode);
+                    String errorMessage = params.getString(KEY_ERROR_MESSAGE);
+                    callback.onError(statusCode, serviceErrorCode, errorMessage);
                 } else if (op.equals("iae")) {
                     throw new IllegalArgumentException();
                 } else if (op.equals("npe")) {
