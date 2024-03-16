@@ -20,15 +20,16 @@ import android.annotation.NonNull;
 
 import java.util.Arrays;
 
-/** A utility class to check a single entity against an allow list */
+/** A utility class to check entity against allow list */
 public class AllowListUtils {
     private static final String ALLOW_ALL = "*";
     private static final String SPLITTER = ",";
     private static final String PAIR_SPLITTER = ";";
     private static final String CERT_SPLITTER = ":";
 
-    /** check if an entity is in the allow list */
+    /** check if an entity is in the allow list based on name and certificate(optional)*/
     public static boolean isAllowListed(final String entityName,
+                                        final String packageCertificate,
                                         @NonNull final String allowList) {
         if (ALLOW_ALL.equals(allowList)) {
             return true;
@@ -40,7 +41,8 @@ public class AllowListUtils {
 
         return Arrays.stream(allowList.split(SPLITTER))
                 .map(String::trim)
-                .anyMatch(entityInAllowList -> entityInAllowList.equals(entityName));
+                .anyMatch(entityInAllowList -> isMatch(
+                        entityInAllowList, entityName, packageCertificate));
     }
 
     /** check if a pair of entities are in an allow list */

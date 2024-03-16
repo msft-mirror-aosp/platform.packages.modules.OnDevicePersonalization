@@ -34,6 +34,7 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
@@ -41,6 +42,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -53,6 +55,10 @@ import java.util.Objects;
  *  this runner is only selected when the shared_isolated_process_feature_enabled flag is enabled.
  */
 public class SharedIsolatedProcessRunner implements ProcessRunner  {
+
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+
+    private static final String TAG = SharedIsolatedProcessRunner.class.getSimpleName();
 
     // SIP that hosts services from all trusted partners, as well as internal isolated services.
     public static final String TRUSTED_PARTNER_APPS_SIP = "trusted_partner_apps_sip";
@@ -191,7 +197,14 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     String getSipInstanceName(String packageName) {
         String partnerAppsList =
                 (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
-        boolean isPartnerApp = AllowListUtils.isAllowListed(packageName, partnerAppsList);
+        String packageCertificate = null;
+        try {
+            packageCertificate = PackageUtils.getCertDigest(packageName);
+        } catch (Exception e) {
+            sLogger.d(TAG + ": not able to find certificate for package " + packageName, e);
+        }
+        boolean isPartnerApp = AllowListUtils.isAllowListed(
+                packageName, packageCertificate, partnerAppsList);
         String sipInstanceName = isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
         return (boolean) FlagsFactory.getFlags()
                 .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)

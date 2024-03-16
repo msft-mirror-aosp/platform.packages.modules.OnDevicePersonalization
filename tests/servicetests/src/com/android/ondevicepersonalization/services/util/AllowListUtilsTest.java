@@ -27,24 +27,50 @@ import org.junit.runners.JUnit4;
 public class AllowListUtilsTest {
     @Test
     public void testIsAllowListed() {
-        assertTrue(AllowListUtils.isAllowListed(null, "*"));
-        assertTrue(AllowListUtils.isAllowListed("", "*"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app", "*"));
-        assertFalse(AllowListUtils.isAllowListed(null, ""));
-        assertFalse(AllowListUtils.isAllowListed(" ", ""));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app ", ""));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app", "android.app"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app", "com.play.app"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app",
+        assertTrue(AllowListUtils.isAllowListed(null, null, "*"));
+        assertTrue(AllowListUtils.isAllowListed("", null, "*"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null, "*"));
+        assertFalse(AllowListUtils.isAllowListed(null, null, ""));
+        assertFalse(AllowListUtils.isAllowListed(" ", null, ""));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app ", null, ""));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null, "android.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null, "com.play.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null,
                 "com.android.app.extension"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app ", "com.android.app"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app", "com.android.app"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app",
+        assertFalse(AllowListUtils.isAllowListed("com.android.app ", null, "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null, "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null,
                 "com.play.app,com.android.app"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app",
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null,
                 "com.android.app1,com.android.app2"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app",
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null,
                 " com.android.app , com.play.app "));
+
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", "certificate", "*"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app ", "certificate", ""));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", "certificate", "android.app"));
+        assertFalse(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.play.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                "com.android.app.extension"));
+        assertFalse(AllowListUtils.isAllowListed(
+                "com.android.app ", "certificate", "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.android.app:certificate"));
+        assertFalse(AllowListUtils.isAllowListed(
+                "com.android.app", "anotherCert", "com.android.app:certificate"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.android.app,com.android.app:certificate"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "anotherCert", "com.android.app,com.android.app:certificate"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                "com.play.app,com.android.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                "com.android.app1,com.android.app2"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                " com.android.app:certificate , com.play.app "));
     }
 
     @Test public void testIsPairAllowListed() {

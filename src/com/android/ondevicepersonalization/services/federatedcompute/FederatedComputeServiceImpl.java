@@ -139,7 +139,8 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
 
             if (url == null) {
                 sLogger.d(
-                        "Missing remote server URL for package: "
+                        TAG
+                                + ": Missing remote server URL for package: "
                                 + mCallingService.getPackageName());
                 sendError(callback);
                 return;
@@ -197,7 +198,10 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
                         .getEventsDao(mApplicationContext)
                         .getEventState(populationName, mCallingService);
         if (eventState == null) {
-            sLogger.d("No population registered for package: " + mCallingService.getPackageName());
+            sLogger.d(
+                    TAG
+                            + ": No population registered for package: "
+                            + mCallingService.getPackageName());
             sendSuccess(callback);
             return;
         }

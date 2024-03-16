@@ -139,7 +139,7 @@ public class EventUrlProvider {
                         System.currentTimeMillis() - startTimeMillis,
                         responseCode);
             } catch (Exception e) {
-                sLogger.i(TAG, ": failed to log metrics", e);
+                sLogger.d(e, TAG + ": failed to log metrics");
             }
         }
     }

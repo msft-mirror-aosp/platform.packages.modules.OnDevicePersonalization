@@ -109,10 +109,10 @@ public final class OnDevicePersonalizationLocalFileDownloader implements FileDow
                 InputStream in = mContext.getContentResolver().openInputStream(uriToDownload);
                 writtenBytes = ByteStreams.copy(in, out);
             }
-            sLogger.d(TAG + "File URI " + fileUri
-                    + " download complete, writtenBytes: %d" + writtenBytes);
+            sLogger.d(TAG + ": File URI " + fileUri
+                    + " download complete, writtenBytes: " + writtenBytes);
         } catch (Exception e) {
-            sLogger.e(TAG + ": %s: startDownloading got exception", e);
+            sLogger.e(e, TAG + ": %s: startDownloading got exception", urlToDownload);
             return immediateFailedFuture(
                     DownloadException.builder()
                             .setDownloadResultCode(

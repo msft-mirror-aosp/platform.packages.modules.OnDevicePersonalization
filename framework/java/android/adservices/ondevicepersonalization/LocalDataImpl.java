@@ -100,7 +100,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
                         System.currentTimeMillis() - startTimeMillis,
                         responseCode);
             } catch (Exception e) {
-                sLogger.i(TAG + "failed to log metrics", e);
+                sLogger.d(e, TAG + ": failed to log metrics");
             }
         }
     }
@@ -128,7 +128,7 @@ public class LocalDataImpl implements MutableKeyValueStore {
                         System.currentTimeMillis() - startTimeMillis,
                         responseCode);
             } catch (Exception e) {
-                sLogger.i(TAG + "failed to log metrics", e);
+                sLogger.d(e, TAG + ": failed to log metrics");
             }
         }
     }

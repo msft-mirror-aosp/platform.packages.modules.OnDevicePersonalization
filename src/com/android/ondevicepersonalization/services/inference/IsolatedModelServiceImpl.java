@@ -160,7 +160,7 @@ public class IsolatedModelServiceImpl extends IIsolatedModelService.Stub {
         try {
             fd.close();
         } catch (IOException e) {
-            sLogger.e(e, "Failed to close model file descriptor");
+            sLogger.e(e, TAG + ": Failed to close model file descriptor");
         }
     }
 

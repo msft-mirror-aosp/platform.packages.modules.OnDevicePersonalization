@@ -155,7 +155,7 @@ public class EligibilityDecider {
                     dataAvailabilityPolicy.getMinExampleCount());
             return totalExamples >= dataAvailabilityPolicy.getMinExampleCount();
         } catch (Exception e) {
-            LogUtil.e(TAG, "Failed to compute DataAvailabilityPolicy", e);
+            LogUtil.e(TAG, e, "Failed to compute DataAvailabilityPolicy");
             return false;
         }
     }

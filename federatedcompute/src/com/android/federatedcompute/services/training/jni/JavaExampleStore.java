@@ -60,7 +60,7 @@ public class JavaExampleStore implements Closeable {
             selector = ExampleSelector.parseFrom(exampleSelector);
             SelectorContext.parseFrom(selectorContext);
         } catch (InvalidProtocolBufferException e) {
-            LogUtil.e(TAG, "Invalid protobuf message", e);
+            LogUtil.e(TAG, e, "Invalid protobuf message");
         }
 
         // 2. Stores ExampleIterator in a list so we can close it after training.
@@ -85,10 +85,10 @@ public class JavaExampleStore implements Closeable {
                                 }
                                 return mIterator.next();
                             } catch (InterruptedException e) {
-                                LogUtil.e(TAG, "ExampleStore.next()", e);
+                                LogUtil.e(TAG, e, "ExampleStore.next()");
                                 throw e;
                             } catch (ErrorStatusException e) {
-                                LogUtil.e(TAG, "ExampleStore.next()", e);
+                                LogUtil.e(TAG, e, "ExampleStore.next()");
                                 throw e;
                             }
                         }

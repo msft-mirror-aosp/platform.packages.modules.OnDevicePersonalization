@@ -795,7 +795,7 @@ public class FederatedComputeWorker {
                                     }
                                 } catch (IOException e) {
                                     reportCelFileDescriptorClose(e);
-                                    LogUtil.e(TAG, "Failed to close file descriptor", e);
+                                    LogUtil.e(TAG, e, "Failed to close file descriptor");
                                 } finally {
                                     // Unbind from IsolatedTrainingService.
                                     LogUtil.i(TAG, "Unbinding from IsolatedTrainingService");
@@ -1117,9 +1117,9 @@ public class FederatedComputeWorker {
                     try {
                         LogUtil.d(
                                 TAG,
+                                throwable,
                                 "Example store or training failed. Reporting failure "
-                                        + "result to server due to exception.",
-                                throwable);
+                                        + "result to server due to exception.");
                         ComputationResult failedReportComputationResult =
                                 new ComputationResult(
                                         null,
