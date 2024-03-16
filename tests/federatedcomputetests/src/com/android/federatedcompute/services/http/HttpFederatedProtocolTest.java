@@ -973,6 +973,8 @@ public final class HttpFederatedProtocolTest {
                         invocation -> {
                             FederatedComputeHttpRequest httpRequest = invocation.getArgument(0);
                             String uri = httpRequest.getUri();
+                            // Add sleep for latency metric.
+                            Thread.sleep(50);
                             if (uri.equals(PLAN_URI)) {
                                 return immediateFuture(planHttpResponse);
                             } else if (uri.equals(CHECKPOINT_URI)) {
@@ -982,7 +984,6 @@ public final class HttpFederatedProtocolTest {
                             } else if (uri.equals(REPORT_RESULT_URI)) {
                                 return immediateFuture(reportResultHttpResponse);
                             } else if (uri.equals(UPLOAD_LOCATION_URI)) {
-                                Thread.sleep(50);
                                 return immediateFuture(uploadResultHttpResponse);
                             }
                             return immediateFuture(SUCCESS_EMPTY_HTTP_RESPONSE);
