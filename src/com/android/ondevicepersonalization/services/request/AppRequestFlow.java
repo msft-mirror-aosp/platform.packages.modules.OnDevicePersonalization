@@ -175,7 +175,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             mSerializedAppParams = Objects.requireNonNull(paramsBuffer.getByteArray());
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to extract app params.", e);
-            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, e);
             return false;
         }
 
@@ -186,12 +186,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                             mContext, mService.getPackageName()));
         } catch (Exception e) {
             sLogger.d(TAG + ": Failed to read manifest.", e);
-            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, 0);
+            sendErrorResult(Constants.STATUS_NAME_NOT_FOUND, e);
             return false;
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
-            sLogger.d(TAG + "service class not found");
+            sLogger.d(TAG + ": service class not found");
             sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND, 0);
             return false;
         }
@@ -308,7 +308,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                                     DebugUtils.getIsolatedServiceExceptionCode(
                                         mContext, mService, e));
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, t);
                         }
                     }
                 },
@@ -417,7 +417,18 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
         try {
-            mCallback.onError(errorCode, isolatedServiceErrorCode);
+            mCallback.onError(errorCode, isolatedServiceErrorCode, null);
+        } catch (RemoteException e) {
+            sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            StatsUtils.writeAppRequestMetrics(
+                    Constants.API_NAME_EXECUTE, mInjector.getClock(), errorCode, mStartTimeMillis);
+        }
+    }
+
+    private void sendErrorResult(int errorCode, Throwable t) {
+        try {
+            mCallback.onError(errorCode, 0, DebugUtils.getErrorMessage(mContext, t));
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {
