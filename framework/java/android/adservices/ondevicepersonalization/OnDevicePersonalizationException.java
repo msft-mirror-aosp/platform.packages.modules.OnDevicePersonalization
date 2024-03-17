@@ -58,6 +58,13 @@ public class OnDevicePersonalizationException extends Exception {
 
     /** @hide */
     public OnDevicePersonalizationException(
+            @ErrorCode int errorCode, String message) {
+        super(message);
+        mErrorCode = errorCode;
+    }
+
+    /** @hide */
+    public OnDevicePersonalizationException(
             @ErrorCode int errorCode, Throwable cause) {
         super(cause);
         mErrorCode = errorCode;

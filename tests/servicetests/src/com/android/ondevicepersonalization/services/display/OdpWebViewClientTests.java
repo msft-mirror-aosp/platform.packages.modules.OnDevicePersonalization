@@ -43,7 +43,8 @@ import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -58,13 +59,12 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.net.HttpURLConnection;
@@ -110,6 +110,12 @@ public class OdpWebViewClientTests {
         );
     }
 
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .setStrictness(Strictness.LENIENT)
+            .build();
+
     @Before
     public void setup() throws Exception {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
@@ -119,11 +125,8 @@ public class OdpWebViewClientTests {
         mLatch = new CountDownLatch(1);
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
 
         CountDownLatch latch = new CountDownLatch(1);
         OnDevicePersonalizationExecutors.getHandlerForMainThread().postAtFrontOfQueue(() -> {
@@ -140,7 +143,7 @@ public class OdpWebViewClientTests {
             }
 
             @Override
-            public void onFailure(@NotNull Throwable t) {
+            public void onFailure(@NonNull Throwable t) {
                 mCallbackFailure = true;
                 mLatch.countDown();
             }
@@ -268,19 +271,12 @@ public class OdpWebViewClientTests {
                 ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS), 0,
                 new RequestLogRecord.Builder().build());
 
-        // Mock context for default injector tests.
-        MockitoSession session = ExtendedMockito.mockitoSession().strictness(
-                Strictness.LENIENT).startMocking();
-        try {
-            Context mockContext = mock(Context.class);
-            OdpWebViewClient.Injector injector = new OdpWebViewClient.Injector();
-            injector.openUrl("https://google.com", mockContext);
-            assertEquals(injector.getExecutor(),
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
-            verify(mockContext, times(1)).startActivity(any());
-        } finally {
-            session.finishMocking();
-        }
+        Context mockContext = mock(Context.class);
+        OdpWebViewClient.Injector injector = new OdpWebViewClient.Injector();
+        injector.openUrl("https://google.com", mockContext);
+        assertEquals(injector.getExecutor(),
+                OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        verify(mockContext, times(1)).startActivity(any());
     }
 
     class TestInjector extends OdpWebViewClient.Injector {
