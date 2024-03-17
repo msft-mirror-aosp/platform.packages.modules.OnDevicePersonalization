@@ -35,6 +35,8 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -47,12 +49,11 @@ import com.android.ondevicepersonalization.services.util.OnDevicePersonalization
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
@@ -73,8 +74,8 @@ public class RenderFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private String mErrorMessage;
     private Bundle mCallbackResult;
-    private MockitoSession mSession;
     private ServiceFlowOrchestrator mSfo;
 
     @Mock UserPrivacyStatus mUserPrivacyStatus;
@@ -92,23 +93,21 @@ public class RenderFlowTest {
         );
     }
 
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(UserPrivacyStatus.class)
+            .spyStatic(CryptUtils.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
+
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
 
         setUpTestDate();
-
-        MockitoAnnotations.initMocks(this);
-        mSession = ExtendedMockito.mockitoSession()
-                .spyStatic(UserPrivacyStatus.class)
-                .spyStatic(CryptUtils.class)
-                .strictness(Strictness.LENIENT)
-                .startMocking();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
@@ -122,9 +121,6 @@ public class RenderFlowTest {
         mDbHelper.getWritableDatabase().close();
         mDbHelper.getReadableDatabase().close();
         mDbHelper.close();
-        if (mSession != null) {
-            mSession.finishMocking();
-        }
     }
 
     @Test
@@ -204,10 +200,12 @@ public class RenderFlowTest {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
-        @Override public void onError(int errorCode, int isolatedServiceErrorCode) {
+        @Override public void onError(
+                int errorCode, int isolatedServiceErrorCode, String message) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
     }
