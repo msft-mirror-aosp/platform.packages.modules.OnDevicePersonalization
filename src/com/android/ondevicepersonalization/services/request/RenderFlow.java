@@ -159,6 +159,12 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                 return false;
             }
 
+            if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
+                sLogger.d(TAG + ": User control is not given for targeting.");
+                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
+                return false;
+            }
+
             mSlotWrapper = Objects.requireNonNull(
                     mInjector.decryptToken(mSlotResultToken));
             String servicePackageName = Objects.requireNonNull(
@@ -281,7 +287,7 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                                     DebugUtils.getIsolatedServiceExceptionCode(
                                             mContext, mService, e));
                         } else {
-                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, 0);
+                            sendErrorResult(Constants.STATUS_INTERNAL_ERROR, t);
                         }
                     }
                 },
@@ -316,7 +322,19 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
 
     private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
         try {
-            mCallback.onError(errorCode, isolatedServiceErrorCode);
+            mCallback.onError(errorCode, isolatedServiceErrorCode, null);
+        } catch (RemoteException e) {
+            sLogger.w(TAG + ": Callback error", e);
+        } finally {
+            StatsUtils.writeAppRequestMetrics(
+                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
+                    mInjector.getClock(), errorCode, mStartTimeMillis);
+        }
+    }
+
+    private void sendErrorResult(int errorCode, Throwable t) {
+        try {
+            mCallback.onError(errorCode, 0, DebugUtils.getErrorMessage(mContext, t));
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         } finally {

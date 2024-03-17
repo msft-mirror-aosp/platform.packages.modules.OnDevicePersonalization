@@ -77,6 +77,9 @@ public final class PhFlags implements Flags {
     static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
     static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
             "fcp_background_job_logging_sampling_rate";
+    static final String EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC =
+            "example_store_service_timeout_sec";
+    static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
 
     private static final PhFlags sSingleton = new PhFlags();
 
@@ -270,5 +273,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
                 /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+    }
+
+    @Override
+    public int getExampleStoreServiceCallbackTimeoutSec() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC,
+                /* defaultValue= */ DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC);
+    }
+
+    @Override
+    public long getFcpTfErrorRescheduleSeconds() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME,
+                /* defaultValue= */ FCP_TF_ERROR_RESCHEDULE_SECONDS);
     }
 }

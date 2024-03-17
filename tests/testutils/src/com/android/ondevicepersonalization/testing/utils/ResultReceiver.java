@@ -64,4 +64,14 @@ public class ResultReceiver<T> implements OutcomeReceiver<T, Exception> {
         mLatch.await();
         return mError;
     }
+
+    /** Returns the exception message. */
+    public String getErrorMessage() throws InterruptedException {
+        mLatch.await();
+        if (mException != null) {
+            return mException.getClass().getSimpleName()
+                    + ": " + mException.getMessage();
+        }
+        return "Error: " + mError;
+    }
 }

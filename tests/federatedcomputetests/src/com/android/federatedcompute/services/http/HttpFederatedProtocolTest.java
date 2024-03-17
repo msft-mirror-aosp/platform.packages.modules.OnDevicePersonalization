@@ -274,11 +274,16 @@ public final class HttpFederatedProtocolTest {
         }
         assertThat(actualFetchResourceRequest.getExtraHeaders()).isEqualTo(expectedHeaders);
         verify(mTrainingEventLogger).logCheckinStarted();
-        verify(mTrainingEventLogger)
-                .logCheckinPlanUriReceived(mNetworkStatsArgumentCaptor.capture());
+        verify(mTrainingEventLogger).logCheckinFinished(mNetworkStatsArgumentCaptor.capture());
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
-        assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(121);
-        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(348);
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
+        if (mSupportCompression) {
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(248);
+            assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(124);
+        } else {
+            assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(125);
+            assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(78);
+        }
     }
 
     @Test
@@ -614,6 +619,7 @@ public final class HttpFederatedProtocolTest {
         verify(mTrainingEventLogger)
                 .logFailureResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
         assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(mSupportCompression ? 96 : 68);
         assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(226);
     }
@@ -673,7 +679,7 @@ public final class HttpFederatedProtocolTest {
                 .logResultUploadCompleted(mNetworkStatsArgumentCaptor.capture());
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         // The upload result size is non-deterministic so we only check it's positive value.
-        assertTrue(networkStats.getTotalBytesDownloaded() > 0);
+        assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
         assertTrue(networkStats.getTotalBytesUploaded() > 0);
     }
 
@@ -967,6 +973,8 @@ public final class HttpFederatedProtocolTest {
                         invocation -> {
                             FederatedComputeHttpRequest httpRequest = invocation.getArgument(0);
                             String uri = httpRequest.getUri();
+                            // Add sleep for latency metric.
+                            Thread.sleep(50);
                             if (uri.equals(PLAN_URI)) {
                                 return immediateFuture(planHttpResponse);
                             } else if (uri.equals(CHECKPOINT_URI)) {
