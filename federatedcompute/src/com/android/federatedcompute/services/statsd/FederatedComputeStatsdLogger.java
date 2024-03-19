@@ -62,6 +62,9 @@ public class FederatedComputeStatsdLogger {
                 trainingEvent.getDataTransferDurationMillis(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
-                trainingEvent.getKeyAttestationLatencyMillis());
+                trainingEvent.getKeyAttestationLatencyMillis(),
+                // TODO (b/325322025); record real latency for example store.
+                0,
+                0);
     }
 }
