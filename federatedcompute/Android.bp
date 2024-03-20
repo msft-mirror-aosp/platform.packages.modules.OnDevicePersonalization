@@ -68,6 +68,7 @@ cc_library_shared {
         "libprotobuf-cpp-lite-ndk",
     ],
     header_libs: [
+        "libbase_headers",
         "libnativehelper_header_only",
         "libeigen",
         "jni_headers",
