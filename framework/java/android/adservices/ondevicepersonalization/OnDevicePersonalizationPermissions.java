@@ -47,6 +47,13 @@ public class OnDevicePersonalizationPermissions {
             "android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT";
 
     /**
+     * The permission required to connect to the ODP system server component.
+     * @hide
+     */
+    public static final String ACCESS_SYSTEM_SERVER_SERVICE =
+            "android.permission.ondevicepersonalization.ACCESS_SYSTEM_SERVER_SERVICE";
+
+    /**
      * verify that caller has the specified permission.
      * @throws SecurityException otherwise.
      *
