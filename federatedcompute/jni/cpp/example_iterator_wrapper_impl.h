@@ -15,6 +15,7 @@
  */
 #pragma once
 
+#include <android-base/thread_annotations.h>
 #include <jni.h>
 
 #include <optional>
