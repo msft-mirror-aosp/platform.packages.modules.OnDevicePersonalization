@@ -19,6 +19,7 @@ package com.android.federatedcompute.services.training;
 import static com.android.federatedcompute.services.common.Constants.TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING;
 
 import android.annotation.NonNull;
+import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.common.ClientConstants;
 import android.federatedcompute.common.ExampleConsumption;
@@ -64,8 +65,8 @@ public class IsolatedTrainingServiceImpl extends IIsolatedTrainingService.Stub {
 
     private final ComputationRunner mComputationRunner;
 
-    public IsolatedTrainingServiceImpl() {
-        this(new ComputationRunner());
+    public IsolatedTrainingServiceImpl(Context context) {
+        this(new ComputationRunner(context));
     }
 
     @VisibleForTesting
