@@ -131,7 +131,7 @@ public final class HttpFederatedProtocolTest {
     private static final String UPLOAD_LOCATION_URI = "https://dataupload.uri";
     private static final String POPULATION_NAME = "test_population";
     private static final byte[] CHECKPOINT = "INIT_CHECKPOINT".getBytes(UTF_8);
-    private static final String CLIENT_VERSION = "CLIENT_VERSION";
+    private static final long CLIENT_VERSION = 12345L;
     private static final String TASK_ID = "task-id";
     private static final String ASSIGNMENT_ID = "assignment-id";
     private static final String AGGREGATION_ID = "aggregation-id";
@@ -177,7 +177,8 @@ public final class HttpFederatedProtocolTest {
             START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION =
                     CreateTaskAssignmentRequest.newBuilder()
                             .setClientVersion(
-                                    ClientVersion.newBuilder().setVersionCode(CLIENT_VERSION))
+                                    ClientVersion.newBuilder()
+                                            .setVersionCode(String.valueOf(CLIENT_VERSION)))
                             .setResourceCapabilities(
                                     ResourceCapabilities.newBuilder()
                                             .addSupportedCompressionFormats(
@@ -496,7 +497,7 @@ public final class HttpFederatedProtocolTest {
         verify(mTrainingEventLogger).logCheckinRejected(mNetworkStatsArgumentCaptor.capture());
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(2);
-        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(348);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(339);
     }
 
     @Test
@@ -1098,7 +1099,7 @@ public final class HttpFederatedProtocolTest {
         HashMap<String, String> expectedHeaders = new HashMap<>();
         assertThat(actualStartTaskAssignmentRequest.getBody())
                 .isEqualTo(START_TASK_ASSIGNMENT_REQUEST_WITH_COMPRESSION.toByteArray());
-        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(23));
+        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(14));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         expectedHeaders.put(FCP_OWNER_ID_DIGEST, OWNER_ID + "-" + OWNER_ID_CERT_DIGEST);
         assertThat(actualStartTaskAssignmentRequest.getExtraHeaders())

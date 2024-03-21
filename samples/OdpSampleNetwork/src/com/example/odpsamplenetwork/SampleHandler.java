@@ -569,7 +569,7 @@ public class SampleHandler implements IsolatedWorker {
             }
             String reqAdId = (String) req.getRows().get(ev.getRowIndex()).get(AD_ID_KEY);
             if (adId.equals(reqAdId)) {
-                if (found == null || found.getTimeMillis() < ev.getTimeMillis()) {
+                if (found == null || found.getTime().compareTo(ev.getTime()) < 0) {
                     found = ev;
                 }
             }

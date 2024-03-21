@@ -23,6 +23,7 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
 import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
+import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
@@ -79,7 +80,7 @@ import java.util.concurrent.Callable;
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
     public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
-    private final String mClientVersion;
+    private final long mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
     private final ProtocolRequestCreator mTaskAssignmentRequestCreator;
@@ -92,7 +93,7 @@ public final class HttpFederatedProtocol {
     @VisibleForTesting
     HttpFederatedProtocol(
             String entryUri,
-            String clientVersion,
+            long clientVersion,
             String populationName,
             HttpClient httpClient,
             Encrypter encrypter,
@@ -108,7 +109,7 @@ public final class HttpFederatedProtocol {
     /** Creates a HttpFederatedProtocol object. */
     public static HttpFederatedProtocol create(
             String entryUri,
-            String clientVersion,
+            long clientVersion,
             String populationName,
             Encrypter encrypter,
             TrainingEventLogger trainingEventLogger) {
@@ -260,8 +261,9 @@ public final class HttpFederatedProtocol {
             return taskAssignmentResponse;
         }
         TaskAssignment taskAssignment = getTaskAssignment(taskAssignmentResponse);
-        String taskName = taskAssignment.getPopulationName() + "/" + taskAssignment.getTaskId();
-        mTrainingEventLogger.setTaskId(taskName.hashCode());
+        mTrainingEventLogger.setTaskId(
+                getTaskIdForLogging(
+                        taskAssignment.getPopulationName(), taskAssignment.getTaskId()));
         mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
         return taskAssignmentResponse;
     }
@@ -270,7 +272,9 @@ public final class HttpFederatedProtocol {
             AuthorizationContext authContext, NetworkStats networkStats) {
         CreateTaskAssignmentRequest request =
                 CreateTaskAssignmentRequest.newBuilder()
-                        .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
+                        .setClientVersion(
+                                ClientVersion.newBuilder()
+                                        .setVersionCode(String.valueOf(mClientVersion)))
                         .setResourceCapabilities(
                                 ResourceCapabilities.newBuilder()
                                         .addSupportedCompressionFormats(

@@ -16,13 +16,21 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.assertTrue;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.content.Context;
@@ -33,6 +41,8 @@ import android.os.RemoteException;
 
 import androidx.test.core.app.ApplicationProvider;
 
+import com.android.federatedcompute.services.common.ExampleStats;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
@@ -53,6 +63,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
@@ -96,6 +108,7 @@ public class EligibilityDeciderTest {
             new ExampleStoreServiceProvider();
 
     @Rule public MockitoRule rule = MockitoJUnit.rule();
+    @Mock public TrainingEventLogger mMockTrainingEventLogger;
 
     @Before
     public void setUp() {
@@ -119,9 +132,15 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_MIN_SEP_POLICY,
-                        mContext);
-
+                        mContext,
+                        mMockTrainingEventLogger);
         assertTrue(eligible);
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsAtLeast(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE);
     }
 
     @Test
@@ -140,9 +159,16 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_MIN_SEP_POLICY,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertTrue(eligible);
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsAtLeast(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE);
     }
 
     @Test
@@ -175,9 +201,14 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         eligibilityTaskInfo,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertFalse(eligible);
+        verify(mMockTrainingEventLogger)
+                .logEventKind(
+                        eq(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
     }
 
     @Test
@@ -211,9 +242,17 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         eligibilityTaskInfo,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertTrue(eligible);
+
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsAtLeast(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE);
     }
 
     @Test
@@ -232,9 +271,14 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_MIN_SEP_POLICY,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertFalse(eligible);
+        verify(mMockTrainingEventLogger)
+                .logEventKind(
+                        eq(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
     }
 
     @Test
@@ -248,9 +292,14 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_DATA_AVAILABILITY_POLICY,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertFalse(eligible);
+        verify(mMockTrainingEventLogger)
+                .logEventKind(
+                        eq(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
     }
 
     @Test
@@ -264,10 +313,15 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_DATA_AVAILABILITY_POLICY,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertFalse(eligible);
         verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
+        verify(mMockTrainingEventLogger)
+                .logEventKind(
+                        eq(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
     }
 
     @Test
@@ -282,10 +336,29 @@ public class EligibilityDeciderTest {
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_DATA_AVAILABILITY_POLICY,
-                        mContext);
+                        mContext,
+                        mMockTrainingEventLogger);
 
         assertTrue(eligible);
         verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
+
+        ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
+        assertThat(eventKindCaptor.getAllValues())
+                .containsAtLeast(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED,
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE);
+        ArgumentCaptor<ExampleStats> exampleStatsCaptor =
+                ArgumentCaptor.forClass(ExampleStats.class);
+        verify(mMockTrainingEventLogger)
+                .logEventWithExampleStats(
+                        eq(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED),
+                        exampleStatsCaptor.capture());
+        ExampleStats stats = exampleStatsCaptor.getValue();
+        assertThat(stats.mExampleCount.get()).isEqualTo(2);
+        assertThat(stats.mStartQueryLatencyNanos.get()).isGreaterThan(0);
+        assertThat(stats.mBindToExampleStoreLatencyNanos.get()).isGreaterThan(0);
     }
 
     private void setUpExampleStoreService(TestExampleStoreService exampleStoreService) {

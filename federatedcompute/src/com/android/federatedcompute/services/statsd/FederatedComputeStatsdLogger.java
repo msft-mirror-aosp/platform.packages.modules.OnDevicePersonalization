@@ -19,10 +19,12 @@ package com.android.federatedcompute.services.statsd;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.stats.FederatedComputeStatsLog;
 
 /** Log API stats and client error stats to StatsD. */
 public class FederatedComputeStatsdLogger {
+    private static final String TAG = FederatedComputeStatsdLogger.class.getSimpleName();
     private static volatile FederatedComputeStatsdLogger sFCStatsdLogger = null;
 
     /** Returns an instance of {@link FederatedComputeStatsdLogger}. */
@@ -63,8 +65,21 @@ public class FederatedComputeStatsdLogger {
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
                 trainingEvent.getKeyAttestationLatencyMillis(),
-                // TODO (b/325322025); record real latency for example store.
-                0,
-                0);
+                trainingEvent.getExampleStoreBindLatencyNanos(),
+                trainingEvent.getExampleStoreStartQueryLatencyNanos());
+    }
+
+    /**
+     * Log ExampleIteratorNextLatencyReported to track the latency of ExampleStoreIterator.next
+     * called.
+     */
+    public void logExampleIteratorNextLatencyReported(ExampleIteratorLatency iteratorLatency) {
+        // TODO: add statsd logic after metric review approved b/330356714.
+        LogUtil.i(
+                TAG,
+                "Log ExampleIteratorNextLatency metric client version %d, task id %d, latency %d",
+                iteratorLatency.getClientVersion(),
+                iteratorLatency.getTaskId(),
+                iteratorLatency.getGetNextLatencyNanos());
     }
 }

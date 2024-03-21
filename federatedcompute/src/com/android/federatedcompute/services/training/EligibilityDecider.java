@@ -16,11 +16,20 @@
 
 package com.android.federatedcompute.services.training;
 
+import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
+
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
+import android.os.SystemClock;
 
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.ExampleStats;
+import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.TaskHistory;
@@ -37,7 +46,7 @@ import com.google.ondevicepersonalization.federatedcompute.proto.MinimumSeparati
 public class EligibilityDecider {
     private static final String TAG = EligibilityDecider.class.getSimpleName();
     private final FederatedTrainingTaskDao mTaskDao;
-    private ExampleStoreServiceProvider mExampleStoreServiceProvider;
+    private final ExampleStoreServiceProvider mExampleStoreServiceProvider;
 
     @VisibleForTesting
     EligibilityDecider(
@@ -59,8 +68,12 @@ public class EligibilityDecider {
             FederatedTrainingTask task,
             String taskId,
             EligibilityTaskInfo eligibilityTaskInfo,
-            Context context) {
+            Context context,
+            TrainingEventLogger trainingEventLogger) {
         boolean eligible = true;
+        ExampleStats exampleStats = new ExampleStats();
+        trainingEventLogger.logEventKind(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED);
         for (EligibilityPolicyEvalSpec policyEvalSpec :
                 eligibilityTaskInfo.getEligibilityPoliciesList()) {
             switch (policyEvalSpec.getPolicyTypeCase()) {
@@ -78,7 +91,9 @@ public class EligibilityDecider {
                                     task,
                                     policyEvalSpec.getDataAvailabilityPolicy(),
                                     taskId,
-                                    context);
+                                    context,
+                                    exampleStats,
+                                    trainingEventLogger);
                     break;
                 default:
                     throw new IllegalStateException(
@@ -88,6 +103,15 @@ public class EligibilityDecider {
             if (!eligible) {
                 break;
             }
+        }
+        // Always record eligibility task complete event. To calculate not eligible tasks, it
+        // is (EVAL_COMPUTATION_COMPLETED - EVAL_COMPUTATION_ELIGIBLE).
+        trainingEventLogger.logEventWithExampleStats(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED,
+                exampleStats);
+        if (eligible) {
+            trainingEventLogger.logEventKind(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE);
         }
         return eligible;
     }
@@ -119,12 +143,17 @@ public class EligibilityDecider {
             FederatedTrainingTask task,
             DataAvailabilityPolicy dataAvailabilityPolicy,
             String taskId,
-            Context context) {
+            Context context,
+            ExampleStats exampleStats,
+            TrainingEventLogger logger) {
         try {
+            long callStartTimeNanos = SystemClock.elapsedRealtimeNanos();
             IExampleStoreService exampleStoreService =
                     mExampleStoreServiceProvider.getExampleStoreService(
                             task.appPackageName(), context);
             if (exampleStoreService == null) {
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR);
                 LogUtil.e(
                         TAG,
                         "Failed to compute DataAvailabilityPolicy due to bind ExampleStore"
@@ -134,19 +163,32 @@ public class EligibilityDecider {
                         taskId);
                 return false;
             }
+            exampleStats.mBindToExampleStoreLatencyNanos.addAndGet(
+                    SystemClock.elapsedRealtimeNanos() - callStartTimeNanos);
+            callStartTimeNanos = SystemClock.elapsedRealtimeNanos();
             IExampleStoreIterator iterator =
                     mExampleStoreServiceProvider.getExampleIterator(
                             exampleStoreService, task, taskId);
             if (iterator == null) {
+                logger.logEventKind(
+                        FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR);
                 return false;
             }
+            exampleStats.mStartQueryLatencyNanos.addAndGet(
+                    SystemClock.elapsedRealtimeNanos() - callStartTimeNanos);
             FederatedExampleIterator federatedExampleIterator =
-                    new FederatedExampleIterator(iterator, null, null);
+                    new FederatedExampleIterator(
+                            iterator,
+                            null,
+                            null,
+                            getTaskIdForLogging(task.populationName(), taskId),
+                            context);
             int totalExamples = 0;
             while (federatedExampleIterator.hasNext()) {
                 totalExamples++;
                 federatedExampleIterator.next();
             }
+            exampleStats.mExampleCount.addAndGet(totalExamples);
             mExampleStoreServiceProvider.unbindFromExampleStoreService();
             LogUtil.d(
                     TAG,

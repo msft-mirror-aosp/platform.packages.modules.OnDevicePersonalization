@@ -86,9 +86,9 @@ public class PackageUtils {
      *
      * @param context The context of the calling process.
      * @return The apex version of OnDevicePersonalization in string. If there is no name match,
-     * then return -1.
+     *     then return -1.
      */
-    public static String getApexVersion(Context context) {
+    public static long getApexVersion(Context context) {
         PackageManager packageManager = context.getPackageManager();
 
         List<PackageInfo> installedPackages =
@@ -101,6 +101,6 @@ public class PackageUtils {
                 apexVersion = pkg.getLongVersionCode();
             }
         }
-        return String.valueOf(apexVersion);
+        return apexVersion;
     }
 }
