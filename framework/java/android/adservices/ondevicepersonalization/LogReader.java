@@ -179,7 +179,7 @@ public class LogReader {
         try {
             mDataAccessService.logApiCallStats(apiName, duration, responseCode);
         } catch (Exception e) {
-            sLogger.i(TAG + " failed to log metrics", e);
+            sLogger.d(e, TAG + ": failed to log metrics");
         }
     }
 }

@@ -1,4 +1,4 @@
-// Copyright (C) 2022 The Android Open Source Project
+// Copyright (C) 2024 The Android Open Source Project
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -20,7 +20,7 @@ package {
 }
 
 android_test {
-    name: "CtsOnDevicePersonalizationE2ETests",
+    name: "CtsOnDevicePersonalizationConfigTests",
     srcs: ["src/**/*.java"],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
@@ -31,7 +31,6 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "compatibility-device-util-axt",
-        "ondevicepersonalization-testing-sample-service-api",
         "ondevicepersonalization-testing-utils",
     ],
     libs: [
@@ -39,15 +38,8 @@ android_test {
         "android.test.runner",
         "truth",
     ],
-    data: [
-        ":OdpTestingSampleService",
-    ],
-    resource_dirs: [
-        "res",
-    ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
-        "cts",
         "general-tests",
         "mts-ondevicepersonalization",
         "mcts-ondevicepersonalization",

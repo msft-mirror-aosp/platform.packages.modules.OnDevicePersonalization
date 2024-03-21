@@ -80,7 +80,7 @@ public final class FlRunnerWrapper implements Closeable {
         } catch (InvalidProtocolBufferException e) {
             // Promote to a RuntimeException, this should never happen and if it does, we shouldn't
             // recover from it.
-            LogUtil.e(TAG, "Cannot parse FLRunnerResult", e);
+            LogUtil.e(TAG, e, "Cannot parse FLRunnerResult");
             throw new IllegalArgumentException(e);
         } finally {
             Trace.endAsyncSection(TRACE_NATIVE_RUN_FEDERATED_COMPUTATION, 0);

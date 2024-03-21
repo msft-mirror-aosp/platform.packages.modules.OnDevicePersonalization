@@ -191,7 +191,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         }
 
         if (!mService.getClassName().equals(config.getServiceName())) {
-            sLogger.d(TAG + "service class not found");
+            sLogger.d(TAG + ": service class not found");
             sendErrorResult(Constants.STATUS_CLASS_NOT_FOUND, 0);
             return false;
         }
