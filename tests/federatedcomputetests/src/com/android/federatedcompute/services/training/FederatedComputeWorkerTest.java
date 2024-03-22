@@ -333,7 +333,7 @@ public final class FederatedComputeWorkerTest {
                 spy(
                         HttpFederatedProtocol.create(
                                 SERVER_ADDRESS,
-                                "349990000",
+                                349990000,
                                 POPULATION_NAME,
                                 new HpkeJniEncrypter(),
                                 mMockTrainingEventLogger));
@@ -642,7 +642,7 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
         verify(mSpyExampleStoreProvider, times(0)).unbindFromExampleStoreService();
         verify(mSpyWorker, times(1))
-                .reportFailureResultToServer(computationResultCaptor.capture(), any());
+                .reportFailureResultToServer(computationResultCaptor.capture(), any(), any());
         ComputationResult computationResult = computationResultCaptor.getValue();
         assertNotNull(computationResult.getFlRunnerResult());
         assertEquals(
@@ -712,7 +712,7 @@ public final class FederatedComputeWorkerTest {
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
 
         verify(mSpyWorker, times(1))
-                .reportFailureResultToServer(computationResultCaptor.capture(), any());
+                .reportFailureResultToServer(computationResultCaptor.capture(), any(), any());
         ComputationResult computationResult = computationResultCaptor.getValue();
         assertNotNull(computationResult.getFlRunnerResult());
         assertEquals(
@@ -936,7 +936,7 @@ public final class FederatedComputeWorkerTest {
                 ExecutionException.class,
                 () -> mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get());
 
-        verify(mSpyWorker).reportFailureResultToServer(any(), any());
+        verify(mSpyWorker).reportFailureResultToServer(any(), any(), any());
     }
 
     private void setUpExampleStoreService() {
@@ -960,7 +960,7 @@ public final class FederatedComputeWorkerTest {
     }
 
     private void setUpReportFailureToServerCallback() {
-        doNothing().when(mSpyWorker).reportFailureResultToServer(any(), any());
+        doNothing().when(mSpyWorker).reportFailureResultToServer(any(), any(), any());
     }
 
     private static class TestExampleStoreService extends IExampleStoreService.Stub {
@@ -1008,7 +1008,7 @@ public final class FederatedComputeWorkerTest {
         @Override
         HttpFederatedProtocol getHttpFederatedProtocol(
                 String serverAddress,
-                String clientVersion,
+                long clientVersion,
                 String populationName,
                 TrainingEventLogger trainingEventLogger) {
             return mSpyHttpFederatedProtocol;

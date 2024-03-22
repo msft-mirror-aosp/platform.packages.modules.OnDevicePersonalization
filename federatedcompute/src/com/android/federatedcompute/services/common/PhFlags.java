@@ -80,6 +80,7 @@ public final class PhFlags implements Flags {
     static final String EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC =
             "example_store_service_timeout_sec";
     static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
+    static final String EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = "example_iterator_next_timeout_sec";
 
     private static final PhFlags sSingleton = new PhFlags();
 
@@ -289,5 +290,13 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME,
                 /* defaultValue= */ FCP_TF_ERROR_RESCHEDULE_SECONDS);
+    }
+
+    @Override
+    public int getExampleIteratorNextTimeoutSec() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC,
+                /* defaultValue= */ DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC);
     }
 }
