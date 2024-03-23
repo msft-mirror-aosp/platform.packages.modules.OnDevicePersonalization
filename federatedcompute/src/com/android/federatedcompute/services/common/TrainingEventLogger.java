@@ -106,14 +106,14 @@ public class TrainingEventLogger {
 
     /** Logs when federated computation job fails with invalid argument reason. */
     public void logComputationInvalidArgument(ExampleStats exampleStats) {
-        logComputationTerminationEvent(
+        logEventWithExampleStats(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_ERROR_INVALID_ARGUMENT,
                 exampleStats);
     }
 
     /** Logs when federated computation job fails due to example iterator. */
     public void logComputationExampleIteratorError(ExampleStats exampleStats) {
-        logComputationTerminationEvent(
+        logEventWithExampleStats(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_ERROR_EXAMPLE_ITERATOR,
                 exampleStats);
     }
@@ -123,24 +123,32 @@ public class TrainingEventLogger {
      * operations, kernels.
      */
     public void logComputationTensorflowError(ExampleStats exampleStats) {
-        logComputationTerminationEvent(
+        logEventWithExampleStats(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_ERROR_TENSORFLOW,
                 exampleStats);
     }
 
     /** Logs when federated computation job complete. */
     public void logComputationCompleted(ExampleStats exampleStats) {
-        logComputationTerminationEvent(
+        logEventWithExampleStats(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_COMPLETED,
                 exampleStats);
     }
 
-    private void logComputationTerminationEvent(int eventKind, ExampleStats exampleStats) {
+    /** Logs training event kind with {@link ExampleStats}. */
+    public void logEventWithExampleStats(int eventKind, ExampleStats exampleStats) {
         TrainingEventReported.Builder event =
                 new TrainingEventReported.Builder()
                         .setEventKind(eventKind)
-                        .setExampleCount(exampleStats.getExampleCount())
-                        .setExampleSize(exampleStats.getExampleSizeBytes());
+                        .setExampleCount(exampleStats.mExampleCount.get())
+                        .setExampleSize(exampleStats.mExampleSizeBytes.get());
+        logEvent(event);
+    }
+
+    /** Logs training event kind. */
+    public void logEventKind(int eventKind) {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder().setEventKind(eventKind);
         logEvent(event);
     }
 
@@ -242,13 +250,22 @@ public class TrainingEventLogger {
         LogUtil.i(
                 TAG,
                 "Log event kind %d, network upload %d download %d data transfer time %d "
-                        + "example stats %d key attestation stats %d",
+                        + "example stats %d key attestation stats %d example store bind latency: %d"
+                        + " start query latency: %d",
                 trainingEvent.getEventKind(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
                 trainingEvent.getDataTransferDurationMillis(),
                 trainingEvent.getExampleCount(),
-                trainingEvent.getKeyAttestationLatencyMillis());
+                trainingEvent.getKeyAttestationLatencyMillis(),
+                trainingEvent.getExampleStoreBindLatencyNanos(),
+                trainingEvent.getExampleStoreStartQueryLatencyNanos());
         FederatedComputeStatsdLogger.getInstance().logTrainingEventReported(trainingEvent);
+    }
+
+    /** Generate task id for logging purpose because we can't log string field in WW. */
+    public static long getTaskIdForLogging(String populationName, String taskId) {
+        String taskName = populationName + "/" + taskId;
+        return taskName.hashCode();
     }
 }
