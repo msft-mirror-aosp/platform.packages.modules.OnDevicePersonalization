@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.training;
 
+import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder;
@@ -32,8 +33,11 @@ import com.google.internal.federated.plan.ExampleSelector;
  * start federated ananlytic and federated training jobs.
  */
 public class ComputationRunner {
+    private final Context mContext;
 
-    public ComputationRunner() {}
+    public ComputationRunner(Context context) {
+        this.mContext = context;
+    }
 
     /** Run a single round of federated computation. */
     public FLRunnerResult runTaskWithNativeRunner(
@@ -51,7 +55,9 @@ public class ComputationRunner {
                 new FederatedExampleIterator(
                         exampleStoreIterator,
                         resumptionToken,
-                        recorder.createRecorderForTracking(taskName, resumptionToken));
+                        recorder.createRecorderForTracking(taskName, resumptionToken),
+                        taskName.hashCode(),
+                        mContext);
 
         FlRunnerWrapper flRunnerWrapper =
                 new FlRunnerWrapper(interruptState, populationName, federatedExampleIterator);

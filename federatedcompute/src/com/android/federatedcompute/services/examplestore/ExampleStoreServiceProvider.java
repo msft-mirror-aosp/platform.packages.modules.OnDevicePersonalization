@@ -22,11 +22,13 @@ import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
 import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
+import android.os.SystemClock;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 
@@ -64,9 +66,10 @@ public class ExampleStoreServiceProvider {
             IExampleStoreService exampleStoreService,
             FederatedTrainingTask task,
             String taskId,
-            ExampleSelector exampleSelector) {
+            ExampleSelector exampleSelector,
+            ExampleStats exampleStats) {
         try {
-
+            long startTimeNanos = SystemClock.elapsedRealtimeNanos();
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
             bundle.putString(ClientConstants.EXTRA_TASK_ID, taskId);
@@ -78,7 +81,8 @@ public class ExampleStoreServiceProvider {
                         ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
                 bundle.putByteArray(ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
             }
-            return runExampleStoreStartQuery(exampleStoreService, bundle);
+            return runExampleStoreStartQuery(
+                    exampleStoreService, bundle, exampleStats, startTimeNanos);
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Got exception when StartQuery");
             return Futures.immediateFailedFuture(e);
@@ -134,7 +138,10 @@ public class ExampleStoreServiceProvider {
     }
 
     private ListenableFuture<IExampleStoreIterator> runExampleStoreStartQuery(
-            IExampleStoreService exampleStoreService, Bundle input) {
+            IExampleStoreService exampleStoreService,
+            Bundle input,
+            ExampleStats exampleStats,
+            long startCallTimeNanos) {
         return CallbackToFutureAdapter.getFuture(
                 completer -> {
                     try {
@@ -145,12 +152,18 @@ public class ExampleStoreServiceProvider {
                                     public void onStartQuerySuccess(
                                             IExampleStoreIterator iterator) {
                                         LogUtil.d(TAG, "Acquire iterator");
+                                        exampleStats.mStartQueryLatencyNanos.addAndGet(
+                                                SystemClock.elapsedRealtimeNanos()
+                                                        - startCallTimeNanos);
                                         completer.set(iterator);
                                     }
 
                                     @Override
                                     public void onStartQueryFailure(int errorCode) {
                                         LogUtil.e(TAG, "Could not acquire iterator: " + errorCode);
+                                        exampleStats.mStartQueryLatencyNanos.addAndGet(
+                                                SystemClock.elapsedRealtimeNanos()
+                                                        - startCallTimeNanos);
                                         completer.setException(
                                                 new IllegalStateException(
                                                         "StartQuery failed: " + errorCode));
