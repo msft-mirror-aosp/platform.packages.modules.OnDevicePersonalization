@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.statsd;
 
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
@@ -74,10 +75,14 @@ public class FederatedComputeStatsdLogger {
      * called.
      */
     public void logExampleIteratorNextLatencyReported(ExampleIteratorLatency iteratorLatency) {
-        // TODO: add statsd logic after metric review approved b/330356714.
-        LogUtil.i(
+        LogUtil.d(
                 TAG,
                 "Log ExampleIteratorNextLatency metric client version %d, task id %d, latency %d",
+                iteratorLatency.getClientVersion(),
+                iteratorLatency.getTaskId(),
+                iteratorLatency.getGetNextLatencyNanos());
+        FederatedComputeStatsLog.write(
+                EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED,
                 iteratorLatency.getClientVersion(),
                 iteratorLatency.getTaskId(),
                 iteratorLatency.getGetNextLatencyNanos());
