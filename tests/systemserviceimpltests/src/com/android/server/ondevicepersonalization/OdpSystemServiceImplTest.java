@@ -16,7 +16,6 @@
 
 package com.android.server.ondevicepersonalization;
 
-import static com.android.server.ondevicepersonalization.OnDevicePersonalizationSystemService.KEY_NOT_FOUND_ERROR;
 import static com.android.server.ondevicepersonalization.OnDevicePersonalizationSystemService.PERSONALIZATION_STATUS_KEY;
 
 import static org.junit.Assert.assertEquals;
@@ -24,6 +23,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.content.Context;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
@@ -34,6 +34,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.modules.utils.build.SdkLevel;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -60,6 +61,7 @@ public class OdpSystemServiceImplTest {
 
     @Before
     public void setUp() throws Exception {
+        Assume.assumeTrue(SdkLevel.isAtLeastU());
         mService = new OnDevicePersonalizationSystemService(mContext, mTestDataStore);
         mBinder = IOnDevicePersonalizationSystemService.Stub.asInterface(mService);
         mOnResultCalled = false;
@@ -88,9 +90,6 @@ public class OdpSystemServiceImplTest {
 
     @Test
     public void testSystemServerServiceOnRequest() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
         mBinder.onRequest(new Bundle(), mCallback);
         mLatch.await();
         assertTrue(mOnResultCalled);
@@ -99,9 +98,6 @@ public class OdpSystemServiceImplTest {
 
     @Test
     public void testSystemServerServiceSetPersonalizationStatus() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
         mBinder.setPersonalizationStatus(true, mCallback);
         mLatch.await();
         assertTrue(mOnResultCalled);
@@ -112,9 +108,6 @@ public class OdpSystemServiceImplTest {
 
     @Test
     public void testSystemServerServiceReadPersonalizationStatusSuccess() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
         mTestDataStore.put(PERSONALIZATION_STATUS_KEY, true);
         mBinder.readPersonalizationStatus(mCallback);
         assertTrue(mOnResultCalled);
@@ -125,14 +118,11 @@ public class OdpSystemServiceImplTest {
 
     @Test
     public void testSystemServerServiceReadPersonalizationStatusNotFound() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
         mTestDataStore.put(BAD_TEST_KEY, true);
         mBinder.readPersonalizationStatus(mCallback);
         assertTrue(mOnErrorCalled);
         assertNull(mResult);
-        assertEquals(mErrorCode, KEY_NOT_FOUND_ERROR);
+        assertEquals(mErrorCode, Constants.STATUS_KEY_NOT_FOUND);
     }
 
     @After
