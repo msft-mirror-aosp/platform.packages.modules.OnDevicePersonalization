@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
@@ -53,7 +54,6 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
     private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
-    private static final int KEY_NOT_FOUND_ERROR = 404;
     private final Executor mExecutor;
 
     public OnDevicePersonalizationBroadcastReceiver() {
@@ -121,7 +121,7 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
 
                                     @Override
                                     public void onError(int errorCode) {
-                                        if (errorCode == KEY_NOT_FOUND_ERROR) {
+                                        if (errorCode == Constants.STATUS_KEY_NOT_FOUND) {
                                             sLogger.d(
                                                     TAG
                                                             + ": Personalization status "
