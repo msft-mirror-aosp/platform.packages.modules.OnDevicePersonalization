@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Copyright 2022 The Android Open Source Project
+<!-- Copyright 2024 The Android Open Source Project
 
      Licensed under the Apache License, Version 2.0 (the "License");
      you may not use this file except in compliance with the License.
@@ -22,24 +22,12 @@
 
     <target_preparer class="com.android.tradefed.targetprep.suite.SuiteApkInstaller">
         <option name="cleanup-apks" value="true"/>
-        <option name="test-file-name" value="CtsOnDevicePersonalizationE2ETests.apk"/>
-        <option name="test-file-name" value="OdpTestingSampleService.apk"/>
-    </target_preparer>
-
-    <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
-        <option name="run-command" value="device_config set_sync_disabled_for_tests persistent" />
-        <option name="run-command" value="device_config put on_device_personalization global_kill_switch false" />
-        <option name="run-command" value="device_config put on_device_personalization enable_personalization_status_override true"/>
-        <option name="run-command" value="device_config put on_device_personalization personalization_status_override_value true"/>
-        <option name="teardown-command" value="device_config delete on_device_personalization global_kill_switch" />
-        <option name="teardown-command" value="device_config delete on_device_personalization enable_personalization_status_override" />
-        <option name="teardown-command" value="device_config delete on_device_personalization personalization_status_override_value" />
-        <option name="teardown-command" value="device_config set_sync_disabled_for_tests none" />
+        <option name="test-file-name" value="CtsOnDevicePersonalizationConfigTests.apk"/>
     </target_preparer>
 
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
         <option name="hidden-api-checks" value="false" /> <!-- Allow hidden API uses -->
-        <option name="package" value="com.android.ondevicepersonalization.cts.e2e"/>
+        <option name="package" value="com.android.ondevicepersonalization.cts.configtest"/>
     </test>
 
     <object type="module_controller" class="com.android.tradefed.testtype.suite.module.MainlineTestModuleController">
