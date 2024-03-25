@@ -29,6 +29,8 @@ import android.hardware.display.DisplayManager;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.PersistableBundle;
+import android.platform.test.rule.ScreenRecordRule;
+import android.util.Log;
 import android.view.Display;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 import android.view.SurfaceView;
@@ -36,6 +38,10 @@ import android.view.View;
 
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.rules.ActivityScenarioRule;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.uiautomator.By;
+import androidx.test.uiautomator.UiDevice;
+import androidx.test.uiautomator.UiObject2;
 
 import com.android.compatibility.common.util.ShellUtils;
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
@@ -61,10 +67,13 @@ import java.util.concurrent.Executors;
  * CTS Test cases for OnDevicePersonalizationManager#requestSurfacePackage.
  */
 @RunWith(Parameterized.class)
+@ScreenRecordRule.ScreenRecord
 public class RequestSurfacePackageTests {
 
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
+
+    @Rule public final ScreenRecordRule sScreenRecordRule = new ScreenRecordRule();
 
     private static final String SERVICE_PACKAGE =
             "com.android.ondevicepersonalization.testing.sampleservice";
@@ -72,6 +81,10 @@ public class RequestSurfacePackageTests {
             "com.android.ondevicepersonalization.testing.sampleservice.SampleService";
 
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    private static final String TAG = RequestSurfacePackageTests.class.getSimpleName();
+
+    private UiDevice mDevice;
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
@@ -95,11 +108,14 @@ public class RequestSurfacePackageTests {
                 "device_config put on_device_personalization "
                         + "debug.validate_rendering_config_keys "
                         + false);
+
         ShellUtils.runShellCommand(
                 "device_config put on_device_personalization "
                         + "isolated_service_allow_list "
                         + "com.android.ondevicepersonalization.testing.sampleservice,"
                         + "com.example.odptargetingapp2");
+
+        mDevice = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation());
     }
 
     @After
@@ -121,7 +137,7 @@ public class RequestSurfacePackageTests {
             new ActivityScenarioRule<>(TestActivity.class);
 
     @Test
-    public void testRequestSurfacePackage() throws InterruptedException {
+    public void testRequestSurfacePackageSuccess() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
         SurfacePackageToken token = runExecute(manager);
@@ -137,6 +153,7 @@ public class RequestSurfacePackageTests {
                 receiver);
         SurfacePackage surfacePackage = receiver.getResult();
         assertNotNull(surfacePackage);
+
         CountDownLatch latch = new CountDownLatch(1);
         new Handler(Looper.getMainLooper()).post(
                 () -> {
@@ -146,6 +163,26 @@ public class RequestSurfacePackageTests {
                     latch.countDown();
                 });
         latch.await();
+
+        for (int i = 0; i < 5; i++) {
+            try {
+                UiObject2 clickableLink =
+                    mDevice.findObject(By.text(SampleServiceApi.LINK_TEXT));
+                clickableLink.click();
+
+                // Retry if unable to click on the link.
+                Thread.sleep(5 * 1000);
+
+                surfacePackage.release();
+                mDevice.pressHome();
+
+                return;
+            } catch (Exception e) {
+                Log.e(TAG, "Failed to click on webview link.");
+            }
+        }
+
+        throw new RuntimeException("Failed to request and render surface package.");
     }
 
     @Test
