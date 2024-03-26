@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.webtrigger;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
 import android.adservices.ondevicepersonalization.WebTriggerInputParcel;
 import android.adservices.ondevicepersonalization.WebTriggerOutputParcel;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
@@ -137,6 +138,9 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
                 return false;
             }
+
+            OnDevicePersonalizationPermissions.enforceCallingPermission(
+                        mContext, OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT);
 
             mServiceParcel = Objects.requireNonNull(
                     mParams.getParcelable(

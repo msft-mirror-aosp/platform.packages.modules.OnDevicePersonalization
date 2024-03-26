@@ -88,7 +88,7 @@ public class OnDevicePersonalizationConfigServiceTest {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
-        when(mContext.checkCallingPermission(anyString()))
+        when(mContext.checkCallingOrSelfPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_GRANTED);
         mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
@@ -116,7 +116,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
     @Test
     public void testSetPersonalizationStatusNoCallingPermission() throws Exception {
-        when(mContext.checkCallingPermission(anyString()))
+        when(mContext.checkCallingOrSelfPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_DENIED);
         assertThrows(SecurityException.class, () -> {
             mBinder.setPersonalizationStatus(true, null);
@@ -156,6 +156,17 @@ public class OnDevicePersonalizationConfigServiceTest {
         assertThrows(NullPointerException.class, () -> {
             mBinder.setPersonalizationStatus(true, null);
         });
+    }
+
+    @Test
+    public void testSetPersonalizationStatusThrowsIllegalArgument() throws Exception {
+        when(mContext.checkCallingOrSelfPermission(anyString()))
+                .thenThrow(IllegalArgumentException.class);
+        assertThrows(
+                IllegalArgumentException.class,
+                () -> {
+                    mBinder.setPersonalizationStatus(true, null);
+                });
     }
 
     @Test
