@@ -20,12 +20,19 @@ import android.adservices.common.AdServicesCommonManager;
 import android.adservices.common.AdServicesCommonStates;
 import android.adservices.common.AdServicesCommonStatesResponse;
 import android.adservices.common.AdServicesOutcomeReceiver;
+import android.adservices.ondevicepersonalization.Constants;
 import android.annotation.NonNull;
 import android.content.Context;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
+import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
+import android.os.Bundle;
+import android.os.RemoteException;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
@@ -43,6 +50,7 @@ public final class UserPrivacyStatus {
     private static final String TAG = "UserPrivacyStatus";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final Clock sClock = MonotonicClock.getInstance();
+    private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
     @VisibleForTesting
     static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
@@ -64,6 +72,10 @@ public final class UserPrivacyStatus {
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
         mLastUserControlCacheUpdate = -1L;
+        // Restore personalization status from the system server on U+ devices.
+        if (SdkLevel.isAtLeastU()) {
+            restorePersonalizationStatus();
+        }
     }
 
     /** Returns an instance of UserPrivacyStatus. */
@@ -246,5 +258,46 @@ public final class UserPrivacyStatus {
                     return "getAdServicesCommonStates";
                 }
         );
+    }
+
+    private void restorePersonalizationStatus() {
+        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
+        OnDevicePersonalizationSystemServiceManager systemServiceManager =
+                odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
+        if (systemServiceManager != null) {
+            IOnDevicePersonalizationSystemService systemService =
+                    systemServiceManager.getService();
+            if (systemService != null) {
+                try {
+                    systemService.readPersonalizationStatus(
+                            new IOnDevicePersonalizationSystemServiceCallback.Stub() {
+                                @Override
+                                public void onResult(Bundle bundle) {
+                                    boolean personalizationStatus =
+                                            bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
+                                    UserPrivacyStatus.getInstance()
+                                            .setPersonalizationStatusEnabled(
+                                                    personalizationStatus);
+                                }
+
+                                @Override
+                                public void onError(int errorCode) {
+                                    if (errorCode == Constants.STATUS_KEY_NOT_FOUND) {
+                                        sLogger.d(
+                                                TAG
+                                                        + ": Personalization status "
+                                                        + "not found in the system server");
+                                    }
+                                }
+                            });
+                } catch (RemoteException e) {
+                    sLogger.e(TAG + ": Callback error.");
+                }
+            } else {
+                sLogger.w(TAG + ": System service is not ready.");
+            }
+        } else {
+            sLogger.w(TAG + ": Cannot find system server on U+ devices.");
+        }
     }
 }
