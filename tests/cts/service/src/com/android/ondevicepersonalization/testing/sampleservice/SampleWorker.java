@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.testing.sampleservice;
 
+import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
@@ -42,6 +43,7 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -133,7 +135,10 @@ class SampleWorker implements IsolatedWorker {
                 result = handleReadRemoteData(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_READ_USER_DATA)) {
                 result = handleReadUserData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
+                result = handleReadLog(appParams);
             }
+
         } catch (Exception e) {
             Log.e(TAG, "Service error", e);
         }
@@ -227,6 +232,45 @@ class SampleWorker implements IsolatedWorker {
         if (mUserData.getTimezoneUtcOffset() == null) {
             throw new IllegalStateException("timezone utc offset");
         }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleReadLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLog()");
+        Objects.requireNonNull(mLogReader);
+        final long now = System.currentTimeMillis();
+        final long expectedValue = appParams.getLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE);
+        List<RequestLogRecord> records = mLogReader.getRequests(
+                Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        if (records.isEmpty()) {
+            throw new IllegalStateException("no log records");
+        }
+        Log.i(TAG, "Found " + records.size() + " records");
+        boolean found = false;
+        for (var record : records) {
+            if (record.getRows() == null) {
+                continue;
+            }
+            for (var row : record.getRows()) {
+                Long value = row.getAsLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY);
+                if (value == null) {
+                    continue;
+                }
+                if (value == expectedValue) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
+        }
+        if (!found) {
+            throw new IllegalStateException("log not found");
+        }
+        List<EventLogRecord> events = mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        Log.i(TAG, "Found " + events.size() + " event records");
         return new ExecuteOutput.Builder().build();
     }
 
@@ -344,6 +388,8 @@ class SampleWorker implements IsolatedWorker {
             cv.put(key, (String) value);
         } else if (value instanceof Double) {
             cv.put(key, (Double) value);
+        } else if (value instanceof Long) {
+            cv.put(key, (Long) value);
         }
     }
 
