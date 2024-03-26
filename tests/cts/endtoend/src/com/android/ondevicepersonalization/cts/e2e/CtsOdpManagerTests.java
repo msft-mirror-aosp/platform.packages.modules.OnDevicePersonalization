@@ -15,6 +15,7 @@
  */
 package com.android.ondevicepersonalization.cts.e2e;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -95,6 +96,11 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "isolated_service_debugging_enabled "
                         + true);
+        ShellUtils.runShellCommand(
+                "device_config put on_device_personalization "
+                        + "output_data_allow_list "
+                        + mContext.getPackageName()
+                        + ";com.android.ondevicepersonalization.testing.sampleservice");
     }
 
     @After
@@ -103,6 +109,7 @@ public class CtsOdpManagerTests {
                 "device_config put on_device_personalization "
                         + "isolated_service_allow_list "
                         + "null");
+        ShellUtils.runShellCommand("device_config delete output_data_allow_list");
 
         ShellUtils.runShellCommand(
                 "am force-stop com.google.android.ondevicepersonalization.services");
@@ -309,6 +316,26 @@ public class CtsOdpManagerTests {
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         SurfacePackageToken token = receiver.getResult().getSurfacePackageToken();
         assertNotNull(token);
+    }
+
+    @Test
+    public void testExecuteWithOutputData() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA);
+        appParams.putString(
+                SampleServiceApi.KEY_BASE64_VALUE, Base64.encodeToString(new byte[] {'A'}, 0));
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        assertArrayEquals(new byte[]{'A'}, receiver.getResult().getOutputData());
     }
 
     @Test
