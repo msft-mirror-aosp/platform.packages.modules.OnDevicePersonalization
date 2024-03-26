@@ -24,12 +24,12 @@ import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICE
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
@@ -71,15 +71,10 @@ public class OnDevicePersonalizationConfigServiceDelegate
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the API flag is turned off.");
         }
-
         // Verify caller's permission
-        if (mContext.checkCallingPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
-                != PackageManager.PERMISSION_GRANTED) {
-            throw new SecurityException(
-                    "Permission denied: " + MODIFY_ONDEVICEPERSONALIZATION_STATE);
-        }
+        OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
+                MODIFY_ONDEVICEPERSONALIZATION_STATE);
         Objects.requireNonNull(callback);
-
         sBackgroundExecutor.execute(
                 () -> {
                     try {
