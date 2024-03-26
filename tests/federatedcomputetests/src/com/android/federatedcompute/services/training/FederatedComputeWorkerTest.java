@@ -30,6 +30,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -391,7 +392,8 @@ public final class FederatedComputeWorkerTest {
 
         assertNull(result);
         verify(mMockJobManager, never())
-                .onTrainingCompleted(eq(JOB_ID), eq(POPULATION_NAME), any(), any(), any());
+                .onTrainingCompleted(
+                        eq(JOB_ID), eq(POPULATION_NAME), any(), any(), any(), anyBoolean());
         verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
 
@@ -405,7 +407,8 @@ public final class FederatedComputeWorkerTest {
 
         assertNull(result);
         verify(mMockJobManager)
-                .onTrainingCompleted(eq(JOB_ID), eq(POPULATION_NAME), any(), any(), any());
+                .onTrainingCompleted(
+                        eq(JOB_ID), eq(POPULATION_NAME), any(), any(), any(), eq(false));
         verify(mMockTrainingEventLogger).logTaskNotStarted();
         verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
@@ -434,7 +437,7 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
         verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
     }
 
@@ -451,7 +454,12 @@ public final class FederatedComputeWorkerTest {
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.FAIL),
+                        eq(false));
         verify(mMockJobServiceOnFinishCallback).callJobFinished(eq(false));
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
     }
@@ -514,7 +522,12 @@ public final class FederatedComputeWorkerTest {
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.SUCCESS),
+                        eq(true));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
     }
 
@@ -536,7 +549,12 @@ public final class FederatedComputeWorkerTest {
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.FAIL),
+                        eq(true));
         verify(mSpyResultCallbackHelper)
                 .callHandleResult(any(), any(), computationResultCaptor.capture());
         ComputationResult computationResult = computationResultCaptor.getValue();
@@ -568,7 +586,7 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
     }
 
     @Test
@@ -620,7 +638,12 @@ public final class FederatedComputeWorkerTest {
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.SUCCESS),
+                        eq(true));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
     }
 
@@ -639,7 +662,7 @@ public final class FederatedComputeWorkerTest {
 
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
         verify(mSpyExampleStoreProvider, times(0)).unbindFromExampleStoreService();
         verify(mSpyWorker, times(1))
                 .reportFailureResultToServer(computationResultCaptor.capture(), any(), any());
@@ -675,7 +698,7 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
 
         verify(mMockTrainingEventLogger).logComputationInvalidArgument(any());
     }
@@ -709,7 +732,7 @@ public final class FederatedComputeWorkerTest {
 
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
 
         verify(mSpyWorker, times(1))
                 .reportFailureResultToServer(computationResultCaptor.capture(), any(), any());
@@ -738,7 +761,12 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.SUCCESS),
+                        eq(true));
     }
 
     @Test
@@ -764,7 +792,12 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.SUCCESS),
+                        eq(true));
         verify(mSpyResultCallbackHelper).callHandleResult(eq(TASK_ID), any(), any());
     }
 
@@ -778,7 +811,8 @@ public final class FederatedComputeWorkerTest {
         assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
 
         mSpyWorker.finish(result);
-        verify(mMockJobManager).onTrainingCompleted(anyInt(), anyString(), any(), any(), any());
+        verify(mMockJobManager)
+                .onTrainingCompleted(anyInt(), anyString(), any(), any(), any(), eq(true));
         verify(mMockTrainingEventLogger).logComputationCompleted(any());
     }
 
@@ -806,7 +840,7 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
         verify(mMockClientErrorLogger)
                 .logErrorWithExceptionInfo(
                         any(IllegalStateException.class),
@@ -845,7 +879,7 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(null, ContributionResult.FAIL, false);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
         verify(mMockClientErrorLogger)
                 .logErrorWithExceptionInfo(
                         any(IllegalStateException.class),
@@ -869,7 +903,12 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.SUCCESS));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.SUCCESS),
+                        eq(true));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
         verify(mMockTrainingEventLogger).logComputationCompleted(any());
     }
