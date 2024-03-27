@@ -70,6 +70,34 @@ public class InferenceInputTest {
     }
 
     @Test
+    public void buildInputWithSetters() {
+        HashMap<Integer, Object> outputData = new HashMap<>();
+        outputData.put(0, new float[1]);
+        Object[] input = new Object[1];
+        input[0] = new float[] {1.2f};
+        InferenceInput.Params params =
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
+
+        InferenceInput inferenceInput =
+                new InferenceInput.Builder(
+                                params,
+                                input,
+                                new InferenceOutput.Builder().setDataOutputs(outputData).build())
+                        .setParams(params)
+                        .setInputData(input)
+                        .setBatchSize(1)
+                        .setExpectedOutputStructure(
+                                new InferenceOutput.Builder().setDataOutputs(outputData).build())
+                        .build();
+
+        float[] inputData = (float[]) inferenceInput.getInputData()[0];
+        assertEquals(inputData[0], 1.2f);
+        assertThat(inferenceInput.getBatchSize()).isEqualTo(1);
+        assertThat(inferenceInput.getExpectedOutputStructure().getDataOutputs()).hasSize(1);
+        assertThat(inferenceInput.getParams()).isEqualTo(params);
+    }
+
+    @Test
     public void buildInput_batchNotSet_success() {
         HashMap<Integer, Object> outputData = new HashMap<>();
         outputData.put(0, new float[1]);
@@ -91,7 +119,25 @@ public class InferenceInputTest {
     @Test
     public void buildParams_success() {
         InferenceInput.Params params =
-                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY).build();
+                new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                .build();
+
+        assertThat(params.getRecommendedNumThreads()).isEqualTo(1);
+        assertThat(params.getDelegateType()).isEqualTo(InferenceInput.Params.DELEGATE_CPU);
+        assertThat(params.getModelType())
+                .isEqualTo(InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE);
+        assertThat(params.getKeyValueStore()).isEqualTo(mRemoteData);
+        assertThat(params.getModelKey()).isEqualTo(MODEL_KEY);
+    }
+
+    @Test
+    public void buildParamsWithSetters() {
+        InferenceInput.Params params = new InferenceInput.Params.Builder(mRemoteData, MODEL_KEY)
+                .setKeyValueStore(mRemoteData)
+                .setModelKey(MODEL_KEY)
+                .setDelegateType(InferenceInput.Params.DELEGATE_CPU)
+                .setModelType(InferenceInput.Params.MODEL_TYPE_TENSORFLOW_LITE)
+                .build();
 
         assertThat(params.getRecommendedNumThreads()).isEqualTo(1);
         assertThat(params.getDelegateType()).isEqualTo(InferenceInput.Params.DELEGATE_CPU);

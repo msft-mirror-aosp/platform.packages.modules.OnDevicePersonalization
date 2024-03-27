@@ -24,6 +24,8 @@ import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventOutput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParams;
 import android.adservices.ondevicepersonalization.RenderOutput;
@@ -45,6 +47,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.time.Duration;
+import java.time.Instant;
 import java.util.ArrayList;
 
 /**
@@ -163,6 +166,19 @@ public class DataClassesTest {
         assertEquals(TrainingInterval.SCHEDULING_MODE_RECURRENT, data.getSchedulingMode());
     }
 
+    @Test
+    public void testFederatedComputeSchedulerParams() {
+        TrainingInterval data = new TrainingInterval.Builder()
+                .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_RECURRENT)
+                .setMinimumInterval(Duration.ofSeconds((5)))
+                .build();
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(data);
+
+        assertEquals(5, params.getTrainingInterval().getMinimumInterval().toSeconds());
+        assertEquals(TrainingInterval.SCHEDULING_MODE_RECURRENT,
+                params.getTrainingInterval().getSchedulingMode());
+    }
+
     /** Test for RequestLogRecord class. */
     @Test
     public void testRequestLogRecord() {
@@ -179,6 +195,7 @@ public class DataClassesTest {
         assertEquals(5, logRecord.getRows().get(0).getAsInteger("a").intValue());
         assertEquals(6, logRecord.getRows().get(1).getAsInteger("b").intValue());
         assertEquals(1, logRecord.getRequestId());
+        assertEquals(Instant.ofEpochMilli(0), logRecord.getTime());
     }
 
     /** Test for EventLogRecord class. */
@@ -197,6 +214,15 @@ public class DataClassesTest {
         assertEquals(5, logRecord.getData().getAsInteger("a").intValue());
         assertEquals(5, logRecord.getRequestLogRecord().getRows()
                 .get(0).getAsInteger("a").intValue());
+        assertEquals(Instant.ofEpochMilli(0), logRecord.getTime());
+    }
+
+    @Test
+    public void testFederatedComputeInput() {
+        FederatedComputeInput data = new FederatedComputeInput.Builder()
+                .setPopulationName("abc")
+                .build();
+        assertEquals("abc", data.getPopulationName());
     }
 
     /** Test for TrainingExampleRecord class */

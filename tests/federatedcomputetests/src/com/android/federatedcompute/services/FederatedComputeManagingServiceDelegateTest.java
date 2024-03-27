@@ -177,18 +177,18 @@ public final class FederatedComputeManagingServiceDelegateTest {
     }
 
     @Test
-    public void testScheduleEnabledGlobalKillSwitch_throwsException() throws Exception {
+    public void testScheduleEnabledGlobalKillSwitch_returnsError() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-        TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
         try {
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mFcpService.schedule(
-                                    mContext.getPackageName(),
-                                    trainingOptions,
-                                    new FederatedComputeCallback()));
+            TrainingOptions trainingOptions =
+                    new TrainingOptions.Builder().setPopulationName("fake-population").build();
+            FederatedComputeCallback callback = spy(new FederatedComputeCallback());
+
+            mFcpService.schedule(mContext.getPackageName(), trainingOptions, callback);
+
+            ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
+            verify(callback).onFailure(argument.capture());
+            assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }
@@ -223,16 +223,16 @@ public final class FederatedComputeManagingServiceDelegateTest {
     }
 
     @Test
-    public void testCancelEnabledGlobalKillSwitch_throwsException() {
+    public void testCancelEnabledGlobalKillSwitch_returnsError() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
-            assertThrows(
-                    IllegalStateException.class,
-                    () ->
-                            mFcpService.cancel(
-                                    OWNER_COMPONENT_NAME,
-                                    "fake-population",
-                                    new FederatedComputeCallback()));
+            FederatedComputeCallback callback = spy(new FederatedComputeCallback());
+
+            mFcpService.cancel(OWNER_COMPONENT_NAME, "fake-population", callback);
+
+            ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
+            verify(callback).onFailure(argument.capture());
+            assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }

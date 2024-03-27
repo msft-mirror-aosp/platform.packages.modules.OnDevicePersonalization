@@ -115,13 +115,13 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     mFcStatsdLogger.logApiCallStats(
                                             new ApiCallStats.Builder()
                                                     .setApiName(
-                                                FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
+                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
                                                     .setLatencyMillis(serviceLatency)
                                                     .setResponseCode(resultCode)
                                                     .build());
                                 }
                             });
-        } catch (NullPointerException | IllegalArgumentException | IllegalStateException ex) {
+        } catch (NullPointerException | IllegalArgumentException ex) {
             LogUtil.e(TAG, ex, "Got exception for schedule()");
             throw ex;
         } catch (Exception e) {
@@ -174,13 +174,13 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                     mFcStatsdLogger.logApiCallStats(
                                             new ApiCallStats.Builder()
                                                     .setApiName(
-                                                    FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
+                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
                                                     .setLatencyMillis(serviceLatency)
                                                     .setResponseCode(resultCode)
                                                     .build());
                                 }
                             });
-        } catch (NullPointerException | IllegalArgumentException | IllegalStateException ex) {
+        } catch (NullPointerException | IllegalArgumentException ex) {
             LogUtil.e(TAG, ex, "Got exception for schedule()");
             throw ex;
         } catch (Exception e) {
