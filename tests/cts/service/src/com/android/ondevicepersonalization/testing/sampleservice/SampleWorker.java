@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.testing.sampleservice;
 
+import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
@@ -23,12 +24,15 @@ import android.adservices.ondevicepersonalization.InferenceInput;
 import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
+import android.adservices.ondevicepersonalization.KeyValueStore;
+import android.adservices.ondevicepersonalization.LogReader;
 import android.adservices.ondevicepersonalization.ModelManager;
 import android.adservices.ondevicepersonalization.MutableKeyValueStore;
 import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
 import android.content.ContentValues;
 import android.net.Uri;
@@ -39,6 +43,7 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -58,19 +63,28 @@ class SampleWorker implements IsolatedWorker {
                     + "AAXNSR0IArs4c6QAAAAtJREFUGFdjYAACAAAFAAGq1chRAAAAAElFTkSuQmCC";
     private static final byte[] TRANSPARENT_PNG_BYTES = Base64.decode(TRANSPARENT_PNG_BASE64, 0);
 
+    private final KeyValueStore mRemoteData;
     private final MutableKeyValueStore mLocalData;
+    private final UserData mUserData;
     private final EventUrlProvider mEventUrlProvider;
     private final ModelManager mModelManager;
+    private final LogReader mLogReader;
 
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
 
     SampleWorker(
+            KeyValueStore remoteData,
             MutableKeyValueStore localData,
+            UserData userData,
             EventUrlProvider eventUrlProvider,
-            ModelManager modelManager) {
+            ModelManager modelManager,
+            LogReader logReader) {
+        mRemoteData = remoteData;
         mLocalData = localData;
+        mUserData = userData;
         mEventUrlProvider = eventUrlProvider;
         mModelManager = modelManager;
+        mLogReader = logReader;
     }
 
     @Override
@@ -117,6 +131,12 @@ class SampleWorker implements IsolatedWorker {
                 result = handleRunModelInference(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA)) {
                 result = handleReturnOutputData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_REMOTE_DATA)) {
+                result = handleReadRemoteData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_USER_DATA)) {
+                result = handleReadUserData(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
+                result = handleReadLog(appParams);
             }
 
         } catch (Exception e) {
@@ -175,6 +195,83 @@ class SampleWorker implements IsolatedWorker {
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         return new ExecuteOutput.Builder().setOutputData(value).build();
+    }
+
+    private ExecuteOutput handleReadRemoteData(PersistableBundle appParams) {
+        Objects.requireNonNull(mRemoteData);
+        return new ExecuteOutput.Builder().build();
+        // TODO(b/273826477): Add remote data verification.
+    }
+
+    private ExecuteOutput handleReadUserData(PersistableBundle appParams) {
+        Objects.requireNonNull(mUserData);
+        int numInstalled = 0;
+        for (var entry : mUserData.getAppInfos().entrySet()) {
+            if (entry.getValue().isInstalled()) {
+                ++numInstalled;
+            }
+        }
+        var capabilities = mUserData.getNetworkCapabilities();
+        // TODO(b/273826477): Enable user data collection in CTS and add
+        // validation for installed apps and network capabilities.
+        if (mUserData.getAvailableStorageBytes() < 0) {
+            throw new IllegalStateException("available storage bytes");
+        }
+        if (mUserData.getBatteryPercentage() < 0) {
+            throw new IllegalStateException("battery percentage");
+        }
+        if (mUserData.getCarrier() == null) {
+            throw new IllegalStateException("carrier");
+        }
+        if (mUserData.getDataNetworkType() < 0) {
+            throw new IllegalStateException("data network type");
+        }
+        if (mUserData.getOrientation() < 0) {
+            throw new IllegalStateException("orientation");
+        }
+        if (mUserData.getTimezoneUtcOffset() == null) {
+            throw new IllegalStateException("timezone utc offset");
+        }
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleReadLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLog()");
+        Objects.requireNonNull(mLogReader);
+        final long now = System.currentTimeMillis();
+        final long expectedValue = appParams.getLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE);
+        List<RequestLogRecord> records = mLogReader.getRequests(
+                Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        if (records.isEmpty()) {
+            throw new IllegalStateException("no log records");
+        }
+        Log.i(TAG, "Found " + records.size() + " records");
+        boolean found = false;
+        for (var record : records) {
+            if (record.getRows() == null) {
+                continue;
+            }
+            for (var row : record.getRows()) {
+                Long value = row.getAsLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY);
+                if (value == null) {
+                    continue;
+                }
+                if (value == expectedValue) {
+                    found = true;
+                    break;
+                }
+            }
+            if (found) {
+                break;
+            }
+        }
+        if (!found) {
+            throw new IllegalStateException("log not found");
+        }
+        List<EventLogRecord> events = mLogReader.getJoinedEvents(
+                Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        Log.i(TAG, "Found " + events.size() + " event records");
+        return new ExecuteOutput.Builder().build();
     }
 
     private ExecuteOutput handleRunModelInference(PersistableBundle appParams)
@@ -291,6 +388,8 @@ class SampleWorker implements IsolatedWorker {
             cv.put(key, (String) value);
         } else if (value instanceof Double) {
             cv.put(key, (Double) value);
+        } else if (value instanceof Long) {
+            cv.put(key, (Long) value);
         }
     }
 
