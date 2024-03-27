@@ -38,6 +38,7 @@ public class SampleServiceApi {
     public static final String OPCODE_READ_LOCAL_DATA = "read_local_data";
     public static final String OPCODE_CHECK_VALUE_LENGTH = "check_value_length";
     public static final String OPCODE_RUN_MODEL_INFERENCE = "run_model_inference";
+    public static final String OPCODE_RETURN_OUTPUT_DATA = "return_output_data";
 
     // Event types in logs.
     public static final String KEY_EVENT_TYPE = "type";
