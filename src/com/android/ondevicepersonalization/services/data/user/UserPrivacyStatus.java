@@ -31,7 +31,6 @@ import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
 import android.os.Bundle;
-import android.os.RemoteException;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
@@ -75,20 +74,22 @@ public final class UserPrivacyStatus {
         mProtectedAudienceReset = true;
         mMeasurementReset = true;
         mLastUserControlCacheUpdate = -1L;
-        // Restore personalization status from the system server on U+ devices.
-        if (SdkLevel.isAtLeastU()) {
-            restorePersonalizationStatus();
-        }
     }
 
     /** Returns an instance of UserPrivacyStatus. */
     public static UserPrivacyStatus getInstance() {
-        synchronized (UserPrivacyStatus.class) {
-            if (sUserPrivacyStatus == null) {
-                sUserPrivacyStatus = new UserPrivacyStatus();
+        if (sUserPrivacyStatus == null) {
+            synchronized (UserPrivacyStatus.class) {
+                if (sUserPrivacyStatus == null) {
+                    sUserPrivacyStatus = new UserPrivacyStatus();
+                    // Restore personalization status from the system server on U+ devices.
+                    if (SdkLevel.isAtLeastU()) {
+                        sUserPrivacyStatus.restorePersonalizationStatus();
+                    }
+                }
             }
-            return sUserPrivacyStatus;
         }
+        return sUserPrivacyStatus;
     }
 
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
@@ -281,6 +282,7 @@ public final class UserPrivacyStatus {
         );
     }
 
+    // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
     private void restorePersonalizationStatus() {
         Context odpContext = OnDevicePersonalizationApplication.getAppContext();
         OnDevicePersonalizationSystemServiceManager systemServiceManager =
@@ -296,9 +298,7 @@ public final class UserPrivacyStatus {
                                 public void onResult(Bundle bundle) {
                                     boolean personalizationStatus =
                                             bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
-                                    UserPrivacyStatus.getInstance()
-                                            .setPersonalizationStatusEnabled(
-                                                    personalizationStatus);
+                                    setPersonalizationStatusEnabled(personalizationStatus);
                                 }
 
                                 @Override
@@ -311,8 +311,8 @@ public final class UserPrivacyStatus {
                                     }
                                 }
                             });
-                } catch (RemoteException e) {
-                    sLogger.e(TAG + ": Callback error.");
+                } catch (Exception e) {
+                    sLogger.e(TAG + ": Error when reading personalization status.", e);
                 }
             } else {
                 sLogger.w(TAG + ": System service is not ready.");
