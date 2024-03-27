@@ -115,6 +115,8 @@ class SampleWorker implements IsolatedWorker {
                 result = handleCheckValueLength(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_RUN_MODEL_INFERENCE)) {
                 result = handleRunModelInference(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_RETURN_OUTPUT_DATA)) {
+                result = handleReturnOutputData(appParams);
             }
 
         } catch (Exception e) {
@@ -167,6 +169,12 @@ class SampleWorker implements IsolatedWorker {
             var unused = mLocalData.remove(key);
         }
         return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleReturnOutputData(PersistableBundle appParams) {
+        String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
+        byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
+        return new ExecuteOutput.Builder().setOutputData(value).build();
     }
 
     private ExecuteOutput handleRunModelInference(PersistableBundle appParams)
@@ -301,6 +309,11 @@ class SampleWorker implements IsolatedWorker {
             receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
             return;
         }
+        if (input.getHeight() < 0 || input.getWidth() < 0) {
+            receiver.onError(new IsolatedServiceException(ERROR_SAMPLE_SERVICE_FAILED));
+            return;
+        }
+
         PersistableBundle eventParams = new PersistableBundle();
         eventParams.putInt(SampleServiceApi.KEY_EVENT_TYPE, SampleServiceApi.EVENT_TYPE_VIEW);
         String viewUrl =

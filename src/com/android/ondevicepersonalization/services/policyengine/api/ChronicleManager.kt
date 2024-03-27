@@ -29,6 +29,8 @@ import com.android.libraries.pcc.chronicle.api.integration.DefaultDataTypeDescri
 import com.android.libraries.pcc.chronicle.api.policy.DefaultPolicyConformanceCheck
 import com.android.libraries.pcc.chronicle.api.policy.Policy
 import com.android.libraries.pcc.chronicle.util.TypedMap
+import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider
+import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 
@@ -72,15 +74,15 @@ class ChronicleManager private constructor (
 
         @JvmOverloads
         @JvmStatic
-        fun getInstance(connectionProviders: Set<ConnectionProvider>,
-                policies: Set<Policy>,
-                connectionContext: TypedMap = TypedMap()) =
+        fun getInstance() =
             instance
                 ?: synchronized(this) {
                     // double-checked locking
                     instance
                         ?: ChronicleManager(
-                            connectionProviders, policies, connectionContext).also{ instance = it }
+                                setOf(UserDataConnectionProvider()),
+                                setOf(DataIngressPolicy.NPA_DATA_POLICY),
+                                TypedMap()).also{ instance = it }
                 }
     }
 

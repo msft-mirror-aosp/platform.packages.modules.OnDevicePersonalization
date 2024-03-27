@@ -16,11 +16,15 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doReturn;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
@@ -30,6 +34,7 @@ import android.adservices.ondevicepersonalization.aidl.IRequestSurfacePackageCal
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -62,8 +67,9 @@ import java.util.concurrent.TimeoutException;
 public class OnDevicePersonalizationManagingServiceTest {
     @Rule
     public final ServiceTestRule serviceRule = new ServiceTestRule();
-    private final Context mContext = ApplicationProvider.getApplicationContext();
-    private OnDevicePersonalizationManagingServiceDelegate mService;
+    private final Context mContext = spy(ApplicationProvider.getApplicationContext());
+    private OnDevicePersonalizationManagingServiceDelegate mService =
+            new OnDevicePersonalizationManagingServiceDelegate(mContext);
 
     @Mock
     private UserPrivacyStatus mUserPrivacyStatus;
@@ -84,7 +90,9 @@ public class OnDevicePersonalizationManagingServiceTest {
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-        mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
+        //mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
+        when(mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_GRANTED);
     }
     @Test
     public void testVersion() throws Exception {
@@ -310,7 +318,6 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
     }
 
-
     @Test
     public void testEnabledGlobalKillSwitchOnRequestSurfacePackage() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
@@ -499,6 +506,20 @@ public class OnDevicePersonalizationManagingServiceTest {
         ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
         assertThrows(
                 IllegalStateException.class,
+                () ->
+                        mService.registerMeasurementEvent(
+                                Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,
+                                Bundle.EMPTY,
+                                new CallerMetadata.Builder().build(),
+                                new RegisterMeasurementEventCallback()));
+    }
+
+    @Test
+    public void testRegisterMeasurementEventPermissionDenied() throws Exception {
+        when(mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT))
+                .thenReturn(PackageManager.PERMISSION_DENIED);
+        assertThrows(
+                SecurityException.class,
                 () ->
                         mService.registerMeasurementEvent(
                                 Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER,

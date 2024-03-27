@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -153,6 +155,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
         if (!DeviceUtils.isOdpSupported(mContext)) {
             throw new IllegalStateException("Device not supported.");
+        }
+
+        if (mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT)
+                != PackageManager.PERMISSION_GRANTED) {
+            throw new SecurityException("Permission denied: " + NOTIFY_MEASUREMENT_EVENT);
         }
 
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");

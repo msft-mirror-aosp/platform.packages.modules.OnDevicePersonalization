@@ -215,8 +215,14 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
         if (!SdkLevel.isAtLeastU()) {
             return false;
         }
+
         PackageManager pm = mApplicationContext.getPackageManager();
         ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
+
+        if ((si.flags & si.FLAG_ISOLATED_PROCESS) == 0) {
+            throw new IllegalArgumentException("ODP client services should run in isolated processes.");
+        }
+
         return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;
     }
 }

@@ -18,42 +18,28 @@ package com.android.ondevicepersonalization.services;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
-import android.adservices.ondevicepersonalization.Constants;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
-import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
-import android.os.Bundle;
-import android.os.RemoteException;
 
 import com.android.internal.annotations.VisibleForTesting;
-import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService;
-import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
 import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
-import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager;
-import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider;
-import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy;
 import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.concurrent.Executor;
 
 /** BroadcastReceiver used to schedule OnDevicePersonalization jobs/workers. */
 public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationBroadcastReceiver";
-    private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
     private final Executor mExecutor;
 
     public OnDevicePersonalizationBroadcastReceiver() {
@@ -99,51 +85,6 @@ public class OnDevicePersonalizationBroadcastReceiver extends BroadcastReceiver 
             sLogger.d(TAG + ": Received unexpected intent " + intent.getAction());
             return;
         }
-        // Restore personalization status from the system server on U+ devices.
-        if (SdkLevel.isAtLeastU()) {
-            OnDevicePersonalizationSystemServiceManager systemServiceManager =
-                    context.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
-            if (systemServiceManager != null) {
-                IOnDevicePersonalizationSystemService systemService =
-                        systemServiceManager.getService();
-                if (systemService != null) {
-                    try {
-                        systemService.readPersonalizationStatus(
-                                new IOnDevicePersonalizationSystemServiceCallback.Stub() {
-                                    @Override
-                                    public void onResult(Bundle bundle) {
-                                        boolean personalizationStatus =
-                                                bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
-                                        UserPrivacyStatus.getInstance()
-                                                .setPersonalizationStatusEnabled(
-                                                        personalizationStatus);
-                                    }
-
-                                    @Override
-                                    public void onError(int errorCode) {
-                                        if (errorCode == Constants.STATUS_KEY_NOT_FOUND) {
-                                            sLogger.d(
-                                                    TAG
-                                                            + ": Personalization status "
-                                                            + "not found in the system server");
-                                        }
-                                    }
-                                });
-                    } catch (RemoteException e) {
-                        sLogger.e(TAG + ": Callback error.");
-                    }
-                } else {
-                    sLogger.w(TAG + ": System service is not ready.");
-                }
-            } else {
-                sLogger.w(TAG + ": Cannot find system server on U+ devices.");
-            }
-        }
-
-        // Initialize policy engine instance
-        ChronicleManager.getInstance(
-                new HashSet<>(Arrays.asList(new UserDataConnectionProvider())),
-                new HashSet<>(Arrays.asList(DataIngressPolicy.NPA_DATA_POLICY)));
 
         // Schedule maintenance task
         OnDevicePersonalizationMaintenanceJobService.schedule(context);

@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.cts.e2e;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
 
 import android.adservices.ondevicepersonalization.DownloadCompletedOutput;
 import android.adservices.ondevicepersonalization.EventLogRecord;
@@ -30,10 +31,12 @@ import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
+import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.WebTriggerOutput;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.net.Uri;
+import android.os.PersistableBundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.SmallTest;
@@ -41,6 +44,7 @@ import androidx.test.filters.SmallTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import java.time.Duration;
 import java.util.ArrayList;
 
 /**
@@ -61,12 +65,14 @@ public class DataClassesTest {
                     .setRequestLogRecord(new RequestLogRecord.Builder().addRow(row).build())
                     .setRenderingConfig(new RenderingConfig.Builder().addKey("abc").build())
                     .addEventLogRecord(new EventLogRecord.Builder().setType(1).build())
+                    .setOutputData(new byte[]{1})
                     .build();
 
         assertEquals(
                 5, data.getRequestLogRecord().getRows().get(0).getAsInteger("a").intValue());
         assertEquals("abc", data.getRenderingConfig().getKeys().get(0));
         assertEquals(1, data.getEventLogRecords().get(0).getType());
+        assertArrayEquals(new byte[]{1}, data.getOutputData());
     }
 
     /**
@@ -74,9 +80,15 @@ public class DataClassesTest {
      */
     @Test
     public void testRenderOutput() {
-        RenderOutput data = new RenderOutput.Builder().setContent("abc").build();
+        RenderOutput data = new RenderOutput.Builder()
+                .setContent("abc")
+                .setTemplateId("tmpl")
+                .setTemplateParams(PersistableBundle.EMPTY)
+                .build();
 
         assertEquals("abc", data.getContent());
+        assertEquals("tmpl", data.getTemplateId());
+        assertTrue(data.getTemplateParams().isEmpty());
     }
 
     /**
@@ -138,6 +150,17 @@ public class DataClassesTest {
         assertEquals(2, data.getKeys().size());
         assertEquals("a", data.getKeys().get(0));
         assertEquals("b", data.getKeys().get(1));
+    }
+
+    @Test
+    public void testTrainingInterval() {
+        TrainingInterval data = new TrainingInterval.Builder()
+                .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_RECURRENT)
+                .setMinimumInterval(Duration.ofSeconds((5)))
+                .build();
+
+        assertEquals(5, data.getMinimumInterval().toSeconds());
+        assertEquals(TrainingInterval.SCHEDULING_MODE_RECURRENT, data.getSchedulingMode());
     }
 
     /** Test for RequestLogRecord class. */
@@ -215,6 +238,27 @@ public class DataClassesTest {
                     .setCertDigest("ABCD")
                     .setEventData(new byte[] {1, 2, 3})
                     .build();
+
+        assertEquals("http://example.com", data.getDestinationUrl().toString());
+        assertEquals("com.example.testapp", data.getAppPackageName());
+        assertEquals("com.example.service", data.getIsolatedService().getPackageName());
+        assertEquals(
+                "com.example.service.ServiceClass",
+                data.getIsolatedService().getClassName());
+        assertEquals("ABCD", data.getCertDigest());
+        assertArrayEquals(new byte[]{1, 2, 3}, data.getEventData());
+
+        data = new MeasurementWebTriggerEventParams.Builder(
+                Uri.parse("http://x"),
+                "x",
+                ComponentName.createRelative("a", "b"))
+                .setCertDigest("ABCD")
+                .setEventData(new byte[] {1, 2, 3})
+                .setDestinationUrl(Uri.parse("http://example.com"))
+                .setAppPackageName("com.example.testapp")
+                .setIsolatedService(ComponentName.createRelative(
+                        "com.example.service", ".ServiceClass"))
+                .build();
 
         assertEquals("http://example.com", data.getDestinationUrl().toString());
         assertEquals("com.example.testapp", data.getAppPackageName());

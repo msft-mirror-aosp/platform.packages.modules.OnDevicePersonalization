@@ -15,10 +15,12 @@
  */
 package com.android.server.ondevicepersonalization;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.ACCESS_SYSTEM_SERVER_SERVICE;
 import static android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.os.Bundle;
@@ -40,6 +42,7 @@ public class OnDevicePersonalizationSystemService
     private static final String ODP_BASE_DIR = "/data/system/ondevicepersonalization/0/";
     private static final String CONFIG_FILE_IDENTIFIER = "CONFIG";
     public static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
+    private final Context mContext;
     private BooleanFileDataStore mDataStore = null;
 
     // TODO(b/302992251): use a manager to access configs instead of directly exposing DataStore.
@@ -52,6 +55,7 @@ public class OnDevicePersonalizationSystemService
     OnDevicePersonalizationSystemService(Context context, BooleanFileDataStore dataStore) {
         Objects.requireNonNull(context);
         Objects.requireNonNull(dataStore);
+        mContext = context;
         try {
             this.mDataStore = dataStore;
             mDataStore.initialize();
@@ -64,6 +68,7 @@ public class OnDevicePersonalizationSystemService
     @Override public void onRequest(
             Bundle bundle,
             IOnDevicePersonalizationSystemServiceCallback callback) {
+        enforceCallingPermission();
         sendResult(callback, null);
     }
 
@@ -71,6 +76,7 @@ public class OnDevicePersonalizationSystemService
     public void setPersonalizationStatus(
             boolean enabled,
             IOnDevicePersonalizationSystemServiceCallback callback) {
+        enforceCallingPermission();
         Bundle result = new Bundle();
         try {
             mDataStore.put(PERSONALIZATION_STATUS_KEY, enabled);
@@ -94,6 +100,7 @@ public class OnDevicePersonalizationSystemService
     @Override
     public void readPersonalizationStatus(
             IOnDevicePersonalizationSystemServiceCallback callback) {
+        enforceCallingPermission();
         Boolean result = null;
 
         try {
@@ -129,6 +136,14 @@ public class OnDevicePersonalizationSystemService
             callback.onError(errorCode);
         } catch (RemoteException e) {
             Log.e(TAG, "Callback error", e);
+        }
+    }
+
+    @VisibleForTesting
+    void enforceCallingPermission() {
+        if (mContext.checkCallingPermission(ACCESS_SYSTEM_SERVER_SERVICE)
+                != PackageManager.PERMISSION_GRANTED) {
+            throw new SecurityException("ODP System Service Permission denied");
         }
     }
 

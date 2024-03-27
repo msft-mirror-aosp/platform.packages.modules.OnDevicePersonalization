@@ -33,6 +33,7 @@ android_test {
         "compatibility-device-util-axt",
         "ondevicepersonalization-testing-sample-service-api",
         "ondevicepersonalization-testing-utils",
+        "platform-test-rules",
     ],
     libs: [
         "android.test.base",
