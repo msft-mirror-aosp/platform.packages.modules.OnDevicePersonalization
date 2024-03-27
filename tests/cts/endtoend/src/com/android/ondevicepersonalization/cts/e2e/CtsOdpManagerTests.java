@@ -395,6 +395,45 @@ public class CtsOdpManagerTests {
     }
 
     @Test
+    public void testExecuteReadLog() throws InterruptedException {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        final long now = System.currentTimeMillis();
+
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(SampleServiceApi.KEY_OPCODE,
+                    SampleServiceApi.OPCODE_RENDER_AND_LOG);
+            PersistableBundle logData = new PersistableBundle();
+            logData.putLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY, now);
+            appParams.putPersistableBundle(SampleServiceApi.KEY_LOG_DATA, logData);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        }
+
+        Thread.sleep(DELAY_MILLIS);
+
+        {
+            var receiver = new ResultReceiver<ExecuteResult>();
+            PersistableBundle appParams = new PersistableBundle();
+            appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_LOG);
+            appParams.putLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE, now);
+            manager.execute(
+                    new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                    appParams,
+                    Executors.newSingleThreadExecutor(),
+                    receiver);
+            assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+        }
+    }
+
+    @Test
     public void testExecuteReturnsErrorIfServiceThrows() throws InterruptedException {
         OnDevicePersonalizationManager manager =
                 mContext.getSystemService(OnDevicePersonalizationManager.class);
