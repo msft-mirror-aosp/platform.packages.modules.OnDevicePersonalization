@@ -113,9 +113,7 @@ public class CtsOdpManagerTests {
 
         ShellUtils.runShellCommand(
                 "am force-stop com.google.android.ondevicepersonalization.services");
-        ShellUtils.runShellCommand(
-                "am force-stop com.android.ondevicepersonalization.services");
-
+        ShellUtils.runShellCommand("am force-stop com.android.ondevicepersonalization.services");
     }
 
     @Test
@@ -335,7 +333,7 @@ public class CtsOdpManagerTests {
                 Executors.newSingleThreadExecutor(),
                 receiver);
         assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
-        assertArrayEquals(new byte[]{'A'}, receiver.getResult().getOutputData());
+        assertArrayEquals(new byte[] {'A'}, receiver.getResult().getOutputData());
     }
 
     @Test
@@ -345,8 +343,7 @@ public class CtsOdpManagerTests {
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
         PersistableBundle appParams = new PersistableBundle();
-        appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_REMOTE_DATA);
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_REMOTE_DATA);
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
@@ -362,8 +359,7 @@ public class CtsOdpManagerTests {
         assertNotNull(manager);
         var receiver = new ResultReceiver<ExecuteResult>();
         PersistableBundle appParams = new PersistableBundle();
-        appParams.putString(
-                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_USER_DATA);
+        appParams.putString(SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_READ_USER_DATA);
         manager.execute(
                 new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
                 appParams,
@@ -404,8 +400,8 @@ public class CtsOdpManagerTests {
         {
             var receiver = new ResultReceiver<ExecuteResult>();
             PersistableBundle appParams = new PersistableBundle();
-            appParams.putString(SampleServiceApi.KEY_OPCODE,
-                    SampleServiceApi.OPCODE_RENDER_AND_LOG);
+            appParams.putString(
+                    SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_RENDER_AND_LOG);
             PersistableBundle logData = new PersistableBundle();
             logData.putLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_KEY, now);
             appParams.putPersistableBundle(SampleServiceApi.KEY_LOG_DATA, logData);
@@ -711,5 +707,41 @@ public class CtsOdpManagerTests {
                     receiver);
             assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
+    }
+
+    @Test
+    public void testExecuteWithScheduleFederatedJob() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB);
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
+    }
+
+    @Test
+    public void testExecuteWithCancelFederatedJob() throws Exception {
+        OnDevicePersonalizationManager manager =
+                mContext.getSystemService(OnDevicePersonalizationManager.class);
+        assertNotNull(manager);
+        var receiver = new ResultReceiver<ExecuteResult>();
+        PersistableBundle appParams = new PersistableBundle();
+        appParams.putString(
+                SampleServiceApi.KEY_OPCODE, SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB);
+        appParams.putString(SampleServiceApi.KEY_POPULATION_NAME, "criteo_app_test_task");
+        manager.execute(
+                new ComponentName(SERVICE_PACKAGE, SERVICE_CLASS),
+                appParams,
+                Executors.newSingleThreadExecutor(),
+                receiver);
+        assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
     }
 }
