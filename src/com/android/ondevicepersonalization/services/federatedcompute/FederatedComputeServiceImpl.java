@@ -138,7 +138,7 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
             }
 
             if (url == null) {
-                sLogger.d(
+                sLogger.e(
                         TAG
                                 + ": Missing remote server URL for package: "
                                 + mCallingService.getPackageName());

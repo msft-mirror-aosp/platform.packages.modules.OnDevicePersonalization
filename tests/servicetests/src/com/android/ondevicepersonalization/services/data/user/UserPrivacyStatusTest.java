@@ -31,6 +31,7 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
+    private static final int CONTROL_RESET_STATUS_CODE = 5;
 
     @Before
     public void setup() throws Exception {
@@ -46,11 +47,38 @@ public final class UserPrivacyStatusTest {
     }
 
     @Test
-    public void testUpdateControlWithValidCache() {
-        mUserPrivacyStatus.updateUserControlCache(true, true);
+    public void testUpdateControlWithValidCacheControlGiven() {
+        mUserPrivacyStatus.updateUserControlCache(
+                        UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE,
+                        UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE);
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceReset());
+        assertFalse(mUserPrivacyStatus.isMeasurementReset());
+    }
+
+    @Test
+    public void testUpdateControlWithValidCacheControlRevoked() {
+        mUserPrivacyStatus.updateUserControlCache(
+                    UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE,
+                    UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE);
+        assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceReset());
+        assertTrue(mUserPrivacyStatus.isMeasurementReset());
+    }
+
+    @Test
+    public void testUpdateControlWithValidCacheDataReset() {
+        mUserPrivacyStatus.updateUserControlCache(CONTROL_RESET_STATUS_CODE,
+                        CONTROL_RESET_STATUS_CODE);
+        assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceReset());
+        assertTrue(mUserPrivacyStatus.isMeasurementReset());
     }
 
     @Test

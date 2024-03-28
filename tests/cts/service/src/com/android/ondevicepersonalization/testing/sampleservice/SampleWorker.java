@@ -20,6 +20,8 @@ import android.adservices.ondevicepersonalization.EventLogRecord;
 import android.adservices.ondevicepersonalization.EventUrlProvider;
 import android.adservices.ondevicepersonalization.ExecuteInput;
 import android.adservices.ondevicepersonalization.ExecuteOutput;
+import android.adservices.ondevicepersonalization.FederatedComputeInput;
+import android.adservices.ondevicepersonalization.FederatedComputeScheduler;
 import android.adservices.ondevicepersonalization.InferenceInput;
 import android.adservices.ondevicepersonalization.InferenceOutput;
 import android.adservices.ondevicepersonalization.IsolatedServiceException;
@@ -32,6 +34,7 @@ import android.adservices.ondevicepersonalization.RenderInput;
 import android.adservices.ondevicepersonalization.RenderOutput;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
+import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.UserData;
 import android.annotation.NonNull;
 import android.content.ContentValues;
@@ -43,6 +46,7 @@ import android.util.Log;
 
 import com.android.ondevicepersonalization.testing.sampleserviceapi.SampleServiceApi;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -69,6 +73,7 @@ class SampleWorker implements IsolatedWorker {
     private final EventUrlProvider mEventUrlProvider;
     private final ModelManager mModelManager;
     private final LogReader mLogReader;
+    private final FederatedComputeScheduler mFcpScheduler;
 
     private final ExecutorService mExecutor = Executors.newCachedThreadPool();
 
@@ -78,13 +83,15 @@ class SampleWorker implements IsolatedWorker {
             UserData userData,
             EventUrlProvider eventUrlProvider,
             ModelManager modelManager,
-            LogReader logReader) {
+            LogReader logReader,
+            FederatedComputeScheduler fcpScheduler) {
         mRemoteData = remoteData;
         mLocalData = localData;
         mUserData = userData;
         mEventUrlProvider = eventUrlProvider;
         mModelManager = modelManager;
         mLogReader = logReader;
+        mFcpScheduler = fcpScheduler;
     }
 
     @Override
@@ -137,6 +144,10 @@ class SampleWorker implements IsolatedWorker {
                 result = handleReadUserData(appParams);
             } else if (op.equals(SampleServiceApi.OPCODE_READ_LOG)) {
                 result = handleReadLog(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_SCHEDULE_FEDERATED_JOB)) {
+                result = handleScheduleFederatedJob(appParams);
+            } else if (op.equals(SampleServiceApi.OPCODE_CANCEL_FEDERATED_JOB)) {
+                result = handleCancelFederatedJob(appParams);
             }
 
         } catch (Exception e) {
@@ -240,8 +251,9 @@ class SampleWorker implements IsolatedWorker {
         Objects.requireNonNull(mLogReader);
         final long now = System.currentTimeMillis();
         final long expectedValue = appParams.getLong(SampleServiceApi.KEY_EXPECTED_LOG_DATA_VALUE);
-        List<RequestLogRecord> records = mLogReader.getRequests(
-                Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        List<RequestLogRecord> records =
+                mLogReader.getRequests(
+                        Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
         if (records.isEmpty()) {
             throw new IllegalStateException("no log records");
         }
@@ -268,8 +280,9 @@ class SampleWorker implements IsolatedWorker {
         if (!found) {
             throw new IllegalStateException("log not found");
         }
-        List<EventLogRecord> events = mLogReader.getJoinedEvents(
-                Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
+        List<EventLogRecord> events =
+                mLogReader.getJoinedEvents(
+                        Instant.ofEpochMilli(now - 60 * 60 * 1000), Instant.ofEpochMilli(now));
         Log.i(TAG, "Found " + events.size() + " event records");
         return new ExecuteOutput.Builder().build();
     }
@@ -437,5 +450,29 @@ class SampleWorker implements IsolatedWorker {
                         + "</a></body>";
         Log.i(TAG, "HTML output: " + html);
         receiver.onResult(new RenderOutput.Builder().setContent(html).build());
+    }
+
+    private ExecuteOutput handleScheduleFederatedJob(PersistableBundle appParams) {
+        String populationName =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName(populationName).build();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumInterval(Duration.ofSeconds(10))
+                        .setSchedulingMode(TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                        .build();
+        FederatedComputeScheduler.Params params = new FederatedComputeScheduler.Params(interval);
+        mFcpScheduler.schedule(params, input);
+        return new ExecuteOutput.Builder().build();
+    }
+
+    private ExecuteOutput handleCancelFederatedJob(PersistableBundle appParams) {
+        String populationName =
+                Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
+        FederatedComputeInput input =
+                new FederatedComputeInput.Builder().setPopulationName(populationName).build();
+        mFcpScheduler.cancel(input);
+        return new ExecuteOutput.Builder().build();
     }
 }

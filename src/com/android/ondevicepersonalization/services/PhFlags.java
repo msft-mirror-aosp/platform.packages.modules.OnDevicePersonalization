@@ -122,6 +122,12 @@ public final class PhFlags implements Flags {
                 getTrustedPartnerAppsList());
         mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
                 isArtImageLoadingOptimizationEnabled());
+        mStableFlags.put(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
+                isPersonalizationStatusOverrideEnabled());
+        mStableFlags.put(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
+                getPersonalizationStatusOverrideValue());
+        mStableFlags.put(KEY_USER_CONTROL_CACHE_IN_MILLIS,
+                getUserControlCacheInMillis());
     }
 
     /** Gets a stable flag value based on flag name. */

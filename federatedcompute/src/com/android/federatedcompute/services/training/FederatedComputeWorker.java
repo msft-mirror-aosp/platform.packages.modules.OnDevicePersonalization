@@ -240,7 +240,8 @@ public class FederatedComputeWorker {
                     jobId,
                     trainingTask.populationName(),
                     trainingTask.getTrainingIntervalOptions(),
-                    /* taskRetry= */ null);
+                    /* taskRetry= */ null,
+                    false);
             LogUtil.i(TAG, "Training conditions not satisfied (before bindService)!");
             return null;
         }
@@ -258,7 +259,8 @@ public class FederatedComputeWorker {
                         jobId,
                         trainingTask.populationName(),
                         trainingTask.getTrainingIntervalOptions(),
-                        /* taskRetry= */ null);
+                        /* taskRetry= */ null,
+                        false);
                 return null;
             }
             return trainingTask;
@@ -298,7 +300,8 @@ public class FederatedComputeWorker {
                                     } else if (taskAssignmentResponse
                                             .getRejectionInfo()
                                             .hasRetryWindow()) {
-                                        return handleRetryRejection(run, taskAssignmentResponse);
+                                        return handleRetryRejection(
+                                                run, taskAssignmentResponse, false);
                                     }
                                     return Futures.immediateFailedFuture(
                                             new IllegalStateException(
@@ -333,7 +336,7 @@ public class FederatedComputeWorker {
                                         .getRejectionInfo()
                                         .hasRetryWindow()) {
                                     return handleRetryRejection(
-                                            run, taskAssignmentOnUnauthenticated);
+                                            run, taskAssignmentOnUnauthenticated, true);
                                 } else {
                                     // TODO: b/322880077 Cancel job when it fails authentication
                                     return Futures.immediateFailedFuture(
@@ -351,14 +354,17 @@ public class FederatedComputeWorker {
 
     @NonNull
     private ListenableFuture<FLRunnerResult> handleRetryRejection(
-            TrainingRun run, CreateTaskAssignmentResponse taskAssignmentResponse) {
+            TrainingRun run,
+            CreateTaskAssignmentResponse taskAssignmentResponse,
+            boolean enableFailuresTracking) {
         performFinishRoutines(
                 run.mCallback,
                 ContributionResult.FAIL,
                 run.mTask.jobId(),
                 run.mTask.populationName(),
                 run.mTask.getTrainingIntervalOptions(),
-                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()));
+                buildTaskRetry(taskAssignmentResponse.getRejectionInfo()),
+                enableFailuresTracking);
         return Futures.immediateFuture(null);
     }
 
@@ -678,7 +684,6 @@ public class FederatedComputeWorker {
             mActiveRun = null;
         }
     }
-
     private void performFinishRoutines(
             FederatedJobService.OnJobFinishedCallback callback,
             ContributionResult contributionResult,
@@ -686,9 +691,32 @@ public class FederatedComputeWorker {
             String populationName,
             TrainingIntervalOptions trainingIntervalOptions,
             TaskRetry taskRetry) {
+        performFinishRoutines(
+                callback,
+                contributionResult,
+                jobId,
+                populationName,
+                trainingIntervalOptions,
+                taskRetry,
+                /* enableFailuresTracking= */ true);
+    }
+
+    private void performFinishRoutines(
+            FederatedJobService.OnJobFinishedCallback callback,
+            ContributionResult contributionResult,
+            int jobId,
+            String populationName,
+            TrainingIntervalOptions trainingIntervalOptions,
+            TaskRetry taskRetry,
+            boolean enableFailuresTracking) {
         callback.callJobFinished(ContributionResult.SUCCESS.equals(contributionResult));
         mJobManager.onTrainingCompleted(
-                jobId, populationName, trainingIntervalOptions, taskRetry, contributionResult);
+                jobId,
+                populationName,
+                trainingIntervalOptions,
+                taskRetry,
+                contributionResult,
+                enableFailuresTracking);
     }
 
     private void unBindServicesIfNecessary(TrainingRun runToFinish) {
