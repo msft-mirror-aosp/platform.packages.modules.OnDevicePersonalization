@@ -19,6 +19,8 @@ package com.android.ondevicepersonalization.services.data.user;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,33 +31,64 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
+    private static final int CONTROL_RESET_STATUS_CODE = 5;
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.disableGlobalKillSwitch();
+        PhFlagsTestUtil.disablePersonalizationStatusOverride();
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
     }
 
     @Test
-    public void testEmptyUserConsentCache() {
-        assertFalse(mUserPrivacyStatus.isUserConsentCacheValid());
+    public void testEmptyUserControlCache() {
+        assertFalse(mUserPrivacyStatus.isUserControlCacheValid());
     }
 
     @Test
-    public void testUpdateConsentWithValidCache() {
-        mUserPrivacyStatus.updateUserConsentCache(true, true);
-        assertTrue(mUserPrivacyStatus.isUserConsentCacheValid());
+    public void testUpdateControlWithValidCacheControlGiven() {
+        mUserPrivacyStatus.updateUserControlCache(
+                        UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE,
+                        UserPrivacyStatus.CONTROL_GIVEN_STATUS_CODE);
+        assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceReset());
+        assertFalse(mUserPrivacyStatus.isMeasurementReset());
     }
 
     @Test
-    public void testExpiredUserConsentCache() {
-        mUserPrivacyStatus.invalidateUserConsentCacheForTesting();
-        assertFalse(mUserPrivacyStatus.isUserConsentCacheValid());
+    public void testUpdateControlWithValidCacheControlRevoked() {
+        mUserPrivacyStatus.updateUserControlCache(
+                    UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE,
+                    UserPrivacyStatus.CONTROL_REVOKED_STATUS_CODE);
+        assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
+        assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceReset());
+        assertTrue(mUserPrivacyStatus.isMeasurementReset());
+    }
+
+    @Test
+    public void testUpdateControlWithValidCacheDataReset() {
+        mUserPrivacyStatus.updateUserControlCache(CONTROL_RESET_STATUS_CODE,
+                        CONTROL_RESET_STATUS_CODE);
+        assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
+        assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
+        assertTrue(mUserPrivacyStatus.isProtectedAudienceReset());
+        assertTrue(mUserPrivacyStatus.isMeasurementReset());
+    }
+
+    @Test
+    public void testExpiredUserControlCache() {
+        mUserPrivacyStatus.invalidateUserControlCacheForTesting();
+        assertFalse(mUserPrivacyStatus.isUserControlCacheValid());
     }
 
     @After
     public void tearDown() {
-        mUserPrivacyStatus.resetUserConsentForTesting();
+        mUserPrivacyStatus.resetUserControlForTesting();
     }
 }

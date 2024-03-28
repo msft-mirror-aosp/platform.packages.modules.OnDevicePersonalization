@@ -77,6 +77,8 @@ public class AppRequestFlowTest {
     private boolean mCallbackSuccess;
     private boolean mCallbackError;
     private int mCallbackErrorCode;
+    private int mIsolatedServiceErrorCode;
+    private String mErrorMessage;
     private Bundle mExecuteCallback;
     private ServiceFlowOrchestrator mSfo;
 
@@ -97,6 +99,8 @@ public class AppRequestFlowTest {
         PhFlagsTestUtil.disableGlobalKillSwitch();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         setUpTestData();
 
@@ -121,6 +125,32 @@ public class AppRequestFlowTest {
 
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testAppRequestFlow_MeasurementControlRevoked() throws InterruptedException {
+        doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
+
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+        mLatch.await();
+
+        assertTrue(mCallbackError);
+        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+    }
+
+    @Test
+    public void testAppRequestFlow_TargetingControlRevoked() throws InterruptedException {
+        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+
+        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
+                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
+                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
+        mLatch.await();
+        assertTrue(mCallbackSuccess);
+        assertTrue(mExecuteCallback.isEmpty());
     }
 
     @Test
@@ -215,9 +245,11 @@ public class AppRequestFlowTest {
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
+            mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
     }

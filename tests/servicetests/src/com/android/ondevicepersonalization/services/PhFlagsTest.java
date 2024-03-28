@@ -39,6 +39,7 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PE
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_EXAMPLE_STORE_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_GLOBAL_KILL_SWITCH;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
@@ -387,6 +388,27 @@ public class PhFlagsTest {
 
         assertThat(FlagsFactory.getFlags().getCallerAppAllowList())
                 .isEqualTo(testCallerAppAllowList);
+    }
+
+    @Test
+    public void testIsolatedServiceDebuggingEnabled() {
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED,
+                Boolean.toString(false),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled())
+                .isEqualTo(false);
+
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED,
+                Boolean.toString(true),
+                /* makeDefault */ false);
+
+        assertThat(FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled())
+                .isEqualTo(true);
     }
 
     @Test

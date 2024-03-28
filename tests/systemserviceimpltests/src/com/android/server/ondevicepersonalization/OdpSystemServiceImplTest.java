@@ -16,28 +16,36 @@
 
 package com.android.server.ondevicepersonalization;
 
-import static com.android.server.ondevicepersonalization.OnDevicePersonalizationSystemService.KEY_NOT_FOUND_ERROR;
 import static com.android.server.ondevicepersonalization.OnDevicePersonalizationSystemService.PERSONALIZATION_STATUS_KEY;
 
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.Constants;
 import android.content.Context;
-import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.build.SdkLevel;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
 
 import org.junit.After;
+import org.junit.Assume;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.quality.Strictness;
 
 import java.util.concurrent.CountDownLatch;
 
@@ -55,13 +63,18 @@ public class OdpSystemServiceImplTest {
     private int mErrorCode;
     private CountDownLatch mLatch;
     private OnDevicePersonalizationSystemService mService;
-    private IOnDevicePersonalizationSystemService mBinder;
     private IOnDevicePersonalizationSystemServiceCallback mCallback;
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     @Before
     public void setUp() throws Exception {
-        mService = new OnDevicePersonalizationSystemService(mContext, mTestDataStore);
-        mBinder = IOnDevicePersonalizationSystemService.Stub.asInterface(mService);
+        Assume.assumeTrue(SdkLevel.isAtLeastU());
+        mService = spy(new OnDevicePersonalizationSystemService(mContext, mTestDataStore));
+        doNothing().when(mService).enforceCallingPermission();
         mOnResultCalled = false;
         mOnErrorCalled = false;
         mResult = null;
@@ -82,57 +95,57 @@ public class OdpSystemServiceImplTest {
                 mLatch.countDown();
             }
         };
-        assertNotNull(mBinder);
         assertNotNull(mCallback);
     }
 
     @Test
     public void testSystemServerServiceOnRequest() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
-        mBinder.onRequest(new Bundle(), mCallback);
+        mService.onRequest(new Bundle(), mCallback);
         mLatch.await();
         assertTrue(mOnResultCalled);
         assertNull(mResult);
+        verify(mService).enforceCallingPermission();
     }
 
     @Test
     public void testSystemServerServiceSetPersonalizationStatus() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
-        mBinder.setPersonalizationStatus(true, mCallback);
+        mService.setPersonalizationStatus(true, mCallback);
         mLatch.await();
         assertTrue(mOnResultCalled);
         assertNotNull(mResult);
         boolean inputBool = mResult.getBoolean(PERSONALIZATION_STATUS_KEY);
         assertTrue(inputBool);
+        verify(mService).enforceCallingPermission();
     }
 
     @Test
     public void testSystemServerServiceReadPersonalizationStatusSuccess() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
         mTestDataStore.put(PERSONALIZATION_STATUS_KEY, true);
-        mBinder.readPersonalizationStatus(mCallback);
+        mService.readPersonalizationStatus(mCallback);
         assertTrue(mOnResultCalled);
         assertNotNull(mResult);
         boolean inputBool = mResult.getBoolean(PERSONALIZATION_STATUS_KEY);
         assertTrue(inputBool);
+        verify(mService).enforceCallingPermission();
     }
 
     @Test
     public void testSystemServerServiceReadPersonalizationStatusNotFound() throws Exception {
-        if (!SdkLevel.isAtLeastU()) {
-            return;
-        }
         mTestDataStore.put(BAD_TEST_KEY, true);
-        mBinder.readPersonalizationStatus(mCallback);
+        mService.readPersonalizationStatus(mCallback);
         assertTrue(mOnErrorCalled);
         assertNull(mResult);
-        assertEquals(mErrorCode, KEY_NOT_FOUND_ERROR);
+        assertEquals(mErrorCode, Constants.STATUS_KEY_NOT_FOUND);
+        verify(mService).enforceCallingPermission();
+    }
+
+    @Test
+    public void testSystemServerServiceSetPersonalizationStatusPermissionDenied()
+            throws Exception {
+        doThrow(SecurityException.class).when(mService).enforceCallingPermission();
+        assertThrows(
+                SecurityException.class,
+                () -> mService.setPersonalizationStatus(true, mCallback));
     }
 
     @After

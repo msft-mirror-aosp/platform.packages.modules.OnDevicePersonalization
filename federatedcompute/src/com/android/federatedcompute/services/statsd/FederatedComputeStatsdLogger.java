@@ -16,13 +16,16 @@
 
 package com.android.federatedcompute.services.statsd;
 
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
+import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.stats.FederatedComputeStatsLog;
 
 /** Log API stats and client error stats to StatsD. */
 public class FederatedComputeStatsdLogger {
+    private static final String TAG = FederatedComputeStatsdLogger.class.getSimpleName();
     private static volatile FederatedComputeStatsdLogger sFCStatsdLogger = null;
 
     /** Returns an instance of {@link FederatedComputeStatsdLogger}. */
@@ -52,7 +55,6 @@ public class FederatedComputeStatsdLogger {
      * execution.
      */
     public void logTrainingEventReported(TrainingEventReported trainingEvent) {
-        // TODO(b/326286023): Implement KA latency in milliseconds
         FederatedComputeStatsLog.write(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED,
                 trainingEvent.getClientVersion(),
@@ -63,6 +65,26 @@ public class FederatedComputeStatsdLogger {
                 trainingEvent.getDataTransferDurationMillis(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
-                0);
+                trainingEvent.getKeyAttestationLatencyMillis(),
+                trainingEvent.getExampleStoreBindLatencyNanos(),
+                trainingEvent.getExampleStoreStartQueryLatencyNanos());
+    }
+
+    /**
+     * Log ExampleIteratorNextLatencyReported to track the latency of ExampleStoreIterator.next
+     * called.
+     */
+    public void logExampleIteratorNextLatencyReported(ExampleIteratorLatency iteratorLatency) {
+        LogUtil.d(
+                TAG,
+                "Log ExampleIteratorNextLatency metric client version %d, task id %d, latency %d",
+                iteratorLatency.getClientVersion(),
+                iteratorLatency.getTaskId(),
+                iteratorLatency.getGetNextLatencyNanos());
+        FederatedComputeStatsLog.write(
+                EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED,
+                iteratorLatency.getClientVersion(),
+                iteratorLatency.getTaskId(),
+                iteratorLatency.getGetNextLatencyNanos());
     }
 }

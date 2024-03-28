@@ -23,11 +23,13 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.readFileAsByteArray;
 import static com.android.federatedcompute.services.common.FileUtils.writeToFile;
+import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ACCEPT_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.FCP_OWNER_ID_DIGEST;
 import static com.android.federatedcompute.services.http.HttpClientUtil.GZIP_ENCODING_HDR;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_OR_UNAUTHENTICATED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_OK_STATUS;
+import static com.android.federatedcompute.services.http.HttpClientUtil.HTTP_UNAUTHORIZED_STATUS;
 import static com.android.federatedcompute.services.http.HttpClientUtil.ODP_IDEMPOTENCY_KEY;
 import static com.android.federatedcompute.services.http.HttpClientUtil.compressWithGzip;
 import static com.android.federatedcompute.services.http.HttpClientUtil.getTotalReceivedBytes;
@@ -78,7 +80,7 @@ import java.util.concurrent.Callable;
 /** Implements a single session of HTTP-based federated compute protocol. */
 public final class HttpFederatedProtocol {
     public static final String TAG = HttpFederatedProtocol.class.getSimpleName();
-    private final String mClientVersion;
+    private final long mClientVersion;
     private final String mPopulationName;
     private final HttpClient mHttpClient;
     private final ProtocolRequestCreator mTaskAssignmentRequestCreator;
@@ -91,7 +93,7 @@ public final class HttpFederatedProtocol {
     @VisibleForTesting
     HttpFederatedProtocol(
             String entryUri,
-            String clientVersion,
+            long clientVersion,
             String populationName,
             HttpClient httpClient,
             Encrypter encrypter,
@@ -107,7 +109,7 @@ public final class HttpFederatedProtocol {
     /** Creates a HttpFederatedProtocol object. */
     public static HttpFederatedProtocol create(
             String entryUri,
-            String clientVersion,
+            long clientVersion,
             String populationName,
             Encrypter encrypter,
             TrainingEventLogger trainingEventLogger) {
@@ -139,6 +141,7 @@ public final class HttpFederatedProtocol {
     /** Donwloads model checkpoint and federated compute plan from remote server. */
     public ListenableFuture<CheckinResult> downloadTaskAssignment(TaskAssignment taskAssignment) {
         NetworkStats networkStats = new NetworkStats();
+        networkStats.recordStartTimeNow();
         ListenableFuture<FederatedComputeHttpResponse> planDataResponseFuture =
                 fetchTaskResource(taskAssignment.getPlan(), networkStats);
         ListenableFuture<FederatedComputeHttpResponse> checkpointDataResponseFuture =
@@ -164,27 +167,35 @@ public final class HttpFederatedProtocol {
             FederatedComputeEncryptionKey encryptionKey,
             AuthorizationContext authContext) {
         Trace.beginAsyncSection(TRACE_HTTP_REPORT_RESULT, 0);
-        NetworkStats uploadStats = new NetworkStats();
+        NetworkStats reportResultStats = new NetworkStats();
         if (computationResult != null
                 && computationResult.isResultSuccess()
                 && encryptionKey != null) {
             return FluentFuture.from(
-                            performReportResult(computationResult, authContext, uploadStats))
+                            performReportResult(computationResult, authContext, reportResultStats))
                     .transformAsync(
                             reportResp -> {
-                                uploadStats.addBytesDownloaded(getTotalReceivedBytes(reportResp));
+                                reportResultStats.addBytesDownloaded(
+                                        getTotalReceivedBytes(reportResp));
                                 if (authContext.isFirstAuthTry()) {
                                     validateHttpResponseAllowAuthStatus("ReportResult", reportResp);
                                 } else {
-                                    validateHttpResponseStatus("ReportResult", reportResp);
+                                    if (reportResp.getStatusCode() == HTTP_UNAUTHORIZED_STATUS) {
+                                        mTrainingEventLogger.logReportResultUnauthorized();
+                                    } else {
+                                        validateHttpResponseStatus("ReportResult", reportResp);
+                                        mTrainingEventLogger.logReportResultAuthSucceeded();
+                                    }
                                 }
                                 ReportResultResponse reportResultResponse =
                                         ReportResultResponse.parseFrom(reportResp.getPayload());
                                 if (reportResultResponse.hasRejectionInfo()) {
-                                    mTrainingEventLogger.logResultUploadRejected(uploadStats);
+                                    mTrainingEventLogger.logResultUploadRejected(reportResultStats);
                                     return Futures.immediateFuture(
                                             reportResultResponse.getRejectionInfo());
                                 }
+                                // TODO (b/328789639): add a event to track ReportResult success.
+                                NetworkStats uploadStats = new NetworkStats();
                                 return FluentFuture.from(
                                                 processReportResultResponseAndUploadResult(
                                                         reportResultResponse,
@@ -193,6 +204,7 @@ public final class HttpFederatedProtocol {
                                                         uploadStats))
                                         .transform(
                                                 resp -> {
+                                                    uploadStats.recordEndTimeNow();
                                                     validateHttpResponseStatus(
                                                             "Upload result", resp);
                                                     mTrainingEventLogger.logResultUploadCompleted(
@@ -205,13 +217,16 @@ public final class HttpFederatedProtocol {
                             },
                             getBackgroundExecutor());
         } else {
+            reportResultStats.recordStartTimeNow();
             return FluentFuture.from(
-                            performReportResult(computationResult, authContext, uploadStats))
+                            performReportResult(computationResult, authContext, reportResultStats))
                     .transform(
                             resp -> {
+                                reportResultStats.recordEndTimeNow();
                                 validateHttpResponseStatus("Report failure result", resp);
-                                uploadStats.addBytesDownloaded(getTotalReceivedBytes(resp));
-                                mTrainingEventLogger.logFailureResultUploadCompleted(uploadStats);
+                                reportResultStats.addBytesDownloaded(getTotalReceivedBytes(resp));
+                                mTrainingEventLogger.logFailureResultUploadCompleted(
+                                        reportResultStats);
                                 return null;
                             },
                             getLightweightExecutor());
@@ -222,10 +237,16 @@ public final class HttpFederatedProtocol {
             AuthorizationContext authContext,
             FederatedComputeHttpResponse response,
             NetworkStats networkStats) {
+        networkStats.recordEndTimeNow();
         if (authContext.isFirstAuthTry()) {
             validateHttpResponseAllowAuthStatus("Start task assignment", response);
         } else {
-            validateHttpResponseStatus("Start task assignment", response);
+            if (response.getStatusCode() == HTTP_UNAUTHORIZED_STATUS) {
+                mTrainingEventLogger.logTaskAssignmentUnauthorized();
+            } else {
+                validateHttpResponseStatus("Start task assignment", response);
+                mTrainingEventLogger.logTaskAssignmentAuthSucceeded();
+            }
         }
         networkStats.addBytesDownloaded(getTotalReceivedBytes(response));
         CreateTaskAssignmentResponse taskAssignmentResponse;
@@ -240,8 +261,9 @@ public final class HttpFederatedProtocol {
             return taskAssignmentResponse;
         }
         TaskAssignment taskAssignment = getTaskAssignment(taskAssignmentResponse);
-        String taskName = taskAssignment.getPopulationName() + "/" + taskAssignment.getTaskId();
-        mTrainingEventLogger.setTaskId(taskName.hashCode());
+        mTrainingEventLogger.setTaskId(
+                getTaskIdForLogging(
+                        taskAssignment.getPopulationName(), taskAssignment.getTaskId()));
         mTrainingEventLogger.logCheckinPlanUriReceived(networkStats);
         return taskAssignmentResponse;
     }
@@ -250,7 +272,9 @@ public final class HttpFederatedProtocol {
             AuthorizationContext authContext, NetworkStats networkStats) {
         CreateTaskAssignmentRequest request =
                 CreateTaskAssignmentRequest.newBuilder()
-                        .setClientVersion(ClientVersion.newBuilder().setVersionCode(mClientVersion))
+                        .setClientVersion(
+                                ClientVersion.newBuilder()
+                                        .setVersionCode(String.valueOf(mClientVersion)))
                         .setResourceCapabilities(
                                 ResourceCapabilities.newBuilder()
                                         .addSupportedCompressionFormats(
@@ -276,6 +300,7 @@ public final class HttpFederatedProtocol {
                         /* isProtobufEncoded= */ true);
         mTrainingEventLogger.logCheckinStarted();
         networkStats.addBytesUploaded(getTotalSentBytes(httpRequest));
+        networkStats.recordStartTimeNow();
         return mHttpClient.performRequestAsyncWithRetry(httpRequest);
     }
 
@@ -319,7 +344,7 @@ public final class HttpFederatedProtocol {
             TaskAssignment taskAssignment,
             NetworkStats networkStats)
             throws Exception {
-
+        networkStats.recordEndTimeNow();
         FederatedComputeHttpResponse planDataResponse = Futures.getDone(planDataResponseFuture);
         FederatedComputeHttpResponse checkpointDataResponse =
                 Futures.getDone(checkpointDataResponseFuture);
@@ -437,6 +462,7 @@ public final class HttpFederatedProtocol {
                             HttpMethod.PUT,
                             requestHeader,
                             outputBytes);
+            networkStats.recordStartTimeNow();
             networkStats.addBytesUploaded(getTotalSentBytes(httpUploadRequest));
             return mHttpClient.performRequestAsyncWithRetry(httpUploadRequest);
         } catch (Exception e) {
