@@ -305,6 +305,9 @@ public final class UserPrivacyStatus {
 
     // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
     private void restorePersonalizationStatus() {
+        if (isOverrideEnabled()) {
+            return;
+        }
         Context odpContext = OnDevicePersonalizationApplication.getAppContext();
         OnDevicePersonalizationSystemServiceManager systemServiceManager =
                 odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
