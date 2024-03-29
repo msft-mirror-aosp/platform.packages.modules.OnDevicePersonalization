@@ -58,7 +58,7 @@ public final class UserPrivacyStatus {
     static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
     static final int CONTROL_REVOKED_STATUS_CODE = 2;
-    static UserPrivacyStatus sUserPrivacyStatus = null;
+    static volatile UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mPersonalizationStatusEnabled;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
