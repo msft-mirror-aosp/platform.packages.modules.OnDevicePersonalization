@@ -92,6 +92,19 @@ public final class UserPrivacyStatus {
         return sUserPrivacyStatus;
     }
 
+    /** Returns an instance of UserPrivacyStatus. */
+    @VisibleForTesting
+    public static UserPrivacyStatus getInstanceForTest() {
+        if (sUserPrivacyStatus == null) {
+            synchronized (UserPrivacyStatus.class) {
+                if (sUserPrivacyStatus == null) {
+                    sUserPrivacyStatus = new UserPrivacyStatus();
+                }
+            }
+        }
+        return sUserPrivacyStatus;
+    }
+
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
         Flags flags = FlagsFactory.getFlags();
         if (!(boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
