@@ -35,8 +35,9 @@ public class ReportConversion {
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
+        TestAppHelper.killRunningProcess(); // so we can reset stable flags
         TestAppHelper.initialize();
-        TestAppHelper.killRunningProcess();
+        TestAppHelper.killRunningProcess(); // to get cold start metrics
     }
 
     @Before

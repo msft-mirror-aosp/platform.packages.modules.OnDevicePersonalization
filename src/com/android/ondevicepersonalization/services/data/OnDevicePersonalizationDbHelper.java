@@ -36,7 +36,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
 
-    private static final int DATABASE_VERSION = 1;
+    public static final int DATABASE_VERSION = 2;
     private static final String DATABASE_NAME = "ondevicepersonalization.db";
 
     private static volatile OnDevicePersonalizationDbHelper sSingleton = null;
@@ -85,10 +85,15 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        // TODO: handle upgrade when the db schema is changed.
         sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
-        throw new UnsupportedOperationException(
-                "Database upgrade for OnDevicePersonalization is unsupported");
+        if (oldVersion == 1 && newVersion > 1) {
+            try {
+                db.execSQL(QueriesContract.QueriesEntry.UPGRADE_FROM_V1_STATEMENT);
+            } catch (Exception e) {
+                // Ignore upgrade errors on upgrade after downgrade: the column is already present.
+                sLogger.w(TAG + ": error ", e);
+            }
+        }
     }
 
     @Override

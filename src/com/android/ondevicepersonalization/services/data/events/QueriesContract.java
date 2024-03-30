@@ -35,7 +35,10 @@ public class QueriesContract {
         /** Time of the query in milliseconds. */
         public static final String TIME_MILLIS = "timeMillis";
 
-        /** Name of the package that handled the request */
+        /** Name of the app that invoked ODP. */
+        public static final String APP_PACKAGE_NAME = "appPackageName";
+
+        /** Component Name of the service that handled the request */
         public static final String SERVICE_NAME = "serviceName";
 
         /** Blob representing the common query fields. */
@@ -45,8 +48,14 @@ public class QueriesContract {
                 "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ("
                     + QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
                     + TIME_MILLIS + " INTEGER NOT NULL,"
+                    + APP_PACKAGE_NAME + " TEXT NOT NULL,"
                     + SERVICE_NAME + " TEXT NOT NULL,"
                     + QUERY_DATA + " BLOB NOT NULL)";
+
+        public static final String UPGRADE_FROM_V1_STATEMENT =
+                "ALTER TABLE " + TABLE_NAME
+                + " ADD COLUMN " + APP_PACKAGE_NAME + " TEXT NOT NULL "
+                + "DEFAULT ''";
 
         private QueriesEntry() {}
     }

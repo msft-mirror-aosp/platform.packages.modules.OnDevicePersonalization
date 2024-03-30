@@ -91,7 +91,7 @@ public class OnDevicePersonalizationConfigServiceTest {
         when(mContext.checkCallingPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_GRANTED);
         mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
-        mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+        mUserPrivacyStatus = UserPrivacyStatus.getInstanceForTest();
         mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserData = RawUserData.getInstance();
         TimeZone pstTime = TimeZone.getTimeZone("GMT-08:00");
