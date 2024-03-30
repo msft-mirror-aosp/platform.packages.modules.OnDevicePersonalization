@@ -28,6 +28,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOADED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOAD_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_INITIATE_REPORT_RESULT_AUTH_SUCCEEDED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_SUCCEEDED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_NOT_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_REPORT_RESULT_UNAUTHORIZED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOADED;
@@ -229,7 +230,10 @@ public class TrainingEventLogger {
     /** Logs the latency of calling key attestation on device */
     public void logKeyAttestationLatencyEvent(long latencyMillis) {
         TrainingEventReported.Builder event =
-                new TrainingEventReported.Builder().setKeyAttestationLatencyMillis(latencyMillis);
+                new TrainingEventReported.Builder()
+                        .setKeyAttestationLatencyMillis(latencyMillis)
+                        .setEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_SUCCEEDED);
         logEvent(event);
     }
 
