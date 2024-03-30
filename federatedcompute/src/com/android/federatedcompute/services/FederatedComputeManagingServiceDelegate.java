@@ -181,10 +181,10 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
                                 }
                             });
         } catch (NullPointerException | IllegalArgumentException ex) {
-            LogUtil.e(TAG, ex, "Got exception for schedule()");
+            LogUtil.e(TAG, ex, "Got exception for cancel()");
             throw ex;
         } catch (Exception e) {
-            LogUtil.e(TAG, e, "Got exception for schedule()");
+            LogUtil.e(TAG, e, "Got exception for cancel()");
             sendResult(callback, STATUS_INTERNAL_ERROR);
         }
     }

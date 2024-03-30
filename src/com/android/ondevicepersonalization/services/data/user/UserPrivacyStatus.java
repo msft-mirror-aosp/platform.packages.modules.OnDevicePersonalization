@@ -42,6 +42,7 @@ import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.Clock;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -58,7 +59,7 @@ public final class UserPrivacyStatus {
     static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
     static final int CONTROL_REVOKED_STATUS_CODE = 2;
-    static UserPrivacyStatus sUserPrivacyStatus = null;
+    static volatile UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mPersonalizationStatusEnabled;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
@@ -105,16 +106,23 @@ public final class UserPrivacyStatus {
         return sUserPrivacyStatus;
     }
 
+    private static boolean isOverrideEnabled() {
+        Flags flags = FlagsFactory.getFlags();
+        return DebugUtils.isDeveloperModeEnabled(
+                OnDevicePersonalizationApplication.getAppContext())
+                && (boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
+    }
+
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
         Flags flags = FlagsFactory.getFlags();
-        if (!(boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (!isOverrideEnabled()) {
             mPersonalizationStatusEnabled = personalizationStatusEnabled;
         }
     }
 
     public boolean isPersonalizationStatusEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if ((boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (isOverrideEnabled()) {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         return mPersonalizationStatusEnabled;
@@ -125,7 +133,7 @@ public final class UserPrivacyStatus {
      */
     public boolean isProtectedAudienceEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if ((boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (isOverrideEnabled()) {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
@@ -141,7 +149,7 @@ public final class UserPrivacyStatus {
      */
     public boolean isMeasurementEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if ((boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (isOverrideEnabled()) {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
@@ -297,6 +305,9 @@ public final class UserPrivacyStatus {
 
     // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
     private void restorePersonalizationStatus() {
+        if (isOverrideEnabled()) {
+            return;
+        }
         Context odpContext = OnDevicePersonalizationApplication.getAppContext();
         OnDevicePersonalizationSystemServiceManager systemServiceManager =
                 odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
