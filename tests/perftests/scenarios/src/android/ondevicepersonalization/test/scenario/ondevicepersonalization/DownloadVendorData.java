@@ -35,8 +35,9 @@ public class DownloadVendorData {
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
+        DownloadHelper.killRunningProcess(); // so we can reset stable flags
         DownloadHelper.initialize();
-        DownloadHelper.killRunningProcess();
+        DownloadHelper.killRunningProcess(); // to get cold start metrics
     }
     @Before
     public void setUp() throws IOException {
