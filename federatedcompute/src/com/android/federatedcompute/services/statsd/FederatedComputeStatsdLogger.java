@@ -20,7 +20,6 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
-import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.stats.FederatedComputeStatsLog;
 
 /** Log API stats and client error stats to StatsD. */
@@ -75,12 +74,6 @@ public class FederatedComputeStatsdLogger {
      * called.
      */
     public void logExampleIteratorNextLatencyReported(ExampleIteratorLatency iteratorLatency) {
-        LogUtil.d(
-                TAG,
-                "Log ExampleIteratorNextLatency metric client version %d, task id %d, latency %d",
-                iteratorLatency.getClientVersion(),
-                iteratorLatency.getTaskId(),
-                iteratorLatency.getGetNextLatencyNanos());
         FederatedComputeStatsLog.write(
                 EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED,
                 iteratorLatency.getClientVersion(),

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,7 @@
  */
 package android.federatedcompute.test.scenario.federatedcompute;
 
+import android.os.SystemClock;
 import android.platform.test.scenario.annotation.Scenario;
 
 import org.junit.AfterClass;
@@ -29,10 +30,10 @@ import java.io.IOException;
 @Scenario
 @RunWith(JUnit4.class)
 /**
- * Schedule a non-existent population training task from Odp Test app UI
- * Force the task execution through ADB commands and verify error handling and exit behavior
+ * Schedule recurrent federatedCompute training task from Odp Test app UI
+ * Then force the task execution twice through ADB commands
  */
-public class ScheduleNonExistentPopulationForTraining {
+public class ScheduleRecurrentTrainingAndExecute {
     private TestHelper mTestHelper = new TestHelper();
 
     /** Prepare the device before entering the test class */
@@ -47,13 +48,16 @@ public class ScheduleNonExistentPopulationForTraining {
     public void setup() throws IOException {
         mTestHelper.pressHome();
         mTestHelper.openTestApp();
-        mTestHelper.inputNonExistentPopulationForScheduleTraining();
     }
 
     @Test
-    public void testScheduleNonExistentPopulationForTraining() throws IOException {
+    public void testScheduleRecurrentTrainingAndExecute() throws IOException {
+        mTestHelper.inputPopulationForScheduleTraining();
+        mTestHelper.inputRandomRecurringTrainingInterval();
         mTestHelper.clickScheduleTraining();
-        mTestHelper.forceExecuteTrainingForNonExistentPopulation();
+        mTestHelper.forceExecuteTrainingTaskForTestApp();
+        SystemClock.sleep(5000);
+        mTestHelper.forceExecuteTrainingTaskForTestApp();
     }
 
     /** Return device to original state after test exeuction */

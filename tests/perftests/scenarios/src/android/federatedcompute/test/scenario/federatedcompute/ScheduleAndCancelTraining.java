@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2023 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -29,31 +29,37 @@ import java.io.IOException;
 @Scenario
 @RunWith(JUnit4.class)
 /**
- * Schedule a non-existent population training task from Odp Test app UI
- * Force the task execution through ADB commands and verify error handling and exit behavior
+ * Schedule a federatedCompute training one-time task from Odp Test app UI
+ * Schedule a federatedCompute training recurring task from Odp Test app UI
+ * Then cancel both tasks
  */
-public class ScheduleNonExistentPopulationForTraining {
+public class ScheduleAndCancelTraining {
     private TestHelper mTestHelper = new TestHelper();
 
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
-        TestHelper.killRunningProcess(); // so we can reset stable flags
+        TestHelper.killRunningProcess();
         TestHelper.initialize();
-        TestHelper.killRunningProcess(); // to get cold start metrics
+        TestHelper.killRunningProcess();
     }
 
     @Before
     public void setup() throws IOException {
         mTestHelper.pressHome();
         mTestHelper.openTestApp();
-        mTestHelper.inputNonExistentPopulationForScheduleTraining();
     }
 
     @Test
-    public void testScheduleNonExistentPopulationForTraining() throws IOException {
+    public void testScheduleAndCancelTraining() throws IOException {
+        mTestHelper.inputNonExistentPopulationForScheduleTraining();
         mTestHelper.clickScheduleTraining();
-        mTestHelper.forceExecuteTrainingForNonExistentPopulation();
+        mTestHelper.clickCancelTraining();
+
+        mTestHelper.inputNonExistentPopulationForScheduleTraining();
+        mTestHelper.inputRandomRecurringTrainingInterval();
+        mTestHelper.clickScheduleTraining();
+        mTestHelper.clickCancelTraining();
     }
 
     /** Return device to original state after test exeuction */

@@ -19,5 +19,6 @@
 <on-device-personalization>
   <service name="com.android.ondevicepersonalization.testing.sampleservice.SampleService" >
     <download-settings url="android.resource://com.android.ondevicepersonalization.testing.sampleservice/raw/test_data1" />
+    <federated-compute-settings url="https://fcp.example.com/" />
   </service>
 </on-device-personalization>
