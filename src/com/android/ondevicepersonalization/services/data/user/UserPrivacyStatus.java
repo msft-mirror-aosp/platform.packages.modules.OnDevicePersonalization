@@ -16,22 +16,33 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_USER_CONTROL_CACHE_IN_MILLIS;
+
 import android.adservices.common.AdServicesCommonManager;
 import android.adservices.common.AdServicesCommonStates;
 import android.adservices.common.AdServicesCommonStatesResponse;
 import android.adservices.common.AdServicesOutcomeReceiver;
+import android.adservices.ondevicepersonalization.Constants;
 import android.annotation.NonNull;
 import android.content.Context;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
+import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
+import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
+import android.os.Bundle;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.Clock;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -43,50 +54,76 @@ public final class UserPrivacyStatus {
     private static final String TAG = "UserPrivacyStatus";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final Clock sClock = MonotonicClock.getInstance();
+    private static final String PERSONALIZATION_STATUS_KEY = "PERSONALIZATION_STATUS";
     @VisibleForTesting
     static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
     static final int CONTROL_REVOKED_STATUS_CODE = 2;
-    static UserPrivacyStatus sUserPrivacyStatus = null;
+    static volatile UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mPersonalizationStatusEnabled;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
+    private boolean mProtectedAudienceReset;
+    private boolean mMeasurementReset;
     private long mLastUserControlCacheUpdate;
-
-    private enum CommonState {
-        PROTECTED_AUDIENCE,
-        MEASUREMENT
-    }
 
     private UserPrivacyStatus() {
         // Assume the more privacy-safe option until updated.
         mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
+        mProtectedAudienceReset = true;
+        mMeasurementReset = true;
         mLastUserControlCacheUpdate = -1L;
     }
 
     /** Returns an instance of UserPrivacyStatus. */
     public static UserPrivacyStatus getInstance() {
-        synchronized (UserPrivacyStatus.class) {
-            if (sUserPrivacyStatus == null) {
-                sUserPrivacyStatus = new UserPrivacyStatus();
+        if (sUserPrivacyStatus == null) {
+            synchronized (UserPrivacyStatus.class) {
+                if (sUserPrivacyStatus == null) {
+                    sUserPrivacyStatus = new UserPrivacyStatus();
+                    // Restore personalization status from the system server on U+ devices.
+                    if (SdkLevel.isAtLeastU()) {
+                        sUserPrivacyStatus.restorePersonalizationStatus();
+                    }
+                }
             }
-            return sUserPrivacyStatus;
         }
+        return sUserPrivacyStatus;
+    }
+
+    /** Returns an instance of UserPrivacyStatus. */
+    @VisibleForTesting
+    public static UserPrivacyStatus getInstanceForTest() {
+        if (sUserPrivacyStatus == null) {
+            synchronized (UserPrivacyStatus.class) {
+                if (sUserPrivacyStatus == null) {
+                    sUserPrivacyStatus = new UserPrivacyStatus();
+                }
+            }
+        }
+        return sUserPrivacyStatus;
+    }
+
+    private static boolean isOverrideEnabled() {
+        Flags flags = FlagsFactory.getFlags();
+        return DebugUtils.isDeveloperModeEnabled(
+                OnDevicePersonalizationApplication.getAppContext())
+                && (boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
     }
 
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
         Flags flags = FlagsFactory.getFlags();
-        if (!flags.isPersonalizationStatusOverrideEnabled()) {
+        if (!isOverrideEnabled()) {
             mPersonalizationStatusEnabled = personalizationStatusEnabled;
         }
     }
 
     public boolean isPersonalizationStatusEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if (flags.isPersonalizationStatusOverrideEnabled()) {
-            return flags.getPersonalizationStatusOverrideValue();
+        if (isOverrideEnabled()) {
+            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         return mPersonalizationStatusEnabled;
     }
@@ -96,14 +133,15 @@ public final class UserPrivacyStatus {
      */
     public boolean isProtectedAudienceEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if (flags.isPersonalizationStatusOverrideEnabled()) {
-            return flags.getPersonalizationStatusOverrideValue();
+        if (isOverrideEnabled()) {
+            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
             return mProtectedAudienceEnabled;
         }
         // make request to AdServices#getCommonStates API.
-        return fetchStateFromAdServices(CommonState.PROTECTED_AUDIENCE);
+        fetchStateFromAdServices();
+        return mProtectedAudienceEnabled;
     }
 
     /**
@@ -111,24 +149,51 @@ public final class UserPrivacyStatus {
      */
     public boolean isMeasurementEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if (flags.isPersonalizationStatusOverrideEnabled()) {
-            return flags.getPersonalizationStatusOverrideValue();
+        if (isOverrideEnabled()) {
+            return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
             return mMeasurementEnabled;
         }
         // make request to AdServices#getCommonStates API.
-        return fetchStateFromAdServices(CommonState.MEASUREMENT);
+        fetchStateFromAdServices();
+        return mMeasurementEnabled;
+    }
+
+    /**
+     * Returns true if the user requests a reset on PA-related data.
+     */
+    public boolean isProtectedAudienceReset() {
+        if (isUserControlCacheValid()) {
+            return mProtectedAudienceReset;
+        }
+        // make request to AdServices#getCommonStates API.
+        fetchStateFromAdServices();
+        return mProtectedAudienceReset;
+    }
+
+    /**
+     * Returns true if the user requests a reset on measurement-related data.
+     */
+    public boolean isMeasurementReset() {
+        if (isUserControlCacheValid()) {
+            return mMeasurementReset;
+        }
+        // make request to AdServices#getCommonStates API.
+        fetchStateFromAdServices();
+        return mMeasurementReset;
     }
 
     /**
      * Update user control cache and timestamp metadata.
      */
     @VisibleForTesting
-    void updateUserControlCache(boolean protectedAudienceEnabled,
-            boolean measurementEnabled) {
-        mProtectedAudienceEnabled = protectedAudienceEnabled;
-        mMeasurementEnabled = measurementEnabled;
+    void updateUserControlCache(int protectedAudienceState,
+            int measurementState) {
+        mProtectedAudienceEnabled = (protectedAudienceState != CONTROL_REVOKED_STATUS_CODE);
+        mMeasurementEnabled = (measurementState != CONTROL_REVOKED_STATUS_CODE);
+        mProtectedAudienceReset = (protectedAudienceState != CONTROL_GIVEN_STATUS_CODE);
+        mMeasurementReset = (measurementState != CONTROL_GIVEN_STATUS_CODE);
         mLastUserControlCacheUpdate = sClock.currentTimeMillis();
     }
 
@@ -142,7 +207,8 @@ public final class UserPrivacyStatus {
         }
         long cacheDuration = sClock.currentTimeMillis() - mLastUserControlCacheUpdate;
         return cacheDuration >= 0
-                        && cacheDuration < FlagsFactory.getFlags().getUserControlCacheInMillis();
+                        && cacheDuration < (long) FlagsFactory.getFlags().getStableFlag(
+                                        KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
     /**
@@ -152,6 +218,8 @@ public final class UserPrivacyStatus {
     void resetUserControlForTesting() {
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
+        mProtectedAudienceReset = true;
+        mMeasurementReset = true;
         mLastUserControlCacheUpdate = -1L;
     }
 
@@ -161,10 +229,11 @@ public final class UserPrivacyStatus {
     @VisibleForTesting
     void invalidateUserControlCacheForTesting() {
         mLastUserControlCacheUpdate = sClock.currentTimeMillis()
-                        - 2 * FlagsFactory.getFlags().getUserControlCacheInMillis();
+                        - 2 * (long) FlagsFactory.getFlags().getStableFlag(
+                                        KEY_USER_CONTROL_CACHE_IN_MILLIS);
     }
 
-    private boolean fetchStateFromAdServices(CommonState state) {
+    private void fetchStateFromAdServices() {
         try {
             // IPC.
             AdServicesCommonManager adServicesCommonManager = getAdServicesCommonManager();
@@ -172,25 +241,11 @@ public final class UserPrivacyStatus {
                             getAdServicesCommonStates(adServicesCommonManager);
 
             // update cache.
-            boolean updatedProtectedAudienceEnabled =
-                    (commonStates.getPaState() == CONTROL_GIVEN_STATUS_CODE);
-            boolean updatedMeasurementEnabled =
-                    (commonStates.getMeasurementState() == CONTROL_GIVEN_STATUS_CODE);
-            updateUserControlCache(updatedProtectedAudienceEnabled, updatedMeasurementEnabled);
-
-            // return requested common state.
-            switch (state) {
-                case PROTECTED_AUDIENCE -> {
-                    return updatedProtectedAudienceEnabled;
-                }
-                case MEASUREMENT -> {
-                    return updatedMeasurementEnabled;
-                }
-            }
-            return false;
+            int updatedProtectedAudienceState = commonStates.getPaState();
+            int updatedMeasurementState = commonStates.getMeasurementState();
+            updateUserControlCache(updatedProtectedAudienceState, updatedMeasurementState);
         } catch (Exception e) {
             sLogger.e(TAG + ": fetchStateFromAdServices error", e);
-            return false;
         }
     }
 
@@ -246,5 +301,48 @@ public final class UserPrivacyStatus {
                     return "getAdServicesCommonStates";
                 }
         );
+    }
+
+    // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
+    private void restorePersonalizationStatus() {
+        if (isOverrideEnabled()) {
+            return;
+        }
+        Context odpContext = OnDevicePersonalizationApplication.getAppContext();
+        OnDevicePersonalizationSystemServiceManager systemServiceManager =
+                odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);
+        if (systemServiceManager != null) {
+            IOnDevicePersonalizationSystemService systemService =
+                    systemServiceManager.getService();
+            if (systemService != null) {
+                try {
+                    systemService.readPersonalizationStatus(
+                            new IOnDevicePersonalizationSystemServiceCallback.Stub() {
+                                @Override
+                                public void onResult(Bundle bundle) {
+                                    boolean personalizationStatus =
+                                            bundle.getBoolean(PERSONALIZATION_STATUS_KEY);
+                                    setPersonalizationStatusEnabled(personalizationStatus);
+                                }
+
+                                @Override
+                                public void onError(int errorCode) {
+                                    if (errorCode == Constants.STATUS_KEY_NOT_FOUND) {
+                                        sLogger.d(
+                                                TAG
+                                                        + ": Personalization status "
+                                                        + "not found in the system server");
+                                    }
+                                }
+                            });
+                } catch (Exception e) {
+                    sLogger.e(TAG + ": Error when reading personalization status.", e);
+                }
+            } else {
+                sLogger.w(TAG + ": System service is not ready.");
+            }
+        } else {
+            sLogger.w(TAG + ": Cannot find system server on U+ devices.");
+        }
     }
 }

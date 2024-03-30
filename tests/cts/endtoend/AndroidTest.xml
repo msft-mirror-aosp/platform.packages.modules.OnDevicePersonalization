@@ -29,13 +29,21 @@
     <target_preparer class="com.android.tradefed.targetprep.RunCommandTargetPreparer">
         <option name="run-command" value="device_config set_sync_disabled_for_tests persistent" />
         <option name="run-command" value="device_config put on_device_personalization global_kill_switch false" />
+        <option name="run-command" value="device_config put on_device_personalization federated_compute_kill_switch false" />
         <option name="run-command" value="device_config put on_device_personalization enable_personalization_status_override true"/>
         <option name="run-command" value="device_config put on_device_personalization personalization_status_override_value true"/>
         <option name="teardown-command" value="device_config delete on_device_personalization global_kill_switch" />
+        <option name="teardown-command" value="device_config delete on_device_personalization federated_compute_kill_switch" />
         <option name="teardown-command" value="device_config delete on_device_personalization enable_personalization_status_override" />
         <option name="teardown-command" value="device_config delete on_device_personalization personalization_status_override_value" />
         <option name="teardown-command" value="device_config set_sync_disabled_for_tests none" />
     </target_preparer>
+
+    <metrics_collector class="com.android.tradefed.device.metric.FilePullerLogCollector">
+        <option name="directory-keys" value="/data/system/files" />
+        <option name="clean-up" value="false" />
+        <option name="collect-on-run-ended-only" value="true" />
+    </metrics_collector>
 
     <test class="com.android.tradefed.testtype.AndroidJUnitTest">
         <option name="hidden-api-checks" value="false" /> <!-- Allow hidden API uses -->

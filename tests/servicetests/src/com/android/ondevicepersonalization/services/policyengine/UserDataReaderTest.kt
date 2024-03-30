@@ -68,11 +68,7 @@ class UserDataReaderTest : ProcessorNode {
 
     override val requiredConnectionTypes = setOf(UserDataReader::class.java)
 
-    private val chronicleManager: ChronicleManager = ChronicleManager.getInstance(
-        connectionProviders = setOf(UserDataConnectionProvider()),
-        policies = setOf(DataIngressPolicy.NPA_DATA_POLICY),
-        connectionContext = TypedMap()
-    )
+    private val chronicleManager: ChronicleManager = ChronicleManager.getInstance()
 
     @Before
     fun setUp() {
