@@ -89,6 +89,8 @@ public final class FederatedExampleIterator implements ExampleIterator {
     private final long mTaskId;
     private final Context mContext;
 
+    private final long mApexVersion;
+
     public FederatedExampleIterator(
             IExampleStoreIterator exampleStoreIterator,
             byte[] resumptionToken,
@@ -103,6 +105,7 @@ public final class FederatedExampleIterator implements ExampleIterator {
         this.mTaskId = taskId;
         this.mContext = context;
         this.mIteratorWrapper = new ProxyIteratorWrapper(exampleStoreIterator);
+        this.mApexVersion = PackageUtils.getApexVersion(this.mContext);
     }
 
     @Override
@@ -155,8 +158,8 @@ public final class FederatedExampleIterator implements ExampleIterator {
         FederatedComputeStatsdLogger.getInstance()
                 .logExampleIteratorNextLatencyReported(
                         new ExampleIteratorLatency.Builder()
+                                .setClientVersion(mApexVersion)
                                 .setTaskId(mTaskId)
-                                .setClientVersion(PackageUtils.getApexVersion(this.mContext))
                                 .setGetNextLatencyNanos(latency)
                                 .build());
         if (mCurrentResult == null) {
