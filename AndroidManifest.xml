@@ -47,6 +47,12 @@
     <permission android:name="android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT"
                 android:protectionLevel="signature|privileged"/>
 
+    <!-- Required for invoking the system server service -->
+    <permission android:name="android.permission.ondevicepersonalization.ACCESS_SYSTEM_SERVER_SERVICE"
+                android:protectionLevel="signature"/>
+
+    <uses-permission android:name="android.permission.ondevicepersonalization.ACCESS_SYSTEM_SERVER_SERVICE" />
+
     <application android:name=".OnDevicePersonalizationApplication"
                  android:forceQueryable="true">
         <service android:name=".OnDevicePersonalizationManagingServiceImpl" android:exported="true" >
