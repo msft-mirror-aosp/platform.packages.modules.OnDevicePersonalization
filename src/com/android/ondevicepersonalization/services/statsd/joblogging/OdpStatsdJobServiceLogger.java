@@ -18,15 +18,17 @@ package com.android.ondevicepersonalization.services.statsd.joblogging;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__MODULE_NAME__MODULE_NAME_ON_DEVICE_PERSONALIZATION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.BACKGROUND_JOB_SCHEDULING_REPORTED;
 
 import com.android.adservices.service.stats.AdServicesStatsLog;
 import com.android.adservices.shared.spe.logging.ExecutionReportedStats;
+import com.android.adservices.shared.spe.logging.SchedulingReportedStats;
 import com.android.adservices.shared.spe.logging.StatsdJobServiceLogger;
 
 /** ODP implementation of {@link StatsdJobServicesLogger}. */
 public final class OdpStatsdJobServiceLogger implements StatsdJobServiceLogger {
 
-    /** Logging method for ODP background job execution stats. */
+    @Override
     public void logExecutionReportedStats(ExecutionReportedStats stats) {
         AdServicesStatsLog.write(
                 AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED,
@@ -35,6 +37,16 @@ public final class OdpStatsdJobServiceLogger implements StatsdJobServiceLogger {
                 stats.getExecutionPeriodMinute(),
                 stats.getExecutionResultCode(),
                 stats.getStopReason(),
+                AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__MODULE_NAME__MODULE_NAME_ON_DEVICE_PERSONALIZATION);
+    }
+
+    @Override
+    public void logSchedulingReportedStats(SchedulingReportedStats stats) {
+        AdServicesStatsLog.write(
+                BACKGROUND_JOB_SCHEDULING_REPORTED,
+                stats.getJobId(),
+                stats.getResultCode(),
+                stats.getSchedulerType(),
                 AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__MODULE_NAME__MODULE_NAME_ON_DEVICE_PERSONALIZATION);
     }
 }
