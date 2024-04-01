@@ -20,6 +20,7 @@ import static android.app.job.JobScheduler.RESULT_FAILURE;
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -83,6 +84,13 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
         jobScheduler.cancel(OnDevicePersonalizationConfig.DOWNLOAD_PROCESSING_TASK_JOB_ID);
 
         mSpyService = spy(new OnDevicePersonalizationDownloadProcessingJobService());
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        OnDevicePersonalizationDownloadProcessingJobService instance =
+                new OnDevicePersonalizationDownloadProcessingJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test

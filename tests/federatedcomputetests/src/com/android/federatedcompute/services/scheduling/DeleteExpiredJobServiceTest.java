@@ -114,6 +114,12 @@ public class DeleteExpiredJobServiceTest {
     }
 
     @Test
+    public void testDefaultNoArgConstructor() {
+        DeleteExpiredJobService instance = new DeleteExpiredJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
+    }
+
+    @Test
     public void deleteExpiredAuthToken_success() throws Exception {
         mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired1"));
         mSpyAuthTokenDao.insertAuthorizationToken(createExpiredAuthToken("expired2"));

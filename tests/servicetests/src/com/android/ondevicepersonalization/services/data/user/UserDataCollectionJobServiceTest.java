@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.user;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -64,6 +65,12 @@ public class UserDataCollectionJobServiceTest {
         mUserPrivacyStatus = spy(UserPrivacyStatus.getInstance());
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mService = spy(new UserDataCollectionJobService());
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        UserDataCollectionJobService instance = new UserDataCollectionJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test
