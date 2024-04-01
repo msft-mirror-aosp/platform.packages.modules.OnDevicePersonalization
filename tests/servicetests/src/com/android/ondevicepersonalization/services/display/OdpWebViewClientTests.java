@@ -82,10 +82,12 @@ public class OdpWebViewClientTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private EventUrlPayload mTestEventPayload;
-    private final Query mTestQuery = new Query.Builder()
-            .setTimeMillis(1L)
-            .setService(ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS))
-            .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+    private final Query mTestQuery = new Query.Builder(
+            1L,
+            "com.app",
+            ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
+            "AABBCCDD",
+            "query".getBytes(StandardCharsets.UTF_8))
             .build();
     private EventsDao mDao;
     private OnDevicePersonalizationDbHelper mDbHelper;
