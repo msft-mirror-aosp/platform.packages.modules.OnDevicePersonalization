@@ -167,6 +167,13 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     }
 
     @Test
+    public void testDefaultNoArgConstructor() {
+        OnDevicePersonalizationMaintenanceJobService instance =
+                new OnDevicePersonalizationMaintenanceJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
+    }
+
+    @Test
     public void onStartJobTest() {
         doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
         doReturn(mContext.getPackageManager()).when(mSpyService).getPackageManager();
