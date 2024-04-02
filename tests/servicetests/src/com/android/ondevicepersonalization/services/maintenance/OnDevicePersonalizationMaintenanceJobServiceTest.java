@@ -90,7 +90,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
-    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstanceForTest();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)

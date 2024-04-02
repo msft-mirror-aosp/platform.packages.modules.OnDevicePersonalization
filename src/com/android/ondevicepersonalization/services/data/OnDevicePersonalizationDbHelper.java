@@ -36,7 +36,7 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
 
-    public static final int DATABASE_VERSION = 2;
+    public static final int DATABASE_VERSION = 3;
     private static final String DATABASE_NAME = "ondevicepersonalization.db";
 
     private static volatile OnDevicePersonalizationDbHelper sSingleton = null;
@@ -86,13 +86,20 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
-        if (oldVersion == 1 && newVersion > 1) {
-            try {
-                db.execSQL(QueriesContract.QueriesEntry.UPGRADE_FROM_V1_STATEMENT);
-            } catch (Exception e) {
-                // Ignore upgrade errors on upgrade after downgrade: the column is already present.
-                sLogger.w(TAG + ": error ", e);
-            }
+        if (oldVersion == 1) {
+            execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V1_TO_V2_STATEMENT);
+            execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V2_TO_V3_STATEMENT);
+        } else if (oldVersion == 2) {
+            execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V2_TO_V3_STATEMENT);
+        }
+    }
+
+    private void execSqlIgnoreError(SQLiteDatabase db, String sql) {
+        try {
+            db.execSQL(sql);
+        } catch (Exception e) {
+            // Ignore upgrade errors on upgrade after downgrade: the column is already present.
+            sLogger.w(TAG + ": error ", e);
         }
     }
 

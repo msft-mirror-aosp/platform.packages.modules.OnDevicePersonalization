@@ -101,6 +101,12 @@ public interface Flags extends ModuleSharedFlags {
      */
     boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
 
+    /** Default delay before starting a data reset. */
+    int DEFAULT_RESET_DATA_DELAY_SECONDS = 12 * 60 * 60;  // 12 hours
+
+    /** Default deadline for data reset. */
+    int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 24 * 60 * 60;  // 24 hours
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -247,5 +253,13 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getEnableClientErrorLogging() {
         return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
+    }
+
+    default int getResetDataDelaySeconds() {
+        return DEFAULT_RESET_DATA_DELAY_SECONDS;
+    }
+
+    default int getResetDataDeadlineSeconds() {
+        return DEFAULT_RESET_DATA_DEADLINE_SECONDS;
     }
 }
