@@ -52,6 +52,14 @@ public class OnDevicePersonalizationDbHelperTest {
                 + QueriesContract.QueriesEntry.SERVICE_NAME + " TEXT NOT NULL,"
                 + QueriesContract.QueriesEntry.QUERY_DATA + " BLOB NOT NULL)";
 
+    public static final String CREATE_QUERIES_V2_STATEMENT =
+            "CREATE TABLE IF NOT EXISTS " + QueriesContract.QueriesEntry.TABLE_NAME + " ("
+                + QueriesContract.QueriesEntry.QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                + QueriesContract.QueriesEntry.TIME_MILLIS + " INTEGER NOT NULL,"
+                + QueriesContract.QueriesEntry.APP_PACKAGE_NAME + " TEXT NOT NULL,"
+                + QueriesContract.QueriesEntry.SERVICE_NAME + " TEXT NOT NULL,"
+                + QueriesContract.QueriesEntry.QUERY_DATA + " BLOB NOT NULL)";
+
     @Before
     public void setup() {
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
@@ -75,7 +83,7 @@ public class OnDevicePersonalizationDbHelperTest {
     }
 
     @Test
-    public void testOnUpgrade() {
+    public void testOnUpgradeFromV1() {
         SQLiteDatabase db = SQLiteDatabase.create(null);
         try {
             createV1Tables(db);
@@ -84,6 +92,24 @@ public class OnDevicePersonalizationDbHelperTest {
             assertTrue(
                     "Column not found " + columns.toString(),
                     columns.contains(QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+            assertTrue(
+                    "Column not found " + columns.toString(),
+                    columns.contains(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
+        } finally {
+            db.close();
+        }
+    }
+
+    @Test
+    public void testOnUpgradeFromV2() {
+        SQLiteDatabase db = SQLiteDatabase.create(null);
+        try {
+            createV2Tables(db);
+            mDbHelper.onUpgrade(db, 2, OnDevicePersonalizationDbHelper.DATABASE_VERSION);
+            List<String> columns = getColumns(db, QueriesContract.QueriesEntry.TABLE_NAME);
+            assertTrue(
+                    "Column not found " + columns.toString(),
+                    columns.contains(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
         } finally {
             db.close();
         }
@@ -103,6 +129,15 @@ public class OnDevicePersonalizationDbHelperTest {
 
         // Queries and events tables.
         db.execSQL(CREATE_QUERIES_V1_STATEMENT);
+        db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
+    }
+
+    private void createV2Tables(SQLiteDatabase db) {
+        db.execSQL(VendorSettingsContract.VendorSettingsEntry.CREATE_TABLE_STATEMENT);
+
+        // Queries and events tables.
+        db.execSQL(CREATE_QUERIES_V2_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
     }
