@@ -141,8 +141,9 @@ public class EventsDao {
             values.put(QueriesContract.QueriesEntry.SERVICE_NAME,
                     query.getServiceName());
             values.put(QueriesContract.QueriesEntry.QUERY_DATA, query.getQueryData());
-            // TODO(b/331801889): Populate app name.
+            // TODO(b/331801889): Populate app name and cert.
             values.put(QueriesContract.QueriesEntry.APP_PACKAGE_NAME, "");
+            values.put(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST, "");
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
