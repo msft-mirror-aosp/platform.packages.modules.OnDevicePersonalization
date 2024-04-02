@@ -21,6 +21,7 @@ import static com.android.federatedcompute.services.data.FederatedComputeEncrypt
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -128,6 +129,12 @@ public class BackgroundKeyFetchJobServiceTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        BackgroundKeyFetchJobService instance = new BackgroundKeyFetchJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test

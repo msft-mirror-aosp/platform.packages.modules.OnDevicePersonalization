@@ -22,6 +22,7 @@ import static com.android.ondevicepersonalization.services.download.mdd.MddTaskS
 
 import static com.google.android.libraries.mobiledatadownload.TaskScheduler.WIFI_CHARGING_PERIODIC_TASK;
 
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -81,6 +82,12 @@ public class MddJobServiceTest {
         doReturn(null).when(mMockJobScheduler).getPendingJob(DOWNLOAD_PROCESSING_TASK_JOB_ID);
         doReturn(0).when(mMockJobScheduler).schedule(any());
         doReturn(mContext.getPackageName()).when(mSpyService).getPackageName();
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        MddJobService instance = new MddJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test
