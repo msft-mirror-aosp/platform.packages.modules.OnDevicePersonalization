@@ -116,10 +116,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     }
 
     private void addEventData(ComponentName service, long timestamp) {
-        Query query = new Query.Builder()
-                .setTimeMillis(timestamp)
-                .setService(service)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query = new Query.Builder(
+                timestamp,
+                "com.app",
+                service,
+                TEST_CERT_DIGEST,
+                "query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
 

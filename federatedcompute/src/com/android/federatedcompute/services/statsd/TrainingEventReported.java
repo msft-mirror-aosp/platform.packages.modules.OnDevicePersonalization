@@ -26,6 +26,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 public class TrainingEventReported {
     private long mClientVersion;
     private int mEventKind;
+    private long mPopulationId;
     private long mTaskId;
     private long mDurationInMillis;
 
@@ -56,6 +57,7 @@ public class TrainingEventReported {
     /* package-private */ TrainingEventReported(
             long clientVersion,
             int eventKind,
+            long populationId,
             long taskId,
             long durationInMillis,
             long exampleCount,
@@ -68,6 +70,7 @@ public class TrainingEventReported {
             long exampleStoreStartQueryLatencyNanos) {
         this.mClientVersion = clientVersion;
         this.mEventKind = eventKind;
+        this.mPopulationId = populationId;
         this.mTaskId = taskId;
         this.mDurationInMillis = durationInMillis;
         this.mExampleCount = exampleCount;
@@ -90,6 +93,11 @@ public class TrainingEventReported {
     @DataClass.Generated.Member
     public int getEventKind() {
         return mEventKind;
+    }
+
+    @DataClass.Generated.Member
+    public long getPopulationId() {
+        return mPopulationId;
     }
 
     @DataClass.Generated.Member
@@ -157,6 +165,7 @@ public class TrainingEventReported {
         return true
                 && mClientVersion == that.mClientVersion
                 && mEventKind == that.mEventKind
+                && mPopulationId == that.mPopulationId
                 && mTaskId == that.mTaskId
                 && mDurationInMillis == that.mDurationInMillis
                 && mExampleCount == that.mExampleCount
@@ -178,6 +187,7 @@ public class TrainingEventReported {
         int _hash = 1;
         _hash = 31 * _hash + Long.hashCode(mClientVersion);
         _hash = 31 * _hash + mEventKind;
+        _hash = 31 * _hash + Long.hashCode(mPopulationId);
         _hash = 31 * _hash + Long.hashCode(mTaskId);
         _hash = 31 * _hash + Long.hashCode(mDurationInMillis);
         _hash = 31 * _hash + Long.hashCode(mExampleCount);
@@ -198,6 +208,7 @@ public class TrainingEventReported {
 
         private long mClientVersion;
         private int mEventKind;
+        private long mPopulationId;
         private long mTaskId;
         private long mDurationInMillis;
         private long mExampleCount;
@@ -230,9 +241,17 @@ public class TrainingEventReported {
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setTaskId(long value) {
+        public @android.annotation.NonNull Builder setPopulationId(long value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
+            mPopulationId = value;
+            return this;
+        }
+
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setTaskId(long value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x8;
             mTaskId = value;
             return this;
         }
@@ -240,7 +259,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setDurationInMillis(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x8;
+            mBuilderFieldsSet |= 0x10;
             mDurationInMillis = value;
             return this;
         }
@@ -248,7 +267,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setExampleCount(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x10;
+            mBuilderFieldsSet |= 0x20;
             mExampleCount = value;
             return this;
         }
@@ -256,7 +275,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setExampleSize(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x20;
+            mBuilderFieldsSet |= 0x40;
             mExampleSize = value;
             return this;
         }
@@ -264,7 +283,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setDataTransferDurationMillis(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x40;
+            mBuilderFieldsSet |= 0x80;
             mDataTransferDurationMillis = value;
             return this;
         }
@@ -272,7 +291,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setBytesUploaded(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x80;
+            mBuilderFieldsSet |= 0x100;
             mBytesUploaded = value;
             return this;
         }
@@ -280,7 +299,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setBytesDownloaded(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x100;
+            mBuilderFieldsSet |= 0x200;
             mBytesDownloaded = value;
             return this;
         }
@@ -288,7 +307,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setKeyAttestationLatencyMillis(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x200;
+            mBuilderFieldsSet |= 0x400;
             mKeyAttestationLatencyMillis = value;
             return this;
         }
@@ -296,7 +315,7 @@ public class TrainingEventReported {
         @DataClass.Generated.Member
         public @android.annotation.NonNull Builder setExampleStoreBindLatencyNanos(long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x400;
+            mBuilderFieldsSet |= 0x800;
             mExampleStoreBindLatencyNanos = value;
             return this;
         }
@@ -305,7 +324,7 @@ public class TrainingEventReported {
         public @android.annotation.NonNull Builder setExampleStoreStartQueryLatencyNanos(
                 long value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x800;
+            mBuilderFieldsSet |= 0x1000;
             mExampleStoreStartQueryLatencyNanos = value;
             return this;
         }
@@ -313,36 +332,37 @@ public class TrainingEventReported {
         /** Builds the instance. This builder should not be touched after calling this! */
         public @android.annotation.NonNull TrainingEventReported build() {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x1000; // Mark builder used
+            mBuilderFieldsSet |= 0x2000; // Mark builder used
 
-            if ((mBuilderFieldsSet & 0x10) == 0) {
+            if ((mBuilderFieldsSet & 0x20) == 0) {
                 mExampleCount = 0;
             }
-            if ((mBuilderFieldsSet & 0x20) == 0) {
+            if ((mBuilderFieldsSet & 0x40) == 0) {
                 mExampleSize = 0;
             }
-            if ((mBuilderFieldsSet & 0x40) == 0) {
+            if ((mBuilderFieldsSet & 0x80) == 0) {
                 mDataTransferDurationMillis = 0;
             }
-            if ((mBuilderFieldsSet & 0x80) == 0) {
+            if ((mBuilderFieldsSet & 0x100) == 0) {
                 mBytesUploaded = 0;
             }
-            if ((mBuilderFieldsSet & 0x100) == 0) {
+            if ((mBuilderFieldsSet & 0x200) == 0) {
                 mBytesDownloaded = 0;
             }
-            if ((mBuilderFieldsSet & 0x200) == 0) {
+            if ((mBuilderFieldsSet & 0x400) == 0) {
                 mKeyAttestationLatencyMillis = 0;
             }
-            if ((mBuilderFieldsSet & 0x400) == 0) {
+            if ((mBuilderFieldsSet & 0x800) == 0) {
                 mExampleStoreBindLatencyNanos = 0;
             }
-            if ((mBuilderFieldsSet & 0x800) == 0) {
+            if ((mBuilderFieldsSet & 0x1000) == 0) {
                 mExampleStoreStartQueryLatencyNanos = 0;
             }
             TrainingEventReported o =
                     new TrainingEventReported(
                             mClientVersion,
                             mEventKind,
+                            mPopulationId,
                             mTaskId,
                             mDurationInMillis,
                             mExampleCount,
@@ -357,7 +377,7 @@ public class TrainingEventReported {
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x1000) != 0) {
+            if ((mBuilderFieldsSet & 0x2000) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -365,12 +385,12 @@ public class TrainingEventReported {
     }
 
     @DataClass.Generated(
-            time = 1710540181342L,
+            time = 1711822248905L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/federatedcompute/src/com/android/federatedcompute/services/statsd/TrainingEventReported.java",
             inputSignatures =
-                    "private  long mClientVersion\nprivate  int mEventKind\nprivate  long mTaskId\nprivate  long mDurationInMillis\nprivate  long mExampleCount\nprivate  long mExampleSize\nprivate  long mDataTransferDurationMillis\nprivate  long mBytesUploaded\nprivate  long mBytesDownloaded\nprivate  long mKeyAttestationLatencyMillis\nprivate  long mExampleStoreBindLatencyNanos\nprivate  long mExampleStoreStartQueryLatencyNanos\nclass TrainingEventReported extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+                    "private  long mClientVersion\nprivate  int mEventKind\nprivate  long mPopulationId\nprivate  long mTaskId\nprivate  long mDurationInMillis\nprivate  long mExampleCount\nprivate  long mExampleSize\nprivate  long mDataTransferDurationMillis\nprivate  long mBytesUploaded\nprivate  long mBytesDownloaded\nprivate  long mKeyAttestationLatencyMillis\nprivate  long mExampleStoreBindLatencyNanos\nprivate  long mExampleStoreStartQueryLatencyNanos\nclass TrainingEventReported extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

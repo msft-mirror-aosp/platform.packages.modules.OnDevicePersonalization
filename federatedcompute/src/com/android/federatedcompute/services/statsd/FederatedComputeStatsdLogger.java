@@ -81,7 +81,9 @@ public class FederatedComputeStatsdLogger {
                     trainingEvent.getBytesDownloaded(),
                     trainingEvent.getKeyAttestationLatencyMillis(),
                     trainingEvent.getExampleStoreBindLatencyNanos(),
-                    trainingEvent.getExampleStoreStartQueryLatencyNanos());
+                    trainingEvent.getExampleStoreStartQueryLatencyNanos(),
+                    trainingEvent.getPopulationId(),
+                    trainingEvent.getExampleCount());
         }
     }
 

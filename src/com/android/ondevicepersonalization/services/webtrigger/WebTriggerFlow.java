@@ -270,6 +270,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         var unused = FluentFuture.from(
                         LogUtils.writeLogRecords(
                                 mContext,
+                                mServiceParcel.getAppPackageName(),
                                 wtparams.getIsolatedService(),
                                 result.getRequestLogRecord(),
                                 result.getEventLogRecords()))

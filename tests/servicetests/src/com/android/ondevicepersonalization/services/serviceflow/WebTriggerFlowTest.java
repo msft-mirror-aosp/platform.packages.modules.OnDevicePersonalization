@@ -246,8 +246,8 @@ public class WebTriggerFlowTest {
                 DbUtils.toTableValue(service),
                 "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(1L, "com.app", service, "AABBCCDD", queryDataBytes)
+                .build());
         EventsDao.getInstanceForTest(mContext);
     }
 

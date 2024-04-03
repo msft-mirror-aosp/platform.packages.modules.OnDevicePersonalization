@@ -17,11 +17,25 @@ package {
 }
 
 android_test_helper_app {
-    name: "OdpTargetingApp1",
-    defaults: ["platform_app_defaults"],
+    name: "OdpClient",
+    defaults: ["framework-ondevicepersonalization-test-defaults"],
     platform_apis: true,
+    srcs: [
+        "src/main/java/**/odpclient/*.java",
+    ],
+    libs: [
+        "framework-ondevicepersonalization.impl",
+    ],
+    static_libs: [
+        "androidx.annotation_annotation",
+        "androidx.core_core",
+    ],
+    resource_dirs: [
+        "src/main/res",
+    ],
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
-    manifest: "AndroidManifest.xml",
+    manifest: "src/main/AndroidManifest.xml",
     certificate: "platform",
+    visibility: ["//visibility:public"],
 }

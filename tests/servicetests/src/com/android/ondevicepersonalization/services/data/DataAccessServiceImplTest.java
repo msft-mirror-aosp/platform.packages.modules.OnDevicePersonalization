@@ -80,6 +80,8 @@ public class DataAccessServiceImplTest {
     private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private static final int EVENT_TYPE_B2D = 1;
     private static final String SERVICE_CLASS = "TestClass";
+    private static final String APP_NAME = "com.app";
+    private static final String CERT_DIGEST = "AABBCCDD";
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     private long mTimeMillis = 1000;
     private EventUrlPayload mEventUrlPayload;
@@ -558,28 +560,21 @@ public class DataAccessServiceImplTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 mApplicationContext.getPackageName(), "AABBCCDD", rows);
 
-        Query query1 = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData(queryDataBytes)
+        Query query1 = new Query.Builder(1L, APP_NAME, mService, CERT_DIGEST, queryDataBytes)
                 .build();
         long queryId1 = mEventsDao.insertQuery(query1);
-        Query query2 = new Query.Builder()
-                .setTimeMillis(10L)
-                .setService(mService)
-                .setQueryData(queryDataBytes)
+        Query query2 = new Query.Builder(10L, APP_NAME, mService, CERT_DIGEST, queryDataBytes)
                 .build();
         long queryId2 = mEventsDao.insertQuery(query2);
-        Query query3 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setService(mService)
-                .setQueryData(queryDataBytes)
+        Query query3 = new Query.Builder(100L, APP_NAME, mService, CERT_DIGEST, queryDataBytes)
                 .build();
         long queryId3 = mEventsDao.insertQuery(query3);
-        Query query4 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setService(new ComponentName("packageA", "classA"))
-                .setQueryData(queryDataBytes)
+        Query query4 = new Query.Builder(
+                100L,
+                APP_NAME,
+                new ComponentName("packageA", "classA"),
+                CERT_DIGEST,
+                queryDataBytes)
                 .build();
         mEventsDao.insertQuery(query4);
 

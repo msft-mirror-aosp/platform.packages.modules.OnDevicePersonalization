@@ -29,26 +29,25 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class QueryTest {
     @Test
-    public void testBuilderAndEquals() {
+    public void testBuilder() {
         long queryId = 1;
         byte[] queryData = "data".getBytes();
         ComponentName service = new ComponentName("servicePkg", "cls");
         long timeMillis = 1;
-        Query query1 = new Query.Builder()
+        Query query1 = new Query.Builder(
+                timeMillis,
+                "com.app",
+                service,
+                "cert",
+                queryData)
                 .setQueryId(queryId)
-                .setQueryData(queryData)
-                .setService(service)
-                .setTimeMillis(timeMillis)
                 .build();
         assertEquals(query1.getQueryId(), queryId);
         assertArrayEquals(query1.getQueryData(), queryData);
         assertEquals(query1.getService(), service);
         assertEquals(query1.getTimeMillis(), timeMillis);
-
-        Query query2 = new Query.Builder(
-                queryId, timeMillis, service, queryData).build();
-        assertEquals(query1, query2);
-        assertEquals(query1.hashCode(), query2.hashCode());
+        assertEquals(query1.getAppPackageName(), "com.app");
+        assertEquals(query1.getServiceCertDigest(), "cert");
     }
 
     @Test
@@ -57,11 +56,13 @@ public class QueryTest {
         byte[] queryData = "data".getBytes();
         ComponentName service = new ComponentName("servicePkg", "cls");
         long timeMillis = 1;
-        Query.Builder builder = new Query.Builder()
-                .setQueryId(queryId)
-                .setQueryData(queryData)
-                .setService(service)
-                .setTimeMillis(timeMillis);
+        Query.Builder builder = new Query.Builder(
+                timeMillis,
+                "com.app",
+                service,
+                "cert",
+                queryData)
+                .setQueryId(queryId);
         builder.build();
         assertThrows(IllegalStateException.class, () -> builder.build());
     }

@@ -118,10 +118,12 @@ public class ResetDataTaskTest {
                         .setKey("key")
                 .build());
 
-        Query query = new Query.Builder()
-                .setTimeMillis(timestamp)
-                .setService(TEST_OWNER)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query = new Query.Builder(
+                timestamp,
+                "com.app",
+                TEST_OWNER,
+                TEST_CERT_DIGEST,
+                "query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
 
