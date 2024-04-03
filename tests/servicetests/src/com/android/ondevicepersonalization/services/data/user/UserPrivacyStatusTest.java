@@ -16,22 +16,39 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static android.app.job.JobScheduler.RESULT_SUCCESS;
+
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.times;
 
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-
+import org.mockito.quality.Strictness;
 
 @RunWith(JUnit4.class)
 public final class UserPrivacyStatusTest {
     private UserPrivacyStatus mUserPrivacyStatus;
     private static final int CONTROL_RESET_STATUS_CODE = 5;
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(ResetDataJobService.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     @Before
     public void setup() throws Exception {
@@ -39,6 +56,7 @@ public final class UserPrivacyStatusTest {
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
         mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+        doReturn(RESULT_SUCCESS).when(ResetDataJobService::schedule);
     }
 
     @Test
@@ -54,8 +72,7 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
-        assertFalse(mUserPrivacyStatus.isProtectedAudienceReset());
-        assertFalse(mUserPrivacyStatus.isMeasurementReset());
+        verify(ResetDataJobService::schedule, times(0));
     }
 
     @Test
@@ -66,8 +83,7 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertFalse(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertFalse(mUserPrivacyStatus.isMeasurementEnabled());
-        assertTrue(mUserPrivacyStatus.isProtectedAudienceReset());
-        assertTrue(mUserPrivacyStatus.isMeasurementReset());
+        verify(ResetDataJobService::schedule);
     }
 
     @Test
@@ -77,8 +93,7 @@ public final class UserPrivacyStatusTest {
         assertTrue(mUserPrivacyStatus.isUserControlCacheValid());
         assertTrue(mUserPrivacyStatus.isProtectedAudienceEnabled());
         assertTrue(mUserPrivacyStatus.isMeasurementEnabled());
-        assertTrue(mUserPrivacyStatus.isProtectedAudienceReset());
-        assertTrue(mUserPrivacyStatus.isMeasurementReset());
+        verify(ResetDataJobService::schedule);
     }
 
     @Test

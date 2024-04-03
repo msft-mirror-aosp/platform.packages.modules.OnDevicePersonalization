@@ -20,6 +20,9 @@ import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICE
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ISOLATED_TRAINING_PROCESS_ERROR;
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
@@ -54,6 +57,7 @@ import android.os.RemoteException;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Constants;
+import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
@@ -129,6 +133,7 @@ import org.tensorflow.example.Feature;
 import org.tensorflow.example.Features;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -199,6 +204,7 @@ public final class FederatedComputeWorkerTest {
             ("AHXUDhoSEFikqOefmo8xE7kGp/xjVMRDYBecBiHGxCN8rTv9W0Z4L/14d0OLB"
                             + "vC1VVzXBAnjgHoKLZzuJifTOaBJwGNIQ2ejnx3n6ayoRchDNCgpK29T+EAhBWzH")
                     .getBytes();
+    private static final long EXAMPLE_SIZE_BYTES = 1000;
 
     private static final RejectionInfo UNAUTHENTICATED_REJECTION_INFO =
             RejectionInfo.newBuilder()
@@ -235,6 +241,10 @@ public final class FederatedComputeWorkerTest {
                             RetryInfo.newBuilder()
                                     .setRetryToken(TASK_RETRY.getRetryToken())
                                     .build())
+                    .setExampleStats(
+                            FLRunnerResult.ExampleStats.newBuilder()
+                                    .setExampleCount(1)
+                                    .setExampleSizeBytes(EXAMPLE_SIZE_BYTES))
                     .build();
     private static final byte[] INTERVAL_OPTIONS = createDefaultTrainingIntervalOptions();
     private static final FederatedTrainingTask FEDERATED_TRAINING_TASK_1 =
@@ -700,6 +710,14 @@ public final class FederatedComputeWorkerTest {
                 .onTrainingCompleted(
                         anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
 
+        ArgumentCaptor<Integer> captor = ArgumentCaptor.forClass(Integer.class);
+        verify(mMockTrainingEventLogger, times(3)).logEventKind(captor.capture());
+        assertThat(captor.getAllValues())
+                .containsExactlyElementsIn(
+                        Arrays.asList(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED,
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE,
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
         verify(mMockTrainingEventLogger).logComputationInvalidArgument(any());
     }
 
@@ -799,6 +817,13 @@ public final class FederatedComputeWorkerTest {
                         eq(ContributionResult.SUCCESS),
                         eq(true));
         verify(mSpyResultCallbackHelper).callHandleResult(eq(TASK_ID), any(), any());
+        ArgumentCaptor<ExampleStats> captor = ArgumentCaptor.forClass(ExampleStats.class);
+        verify(mMockTrainingEventLogger).logComputationCompleted(captor.capture());
+        ExampleStats exampleStats = captor.getValue();
+        assertThat(exampleStats.mExampleCount.get()).isEqualTo(1);
+        assertThat(exampleStats.mExampleSizeBytes.get()).isEqualTo(EXAMPLE_SIZE_BYTES);
+        assertThat(exampleStats.mStartQueryLatencyNanos.get()).isGreaterThan(0);
+        assertThat(exampleStats.mBindToExampleStoreLatencyNanos.get()).isGreaterThan(0);
     }
 
     @Test
