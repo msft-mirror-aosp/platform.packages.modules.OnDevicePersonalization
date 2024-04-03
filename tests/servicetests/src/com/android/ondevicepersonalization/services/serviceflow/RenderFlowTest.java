@@ -190,8 +190,8 @@ public class RenderFlowTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 DbUtils.toTableValue(service), "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(100L, "com.app", service, "AABBCCDD", queryDataBytes)
+                .build());
         EventsDao.getInstanceForTest(mContext);
     }
 
