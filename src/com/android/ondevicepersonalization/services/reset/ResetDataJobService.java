@@ -44,7 +44,7 @@ import com.google.common.util.concurrent.ListenableFuture;
 public class ResetDataJobService extends JobService {
     private static final String TAG = ResetDataJobService.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final int MILLIS = 1000;
+    private static final long MILLIS = 1000;
     private ListenableFuture<Void> mFuture;
 
     /** Schedule the Reset job. */
@@ -60,8 +60,9 @@ public class ResetDataJobService extends JobService {
         ComponentName service = new ComponentName(context, ResetDataJobService.class);
         JobInfo jobInfo = new JobInfo.Builder(RESET_DATA_JOB_ID, service)
                 .setMinimumLatency(flags.getResetDataDelaySeconds() * MILLIS)
-                .setOverrideDeadline(flags.getRenderFlowDeadlineSeconds() * MILLIS)
+                .setOverrideDeadline(flags.getResetDataDeadlineSeconds() * MILLIS)
                 .setRequiresBatteryNotLow(true)
+                .setPersisted(true)
                 .build();
 
         return jobScheduler.schedule(jobInfo);
