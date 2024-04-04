@@ -58,5 +58,28 @@
     {
       "name": "CtsOnDevicePersonalizationConfigTests"
     }
+  ],
+  "ondevicepersonalization-mainline-presubmit": [
+    {
+      "name": "FrameworkOnDevicePersonalizationTests"
+    },
+    {
+      "name": "OnDevicePersonalizationManagingServicesTests"
+    },
+    {
+      "name": "OdpChronicleTests"
+    },
+    {
+      "name": "OnDevicePersonalizationPluginTests"
+    },
+    {
+      "name": "FederatedComputeServicesTests"
+    },
+    {
+      "name": "OnDevicePersonalizationSystemServiceImplTests"
+    },
+    {
+      "name": "CtsOnDevicePersonalizationE2ETests"
+    }
   ]
 }

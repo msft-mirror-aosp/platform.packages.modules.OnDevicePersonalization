@@ -37,6 +37,7 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.ondevicepersonalization.testing.utils.DeviceSupportHelper;
 
 import org.junit.After;
 import org.junit.Assume;
@@ -72,6 +73,7 @@ public class OdpSystemServiceImplTest {
 
     @Before
     public void setUp() throws Exception {
+        Assume.assumeTrue(DeviceSupportHelper.isDeviceSupported());
         Assume.assumeTrue(SdkLevel.isAtLeastU());
         mService = spy(new OnDevicePersonalizationSystemService(mContext, mTestDataStore));
         doNothing().when(mService).enforceCallingPermission();

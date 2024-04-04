@@ -44,8 +44,7 @@ public class FederatedComputeScheduler {
 
     /** @hide */
     public FederatedComputeScheduler(
-            IFederatedComputeService binder,
-            IDataAccessService dataService) {
+            IFederatedComputeService binder, IDataAccessService dataService) {
         mFcService = binder;
         mDataAccessService = dataService;
     }
@@ -121,6 +120,8 @@ public class FederatedComputeScheduler {
      */
     @WorkerThread
     public void cancel(@NonNull FederatedComputeInput input) {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_INTERNAL_ERROR;
         if (mFcService == null) {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
@@ -146,11 +147,16 @@ public class FederatedComputeScheduler {
             if (err[0] != 0) {
                 throw new IllegalStateException("Internal failure occurred while cancelling job");
             }
+            responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
             sLogger.e(TAG + ": Failed to cancel federated compute job", e);
             throw new IllegalStateException(e);
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_CANCEL,
+                    System.currentTimeMillis() - startTimeMillis,
+                    responseCode);
         }
-        // TODO(b/328540464): Define metric enum for Cancel API and add stats
     }
 
     private android.federatedcompute.common.TrainingInterval convertTrainingInterval(
