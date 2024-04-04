@@ -36,11 +36,8 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
-import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
-import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
-import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -51,13 +48,7 @@ import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 
-import java.io.File;
-import java.util.AbstractMap;
 import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * JobService to handle the OnDevicePersonalization maintenance
@@ -102,19 +93,18 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
     }
 
     @VisibleForTesting
-    static void cleanupVendorData(Context context) throws Exception {
+    static void deleteEventsAndQueries(
+            Context context) throws Exception {
         EventsDao eventsDao = EventsDao.getInstance(context);
+        // Cleanup event and queries table.
+        eventsDao.deleteEventsAndQueries(
+                System.currentTimeMillis() - MAXIMUM_DELETION_TIMEFRAME_MILLIS);
+    }
 
-        // Set of packageName and cert
-        Set<Map.Entry<String, String>> vendors = new HashSet<>(
-                OnDevicePersonalizationVendorDataDao.getVendors(context));
+    @VisibleForTesting
+    static void cleanupVendorData(Context context) throws Exception {
+        ArrayList<ComponentName> services = new ArrayList<>();
 
-        // Set of valid packageName and cert
-        Set<Map.Entry<String, String>> validVendors = new HashSet<>();
-        Set<String> validTables = new HashSet<>();
-
-
-        // Remove all valid packages from the set
         for (PackageInfo packageInfo : context.getPackageManager().getInstalledPackages(
                 PackageManager.PackageInfoFlags.of(GET_META_DATA))) {
             String packageName = packageInfo.packageName;
@@ -130,89 +120,12 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
                 String serviceClass = AppManifestConfigHelper.getServiceNameFromOdpSettings(
                         context, packageName);
                 ComponentName service = ComponentName.createRelative(packageName, serviceClass);
-                // Remove valid packages from set
-                vendors.remove(new AbstractMap.SimpleImmutableEntry<>(
-                        DbUtils.toTableValue(service), certDigest));
-
-                // Add valid package to new set
-                validVendors.add(new AbstractMap.SimpleImmutableEntry<>(
-                        DbUtils.toTableValue(service), certDigest));
-                validTables.add(OnDevicePersonalizationLocalDataDao
-                        .getTableName(service, certDigest));
-                validTables.add(OnDevicePersonalizationVendorDataDao
-                        .getTableName(service, certDigest));
+                services.add(service);
             }
         }
 
-        sLogger.d(TAG + ": Deleting: " + vendors);
-        // Delete the remaining tables for packages not found onboarded
-        for (Map.Entry<String, String> entry : vendors) {
-            String serviceNameStr = entry.getKey();
-            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
-            String certDigest = entry.getValue();
-            OnDevicePersonalizationVendorDataDao.deleteVendorData(context, service, certDigest);
-            eventsDao.deleteEventState(service);
-        }
-
-        // Cleanup event and queries table.
-        eventsDao.deleteEventsAndQueries(
-                System.currentTimeMillis() - MAXIMUM_DELETION_TIMEFRAME_MILLIS);
-
-        // Cleanup files from internal storage for valid packages.
-        for (Map.Entry<String, String> entry : validVendors) {
-            String serviceNameStr = entry.getKey();
-            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
-            String certDigest = entry.getValue();
-            // VendorDao
-            OnDevicePersonalizationVendorDataDao vendorDao =
-                    OnDevicePersonalizationVendorDataDao.getInstance(context, service,
-                            certDigest);
-            File vendorDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
-                    OnDevicePersonalizationVendorDataDao.getTableName(service, certDigest),
-                    context.getFilesDir()));
-            FileUtils.cleanUpFilesDir(vendorDao.readAllVendorDataKeys(), vendorDir);
-
-            // LocalDao
-            OnDevicePersonalizationLocalDataDao localDao =
-                    OnDevicePersonalizationLocalDataDao.getInstance(context, service,
-                            certDigest);
-            File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
-                    OnDevicePersonalizationLocalDataDao.getTableName(service, certDigest),
-                    context.getFilesDir()));
-            FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
-        }
-
-        // Cleanup any loose data directories. Tables deleted, but directory still exists.
-        List<File> filesToDelete = new ArrayList<>();
-        File vendorDir = new File(context.getFilesDir(), "VendorData");
-        if (vendorDir.isDirectory()) {
-            for (File f : vendorDir.listFiles()) {
-                if (f.isDirectory()) {
-                    // Delete files for non-existent tables
-                    if (!validTables.contains(f.getName())) {
-                        filesToDelete.add(f);
-                    }
-                } else {
-                    // There should not be regular files.
-                    filesToDelete.add(f);
-                }
-            }
-        }
-        File localDir = new File(context.getFilesDir(), "LocalData");
-        if (localDir.isDirectory()) {
-            for (File f : localDir.listFiles()) {
-                if (f.isDirectory()) {
-                    // Delete files for non-existent tables
-                    if (!validTables.contains(f.getName())) {
-                        filesToDelete.add(f);
-                    }
-                } else {
-                    // There should not be regular files.
-                    filesToDelete.add(f);
-                }
-            }
-        }
-        filesToDelete.forEach(FileUtils::deleteDirectory);
+        OnDevicePersonalizationVendorDataDao.deleteVendorTables(context, services);
+        deleteEventsAndQueries(context);
     }
 
     @Override

@@ -18,13 +18,18 @@ package com.android.ondevicepersonalization.services;
 
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_CALLBACK_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ON_DEVICE_PERSONALIZATION_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
+
 import android.adservices.ondevicepersonalization.Constants;
-import android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigServiceCallback;
 import android.annotation.NonNull;
 import android.annotation.RequiresPermission;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemService;
 import android.ondevicepersonalization.IOnDevicePersonalizationSystemServiceCallback;
 import android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager;
@@ -37,6 +42,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -65,10 +71,15 @@ public class OnDevicePersonalizationConfigServiceDelegate
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the API flag is turned off.");
         }
+
         // Verify caller's permission
-        OnDevicePersonalizationPermissions.enforceCallingPermission(mContext,
-                MODIFY_ONDEVICEPERSONALIZATION_STATE);
+        if (mContext.checkCallingPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
+                != PackageManager.PERMISSION_GRANTED) {
+            throw new SecurityException(
+                    "Permission denied: " + MODIFY_ONDEVICEPERSONALIZATION_STATE);
+        }
         Objects.requireNonNull(callback);
+
         sBackgroundExecutor.execute(
                 () -> {
                     try {
@@ -130,9 +141,19 @@ public class OnDevicePersonalizationConfigServiceDelegate
                                     });
                         } catch (RemoteException re) {
                             sLogger.e(TAG + ": Unable to send result to the callback.", re);
+                            ClientErrorLogger.getInstance()
+                                    .logErrorWithExceptionInfo(
+                                            re,
+                                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_REMOTE_EXCEPTION,
+                                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
                         }
-                    }  catch (Exception e) {
+                    } catch (Exception e) {
                         sLogger.e(TAG + ": Failed to set personalization status.", e);
+                        ClientErrorLogger.getInstance()
+                                .logErrorWithExceptionInfo(
+                                        e,
+                                        AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ON_DEVICE_PERSONALIZATION_ERROR,
+                                        AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
                         sendError(callback, Constants.STATUS_INTERNAL_ERROR);
                     }
                 });
@@ -144,6 +165,11 @@ public class OnDevicePersonalizationConfigServiceDelegate
             callback.onSuccess();
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_CALLBACK_ERROR,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
         }
     }
 
@@ -153,6 +179,11 @@ public class OnDevicePersonalizationConfigServiceDelegate
             callback.onFailure(errorCode);
         } catch (RemoteException e) {
             sLogger.e(TAG + ": Callback error", e);
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__API_CALLBACK_ERROR,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
         }
     }
 

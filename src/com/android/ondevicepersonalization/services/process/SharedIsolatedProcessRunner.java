@@ -16,9 +16,11 @@
 
 package com.android.ondevicepersonalization.services.process;
 
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_TRUSTED_PARTNER_APPS_LIST;
 
 import android.adservices.ondevicepersonalization.Constants;
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedService;
 import android.adservices.ondevicepersonalization.aidl.IIsolatedServiceCallback;
 import android.annotation.NonNull;
@@ -32,6 +34,7 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
@@ -39,6 +42,7 @@ import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecu
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -51,6 +55,10 @@ import java.util.Objects;
  *  this runner is only selected when the shared_isolated_process_feature_enabled flag is enabled.
  */
 public class SharedIsolatedProcessRunner implements ProcessRunner  {
+
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+
+    private static final String TAG = SharedIsolatedProcessRunner.class.getSimpleName();
 
     // SIP that hosts services from all trusted partners, as well as internal isolated services.
     public static final String TRUSTED_PARTNER_APPS_SIP = "trusted_partner_apps_sip";
@@ -137,10 +145,20 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                                         }
 
                                         // TO-DO (323882182): Granular isolated servce failures.
-                                        @Override public void onError(int errorCode) {
-                                            completer.setException(
-                                                    new OdpServiceException(
-                                                            Constants.STATUS_SERVICE_FAILED));
+                                        @Override public void onError(
+                                                int errorCode, int isolatedServiceErrorCode) {
+                                            if (isolatedServiceErrorCode > 0
+                                                        && isolatedServiceErrorCode < 128) {
+                                                completer.setException(
+                                                        new OdpServiceException(
+                                                                Constants.STATUS_SERVICE_FAILED,
+                                                                new IsolatedServiceException(
+                                                                    isolatedServiceErrorCode)));
+                                            } else {
+                                                completer.setException(
+                                                        new OdpServiceException(
+                                                                Constants.STATUS_SERVICE_FAILED));
+                                            }
                                         }
                                     });
                     return null;
@@ -179,16 +197,32 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
     String getSipInstanceName(String packageName) {
         String partnerAppsList =
                 (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
-        boolean isPartnerApp = AllowListUtils.isAllowListed(packageName, partnerAppsList);
-        return isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+        String packageCertificate = null;
+        try {
+            packageCertificate = PackageUtils.getCertDigest(packageName);
+        } catch (Exception e) {
+            sLogger.d(TAG + ": not able to find certificate for package " + packageName, e);
+        }
+        boolean isPartnerApp = AllowListUtils.isAllowListed(
+                packageName, packageCertificate, partnerAppsList);
+        String sipInstanceName = isPartnerApp ? TRUSTED_PARTNER_APPS_SIP : UNKNOWN_APPS_SIP;
+        return (boolean) FlagsFactory.getFlags()
+                .getStableFlag(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED)
+                    ? sipInstanceName + "_disable_art_image_" : sipInstanceName;
     }
 
     boolean isSharedIsolatedProcessRequested(ComponentName service) throws Exception {
         if (!SdkLevel.isAtLeastU()) {
             return false;
         }
+
         PackageManager pm = mApplicationContext.getPackageManager();
         ServiceInfo si = pm.getServiceInfo(service, PackageManager.GET_META_DATA);
+
+        if ((si.flags & si.FLAG_ISOLATED_PROCESS) == 0) {
+            throw new IllegalArgumentException("ODP client services should run in isolated processes.");
+        }
+
         return (si.flags & si.FLAG_ALLOW_SHARED_ISOLATED_PROCESS) != 0;
     }
 }
