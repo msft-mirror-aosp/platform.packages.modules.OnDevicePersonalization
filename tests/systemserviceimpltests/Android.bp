@@ -36,6 +36,7 @@ android_test {
         "androidx.test.rules",
         "mockito-target-extended-minus-junit4",
         "modules-utils-build",
+        "ondevicepersonalization-testing-utils",
         "service-ondevicepersonalization.impl",
     ],
     sdk_version: "module_current",
