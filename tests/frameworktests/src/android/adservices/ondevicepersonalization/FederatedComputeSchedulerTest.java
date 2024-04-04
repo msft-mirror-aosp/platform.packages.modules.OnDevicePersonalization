@@ -35,19 +35,18 @@ import org.junit.runner.RunWith;
 
 import java.time.Duration;
 
-/**
- * Unit Tests of RemoteData API.
- */
+/** Unit Tests of RemoteData API. */
 @SmallTest
 @RunWith(AndroidJUnit4.class)
 public class FederatedComputeSchedulerTest {
-    FederatedComputeScheduler mFederatedComputeScheduler = new FederatedComputeScheduler(
-            IFederatedComputeService.Stub.asInterface(
-                    new FederatedComputeService()),
-            IDataAccessService.Stub.asInterface(new TestDataService()));
+    FederatedComputeScheduler mFederatedComputeScheduler =
+            new FederatedComputeScheduler(
+                    IFederatedComputeService.Stub.asInterface(new FederatedComputeService()),
+                    IDataAccessService.Stub.asInterface(new TestDataService()));
 
     private boolean mCancelCalled = false;
     private boolean mScheduleCalled = false;
+    private boolean mLogApiCalled = false;
 
     @Test
     public void testScheduleSuccess() {
@@ -61,12 +60,12 @@ public class FederatedComputeSchedulerTest {
                 new FederatedComputeInput.Builder().setPopulationName("population").build();
         mFederatedComputeScheduler.schedule(params, input);
         assertTrue(mScheduleCalled);
+        assertTrue(mLogApiCalled);
     }
 
     @Test
     public void testScheduleNull() {
-        FederatedComputeScheduler fcs = new FederatedComputeScheduler(
-                null, new TestDataService());
+        FederatedComputeScheduler fcs = new FederatedComputeScheduler(null, new TestDataService());
         TrainingInterval interval =
                 new TrainingInterval.Builder()
                         .setMinimumInterval(Duration.ofHours(10))
@@ -91,6 +90,7 @@ public class FederatedComputeSchedulerTest {
         assertThrows(
                 IllegalStateException.class,
                 () -> mFederatedComputeScheduler.schedule(params, input));
+        assertTrue(mLogApiCalled);
     }
 
     @Test
@@ -99,14 +99,14 @@ public class FederatedComputeSchedulerTest {
                 new FederatedComputeInput.Builder().setPopulationName("population").build();
         mFederatedComputeScheduler.cancel(input);
         assertTrue(mCancelCalled);
+        assertTrue(mLogApiCalled);
     }
 
     @Test
     public void testCancelNull() {
         FederatedComputeInput input =
                 new FederatedComputeInput.Builder().setPopulationName("population").build();
-        FederatedComputeScheduler fcs = new FederatedComputeScheduler(
-                null, new TestDataService());
+        FederatedComputeScheduler fcs = new FederatedComputeScheduler(null, new TestDataService());
         assertThrows(IllegalStateException.class, () -> fcs.cancel(input));
     }
 
@@ -115,6 +115,7 @@ public class FederatedComputeSchedulerTest {
         FederatedComputeInput input =
                 new FederatedComputeInput.Builder().setPopulationName("err").build();
         assertThrows(IllegalStateException.class, () -> mFederatedComputeScheduler.cancel(input));
+        assertTrue(mLogApiCalled);
     }
 
     class FederatedComputeService extends IFederatedComputeService.Stub {
@@ -141,13 +142,13 @@ public class FederatedComputeSchedulerTest {
         }
     }
 
-    public static class TestDataService extends IDataAccessService.Stub {
+    class TestDataService extends IDataAccessService.Stub {
         @Override
-        public void onRequest(
-                int operation,
-                Bundle params,
-                IDataAccessServiceCallback callback) {}
+        public void onRequest(int operation, Bundle params, IDataAccessServiceCallback callback) {}
+
         @Override
-        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
+            mLogApiCalled = true;
+        }
     }
 }
