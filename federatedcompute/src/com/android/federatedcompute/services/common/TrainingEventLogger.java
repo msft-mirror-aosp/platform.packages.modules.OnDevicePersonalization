@@ -28,6 +28,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOADED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_FAILURE_UPLOAD_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_INITIATE_REPORT_RESULT_AUTH_SUCCEEDED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_SUCCEEDED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_NOT_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_REPORT_RESULT_UNAUTHORIZED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RESULT_UPLOADED;
@@ -45,6 +46,7 @@ public class TrainingEventLogger {
     private static final String TAG = TrainingEventLogger.class.getSimpleName();
     private long mTaskId = 0;
     private long mVersion = 0;
+    private long mPopulationId = 0;
 
     public void setTaskId(long taskId) {
         this.mTaskId = taskId;
@@ -52,6 +54,10 @@ public class TrainingEventLogger {
 
     public void setClientVersion(long version) {
         this.mVersion = version;
+    }
+
+    public void setPopulationName(String populationName) {
+        this.mPopulationId = populationName.hashCode();
     }
 
     /** Logs when device doesn't start federated task like not meet training constraints. */
@@ -229,7 +235,10 @@ public class TrainingEventLogger {
     /** Logs the latency of calling key attestation on device */
     public void logKeyAttestationLatencyEvent(long latencyMillis) {
         TrainingEventReported.Builder event =
-                new TrainingEventReported.Builder().setKeyAttestationLatencyMillis(latencyMillis);
+                new TrainingEventReported.Builder()
+                        .setKeyAttestationLatencyMillis(latencyMillis)
+                        .setEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_KEY_ATTESTATION_SUCCEEDED);
         logEvent(event);
     }
 
@@ -246,12 +255,16 @@ public class TrainingEventLogger {
         if (mVersion != 0) {
             event.setClientVersion(mVersion);
         }
+        if (mPopulationId != 0) {
+            event.setPopulationId(mPopulationId);
+        }
         TrainingEventReported trainingEvent = event.build();
-        LogUtil.i(
+        LogUtil.d(
                 TAG,
-                "Log event kind %d, network upload %d download %d data transfer time %d "
+                "Log population id %d event kind %d, network upload %d download %d data transfer time %d "
                         + "example stats %d key attestation stats %d example store bind latency: %d"
                         + " start query latency: %d",
+                trainingEvent.getPopulationId(),
                 trainingEvent.getEventKind(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
