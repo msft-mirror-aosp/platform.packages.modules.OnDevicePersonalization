@@ -16,21 +16,35 @@
 
 package com.android.federatedcompute.services.statsd;
 
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED;
 
 import com.android.federatedcompute.services.stats.FederatedComputeStatsLog;
+import com.android.internal.annotations.VisibleForTesting;
+
+import com.google.common.util.concurrent.RateLimiter;
 
 /** Log API stats and client error stats to StatsD. */
 public class FederatedComputeStatsdLogger {
     private static volatile FederatedComputeStatsdLogger sFCStatsdLogger = null;
+    private final RateLimiter mRateLimiter;
+
+    @VisibleForTesting
+    FederatedComputeStatsdLogger(RateLimiter rateLimiter) {
+        mRateLimiter = rateLimiter;
+    }
 
     /** Returns an instance of {@link FederatedComputeStatsdLogger}. */
     public static FederatedComputeStatsdLogger getInstance() {
         if (sFCStatsdLogger == null) {
             synchronized (FederatedComputeStatsdLogger.class) {
                 if (sFCStatsdLogger == null) {
-                    sFCStatsdLogger = new FederatedComputeStatsdLogger();
+                    sFCStatsdLogger =
+                            new FederatedComputeStatsdLogger(
+                                    // Android metrics team recommend the atom logging frequency
+                                    // should not exceed once per 10 milliseconds.
+                                    RateLimiter.create(100));
                 }
             }
         }
@@ -39,12 +53,14 @@ public class FederatedComputeStatsdLogger {
 
     /** Log API call stats e.g. response code, API name etc. */
     public void logApiCallStats(ApiCallStats apiCallStats) {
-        FederatedComputeStatsLog.write(
-                FEDERATED_COMPUTE_API_CALLED,
-                apiCallStats.getApiClass(),
-                apiCallStats.getApiName(),
-                apiCallStats.getLatencyMillis(),
-                apiCallStats.getResponseCode());
+        if (mRateLimiter.tryAcquire()) {
+            FederatedComputeStatsLog.write(
+                    FEDERATED_COMPUTE_API_CALLED,
+                    apiCallStats.getApiClass(),
+                    apiCallStats.getApiName(),
+                    apiCallStats.getLatencyMillis(),
+                    apiCallStats.getResponseCode());
+        }
     }
 
     /**
@@ -52,17 +68,44 @@ public class FederatedComputeStatsdLogger {
      * execution.
      */
     public void logTrainingEventReported(TrainingEventReported trainingEvent) {
-        // TODO(b/326286023): Implement KA latency in milliseconds
-        FederatedComputeStatsLog.write(
-                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED,
-                trainingEvent.getClientVersion(),
-                trainingEvent.getEventKind(),
-                trainingEvent.getTaskId(),
-                trainingEvent.getDurationInMillis(),
-                trainingEvent.getExampleSize(),
-                trainingEvent.getDataTransferDurationMillis(),
-                trainingEvent.getBytesUploaded(),
-                trainingEvent.getBytesDownloaded(),
-                0);
+        if (mRateLimiter.tryAcquire()) {
+            FederatedComputeStatsLog.write(
+                    FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED,
+                    trainingEvent.getClientVersion(),
+                    trainingEvent.getEventKind(),
+                    trainingEvent.getTaskId(),
+                    trainingEvent.getDurationInMillis(),
+                    trainingEvent.getExampleSize(),
+                    trainingEvent.getDataTransferDurationMillis(),
+                    trainingEvent.getBytesUploaded(),
+                    trainingEvent.getBytesDownloaded(),
+                    trainingEvent.getKeyAttestationLatencyMillis(),
+                    trainingEvent.getExampleStoreBindLatencyNanos(),
+                    trainingEvent.getExampleStoreStartQueryLatencyNanos(),
+                    trainingEvent.getPopulationId(),
+                    trainingEvent.getExampleCount());
+        }
+    }
+
+    /** This method is only used to test if rate limiter is applied when logging to statsd. */
+    @VisibleForTesting
+    boolean recordExampleIteratorLatencyMetrics(ExampleIteratorLatency iteratorLatency) {
+        if (mRateLimiter.tryAcquire()) {
+            FederatedComputeStatsLog.write(
+                    EXAMPLE_ITERATOR_NEXT_LATENCY_REPORTED,
+                    iteratorLatency.getClientVersion(),
+                    iteratorLatency.getTaskId(),
+                    iteratorLatency.getGetNextLatencyNanos());
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Log ExampleIteratorNextLatencyReported to track the latency of ExampleStoreIterator.next
+     * called.
+     */
+    public void logExampleIteratorNextLatencyReported(ExampleIteratorLatency iteratorLatency) {
+        var unused = recordExampleIteratorLatencyMetrics(iteratorLatency);
     }
 }

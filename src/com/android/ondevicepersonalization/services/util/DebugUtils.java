@@ -16,22 +16,65 @@
 
 package com.android.ondevicepersonalization.services.util;
 
+import android.adservices.ondevicepersonalization.IsolatedServiceException;
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
 
+import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OdpServiceException;
+
 import java.util.Objects;
 
 /** Fuctions for testing and debugging. */
 public class DebugUtils {
+    private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
+    private static final String TAG = DebugUtils.class.getSimpleName();
+
     /** Returns true if the device is debuggable. */
     public static boolean isDeveloperModeEnabled(@NonNull Context context) {
         ContentResolver resolver = Objects.requireNonNull(context.getContentResolver());
         return Build.isDebuggable()
                 || Settings.Global.getInt(
                     resolver, Settings.Global.DEVELOPMENT_SETTINGS_ENABLED, 0) != 0;
+    }
+
+    /** Returns the exception code reported by the service if debugging is allowed. */
+    public static int getIsolatedServiceExceptionCode(
+            @NonNull Context context,
+            @NonNull ComponentName service,
+            @NonNull OdpServiceException e) {
+        try {
+            if (!FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()) {
+                return 0;
+            }
+            if (isDeveloperModeEnabled(context)
+                    && PackageUtils.isPackageDebuggable(context, service.getPackageName())) {
+                if (e.getCause() != null && e.getCause() instanceof IsolatedServiceException) {
+                    return ((IsolatedServiceException) e.getCause()).getErrorCode();
+                }
+            }
+        } catch (Exception e2) {
+            sLogger.e(e2, TAG + ": failed to get code");
+        }
+        return 0;
+    }
+
+    /** Returns the exception message if debugging is allowed. */
+    public static String getErrorMessage(@NonNull Context context, Throwable t) {
+        try {
+            if (t != null && isDeveloperModeEnabled(context)
+                    && FlagsFactory.getFlags().isIsolatedServiceDebuggingEnabled()) {
+                return t.getClass().getSimpleName() + ": " + t.getMessage();
+            }
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": failed to get message");
+        }
+        return null;
     }
 
     private DebugUtils() {}

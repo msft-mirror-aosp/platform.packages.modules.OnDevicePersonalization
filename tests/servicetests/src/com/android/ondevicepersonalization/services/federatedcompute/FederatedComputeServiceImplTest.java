@@ -17,9 +17,11 @@
 package com.android.ondevicepersonalization.services.federatedcompute;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -38,11 +40,14 @@ import android.provider.DeviceConfig;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
@@ -55,7 +60,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.mockito.quality.Strictness;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
@@ -76,10 +83,15 @@ public class FederatedComputeServiceImplTest {
     private IFederatedComputeService mServiceProxy;
     private FederatedComputeManager mMockManager;
     private ComponentName mIsolatedService;
+    @Mock
+    UserPrivacyStatus mUserPrivacyStatus;
 
     @Rule
-    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
-            new TestableDeviceConfig.TestableDeviceConfigRule();
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(UserPrivacyStatus.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     @Before
     public void setup() throws Exception {
@@ -88,6 +100,9 @@ public class FederatedComputeServiceImplTest {
         mMockManager = Mockito.mock(FederatedComputeManager.class);
         mCallbackCapture = ArgumentCaptor.forClass(OutcomeReceiver.class);
         mRequestCapture = ArgumentCaptor.forClass(ScheduleFederatedComputeRequest.class);
+        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doNothing()
                 .when(mMockManager)
                 .cancel(any(), any(), any(), mCallbackCapture.capture());
@@ -126,6 +141,45 @@ public class FederatedComputeServiceImplTest {
         assertEquals(FC_SERVER_URL, request.getTrainingOptions().getServerAddress());
         assertEquals("population", request.getTrainingOptions().getPopulationName());
         assertTrue(mOnSuccessCalled);
+    }
+
+    @Test
+    public void testSchedulePersonalizationDisabled() throws Exception {
+        ExtendedMockito.doReturn(false)
+                .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(100)
+                        .setSchedulingMode(1)
+                        .build();
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName("population")
+                        .setTrainingInterval(interval)
+                        .build();
+        mServiceProxy.schedule(options, new TestCallback());
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertFalse(mOnSuccessCalled);
+    }
+
+    @Test
+    public void testScheduleMeasurementControlRevoked() throws Exception {
+        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        ExtendedMockito.doReturn(false)
+                .when(mUserPrivacyStatus).isMeasurementEnabled();
+        TrainingInterval interval =
+                new TrainingInterval.Builder()
+                        .setMinimumIntervalMillis(100)
+                        .setSchedulingMode(1)
+                        .build();
+        TrainingOptions options =
+                new TrainingOptions.Builder()
+                        .setPopulationName("population")
+                        .setTrainingInterval(interval)
+                        .build();
+        mServiceProxy.schedule(options, new TestCallback());
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertFalse(mOnSuccessCalled);
     }
 
     @Test

@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.training;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -108,6 +109,12 @@ public final class FederatedJobServiceTest {
     }
 
     @Test
+    public void testDefaultNoArgConstructor() {
+        FederatedJobService instance = new FederatedJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
+    }
+
+    @Test
     public void testOnStartJob() throws Exception {
         doReturn(Futures.immediateFuture(FL_RUNNER_SUCCESS_RESULT))
                 .when(mMockWorker)
@@ -118,6 +125,19 @@ public final class FederatedJobServiceTest {
 
         assertTrue(result);
         verify(mMockWorker, times(1)).finish(eq(FL_RUNNER_SUCCESS_RESULT));
+    }
+
+    @Test
+    public void testOnStartJobNullRunnerResult() throws Exception {
+        doReturn(Futures.immediateFuture(null))
+                .when(mMockWorker)
+                .startTrainingRun(anyInt(), any());
+
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+
+        assertTrue(result);
+        verify(mMockWorker, never()).finish(any());
+        verify(mMockWorker).cleanUpActiveRun();
     }
 
     @Test

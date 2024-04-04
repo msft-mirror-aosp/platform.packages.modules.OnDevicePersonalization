@@ -16,6 +16,9 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ON_DEVICE_PERSONALIZATION_ERROR;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
@@ -23,7 +26,10 @@ import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import android.adservices.ondevicepersonalization.Constants;
@@ -38,9 +44,12 @@ import androidx.test.core.app.ApplicationProvider;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.rule.ServiceTestRule;
 
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.data.user.RawUserData;
 import com.android.ondevicepersonalization.services.data.user.UserDataCollector;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
 import org.junit.After;
 import org.junit.Before;
@@ -48,6 +57,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.Mock;
+import org.mockito.quality.Strictness;
 
 import java.util.TimeZone;
 import java.util.concurrent.CountDownLatch;
@@ -55,7 +66,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 @RunWith(JUnit4.class)
+@MockStatic(ClientErrorLogger.class)
 public class OnDevicePersonalizationConfigServiceTest {
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     @Rule
     public final ServiceTestRule serviceRule = new ServiceTestRule();
     private Context mContext = spy(ApplicationProvider.getApplicationContext());
@@ -63,21 +79,25 @@ public class OnDevicePersonalizationConfigServiceTest {
     private UserPrivacyStatus mUserPrivacyStatus;
     private RawUserData mUserData;
     private UserDataCollector mUserDataCollector;
+    @Mock
+    private ClientErrorLogger mMockClientErrorLogger;
 
     @Before
     public void setup() throws Exception {
+
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
         PhFlagsTestUtil.disablePersonalizationStatusOverride();
-        when(mContext.checkCallingOrSelfPermission(anyString()))
+        when(mContext.checkCallingPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_GRANTED);
         mBinder = new OnDevicePersonalizationConfigServiceDelegate(mContext);
-        mUserPrivacyStatus = UserPrivacyStatus.getInstance();
+        mUserPrivacyStatus = UserPrivacyStatus.getInstanceForTest();
         mUserPrivacyStatus.setPersonalizationStatusEnabled(false);
         mUserData = RawUserData.getInstance();
         TimeZone pstTime = TimeZone.getTimeZone("GMT-08:00");
         TimeZone.setDefault(pstTime);
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
     }
 
     @Test
@@ -96,7 +116,7 @@ public class OnDevicePersonalizationConfigServiceTest {
 
     @Test
     public void testSetPersonalizationStatusNoCallingPermission() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(anyString()))
+        when(mContext.checkCallingPermission(anyString()))
                         .thenReturn(PackageManager.PERMISSION_DENIED);
         assertThrows(SecurityException.class, () -> {
             mBinder.setPersonalizationStatus(true, null);
@@ -139,17 +159,6 @@ public class OnDevicePersonalizationConfigServiceTest {
     }
 
     @Test
-    public void testSetPersonalizationStatusThrowsIllegalArgument() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(anyString()))
-                .thenThrow(IllegalArgumentException.class);
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> {
-                    mBinder.setPersonalizationStatus(true, null);
-                });
-    }
-
-    @Test
     @SdkSuppress(minSdkVersion = Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
     public void testSetPersonalizationStatusThrowsRuntimeException() throws Exception {
         when(mContext.getSystemService(any(Class.class))).thenThrow(RuntimeException.class);
@@ -160,6 +169,11 @@ public class OnDevicePersonalizationConfigServiceTest {
 
         assertTrue(latch.await(10000, TimeUnit.MILLISECONDS));
         assertEquals(Constants.STATUS_INTERNAL_ERROR, callback.getErrCode());
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        isA(RuntimeException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ON_DEVICE_PERSONALIZATION_ERROR),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP));
     }
 
     @Test
