@@ -44,61 +44,71 @@ public class LogUtils {
     /** Writes the provided records to the REQUESTS and EVENTS tables. */
     public static ListenableFuture<Long> writeLogRecords(
             @NonNull Context context,
+            @NonNull String appPackageName,
             @NonNull ComponentName service,
             @Nullable RequestLogRecord requestLogRecord,
             @NonNull List<EventLogRecord> eventLogRecords) {
         sLogger.d(TAG + ": writeLogRecords() started.");
-        String serviceName = DbUtils.toTableValue(service);
-        EventsDao eventsDao = EventsDao.getInstance(context);
-        // Insert query
-        long queryId = -1;
-        if (requestLogRecord != null) {
-            List<ContentValues> rows = requestLogRecord.getRows();
-            byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                    serviceName, null, rows);
-            Query query = new Query.Builder()
-                    .setService(service)
-                    .setQueryData(queryData)
-                    .setTimeMillis(System.currentTimeMillis())
-                    .build();
-            queryId = eventsDao.insertQuery(query);
-            if (queryId == -1) {
-                return Futures.immediateFailedFuture(new RuntimeException("Failed to log query."));
+        try {
+            String serviceName = DbUtils.toTableValue(service);
+            String certDigest = PackageUtils.getCertDigest(service.getPackageName());
+            EventsDao eventsDao = EventsDao.getInstance(context);
+            // Insert query
+            long queryId = -1;
+            if (requestLogRecord != null) {
+                List<ContentValues> rows = requestLogRecord.getRows();
+                byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                        serviceName, certDigest, rows);
+                Query query = new Query.Builder(
+                        System.currentTimeMillis(),
+                        appPackageName,
+                        service,
+                        certDigest,
+                        queryData).build();
+                queryId = eventsDao.insertQuery(query);
+                if (queryId == -1) {
+                    return Futures.immediateFailedFuture(
+                            new RuntimeException("Failed to log query."));
+                }
             }
-        }
 
-        // Insert events
-        List<Event> events = new ArrayList<>();
-        for (EventLogRecord eventLogRecord : eventLogRecords) {
-            RequestLogRecord parent = eventLogRecord.getRequestLogRecord();
-            // Verify requestLogRecord exists and has the corresponding rowIndex
-            if (parent == null || parent.getRequestId() == 0
-                    || eventLogRecord.getRowIndex() >= parent.getRows().size()) {
-                continue;
+            // Insert events
+            List<Event> events = new ArrayList<>();
+            for (EventLogRecord eventLogRecord : eventLogRecords) {
+                RequestLogRecord parent = eventLogRecord.getRequestLogRecord();
+                // Verify requestLogRecord exists and has the corresponding rowIndex
+                if (parent == null || parent.getRequestId() == 0
+                        || eventLogRecord.getRowIndex() >= parent.getRows().size()) {
+                    continue;
+                }
+                // Make sure query exists for package in QUERY table
+                Query queryRow = eventsDao.readSingleQueryRow(parent.getRequestId(), service);
+                if (queryRow == null || eventLogRecord.getRowIndex()
+                        >= OnDevicePersonalizationFlatbufferUtils
+                                .getContentValuesLengthFromQueryData(
+                                        queryRow.getQueryData())) {
+                    continue;
+                }
+                Event event = new Event.Builder()
+                        .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(
+                                eventLogRecord.getData()))
+                        .setQueryId(parent.getRequestId())
+                        .setRowIndex(eventLogRecord.getRowIndex())
+                        .setService(service)
+                        .setTimeMillis(System.currentTimeMillis())
+                        .setType(eventLogRecord.getType())
+                        .build();
+                events.add(event);
             }
-            // Make sure query exists for package in QUERY table
-            Query queryRow = eventsDao.readSingleQueryRow(parent.getRequestId(), service);
-            if (queryRow == null || eventLogRecord.getRowIndex()
-                    >= OnDevicePersonalizationFlatbufferUtils.getContentValuesLengthFromQueryData(
-                    queryRow.getQueryData())) {
-                continue;
+            if (!eventsDao.insertEvents(events)) {
+                return Futures.immediateFailedFuture(
+                        new RuntimeException("Failed to log events."));
             }
-            Event event = new Event.Builder()
-                    .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(
-                            eventLogRecord.getData()))
-                    .setQueryId(parent.getRequestId())
-                    .setRowIndex(eventLogRecord.getRowIndex())
-                    .setService(service)
-                    .setTimeMillis(System.currentTimeMillis())
-                    .setType(eventLogRecord.getType())
-                    .build();
-            events.add(event);
-        }
-        if (!eventsDao.insertEvents(events)) {
-            return Futures.immediateFailedFuture(new RuntimeException("Failed to log events."));
-        }
 
-        return Futures.immediateFuture(queryId);
+            return Futures.immediateFuture(queryId);
+        } catch (Exception e) {
+            return Futures.immediateFailedFuture(e);
+        }
     }
 
     private LogUtils() {}

@@ -71,6 +71,7 @@ import org.tensorflow.example.BytesList;
 import org.tensorflow.example.Example;
 import org.tensorflow.example.Feature;
 import org.tensorflow.example.Features;
+import org.tensorflow.example.FloatList;
 import org.tensorflow.example.Int64List;
 
 import java.io.IOException;
@@ -356,23 +357,55 @@ public class SampleHandler implements IsolatedWorker {
             @NonNull TrainingExamplesInput input,
             @NonNull OutcomeReceiver<TrainingExamplesOutput, IsolatedServiceException> receiver) {
         TrainingExamplesOutput.Builder resultBuilder = new TrainingExamplesOutput.Builder();
-        Random rand = new Random();
-        int numExample = rand.nextInt(10) + 1;
-        Log.d(TAG, String.format("onTrainingExample() generates %d examples.", numExample));
-        for (int count = 0; count < numExample; count++) {
-            Example example =
-                    convertToExample(
-                            new String(
-                                    mRemoteData.get(
-                                            String.format("example%d", rand.nextInt(100) + 1)),
-                                    StandardCharsets.UTF_8));
-            TrainingExampleRecord record =
-                    new TrainingExampleRecord.Builder()
-                            .setTrainingExample(example.toByteArray())
-                            .setResumptionToken(String.format("token%d", count).getBytes())
+
+        if (input.getPopulationName().contains("criteo")) {
+            Random rand = new Random();
+            int numExample = rand.nextInt(10) + 1;
+            Log.d(TAG, String.format("onTrainingExample() generates %d examples.", numExample));
+            for (int count = 0; count < numExample; count++) {
+                Example example = convertToExample(
+                        new String(mRemoteData.get(
+                                String.format("example%d", rand.nextInt(100) + 1)),
+                        StandardCharsets.UTF_8));
+                TrainingExampleRecord record =
+                        new TrainingExampleRecord.Builder()
+                                .setTrainingExample(example.toByteArray())
+                                .setResumptionToken(String.format("token%d", count).getBytes())
+                                .build();
+                resultBuilder.addTrainingExampleRecord(record);
+            }
+        } else if (input.getPopulationName().contains("keras")) {
+            Random rand = new Random();
+            int numExample = rand.nextInt(400);
+            for (int exampleCount = 0; exampleCount < numExample; exampleCount++) {
+                ArrayList<Float> inputsValue = new ArrayList<Float>();
+                for (int inputsIndex = 0; inputsIndex < 784; inputsIndex++) {
+                    inputsValue.add(rand.nextFloat());
+                }
+                Feature inputsFeature =
+                        Feature.newBuilder()
+                            .setFloatList(FloatList.newBuilder().addAllValue(inputsValue))
                             .build();
-            resultBuilder.addTrainingExampleRecord(record);
+                Feature outputsFeature =
+                        Feature.newBuilder()
+                            .setInt64List(Int64List.newBuilder().addValue(rand.nextInt(2)))
+                            .build();
+                Example example = Example.newBuilder().setFeatures(
+                        Features.newBuilder()
+                            .putFeature("inputs", inputsFeature)
+                            .putFeature("outputs", outputsFeature)
+                            .build())
+                        .build();
+                TrainingExampleRecord record =
+                        new TrainingExampleRecord.Builder()
+                                .setTrainingExample(example.toByteArray())
+                                .setResumptionToken(
+                                                String.format("token%d", exampleCount).getBytes())
+                                .build();
+                resultBuilder.addTrainingExampleRecord(record);
+            }
         }
+
         receiver.onResult(resultBuilder.build());
     }
 
@@ -569,7 +602,7 @@ public class SampleHandler implements IsolatedWorker {
             }
             String reqAdId = (String) req.getRows().get(ev.getRowIndex()).get(AD_ID_KEY);
             if (adId.equals(reqAdId)) {
-                if (found == null || found.getTimeMillis() < ev.getTimeMillis()) {
+                if (found == null || found.getTime().compareTo(ev.getTime()) < 0) {
                     found = ev;
                 }
             }

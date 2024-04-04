@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data.events;
 
+import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
@@ -42,11 +43,15 @@ import java.util.List;
 public class EventsDaoTest {
     private static final int EVENT_TYPE_B2D = 1;
     private static final int EVENT_TYPE_CLICK = 2;
+    private static final String APP_NAME = "com.app";
     private static final String TASK_IDENTIFIER = "taskIdentifier";
     private static final String SERVICE_CLASS = "TestClass";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final ComponentName mService =
             new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
+    private final String mServiceCert = "AABBCCDD";
+    private final byte[] mQueryData = "query".getBytes(StandardCharsets.UTF_8);
+
     private final Event mTestEvent = new Event.Builder()
             .setType(EVENT_TYPE_B2D)
             .setEventData("event".getBytes(StandardCharsets.UTF_8))
@@ -55,10 +60,8 @@ public class EventsDaoTest {
             .setTimeMillis(1L)
             .setRowIndex(0)
             .build();
-    private final Query mTestQuery = new Query.Builder()
-            .setTimeMillis(1L)
-            .setService(mService)
-            .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+    private final Query mTestQuery = new Query.Builder(
+            1L, APP_NAME, mService, mServiceCert, mQueryData)
             .build();
     private final EventState mEventState = new EventState.Builder()
             .setTaskIdentifier(TASK_IDENTIFIER)
@@ -183,10 +186,7 @@ public class EventsDaoTest {
                 .build();
         long eventId2 = mDao.insertEvent(testEvent);
 
-        Query testQuery = new Query.Builder()
-                .setTimeMillis(5L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query testQuery = new Query.Builder(5L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId3 = mDao.insertQuery(testQuery);
 
@@ -230,10 +230,7 @@ public class EventsDaoTest {
         long queryId2 = mDao.insertQuery(mTestQuery);
         ComponentName serviceA = new ComponentName("packageA", "clsA");
 
-        Query packageAQuery = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(serviceA)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query packageAQuery = new Query.Builder(1L, APP_NAME, serviceA, mServiceCert, mQueryData)
                 .build();
         long queryId3 = mDao.insertQuery(packageAQuery);
 
@@ -275,10 +272,7 @@ public class EventsDaoTest {
         long queryId2 = mDao.insertQuery(mTestQuery);
         ComponentName serviceA = new ComponentName("packageA", "clsA");
 
-        Query packageAQuery = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(serviceA)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query packageAQuery = new Query.Builder(1L, APP_NAME, serviceA, mServiceCert, mQueryData)
                 .build();
         long queryId3 = mDao.insertQuery(packageAQuery);
 
@@ -317,28 +311,17 @@ public class EventsDaoTest {
     @Test
     public void testReadAllQueries() {
         ComponentName otherService = new ComponentName("package", "cls");
-        Query query1 = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        String otherCert = "11223344";
+        Query query1 = new Query.Builder(1L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId1 = mDao.insertQuery(query1);
-        Query query2 = new Query.Builder()
-                .setTimeMillis(10L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query2 = new Query.Builder(10L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId2 = mDao.insertQuery(query2);
-        Query query3 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query3 = new Query.Builder(100L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId3 = mDao.insertQuery(query3);
-        Query query4 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setService(otherService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query4 = new Query.Builder(100L, APP_NAME, otherService, otherCert, mQueryData)
                 .build();
         long queryId4 = mDao.insertQuery(query4);
 
@@ -363,22 +346,16 @@ public class EventsDaoTest {
 
     @Test
     public void testReadAllEventIds() {
-        Query query1 = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query1 = new Query.Builder(
+                1L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId1 = mDao.insertQuery(query1);
-        Query query2 = new Query.Builder()
-                .setTimeMillis(10L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query2 = new Query.Builder(
+                10L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId2 = mDao.insertQuery(query2);
-        Query query3 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query3 = new Query.Builder(
+                100L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId3 = mDao.insertQuery(query3);
 
@@ -430,16 +407,12 @@ public class EventsDaoTest {
 
     @Test
     public void testReadEventIdsForRequest() {
-        Query query1 = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query1 = new Query.Builder(
+                1L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId1 = mDao.insertQuery(query1);
-        Query query2 = new Query.Builder()
-                .setTimeMillis(10L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query2 = new Query.Builder(
+                10L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId2 = mDao.insertQuery(query2);
 
@@ -489,22 +462,16 @@ public class EventsDaoTest {
 
     @Test
     public void testReadJoinedEvents() {
-        Query query1 = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query1 = new Query.Builder(
+                1L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId1 = mDao.insertQuery(query1);
-        Query query2 = new Query.Builder()
-                .setTimeMillis(10L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query2 = new Query.Builder(
+                10L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId2 = mDao.insertQuery(query2);
-        Query query3 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query3 = new Query.Builder(
+                100L, APP_NAME, mService, mServiceCert, mQueryData)
                 .build();
         long queryId3 = mDao.insertQuery(query3);
 
@@ -556,14 +523,18 @@ public class EventsDaoTest {
 
     @Test
     public void testReadSingleQuery() {
-        Query query1 = new Query.Builder()
+        Query query1 = new Query.Builder(
+                1L, APP_NAME, mService, mServiceCert, mQueryData)
                 .setQueryId(1)
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
                 .build();
         mDao.insertQuery(query1);
-        assertEquals(query1, mDao.readSingleQueryRow(1, mService));
+        Query query2 = mDao.readSingleQueryRow(1, mService);
+        assertEquals(query1.getQueryId(), query2.getQueryId());
+        assertEquals(query1.getTimeMillis(), query2.getTimeMillis());
+        assertEquals(query1.getAppPackageName(), query2.getAppPackageName());
+        assertEquals(query1.getService(), query2.getService());
+        assertEquals(query1.getServiceCertDigest(), query2.getServiceCertDigest());
+        assertArrayEquals(query1.getQueryData(), query2.getQueryData());
         assertNull(mDao.readSingleQueryRow(100, mService));
         assertNull(mDao.readSingleQueryRow(1, new ComponentName("pkg", "cls")));
     }
