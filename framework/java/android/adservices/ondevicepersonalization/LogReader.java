@@ -65,6 +65,8 @@ public class LogReader {
     @NonNull
     public List<RequestLogRecord> getRequests(
             @NonNull Instant startTime, @NonNull Instant endTime) {
+        final long apiStartTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
         long startTimeMillis = startTime.toEpochMilli();
         long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
@@ -74,12 +76,22 @@ public class LogReader {
         if (startTimeMillis < 0) {
             throw new IllegalArgumentException("startTimeMillis must be greater than 0");
         }
-        Bundle params = new Bundle();
-        params.putLongArray(Constants.EXTRA_LOOKUP_KEYS,
-                new long[]{startTimeMillis, endTimeMillis});
-        OdpParceledListSlice<RequestLogRecord> result =
-                handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_REQUESTS, params);
-        return result.getList();
+        try {
+            Bundle params = new Bundle();
+            params.putLongArray(Constants.EXTRA_LOOKUP_KEYS,
+                    new long[]{startTimeMillis, endTimeMillis});
+            OdpParceledListSlice<RequestLogRecord> result =
+                    handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_REQUESTS, params);
+            return result.getList();
+        } catch (RuntimeException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
+            throw e;
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_LOG_READER_GET_REQUESTS,
+                    System.currentTimeMillis() - apiStartTimeMillis,
+                    responseCode);
+        }
     }
 
     /**
@@ -90,6 +102,8 @@ public class LogReader {
     @NonNull
     public List<EventLogRecord> getJoinedEvents(
             @NonNull Instant startTime, @NonNull Instant endTime) {
+        final long apiStartTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
         long startTimeMillis = startTime.toEpochMilli();
         long endTimeMillis = endTime.toEpochMilli();
         if (endTimeMillis <= startTimeMillis) {
@@ -99,12 +113,22 @@ public class LogReader {
         if (startTimeMillis < 0) {
             throw new IllegalArgumentException("startTimeMillis must be greater than 0");
         }
-        Bundle params = new Bundle();
-        params.putLongArray(Constants.EXTRA_LOOKUP_KEYS,
-                new long[]{startTimeMillis, endTimeMillis});
-        OdpParceledListSlice<EventLogRecord> result =
-                handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS, params);
-        return result.getList();
+        try {
+            Bundle params = new Bundle();
+            params.putLongArray(Constants.EXTRA_LOOKUP_KEYS,
+                    new long[]{startTimeMillis, endTimeMillis});
+            OdpParceledListSlice<EventLogRecord> result =
+                    handleListLookupRequest(Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS, params);
+            return result.getList();
+        } catch (RuntimeException e) {
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
+            throw e;
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_LOG_READER_GET_JOINED_EVENTS,
+                    System.currentTimeMillis() - apiStartTimeMillis,
+                    responseCode);
+        }
     }
 
     private Bundle handleAsyncRequest(int op, Bundle params) {
@@ -148,6 +172,14 @@ public class LogReader {
             return data;
         } catch (ClassCastException e) {
             throw new IllegalStateException("Failed to retrieve parceled list");
+        }
+    }
+
+    private void logApiCallStats(int apiName, long duration, int responseCode) {
+        try {
+            mDataAccessService.logApiCallStats(apiName, duration, responseCode);
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": failed to log metrics");
         }
     }
 }

@@ -42,9 +42,10 @@ public class StatsUtils {
     }
 
     /** Writes app request usage to statsd. */
-    public static void writeAppRequestMetrics(Clock clock, int responseCode, long startTimeMillis) {
+    public static void writeAppRequestMetrics(
+            int apiName, Clock clock, int responseCode, long startTimeMillis) {
         int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_EXECUTE)
+        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
                 .setLatencyMillis(latencyMillis)
                 .setResponseCode(responseCode)
                 .build();
@@ -53,11 +54,11 @@ public class StatsUtils {
 
     /** Writes service request usage to statsd. */
     public static void writeServiceRequestMetrics(
-            Bundle result, Clock clock, int responseCode, long startTimeMillis) {
+            int apiName, Bundle result, Clock clock, int responseCode, long startTimeMillis) {
         int latencyMillis = (int) (clock.elapsedRealtime() - startTimeMillis);
         int overheadLatencyMillis =
                 (int) StatsUtils.getOverheadLatencyMillis(latencyMillis, result);
-        ApiCallStats callStats = new ApiCallStats.Builder(ApiCallStats.API_SERVICE_ON_RENDER)
+        ApiCallStats callStats = new ApiCallStats.Builder(apiName)
                 .setLatencyMillis(latencyMillis)
                 .setOverheadLatencyMillis(overheadLatencyMillis)
                 .setResponseCode(responseCode)

@@ -219,6 +219,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                 .transform(
                         val -> {
                             StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_DOWNLOAD_COMPLETED,
                                     val, mInjector.getClock(), Constants.STATUS_SUCCESS,
                                     mStartServiceTimeMillis);
                             return val;
@@ -228,6 +229,7 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
                         Exception.class,
                         e -> {
                             StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_DOWNLOAD_COMPLETED,
                                     /* result= */ null, mInjector.getClock(),
                                     Constants.STATUS_INTERNAL_ERROR,
                                     mStartServiceTimeMillis);

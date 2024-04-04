@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -35,6 +37,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
+import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import java.util.Objects;
 
@@ -64,6 +67,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             @NonNull IExecuteCallback callback) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
         }
 
         Trace.beginSection("OdpManagingServiceDelegate#Execute");
@@ -107,6 +114,10 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
         }
 
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
+        }
+
         Trace.beginSection("OdpManagingServiceDelegate#RequestSurfacePackage");
         Objects.requireNonNull(slotResultToken);
         Objects.requireNonNull(hostToken);
@@ -140,6 +151,15 @@ public class OnDevicePersonalizationManagingServiceDelegate
     ) {
         if (getGlobalKillSwitch()) {
             throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        }
+
+        if (!DeviceUtils.isOdpSupported(mContext)) {
+            throw new IllegalStateException("Device not supported.");
+        }
+
+        if (mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT)
+                != PackageManager.PERMISSION_GRANTED) {
+            throw new SecurityException("Permission denied: " + NOTIFY_MEASUREMENT_EVENT);
         }
 
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
