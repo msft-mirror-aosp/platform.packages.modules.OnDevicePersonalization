@@ -86,6 +86,10 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.reset.ResetDataJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:isolatedProcess="true"
                  android:process=":plugin_disable_art_image_"

@@ -41,6 +41,9 @@ public class QueriesContract {
         /** Component Name of the service that handled the request */
         public static final String SERVICE_NAME = "serviceName";
 
+        /** Hash of the signing key of the service. */
+        public static final String SERVICE_CERT_DIGEST = "serviceCertDigest";
+
         /** Blob representing the common query fields. */
         public static final String QUERY_DATA = "queryData";
 
@@ -50,12 +53,16 @@ public class QueriesContract {
                     + TIME_MILLIS + " INTEGER NOT NULL,"
                     + APP_PACKAGE_NAME + " TEXT NOT NULL,"
                     + SERVICE_NAME + " TEXT NOT NULL,"
+                    + SERVICE_CERT_DIGEST + " TEXT NOT NULL,"
                     + QUERY_DATA + " BLOB NOT NULL)";
 
-        public static final String UPGRADE_FROM_V1_STATEMENT =
+        public static final String UPGRADE_V1_TO_V2_STATEMENT =
                 "ALTER TABLE " + TABLE_NAME
-                + " ADD COLUMN " + APP_PACKAGE_NAME + " TEXT NOT NULL "
-                + "DEFAULT ''";
+                + " ADD COLUMN " + APP_PACKAGE_NAME + " TEXT NOT NULL DEFAULT ''";
+
+        public static final String UPGRADE_V2_TO_V3_STATEMENT =
+                "ALTER TABLE " + TABLE_NAME
+                + " ADD COLUMN " + SERVICE_CERT_DIGEST + " TEXT NOT NULL DEFAULT ''";
 
         private QueriesEntry() {}
     }

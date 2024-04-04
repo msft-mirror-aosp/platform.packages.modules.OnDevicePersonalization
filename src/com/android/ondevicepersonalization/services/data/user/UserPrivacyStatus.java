@@ -41,6 +41,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
@@ -72,8 +73,8 @@ public final class UserPrivacyStatus {
         mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
-        mProtectedAudienceReset = true;
-        mMeasurementReset = true;
+        mProtectedAudienceReset = false;
+        mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
     }
 
@@ -163,24 +164,14 @@ public final class UserPrivacyStatus {
     /**
      * Returns true if the user requests a reset on PA-related data.
      */
-    public boolean isProtectedAudienceReset() {
-        if (isUserControlCacheValid()) {
-            return mProtectedAudienceReset;
-        }
-        // make request to AdServices#getCommonStates API.
-        fetchStateFromAdServices();
+    private boolean isProtectedAudienceReset() {
         return mProtectedAudienceReset;
     }
 
     /**
      * Returns true if the user requests a reset on measurement-related data.
      */
-    public boolean isMeasurementReset() {
-        if (isUserControlCacheValid()) {
-            return mMeasurementReset;
-        }
-        // make request to AdServices#getCommonStates API.
-        fetchStateFromAdServices();
+    private boolean isMeasurementReset() {
         return mMeasurementReset;
     }
 
@@ -195,6 +186,7 @@ public final class UserPrivacyStatus {
         mProtectedAudienceReset = (protectedAudienceState != CONTROL_GIVEN_STATUS_CODE);
         mMeasurementReset = (measurementState != CONTROL_GIVEN_STATUS_CODE);
         mLastUserControlCacheUpdate = sClock.currentTimeMillis();
+        handleResetIfNeeded();
     }
 
     /**
@@ -218,8 +210,8 @@ public final class UserPrivacyStatus {
     void resetUserControlForTesting() {
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
-        mProtectedAudienceReset = true;
-        mMeasurementReset = true;
+        mProtectedAudienceReset = false;
+        mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
     }
 
@@ -246,6 +238,12 @@ public final class UserPrivacyStatus {
             updateUserControlCache(updatedProtectedAudienceState, updatedMeasurementState);
         } catch (Exception e) {
             sLogger.e(TAG + ": fetchStateFromAdServices error", e);
+        }
+    }
+
+    private void handleResetIfNeeded() {
+        if (isMeasurementReset() || isProtectedAudienceReset()) {
+            ResetDataJobService.schedule();
         }
     }
 
