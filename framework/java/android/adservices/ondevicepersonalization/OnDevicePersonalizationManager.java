@@ -209,10 +209,11 @@ public class OnDevicePersonalizationManager {
                 }
 
                 @Override
-                public void onError(int errorCode) {
+                public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
                     final long token = Binder.clearCallingIdentity();
                     try {
-                        executor.execute(() -> receiver.onError(createException(errorCode)));
+                        executor.execute(() -> receiver.onError(
+                                createException(errorCode, isolatedServiceErrorCode, message)));
                     } finally {
                         Binder.restoreCallingIdentity(token);
                     }
@@ -297,11 +298,13 @@ public class OnDevicePersonalizationManager {
                         }
 
                         @Override
-                        public void onError(int errorCode) {
+                        public void onError(
+                                int errorCode, int isolatedServiceErrorCode, String message) {
                             final long token = Binder.clearCallingIdentity();
                             try {
                                 executor.execute(
-                                        () -> receiver.onError(createException(errorCode)));
+                                        () -> receiver.onError(createException(
+                                                errorCode, isolatedServiceErrorCode, message)));
                             } finally {
                                 Binder.restoreCallingIdentity(token);
                             }
@@ -324,19 +327,31 @@ public class OnDevicePersonalizationManager {
         }
     }
 
-    private Exception createException(int errorCode) {
+    private Exception createException(
+            int errorCode, int isolatedServiceErrorCode, String message) {
+        if (message == null || message.isBlank()) {
+            message = "Error: " + errorCode;
+        }
         if (errorCode == Constants.STATUS_NAME_NOT_FOUND) {
             return new PackageManager.NameNotFoundException();
         } else if (errorCode == Constants.STATUS_CLASS_NOT_FOUND) {
             return new ClassNotFoundException();
         } else if (errorCode == Constants.STATUS_SERVICE_FAILED) {
+            if (isolatedServiceErrorCode > 0 && isolatedServiceErrorCode < 128) {
+                return new OnDevicePersonalizationException(
+                        OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                        new IsolatedServiceException(isolatedServiceErrorCode));
+            } else {
             return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED);
+                    OnDevicePersonalizationException.ERROR_ISOLATED_SERVICE_FAILED,
+                    message);
+            }
         } else if (errorCode == Constants.STATUS_PERSONALIZATION_DISABLED) {
             return new OnDevicePersonalizationException(
-                    OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED);
+                    OnDevicePersonalizationException.ERROR_PERSONALIZATION_DISABLED,
+                    message);
         } else {
-            return new IllegalStateException("Error: " + errorCode);
+            return new IllegalStateException(message);
         }
     }
 }

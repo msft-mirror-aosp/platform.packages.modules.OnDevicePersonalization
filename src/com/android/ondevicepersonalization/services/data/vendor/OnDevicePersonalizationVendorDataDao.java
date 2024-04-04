@@ -28,12 +28,15 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -435,6 +438,101 @@ public class OnDevicePersonalizationVendorDataDao {
             sLogger.e(TAG + ": Failed to update or insert syncToken", e);
         }
         return false;
+    }
+
+    /** Deletes data for all isolated services except the ones listed. */
+    public static void deleteVendorTables(
+            Context context, List<ComponentName> excludedServices) throws Exception {
+        EventsDao eventsDao = EventsDao.getInstance(context);
+        // Set of packageName and cert
+        Set<Map.Entry<String, String>> vendors = new HashSet<>(getVendors(context));
+
+        // Set of valid packageName and cert
+        Set<Map.Entry<String, String>> validVendors = new HashSet<>();
+        Set<String> validTables = new HashSet<>();
+
+
+        // Remove all valid packages from the set
+        for (ComponentName service : excludedServices) {
+            String certDigest = PackageUtils.getCertDigest(service.getPackageName());
+            // Remove valid packages from set
+            vendors.remove(new AbstractMap.SimpleImmutableEntry<>(
+                    DbUtils.toTableValue(service), certDigest));
+
+            // Add valid package to new set
+            validVendors.add(new AbstractMap.SimpleImmutableEntry<>(
+                    DbUtils.toTableValue(service), certDigest));
+            validTables.add(getTableName(service, certDigest));
+            validTables.add(OnDevicePersonalizationLocalDataDao.getTableName(service, certDigest));
+        }
+        sLogger.d(TAG + ": Retaining tables: " + validTables);
+        sLogger.d(TAG + ": Deleting vendors: " + vendors);
+        // Delete the remaining tables for packages not found onboarded
+        for (Map.Entry<String, String> entry : vendors) {
+            String serviceNameStr = entry.getKey();
+            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
+            String certDigest = entry.getValue();
+            deleteVendorData(context, service, certDigest);
+            eventsDao.deleteEventState(service);
+        }
+
+        // Cleanup files from internal storage for valid packages.
+        for (Map.Entry<String, String> entry : validVendors) {
+            String serviceNameStr = entry.getKey();
+            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
+            String certDigest = entry.getValue();
+            // VendorDao
+            OnDevicePersonalizationVendorDataDao vendorDao =
+                    OnDevicePersonalizationVendorDataDao.getInstance(context, service,
+                            certDigest);
+            File vendorDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                    OnDevicePersonalizationVendorDataDao.getTableName(service, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(vendorDao.readAllVendorDataKeys(), vendorDir);
+
+            // LocalDao
+            OnDevicePersonalizationLocalDataDao localDao =
+                    OnDevicePersonalizationLocalDataDao.getInstance(context, service,
+                            certDigest);
+            File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                    OnDevicePersonalizationLocalDataDao.getTableName(service, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
+        }
+
+        // Cleanup any loose data directories. Tables deleted, but directory still exists.
+        List<File> filesToDelete = new ArrayList<>();
+        File vendorDir = new File(context.getFilesDir(), "VendorData");
+        if (vendorDir.isDirectory()) {
+            for (File f : vendorDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        File localDir = new File(context.getFilesDir(), "LocalData");
+        if (localDir.isDirectory()) {
+            for (File f : localDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        sLogger.d(TAG + ": deleting "
+                + Arrays.asList(filesToDelete.stream().map(v -> v.getName()).toArray()));
+        filesToDelete.forEach(FileUtils::deleteDirectory);
     }
 
     /**

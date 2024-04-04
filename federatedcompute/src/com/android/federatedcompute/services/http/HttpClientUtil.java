@@ -46,6 +46,8 @@ public final class HttpClientUtil {
 
     public static final Integer HTTP_UNAUTHENTICATED_STATUS = 401;
 
+    public static final Integer HTTP_UNAUTHORIZED_STATUS = 403;
+
     public static final ImmutableSet<Integer> HTTP_OK_OR_UNAUTHENTICATED_STATUS =
             ImmutableSet.of(200, 201, 401);
 
@@ -104,7 +106,7 @@ public final class HttpClientUtil {
             }
             return result.toByteArray();
         } catch (Exception e) {
-            LogUtil.e(TAG, "Failed to decompress the data.", e);
+            LogUtil.e(TAG, e, "Failed to decompress the data.");
             throw new IllegalStateException("Failed to unscompress using Gzip", e);
         }
     }

@@ -29,29 +29,42 @@ import org.junit.Assert;
 
 import java.io.IOException;
 import java.util.Locale;
+import java.util.Random;
 
 /** Helper class for interacting with federatedcompute in perf tests. */
 public class TestHelper {
     private static UiDevice sUiDevice;
-    private static final long UI_FIND_RESOURCE_TIMEOUT = 5000;
+    private static final long UI_FIND_RESOURCE_TIMEOUT = 15_000;
     private static final long TRAINING_TASK_COMPLETION_TIMEOUT = 120_000;
     private static final long CHECKIN_REJECTION_COMPLETION_TIMEOUT = 20_000;
     private static final long ENCRYPTION_KEY_FETCH_TIMEOUT = 30_000;
+    private static final long SCHEDULE_JOB_LOG_TIMEOUT = 30_000;
+    private static final long CANCEL_TASK_COMPLETION_TIMEOUT = 20_000;
     private static final String ODP_CLIENT_TEST_APP_PACKAGE_NAME = "com.example.odpclient";
     private static final String SCHEDULE_TRAINING_BUTTON_RESOURCE_ID = "schedule_training_button";
     private static final String SCHEDULE_TRAINING_TEXT_BOX_RESOURCE_ID =
             "schedule_training_text_box";
+    private static final String SCHEDULE_INTERVAL_TEXT_BOX_RESOURCE_ID =
+            "schedule_interval_text_box";
+    private static final String CANCEL_TRAINING_BUTTON_RESOURCE_ID = "cancel_training_button";
     private static final String ODP_TEST_APP_POPULATION_NAME = "criteo_app_test_task";
-    private static final String ODP_TEST_APP_TRAINING_TASK_JOB_ID = "-1098789278";
     private static final String FEDERATED_TRAINING_JOB_SUCCESS_LOG =
-            "FederatedJobService - Federated computation job -1098789278 is done";
+            "FederatedJobService - Federated computation job %s is done";
+    private static final String CANCEL_TRAINING_JOB_LOG =
+            "onTrainerStopCalled cancel the task %s";
+    private static final String CANCEL_SUCCESS_LOG =
+            "FederatedComputeManager - : cancel onSuccess() called";
     private static final String NON_EXISTENT_POPULATION_NAME = "test_non_existent_population";
-    private static final String NON_EXISTENT_POPULATION_TASK_JOB_ID = "-777082974";
     private static final String NON_EXISTENT_POPULATION_JOB_FAILURE_LOG =
-            "job -777082974 was rejected during check in, reason NO_TASK_AVAILABLE";
+            "job %s was rejected during check in, reason NO_TASK_AVAILABLE";
     private static final String ENCRYPTION_KEY_FETCH_JOB_ID = "1000";
     private static final String ENCRYPTION_KEY_FETCH_JOB_SUCCESS_LOG =
             "BackgroundKeyFetchJobService 1000 is done";
+
+    private long mJobId;
+
+    private static final String SCHEDULE_JOB_LOG =
+            "federatedcompute: JobSchedulerHelper - Scheduling job ";
 
     public static void pressHome() {
         getUiDevice().pressHome();
@@ -140,62 +153,116 @@ public class TestHelper {
     public void inputNonExistentPopulationForScheduleTraining() {
         UiObject2 scheduleTrainingTextBox = getScheduleTrainingTextBox();
         assertNotNull("Schedule Training text box not found", scheduleTrainingTextBox);
-        scheduleTrainingTextBox.setText(NON_EXISTENT_POPULATION_NAME);
+        scheduleTrainingTextBox.setText(
+                NON_EXISTENT_POPULATION_NAME + "_" + System.currentTimeMillis());
     }
 
-    /** Click Schedule Training button. */
-    public void clickScheduleTraining() {
+    /** Put a random recurring training interval in seconds less than 365 days */
+    public void inputRandomRecurringTrainingInterval() {
+        UiObject2 scheduleIntervalTextBox = getScheduleIntervalTextBox();
+        assertNotNull("Schedule interval text box not found", scheduleIntervalTextBox);
+        Random rand = new Random();
+        int randomInterval = rand.nextInt(60 * 60 * 24 * 365);
+        scheduleIntervalTextBox.setText(Integer.toString(randomInterval));
+    }
+
+    /** Click Schedule Training button, and verify job scheduled */
+    public void clickScheduleTraining() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
         UiObject2 scheduleTrainingButton = getScheduleTrainingButton();
         assertNotNull("Schedule Training button not found", scheduleTrainingButton);
         scheduleTrainingButton.click();
         SystemClock.sleep(10000);
+
+        mJobId = findJobId(SCHEDULE_JOB_LOG_TIMEOUT, 10000);
+        if (mJobId == 0) {
+            Assert.fail(String.format(Locale.ENGLISH,
+                    "Failed to find federated training job id log within test window %d ms",
+                    SCHEDULE_JOB_LOG_TIMEOUT));
+        }
     }
 
-    /** Force the JobScheduler to execute the training task, bypassing all constraints */
+    /** Click Cancel Training button, and verify job cancelled. */
+    public void clickCancelTraining() throws IOException {
+        executeShellCommand("logcat -c"); // Cleans the log buffer
+        executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
+        UiObject2 cancelTrainingButton = getCancelTrainingButton();
+        assertNotNull("Cancel Training button not found", cancelTrainingButton);
+        cancelTrainingButton.click();
+        SystemClock.sleep(5000);
+
+        boolean foundCancelTrainingJobLog = findLog(
+                String.format(CANCEL_TRAINING_JOB_LOG, mJobId),
+                CANCEL_TASK_COMPLETION_TIMEOUT,
+                5000);
+        if (!foundCancelTrainingJobLog) {
+            Assert.fail(String.format(Locale.ENGLISH,
+                    "Failed to find cancel job log %s within test window %d ms",
+                    String.format(CANCEL_TRAINING_JOB_LOG, mJobId),
+                    CANCEL_TASK_COMPLETION_TIMEOUT));
+        }
+
+        boolean foundCancelSuccessLog = findLog(
+                CANCEL_SUCCESS_LOG,
+                CANCEL_TASK_COMPLETION_TIMEOUT,
+                5000);
+        if (!foundCancelSuccessLog) {
+            Assert.fail(String.format(Locale.ENGLISH,
+                    "Failed to find cancel success log %s within test window %d ms",
+                    CANCEL_SUCCESS_LOG,
+                    CANCEL_TASK_COMPLETION_TIMEOUT));
+        }
+    }
+
+    /** Force the JobScheduler to execute the training task, bypassing all constraints
+     * and verify the job is executed successfully */
     public void forceExecuteTrainingTaskForTestApp() throws IOException {
         executeShellCommand("logcat -c"); // Cleans the log buffer
         executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
-                    + ODP_TEST_APP_TRAINING_TASK_JOB_ID);
+                    + mJobId);
         SystemClock.sleep(10000);
 
         boolean foundTrainingJobSuccessLog = findLog(
-                FEDERATED_TRAINING_JOB_SUCCESS_LOG,
+                String.format(FEDERATED_TRAINING_JOB_SUCCESS_LOG, mJobId),
                 TRAINING_TASK_COMPLETION_TIMEOUT,
                 10000);
 
         if (!foundTrainingJobSuccessLog) {
             Assert.fail(String.format(Locale.ENGLISH,
                     "Failed to find federated training job success log %s within test window %d ms",
-                    FEDERATED_TRAINING_JOB_SUCCESS_LOG,
+                    String.format(FEDERATED_TRAINING_JOB_SUCCESS_LOG, mJobId),
                     TRAINING_TASK_COMPLETION_TIMEOUT));
         }
     }
 
-    /** Force the JobScheduler to execute the training task for non existent population */
+    /** Force the JobScheduler to execute the training task for non existent population
+     * and verify the task is rejected during check in */
     public void forceExecuteTrainingForNonExistentPopulation() throws IOException {
         executeShellCommand("logcat -c"); // Cleans the log buffer
         executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
         executeShellCommand(
                 "cmd jobscheduler run -f com.google.android.federatedcompute "
-                        + NON_EXISTENT_POPULATION_TASK_JOB_ID);
+                        + mJobId);
         SystemClock.sleep(10000);
 
         boolean foundTrainingFailureLog = findLog(
-                NON_EXISTENT_POPULATION_JOB_FAILURE_LOG,
+                String.format(NON_EXISTENT_POPULATION_JOB_FAILURE_LOG, mJobId),
                 CHECKIN_REJECTION_COMPLETION_TIMEOUT,
                 5000);
 
         if (!foundTrainingFailureLog) {
             Assert.fail(String.format(Locale.ENGLISH,
                     "Failed to find federated training failure log: %s within test window %d ms",
-                    NON_EXISTENT_POPULATION_JOB_FAILURE_LOG,
+                    String.format(NON_EXISTENT_POPULATION_JOB_FAILURE_LOG, mJobId),
                     CHECKIN_REJECTION_COMPLETION_TIMEOUT));
         }
     }
 
-    /** Force the JobScheduler to execute the encryption key fetch job, bypassing all constraints */
+    /** Force the JobScheduler to execute the encryption key fetch job, bypassing all constraints
+     * and verify the key fetch job succeed */
     public void forceExecuteEncryptionKeyFetchJob() throws IOException {
         executeShellCommand("logcat -c"); // Cleans the log buffer
         executeShellCommand("logcat -G 32M"); // Set log buffer to 32MB
@@ -231,6 +298,23 @@ public class TestHelper {
         return false;
     }
 
+    /** Attempt to find a federatecompute schedule job log entry within the timeout window */
+    private long findJobId(long timeoutMillis,
+            long queryIntervalMillis) throws IOException {
+
+        long startTime = System.currentTimeMillis();
+        while (System.currentTimeMillis() - startTime < timeoutMillis) {
+            String logs = getUiDevice().executeShellCommand("logcat -d");
+            if (logs.contains(SCHEDULE_JOB_LOG)) {
+                // Split on match then split on space and grab JobId from beginning
+                long jobId = Long.parseLong(logs.split(SCHEDULE_JOB_LOG)[1].split(" ", 2)[0]);
+                return jobId;
+            }
+            SystemClock.sleep(queryIntervalMillis);
+        }
+        return 0;
+    }
+
     private static void disableGlobalKillSwitch() {
         executeShellCommand(
                 "device_config put on_device_personalization global_kill_switch false");
@@ -263,10 +347,24 @@ public class TestHelper {
             UI_FIND_RESOURCE_TIMEOUT);
     }
 
+    private UiObject2 getScheduleIntervalTextBox() {
+        return sUiDevice.wait(
+            Until.findObject(
+                By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, SCHEDULE_INTERVAL_TEXT_BOX_RESOURCE_ID)),
+            UI_FIND_RESOURCE_TIMEOUT);
+    }
+
     private UiObject2 getScheduleTrainingButton() {
         return sUiDevice.wait(
             Until.findObject(
                 By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, SCHEDULE_TRAINING_BUTTON_RESOURCE_ID)),
+            UI_FIND_RESOURCE_TIMEOUT);
+    }
+
+    private UiObject2 getCancelTrainingButton() {
+        return sUiDevice.wait(
+            Until.findObject(
+                By.res(ODP_CLIENT_TEST_APP_PACKAGE_NAME, CANCEL_TRAINING_BUTTON_RESOURCE_ID)),
             UI_FIND_RESOURCE_TIMEOUT);
     }
 
