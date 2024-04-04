@@ -48,6 +48,8 @@ public class RemoteDataImpl implements KeyValueStore {
     @Override @Nullable
     public byte[] get(@NonNull String key) {
         Objects.requireNonNull(key);
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             Bundle params = new Bundle();
@@ -73,18 +75,27 @@ public class RemoteDataImpl implements KeyValueStore {
             Bundle result = asyncResult.take();
             ByteArrayParceledSlice data = result.getParcelable(
                             Constants.EXTRA_RESULT, ByteArrayParceledSlice.class);
-            if (null == data) {
-                return null;
-            }
-            return data.getByteArray();
+            return (data == null) ? null : data.getByteArray();
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve key from remoteData", e);
+            responseCode = Constants.STATUS_INTERNAL_ERROR;
             throw new IllegalStateException(e);
+        } finally {
+            try {
+                mDataAccessService.logApiCallStats(
+                        Constants.API_NAME_REMOTE_DATA_GET,
+                        System.currentTimeMillis() - startTimeMillis,
+                        responseCode);
+            } catch (Exception e) {
+                sLogger.d(e, TAG + ": failed to log metrics");
+            }
         }
     }
 
     @Override @NonNull
     public Set<String> keySet() {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_SUCCESS;
         try {
             BlockingQueue<Bundle> asyncResult = new ArrayBlockingQueue<>(1);
             mDataAccessService.onRequest(
@@ -115,6 +126,15 @@ public class RemoteDataImpl implements KeyValueStore {
         } catch (InterruptedException | RemoteException e) {
             sLogger.e(TAG + ": Failed to retrieve keySet from remoteData", e);
             throw new IllegalStateException(e);
+        } finally {
+            try {
+                mDataAccessService.logApiCallStats(
+                        Constants.API_NAME_REMOTE_DATA_KEYSET,
+                        System.currentTimeMillis() - startTimeMillis,
+                        responseCode);
+            } catch (Exception e) {
+                sLogger.d(e, TAG + ": failed to log metrics");
+            }
         }
     }
 

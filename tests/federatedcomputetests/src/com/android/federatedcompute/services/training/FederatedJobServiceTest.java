@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services.training;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -105,6 +106,12 @@ public final class FederatedJobServiceTest {
         if (mStaticMockSession != null) {
             mStaticMockSession.finishMocking();
         }
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        FederatedJobService instance = new FederatedJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test

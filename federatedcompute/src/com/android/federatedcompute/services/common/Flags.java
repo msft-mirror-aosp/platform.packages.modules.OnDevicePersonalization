@@ -221,4 +221,23 @@ public interface Flags extends ModuleSharedFlags {
     default int getBackgroundJobSamplingLoggingRate() {
         return DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
     }
+
+    int DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC = 10;
+
+    default int getExampleStoreServiceCallbackTimeoutSec() {
+        return DEFAULT_EXAMPLE_STORE_SERVICE_CALLBACK_TIMEOUT_SEC;
+    }
+
+    int DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = 2;
+
+    default int getExampleIteratorNextTimeoutSec() {
+        return DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC;
+    }
+
+    long FCP_TF_ERROR_RESCHEDULE_SECONDS = 86400; // 24 hours in seconds
+
+    /** Reschedule FCP jobs in case of TF failure. */
+    default long getFcpTfErrorRescheduleSeconds() {
+        return FCP_TF_ERROR_RESCHEDULE_SECONDS;
+    }
 }

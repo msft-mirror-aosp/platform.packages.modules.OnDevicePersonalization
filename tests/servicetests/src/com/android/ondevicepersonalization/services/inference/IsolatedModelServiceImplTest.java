@@ -351,5 +351,7 @@ public class IsolatedModelServiceImplTest {
                 }
             }
         }
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }

@@ -131,11 +131,6 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
-            } else {
-                ClientErrorLogger.getInstance()
-                        .logError(
-                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
-                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -158,11 +153,6 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
-            } else {
-                ClientErrorLogger.getInstance()
-                        .logError(
-                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
-                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -194,11 +184,6 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
-            } else {
-                ClientErrorLogger.getInstance()
-                        .logError(
-                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
-                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -234,11 +219,6 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
-            } else {
-                ClientErrorLogger.getInstance()
-                        .logError(
-                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
-                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -271,11 +251,6 @@ public class FederatedTrainingTaskDao {
         try {
             if (task != null) {
                 deleteFederatedTrainingTask(selection, selectionArgs);
-            } else {
-                ClientErrorLogger.getInstance()
-                        .logError(
-                                AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DELETE_TASK_FAILURE,
-                                AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
             }
             return task;
         } catch (SQLException e) {
@@ -397,7 +372,7 @@ public class FederatedTrainingTaskDao {
             cursor.close();
             return taskList;
         } catch (SQLiteException e) {
-            LogUtil.e(TAG, "Failed to read TaskHistory db", e);
+            LogUtil.e(TAG, e, "Failed to read TaskHistory db");
         }
         return null;
     }

@@ -101,6 +101,12 @@ public interface Flags extends ModuleSharedFlags {
      */
     boolean DEFAULT_ISOLATED_SERVICE_DEBUGGING_ENABLED = false;
 
+    /** Default delay before starting a data reset. */
+    int DEFAULT_RESET_DATA_DELAY_SECONDS = 12 * 60 * 60;  // 12 hours
+
+    /** Default deadline for data reset. */
+    int DEFAULT_RESET_DATA_DEADLINE_SECONDS = 24 * 60 * 60;  // 24 hours
+
     String DEFAULT_CALLER_APP_ALLOW_LIST =
             "android.ondevicepersonalization,"
                     + "android.ondevicepersonalization.test.scenario,"
@@ -146,9 +152,9 @@ public interface Flags extends ModuleSharedFlags {
     String DEFAULT_OUTPUT_DATA_ALLOW_LIST = "";
 
     /**
-     * Default value of valid duration of user consent cache in milliseconds (10 minutes).
+     * Default value of valid duration of user control cache in milliseconds (24 hours).
      */
-    long USER_CONSENT_CACHE_IN_MILLIS = 600000;
+    long USER_CONTROL_CACHE_IN_MILLIS = 86400000;
 
     default boolean getGlobalKillSwitch() {
         return GLOBAL_KILL_SWITCH;
@@ -225,8 +231,8 @@ public interface Flags extends ModuleSharedFlags {
         return DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
     }
 
-    default long getUserConsentCacheInMillis() {
-        return USER_CONSENT_CACHE_IN_MILLIS;
+    default long getUserControlCacheInMillis() {
+        return USER_CONTROL_CACHE_IN_MILLIS;
     }
 
     default String getOutputDataAllowList() {
@@ -247,5 +253,13 @@ public interface Flags extends ModuleSharedFlags {
 
     default boolean getEnableClientErrorLogging() {
         return DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
+    }
+
+    default int getResetDataDelaySeconds() {
+        return DEFAULT_RESET_DATA_DELAY_SECONDS;
+    }
+
+    default int getResetDataDeadlineSeconds() {
+        return DEFAULT_RESET_DATA_DEADLINE_SECONDS;
     }
 }
