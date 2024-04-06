@@ -29,6 +29,7 @@ android_test_helper_app {
     static_libs: [
         "androidx.annotation_annotation",
         "androidx.core_core",
+        "guava",
     ],
     resource_dirs: [
         "src/main/res",
