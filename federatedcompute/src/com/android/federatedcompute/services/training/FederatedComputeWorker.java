@@ -28,6 +28,7 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFileDescriptor;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
 
 import android.annotation.NonNull;
@@ -232,6 +233,7 @@ public class FederatedComputeWorker {
             callback.callJobFinished(/* isSuccessful= */ false);
             return null;
         }
+        trainingEventLogger.setPopulationName(trainingTask.populationName());
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
             performFinishRoutines(
@@ -974,6 +976,8 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult, TrainingRun run, IExampleStoreIterator iterator) {
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         String outputCheckpointFile = createTempFile("output", ".ckp");
+        run.mTrainingEventLogger.logEventKind(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED);
 
         ListenableFuture<ComputationResult> computationResultFuture;
         switch (clientPlan.getPhase().getSpecCase()) {
