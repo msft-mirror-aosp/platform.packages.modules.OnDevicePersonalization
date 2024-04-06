@@ -22,6 +22,6 @@ android_test_helper_app {
     platform_apis: true,
     target_sdk_version: "current",
     min_sdk_version: "Tiramisu",
-    manifest: "AndroidManifest.xml",
+    manifest: "src/main/AndroidManifest.xml",
     certificate: "platform",
 }
