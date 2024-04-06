@@ -21,6 +21,8 @@ import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager
 import android.app.Activity;
 import android.content.ComponentName;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.os.Bundle;
 import android.os.Handler;
@@ -37,6 +39,9 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.common.util.concurrent.Futures;
+
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
@@ -44,6 +49,10 @@ import java.util.concurrent.atomic.AtomicReference;
 
 public class MainActivity extends Activity {
     private static final String TAG = "OdpClient";
+    private static final String SERVICE_PACKAGE = "com.example.odpsamplenetwork";
+    private static final String SERVICE_CLASS = "com.example.odpsamplenetwork.SampleService";
+    private static final String ODP_APEX = "com.google.android.ondevicepersonalization";
+    private static final String ADSERVICES_APEX = "com.google.android.adservices";
 
     private EditText mTextBox;
     private Button mGetAdButton;
@@ -91,6 +100,10 @@ public class MainActivity extends Activity {
         registerScheduleTrainingButton();
         registerReportConversionButton();
         registerCancelTrainingButton();
+
+        Futures.submit(
+                () -> printDebuggingInfo(),
+                sCallbackExecutor);
     }
 
     private void registerGetAdButton() {
@@ -120,8 +133,8 @@ public class MainActivity extends Activity {
             Trace.beginAsyncSection("OdpClient:makeRequest:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
-                        "com.example.odpsamplenetwork",
-                        "com.example.odpsamplenetwork.SampleService"),
+                            SERVICE_PACKAGE,
+                            SERVICE_CLASS),
                     appParams,
                     sCallbackExecutor,
                     new OutcomeReceiver<ExecuteResult, Exception>() {
@@ -215,8 +228,8 @@ public class MainActivity extends Activity {
             Trace.beginAsyncSection("OdpClient:scheduleTraining:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
-                            "com.example.odpsamplenetwork",
-                            "com.example.odpsamplenetwork.SampleService"),
+                            SERVICE_PACKAGE,
+                            SERVICE_CLASS),
                     appParams,
                     sCallbackExecutor,
                     new OutcomeReceiver<ExecuteResult, Exception>() {
@@ -262,8 +275,8 @@ public class MainActivity extends Activity {
             Trace.beginAsyncSection("OdpClient:cancelTraining:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
-                            "com.example.odpsamplenetwork",
-                            "com.example.odpsamplenetwork.SampleService"),
+                            SERVICE_PACKAGE,
+                            SERVICE_CLASS),
                     appParams,
                     sCallbackExecutor,
                     new OutcomeReceiver<ExecuteResult, Exception>() {
@@ -303,8 +316,8 @@ public class MainActivity extends Activity {
             Trace.beginAsyncSection("OdpClient:reportConversion:odpManager.execute", 0);
             odpManager.execute(
                     ComponentName.createRelative(
-                            "com.example.odpsamplenetwork",
-                            "com.example.odpsamplenetwork.SampleService"),
+                            SERVICE_PACKAGE,
+                            SERVICE_CLASS),
                     appParams,
                     sCallbackExecutor,
                     new OutcomeReceiver<ExecuteResult, Exception>() {
@@ -370,4 +383,37 @@ public class MainActivity extends Activity {
         Log.d(TAG, "onConfigurationChanged");
         super.onConfigurationChanged(newConfig);
     }
+
+    private void printDebuggingInfo() {
+        printPackageVersion(getPackageName());
+        printPackageVersion(SERVICE_PACKAGE);
+        printApexVersion(ODP_APEX);
+        printApexVersion(ADSERVICES_APEX);
+    }
+
+    private void printPackageVersion(String packageName) {
+        try {
+            PackageInfo packageInfo = getPackageManager().getPackageInfo(packageName, 0);
+            String versionName = packageInfo.versionName;
+            Log.i(TAG, "packageName: " + packageName + ", versionName: " + versionName);
+        } catch (PackageManager.NameNotFoundException e) {
+            Log.e(TAG, "can't find package name " + packageName);
+        }
+    }
+
+    private void printApexVersion(String apexName) {
+        List<PackageInfo> installedApexInfo =
+                getPackageManager().getInstalledPackages(
+                        PackageManager.PackageInfoFlags.of(PackageManager.MATCH_APEX));
+
+        for (PackageInfo info: installedApexInfo) {
+            if (apexName.equals(info.packageName) && info.isApex) {
+                Long longVersionCode = info.getLongVersionCode();
+                Log.i(TAG, "apexName: " + apexName + ", longVersionCode: " + longVersionCode);
+                return;
+            }
+        }
+        Log.e(TAG, "apex " + apexName + " not found");
+    }
+
 }

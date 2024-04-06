@@ -162,6 +162,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleRenderAndLog(PersistableBundle appParams) {
+        Log.i(TAG, "handleRenderAndLog()");
         var builder = new ExecuteOutput.Builder();
         String renderingConfigIdList =
                 appParams.getString(SampleServiceApi.KEY_RENDERING_CONFIG_IDS);
@@ -189,6 +190,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleWriteLocalData(PersistableBundle appParams) {
+        Log.i(TAG, "handleWriteLocalData()");
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
@@ -203,18 +205,21 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleReturnOutputData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReturnOutputData()");
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         return new ExecuteOutput.Builder().setOutputData(value).build();
     }
 
     private ExecuteOutput handleReadRemoteData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadRemoteData()");
         Objects.requireNonNull(mRemoteData);
         return new ExecuteOutput.Builder().build();
         // TODO(b/273826477): Add remote data verification.
     }
 
     private ExecuteOutput handleReadUserData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadUserData()");
         Objects.requireNonNull(mUserData);
         int numInstalled = 0;
         for (var entry : mUserData.getAppInfos().entrySet()) {
@@ -289,6 +294,7 @@ class SampleWorker implements IsolatedWorker {
 
     private ExecuteOutput handleRunModelInference(PersistableBundle appParams)
             throws InterruptedException, ExecutionException {
+        Log.i(TAG, "handleRunModelInference()");
         String tableKey =
                 Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         InferenceInput.Params params =
@@ -343,6 +349,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleReadLocalData(PersistableBundle appParams) {
+        Log.i(TAG, "handleReadLocalData()");
         String key = Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_TABLE_KEY));
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
@@ -364,6 +371,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleCheckValueLength(PersistableBundle appParams) {
+        Log.i(TAG, "handleCheckValueLength()");
         String encodedValue = appParams.getString(SampleServiceApi.KEY_BASE64_VALUE);
         byte[] value = (encodedValue != null) ? Base64.decode(encodedValue, 0) : null;
         int expectedLength = appParams.getInt(SampleServiceApi.KEY_VALUE_LENGTH);
@@ -453,6 +461,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleScheduleFederatedJob(PersistableBundle appParams) {
+        Log.i(TAG, "handleScheduleFederatedJob()");
         String populationName =
                 Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
         FederatedComputeInput input =
@@ -468,6 +477,7 @@ class SampleWorker implements IsolatedWorker {
     }
 
     private ExecuteOutput handleCancelFederatedJob(PersistableBundle appParams) {
+        Log.i(TAG, "handleCancelFederatedJob()");
         String populationName =
                 Objects.requireNonNull(appParams.getString(SampleServiceApi.KEY_POPULATION_NAME));
         FederatedComputeInput input =
