@@ -75,10 +75,9 @@ public class WebViewFlowTest {
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
 
         mDao = EventsDao.getInstanceForTest(mContext);
-        Query mTestQuery = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(new ComponentName("pkg", "cls"))
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query mTestQuery = new Query.Builder(
+                1L, "com.app", new ComponentName("pkg", "cls"), "certDigest",
+                        "query".getBytes(StandardCharsets.UTF_8))
                 .build();
         // Insert query for FK constraint
         mDao.insertQuery(mTestQuery);

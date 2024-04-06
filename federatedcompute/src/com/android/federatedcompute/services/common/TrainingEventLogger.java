@@ -46,6 +46,7 @@ public class TrainingEventLogger {
     private static final String TAG = TrainingEventLogger.class.getSimpleName();
     private long mTaskId = 0;
     private long mVersion = 0;
+    private long mPopulationId = 0;
 
     public void setTaskId(long taskId) {
         this.mTaskId = taskId;
@@ -53,6 +54,10 @@ public class TrainingEventLogger {
 
     public void setClientVersion(long version) {
         this.mVersion = version;
+    }
+
+    public void setPopulationName(String populationName) {
+        this.mPopulationId = populationName.hashCode();
     }
 
     /** Logs when device doesn't start federated task like not meet training constraints. */
@@ -250,12 +255,16 @@ public class TrainingEventLogger {
         if (mVersion != 0) {
             event.setClientVersion(mVersion);
         }
+        if (mPopulationId != 0) {
+            event.setPopulationId(mPopulationId);
+        }
         TrainingEventReported trainingEvent = event.build();
-        LogUtil.i(
+        LogUtil.d(
                 TAG,
-                "Log event kind %d, network upload %d download %d data transfer time %d "
+                "Log population id %d event kind %d, network upload %d download %d data transfer time %d "
                         + "example stats %d key attestation stats %d example store bind latency: %d"
                         + " start query latency: %d",
+                trainingEvent.getPopulationId(),
                 trainingEvent.getEventKind(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),

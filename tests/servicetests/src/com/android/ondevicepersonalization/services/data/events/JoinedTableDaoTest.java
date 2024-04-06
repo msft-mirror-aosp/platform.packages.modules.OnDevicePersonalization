@@ -182,11 +182,9 @@ public class JoinedTableDaoTest {
         row = new ContentValues();
         row.put("queryCol1", 2);
         rows.add(row);
-        Query query = new Query.Builder()
-                .setTimeMillis(1L)
-                .setService(mService)
-                .setQueryData(OnDevicePersonalizationFlatbufferUtils.createQueryData(
-                        DbUtils.toTableValue(mService), "AABBCCDD", rows))
+        byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
+                DbUtils.toTableValue(mService), "AABBCCDD", rows);
+        Query query = new Query.Builder(1L, "com.app", mService, "AABBCCDD", queryData)
                 .build();
         long queryId = mDao.insertQuery(query);
 
