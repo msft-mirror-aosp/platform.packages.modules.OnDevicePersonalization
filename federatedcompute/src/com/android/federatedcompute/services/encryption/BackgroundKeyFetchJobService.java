@@ -196,6 +196,7 @@ public class BackgroundKeyFetchJobService extends JobService {
                         .setRequiresBatteryNotLow(true)
                         .setRequiresDeviceIdle(true)
                         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                        .setPersisted(true)
                         .build();
 
         if (!jobInfo.equals(scheduledJob)) {

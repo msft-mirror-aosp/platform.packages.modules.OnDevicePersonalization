@@ -72,6 +72,7 @@ public class OnDevicePersonalizationDownloadProcessingJobService extends JobServ
         builder.setRequiresBatteryNotLow(true);
         builder.setRequiresStorageNotLow(true);
         builder.setRequiredNetworkType(JobInfo.NETWORK_TYPE_NONE);
+        builder.setPersisted(true);
 
         return jobScheduler.schedule(builder.build());
     }

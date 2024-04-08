@@ -174,6 +174,7 @@ public class DeleteExpiredJobService extends JobService {
                                         * 1000) // convert to milliseconds
                         .setRequiresBatteryNotLow(true)
                         .setRequiresDeviceIdle(true)
+                        .setPersisted(true)
                         .build();
 
         if (!jobInfo.equals(scheduledJob)) {
