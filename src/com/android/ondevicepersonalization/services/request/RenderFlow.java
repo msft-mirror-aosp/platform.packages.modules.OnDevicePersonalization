@@ -313,10 +313,6 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
-        } finally {
-            StatsUtils.writeAppRequestMetrics(
-                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                    mInjector.getClock(), responseCode, mStartTimeMillis);
         }
     }
 
@@ -325,10 +321,6 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             mCallback.onError(errorCode, isolatedServiceErrorCode, null);
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
-        } finally {
-            StatsUtils.writeAppRequestMetrics(
-                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                    mInjector.getClock(), errorCode, mStartTimeMillis);
         }
     }
 
@@ -337,10 +329,6 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
             mCallback.onError(errorCode, 0, DebugUtils.getErrorMessage(mContext, t));
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
-        } finally {
-            StatsUtils.writeAppRequestMetrics(
-                    Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
-                    mInjector.getClock(), errorCode, mStartTimeMillis);
         }
     }
 
