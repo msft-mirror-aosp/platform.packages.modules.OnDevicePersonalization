@@ -90,7 +90,7 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
-    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstanceForTest();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -116,10 +116,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     }
 
     private void addEventData(ComponentName service, long timestamp) {
-        Query query = new Query.Builder()
-                .setTimeMillis(timestamp)
-                .setService(service)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query = new Query.Builder(
+                timestamp,
+                "com.app",
+                service,
+                TEST_CERT_DIGEST,
+                "query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
 
@@ -164,6 +166,13 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         mEventsDao = EventsDao.getInstanceForTest(mContext);
 
         mSpyService = spy(new OnDevicePersonalizationMaintenanceJobService());
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        OnDevicePersonalizationMaintenanceJobService instance =
+                new OnDevicePersonalizationMaintenanceJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test
