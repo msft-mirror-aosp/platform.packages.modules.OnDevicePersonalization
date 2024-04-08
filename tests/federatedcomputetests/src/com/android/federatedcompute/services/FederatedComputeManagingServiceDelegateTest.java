@@ -72,7 +72,6 @@ public final class FederatedComputeManagingServiceDelegateTest {
     private Context mContext;
     private final FederatedComputeStatsdLogger mFcStatsdLogger =
             spy(FederatedComputeStatsdLogger.getInstance());
-    private static final CountDownLatch sJobFinishCountDown = new CountDownLatch(1);
 
     @Mock FederatedComputeJobManager mMockJobManager;
     @Mock private Clock mClock;
@@ -155,13 +154,11 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 new TrainingOptions.Builder().setPopulationName("fake-population").build();
         FederatedComputeCallback callback = spy(new FederatedComputeCallback());
 
-        mFcpService.schedule(
-                mContext.getPackageName(), trainingOptions, callback);
+        mFcpService.schedule(mContext.getPackageName(), trainingOptions, callback);
 
         ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
         verify(callback).onFailure(argument.capture());
         assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
-
     }
 
     @Test
@@ -213,16 +210,14 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     @Test
     public void testCancel_returnsSuccess() throws Exception {
-        when(mMockJobManager.onTrainerStopCalled(any(), anyString()))
-                .thenReturn(STATUS_SUCCESS);
+        when(mMockJobManager.onTrainerStopCalled(any(), anyString())).thenReturn(STATUS_SUCCESS);
 
         invokeCancelAndVerifyLogging("fake-population", STATUS_SUCCESS);
     }
 
     @Test
     public void testCancelFails() throws Exception {
-        when(mMockJobManager.onTrainerStopCalled(any(), any()))
-                .thenReturn(STATUS_INTERNAL_ERROR);
+        when(mMockJobManager.onTrainerStopCalled(any(), any())).thenReturn(STATUS_INTERNAL_ERROR);
 
         invokeCancelAndVerifyLogging("fake-population", STATUS_INTERNAL_ERROR);
     }
@@ -245,8 +240,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     @Test
     public void testCancelThrowsRTE() throws Exception {
-        when(mMockJobManager.onTrainerStopCalled(any(), any()))
-                .thenThrow(RuntimeException.class);
+        when(mMockJobManager.onTrainerStopCalled(any(), any())).thenThrow(RuntimeException.class);
 
         invokeCancelAndVerifyLogging("fake-population", STATUS_INTERNAL_ERROR);
     }
@@ -269,7 +263,6 @@ public final class FederatedComputeManagingServiceDelegateTest {
         ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
         verify(callback).onFailure(argument.capture());
         assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
-
     }
 
     @Test
@@ -287,9 +280,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     private void invokeScheduleAndVerifyLogging(
             TrainingOptions trainingOptions, int expectedResultCode) throws InterruptedException {
-        mFcpService.schedule(
-                mContext.getPackageName(), trainingOptions, new FederatedComputeCallback());
-
+        ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
         final CountDownLatch logOperationCalledLatch = new CountDownLatch(1);
         doAnswer(
                         new Answer<Object>() {
@@ -302,11 +293,14 @@ public final class FederatedComputeManagingServiceDelegateTest {
                             }
                         })
                 .when(mFcStatsdLogger)
-                .logApiCallStats(any(ApiCallStats.class));
-        sJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                .logApiCallStats(argument.capture());
+
+        var callback = new FederatedComputeCallback();
+        mFcpService.schedule(mContext.getPackageName(), trainingOptions, callback);
+
+        callback.mJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
-        ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
-        verify(mFcStatsdLogger).logApiCallStats(argument.capture());
+
         assertThat(argument.getValue().getResponseCode()).isEqualTo(expectedResultCode);
         assertThat(argument.getValue().getLatencyMillis()).isEqualTo(100);
         assertThat(argument.getValue().getApiName())
@@ -315,9 +309,9 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     private void invokeCancelAndVerifyLogging(String populationName, int expectedResultCode)
             throws InterruptedException {
-        mFcpService.cancel(OWNER_COMPONENT_NAME, populationName, new FederatedComputeCallback());
 
         final CountDownLatch logOperationCalledLatch = new CountDownLatch(1);
+        ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
         doAnswer(
                         new Answer<Object>() {
                             @Override
@@ -329,12 +323,13 @@ public final class FederatedComputeManagingServiceDelegateTest {
                             }
                         })
                 .when(mFcStatsdLogger)
-                .logApiCallStats(any(ApiCallStats.class));
-        sJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
+                .logApiCallStats(argument.capture());
+        var callback = new FederatedComputeCallback();
+        mFcpService.cancel(OWNER_COMPONENT_NAME, populationName, callback);
+
+        callback.mJobFinishCountDown.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
         logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
-        ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
-        verify(mFcStatsdLogger).logApiCallStats(argument.capture());
         assertThat(argument.getValue().getResponseCode()).isEqualTo(expectedResultCode);
         assertThat(argument.getValue().getLatencyMillis()).isEqualTo(100);
         assertThat(argument.getValue().getApiName())
@@ -344,17 +339,18 @@ public final class FederatedComputeManagingServiceDelegateTest {
     static class FederatedComputeCallback extends IFederatedComputeCallback.Stub {
         public boolean mError = false;
         public int mErrorCode = 0;
+        private final CountDownLatch mJobFinishCountDown = new CountDownLatch(1);
 
         @Override
         public void onSuccess() {
-            sJobFinishCountDown.countDown();
+            mJobFinishCountDown.countDown();
         }
 
         @Override
         public void onFailure(int errorCode) {
             mError = true;
             mErrorCode = errorCode;
-            sJobFinishCountDown.countDown();
+            mJobFinishCountDown.countDown();
         }
     }
 

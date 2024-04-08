@@ -372,7 +372,7 @@ public class FederatedTrainingTaskDao {
             cursor.close();
             return taskList;
         } catch (SQLiteException e) {
-            LogUtil.e(TAG, "Failed to read TaskHistory db", e);
+            LogUtil.e(TAG, e, "Failed to read TaskHistory db");
         }
         return null;
     }

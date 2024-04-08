@@ -29,6 +29,8 @@ import android.database.Cursor;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -50,9 +52,11 @@ import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -100,6 +104,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         );
     }
 
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .setStrictness(Strictness.LENIENT)
+            .build();
+
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
@@ -119,11 +129,8 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                 PackageUtils.getCertDigest(mContext, mPackageName));
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
 
         mLatch = new CountDownLatch(1);
         mTestCallback = new FutureCallback<DownloadCompletedOutputParcel>() {
