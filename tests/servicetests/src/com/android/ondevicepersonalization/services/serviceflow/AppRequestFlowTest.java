@@ -78,6 +78,7 @@ public class AppRequestFlowTest {
     private boolean mCallbackError;
     private int mCallbackErrorCode;
     private int mIsolatedServiceErrorCode;
+    private String mErrorMessage;
     private Bundle mExecuteCallback;
     private ServiceFlowOrchestrator mSfo;
 
@@ -205,8 +206,13 @@ public class AppRequestFlowTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 DbUtils.toTableValue(service), "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(
+                        System.currentTimeMillis(),
+                        mContext.getPackageName(),
+                        service,
+                        "AABBCCDD",
+                        queryDataBytes)
+                        .build());
         EventsDao.getInstanceForTest(mContext);
 
         OnDevicePersonalizationVendorDataDao testVendorDao = OnDevicePersonalizationVendorDataDao
@@ -244,10 +250,11 @@ public class AppRequestFlowTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;
+            mErrorMessage = message;
             mLatch.countDown();
         }
     }

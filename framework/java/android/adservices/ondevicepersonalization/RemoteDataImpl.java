@@ -87,7 +87,7 @@ public class RemoteDataImpl implements KeyValueStore {
                         System.currentTimeMillis() - startTimeMillis,
                         responseCode);
             } catch (Exception e) {
-                sLogger.i(TAG + "failed to log metrics", e);
+                sLogger.d(e, TAG + ": failed to log metrics");
             }
         }
     }
@@ -133,7 +133,7 @@ public class RemoteDataImpl implements KeyValueStore {
                         System.currentTimeMillis() - startTimeMillis,
                         responseCode);
             } catch (Exception e) {
-                sLogger.i(TAG + ": failed to log metrics", e);
+                sLogger.d(e, TAG + ": failed to log metrics");
             }
         }
     }

@@ -38,8 +38,9 @@ public class ScheduleAndForceEncryptionKeyFetchJob {
     /** Prepare the device before entering the test class */
     @BeforeClass
     public static void prepareDevice() throws IOException {
+        TestHelper.killRunningProcess(); // so we can reset stable flags
         TestHelper.initialize();
-        TestHelper.killRunningProcess();
+        TestHelper.killRunningProcess(); // to get cold start metrics
     }
 
     @Before

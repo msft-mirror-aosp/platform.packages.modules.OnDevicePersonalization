@@ -126,7 +126,7 @@ public class ModelManager {
         try {
             mDataService.logApiCallStats(apiName, duration, responseCode);
         } catch (Exception e) {
-            sLogger.i(TAG + " failed to log metrics", e);
+            sLogger.d(e, TAG + ": failed to log metrics");
         }
     }
 }

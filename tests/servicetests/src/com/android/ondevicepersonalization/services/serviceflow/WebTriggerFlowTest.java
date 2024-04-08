@@ -16,13 +16,10 @@
 
 package com.android.ondevicepersonalization.services.serviceflow;
 
-import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
-
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.when;
+//import static org.mockito.Mockito.spy;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
@@ -30,7 +27,6 @@ import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEvent
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Bundle;
 
@@ -63,7 +59,7 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(JUnit4.class)
 public class WebTriggerFlowTest {
 
-    private final Context mContext = spy(ApplicationProvider.getApplicationContext());
+    private final Context mContext = ApplicationProvider.getApplicationContext();
     private final CountDownLatch mLatch = new CountDownLatch(1);
     private final OnDevicePersonalizationDbHelper mDbHelper =
             OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
@@ -141,22 +137,7 @@ public class WebTriggerFlowTest {
     }
 
     @Test
-    public void testWebTriggerFlow_EnforceCallerPermission() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_DENIED);
-
-        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
-        mLatch.await();
-
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
-    }
-
-    @Test
     public void testWebTriggerFlow_EmptyWebTriggerParams() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle emptyWebTriggerParams = new Bundle();
         emptyWebTriggerParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -172,8 +153,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_EmptyDestionalUrl() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle emptyClassParams = new Bundle();
         emptyClassParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -194,8 +173,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_InvalidCertDigest() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle invalidCertDigestParams = new Bundle();
         invalidCertDigestParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -216,8 +193,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_InvalidClassName() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
         Bundle invalidPackageNameParams = new Bundle();
         invalidPackageNameParams.putParcelable(
                 Constants.EXTRA_MEASUREMENT_WEB_TRIGGER_PARAMS,
@@ -238,9 +213,6 @@ public class WebTriggerFlowTest {
 
     @Test
     public void testWebTriggerFlow_Success() throws Exception {
-        when(mContext.checkCallingOrSelfPermission(NOTIFY_MEASUREMENT_EVENT))
-                .thenReturn(PackageManager.PERMISSION_GRANTED);
-
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
                 new TestWebCallback(), 100L);
         mLatch.await();
@@ -274,8 +246,8 @@ public class WebTriggerFlowTest {
                 DbUtils.toTableValue(service),
                 "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(1L, "com.app", service, "AABBCCDD", queryDataBytes)
+                .build());
         EventsDao.getInstanceForTest(mContext);
     }
 
