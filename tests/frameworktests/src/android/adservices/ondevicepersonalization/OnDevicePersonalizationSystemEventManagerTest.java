@@ -182,6 +182,10 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 Log.e(TAG, "callback error", e);
             }
         }
+
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
+        }
     }
 
     class TestServiceBinder

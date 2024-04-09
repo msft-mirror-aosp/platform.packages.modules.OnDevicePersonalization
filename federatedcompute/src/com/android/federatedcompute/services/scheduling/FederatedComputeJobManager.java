@@ -203,6 +203,7 @@ public class FederatedComputeJobManager {
                             .intervalOptions(
                                     buildTrainingIntervalOptions(
                                             trainingOptions.getTrainingInterval()))
+                            .rescheduleCount(0)
                             .populationName(trainingOptions.getPopulationName())
                             .contextData(trainingOptions.getContextData())
                             .serverAddress(trainingOptions.getServerAddress())
@@ -267,6 +268,8 @@ public class FederatedComputeJobManager {
                     shouldSchedule
                             ? SchedulingReason.SCHEDULING_REASON_NEW_TASK
                             : existingTask.schedulingReason());
+            // Clean up reschedule count.
+            newTaskBuilder.rescheduleCount(0);
             newTask = newTaskBuilder.build();
         }
 
@@ -455,8 +458,8 @@ public class FederatedComputeJobManager {
                         .earliestNextRunTime(earliestNextRunTime);
         newTaskBuilder.schedulingReason(
                 trainingResult != ContributionResult.SUCCESS
-                                ? SchedulingReason.SCHEDULING_REASON_FAILURE
-                                : SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY);
+                        ? SchedulingReason.SCHEDULING_REASON_FAILURE
+                        : SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY);
         if (trainingResult == ContributionResult.FAIL && enableFailuresTracking) {
             int rescheduleCount = existingTask.rescheduleCount() + 1;
             if (rescheduleCount > mFlags.getFcpRescheduleLimit()) {

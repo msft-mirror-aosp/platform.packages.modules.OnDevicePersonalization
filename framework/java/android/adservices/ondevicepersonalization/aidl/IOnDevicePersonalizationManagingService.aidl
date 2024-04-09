@@ -49,4 +49,10 @@ interface IOnDevicePersonalizationManagingService {
         in Bundle params,
         in CallerMetadata metadata,
         in IRegisterMeasurementEventCallback callback);
+
+    void logApiCallStats(
+        in int apiName,
+        in long latencyMillis,
+        in int responseCode
+    );
 }
