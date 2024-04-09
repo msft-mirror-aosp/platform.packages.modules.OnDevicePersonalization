@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
+
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -35,6 +37,8 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import java.util.Objects;
@@ -155,6 +159,11 @@ public class OnDevicePersonalizationManagingServiceDelegate
             throw new IllegalStateException("Device not supported.");
         }
 
+        if (mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT)
+                != PackageManager.PERMISSION_GRANTED) {
+            throw new SecurityException("Permission denied: " + NOTIFY_MEASUREMENT_EVENT);
+        }
+
         Trace.beginSection("OdpManagingServiceDelegate#RegisterMeasurementEvent");
         if (measurementEventType
                 != Constants.MEASUREMENT_EVENT_TYPE_WEB_TRIGGER) {
@@ -168,6 +177,26 @@ public class OnDevicePersonalizationManagingServiceDelegate
                 params, mContext,
                 callback, metadata.getStartTimeMillis());
         Trace.endSection();
+    }
+
+    @Override
+    public void logApiCallStats(
+            int apiName, long latencyMillis, int responseCode) {
+        OnDevicePersonalizationExecutors.getBackgroundExecutor().execute(
+                () -> handleLogApiCallStats(apiName, latencyMillis, responseCode));
+    }
+
+    private void handleLogApiCallStats(
+            int apiName, long latencyMillis, int responseCode) {
+        try {
+            OdpStatsdLogger.getInstance().logApiCallStats(
+                    new ApiCallStats.Builder(apiName)
+                        .setResponseCode(responseCode)
+                        .setLatencyMillis((int) latencyMillis)
+                        .build());
+        } catch (Exception e) {
+            sLogger.e(e, TAG + ": error logging api call stats");
+        }
     }
 
     private boolean getGlobalKillSwitch() {

@@ -34,3 +34,8 @@ enum SchedulingReason : int {
     // Task ended in error, and a default latency for rescheduling was used.
     SCHEDULING_REASON_FAILURE = 3,
 }
+
+table TrainingFlags {
+  tf_error_reschedule_seconds:uint64;
+  is_client_error_logging_enabled:bool;
+}

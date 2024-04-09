@@ -31,8 +31,10 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "compatibility-device-util-axt",
+        "hamcrest-library",
         "ondevicepersonalization-testing-sample-service-api",
         "ondevicepersonalization-testing-utils",
+        "platform-test-rules",
     ],
     libs: [
         "android.test.base",
@@ -47,6 +49,7 @@ android_test {
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
+        "cts",
         "general-tests",
         "mts-ondevicepersonalization",
         "mcts-ondevicepersonalization",

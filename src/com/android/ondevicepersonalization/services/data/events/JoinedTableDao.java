@@ -109,7 +109,7 @@ public class JoinedTableDao {
 
     private static boolean validateColumns(List<ColumnSchema> columnSchemaList) {
         if (columnSchemaList.size() == 0) {
-            sLogger.d(TAG, ": Empty columnSchemaList provided");
+            sLogger.d(TAG + ": Empty columnSchemaList provided");
             return false;
         }
         for (ColumnSchema columnSchema : columnSchemaList) {

@@ -106,7 +106,7 @@ public final class HttpClientUtil {
             }
             return result.toByteArray();
         } catch (Exception e) {
-            LogUtil.e(TAG, "Failed to decompress the data.", e);
+            LogUtil.e(TAG, e, "Failed to decompress the data.");
             throw new IllegalStateException("Failed to unscompress using Gzip", e);
         }
     }

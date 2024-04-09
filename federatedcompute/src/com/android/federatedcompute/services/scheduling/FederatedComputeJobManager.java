@@ -203,6 +203,7 @@ public class FederatedComputeJobManager {
                             .intervalOptions(
                                     buildTrainingIntervalOptions(
                                             trainingOptions.getTrainingInterval()))
+                            .rescheduleCount(0)
                             .populationName(trainingOptions.getPopulationName())
                             .contextData(trainingOptions.getContextData())
                             .serverAddress(trainingOptions.getServerAddress())
@@ -267,6 +268,8 @@ public class FederatedComputeJobManager {
                     shouldSchedule
                             ? SchedulingReason.SCHEDULING_REASON_NEW_TASK
                             : existingTask.schedulingReason());
+            // Clean up reschedule count.
+            newTaskBuilder.rescheduleCount(0);
             newTask = newTaskBuilder.build();
         }
 
@@ -404,10 +407,16 @@ public class FederatedComputeJobManager {
             String populationName,
             TrainingIntervalOptions trainingIntervalOptions,
             TaskRetry taskRetry,
-            ContributionResult trainingResult) {
+            ContributionResult trainingResult,
+            boolean enableFailuresTracking) {
         boolean result =
                 rescheduleFederatedTaskAfterTraining(
-                        jobId, populationName, trainingIntervalOptions, taskRetry, trainingResult);
+                        jobId,
+                        populationName,
+                        trainingIntervalOptions,
+                        taskRetry,
+                        trainingResult,
+                        enableFailuresTracking);
         if (!result) {
             LogUtil.e(TAG, "JobScheduler returned failure after successful run!");
         }
@@ -419,7 +428,8 @@ public class FederatedComputeJobManager {
             String populationName,
             TrainingIntervalOptions intervalOptions,
             TaskRetry taskRetry,
-            ContributionResult trainingResult) {
+            ContributionResult trainingResult,
+            boolean enableFailuresTracking) {
         FederatedTrainingTask existingTask =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationAndJobId(
                         populationName, jobId);
@@ -447,10 +457,10 @@ public class FederatedComputeJobManager {
                         .lastRunEndTime(nowMillis)
                         .earliestNextRunTime(earliestNextRunTime);
         newTaskBuilder.schedulingReason(
-                taskRetry != null
-                        ? SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY
-                        : SchedulingReason.SCHEDULING_REASON_FAILURE);
-        if (trainingResult == ContributionResult.FAIL) {
+                trainingResult != ContributionResult.SUCCESS
+                        ? SchedulingReason.SCHEDULING_REASON_FAILURE
+                        : SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY);
+        if (trainingResult == ContributionResult.FAIL && enableFailuresTracking) {
             int rescheduleCount = existingTask.rescheduleCount() + 1;
             if (rescheduleCount > mFlags.getFcpRescheduleLimit()) {
                 LogUtil.i(
@@ -462,7 +472,7 @@ public class FederatedComputeJobManager {
                 return false;
             }
             newTaskBuilder.rescheduleCount(rescheduleCount);
-        } else {
+        } else if (trainingResult == ContributionResult.SUCCESS) {
             // drop reschedule count to 0 in case it was not a faulty run.
             newTaskBuilder.rescheduleCount(0);
         }
