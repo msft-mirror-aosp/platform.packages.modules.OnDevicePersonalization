@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.events;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -25,6 +26,7 @@ import android.database.sqlite.SQLiteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.util.ArrayList;
@@ -139,6 +141,9 @@ public class EventsDao {
             values.put(QueriesContract.QueriesEntry.SERVICE_NAME,
                     query.getServiceName());
             values.put(QueriesContract.QueriesEntry.QUERY_DATA, query.getQueryData());
+            values.put(QueriesContract.QueriesEntry.APP_PACKAGE_NAME, query.getAppPackageName());
+            values.put(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST,
+                    query.getServiceCertDigest());
             return db.insert(QueriesContract.QueriesEntry.TABLE_NAME, null,
                     values);
         } catch (SQLiteException e) {
@@ -199,11 +204,11 @@ public class EventsDao {
      *
      * @return eventState if found, null otherwise
      */
-    public EventState getEventState(String taskIdentifier, String packageName) {
+    public EventState getEventState(String taskIdentifier, ComponentName service) {
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String selection = EventStateContract.EventStateEntry.TASK_IDENTIFIER + " = ? AND "
                 + EventStateContract.EventStateEntry.SERVICE_NAME + " = ?";
-        String[] selectionArgs = {taskIdentifier, packageName};
+        String[] selectionArgs = {taskIdentifier, DbUtils.toTableValue(service)};
         String[] projection = {EventStateContract.EventStateEntry.TOKEN};
         try (Cursor cursor = db.query(
                 EventStateContract.EventStateEntry.TABLE_NAME,
@@ -220,7 +225,7 @@ public class EventsDao {
 
                 return new EventState.Builder()
                         .setToken(token)
-                        .setServiceName(packageName)
+                        .setService(service)
                         .setTaskIdentifier(taskIdentifier)
                         .build();
             }
@@ -234,13 +239,14 @@ public class EventsDao {
      * Queries the events and queries table to return all new rows from given ids for the given
      * package
      *
-     * @param serviceName        Name of the service to read rows for
+     * @param service            Name of the service to read rows for
      * @param fromEventId        EventId to find all new rows from
      * @param fromQueryId        QueryId to find all new rows from
      * @return List of JoinedEvents.
      */
-    public List<JoinedEvent> readAllNewRowsForPackage(String serviceName,
+    public List<JoinedEvent> readAllNewRowsForPackage(ComponentName service,
             long fromEventId, long fromQueryId) {
+        String serviceName = DbUtils.toTableValue(service);
         // Query on the joined query & event table
         String joinedSelection = EventsContract.EventsEntry.EVENT_ID + " > ?"
                 + " AND " + EventsContract.EventsEntry.TABLE_NAME + "."
@@ -259,7 +265,7 @@ public class EventsDao {
                     .setQueryId(query.getQueryId())
                     .setQueryData(query.getQueryData())
                     .setQueryTimeMillis(query.getTimeMillis())
-                    .setServiceName(query.getServiceName())
+                    .setService(query.getService())
                     .build());
         }
         return joinedEventList;
@@ -288,7 +294,7 @@ public class EventsDao {
                     .setQueryId(query.getQueryId())
                     .setQueryData(query.getQueryData())
                     .setQueryTimeMillis(query.getTimeMillis())
-                    .setServiceName(query.getServiceName())
+                    .setService(query.getService())
                     .build());
         }
         return joinedEventList;
@@ -317,13 +323,15 @@ public class EventsDao {
                 String serviceName = cursor.getString(
                         cursor.getColumnIndexOrThrow(
                                 QueriesContract.QueriesEntry.SERVICE_NAME));
-                queries.add(new Query.Builder()
+                String appPackageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+                String certDigest = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
+                queries.add(new Query.Builder(
+                        timeMillis, appPackageName, DbUtils.fromTableValue(serviceName),
+                                certDigest, queryData)
                         .setQueryId(queryId)
-                        .setQueryData(queryData)
-                        .setTimeMillis(timeMillis)
-                        .setServiceName(serviceName)
-                        .build()
-                );
+                        .build());
             }
         } catch (IllegalArgumentException e) {
             sLogger.e(e, TAG + ": Failed parse resulting query");
@@ -389,7 +397,7 @@ public class EventsDao {
                         .setQueryId(queryId)
                         .setQueryData(queryData)
                         .setQueryTimeMillis(queryTimeMillis)
-                        .setServiceName(serviceName)
+                        .setService(DbUtils.fromTableValue(serviceName))
                         .build()
                 );
             }
@@ -405,15 +413,15 @@ public class EventsDao {
      *
      * @return true if the delete executed successfully, false otherwise.
      */
-    public boolean deleteEventState(String packageName) {
+    public boolean deleteEventState(ComponentName service) {
         SQLiteDatabase db = mDbHelper.getWritableDatabase();
         try {
             String selection = EventStateContract.EventStateEntry.SERVICE_NAME + " = ?";
-            String[] selectionArgs = {packageName};
+            String[] selectionArgs = {DbUtils.toTableValue(service)};
             db.delete(EventStateContract.EventStateEntry.TABLE_NAME, selection,
                     selectionArgs);
         } catch (Exception e) {
-            sLogger.e(e, TAG + ": Failed to delete eventState for: " + packageName);
+            sLogger.e(e, TAG + ": Failed to delete eventState for: " + service.toString());
             return false;
         }
         return true;
@@ -459,12 +467,12 @@ public class EventsDao {
      * @return List of Query in the query table.
      */
     public List<Query> readAllQueries(long startTimeMillis, long endTimeMillis,
-            String packageName) {
+            ComponentName service) {
         String selection = QueriesContract.QueriesEntry.TIME_MILLIS + " > ?"
                 + " AND " + QueriesContract.QueriesEntry.TIME_MILLIS + " < ?"
                 + " AND " + QueriesContract.QueriesEntry.SERVICE_NAME + " = ?";
         String[] selectionArgs = {String.valueOf(startTimeMillis), String.valueOf(
-                endTimeMillis), packageName};
+                endTimeMillis), DbUtils.toTableValue(service)};
         return readQueryRows(selection, selectionArgs);
     }
 
@@ -474,7 +482,7 @@ public class EventsDao {
      * @return List of ids in the event table.
      */
     public List<Long> readAllEventIds(long startTimeMillis, long endTimeMillis,
-            String packageName) {
+            ComponentName service) {
         List<Long> idList = new ArrayList<>();
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
@@ -483,7 +491,7 @@ public class EventsDao {
                     + " AND " + EventsContract.EventsEntry.TIME_MILLIS + " < ?"
                     + " AND " + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
             String[] selectionArgs = {String.valueOf(startTimeMillis), String.valueOf(
-                    endTimeMillis), packageName};
+                    endTimeMillis), DbUtils.toTableValue(service)};
             String orderBy = EventsContract.EventsEntry.EVENT_ID;
             try (Cursor cursor = db.query(
                     EventsContract.EventsEntry.TABLE_NAME,
@@ -514,14 +522,14 @@ public class EventsDao {
      *
      * @return List of ids in the event table.
      */
-    public List<Long> readAllEventIdsForQuery(long queryId, String packageName) {
+    public List<Long> readAllEventIdsForQuery(long queryId, ComponentName service) {
         List<Long> idList = new ArrayList<>();
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String[] projection = {EventsContract.EventsEntry.EVENT_ID};
             String selection = EventsContract.EventsEntry.QUERY_ID + " = ?"
                     + " AND " + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
-            String[] selectionArgs = {String.valueOf(queryId), packageName};
+            String[] selectionArgs = {String.valueOf(queryId), DbUtils.toTableValue(service)};
             String orderBy = EventsContract.EventsEntry.EVENT_ID;
             try (Cursor cursor = db.query(
                     EventsContract.EventsEntry.TABLE_NAME,
@@ -551,12 +559,12 @@ public class EventsDao {
      *
      * @return Query object for the single row requested
      */
-    public Query readSingleQueryRow(long queryId, String packageName) {
+    public Query readSingleQueryRow(long queryId, ComponentName service) {
         try {
             SQLiteDatabase db = mDbHelper.getReadableDatabase();
             String selection = QueriesContract.QueriesEntry.QUERY_ID + " = ?"
                     + " AND " + QueriesContract.QueriesEntry.SERVICE_NAME + " = ?";
-            String[] selectionArgs = {String.valueOf(queryId), packageName};
+            String[] selectionArgs = {String.valueOf(queryId), DbUtils.toTableValue(service)};
             try (Cursor cursor = db.query(
                     QueriesContract.QueriesEntry.TABLE_NAME,
                     /* projection= */ null,
@@ -577,14 +585,16 @@ public class EventsDao {
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.QUERY_DATA));
                 long timeMillis = cursor.getLong(
                         cursor.getColumnIndexOrThrow(QueriesContract.QueriesEntry.TIME_MILLIS));
+                String appPackageName = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.APP_PACKAGE_NAME));
+                String certDigest = cursor.getString(cursor.getColumnIndexOrThrow(
+                        QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
                 String serviceName = cursor.getString(
                         cursor.getColumnIndexOrThrow(
                                 QueriesContract.QueriesEntry.SERVICE_NAME));
-                return new Query.Builder()
+                return new Query.Builder(
+                        timeMillis, appPackageName, service, certDigest, queryData)
                         .setQueryId(id)
-                        .setQueryData(queryData)
-                        .setTimeMillis(timeMillis)
-                        .setServiceName(serviceName)
                         .build();
             }
         } catch (SQLiteException e) {
@@ -598,11 +608,11 @@ public class EventsDao {
      *
      * @return JoinedEvent representing the event joined with its query
      */
-    public JoinedEvent readSingleJoinedTableRow(long eventId, String packageName) {
+    public JoinedEvent readSingleJoinedTableRow(long eventId, ComponentName service) {
         String selection = EventsContract.EventsEntry.EVENT_ID + " = ?"
                 + " AND " + EventsContract.EventsEntry.TABLE_NAME + "."
                 + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
-        String[] selectionArgs = {String.valueOf(eventId), packageName};
+        String[] selectionArgs = {String.valueOf(eventId), DbUtils.toTableValue(service)};
         List<JoinedEvent> joinedEventList = readJoinedTableRows(selection, selectionArgs);
         if (joinedEventList.size() < 1) {
             sLogger.d(TAG + ": Failed to find requested id: " + eventId);
@@ -618,13 +628,13 @@ public class EventsDao {
      * @return List of JoinedEvents representing the event joined with its query
      */
     public List<JoinedEvent> readJoinedTableRows(long startTimeMillis, long endTimeMillis,
-            String packageName) {
+            ComponentName service) {
         String selection = JOINED_EVENT_TIME_MILLIS + " > ?"
                 + " AND " + JOINED_EVENT_TIME_MILLIS + " < ?"
                 + " AND " + EventsContract.EventsEntry.TABLE_NAME + "."
                 + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
         String[] selectionArgs = {String.valueOf(startTimeMillis), String.valueOf(
-                endTimeMillis), packageName};
+                endTimeMillis), DbUtils.toTableValue(service)};
         return readJoinedTableRows(selection, selectionArgs);
     }
 }

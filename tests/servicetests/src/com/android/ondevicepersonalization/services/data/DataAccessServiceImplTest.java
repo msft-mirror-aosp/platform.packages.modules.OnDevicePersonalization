@@ -32,6 +32,7 @@ import android.adservices.ondevicepersonalization.ModelId;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
@@ -78,6 +79,9 @@ public class DataAccessServiceImplTest {
     private static final double DELTA = 0.001;
     private static final byte[] RESPONSE_BYTES = {'A', 'B'};
     private static final int EVENT_TYPE_B2D = 1;
+    private static final String SERVICE_CLASS = "TestClass";
+    private static final String APP_NAME = "com.app";
+    private static final String CERT_DIGEST = "AABBCCDD";
     private final Context mApplicationContext = ApplicationProvider.getApplicationContext();
     private long mTimeMillis = 1000;
     private EventUrlPayload mEventUrlPayload;
@@ -92,24 +96,27 @@ public class DataAccessServiceImplTest {
     private EventsDao mEventsDao;
     private DataAccessServiceImpl mServiceImpl;
     private IDataAccessService mServiceProxy;
+    private ComponentName mService;
 
     @Before
     public void setup() throws Exception {
+        mService = ComponentName.createRelative(mApplicationContext.getPackageName(),
+                "serviceClass");
         mInjector = new TestInjector();
         mVendorDao = mInjector.getVendorDataDao(mApplicationContext,
-                mApplicationContext.getPackageName(),
+                mService,
                 PackageUtils.getCertDigest(mApplicationContext,
                         mApplicationContext.getPackageName()));
 
         mLocalDao = mInjector.getLocalDataDao(mApplicationContext,
-                mApplicationContext.getPackageName(),
+                mService,
                 PackageUtils.getCertDigest(mApplicationContext,
                         mApplicationContext.getPackageName()));
 
         mEventsDao = mInjector.getEventsDao(mApplicationContext);
 
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, null,
+                mService, mApplicationContext, null,
                 true, true, mInjector);
 
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
@@ -138,7 +145,7 @@ public class DataAccessServiceImplTest {
         overrideData.put("key1", "helloworld1".getBytes());
         overrideData.put("key2", "helloworld2".getBytes());
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, overrideData,
+                mService, mApplicationContext, overrideData,
                 true, true, mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         addTestData();
@@ -179,7 +186,7 @@ public class DataAccessServiceImplTest {
         overrideData.put("key1", "helloworld1".getBytes());
         overrideData.put("key2", "helloworld2".getBytes());
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, overrideData,
+                mService, mApplicationContext, overrideData,
                 true, true, mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         addTestData();
@@ -329,7 +336,7 @@ public class DataAccessServiceImplTest {
     @Test
     public void testLocalDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, null, false, true,
+                mService, mApplicationContext, null, false, true,
                 mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
@@ -420,7 +427,7 @@ public class DataAccessServiceImplTest {
     @Test
     public void testEventDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mApplicationContext.getPackageName(), mApplicationContext, null, true, false,
+                mService, mApplicationContext, null, true, false,
                 mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
@@ -553,28 +560,21 @@ public class DataAccessServiceImplTest {
         byte[] queryDataBytes = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                 mApplicationContext.getPackageName(), "AABBCCDD", rows);
 
-        Query query1 = new Query.Builder()
-                .setTimeMillis(1L)
-                .setServiceName(mApplicationContext.getPackageName())
-                .setQueryData(queryDataBytes)
+        Query query1 = new Query.Builder(1L, APP_NAME, mService, CERT_DIGEST, queryDataBytes)
                 .build();
         long queryId1 = mEventsDao.insertQuery(query1);
-        Query query2 = new Query.Builder()
-                .setTimeMillis(10L)
-                .setServiceName(mApplicationContext.getPackageName())
-                .setQueryData(queryDataBytes)
+        Query query2 = new Query.Builder(10L, APP_NAME, mService, CERT_DIGEST, queryDataBytes)
                 .build();
         long queryId2 = mEventsDao.insertQuery(query2);
-        Query query3 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setServiceName(mApplicationContext.getPackageName())
-                .setQueryData(queryDataBytes)
+        Query query3 = new Query.Builder(100L, APP_NAME, mService, CERT_DIGEST, queryDataBytes)
                 .build();
         long queryId3 = mEventsDao.insertQuery(query3);
-        Query query4 = new Query.Builder()
-                .setTimeMillis(100L)
-                .setServiceName("packageA")
-                .setQueryData(queryDataBytes)
+        Query query4 = new Query.Builder(
+                100L,
+                APP_NAME,
+                new ComponentName("packageA", "classA"),
+                CERT_DIGEST,
+                queryDataBytes)
                 .build();
         mEventsDao.insertQuery(query4);
 
@@ -585,7 +585,7 @@ public class DataAccessServiceImplTest {
         Event event1 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(eventData)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId1)
                 .setTimeMillis(2L)
                 .setRowIndex(0)
@@ -594,7 +594,7 @@ public class DataAccessServiceImplTest {
         Event event2 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(eventData)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId2)
                 .setTimeMillis(11L)
                 .setRowIndex(0)
@@ -603,7 +603,7 @@ public class DataAccessServiceImplTest {
         Event event3 = new Event.Builder()
                 .setType(EVENT_TYPE_B2D)
                 .setEventData(eventData)
-                .setServiceName(mApplicationContext.getPackageName())
+                .setService(mService)
                 .setQueryId(queryId3)
                 .setTimeMillis(101L)
                 .setRowIndex(0)
@@ -645,28 +645,33 @@ public class DataAccessServiceImplTest {
     }
 
     class TestInjector extends DataAccessServiceImpl.Injector {
+        @Override
         long getTimeMillis() {
             return mTimeMillis;
         }
 
+        @Override
         ListeningExecutorService getExecutor() {
             return MoreExecutors.newDirectExecutorService();
         }
 
+        @Override
         OnDevicePersonalizationVendorDataDao getVendorDataDao(
-                Context context, String packageName, String certDigest
+                Context context, ComponentName service, String certDigest
         ) {
             return OnDevicePersonalizationVendorDataDao.getInstanceForTest(
-                    context, packageName, certDigest);
+                    context, service, certDigest);
         }
 
+        @Override
         OnDevicePersonalizationLocalDataDao getLocalDataDao(
-                Context context, String packageName, String certDigest
+                Context context, ComponentName service, String certDigest
         ) {
             return OnDevicePersonalizationLocalDataDao.getInstanceForTest(
-                    context, packageName, certDigest);
+                    context, service, certDigest);
         }
 
+        @Override
         EventsDao getEventsDao(
                 Context context
         ) {

@@ -18,19 +18,21 @@ package com.android.ondevicepersonalization.services.display;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
+import android.adservices.ondevicepersonalization.EventOutputParcel;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -41,7 +43,8 @@ import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
-import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
@@ -51,21 +54,17 @@ import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
 import com.android.ondevicepersonalization.services.fbs.EventFields;
-import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
-import com.android.ondevicepersonalization.services.process.ProcessRunner;
-import com.android.ondevicepersonalization.services.process.ProcessRunnerImpl;
-import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
 
-import com.google.common.util.concurrent.ListenableFuture;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
 
 import java.net.HttpURLConnection;
@@ -75,7 +74,6 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
 public class OdpWebViewClientTests {
@@ -83,12 +81,13 @@ public class OdpWebViewClientTests {
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private static final byte[] RESPONSE_BYTES = {'A', 'B'};
-    private final EventUrlPayload mTestEventPayload =
-            new EventUrlPayload(createEventParameters(), null, null);
-    private final Query mTestQuery = new Query.Builder()
-            .setTimeMillis(1L)
-            .setServiceName("servicePackageName")
-            .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+    private EventUrlPayload mTestEventPayload;
+    private final Query mTestQuery = new Query.Builder(
+            1L,
+            "com.app",
+            ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS),
+            "AABBCCDD",
+            "query".getBytes(StandardCharsets.UTF_8))
             .build();
     private EventsDao mDao;
     private OnDevicePersonalizationDbHelper mDbHelper;
@@ -100,6 +99,10 @@ public class OdpWebViewClientTests {
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
 
+    private FutureCallback mTestCallback;
+    private boolean mCallbackSuccess;
+    private boolean mCallbackFailure;
+
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
         return Arrays.asList(
@@ -108,6 +111,12 @@ public class OdpWebViewClientTests {
                 }
         );
     }
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     @Before
     public void setup() throws Exception {
@@ -118,11 +127,8 @@ public class OdpWebViewClientTests {
         mLatch = new CountDownLatch(1);
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
 
         CountDownLatch latch = new CountDownLatch(1);
         OnDevicePersonalizationExecutors.getHandlerForMainThread().postAtFrontOfQueue(() -> {
@@ -130,15 +136,30 @@ public class OdpWebViewClientTests {
             latch.countDown();
         });
         latch.await();
+
+        mTestCallback = new FutureCallback<EventOutputParcel>() {
+            @Override
+            public void onSuccess(EventOutputParcel result) {
+                mCallbackSuccess = true;
+                mLatch.countDown();
+            }
+
+            @Override
+            public void onFailure(@NonNull Throwable t) {
+                mCallbackFailure = true;
+                mLatch.countDown();
+            }
+        };
+
+        mTestEventPayload = new EventUrlPayload(
+                createEventParameters(), null, null);
     }
 
     @After
     public void cleanup() {
-        OnDevicePersonalizationDbHelper dbHelper =
-                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
+        mDbHelper.getWritableDatabase().close();
+        mDbHelper.getReadableDatabase().close();
+        mDbHelper.close();
     }
 
     @Test
@@ -146,8 +167,11 @@ public class OdpWebViewClientTests {
         WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
                         null, null, null, null, null).getCount());
@@ -158,9 +182,12 @@ public class OdpWebViewClientTests {
         WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
         assertEquals(HttpURLConnection.HTTP_NO_CONTENT, response.getStatusCode());
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
@@ -173,9 +200,12 @@ public class OdpWebViewClientTests {
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(new EventUrlPayload(
                 createEventParameters(), RESPONSE_BYTES, "image/gif")).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+
         WebResourceResponse response = webViewClient.shouldInterceptRequest(
                 mWebView, webResourceRequest);
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
         assertEquals(HttpURLConnection.HTTP_OK, response.getStatusCode());
         assertEquals("image/gif", response.getMimeType());
         assertArrayEquals(RESPONSE_BYTES, response.getData().readAllBytes());
@@ -190,10 +220,12 @@ public class OdpWebViewClientTests {
         String odpUrl = EventUrlHelper.getEncryptedClickTrackingUrl(
                 mTestEventPayload, landingPage).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
-
         WebViewClient webViewClient = getWebViewClient();
+
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
         assertEquals(landingPage, mOpenedUrl);
         assertEquals(1,
                 mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
@@ -205,8 +237,11 @@ public class OdpWebViewClientTests {
         WebViewClient webViewClient = getWebViewClient();
         String odpUrl = EventUrlHelper.getEncryptedOdpEventUrl(mTestEventPayload).toString();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(Uri.parse(odpUrl));
+
         assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        mLatch.await(5000, TimeUnit.MILLISECONDS);
+        mLatch.await();
+
+        assertTrue(mCallbackSuccess);
         Cursor result =
                 mDbHelper.getReadableDatabase().query(
                     EventsContract.EventsEntry.TABLE_NAME, null,
@@ -222,14 +257,13 @@ public class OdpWebViewClientTests {
     }
 
     @Test
-    public void testInvalidUrl() {
+    public void testNonOdpUrl() throws Exception {
         WebViewClient webViewClient = getWebViewClient();
         WebResourceRequest webResourceRequest = new OdpWebResourceRequest(
                 Uri.parse("https://www.google.com"));
-        assertTrue(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
-        assertEquals(0,
-                mDbHelper.getReadableDatabase().query(EventsContract.EventsEntry.TABLE_NAME, null,
-                        null, null, null, null, null).getCount());
+
+        assertNull(webViewClient.shouldInterceptRequest(mWebView, webResourceRequest));
+        assertFalse(webViewClient.shouldOverrideUrlLoading(mWebView, webResourceRequest));
     }
 
     @Test
@@ -239,19 +273,12 @@ public class OdpWebViewClientTests {
                 ComponentName.createRelative(mContext.getPackageName(), SERVICE_CLASS), 0,
                 new RequestLogRecord.Builder().build());
 
-        // Mock context for default injector tests.
-        MockitoSession session = ExtendedMockito.mockitoSession().strictness(
-                Strictness.LENIENT).startMocking();
-        try {
-            Context mockContext = mock(Context.class);
-            OdpWebViewClient.Injector injector = new OdpWebViewClient.Injector();
-            injector.openUrl("https://google.com", mockContext);
-            assertEquals(injector.getExecutor(),
-                    OnDevicePersonalizationExecutors.getBackgroundExecutor());
-            verify(mockContext, times(1)).startActivity(any());
-        } finally {
-            session.finishMocking();
-        }
+        Context mockContext = mock(Context.class);
+        OdpWebViewClient.Injector injector = new OdpWebViewClient.Injector();
+        injector.openUrl("https://google.com", mockContext);
+        assertEquals(injector.getExecutor(),
+                OnDevicePersonalizationExecutors.getBackgroundExecutor());
+        verify(mockContext, times(1)).startActivity(any());
     }
 
     class TestInjector extends OdpWebViewClient.Injector {
@@ -259,12 +286,12 @@ public class OdpWebViewClientTests {
             return MoreExecutors.newDirectExecutorService();
         }
 
-        void openUrl(String url, Context context) {
-            mOpenedUrl = url;
+        FutureCallback<EventOutputParcel> getFutureCallback() {
+            return mTestCallback;
         }
 
-        ProcessRunner getProcessRunner() {
-            return new TestProcessRunner();
+        void openUrl(String url, Context context) {
+            mOpenedUrl = url;
         }
     }
 
@@ -296,42 +323,6 @@ public class OdpWebViewClientTests {
         @Override
         public void loadUrl(String url) {
             mLastLoadedUrl = url;
-        }
-
-        public String getLastLoadedUrl() {
-            return mLastLoadedUrl;
-        }
-
-    }
-
-    class TestProcessRunner implements ProcessRunner {
-
-        ProcessRunner mProcessRunner = mIsSipFeatureEnabled
-                                ? SharedIsolatedProcessRunner.getInstance()
-                                : ProcessRunnerImpl.getInstance();
-
-        @NonNull
-        @Override
-        public ListenableFuture<IsolatedServiceInfo> loadIsolatedService(@NonNull String taskName,
-                @NonNull ComponentName componentName) {
-            return mProcessRunner.loadIsolatedService(taskName, componentName);
-        }
-
-        @NonNull
-        @Override
-        public ListenableFuture<Bundle> runIsolatedService(
-                @NonNull IsolatedServiceInfo isolatedProcessInfo, int operationCode,
-                @NonNull Bundle serviceParams) {
-            return mProcessRunner.runIsolatedService(isolatedProcessInfo, operationCode,
-                    serviceParams);
-        }
-
-        @NonNull
-        @Override
-        public ListenableFuture<Void> unloadIsolatedService(
-                @NonNull IsolatedServiceInfo isolatedServiceInfo) {
-            mLatch.countDown();
-            return mProcessRunner.unloadIsolatedService(isolatedServiceInfo);
         }
     }
 

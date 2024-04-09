@@ -30,7 +30,7 @@ interface IOnDevicePersonalizationManagingService {
     void execute(
         in String callingPackageName,
         in ComponentName handler,
-        in PersistableBundle params,
+        in Bundle wrappedParams,
         in CallerMetadata metadata,
         in IExecuteCallback callback);
 
@@ -49,4 +49,10 @@ interface IOnDevicePersonalizationManagingService {
         in Bundle params,
         in CallerMetadata metadata,
         in IRegisterMeasurementEventCallback callback);
+
+    void logApiCallStats(
+        in int apiName,
+        in long latencyMillis,
+        in int responseCode
+    );
 }

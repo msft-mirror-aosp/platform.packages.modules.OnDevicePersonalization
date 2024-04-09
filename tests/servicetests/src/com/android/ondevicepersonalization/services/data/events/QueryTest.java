@@ -20,6 +20,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.content.ComponentName;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -27,39 +29,40 @@ import org.junit.runners.JUnit4;
 @RunWith(JUnit4.class)
 public class QueryTest {
     @Test
-    public void testBuilderAndEquals() {
+    public void testBuilder() {
         long queryId = 1;
         byte[] queryData = "data".getBytes();
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long timeMillis = 1;
-        Query query1 = new Query.Builder()
+        Query query1 = new Query.Builder(
+                timeMillis,
+                "com.app",
+                service,
+                "cert",
+                queryData)
                 .setQueryId(queryId)
-                .setQueryData(queryData)
-                .setServiceName(servicePackageName)
-                .setTimeMillis(timeMillis)
                 .build();
         assertEquals(query1.getQueryId(), queryId);
         assertArrayEquals(query1.getQueryData(), queryData);
-        assertEquals(query1.getServiceName(), servicePackageName);
+        assertEquals(query1.getService(), service);
         assertEquals(query1.getTimeMillis(), timeMillis);
-
-        Query query2 = new Query.Builder(
-                queryId, timeMillis, servicePackageName, queryData).build();
-        assertEquals(query1, query2);
-        assertEquals(query1.hashCode(), query2.hashCode());
+        assertEquals(query1.getAppPackageName(), "com.app");
+        assertEquals(query1.getServiceCertDigest(), "cert");
     }
 
     @Test
     public void testBuildTwiceThrows() {
         long queryId = 1;
         byte[] queryData = "data".getBytes();
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long timeMillis = 1;
-        Query.Builder builder = new Query.Builder()
-                .setQueryId(queryId)
-                .setQueryData(queryData)
-                .setServiceName(servicePackageName)
-                .setTimeMillis(timeMillis);
+        Query.Builder builder = new Query.Builder(
+                timeMillis,
+                "com.app",
+                service,
+                "cert",
+                queryData)
+                .setQueryId(queryId);
         builder.build();
         assertThrows(IllegalStateException.class, () -> builder.build());
     }

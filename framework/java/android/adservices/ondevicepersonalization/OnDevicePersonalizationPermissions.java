@@ -17,10 +17,7 @@
 package android.adservices.ondevicepersonalization;
 
 import android.annotation.FlaggedApi;
-import android.annotation.NonNull;
 import android.annotation.SystemApi;
-import android.content.Context;
-import android.content.pm.PackageManager;
 
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 
@@ -43,19 +40,13 @@ public class OnDevicePersonalizationPermissions {
     /**
      * The permission required for callers to send measurement events to ODP.
      */
-    public static final String REGISTER_MEASUREMENT_EVENT =
-            "android.permission.ondevicepersonalization.REGISTER_MEASUREMENT_EVENT";
+    public static final String NOTIFY_MEASUREMENT_EVENT =
+            "android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT";
 
     /**
-     * verify that caller has the specified permission.
-     * @throws SecurityException otherwise.
-     *
+     * The permission required to connect to the ODP system server component.
      * @hide
      */
-    public static void enforceCallingPermission(@NonNull Context context,
-            @NonNull String permission) {
-        if (context.checkCallingOrSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-            throw new SecurityException("Unauthorized call to ODP.");
-        }
-    }
+    public static final String ACCESS_SYSTEM_SERVER_SERVICE =
+            "android.permission.ondevicepersonalization.ACCESS_SYSTEM_SERVER_SERVICE";
 }

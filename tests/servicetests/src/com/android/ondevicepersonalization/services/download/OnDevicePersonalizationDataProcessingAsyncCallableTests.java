@@ -21,12 +21,17 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
+import android.adservices.ondevicepersonalization.DownloadCompletedOutputParcel;
+import android.content.ComponentName;
 import android.content.Context;
 import android.database.Cursor;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -40,21 +45,25 @@ import com.google.android.libraries.mobiledatadownload.DownloadFileGroupRequest;
 import com.google.android.libraries.mobiledatadownload.MobileDataDownload;
 import com.google.android.libraries.mobiledatadownload.RemoveFileGroupsByFilterRequest;
 import com.google.android.libraries.mobiledatadownload.file.SynchronousFileStorage;
+import com.google.common.util.concurrent.FutureCallback;
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
+import com.google.common.util.concurrent.SettableFuture;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
+import org.mockito.quality.Strictness;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.CountDownLatch;
 
 @RunWith(Parameterized.class)
 public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
@@ -78,6 +87,11 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             .setData("extra".getBytes())
             .build();
 
+    private ComponentName mService;
+    private FutureCallback mTestCallback;
+    private boolean mCallbackSuccess;
+    private boolean mCallbackFailure;
+    private CountDownLatch mLatch;
     @Parameterized.Parameter(0)
     public boolean mIsSipFeatureEnabled;
 
@@ -90,9 +104,17 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         );
     }
 
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .setStrictness(Strictness.LENIENT)
+            .build();
+
     @Before
     public void setup() throws Exception {
         mPackageName = mContext.getPackageName();
+        mService = ComponentName.createRelative(
+                mPackageName, "com.test.TestPersonalizationService");
         mFileStorage = MobileDataDownloadFactory.getFileStorage(mContext);
         // Use direct executor to keep all work sequential for the tests
         ListeningExecutorService executorService = MoreExecutors.newDirectExecutorService();
@@ -103,23 +125,40 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
         MobileDataDownloadFactory.getMdd(mContext).removeFileGroupsByFilter(request).get();
 
         // Initialize the DB as a test instance
-        OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+        OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                 PackageUtils.getCertDigest(mContext, mPackageName));
 
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
+
+        mLatch = new CountDownLatch(1);
+        mTestCallback = new FutureCallback<DownloadCompletedOutputParcel>() {
+            @Override
+            public void onSuccess(DownloadCompletedOutputParcel result) {
+                mCallbackSuccess = true;
+                mLatch.countDown();
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                mCallbackFailure = true;
+                mLatch.countDown();
+            }
+        };
     }
 
     @Test
     public void testRun() throws Exception {
         OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                         PackageUtils.getCertDigest(mContext, mPackageName));
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         mPopulator.refreshFileGroups(mMdd).get();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
         // Trigger the download immediately.
@@ -134,8 +173,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                 100));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(5000, TimeUnit.MILLISECONDS);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(
+                        mPackageName, mContext, new TestInjector());
+
+        callable.call();
+        mLatch.await();
+
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -168,9 +211,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
     @Test
     public void testRunOldDataDownloaded() throws Exception {
         OnDevicePersonalizationVendorDataDao dao =
-                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mPackageName,
+                OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, mService,
                         PackageUtils.getCertDigest(mContext, mPackageName));
+        var originalIsolatedServiceAllowList =
+                FlagsFactory.getFlags().getIsolatedServiceAllowList();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(
+                "com.android.ondevicepersonalization.servicetests");
         mPopulator.refreshFileGroups(mMdd).get();
+        PhFlagsTestUtil.setIsolatedServiceAllowList(originalIsolatedServiceAllowList);
         String fileGroupName = OnDevicePersonalizationFileGroupPopulator.createPackageFileGroupName(
                 mPackageName, mContext);
         // Trigger the download immediately.
@@ -185,8 +233,12 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
                 System.currentTimeMillis()));
 
         OnDevicePersonalizationDataProcessingAsyncCallable callable =
-                new OnDevicePersonalizationDataProcessingAsyncCallable(mPackageName, mContext);
-        callable.call().get(5000, TimeUnit.MILLISECONDS);
+                new OnDevicePersonalizationDataProcessingAsyncCallable(
+                        mPackageName, mContext, new TestInjector());
+
+        callable.call();
+        mLatch.await();
+
         Cursor cursor = dao.readAllVendorData();
         List<VendorData> vendorDataList = new ArrayList<>();
         while (cursor.moveToNext()) {
@@ -209,6 +261,14 @@ public class OnDevicePersonalizationDataProcessingAsyncCallableTests {
             } else {
                 fail("Vendor data from DB contains unexpected key");
             }
+        }
+    }
+
+    class TestInjector extends OnDevicePersonalizationDataProcessingAsyncCallable.Injector {
+        @Override
+        FutureCallback<DownloadCompletedOutputParcel> getFutureCallback(
+                SettableFuture<Boolean> settableFuture) {
+            return mTestCallback;
         }
     }
 

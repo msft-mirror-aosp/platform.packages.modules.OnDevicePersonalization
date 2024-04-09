@@ -76,6 +76,10 @@
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
+        <service android:name="com.android.ondevicepersonalization.services.reset.ResetDataJobService"
+                 android:exported="false"
+                 android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
         <service
             android:name="com.android.ondevicepersonalization.services.federatedcompute.OdpExampleStoreService"
             android:enabled="true"
@@ -94,6 +98,7 @@
         <service
             android:name="com.android.ondevicepersonalization.services.inference.IsolatedModelService"
             android:isolatedProcess="true"
+            android:allowSharedIsolatedProcess="true"
             android:exported="false">
         </service>
         <service

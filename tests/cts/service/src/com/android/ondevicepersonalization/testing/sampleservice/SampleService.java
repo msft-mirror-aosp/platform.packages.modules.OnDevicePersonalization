@@ -16,46 +16,20 @@
 
 package com.android.ondevicepersonalization.testing.sampleservice;
 
-import android.adservices.ondevicepersonalization.ExecuteInput;
-import android.adservices.ondevicepersonalization.ExecuteOutput;
 import android.adservices.ondevicepersonalization.IsolatedService;
 import android.adservices.ondevicepersonalization.IsolatedWorker;
-import android.adservices.ondevicepersonalization.RenderInput;
-import android.adservices.ondevicepersonalization.RenderOutput;
-import android.adservices.ondevicepersonalization.RenderingConfig;
-import android.adservices.ondevicepersonalization.RequestLogRecord;
 import android.adservices.ondevicepersonalization.RequestToken;
-import android.content.ContentValues;
-
-import java.util.function.Consumer;
 
 public class SampleService extends IsolatedService {
-    class SampleWorker implements IsolatedWorker {
-        @Override public void onExecute(ExecuteInput input, Consumer<ExecuteOutput> consumer) {
-            ContentValues logData = new ContentValues();
-            logData.put("id", "ad1");
-            logData.put("pr", 5.0);
-            ExecuteOutput result = new ExecuteOutput.Builder()
-                    .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
-                    .setRenderingConfig(
-                        new RenderingConfig.Builder().addKey("bid1").build()
-                    )
-                    .build();
-            consumer.accept(result);
-        }
-
-        @Override public void onRender(RenderInput input, Consumer<RenderOutput> consumer) {
-            var keys = input.getRenderingConfig().getKeys();
-            if (keys.size() > 0) {
-                String html = "<body>" + input.getRenderingConfig().getKeys().get(0) + "</body>";
-                consumer.accept(new RenderOutput.Builder().setContent(html).build());
-            } else {
-                consumer.accept(null);
-            }
-        }
-    }
-
-    @Override public IsolatedWorker onRequest(RequestToken requestToken) {
-        return new SampleWorker();
+    @Override
+    public IsolatedWorker onRequest(RequestToken requestToken) {
+        return new SampleWorker(
+                getRemoteData(requestToken),
+                getLocalData(requestToken),
+                getUserData(requestToken),
+                getEventUrlProvider(requestToken),
+                getModelManager(requestToken),
+                getLogReader(requestToken),
+                getFederatedComputeScheduler(requestToken));
     }
 }

@@ -19,7 +19,6 @@ package android.adservices.ondevicepersonalization;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 
 import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IDataAccessServiceCallback;
@@ -58,7 +57,7 @@ public class RemoteDataTest {
     @Test
     public void testLookupError() {
         // Triggers an expected error in the mock service.
-        assertThrows(IllegalStateException.class, () -> mRemoteData.get("z"));
+        assertNull(mRemoteData.get("z"));
     }
 
     @Test
@@ -128,5 +127,8 @@ public class RemoteDataTest {
                 // Ignored.
             }
         }
+
+        @Override
+        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {}
     }
 }

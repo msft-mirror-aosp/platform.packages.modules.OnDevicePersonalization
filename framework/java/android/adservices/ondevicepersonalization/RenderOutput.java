@@ -27,7 +27,7 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
 
 /**
  * The result returned by
- * {@link IsolatedWorker#onRender(RenderInput, java.util.function.Consumer)}.
+ * {@link IsolatedWorker#onRender(RenderInput, android.os.OutcomeReceiver)}.
  *
  */
 @FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)

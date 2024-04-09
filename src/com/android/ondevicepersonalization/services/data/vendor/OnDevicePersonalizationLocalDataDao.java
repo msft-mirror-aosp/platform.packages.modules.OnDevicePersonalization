@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.data.vendor;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -27,6 +28,7 @@ import android.database.sqlite.SQLiteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import java.io.File;
@@ -43,20 +45,20 @@ import java.util.concurrent.ConcurrentHashMap;
 public class OnDevicePersonalizationLocalDataDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationLocalDataDao";
-    private static final String LOCAL_DATA_TABLE_NAME_PREFIX = "localdata_";
+    private static final String LOCAL_DATA_TABLE_NAME_PREFIX = "localdata";
 
     private static final long BLOB_SIZE_LIMIT = 100000;
 
     private static final Map<String, OnDevicePersonalizationLocalDataDao> sLocalDataDaos =
             new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
-    private final String mOwner;
+    private final ComponentName mOwner;
     private final String mCertDigest;
     private final String mTableName;
     private final String mFileDir;
 
     private OnDevicePersonalizationLocalDataDao(OnDevicePersonalizationDbHelper dbHelper,
-            String owner, String certDigest, String fileDir) {
+            ComponentName owner, String certDigest, String fileDir) {
         this.mDbHelper = dbHelper;
         this.mOwner = owner;
         this.mCertDigest = certDigest;
@@ -68,13 +70,13 @@ public class OnDevicePersonalizationLocalDataDao {
      * Returns an instance of the OnDevicePersonalizationLocalDataDao given a context.
      *
      * @param context    The context of the application
-     * @param owner      Name of package that owns the table
+     * @param owner      Name of service that owns the table
      * @param certDigest Hash of the certificate used to sign the package
      * @return Instance of OnDevicePersonalizationLocalDataDao for accessing the requested
      * package's table
      */
-    public static OnDevicePersonalizationLocalDataDao getInstance(Context context, String owner,
-            String certDigest) {
+    public static OnDevicePersonalizationLocalDataDao getInstance(Context context,
+            ComponentName owner, String certDigest) {
         // TODO: Validate the owner and certDigest
         String tableName = getTableName(owner, certDigest);
         String fileDir = getFileDir(tableName, context.getFilesDir());
@@ -100,7 +102,7 @@ public class OnDevicePersonalizationLocalDataDao {
      */
     @VisibleForTesting
     public static OnDevicePersonalizationLocalDataDao getInstanceForTest(Context context,
-            String owner, String certDigest) {
+            ComponentName owner, String certDigest) {
         synchronized (OnDevicePersonalizationLocalDataDao.class) {
             String tableName = getTableName(owner, certDigest);
             String fileDir = getFileDir(tableName, context.getFilesDir());
@@ -128,7 +130,7 @@ public class OnDevicePersonalizationLocalDataDao {
      *
      * @return true if it already exists or was created, false otherwise.
      */
-    public boolean createTableIfNotExists() {
+    protected boolean createTableIfNotExists() {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             db.execSQL(LocalDataContract.LocalDataEntry.getCreateTableIfNotExistsStatement(
@@ -146,11 +148,31 @@ public class OnDevicePersonalizationLocalDataDao {
     }
 
     /**
+     * Creates local data tables and adds corresponding vendor_settings metadata
+     */
+    public boolean createTable() {
+        SQLiteDatabase db = mDbHelper.getWritableDatabase();
+        try {
+            db.beginTransactionNonExclusive();
+            if (!createTableIfNotExists()) {
+                return false;
+            }
+            if (!OnDevicePersonalizationVendorDataDao.insertNewSyncToken(db, mOwner, mCertDigest,
+                    0L)) {
+                return false;
+            }
+            db.setTransactionSuccessful();
+        } finally {
+            db.endTransaction();
+        }
+        return true;
+    }
+
+    /**
      * Creates the LocalData table name for the given owner
      */
-    public static String getTableName(String owner, String certDigest) {
-        owner = owner.replace(".", "_");
-        return LOCAL_DATA_TABLE_NAME_PREFIX + owner + "_" + certDigest;
+    public static String getTableName(ComponentName owner, String certDigest) {
+        return DbUtils.getTableName(LOCAL_DATA_TABLE_NAME_PREFIX, owner, certDigest);
     }
 
     /**
@@ -285,10 +307,10 @@ public class OnDevicePersonalizationLocalDataDao {
     /**
      * Deletes LocalData table for given owner
      */
-    public static void deleteTable(Context context, String owner, String certDigest) {
+    public static void deleteTable(Context context, ComponentName owner, String certDigest) {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
-        db.execSQL("DROP TABLE " + getTableName(owner, certDigest));
+        db.execSQL("DROP TABLE IF EXISTS " + getTableName(owner, certDigest));
     }
 }

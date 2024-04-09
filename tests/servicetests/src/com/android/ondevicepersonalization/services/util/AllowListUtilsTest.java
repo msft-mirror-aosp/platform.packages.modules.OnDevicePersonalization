@@ -27,23 +27,115 @@ import org.junit.runners.JUnit4;
 public class AllowListUtilsTest {
     @Test
     public void testIsAllowListed() {
-        assertTrue(AllowListUtils.isAllowListed(null, "*"));
-        assertTrue(AllowListUtils.isAllowListed("", "*"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app", "*"));
-        assertFalse(AllowListUtils.isAllowListed(null, ""));
-        assertFalse(AllowListUtils.isAllowListed(" ", ""));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app ", ""));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app", "android.app"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app", "com.play.app"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app",
+        assertTrue(AllowListUtils.isAllowListed(null, null, "*"));
+        assertTrue(AllowListUtils.isAllowListed("", null, "*"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null, "*"));
+        assertFalse(AllowListUtils.isAllowListed(null, null, ""));
+        assertFalse(AllowListUtils.isAllowListed(" ", null, ""));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app ", null, ""));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null, "android.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null, "com.play.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null,
                 "com.android.app.extension"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app ", "com.android.app"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app", "com.android.app"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app",
+        assertFalse(AllowListUtils.isAllowListed("com.android.app ", null, "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null, "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null,
                 "com.play.app,com.android.app"));
-        assertFalse(AllowListUtils.isAllowListed("com.android.app",
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", null,
                 "com.android.app1,com.android.app2"));
-        assertTrue(AllowListUtils.isAllowListed("com.android.app",
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", null,
                 " com.android.app , com.play.app "));
+
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", "certificate", "*"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app ", "certificate", ""));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", "certificate", "android.app"));
+        assertFalse(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.play.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                "com.android.app.extension"));
+        assertFalse(AllowListUtils.isAllowListed(
+                "com.android.app ", "certificate", "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.android.app"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.android.app:certificate"));
+        assertFalse(AllowListUtils.isAllowListed(
+                "com.android.app", "anotherCert", "com.android.app:certificate"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "certificate", "com.android.app,com.android.app:certificate"));
+        assertTrue(AllowListUtils.isAllowListed(
+                "com.android.app", "anotherCert", "com.android.app,com.android.app:certificate"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                "com.play.app,com.android.app"));
+        assertFalse(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                "com.android.app1,com.android.app2"));
+        assertTrue(AllowListUtils.isAllowListed("com.android.app", "certificate",
+                " com.android.app:certificate , com.play.app "));
+    }
+
+    @Test public void testIsPairAllowListed() {
+        // Null flag.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                null));
+        // Empty flag.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                ""));
+        // Not found.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3:ZZZZ;com.test.app4:YYYY"));
+        // Match
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3:ZZZZ;com.test.app4:YYYY,com.test.app1:ABCD;com.test.app2:EFGH"));
+        // Flag contains no cert - Match
+        assertTrue(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app3:ZZZZ;com.test.app4:YYYY,com.test.app1;com.test.app2"));
+        // Second entity cert mismatch.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:ABCD;com.test.app2:PQRS"));
+        // First entity cert mismatch.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:PQRS;com.test.app2:EFGH"));
+        // Second entity missing.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:ABCD"));
+        // Bad flag.
+        assertFalse(AllowListUtils.isPairAllowListed(
+                "com.test.app1",
+                "ABCD",
+                "com.test.app2",
+                "EFGH",
+                "com.test.app1:ABCD;com.test.app2:EFGH;com.test.app3:PQRS"));
     }
 }

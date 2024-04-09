@@ -26,9 +26,11 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.when;
 import static org.mockito.MockitoAnnotations.initMocks;
 
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
@@ -44,18 +46,24 @@ import android.os.RemoteException;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.compatibility.common.util.ShellUtils;
+import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -64,10 +72,23 @@ import java.util.concurrent.TimeUnit;
 
 @RunWith(Parameterized.class)
 public class OdpExampleStoreServiceTests {
+    private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private final Context mContext = ApplicationProvider.getApplicationContext();
     @Mock Context mMockContext;
     @InjectMocks OdpExampleStoreService mService;
+
+    @Mock
+    UserPrivacyStatus mUserPrivacyStatus;
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(UserPrivacyStatus.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
     private CountDownLatch mLatch;
+    private ComponentName mIsolatedService;
+
     private boolean mIteratorCallbackOnSuccessCalled = false;
     private boolean mIteratorCallbackOnFailureCalled = false;
 
@@ -81,27 +102,24 @@ public class OdpExampleStoreServiceTests {
 
     @Parameterized.Parameters
     public static Collection<Object[]> data() {
-        return Arrays.asList(
-                new Object[][] {
-                        {true}, {false}
-                }
-        );
+        return Arrays.asList(new Object[][] {{true}, {false}});
     }
 
     @Before
     public void setUp() throws Exception {
         initMocks(this);
         when(mMockContext.getApplicationContext()).thenReturn(mContext);
+        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
+        doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         mQueryCallbackOnSuccessCalled = false;
         mQueryCallbackOnFailureCalled = false;
         mLatch = new CountDownLatch(1);
-
+        mIsolatedService = new ComponentName(mContext.getPackageName(), SERVICE_CLASS);
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
+        PhFlagsTestUtil.setSharedIsolatedProcessFeatureEnabled(mIsSipFeatureEnabled);
         ShellUtils.runShellCommand("settings put global hidden_api_policy 1");
-        ShellUtils.runShellCommand(
-                "device_config put on_device_personalization "
-                        + "shared_isolated_process_feature_enabled "
-                        + mIsSipFeatureEnabled);
     }
 
     @Test
@@ -109,7 +127,7 @@ public class OdpExampleStoreServiceTests {
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")
-                        .setServiceName(mContext.getPackageName())
+                        .setService(mIsolatedService)
                         .setToken()
                         .build());
         mService.onCreate();
@@ -120,11 +138,12 @@ public class OdpExampleStoreServiceTests {
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(mContext.getPackageName());
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
-        input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
 
         binder.startQuery(input, callback);
         assertTrue(
@@ -157,6 +176,68 @@ public class OdpExampleStoreServiceTests {
     }
 
     @Test
+    public void testWithStartQueryMeasurementControlRevoked() throws Exception {
+        doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
+        mEventsDao.updateOrInsertEventState(
+                new EventState.Builder()
+                        .setTaskIdentifier("PopulationName")
+                        .setService(mIsolatedService)
+                        .setToken()
+                        .build());
+        mService.onCreate();
+        Intent intent = new Intent();
+        intent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
+        IExampleStoreService binder =
+                IExampleStoreService.Stub.asInterface(mService.onBind(intent));
+        assertNotNull(binder);
+        TestQueryCallback callback = new TestQueryCallback();
+        Bundle input = new Bundle();
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
+
+        binder.startQuery(input, callback);
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+
+        assertFalse(mQueryCallbackOnSuccessCalled);
+        assertTrue(mQueryCallbackOnFailureCalled);
+    }
+
+    @Test
+    public void testWithStartQueryPersonalizationBlocked() throws Exception {
+        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+        mEventsDao.updateOrInsertEventState(
+                new EventState.Builder()
+                        .setTaskIdentifier("PopulationName")
+                        .setService(mIsolatedService)
+                        .setToken()
+                        .build());
+        mService.onCreate();
+        Intent intent = new Intent();
+        intent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
+        IExampleStoreService binder =
+                IExampleStoreService.Stub.asInterface(mService.onBind(intent));
+        assertNotNull(binder);
+        TestQueryCallback callback = new TestQueryCallback();
+        Bundle input = new Bundle();
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
+
+        binder.startQuery(input, callback);
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+
+        assertFalse(mQueryCallbackOnSuccessCalled);
+        assertTrue(mQueryCallbackOnFailureCalled);
+    }
+
+    @Test
     public void testWithStartQueryNotValidJob() throws Exception {
         mService.onCreate();
         Intent intent = new Intent();
@@ -166,11 +247,12 @@ public class OdpExampleStoreServiceTests {
         assertNotNull(binder);
         TestQueryCallback callback = new TestQueryCallback();
         Bundle input = new Bundle();
-        ContextData contextData = new ContextData(mContext.getPackageName());
+        ContextData contextData =
+                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
         input.putByteArray(
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
-        input.putString(ClientConstants.EXTRA_TASK_NAME, "TaskName");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
 
         ((IExampleStoreService.Stub) binder).startQuery(input, callback);
         mLatch.await(1000, TimeUnit.MILLISECONDS);

@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.data.vendor;
 
+import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -25,13 +26,17 @@ import android.database.sqlite.SQLiteException;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
+import com.android.ondevicepersonalization.services.data.events.EventsDao;
+import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.AbstractMap;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -45,14 +50,14 @@ import java.util.stream.Collectors;
 public class OnDevicePersonalizationVendorDataDao {
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationVendorDataDao";
-    private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata_";
+    private static final String VENDOR_DATA_TABLE_NAME_PREFIX = "vendordata";
 
     private static final long BLOB_SIZE_LIMIT = 100000;
 
     private static final Map<String, OnDevicePersonalizationVendorDataDao> sVendorDataDaos =
             new ConcurrentHashMap<>();
     private final OnDevicePersonalizationDbHelper mDbHelper;
-    private final String mOwner;
+    private final ComponentName mOwner;
     private final String mCertDigest;
     private final String mTableName;
 
@@ -60,7 +65,7 @@ public class OnDevicePersonalizationVendorDataDao {
     private final OnDevicePersonalizationLocalDataDao mLocalDao;
 
     private OnDevicePersonalizationVendorDataDao(OnDevicePersonalizationDbHelper dbHelper,
-            String owner, String certDigest, String fileDir,
+            ComponentName owner, String certDigest, String fileDir,
             OnDevicePersonalizationLocalDataDao localDataDao) {
         this.mDbHelper = dbHelper;
         this.mOwner = owner;
@@ -79,8 +84,8 @@ public class OnDevicePersonalizationVendorDataDao {
      * @return Instance of OnDevicePersonalizationVendorDataDao for accessing the requested
      * package's table
      */
-    public static OnDevicePersonalizationVendorDataDao getInstance(Context context, String owner,
-            String certDigest) {
+    public static OnDevicePersonalizationVendorDataDao getInstance(Context context,
+            ComponentName owner, String certDigest) {
         // TODO: Validate the owner and certDigest
         String tableName = getTableName(owner, certDigest);
         String fileDir = getFileDir(tableName, context.getFilesDir());
@@ -108,7 +113,7 @@ public class OnDevicePersonalizationVendorDataDao {
      */
     @VisibleForTesting
     public static OnDevicePersonalizationVendorDataDao getInstanceForTest(Context context,
-            String owner, String certDigest) {
+            ComponentName owner, String certDigest) {
         synchronized (OnDevicePersonalizationVendorDataDao.class) {
             String tableName = getTableName(owner, certDigest);
             String fileDir = getFileDir(tableName, context.getFilesDir());
@@ -129,9 +134,8 @@ public class OnDevicePersonalizationVendorDataDao {
     /**
      * Creates table name based on owner and certDigest
      */
-    public static String getTableName(String owner, String certDigest) {
-        owner = owner.replace(".", "_");
-        return VENDOR_DATA_TABLE_NAME_PREFIX + owner + "_" + certDigest;
+    public static String getTableName(ComponentName owner, String certDigest) {
+        return DbUtils.getTableName(VENDOR_DATA_TABLE_NAME_PREFIX, owner, certDigest);
     }
 
     /**
@@ -182,7 +186,8 @@ public class OnDevicePersonalizationVendorDataDao {
     /**
      * Performs a transaction to delete the vendorData table and vendorSettings for a given package.
      */
-    public static boolean deleteVendorData(Context context, String owner, String certDigest) {
+    public static boolean deleteVendorData(
+            Context context, ComponentName owner, String certDigest) {
         OnDevicePersonalizationDbHelper dbHelper =
                 OnDevicePersonalizationDbHelper.getInstance(context);
         SQLiteDatabase db = dbHelper.getWritableDatabase();
@@ -192,12 +197,12 @@ public class OnDevicePersonalizationVendorDataDao {
             // Delete rows from VendorSettings
             String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
                     + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
-            String[] selectionArgs = {owner, certDigest};
+            String[] selectionArgs = {DbUtils.toTableValue(owner), certDigest};
             db.delete(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME, selection,
                     selectionArgs);
 
             // Delete the vendorData and localData table
-            db.execSQL("DROP TABLE " + vendorDataTableName);
+            db.execSQL("DROP TABLE IF EXISTS " + vendorDataTableName);
             OnDevicePersonalizationLocalDataDao.deleteTable(context, owner, certDigest);
 
             db.setTransactionSuccessful();
@@ -423,13 +428,130 @@ public class OnDevicePersonalizationVendorDataDao {
         try {
             SQLiteDatabase db = mDbHelper.getWritableDatabase();
             ContentValues values = new ContentValues();
-            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER, mOwner);
+            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER,
+                    DbUtils.toTableValue(mOwner));
             values.put(VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST, mCertDigest);
             values.put(VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN, syncToken);
             return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
                     null, values, SQLiteDatabase.CONFLICT_REPLACE) != -1;
         } catch (SQLiteException e) {
             sLogger.e(TAG + ": Failed to update or insert syncToken", e);
+        }
+        return false;
+    }
+
+    /** Deletes data for all isolated services except the ones listed. */
+    public static void deleteVendorTables(
+            Context context, List<ComponentName> excludedServices) throws Exception {
+        EventsDao eventsDao = EventsDao.getInstance(context);
+        // Set of packageName and cert
+        Set<Map.Entry<String, String>> vendors = new HashSet<>(getVendors(context));
+
+        // Set of valid packageName and cert
+        Set<Map.Entry<String, String>> validVendors = new HashSet<>();
+        Set<String> validTables = new HashSet<>();
+
+
+        // Remove all valid packages from the set
+        for (ComponentName service : excludedServices) {
+            String certDigest = PackageUtils.getCertDigest(service.getPackageName());
+            // Remove valid packages from set
+            vendors.remove(new AbstractMap.SimpleImmutableEntry<>(
+                    DbUtils.toTableValue(service), certDigest));
+
+            // Add valid package to new set
+            validVendors.add(new AbstractMap.SimpleImmutableEntry<>(
+                    DbUtils.toTableValue(service), certDigest));
+            validTables.add(getTableName(service, certDigest));
+            validTables.add(OnDevicePersonalizationLocalDataDao.getTableName(service, certDigest));
+        }
+        sLogger.d(TAG + ": Retaining tables: " + validTables);
+        sLogger.d(TAG + ": Deleting vendors: " + vendors);
+        // Delete the remaining tables for packages not found onboarded
+        for (Map.Entry<String, String> entry : vendors) {
+            String serviceNameStr = entry.getKey();
+            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
+            String certDigest = entry.getValue();
+            deleteVendorData(context, service, certDigest);
+            eventsDao.deleteEventState(service);
+        }
+
+        // Cleanup files from internal storage for valid packages.
+        for (Map.Entry<String, String> entry : validVendors) {
+            String serviceNameStr = entry.getKey();
+            ComponentName service = DbUtils.fromTableValue(serviceNameStr);
+            String certDigest = entry.getValue();
+            // VendorDao
+            OnDevicePersonalizationVendorDataDao vendorDao =
+                    OnDevicePersonalizationVendorDataDao.getInstance(context, service,
+                            certDigest);
+            File vendorDir = new File(OnDevicePersonalizationVendorDataDao.getFileDir(
+                    OnDevicePersonalizationVendorDataDao.getTableName(service, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(vendorDao.readAllVendorDataKeys(), vendorDir);
+
+            // LocalDao
+            OnDevicePersonalizationLocalDataDao localDao =
+                    OnDevicePersonalizationLocalDataDao.getInstance(context, service,
+                            certDigest);
+            File localDir = new File(OnDevicePersonalizationLocalDataDao.getFileDir(
+                    OnDevicePersonalizationLocalDataDao.getTableName(service, certDigest),
+                    context.getFilesDir()));
+            FileUtils.cleanUpFilesDir(localDao.readAllLocalDataKeys(), localDir);
+        }
+
+        // Cleanup any loose data directories. Tables deleted, but directory still exists.
+        List<File> filesToDelete = new ArrayList<>();
+        File vendorDir = new File(context.getFilesDir(), "VendorData");
+        if (vendorDir.isDirectory()) {
+            for (File f : vendorDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        File localDir = new File(context.getFilesDir(), "LocalData");
+        if (localDir.isDirectory()) {
+            for (File f : localDir.listFiles()) {
+                if (f.isDirectory()) {
+                    // Delete files for non-existent tables
+                    if (!validTables.contains(f.getName())) {
+                        filesToDelete.add(f);
+                    }
+                } else {
+                    // There should not be regular files.
+                    filesToDelete.add(f);
+                }
+            }
+        }
+        sLogger.d(TAG + ": deleting "
+                + Arrays.asList(filesToDelete.stream().map(v -> v.getName()).toArray()));
+        filesToDelete.forEach(FileUtils::deleteDirectory);
+    }
+
+    /**
+     * Inserts the syncToken, ignoring on conflict.
+     *
+     * @return true if the insert succeeded with no error, false otherwise
+     */
+    protected static boolean insertNewSyncToken(SQLiteDatabase db,
+            ComponentName owner, String certDigest, long syncToken) {
+        try {
+            ContentValues values = new ContentValues();
+            values.put(VendorSettingsContract.VendorSettingsEntry.OWNER,
+                    DbUtils.toTableValue(owner));
+            values.put(VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST, certDigest);
+            values.put(VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN, syncToken);
+            return db.insertWithOnConflict(VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,
+                    null, values, SQLiteDatabase.CONFLICT_IGNORE) != -1;
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to insert syncToken", e);
         }
         return false;
     }
@@ -443,7 +565,7 @@ public class OnDevicePersonalizationVendorDataDao {
         SQLiteDatabase db = mDbHelper.getReadableDatabase();
         String selection = VendorSettingsContract.VendorSettingsEntry.OWNER + " = ? AND "
                 + VendorSettingsContract.VendorSettingsEntry.CERT_DIGEST + " = ?";
-        String[] selectionArgs = {mOwner, mCertDigest};
+        String[] selectionArgs = {DbUtils.toTableValue(mOwner), mCertDigest};
         String[] projection = {VendorSettingsContract.VendorSettingsEntry.SYNC_TOKEN};
         Cursor cursor = db.query(
                 VendorSettingsContract.VendorSettingsEntry.TABLE_NAME,

@@ -18,6 +18,9 @@ package {
 
 android_test {
     name: "OnDevicePersonalizationSystemServiceImplTests",
+    defaults: [
+        "modules-utils-testable-device-config-defaults",
+    ],
     srcs: [
         "src/**/*.java",
     ],
@@ -25,13 +28,15 @@ android_test {
         "android.test.base",
         "android.test.runner",
         "framework-ondevicepersonalization.impl",
-        "truth-prebuilt",
+        "truth",
     ],
     static_libs: [
         "androidx.test.ext.junit",
         "androidx.test.ext.truth",
         "androidx.test.rules",
+        "mockito-target-extended-minus-junit4",
         "modules-utils-build",
+        "ondevicepersonalization-testing-utils",
         "service-ondevicepersonalization.impl",
     ],
     sdk_version: "module_current",
@@ -41,4 +46,10 @@ android_test {
         "mts-ondevicepersonalization",
     ],
     test_config: "AndroidTest.xml",
+    // mockito-target-inline dependency
+    jni_libs: [
+        "libdexmakerjvmtiagent",
+        "libstaticjvmtiagent",
+        "libfcp_cpp_dep_jni",
+    ],
 }

@@ -16,10 +16,13 @@
 
 package com.android.ondevicepersonalization.services.inference;
 
+import static com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner.TRUSTED_PARTNER_APPS_SIP;
+
 import android.adservices.ondevicepersonalization.aidl.IIsolatedModelService;
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.modules.utils.build.SdkLevel;
 
 /**
  * Provides {@link IsolatedModelService}.
@@ -34,13 +37,17 @@ public class IsolatedModelServiceProvider {
      * Returns {@link IIsolatedModelService}.
      */
     public IIsolatedModelService getModelService(Context context) {
-        // TODO(b/323304647): bind to shared isolated process.
+        // Inference service should always run in the trusted SIP.
+        String instanceName = SdkLevel.isAtLeastU() ? TRUSTED_PARTNER_APPS_SIP : null;
+        int bindFlag = SdkLevel.isAtLeastU()
+                ? Context.BIND_SHARED_ISOLATED_PROCESS
+                : Context.BIND_AUTO_CREATE;
         mModelService =
-                AbstractServiceBinder.getServiceBinderByServiceName(
+                AbstractServiceBinder.getIsolatedServiceBinderByServiceName(
                         context,
                         ISOLATED_MODEL_SERVICE_NAME,
                         context.getPackageName(),
-                        IIsolatedModelService.Stub::asInterface);
+                        instanceName, bindFlag, IIsolatedModelService.Stub::asInterface);
         return mModelService.getService(Runnable::run);
     }
 

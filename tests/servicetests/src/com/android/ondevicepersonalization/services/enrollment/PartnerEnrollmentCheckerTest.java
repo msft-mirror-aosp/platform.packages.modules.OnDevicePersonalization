@@ -19,15 +19,20 @@ package com.android.ondevicepersonalization.services.enrollment;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
 @RunWith(JUnit4.class)
 public class PartnerEnrollmentCheckerTest {
+    @Rule
+    public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
+            new TestableDeviceConfig.TestableDeviceConfigRule();
 
     @Before
     public void setup() throws Exception {
@@ -36,10 +41,11 @@ public class PartnerEnrollmentCheckerTest {
 
     @Test
     public void testIsCallerAppEnrolled() {
-        PhFlagsTestUtil.setCallerAppAllowList("app1,app2,app3");
+        PhFlagsTestUtil.setCallerAppAllowList("app1,app2,app3,app5:certapp5");
         assertTrue(PartnerEnrollmentChecker.isCallerAppEnrolled("app1"));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled("app"));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled("app4"));
+        assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled("app5"));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled(""));
         assertFalse(PartnerEnrollmentChecker.isCallerAppEnrolled(null));
 
@@ -56,10 +62,11 @@ public class PartnerEnrollmentCheckerTest {
 
     @Test
     public void testIsIsolatedServiceEnrolled() {
-        PhFlagsTestUtil.setIsolatedServiceAllowList("svc1,svc2,svc3");
+        PhFlagsTestUtil.setIsolatedServiceAllowList("svc1,svc2,svc3,svc5:certsvc5");
         assertTrue(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc1"));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc"));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc4"));
+        assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled("svc5"));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(""));
         assertFalse(PartnerEnrollmentChecker.isIsolatedServiceEnrolled(null));
 
