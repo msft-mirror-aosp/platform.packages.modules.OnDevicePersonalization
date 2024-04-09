@@ -117,7 +117,8 @@ public class ExampleStoreServiceProvider {
                     asyncResult.poll(
                             FlagsFactory.getFlags().getExampleStoreServiceCallbackTimeoutSec(),
                             TimeUnit.SECONDS);
-            if (callbackResult.mErrorCode != 0) {
+            // Callback result is null if timeout.
+            if (callbackResult == null || callbackResult.mErrorCode != 0) {
                 return null;
             }
             return callbackResult.mIterator;
