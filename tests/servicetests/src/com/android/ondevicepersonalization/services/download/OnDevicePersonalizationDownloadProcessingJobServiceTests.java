@@ -20,10 +20,12 @@ import static android.app.job.JobScheduler.RESULT_FAILURE;
 import static android.app.job.JobScheduler.RESULT_SUCCESS;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
@@ -38,6 +40,8 @@ import android.content.Context;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
@@ -47,15 +51,24 @@ import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
-import org.mockito.MockitoSession;
 import org.mockito.quality.Strictness;
+
+import java.util.concurrent.CountDownLatch;
 
 @RunWith(JUnit4.class)
 public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
+            .addStaticMockFixtures(TestableDeviceConfig::new)
+            .spyStatic(OnDevicePersonalizationExecutors.class)
+            .setStrictness(Strictness.LENIENT)
+            .build();
 
     private OnDevicePersonalizationDownloadProcessingJobService mSpyService;
 
@@ -74,49 +87,47 @@ public class OnDevicePersonalizationDownloadProcessingJobServiceTests {
     }
 
     @Test
-    public void onStartJobTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
-                OnDevicePersonalizationExecutors.class).strictness(
-                Strictness.LENIENT).startMocking();
-        try {
-            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            doReturn(mContext.getPackageManager()).when(mSpyService).getPackageManager();
-            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
-                    OnDevicePersonalizationExecutors::getBackgroundExecutor);
-            ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
-                    OnDevicePersonalizationExecutors::getLightweightExecutor);
+    public void testDefaultNoArgConstructor() {
+        OnDevicePersonalizationDownloadProcessingJobService instance =
+                new OnDevicePersonalizationDownloadProcessingJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
+    }
 
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
-            assertTrue(result);
-            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        } finally {
-            session.finishMocking();
-        }
+    @Test
+    public void onStartJobTest() throws Exception {
+        CountDownLatch latch = new CountDownLatch(1);
+        doAnswer(
+                (v) -> {
+                    latch.countDown();
+                    return null;
+                })
+                .when(mSpyService).jobFinished(any(), anyBoolean());
+        doReturn(mContext.getPackageManager()).when(mSpyService).getPackageManager();
+        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+                OnDevicePersonalizationExecutors::getBackgroundExecutor);
+        ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
+                OnDevicePersonalizationExecutors::getLightweightExecutor);
+
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+
+        latch.await();
+
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 
     @Test
     public void onStartJobTestKillSwitchEnabled() {
         PhFlagsTestUtil.enableGlobalKillSwitch();
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
-        try {
-            doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-            boolean result = mSpyService.onStartJob(mock(JobParameters.class));
-            assertTrue(result);
-            verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        } finally {
-            session.finishMocking();
-        }
+        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
+        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
+        assertTrue(result);
+        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 
     @Test
     public void onStopJobTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().strictness(
-                Strictness.LENIENT).startMocking();
-        try {
-            assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
-        } finally {
-            session.finishMocking();
-        }
+        assertTrue(mSpyService.onStopJob(mock(JobParameters.class)));
     }
 
 

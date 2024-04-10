@@ -16,39 +16,37 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
 import android.annotation.FlaggedApi;
-import android.annotation.NonNull;
-import android.content.Context;
-import android.content.pm.PackageManager;
+import android.annotation.SystemApi;
+
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 
 /**
  * OnDevicePersonalization permission settings.
  *
  * @hide
 */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@SystemApi
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationPermissions {
     private OnDevicePersonalizationPermissions() {}
 
     /**
      * The permission that lets it modify ODP's enablement state.
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     public static final String MODIFY_ONDEVICEPERSONALIZATION_STATE =
             "android.permission.ondevicepersonalization.MODIFY_ONDEVICEPERSONALIZATION_STATE";
 
     /**
-     * verify that caller has the permission to modify ODP's enablement state.
-     * @throws SecurityException otherwise.
-     *
+     * The permission required for callers to send measurement events to ODP.
+     */
+    public static final String NOTIFY_MEASUREMENT_EVENT =
+            "android.permission.ondevicepersonalization.NOTIFY_MEASUREMENT_EVENT";
+
+    /**
+     * The permission required to connect to the ODP system server component.
      * @hide
      */
-    public static void enforceCallingPermission(@NonNull Context context,
-            @NonNull String permission) {
-        if (context.checkCallingOrSelfPermission(permission) != PackageManager.PERMISSION_GRANTED) {
-            throw new SecurityException("Unauthorized call to ODP.");
-        }
-    }
+    public static final String ACCESS_SYSTEM_SERVER_SERVICE =
+            "android.permission.ondevicepersonalization.ACCESS_SYSTEM_SERVER_SERVICE";
 }

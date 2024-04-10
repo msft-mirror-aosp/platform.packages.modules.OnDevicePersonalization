@@ -17,13 +17,8 @@
 package com.android.ondevicepersonalization.services.statsd;
 
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_CLASS__UNKNOWN;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EXECUTE;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REQUEST_SURFACE_PACKAGE;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_DOWNLOAD_COMPLETED;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_EVENT;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_EXECUTE;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_RENDER;
-import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_TRAINING_EXAMPLE;
+
+import android.annotation.NonNull;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -33,23 +28,8 @@ import com.android.ondevicepersonalization.internal.util.DataClass;
  */
 @DataClass(genBuilder = true, genEqualsHashCode = true)
 public class ApiCallStats {
-    public static final int API_EXECUTE =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__EXECUTE;
-    public static final int API_REQUEST_SURFACE_PACKAGE =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__REQUEST_SURFACE_PACKAGE;
-    public static final int API_SERVICE_ON_EXECUTE =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_EXECUTE;
-    public static final int API_SERVICE_ON_DOWNLOAD_COMPLETED =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_DOWNLOAD_COMPLETED;
-    public static final int API_SERVICE_ON_RENDER =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_RENDER;
-    public static final int API_SERVICE_ON_EVENT =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_EVENT;
-    public static final int API_SERVICE_ON_TRAINING_EXAMPLE =
-            ON_DEVICE_PERSONALIZATION_API_CALLED__API_NAME__SERVICE_ON_TRAINING_EXAMPLE;
-
     private int mApiClass = ON_DEVICE_PERSONALIZATION_API_CALLED__API_CLASS__UNKNOWN;
-    private final @Api int mApiName;
+    private final int mApiName;
     private int mLatencyMillis = 0;
     private int mResponseCode = 0;
     private int mOverheadLatencyMillis = 0;
@@ -69,68 +49,15 @@ public class ApiCallStats {
     //@formatter:off
 
 
-    @android.annotation.IntDef(prefix = "API_", value = {
-        API_EXECUTE,
-        API_REQUEST_SURFACE_PACKAGE,
-        API_SERVICE_ON_EXECUTE,
-        API_SERVICE_ON_DOWNLOAD_COMPLETED,
-        API_SERVICE_ON_RENDER,
-        API_SERVICE_ON_EVENT,
-        API_SERVICE_ON_TRAINING_EXAMPLE
-    })
-    @java.lang.annotation.Retention(java.lang.annotation.RetentionPolicy.SOURCE)
-    @DataClass.Generated.Member
-    public @interface Api {}
-
-    @DataClass.Generated.Member
-    public static String apiToString(@Api int value) {
-        switch (value) {
-            case API_EXECUTE:
-                    return "API_EXECUTE";
-            case API_REQUEST_SURFACE_PACKAGE:
-                    return "API_REQUEST_SURFACE_PACKAGE";
-            case API_SERVICE_ON_EXECUTE:
-                    return "API_SERVICE_ON_EXECUTE";
-            case API_SERVICE_ON_DOWNLOAD_COMPLETED:
-                    return "API_SERVICE_ON_DOWNLOAD_COMPLETED";
-            case API_SERVICE_ON_RENDER:
-                    return "API_SERVICE_ON_RENDER";
-            case API_SERVICE_ON_EVENT:
-                    return "API_SERVICE_ON_EVENT";
-            case API_SERVICE_ON_TRAINING_EXAMPLE:
-                    return "API_SERVICE_ON_TRAINING_EXAMPLE";
-            default: return Integer.toHexString(value);
-        }
-    }
-
     @DataClass.Generated.Member
     /* package-private */ ApiCallStats(
             int apiClass,
-            @Api int apiName,
+            int apiName,
             int latencyMillis,
             int responseCode,
             int overheadLatencyMillis) {
         this.mApiClass = apiClass;
         this.mApiName = apiName;
-
-        if (!(mApiName == API_EXECUTE)
-                && !(mApiName == API_REQUEST_SURFACE_PACKAGE)
-                && !(mApiName == API_SERVICE_ON_EXECUTE)
-                && !(mApiName == API_SERVICE_ON_DOWNLOAD_COMPLETED)
-                && !(mApiName == API_SERVICE_ON_RENDER)
-                && !(mApiName == API_SERVICE_ON_EVENT)
-                && !(mApiName == API_SERVICE_ON_TRAINING_EXAMPLE)) {
-            throw new java.lang.IllegalArgumentException(
-                    "apiName was " + mApiName + " but must be one of: "
-                            + "API_EXECUTE(" + API_EXECUTE + "), "
-                            + "API_REQUEST_SURFACE_PACKAGE(" + API_REQUEST_SURFACE_PACKAGE + "), "
-                            + "API_SERVICE_ON_EXECUTE(" + API_SERVICE_ON_EXECUTE + "), "
-                            + "API_SERVICE_ON_DOWNLOAD_COMPLETED(" + API_SERVICE_ON_DOWNLOAD_COMPLETED + "), "
-                            + "API_SERVICE_ON_RENDER(" + API_SERVICE_ON_RENDER + "), "
-                            + "API_SERVICE_ON_EVENT(" + API_SERVICE_ON_EVENT + "), "
-                            + "API_SERVICE_ON_TRAINING_EXAMPLE(" + API_SERVICE_ON_TRAINING_EXAMPLE + ")");
-        }
-
         this.mLatencyMillis = latencyMillis;
         this.mResponseCode = responseCode;
         this.mOverheadLatencyMillis = overheadLatencyMillis;
@@ -144,7 +71,7 @@ public class ApiCallStats {
     }
 
     @DataClass.Generated.Member
-    public @Api int getApiName() {
+    public int getApiName() {
         return mApiName;
     }
 
@@ -206,7 +133,7 @@ public class ApiCallStats {
     public static class Builder {
 
         private int mApiClass;
-        private @Api int mApiName;
+        private int mApiName;
         private int mLatencyMillis;
         private int mResponseCode;
         private int mOverheadLatencyMillis;
@@ -214,31 +141,12 @@ public class ApiCallStats {
         private long mBuilderFieldsSet = 0L;
 
         public Builder(
-                @Api int apiName) {
+                int apiName) {
             mApiName = apiName;
-
-            if (!(mApiName == API_EXECUTE)
-                    && !(mApiName == API_REQUEST_SURFACE_PACKAGE)
-                    && !(mApiName == API_SERVICE_ON_EXECUTE)
-                    && !(mApiName == API_SERVICE_ON_DOWNLOAD_COMPLETED)
-                    && !(mApiName == API_SERVICE_ON_RENDER)
-                    && !(mApiName == API_SERVICE_ON_EVENT)
-                    && !(mApiName == API_SERVICE_ON_TRAINING_EXAMPLE)) {
-                throw new java.lang.IllegalArgumentException(
-                        "apiName was " + mApiName + " but must be one of: "
-                                + "API_EXECUTE(" + API_EXECUTE + "), "
-                                + "API_REQUEST_SURFACE_PACKAGE(" + API_REQUEST_SURFACE_PACKAGE + "), "
-                                + "API_SERVICE_ON_EXECUTE(" + API_SERVICE_ON_EXECUTE + "), "
-                                + "API_SERVICE_ON_DOWNLOAD_COMPLETED(" + API_SERVICE_ON_DOWNLOAD_COMPLETED + "), "
-                                + "API_SERVICE_ON_RENDER(" + API_SERVICE_ON_RENDER + "), "
-                                + "API_SERVICE_ON_EVENT(" + API_SERVICE_ON_EVENT + "), "
-                                + "API_SERVICE_ON_TRAINING_EXAMPLE(" + API_SERVICE_ON_TRAINING_EXAMPLE + ")");
-            }
-
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setApiClass(int value) {
+        public @NonNull Builder setApiClass(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mApiClass = value;
@@ -246,7 +154,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setApiName(@Api int value) {
+        public @NonNull Builder setApiName(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mApiName = value;
@@ -254,7 +162,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setLatencyMillis(int value) {
+        public @NonNull Builder setLatencyMillis(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mLatencyMillis = value;
@@ -262,7 +170,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setResponseCode(int value) {
+        public @NonNull Builder setResponseCode(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mResponseCode = value;
@@ -270,7 +178,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @android.annotation.NonNull Builder setOverheadLatencyMillis(int value) {
+        public @NonNull Builder setOverheadLatencyMillis(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10;
             mOverheadLatencyMillis = value;
@@ -278,7 +186,7 @@ public class ApiCallStats {
         }
 
         /** Builds the instance. This builder should not be touched after calling this! */
-        public @android.annotation.NonNull ApiCallStats build() {
+        public @NonNull ApiCallStats build() {
             checkNotUsed();
             mBuilderFieldsSet |= 0x20; // Mark builder used
 
@@ -312,10 +220,10 @@ public class ApiCallStats {
     }
 
     @DataClass.Generated(
-            time = 1696624777344L,
+            time = 1709253538425L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/statsd/ApiCallStats.java",
-            inputSignatures = "public static final  int API_EXECUTE\npublic static final  int API_REQUEST_SURFACE_PACKAGE\npublic static final  int API_SERVICE_ON_EXECUTE\npublic static final  int API_SERVICE_ON_DOWNLOAD_COMPLETED\npublic static final  int API_SERVICE_ON_RENDER\npublic static final  int API_SERVICE_ON_EVENT\npublic static final  int API_SERVICE_ON_TRAINING_EXAMPLE\nprivate  int mApiClass\nprivate final @com.android.ondevicepersonalization.services.statsd.ApiCallStats.Api int mApiName\nprivate  int mLatencyMillis\nprivate  int mResponseCode\nprivate  int mOverheadLatencyMillis\nclass ApiCallStats extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mApiClass\nprivate final  int mApiName\nprivate  int mLatencyMillis\nprivate  int mResponseCode\nprivate  int mOverheadLatencyMillis\nclass ApiCallStats extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 

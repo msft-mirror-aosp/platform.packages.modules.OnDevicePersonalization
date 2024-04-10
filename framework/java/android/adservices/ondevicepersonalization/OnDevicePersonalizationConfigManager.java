@@ -16,7 +16,6 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.MODIFY_ONDEVICEPERSONALIZATION_STATE;
 
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationConfigService;
@@ -24,25 +23,20 @@ import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationC
 import android.annotation.CallbackExecutor;
 import android.annotation.FlaggedApi;
 import android.annotation.NonNull;
-import android.annotation.Nullable;
 import android.annotation.RequiresPermission;
-import android.content.ComponentName;
+import android.annotation.SystemApi;
 import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
-import android.content.pm.ResolveInfo;
-import android.content.pm.ServiceInfo;
 import android.os.Binder;
-import android.os.IBinder;
 import android.os.OutcomeReceiver;
-import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
+import com.android.federatedcompute.internal.util.AbstractServiceBinder;
+import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executor;
-import java.util.concurrent.TimeUnit;
 
 /**
  * OnDevicePersonalizationConfigManager provides system APIs
@@ -50,44 +44,42 @@ import java.util.concurrent.TimeUnit;
  *
  * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@SystemApi
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class OnDevicePersonalizationConfigManager {
     /** @hide */
     public static final String ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE =
             "on_device_personalization_config_service";
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "OnDevicePersonalizationConfigManager";
+    private static final String TAG = OnDevicePersonalizationConfigManager.class.getSimpleName();
+
+    private static final String ODP_CONFIG_SERVICE_PACKAGE_SUFFIX =
+            "com.android.ondevicepersonalization.services";
+
+    private static final String ALT_ODP_CONFIG_SERVICE_PACKAGE_SUFFIX =
+            "com.google.android.ondevicepersonalization.services";
     private static final String ODP_CONFIG_SERVICE_INTENT =
             "android.OnDevicePersonalizationConfigService";
-    private static final int BIND_SERVICE_TIMEOUT_SEC = 5;
-    private final Context mContext;
-    private final CountDownLatch mConnectionLatch = new CountDownLatch(1);
-    private boolean mBound = false;
-    private IOnDevicePersonalizationConfigService mService = null;
-    private final ServiceConnection mConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder binder) {
-            mService = IOnDevicePersonalizationConfigService.Stub.asInterface(binder);
-            mBound = true;
-            mConnectionLatch.countDown();
-        }
 
-        @Override
-        public void onNullBinding(ComponentName name) {
-            mBound = false;
-            mConnectionLatch.countDown();
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            mService = null;
-            mBound = false;
-        }
-    };
+    private final AbstractServiceBinder<IOnDevicePersonalizationConfigService> mServiceBinder;
 
     /** @hide */
     public OnDevicePersonalizationConfigManager(@NonNull Context context) {
-        mContext = context;
+        this(
+                AbstractServiceBinder.getServiceBinderByIntent(
+                        context,
+                        ODP_CONFIG_SERVICE_INTENT,
+                        List.of(
+                                ODP_CONFIG_SERVICE_PACKAGE_SUFFIX,
+                                ALT_ODP_CONFIG_SERVICE_PACKAGE_SUFFIX),
+                        IOnDevicePersonalizationConfigService.Stub::asInterface));
+    }
+
+    /** @hide */
+    @VisibleForTesting
+    public OnDevicePersonalizationConfigManager(
+            AbstractServiceBinder<IOnDevicePersonalizationConfigService> serviceBinder) {
+        this.mServiceBinder = serviceBinder;
     }
 
     /**
@@ -105,91 +97,70 @@ public class OnDevicePersonalizationConfigManager {
      *     Returns a {@link SecurityException} if the caller is unauthorized to modify
      *     personalization status.
      */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     @RequiresPermission(MODIFY_ONDEVICEPERSONALIZATION_STATE)
     public void setPersonalizationEnabled(boolean enabled,
                                           @NonNull @CallbackExecutor Executor executor,
                                           @NonNull OutcomeReceiver<Void, Exception> receiver) {
-
+        CountDownLatch latch = new CountDownLatch(1);
         try {
-            bindService(executor);
-
-            mService.setPersonalizationStatus(enabled,
+            IOnDevicePersonalizationConfigService service = mServiceBinder.getService(executor);
+            service.setPersonalizationStatus(enabled,
                     new IOnDevicePersonalizationConfigServiceCallback.Stub() {
                         @Override
                         public void onSuccess() {
-                            executor.execute(() -> {
-                                Binder.clearCallingIdentity();
-                                receiver.onResult(null);
-                            });
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> {
+                                    receiver.onResult(null);
+                                    latch.countDown();
+                                });
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
 
                         @Override
                         public void onFailure(int errorCode) {
-                            executor.execute(() -> {
-                                sLogger.w(TAG + ": Unexpected failure from ODP"
-                                        + "config service with error code: " + errorCode);
-                                Binder.clearCallingIdentity();
-                                receiver.onError(new IllegalStateException("Unexpected failure."));
-                            });
+                            final long token = Binder.clearCallingIdentity();
+                            try {
+                                executor.execute(() -> {
+                                    sLogger.w(TAG + ": Unexpected failure from ODP"
+                                            + "config service with error code: " + errorCode);
+                                    receiver.onError(
+                                            new IllegalStateException("Unexpected failure."));
+                                    latch.countDown();
+                                });
+                            } finally {
+                                Binder.restoreCallingIdentity(token);
+                            }
                         }
                     });
-        } catch (IllegalStateException | InterruptedException | RemoteException e) {
-            executor.execute(() -> {
-                receiver.onError(new IllegalStateException(e));
-            });
+        } catch (IllegalArgumentException | NullPointerException e) {
+            latch.countDown();
+            throw e;
         } catch (SecurityException e) {
-            executor.execute(() -> {
-                sLogger.w(TAG + ": Unauthorized call to ODP config service.");
+            sLogger.w(TAG + ": Unauthorized call to ODP config service.");
+            receiver.onError(e);
+            latch.countDown();
+        } catch (Exception e) {
+            sLogger.w(TAG + ": Unexpected exception during call to ODP config service.");
+            receiver.onError(e);
+            latch.countDown();
+        } finally {
+            try {
+                latch.await();
+            } catch (InterruptedException e) {
+                sLogger.e(TAG + ": Failed to set personalization.", e);
                 receiver.onError(e);
-            });
-        }
-    }
-
-    private void bindService(@NonNull Executor executor) throws InterruptedException {
-        if (!mBound) {
-            Intent intent = new Intent(ODP_CONFIG_SERVICE_INTENT);
-            ComponentName serviceComponent = resolveService(intent);
-            if (serviceComponent == null) {
-                sLogger.e(TAG + ": Invalid component for ODP config service");
-                return;
             }
-
-            intent.setComponent(serviceComponent);
-            boolean r = mContext.bindService(
-                    intent, Context.BIND_AUTO_CREATE, executor, mConnection);
-            if (!r) {
-                return;
-            }
-            mConnectionLatch.await(BIND_SERVICE_TIMEOUT_SEC, TimeUnit.SECONDS);
+            unbindFromService();
         }
     }
 
     /**
-     * Find the ComponentName of the service, given its intent.
-     *
-     * @return ComponentName of the service. Null if the service is not found.
+     * Unbind from config service.
      */
-    @Nullable
-    private ComponentName resolveService(@NonNull Intent intent) {
-        List<ResolveInfo> services = mContext.getPackageManager().queryIntentServices(intent, 0);
-        if (services == null || services.isEmpty()) {
-            sLogger.e(TAG + ": Failed to find OnDevicePersonalizationConfigService");
-            return null;
-        }
-
-        for (int i = 0; i < services.size(); i++) {
-            ServiceInfo serviceInfo = services.get(i).serviceInfo;
-            if (serviceInfo == null) {
-                sLogger.e(TAG + ": Failed to find serviceInfo "
-                        + "for OnDevicePersonalizationConfigService.");
-                return null;
-            }
-            // There should only be one matching service inside the given package.
-            // If there's more than one, return the first one found.
-            return new ComponentName(serviceInfo.packageName, serviceInfo.name);
-        }
-        sLogger.e(TAG + ": Didn't find any matching OnDevicePersonalizationConfigService.");
-        return null;
+    private void unbindFromService() {
+        mServiceBinder.unbindFromService();
     }
 }

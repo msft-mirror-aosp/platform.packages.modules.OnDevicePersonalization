@@ -22,9 +22,9 @@ import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITER
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 
+import android.adservices.ondevicepersonalization.TrainingExampleRecord;
 import android.federatedcompute.ExampleStoreIterator;
 import android.os.Bundle;
 
@@ -45,11 +45,14 @@ public class OdpExampleStoreIteratorTest {
 
     @Test
     public void testNext() {
-        List<byte[]> exampleList = new ArrayList<>();
-        exampleList.add(new byte[] {1});
-        List<byte[]> tokenList = new ArrayList<>();
-        tokenList.add(new byte[] {2});
-        OdpExampleStoreIterator it = new OdpExampleStoreIterator(exampleList, tokenList);
+        TrainingExampleRecord record =
+                new TrainingExampleRecord.Builder()
+                        .setTrainingExample(new byte[] {1})
+                        .setResumptionToken(new byte[] {2})
+                        .build();
+        List<TrainingExampleRecord> exampleList = new ArrayList<>();
+        exampleList.add(record);
+        OdpExampleStoreIterator it = new OdpExampleStoreIterator(exampleList);
         it.next(new TestIteratorCallback(new byte[] {1}, new byte[] {2}));
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
@@ -58,17 +61,7 @@ public class OdpExampleStoreIteratorTest {
         assertTrue(mIteratorCallbackOnSuccessCalled);
         assertFalse(mIteratorCallbackOnFailureCalled);
     }
-
-    @Test
-    public void testConstructorError() {
-        List<byte[]> exampleList = new ArrayList<>();
-        exampleList.add(new byte[] {1});
-        List<byte[]> tokenList = new ArrayList<>();
-        assertThrows(
-                IllegalArgumentException.class,
-                () -> new OdpExampleStoreIterator(exampleList, tokenList));
-    }
-
+    
     public class TestIteratorCallback implements ExampleStoreIterator.IteratorCallback {
 
         byte[] mExpectedExample;

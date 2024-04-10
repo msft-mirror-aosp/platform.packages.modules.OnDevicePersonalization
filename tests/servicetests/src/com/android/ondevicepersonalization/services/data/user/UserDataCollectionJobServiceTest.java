@@ -16,6 +16,8 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -28,14 +30,15 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import android.app.job.JobParameters;
+import android.app.job.JobScheduler;
 import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.PhFlagsTestUtil;
-import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 
 import com.google.common.util.concurrent.MoreExecutors;
 
@@ -50,25 +53,32 @@ import org.mockito.quality.Strictness;
 @RunWith(JUnit4.class)
 public class UserDataCollectionJobServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
+    private final JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
     private UserDataCollector mUserDataCollector;
     private UserDataCollectionJobService mService;
-    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
+    private UserPrivacyStatus mUserPrivacyStatus;
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        PhFlagsTestUtil.disablePersonalizationStatusOverride();
-        mPrivacyStatus.setPersonalizationStatusEnabled(true);
+        mUserPrivacyStatus = spy(UserPrivacyStatus.getInstance());
         mUserDataCollector = UserDataCollector.getInstanceForTest(mContext);
         mService = spy(new UserDataCollectionJobService());
     }
 
     @Test
+    public void testDefaultNoArgConstructor() {
+        UserDataCollectionJobService instance = new UserDataCollectionJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
+    }
+
+    @Test
     public void onStartJobTest() {
-        MockitoSession session = ExtendedMockito.mockitoSession().spyStatic(
-                OnDevicePersonalizationExecutors.class).strictness(
-                Strictness.LENIENT).startMocking();
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .spyStatic(OnDevicePersonalizationExecutors.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             doNothing().when(mService).jobFinished(any(), anyBoolean());
             doReturn(mContext.getPackageManager()).when(mService).getPackageManager();
@@ -76,6 +86,11 @@ public class UserDataCollectionJobServiceTest {
                     OnDevicePersonalizationExecutors::getBackgroundExecutor);
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
+            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+            ExtendedMockito.doReturn(true)
+                    .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+            ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
+            ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
             boolean result = mService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
@@ -90,7 +105,33 @@ public class UserDataCollectionJobServiceTest {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
         try {
+            doReturn(mJobScheduler).when(mService).getSystemService(JobScheduler.class);
+            mService.schedule(mContext);
+            assertTrue(mJobScheduler.getPendingJob(
+                    OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
+                            != null);
             doNothing().when(mService).jobFinished(any(), anyBoolean());
+            boolean result = mService.onStartJob(mock(JobParameters.class));
+            assertTrue(result);
+            verify(mService, times(1)).jobFinished(any(), eq(false));
+            assertTrue(mJobScheduler.getPendingJob(
+                    OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
+                            == null);
+        } finally {
+            session.finishMocking();
+        }
+    }
+
+    @Test
+    public void onStartJobTestPersonalizationBlocked() {
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .strictness(Strictness.LENIENT).startMocking();
+        try {
+            doNothing().when(mService).jobFinished(any(), anyBoolean());
+            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+            ExtendedMockito.doReturn(false)
+                    .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
             boolean result = mService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
             verify(mService, times(1)).jobFinished(any(), eq(false));
@@ -100,14 +141,25 @@ public class UserDataCollectionJobServiceTest {
     }
 
     @Test
-    public void onStartJobTestPersonalizationBlocked() {
-        mPrivacyStatus.setPersonalizationStatusEnabled(false);
-        MockitoSession session = ExtendedMockito.mockitoSession().startMocking();
+    public void onStartJobTestUserControlRevoked() {
+        mUserDataCollector.updateUserData(RawUserData.getInstance());
+        assertTrue(mUserDataCollector.isInitialized());
+        MockitoSession session = ExtendedMockito.mockitoSession()
+                .spyStatic(UserPrivacyStatus.class)
+                .strictness(Strictness.LENIENT).startMocking();
         try {
             doNothing().when(mService).jobFinished(any(), anyBoolean());
+            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
+            ExtendedMockito.doReturn(true)
+                    .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
+            ExtendedMockito.doReturn(false)
+                    .when(mUserPrivacyStatus).isMeasurementEnabled();
+            ExtendedMockito.doReturn(false)
+                    .when(mUserPrivacyStatus).isProtectedAudienceEnabled();
             boolean result = mService.onStartJob(mock(JobParameters.class));
             assertTrue(result);
             verify(mService, times(1)).jobFinished(any(), eq(false));
+            assertFalse(mUserDataCollector.isInitialized());
         } finally {
             session.finishMocking();
         }
@@ -128,11 +180,5 @@ public class UserDataCollectionJobServiceTest {
     public void cleanUp() {
         mUserDataCollector.clearUserData(RawUserData.getInstance());
         mUserDataCollector.clearMetadata();
-        mUserDataCollector.clearDatabase();
-        OnDevicePersonalizationDbHelper dbHelper =
-                OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
-        dbHelper.getWritableDatabase().close();
-        dbHelper.getReadableDatabase().close();
-        dbHelper.close();
     }
 }

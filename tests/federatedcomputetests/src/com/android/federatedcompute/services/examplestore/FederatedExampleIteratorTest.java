@@ -19,21 +19,36 @@ package com.android.federatedcompute.services.examplestore;
 import static android.federatedcompute.common.ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESULT;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isA;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import static java.util.concurrent.TimeUnit.SECONDS;
 
+import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreIteratorCallback;
 import android.os.Bundle;
 import android.os.RemoteException;
 
+import androidx.test.core.app.ApplicationProvider;
+
 import com.android.federatedcompute.services.common.ErrorStatusException;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
+import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 
 import com.google.common.base.Throwables;
 import com.google.common.collect.ImmutableList;
@@ -45,11 +60,12 @@ import com.google.internal.federatedcompute.v1.Code;
 import junit.framework.AssertionFailedError;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.quality.Strictness;
 
 import java.nio.charset.Charset;
 import java.util.Iterator;
@@ -63,14 +79,20 @@ import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicInteger;
 
 @RunWith(JUnit4.class)
+@MockStatic(ClientErrorLogger.class)
+@MockStatic(FederatedComputeStatsdLogger.class)
 public final class FederatedExampleIteratorTest {
-    private static final String APP_ID = "com.foo.bar";
+
+    @Rule
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
     private static final String FAKE_TASK_NAME = "task-name";
+    private static final long TASK_ID = 1234L;
     private static final byte[] FAKE_CRITERIA = new byte[] {10, 0, 1};
     private static final byte[] RESUMPTION_TOKEN = "token1".getBytes(Charset.defaultCharset());
     private static final byte[] EXAMPLE_1 = "example1".getBytes(Charset.defaultCharset());
     private static final byte[] EXAMPLE_2 = "example2".getBytes(Charset.defaultCharset());
-    private static final long TIMEOUT_SECS = 5L;
 
     private static final ListeningExecutorService EXECUTOR =
             MoreExecutors.listeningDecorator(Executors.newSingleThreadExecutor());
@@ -80,11 +102,15 @@ public final class FederatedExampleIteratorTest {
 
     private FederatedExampleIterator mIterator;
     @Mock private Flags mMockFlags;
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
+    @Mock private FederatedComputeStatsdLogger mMockStatsdLogger;
+    private Context mContext;
 
     @Before
     public void setUp() throws Exception {
-        MockitoAnnotations.initMocks(this);
-        when(mMockFlags.getAppHostedExampleStoreTimeoutSecs()).thenReturn(TIMEOUT_SECS);
+        this.mContext = ApplicationProvider.getApplicationContext();
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
+        when(FederatedComputeStatsdLogger.getInstance()).thenReturn(mMockStatsdLogger);
     }
 
     @Test
@@ -92,7 +118,9 @@ public final class FederatedExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         // Verify the mIterator works in a typical hasNext/Next/hasNext/next/hasNext.
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
@@ -104,6 +132,7 @@ public final class FederatedExampleIteratorTest {
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
         runInBackgroundAndWait(mIterator::close);
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
+        verify(mMockStatsdLogger, times(3)).logExampleIteratorNextLatencyReported(any());
     }
 
     @Test
@@ -111,7 +140,9 @@ public final class FederatedExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         // Verify the mIterator works in a typical hasNext/Next/hasNext/next.
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
@@ -126,6 +157,7 @@ public final class FederatedExampleIteratorTest {
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
         runInBackgroundAndWait(mIterator::close);
         assertThat(fakeIterator.mClosed.get()).isEqualTo(1);
+        verify(mMockStatsdLogger, times(3)).logExampleIteratorNextLatencyReported(any());
     }
 
     @Test
@@ -133,7 +165,9 @@ public final class FederatedExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         // Verify the mIterator works if only next() is called and hasNext() never called.
         assertThat(runInBackgroundAndWait(mIterator::next)).isEqualTo(EXAMPLE_1);
@@ -142,6 +176,7 @@ public final class FederatedExampleIteratorTest {
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::next));
         assertThat(exception).hasCauseThat().isInstanceOf(NoSuchElementException.class);
+        verify(mMockStatsdLogger, times(3)).logExampleIteratorNextLatencyReported(any());
     }
 
     @Test
@@ -149,7 +184,9 @@ public final class FederatedExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         runInBackgroundAndWait(mIterator::close);
     }
@@ -159,7 +196,9 @@ public final class FederatedExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
         runInBackgroundAndWait(mIterator::close);
@@ -172,7 +211,9 @@ public final class FederatedExampleIteratorTest {
         ImmutableList<byte[]> fakeResults = ImmutableList.of(EXAMPLE_1, EXAMPLE_2);
         FakeExampleStoreIterator fakeIterator = new FakeExampleStoreIterator(fakeResults);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         assertThat(runInBackgroundAndWait(mIterator::next)).isEqualTo(EXAMPLE_1);
         assertThat(runInBackgroundAndWait(mIterator::hasNext)).isTrue();
@@ -187,13 +228,20 @@ public final class FederatedExampleIteratorTest {
         FakeExampleStoreIterator fakeIterator =
                 new FakeExampleStoreIterator(fakeResults, STATUS_INTERNAL_ERROR);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         runInBackgroundAndWait(mIterator::next);
 
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::next));
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        isA(ExecutionException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
         assertThat(exception).hasCauseThat().isInstanceOf(ErrorStatusException.class);
         ErrorStatusException errorStatusException = (ErrorStatusException) exception.getCause();
         assertThat(errorStatusException.getStatus().getCode()).isEqualTo(Code.UNAVAILABLE_VALUE);
@@ -210,13 +258,20 @@ public final class FederatedExampleIteratorTest {
         FakeExampleStoreIterator fakeIterator =
                 new FakeExampleStoreIterator(fakeResults, STATUS_INTERNAL_ERROR);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         runInBackgroundAndWait(mIterator::next);
 
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::hasNext));
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        isA(ExecutionException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
         assertThat(exception).hasCauseThat().isInstanceOf(ErrorStatusException.class);
         ErrorStatusException errorStatusException = (ErrorStatusException) exception.getCause();
         assertThat(errorStatusException.getStatus().getCode()).isEqualTo(Code.UNAVAILABLE_VALUE);
@@ -233,13 +288,20 @@ public final class FederatedExampleIteratorTest {
         FakeExampleStoreIterator fakeIterator =
                 new FakeExampleStoreIterator(fakeResults, STATUS_INTERNAL_ERROR);
 
-        mIterator = new FederatedExampleIterator(fakeIterator, RESUMPTION_TOKEN, mRecorder);
+        mIterator =
+                new FederatedExampleIterator(
+                        fakeIterator, RESUMPTION_TOKEN, mRecorder, TASK_ID, mContext);
 
         runInBackgroundAndWait(mIterator::close);
 
         ExecutionException exception =
                 assertThrows(
                         ExecutionException.class, () -> runInBackgroundAndWait(mIterator::hasNext));
+        ClientErrorLogger.getInstance()
+                .logErrorWithExceptionInfo(
+                        isA(ExecutionException.class),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__ITERATOR_NEXT_FAILURE),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE));
         assertThat(exception).hasCauseThat().isInstanceOf(IllegalStateException.class);
         exception =
                 assertThrows(

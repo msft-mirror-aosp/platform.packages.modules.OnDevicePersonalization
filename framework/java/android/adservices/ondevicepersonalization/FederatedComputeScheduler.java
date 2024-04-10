@@ -16,8 +16,7 @@
 
 package android.adservices.ondevicepersonalization;
 
-import static android.adservices.ondevicepersonalization.Constants.KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS;
-
+import android.adservices.ondevicepersonalization.aidl.IDataAccessService;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeCallback;
 import android.adservices.ondevicepersonalization.aidl.IFederatedComputeService;
 import android.annotation.FlaggedApi;
@@ -26,6 +25,7 @@ import android.annotation.WorkerThread;
 import android.federatedcompute.common.TrainingOptions;
 import android.os.RemoteException;
 
+import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
 import java.util.concurrent.CountDownLatch;
@@ -33,18 +33,20 @@ import java.util.concurrent.CountDownLatch;
 /**
  * Handles scheduling federated compute jobs. See {@link
  * IsolatedService#getFederatedComputeScheduler}.
- * @hide
  */
-@FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
+@FlaggedApi(Flags.FLAG_ON_DEVICE_PERSONALIZATION_APIS_ENABLED)
 public class FederatedComputeScheduler {
     private static final String TAG = FederatedComputeScheduler.class.getSimpleName();
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
 
     private final IFederatedComputeService mFcService;
+    private final IDataAccessService mDataAccessService;
 
     /** @hide */
-    public FederatedComputeScheduler(IFederatedComputeService binder) {
+    public FederatedComputeScheduler(
+            IFederatedComputeService binder, IDataAccessService dataService) {
         mFcService = binder;
+        mDataAccessService = dataService;
     }
 
     // TODO(b/300461799): add federated compute server document.
@@ -60,10 +62,13 @@ public class FederatedComputeScheduler {
      */
     @WorkerThread
     public void schedule(@NonNull Params params, @NonNull FederatedComputeInput input) {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_INTERNAL_ERROR;
         if (mFcService == null) {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
         }
+
         android.federatedcompute.common.TrainingInterval trainingInterval =
                 convertTrainingInterval(params.getTrainingInterval());
         TrainingOptions trainingOptions =
@@ -92,9 +97,15 @@ public class FederatedComputeScheduler {
             if (err[0] != 0) {
                 throw new IllegalStateException("Internal failure occurred while scheduling job");
             }
+            responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
             sLogger.e(TAG + ": Failed to schedule federated compute job", e);
             throw new IllegalStateException(e);
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_SCHEDULE,
+                    System.currentTimeMillis() - startTimeMillis,
+                    responseCode);
         }
     }
 
@@ -104,11 +115,13 @@ public class FederatedComputeScheduler {
      * IsolatedService#getFederatedComputeScheduler} to pass scheduler when construct {@link
      * IsolatedWorker}.
      *
-     * @param populationName population name of the job that caller wants to cancel
-     * @throws IllegalStateException caused by an internal failure of FederatedComputeScheduler.
+     * @param input the configuration of the federated compute. It should be consistent with the
+     *     federated compute server setup.
      */
     @WorkerThread
-    public void cancel(@NonNull String populationName) {
+    public void cancel(@NonNull FederatedComputeInput input) {
+        final long startTimeMillis = System.currentTimeMillis();
+        int responseCode = Constants.STATUS_INTERNAL_ERROR;
         if (mFcService == null) {
             throw new IllegalStateException(
                     "FederatedComputeScheduler not available for this instance.");
@@ -117,7 +130,7 @@ public class FederatedComputeScheduler {
         final int[] err = {0};
         try {
             mFcService.cancel(
-                    populationName,
+                    input.getPopulationName(),
                     new IFederatedComputeCallback.Stub() {
                         @Override
                         public void onSuccess() {
@@ -134,9 +147,15 @@ public class FederatedComputeScheduler {
             if (err[0] != 0) {
                 throw new IllegalStateException("Internal failure occurred while cancelling job");
             }
+            responseCode = Constants.STATUS_SUCCESS;
         } catch (RemoteException | InterruptedException e) {
             sLogger.e(TAG + ": Failed to cancel federated compute job", e);
             throw new IllegalStateException(e);
+        } finally {
+            logApiCallStats(
+                    Constants.API_NAME_FEDERATED_COMPUTE_CANCEL,
+                    System.currentTimeMillis() - startTimeMillis,
+                    responseCode);
         }
     }
 
@@ -144,12 +163,32 @@ public class FederatedComputeScheduler {
             TrainingInterval interval) {
         return new android.federatedcompute.common.TrainingInterval.Builder()
                 .setMinimumIntervalMillis(interval.getMinimumInterval().toMillis())
-                .setSchedulingMode(interval.getSchedulingMode())
+                .setSchedulingMode(convertSchedulingMode(interval))
                 .build();
     }
 
+    private @android.federatedcompute.common.TrainingInterval.SchedulingMode int
+            convertSchedulingMode(TrainingInterval interval) {
+        switch (interval.getSchedulingMode()) {
+            case TrainingInterval.SCHEDULING_MODE_ONE_TIME:
+                return android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_ONE_TIME;
+            case TrainingInterval.SCHEDULING_MODE_RECURRENT:
+                return android.federatedcompute.common.TrainingInterval.SCHEDULING_MODE_RECURRENT;
+            default:
+                throw new IllegalStateException(
+                        "Unsupported scheduling mode " + interval.getSchedulingMode());
+        }
+    }
+
+    private void logApiCallStats(int apiName, long duration, int responseCode) {
+        try {
+            mDataAccessService.logApiCallStats(apiName, duration, responseCode);
+        } catch (Exception e) {
+            sLogger.d(e, TAG + ": failed to log metrics");
+        }
+    }
+
     /** The parameters related to job scheduling. */
-    @FlaggedApi(KEY_ENABLE_ONDEVICEPERSONALIZATION_APIS)
     public static class Params {
         /**
          * If training interval is scheduled for recurrent tasks, the earliest time this task could

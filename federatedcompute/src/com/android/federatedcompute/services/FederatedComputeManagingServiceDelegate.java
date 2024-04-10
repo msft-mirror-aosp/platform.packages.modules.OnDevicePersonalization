@@ -23,6 +23,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE;
 
 import android.annotation.NonNull;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IFederatedComputeCallback;
 import android.federatedcompute.aidl.IFederatedComputeService;
@@ -83,89 +84,109 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
             IFederatedComputeCallback callback) {
         // Use FederatedCompute instead of caller permission to read experiment flags. It requires
         // READ_DEVICE_CONFIG permission.
-        long origId = Binder.clearCallingIdentity();
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-            throw new IllegalStateException(
-                    "FederatedComputeService skipped as the global kill switch is on.");
+        try {
+            long origId = Binder.clearCallingIdentity();
+            if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+                throw new IllegalStateException(
+                        "FederatedComputeService skipped as the global kill switch is on.");
+            }
+            Binder.restoreCallingIdentity(origId);
+
+            Objects.requireNonNull(callingPackageName);
+            Objects.requireNonNull(callback);
+
+            final long startServiceTime = mClock.elapsedRealtime();
+            FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
+            FederatedComputeExecutors.getBackgroundExecutor()
+                    .execute(
+                            () -> {
+                                int resultCode = STATUS_SUCCESS;
+                                try {
+                                    resultCode =
+                                            jobManager.onTrainerStartCalled(
+                                                    callingPackageName, trainingOptions);
+                                } catch (Exception e) {
+                                    resultCode = STATUS_INTERNAL_ERROR;
+                                    LogUtil.e(TAG, e, "Got exception for schedule()");
+                                } finally {
+                                    sendResult(callback, resultCode);
+                                    int serviceLatency =
+                                            (int) (mClock.elapsedRealtime() - startServiceTime);
+                                    mFcStatsdLogger.logApiCallStats(
+                                            new ApiCallStats.Builder()
+                                                    .setApiName(
+                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
+                                                    .setLatencyMillis(serviceLatency)
+                                                    .setResponseCode(resultCode)
+                                                    .build());
+                                }
+                            });
+        } catch (NullPointerException | IllegalArgumentException ex) {
+            LogUtil.e(TAG, ex, "Got exception for schedule()");
+            throw ex;
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Got exception for schedule()");
+            sendResult(callback, STATUS_INTERNAL_ERROR);
         }
-        Binder.restoreCallingIdentity(origId);
-
-        Objects.requireNonNull(callingPackageName);
-        Objects.requireNonNull(callback);
-
-        final long startServiceTime = mClock.elapsedRealtime();
-        FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
-        FederatedComputeExecutors.getBackgroundExecutor()
-                .execute(
-                        () -> {
-                            int resultCode = STATUS_SUCCESS;
-                            try {
-                                resultCode =
-                                        jobManager.onTrainerStartCalled(
-                                                callingPackageName, trainingOptions);
-                            } catch (Exception e) {
-                                resultCode = STATUS_INTERNAL_ERROR;
-                                LogUtil.e(TAG, "Got exception for schedule()", e);
-                            } finally {
-                                sendResult(callback, resultCode);
-                                int serviceLatency =
-                                        (int) (mClock.elapsedRealtime() - startServiceTime);
-                                mFcStatsdLogger.logApiCallStats(
-                                        new ApiCallStats.Builder()
-                                                .setApiName(
-                                                        FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
-                                                .setLatencyMillis(serviceLatency)
-                                                .setResponseCode(resultCode)
-                                                .build());
-                            }
-                        });
     }
 
     @Override
     public void cancel(
-            String callingPackageName, String populationName, IFederatedComputeCallback callback) {
+            ComponentName ownerComponent,
+            String populationName,
+            IFederatedComputeCallback callback) {
         // Use FederatedCompute instead of caller permission to read experiment flags. It requires
         // READ_DEVICE_CONFIG permission.
-        long origId = Binder.clearCallingIdentity();
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-            throw new IllegalStateException("Service skipped as the global kill switch is on.");
+        try {
+            long origId = Binder.clearCallingIdentity();
+            if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+                throw new IllegalStateException("Service skipped as the global kill switch is on.");
+            }
+            Binder.restoreCallingIdentity(origId);
+
+            Objects.requireNonNull(ownerComponent);
+            Objects.requireNonNull(callback);
+            Objects.requireNonNull(populationName);
+
+            final long startServiceTime = mClock.elapsedRealtime();
+            FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
+            FederatedComputeExecutors.getBackgroundExecutor()
+                    .execute(
+                            () -> {
+                                int resultCode = STATUS_SUCCESS;
+                                try {
+                                    resultCode =
+                                            jobManager.onTrainerStopCalled(
+                                                    ownerComponent, populationName);
+                                } catch (Exception e) {
+                                    resultCode = STATUS_INTERNAL_ERROR;
+                                    LogUtil.e(
+                                            TAG,
+                                            e,
+                                            "Got exception when call Cancel population: %s, "
+                                                    + "owner: %s",
+                                            populationName,
+                                            ownerComponent.flattenToString());
+                                } finally {
+                                    sendResult(callback, resultCode);
+                                    int serviceLatency =
+                                            (int) (mClock.elapsedRealtime() - startServiceTime);
+                                    mFcStatsdLogger.logApiCallStats(
+                                            new ApiCallStats.Builder()
+                                                    .setApiName(
+                                                            FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
+                                                    .setLatencyMillis(serviceLatency)
+                                                    .setResponseCode(resultCode)
+                                                    .build());
+                                }
+                            });
+        } catch (NullPointerException | IllegalArgumentException ex) {
+            LogUtil.e(TAG, ex, "Got exception for cancel()");
+            throw ex;
+        } catch (Exception e) {
+            LogUtil.e(TAG, e, "Got exception for cancel()");
+            sendResult(callback, STATUS_INTERNAL_ERROR);
         }
-        Binder.restoreCallingIdentity(origId);
-
-        Objects.requireNonNull(callingPackageName);
-        Objects.requireNonNull(callback);
-        Objects.requireNonNull(populationName);
-
-        final long startServiceTime = mClock.elapsedRealtime();
-        FederatedComputeJobManager jobManager = mInjector.getJobManager(mContext);
-        FederatedComputeExecutors.getBackgroundExecutor()
-                .execute(
-                        () -> {
-                            int resultCode = STATUS_SUCCESS;
-                            try {
-                                resultCode =
-                                        jobManager.onTrainerStopCalled(
-                                                callingPackageName, populationName);
-                            } catch (Exception e) {
-                                resultCode = STATUS_INTERNAL_ERROR;
-                                LogUtil.e(
-                                        TAG,
-                                        e,
-                                        "Got exception when call Cancel %s",
-                                        populationName);
-                            } finally {
-                                sendResult(callback, resultCode);
-                                int serviceLatency =
-                                        (int) (mClock.elapsedRealtime() - startServiceTime);
-                                mFcStatsdLogger.logApiCallStats(
-                                        new ApiCallStats.Builder()
-                                                .setApiName(
-                                                        FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
-                                                .setLatencyMillis(serviceLatency)
-                                                .setResponseCode(resultCode)
-                                                .build());
-                            }
-                        });
     }
 
     private void sendResult(@NonNull IFederatedComputeCallback callback, int resultCode) {

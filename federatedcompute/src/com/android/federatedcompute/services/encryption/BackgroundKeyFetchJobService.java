@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.encryption;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
 import android.app.job.JobScheduler;
@@ -26,9 +28,11 @@ import android.content.Context;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
+import com.android.federatedcompute.services.common.FederatedComputeJobUtil;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
+import com.android.federatedcompute.services.statsd.joblogging.FederatedComputeJobServiceLogger;
 import com.android.internal.annotations.VisibleForTesting;
 
 import com.google.common.util.concurrent.FutureCallback;
@@ -79,10 +83,13 @@ public class BackgroundKeyFetchJobService extends JobService {
     @Override
     public boolean onStartJob(JobParameters params) {
         LogUtil.d(TAG, "BackgroundKeyFetchJobService.onStartJob %d", params.getJobId());
+        FederatedComputeJobServiceLogger.getInstance(this)
+                .recordOnStartJob(ENCRYPTION_KEY_FETCH_JOB_ID);
         if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
             LogUtil.d(TAG, "GlobalKillSwitch enabled, finishing job.");
-            jobFinished(params, false /* wantsReschedule= */);
-            return true;
+            return FederatedComputeJobUtil.cancelAndFinishJob(this, params,
+                    ENCRYPTION_KEY_FETCH_JOB_ID,
+                    AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
         mInjector
                 .getEncryptionKeyManager(this)
@@ -99,7 +106,14 @@ public class BackgroundKeyFetchJobService extends JobService {
                                         "BackgroundKeyFetchJobService %d is done, fetched %d keys",
                                         params.getJobId(),
                                         federatedComputeEncryptionKeys.size());
-                                jobFinished(params, false/* wantsReschedule= */);
+                                boolean wantsReschedule = false;
+                                FederatedComputeJobServiceLogger.getInstance(
+                                        BackgroundKeyFetchJobService.this)
+                                        .recordJobFinished(
+                                                ENCRYPTION_KEY_FETCH_JOB_ID,
+                                                /* isSuccessful= */ true,
+                                                wantsReschedule);
+                                jobFinished(params, wantsReschedule);
                             }
 
                             @Override
@@ -121,12 +135,24 @@ public class BackgroundKeyFetchJobService extends JobService {
                                             TAG,
                                             "Background key fetch failed due to interruption "
                                             + "error");
+                                } else if (throwable instanceof IllegalArgumentException) {
+                                    LogUtil.e(
+                                            TAG,
+                                            "Background key fetch failed due to illegal argument "
+                                            + "error");
                                 } else {
                                     LogUtil.e(
                                             TAG,
                                             "Background key fetch failed due to unexpected error");
                                 }
-                                jobFinished(params, false /* wantsReschedule= */);
+                                boolean wantsReschedule = false;
+                                FederatedComputeJobServiceLogger.getInstance(
+                                        BackgroundKeyFetchJobService.this)
+                                        .recordJobFinished(
+                                                ENCRYPTION_KEY_FETCH_JOB_ID,
+                                                /* isSuccessful= */ false,
+                                                wantsReschedule);
+                                jobFinished(params, wantsReschedule);
                             }
                         },
                         mInjector.getLightWeightExecutor());
@@ -136,7 +162,13 @@ public class BackgroundKeyFetchJobService extends JobService {
     @Override
     public boolean onStopJob(JobParameters params) {
         LogUtil.d(TAG, "BackgroundKeyFetchJobService.onStopJob %d", params.getJobId());
-        return false;
+        boolean wantsReschedule = false;
+        FederatedComputeJobServiceLogger.getInstance(this)
+                .recordOnStopJob(
+                        params,
+                        ENCRYPTION_KEY_FETCH_JOB_ID,
+                        wantsReschedule);
+        return wantsReschedule;
     }
 
     /** Schedule the periodic background key fetch and delete job if it is not scheduled. */
@@ -164,6 +196,7 @@ public class BackgroundKeyFetchJobService extends JobService {
                         .setRequiresBatteryNotLow(true)
                         .setRequiresDeviceIdle(true)
                         .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
+                        .setPersisted(true)
                         .build();
 
         if (!jobInfo.equals(scheduledJob)) {

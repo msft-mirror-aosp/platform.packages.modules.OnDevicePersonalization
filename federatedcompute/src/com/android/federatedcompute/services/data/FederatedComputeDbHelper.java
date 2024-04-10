@@ -16,18 +16,25 @@
 
 package com.android.federatedcompute.services.data;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE;
 import static com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.ENCRYPTION_KEY_TABLE;
 import static com.android.federatedcompute.services.data.FederatedTraningTaskContract.FEDERATED_TRAINING_TASKS_TABLE;
 import static com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODP_AUTHORIZATION_TOKEN_TABLE;
+import static com.android.federatedcompute.services.data.TaskHistoryContract.TaskHistoryEntry.CREATE_TASK_HISTORY_TABLE_STATEMENT;
 
+import android.annotation.Nullable;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
 import com.android.federatedcompute.services.data.FederatedTraningTaskContract.FederatedTrainingTaskColumns;
 import com.android.federatedcompute.services.data.ODPAuthorizationTokenContract.ODPAuthorizationTokenColumns;
+import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.internal.annotations.VisibleForTesting;
 
 /** Helper to manage FederatedTrainingTask database. */
@@ -47,6 +54,10 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
                     + " INTEGER, "
+                    + FederatedTrainingTaskColumns.OWNER_ID
+                    + " TEXT NOT NULL, "
+                    + FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST
+                    + " TEXT NOT NULL, "
                     + FederatedTrainingTaskColumns.POPULATION_NAME
                     + " TEXT NOT NULL,"
                     + FederatedTrainingTaskColumns.SERVER_ADDRESS
@@ -68,6 +79,8 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                     + FederatedTrainingTaskColumns.CONSTRAINTS
                     + " BLOB, "
                     + FederatedTrainingTaskColumns.SCHEDULING_REASON
+                    + " INTEGER, "
+                    + FederatedTrainingTaskColumns.RESCHEDULE_COUNT
                     + " INTEGER, "
                     + "UNIQUE("
                     + FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID
@@ -92,7 +105,7 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
             "CREATE TABLE "
                     + ODP_AUTHORIZATION_TOKEN_TABLE
                     + " ( "
-                    + ODPAuthorizationTokenColumns.ADOPTER_IDENTIFIER
+                    + ODPAuthorizationTokenColumns.OWNER_IDENTIFIER
                     + " TEXT PRIMARY KEY, "
                     + ODPAuthorizationTokenColumns.AUTHORIZATION_TOKEN
                     + " TEXT NOT NULL, "
@@ -141,12 +154,23 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
         db.execSQL(CREATE_TRAINING_TASK_TABLE);
         db.execSQL(CREATE_ENCRYPTION_KEY_TABLE);
         db.execSQL(CREATE_ODP_AUTHORIZATION_TOKEN_TABLE);
+        db.execSQL(CREATE_TASK_HISTORY_TABLE_STATEMENT);
     }
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         // TODO: handle upgrade when the db schema is changed.
         LogUtil.d(TAG, "DB upgrade from %d to %d", oldVersion, newVersion);
+        throw new UnsupportedOperationException(
+                "Database upgrade for FederatedCompute is unsupported");
+    }
+
+    @Override
+    public void onDowngrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+        LogUtil.d(TAG, "DB downgrade from %d to %d", newVersion, oldVersion);
+        // All data is retained for the package between upgrades and rollbacks. Update the
+        // DB version to the oldVersion, but maintain the data and schema from the new Version. It
+        // is assumed that the new version will be fully backward compatible.
     }
 
     @Override
@@ -162,6 +186,38 @@ public class FederatedComputeDbHelper extends SQLiteOpenHelper {
                 sInstance.close();
                 sInstance = null;
             }
+        }
+    }
+
+    /** Wraps getReadableDatabase to catch SQLiteException and log error. */
+    @Nullable
+    public SQLiteDatabase safeGetReadableDatabase() {
+        try {
+            return super.getReadableDatabase();
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, e, "Failed to get a readable database");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+            return null;
+        }
+    }
+
+    /** Wraps getWritableDatabase to catch SQLiteException and log error. */
+    @Nullable
+    public SQLiteDatabase safeGetWritableDatabase() {
+        try {
+            return super.getWritableDatabase();
+        } catch (SQLiteException e) {
+            LogUtil.e(TAG, e, "Failed to get a writeable database");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__FEDERATED_COMPUTE);
+            return null;
         }
     }
 }
