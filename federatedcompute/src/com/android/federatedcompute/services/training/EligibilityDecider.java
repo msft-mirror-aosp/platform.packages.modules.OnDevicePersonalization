@@ -189,7 +189,6 @@ public class EligibilityDecider {
                 federatedExampleIterator.next();
             }
             exampleStats.mExampleCount.addAndGet(totalExamples);
-            mExampleStoreServiceProvider.unbindFromExampleStoreService();
             LogUtil.d(
                     TAG,
                     "total examples %d data availability policy count %d ",
@@ -199,6 +198,8 @@ public class EligibilityDecider {
         } catch (Exception e) {
             LogUtil.e(TAG, e, "Failed to compute DataAvailabilityPolicy");
             return false;
+        } finally {
+            mExampleStoreServiceProvider.unbindFromExampleStoreService();
         }
     }
 }

@@ -45,6 +45,7 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -215,7 +216,30 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     }
 
     @Override
-    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {}
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        var unused = FluentFuture.from(runServiceFuture)
+                .transform(
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER,
+                                    val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor()
+                )
+                .catchingAsync(
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER, /* result= */ null,
+                                    mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor()
+                );
+    }
 
     @Override
     public ListenableFuture<WebTriggerOutputParcel> getServiceFlowResultFuture(
