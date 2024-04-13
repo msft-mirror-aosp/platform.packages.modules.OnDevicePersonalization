@@ -23,6 +23,7 @@ import static com.android.federatedcompute.services.common.FileUtils.createTempF
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.util.concurrent.Futures.immediateFailedFuture;
@@ -35,6 +36,7 @@ import static org.junit.Assert.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doCallRealMethod;
@@ -559,12 +561,7 @@ public final class FederatedComputeWorkerTest {
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(),
-                        anyString(),
-                        any(),
-                        any(),
-                        eq(ContributionResult.FAIL),
-                        eq(true));
+                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
         verify(mSpyResultCallbackHelper)
                 .callHandleResult(any(), any(), computationResultCaptor.capture());
         ComputationResult computationResult = computationResultCaptor.getValue();
@@ -818,7 +815,7 @@ public final class FederatedComputeWorkerTest {
                         eq(true));
         verify(mSpyResultCallbackHelper).callHandleResult(eq(TASK_ID), any(), any());
         ArgumentCaptor<ExampleStats> captor = ArgumentCaptor.forClass(ExampleStats.class);
-        verify(mMockTrainingEventLogger).logComputationCompleted(captor.capture());
+        verify(mMockTrainingEventLogger).logComputationCompleted(captor.capture(), anyLong());
         ExampleStats exampleStats = captor.getValue();
         assertThat(exampleStats.mExampleCount.get()).isEqualTo(1);
         assertThat(exampleStats.mExampleSizeBytes.get()).isEqualTo(EXAMPLE_SIZE_BYTES);
@@ -838,7 +835,7 @@ public final class FederatedComputeWorkerTest {
         mSpyWorker.finish(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(anyInt(), anyString(), any(), any(), any(), eq(true));
-        verify(mMockTrainingEventLogger).logComputationCompleted(any());
+        verify(mMockTrainingEventLogger).logComputationCompleted(any(), anyLong());
     }
 
     @Test
@@ -935,7 +932,14 @@ public final class FederatedComputeWorkerTest {
                         eq(ContributionResult.SUCCESS),
                         eq(true));
         verify(mSpyWorker).unbindFromIsolatedTrainingService();
-        verify(mMockTrainingEventLogger).logComputationCompleted(any());
+        ArgumentCaptor<Long> computationDurationCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(mMockTrainingEventLogger)
+                .logComputationCompleted(any(), computationDurationCaptor.capture());
+        assertThat(computationDurationCaptor.getValue()).isGreaterThan(0);
+        verify(mMockTrainingEventLogger)
+                .logEventWithDuration(
+                        eq(FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE),
+                        anyLong());
     }
 
     @Test

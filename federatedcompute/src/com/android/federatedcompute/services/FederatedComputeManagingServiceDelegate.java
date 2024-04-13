@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
+import static android.federatedcompute.common.ClientConstants.STATUS_KILL_SWITCH_ENABLED;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL;
@@ -87,8 +88,13 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         try {
             long origId = Binder.clearCallingIdentity();
             if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                throw new IllegalStateException(
-                        "FederatedComputeService skipped as the global kill switch is on.");
+                mFcStatsdLogger.logApiCallStats(
+                        new ApiCallStats.Builder()
+                                .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE)
+                                .setResponseCode(STATUS_KILL_SWITCH_ENABLED)
+                                .build());
+                sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
+                return;
             }
             Binder.restoreCallingIdentity(origId);
 
@@ -140,7 +146,13 @@ public class FederatedComputeManagingServiceDelegate extends IFederatedComputeSe
         try {
             long origId = Binder.clearCallingIdentity();
             if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
-                throw new IllegalStateException("Service skipped as the global kill switch is on.");
+                mFcStatsdLogger.logApiCallStats(
+                        new ApiCallStats.Builder()
+                                .setApiName(FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL)
+                                .setResponseCode(STATUS_KILL_SWITCH_ENABLED)
+                                .build());
+                sendResult(callback, STATUS_KILL_SWITCH_ENABLED);
+                return;
             }
             Binder.restoreCallingIdentity(origId);
 
