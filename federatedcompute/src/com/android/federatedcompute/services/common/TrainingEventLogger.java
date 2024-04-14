@@ -135,10 +135,28 @@ public class TrainingEventLogger {
     }
 
     /** Logs when federated computation job complete. */
-    public void logComputationCompleted(ExampleStats exampleStats) {
-        logEventWithExampleStats(
-                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_COMPLETED,
-                exampleStats);
+    public void logComputationCompleted(ExampleStats exampleStats, long durationInMs) {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder()
+                        .setEventKind(
+                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_COMPLETED)
+                        .setExampleCount(exampleStats.mExampleCount.get())
+                        .setExampleSize(exampleStats.mExampleSizeBytes.get())
+                        .setExampleStoreBindLatencyNanos(
+                                exampleStats.mBindToExampleStoreLatencyNanos.get())
+                        .setExampleStoreStartQueryLatencyNanos(
+                                exampleStats.mStartQueryLatencyNanos.get())
+                        .setDurationInMillis(durationInMs);
+        logEvent(event);
+    }
+
+    /** Log training event kind with duration. */
+    public void logEventWithDuration(int eventKind, long durationInMs) {
+        TrainingEventReported.Builder event =
+                new TrainingEventReported.Builder()
+                        .setEventKind(eventKind)
+                        .setDurationInMillis(durationInMs);
+        logEvent(event);
     }
 
     /** Logs training event kind with {@link ExampleStats}. */
@@ -147,7 +165,12 @@ public class TrainingEventLogger {
                 new TrainingEventReported.Builder()
                         .setEventKind(eventKind)
                         .setExampleCount(exampleStats.mExampleCount.get())
-                        .setExampleSize(exampleStats.mExampleSizeBytes.get());
+                        .setExampleSize(exampleStats.mExampleSizeBytes.get())
+                        .setExampleStoreBindLatencyNanos(
+                                exampleStats.mBindToExampleStoreLatencyNanos.get())
+                        .setExampleStoreStartQueryLatencyNanos(
+                                exampleStats.mStartQueryLatencyNanos.get());
+
         logEvent(event);
     }
 
