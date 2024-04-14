@@ -17,6 +17,7 @@
 package com.android.federatedcompute.services;
 
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
+import static android.federatedcompute.common.ClientConstants.STATUS_KILL_SWITCH_ENABLED;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
@@ -177,18 +178,12 @@ public final class FederatedComputeManagingServiceDelegateTest {
     }
 
     @Test
-    public void testScheduleEnabledGlobalKillSwitch_returnsError() {
+    public void testScheduleEnabledGlobalKillSwitch_returnsError() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
             TrainingOptions trainingOptions =
                     new TrainingOptions.Builder().setPopulationName("fake-population").build();
-            FederatedComputeCallback callback = spy(new FederatedComputeCallback());
-
-            mFcpService.schedule(mContext.getPackageName(), trainingOptions, callback);
-
-            ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
-            verify(callback).onFailure(argument.capture());
-            assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
+            invokeScheduleAndVerifyLogging(trainingOptions, STATUS_KILL_SWITCH_ENABLED, 0);
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }
@@ -223,16 +218,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
     }
 
     @Test
-    public void testCancelEnabledGlobalKillSwitch_returnsError() {
+    public void testCancelEnabledGlobalKillSwitch_returnsError() throws Exception {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
-            FederatedComputeCallback callback = spy(new FederatedComputeCallback());
-
-            mFcpService.cancel(OWNER_COMPONENT_NAME, "fake-population", callback);
-
-            ArgumentCaptor<Integer> argument = ArgumentCaptor.forClass(Integer.class);
-            verify(callback).onFailure(argument.capture());
-            assertThat(argument.getValue()).isEqualTo(STATUS_INTERNAL_ERROR);
+            invokeCancelAndVerifyLogging("fake-population", STATUS_KILL_SWITCH_ENABLED, 0);
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
         }
@@ -280,6 +269,12 @@ public final class FederatedComputeManagingServiceDelegateTest {
 
     private void invokeScheduleAndVerifyLogging(
             TrainingOptions trainingOptions, int expectedResultCode) throws InterruptedException {
+        invokeScheduleAndVerifyLogging(trainingOptions, expectedResultCode, 100L);
+    }
+
+    private void invokeScheduleAndVerifyLogging(
+            TrainingOptions trainingOptions, int expectedResultCode, long latency)
+            throws InterruptedException {
         ArgumentCaptor<ApiCallStats> argument = ArgumentCaptor.forClass(ApiCallStats.class);
         final CountDownLatch logOperationCalledLatch = new CountDownLatch(1);
         doAnswer(
@@ -302,12 +297,18 @@ public final class FederatedComputeManagingServiceDelegateTest {
         logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         assertThat(argument.getValue().getResponseCode()).isEqualTo(expectedResultCode);
-        assertThat(argument.getValue().getLatencyMillis()).isEqualTo(100);
+        assertThat(argument.getValue().getLatencyMillis()).isEqualTo(latency);
         assertThat(argument.getValue().getApiName())
                 .isEqualTo(FEDERATED_COMPUTE_API_CALLED__API_NAME__SCHEDULE);
     }
 
     private void invokeCancelAndVerifyLogging(String populationName, int expectedResultCode)
+            throws InterruptedException {
+        invokeCancelAndVerifyLogging(populationName, expectedResultCode, 100);
+    }
+
+    private void invokeCancelAndVerifyLogging(
+            String populationName, int expectedResultCode, long latency)
             throws InterruptedException {
 
         final CountDownLatch logOperationCalledLatch = new CountDownLatch(1);
@@ -331,7 +332,7 @@ public final class FederatedComputeManagingServiceDelegateTest {
         logOperationCalledLatch.await(BINDER_CONNECTION_TIMEOUT_MS, TimeUnit.MILLISECONDS);
 
         assertThat(argument.getValue().getResponseCode()).isEqualTo(expectedResultCode);
-        assertThat(argument.getValue().getLatencyMillis()).isEqualTo(100);
+        assertThat(argument.getValue().getLatencyMillis()).isEqualTo(latency);
         assertThat(argument.getValue().getApiName())
                 .isEqualTo(FEDERATED_COMPUTE_API_CALLED__API_NAME__CANCEL);
     }
