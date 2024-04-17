@@ -16,45 +16,32 @@
 
 package com.android.ondevicepersonalization.services.policyengine
 
-import androidx.test.core.app.ApplicationProvider;
-import androidx.test.ext.junit.runners.AndroidJUnit4
-
-import org.junit.Before
-import org.junit.runner.RunWith
-import org.junit.runners.JUnit4
-import org.junit.Test
-
-import android.util.Log
-
 import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.OSVersion
 import android.adservices.ondevicepersonalization.UserData
 import android.os.Parcel
-import android.util.ArrayMap
-
-import com.android.libraries.pcc.chronicle.util.MutableTypedMap
-import com.android.libraries.pcc.chronicle.util.TypedMap
+import android.util.Log
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
 import com.android.libraries.pcc.chronicle.api.ConnectionResult
-import com.android.libraries.pcc.chronicle.api.ReadConnection
-import com.android.libraries.pcc.chronicle.api.error.ChronicleError
-import com.android.libraries.pcc.chronicle.api.error.PolicyNotFound
-import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
-import com.android.libraries.pcc.chronicle.api.error.Disabled
 import com.android.libraries.pcc.chronicle.api.ProcessorNode
-
+import com.android.libraries.pcc.chronicle.api.error.ChronicleError
+import com.android.libraries.pcc.chronicle.api.error.Disabled
+import com.android.libraries.pcc.chronicle.api.error.PolicyViolation
+import com.android.libraries.pcc.chronicle.util.MutableTypedMap
+import com.android.libraries.pcc.chronicle.util.TypedMap
+import com.android.ondevicepersonalization.services.data.user.RawUserData
+import com.android.ondevicepersonalization.services.data.user.UserDataCollector
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
-import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.KidStatusEnabled
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.LimitedAdsTrackingEnabled
-
-import com.android.ondevicepersonalization.services.data.user.RawUserData
-import com.android.ondevicepersonalization.services.data.user.UserDataCollector
-
 import com.google.common.truth.Truth.assertThat
-
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
 import kotlin.test.fail
 
 @RunWith(AndroidJUnit4::class)
@@ -194,7 +181,7 @@ class UserDataReaderTest : ProcessorNode {
         assertThat(userData.getNetworkCapabilities()).isEqualTo(ref.networkCapabilities)
         assertThat(userData.getDataNetworkType()).isEqualTo(ref.dataNetworkType)
 
-        assertThat(userData.getAppInfos().size).isEqualTo(rawUserData.appsInfo.size)
+        assertThat(userData.getAppInfos()).isEmpty()
     }
 
     private fun ConnectionResult<*>.expectFailure(cls: Class<out ChronicleError>) {
