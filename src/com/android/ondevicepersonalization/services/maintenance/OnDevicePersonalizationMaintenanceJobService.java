@@ -20,7 +20,6 @@ import static android.app.job.JobScheduler.RESULT_FAILURE;
 import static android.content.pm.PackageManager.GET_META_DATA;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
-import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED;
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 
 import android.app.job.JobInfo;
@@ -37,7 +36,6 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
-import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
@@ -137,14 +135,6 @@ public class OnDevicePersonalizationMaintenanceJobService extends JobService {
             sLogger.d(TAG + ": GlobalKillSwitch enabled, finishing job.");
             return cancelAndFinishJob(params,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
-        }
-        if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-            sLogger.d(TAG + ": Personalization is not allowed, finishing job.");
-            OdpJobServiceLogger.getInstance(this).recordJobSkipped(
-                    MAINTENANCE_TASK_JOB_ID,
-                    AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_PERSONALIZATION_NOT_ENABLED);
-            jobFinished(params, false);
-            return true;
         }
         Context context = this;
         mFuture = Futures.submit(new Runnable() {

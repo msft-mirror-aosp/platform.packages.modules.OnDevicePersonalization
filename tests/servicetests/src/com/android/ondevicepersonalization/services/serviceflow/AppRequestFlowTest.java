@@ -115,19 +115,6 @@ public class AppRequestFlowTest {
     }
 
     @Test
-    public void testAppRequestFlow_PersonalizationDisabled() throws InterruptedException {
-        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-
-        mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
-                new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
-                createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
-        mLatch.await();
-
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
-    }
-
-    @Test
     public void testAppRequestFlow_MeasurementControlRevoked() throws InterruptedException {
         doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
@@ -142,7 +129,6 @@ public class AppRequestFlowTest {
 
     @Test
     public void testAppRequestFlow_TargetingControlRevoked() throws InterruptedException {
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
@@ -155,7 +141,6 @@ public class AppRequestFlowTest {
 
     @Test
     public void testAppRequestFlow_OutputDataBlocked() throws InterruptedException {
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         PhFlagsTestUtil.setOutputDataAllowList("");
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
@@ -173,7 +158,6 @@ public class AppRequestFlowTest {
     public void testAppRequestFlow_OutputDataAllowed() throws InterruptedException {
         PhFlagsTestUtil.setOutputDataAllowList(
                 mContext.getPackageName() + ";" + mContext.getPackageName());
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),

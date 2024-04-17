@@ -87,8 +87,6 @@ public class UserDataCollectionJobServiceTest {
             ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                     OnDevicePersonalizationExecutors::getLightweightExecutor);
             ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-            ExtendedMockito.doReturn(true)
-                    .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
             ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
             ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
@@ -123,24 +121,6 @@ public class UserDataCollectionJobServiceTest {
     }
 
     @Test
-    public void onStartJobTestPersonalizationBlocked() {
-        MockitoSession session = ExtendedMockito.mockitoSession()
-                .spyStatic(UserPrivacyStatus.class)
-                .strictness(Strictness.LENIENT).startMocking();
-        try {
-            doNothing().when(mService).jobFinished(any(), anyBoolean());
-            ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-            ExtendedMockito.doReturn(false)
-                    .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-            boolean result = mService.onStartJob(mock(JobParameters.class));
-            assertTrue(result);
-            verify(mService, times(1)).jobFinished(any(), eq(false));
-        } finally {
-            session.finishMocking();
-        }
-    }
-
-    @Test
     public void onStartJobTestUserControlRevoked() {
         mUserDataCollector.updateUserData(RawUserData.getInstance());
         assertTrue(mUserDataCollector.isInitialized());
@@ -150,8 +130,6 @@ public class UserDataCollectionJobServiceTest {
         try {
             doNothing().when(mService).jobFinished(any(), anyBoolean());
             ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-            ExtendedMockito.doReturn(true)
-                    .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
             ExtendedMockito.doReturn(false)
                     .when(mUserPrivacyStatus).isMeasurementEnabled();
             ExtendedMockito.doReturn(false)

@@ -110,7 +110,6 @@ public class RenderFlowTest {
         setUpTestDate();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
 
         mSfo = new ServiceFlowOrchestrator();
@@ -121,18 +120,6 @@ public class RenderFlowTest {
         mDbHelper.getWritableDatabase().close();
         mDbHelper.getReadableDatabase().close();
         mDbHelper.close();
-    }
-
-    @Test
-    public void testRenderFlow_PersonalizationDisabled() throws Exception {
-        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-
-        mSfo.schedule(ServiceFlowType.RENDER_FLOW, "token", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 100L);
-        mLatch.await();
-
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
     }
 
     @Test

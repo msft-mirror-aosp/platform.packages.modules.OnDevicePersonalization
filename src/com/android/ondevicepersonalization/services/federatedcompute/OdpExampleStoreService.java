@@ -110,11 +110,6 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             boolean privacyStatusEligible = true;
 
-            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-                privacyStatusEligible = false;
-                sLogger.w(TAG + ": Personalization is disabled.");
-            }
-
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 privacyStatusEligible = false;
                 sLogger.w(TAG + ": Measurement control is not given.");

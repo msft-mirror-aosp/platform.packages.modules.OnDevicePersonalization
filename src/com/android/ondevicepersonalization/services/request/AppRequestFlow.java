@@ -105,11 +105,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             return OnDevicePersonalizationExecutors.getScheduledExecutor();
         }
 
-        boolean isPersonalizationStatusEnabled() {
-            UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
-            return privacyStatus.isPersonalizationStatusEnabled();
-        }
-
         boolean shouldValidateExecuteOutput() {
             return DeviceConfig.getBoolean(
                     /* namespace= */ "on_device_personalization",
@@ -155,12 +150,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @Override
     public boolean isServiceFlowReady() {
         mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
-
-        if (!mInjector.isPersonalizationStatusEnabled()) {
-            sLogger.d(TAG + ": Personalization is disabled.");
-            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
-            return false;
-        }
 
         if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
             sLogger.d(TAG + ": User control is not given for measurement.");

@@ -107,8 +107,6 @@ public class MddJobServiceTest {
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getLightweightExecutor);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true)
-                .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
@@ -154,41 +152,8 @@ public class MddJobServiceTest {
     }
 
     @Test
-    public void onStartJobTestPersonalizationBlocked() {
-        ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(false)
-                .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-        JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
-        PersistableBundle extras = new PersistableBundle();
-        extras.putString(MDD_TASK_TAG_KEY, WIFI_CHARGING_PERIODIC_TASK);
-        JobInfo jobInfo = new JobInfo.Builder(
-                MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID,
-                new ComponentName(mContext, MddJobService.class))
-                .setRequiresDeviceIdle(true)
-                .setRequiresCharging(false)
-                .setRequiresBatteryNotLow(true)
-                .setPeriodic(21_600_000L)
-                .setPersisted(true)
-                .setRequiredNetworkType(JobInfo.NETWORK_TYPE_UNMETERED)
-                .setExtras(extras)
-                .build();
-        mJobScheduler.schedule(jobInfo);
-        assertTrue(mJobScheduler.getPendingJob(MDD_WIFI_CHARGING_PERIODIC_TASK_JOB_ID) != null);
-        doReturn(mJobScheduler).when(mSpyService).getSystemService(JobScheduler.class);
-        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-        JobParameters jobParameters = mock(JobParameters.class);
-        doReturn(extras).when(jobParameters).getExtras();
-        boolean result = mSpyService.onStartJob(jobParameters);
-        assertTrue(result);
-        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
-        verify(mMockJobScheduler, times(0)).schedule(any());
-    }
-
-    @Test
     public void onStartJobTestUserControlRevoked() {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true)
-                .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         ExtendedMockito.doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
         JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
@@ -237,8 +202,6 @@ public class MddJobServiceTest {
         ExtendedMockito.doReturn(MoreExecutors.newDirectExecutorService()).when(
                 OnDevicePersonalizationExecutors::getLightweightExecutor);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        ExtendedMockito.doReturn(true)
-                .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         ExtendedMockito.doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
