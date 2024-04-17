@@ -89,12 +89,6 @@ public class FederatedComputeServiceImpl extends IFederatedComputeService.Stub {
     private void handleSchedule(
             TrainingOptions trainingOptions, IFederatedComputeCallback callback) {
         try {
-            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": personalization is disabled.");
-                sendError(callback);
-                return;
-            }
-
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 sLogger.d(TAG + ": measurement control is revoked.");
                 sendError(callback);
