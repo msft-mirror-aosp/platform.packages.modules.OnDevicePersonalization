@@ -153,12 +153,6 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
         mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
 
         try {
-            if (!isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": Personalization is disabled.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
-                return false;
-            }
-
             if (!UserPrivacyStatus.getInstance().isProtectedAudienceEnabled()) {
                 sLogger.d(TAG + ": User control is not given for targeting.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
@@ -342,10 +336,5 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                     Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
                     mInjector.getClock(), errorCode, mStartTimeMillis);
         }
-    }
-
-    private boolean isPersonalizationStatusEnabled() {
-        UserPrivacyStatus privacyStatus = UserPrivacyStatus.getInstance();
-        return privacyStatus.isPersonalizationStatusEnabled();
     }
 }

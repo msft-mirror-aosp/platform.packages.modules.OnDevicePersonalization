@@ -126,12 +126,6 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                 return false;
             }
 
-            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": Personalization is disabled.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
-                return false;
-            }
-
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 sLogger.d(TAG + ": User control is not given for measurement.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
