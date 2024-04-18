@@ -20,12 +20,7 @@ import android.adservices.ondevicepersonalization.UserData;
 import android.content.res.Configuration;
 import android.net.NetworkCapabilities;
 
-import java.util.ArrayList;
-import java.util.List;
-
-/**
- * A singleton class that holds all most recent in-memory user signals.
- */
+/** A singleton class that holds all most recent in-memory user signals. */
 public final class RawUserData {
 
     private static RawUserData sUserData = null;
@@ -49,10 +44,7 @@ public final class RawUserData {
 
     @UserData.NetworkType public int dataNetworkType;
 
-    // installed packages.
-    public List<AppInfo> appsInfo = new ArrayList<>();
-
-    private RawUserData() { }
+    private RawUserData() {}
 
     /** Returns an instance of UserData. */
     public static RawUserData getInstance() {

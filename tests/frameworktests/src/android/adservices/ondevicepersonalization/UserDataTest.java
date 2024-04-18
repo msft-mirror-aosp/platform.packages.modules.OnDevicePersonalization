@@ -19,6 +19,8 @@ package android.adservices.ondevicepersonalization;
 import static android.content.res.Configuration.ORIENTATION_PORTRAIT;
 import static android.telephony.TelephonyManager.NETWORK_TYPE_LTE;
 
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 
 import android.net.NetworkCapabilities;
@@ -49,7 +51,6 @@ public class UserDataTest {
                     NetworkCapabilities.Builder.withoutDefaultCapabilities()
                                 .setLinkDownstreamBandwidthKbps(100).build())
                 .setDataNetworkType(NETWORK_TYPE_LTE)
-                .addAppInfo("com.example.app", new AppInfo.Builder().setInstalled(true).build())
                 .build();
 
         assertEquals(Duration.ofMinutes(120), data.getTimezoneUtcOffset());
@@ -59,6 +60,6 @@ public class UserDataTest {
         assertEquals("carrier", data.getCarrier());
         assertEquals(100, data.getNetworkCapabilities().getLinkDownstreamBandwidthKbps());
         assertEquals(NETWORK_TYPE_LTE, data.getDataNetworkType());
-        assertEquals(true, data.getAppInfos().get("com.example.app").isInstalled());
+        assertThat(data.getAppInfos()).isEmpty();
     }
 }
