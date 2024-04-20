@@ -102,7 +102,6 @@ public class FederatedComputeServiceImplTest {
         mRequestCapture = ArgumentCaptor.forClass(ScheduleFederatedComputeRequest.class);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doNothing()
                 .when(mMockManager)
                 .cancel(any(), any(), any(), mCallbackCapture.capture());
@@ -141,25 +140,6 @@ public class FederatedComputeServiceImplTest {
         assertEquals(FC_SERVER_URL, request.getTrainingOptions().getServerAddress());
         assertEquals("population", request.getTrainingOptions().getPopulationName());
         assertTrue(mOnSuccessCalled);
-    }
-
-    @Test
-    public void testSchedulePersonalizationDisabled() throws Exception {
-        ExtendedMockito.doReturn(false)
-                .when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-        TrainingInterval interval =
-                new TrainingInterval.Builder()
-                        .setMinimumIntervalMillis(100)
-                        .setSchedulingMode(1)
-                        .build();
-        TrainingOptions options =
-                new TrainingOptions.Builder()
-                        .setPopulationName("population")
-                        .setTrainingInterval(interval)
-                        .build();
-        mServiceProxy.schedule(options, new TestCallback());
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
-        assertFalse(mOnSuccessCalled);
     }
 
     @Test
