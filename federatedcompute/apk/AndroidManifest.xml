@@ -62,5 +62,13 @@
         <service android:name="com.android.federatedcompute.services.training.IsolatedTrainingService"
                  android:isolatedProcess="true" android:exported="false" >
         </service>
+        <!-- On BOOT_COMPLETED receiver for registering jobs -->
+        <receiver android:name=".FederatedComputeBroadcastReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>
