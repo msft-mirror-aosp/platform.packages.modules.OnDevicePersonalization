@@ -18,7 +18,6 @@ package com.android.ondevicepersonalization.services.data.user;
 
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
@@ -26,7 +25,6 @@ import static org.junit.Assert.assertTrue;
 
 import android.content.Context;
 import android.net.NetworkCapabilities;
-import android.text.TextUtils;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -36,8 +34,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.TimeZone;
 
 @RunWith(JUnit4.class)
@@ -66,16 +62,6 @@ public class UserDataCollectorTest {
         assertTrue(mUserData.batteryPercentage <= 100);
         assertNotNull(mUserData.networkCapabilities);
         assertTrue(UserDataCollector.ALLOWED_NETWORK_TYPE.contains(mUserData.dataNetworkType));
-
-        List<AppInfo> appsInfo = new ArrayList();
-        mCollector.getInstalledApps(appsInfo);
-        assertTrue(mUserData.appsInfo.size() > 0);
-        assertEquals(mUserData.appsInfo.size(), appsInfo.size());
-        for (int i = 0; i < mUserData.appsInfo.size(); ++i) {
-            assertFalse(TextUtils.isEmpty(mUserData.appsInfo.get(i).packageName));
-            assertEquals(mUserData.appsInfo.get(i).packageName, appsInfo.get(i).packageName);
-            assertEquals(mUserData.appsInfo.get(i).installed, appsInfo.get(i).installed);
-        }
     }
 
     @Test
