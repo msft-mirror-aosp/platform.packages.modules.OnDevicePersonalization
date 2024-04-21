@@ -16,13 +16,9 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
-import static android.content.pm.PackageManager.MATCH_UNINSTALLED_PACKAGES;
-
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.ApplicationInfo;
-import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
@@ -36,19 +32,16 @@ import androidx.annotation.NonNull;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 
-import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 import java.util.TimeZone;
 
 /**
- * A collector for getting user data signals.
- * This class only exposes two public operations: periodic update, and
- * real-time update.
- * Periodic update operation will be run every 4 hours in the background,
- * given several on-device resource constraints are satisfied.
- * Real-time update operation will be run before any ads serving request
- * and update a few time-sensitive signals in UserData to the latest version.
+ * A collector for getting user data signals. This class only exposes two public operations:
+ * periodic update, and real-time update. Periodic update operation will be run every 4 hours in the
+ * background, given several on-device resource constraints are satisfied. Real-time update
+ * operation will be run before any ads serving request and update a few time-sensitive signals in
+ * UserData to the latest version.
  */
 public class UserDataCollector {
     private static final int MILLISECONDS_IN_MINUTE = 60000;
@@ -78,17 +71,13 @@ public class UserDataCollector {
                     TelephonyManager.NETWORK_TYPE_GSM,
                     TelephonyManager.NETWORK_TYPE_TD_SCDMA,
                     TelephonyManager.NETWORK_TYPE_IWLAN,
-                    TelephonyManager.NETWORK_TYPE_NR
-            );
+                    TelephonyManager.NETWORK_TYPE_NR);
 
-    @NonNull
-    private final Context mContext;
-    @NonNull
-    private final TelephonyManager mTelephonyManager;
+    @NonNull private final Context mContext;
+    @NonNull private final TelephonyManager mTelephonyManager;
     @NonNull final ConnectivityManager mConnectivityManager;
     // Metadata to track whether UserData has been initialized.
-    @NonNull
-    private boolean mInitialized;
+    @NonNull private boolean mInitialized;
 
     private UserDataCollector(Context context) {
         mContext = context;
@@ -103,8 +92,7 @@ public class UserDataCollector {
         if (sUserDataCollector == null) {
             synchronized (UserDataCollector.class) {
                 if (sUserDataCollector == null) {
-                    sUserDataCollector = new UserDataCollector(
-                            context.getApplicationContext());
+                    sUserDataCollector = new UserDataCollector(context.getApplicationContext());
                 }
             }
         }
@@ -112,8 +100,7 @@ public class UserDataCollector {
     }
 
     /**
-     * Returns an instance of the UserDataCollector given a context. This is used
-     * for testing only.
+     * Returns an instance of the UserDataCollector given a context. This is used for testing only.
      */
     @VisibleForTesting
     public static UserDataCollector getInstanceForTest(Context context) {
@@ -128,9 +115,9 @@ public class UserDataCollector {
     /** Update real-time user data to the latest per request. */
     public void getRealTimeData(@NonNull RawUserData userData) {
         /**
-         * Ads serving requires real-time latency. If user data has not been initialized,
-         * we will skip user data collection for the incoming request and wait until the first
-         * {@link UserDataCollectionJobService} to be scheduled.
+         * Ads serving requires real-time latency. If user data has not been initialized, we will
+         * skip user data collection for the incoming request and wait until the first {@link
+         * UserDataCollectionJobService} to be scheduled.
          */
         if (!mInitialized) {
             return;
@@ -150,13 +137,11 @@ public class UserDataCollector {
         getCarrier(userData);
         getNetworkCapabilities(userData);
         getDataNetworkType(userData);
-
-        getInstalledApps(userData.appsInfo);
     }
 
     /**
-     * Collects in-memory user data signals and stores in a UserData object
-     * for the schedule of {@link UserDataCollectionJobService}
+     * Collects in-memory user data signals and stores in a UserData object for the schedule of
+     * {@link UserDataCollectionJobService}
      */
     private void initializeUserData(@NonNull RawUserData userData) {
         getUtcOffset(userData);
@@ -167,8 +152,6 @@ public class UserDataCollector {
         getNetworkCapabilities(userData);
         getDataNetworkType(userData);
 
-        getInstalledApps(userData.appsInfo);
-
         mInitialized = true;
     }
 
@@ -176,8 +159,9 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getUtcOffset(RawUserData userData) {
         try {
-            userData.utcOffset = TimeZone.getDefault().getOffset(System.currentTimeMillis())
-                    / MILLISECONDS_IN_MINUTE;
+            userData.utcOffset =
+                    TimeZone.getDefault().getOffset(System.currentTimeMillis())
+                            / MILLISECONDS_IN_MINUTE;
         } catch (Exception e) {
             sLogger.w(TAG + ": Failed to collect timezone offset.");
         }
@@ -266,8 +250,9 @@ public class UserDataCollector {
     @VisibleForTesting
     public void getNetworkCapabilities(RawUserData userData) {
         try {
-            NetworkCapabilities networkCapabilities = mConnectivityManager.getNetworkCapabilities(
-                    mConnectivityManager.getActiveNetwork());
+            NetworkCapabilities networkCapabilities =
+                    mConnectivityManager.getNetworkCapabilities(
+                            mConnectivityManager.getActiveNetwork());
             userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
             sLogger.w(TAG + ": Failed to collect networkCapabilities.");
@@ -288,32 +273,7 @@ public class UserDataCollector {
         }
     }
 
-    /** Get app install and uninstall record. */
-    @VisibleForTesting
-    public void getInstalledApps(@NonNull List<AppInfo> appsInfo) {
-        try {
-            appsInfo.clear();
-            PackageManager packageManager = mContext.getPackageManager();
-            for (ApplicationInfo appInfo :
-                    packageManager.getInstalledApplications(MATCH_UNINSTALLED_PACKAGES)) {
-                AppInfo app = new AppInfo();
-                app.packageName = appInfo.packageName;
-                if ((appInfo.flags & ApplicationInfo.FLAG_INSTALLED) != 0) {
-                    app.installed = true;
-                } else {
-                    app.installed = false;
-                }
-                appsInfo.add(app);
-            }
-            sLogger.d(TAG + ": Finished collecting AppInfo.");
-        } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect installed AppInfo.");
-        }
-    }
-
-    /**
-     * Util to reset all fields in [UserData] to default for testing purpose
-     */
+    /** Util to reset all fields in [UserData] to default for testing purpose */
     public void clearUserData(@NonNull RawUserData userData) {
         userData.utcOffset = 0;
         userData.orientation = Configuration.ORIENTATION_PORTRAIT;
@@ -321,12 +281,9 @@ public class UserDataCollector {
         userData.batteryPercentage = 0;
         userData.carrier = Carrier.UNKNOWN;
         userData.networkCapabilities = null;
-        userData.appsInfo.clear();
     }
 
-    /**
-     * Util to reset all in-memory metadata for testing purpose.
-     */
+    /** Util to reset all in-memory metadata for testing purpose. */
     public void clearMetadata() {
         mInitialized = false;
     }
@@ -341,12 +298,11 @@ public class UserDataCollector {
             NetworkCapabilities networkCapabilities) {
         NetworkCapabilities.Builder builder =
                 NetworkCapabilities.Builder.withoutDefaultCapabilities()
-                    .setLinkDownstreamBandwidthKbps(
-                            networkCapabilities.getLinkDownstreamBandwidthKbps())
-                    .setLinkUpstreamBandwidthKbps(
-                            networkCapabilities.getLinkUpstreamBandwidthKbps());
-        if (networkCapabilities.hasCapability(
-                NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
+                        .setLinkDownstreamBandwidthKbps(
+                                networkCapabilities.getLinkDownstreamBandwidthKbps())
+                        .setLinkUpstreamBandwidthKbps(
+                                networkCapabilities.getLinkUpstreamBandwidthKbps());
+        if (networkCapabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED)) {
             builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
         }
         return builder.build();
