@@ -33,6 +33,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventUrlPayload;
@@ -137,7 +138,8 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
                         mService, mContext,
-                        /* includeLocalData */ true, /* includeEventData */ true));
+                        /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                        /* eventDataPermission */ DataAccessPermission.READ_ONLY));
         serviceParams.putParcelable(Constants.EXTRA_INPUT,
                 new EventInputParcel.Builder()
                         .setParameters(mPayload.getEventParams())

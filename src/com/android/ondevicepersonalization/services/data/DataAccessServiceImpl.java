@@ -78,8 +78,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     private final OnDevicePersonalizationLocalDataDao mLocalDataDao;
     @Nullable
     private final EventsDao mEventsDao;
-    private final boolean mIncludeLocalData;
-    private final boolean mIncludeEventData;
+    private final DataAccessPermission mLocalDataPermission;
+    private final DataAccessPermission mEventDataPermission;
     @NonNull
     private final Injector mInjector;
     private Map<String, byte[]> mRemoteData = null;
@@ -87,9 +87,9 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
     public DataAccessServiceImpl(
             @NonNull ComponentName service,
             @NonNull Context applicationContext,
-            boolean includeLocalData,
-            boolean includeEventData) {
-        this(service, applicationContext, null, includeLocalData, includeEventData,
+            @NonNull DataAccessPermission localDataPermission,
+            @NonNull DataAccessPermission eventDataPermission) {
+        this(service, applicationContext, null, localDataPermission, eventDataPermission,
                 new Injector());
     }
 
@@ -97,9 +97,9 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull ComponentName service,
             @NonNull Context applicationContext,
             @NonNull Map<String, byte[]> remoteData,
-            boolean includeLocalData,
-            boolean includeEventData) {
-        this(service, applicationContext, remoteData, includeLocalData, includeEventData,
+            @NonNull DataAccessPermission localDataPermission,
+            @NonNull DataAccessPermission eventDataPermission) {
+        this(service, applicationContext, remoteData, localDataPermission, eventDataPermission,
                 new Injector());
     }
 
@@ -108,8 +108,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             @NonNull ComponentName service,
             @NonNull Context applicationContext,
             Map<String, byte[]> remoteData,
-            boolean includeLocalData,
-            boolean includeEventData,
+            @NonNull DataAccessPermission localDataPermission,
+            @NonNull DataAccessPermission eventDataPermission,
             @NonNull Injector injector) {
         mApplicationContext = Objects.requireNonNull(applicationContext, "applicationContext");
         mService = Objects.requireNonNull(service, "servicePackageName");
@@ -124,8 +124,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         PackageUtils.getCertDigest(
                                 mApplicationContext, mService.getPackageName()));
             }
-            mIncludeLocalData = includeLocalData;
-            if (includeLocalData) {
+            mLocalDataPermission = localDataPermission;
+            if (mLocalDataPermission != DataAccessPermission.DENIED) {
                 mLocalDataDao = mInjector.getLocalDataDao(
                         mApplicationContext, mService,
                         PackageUtils.getCertDigest(
@@ -138,8 +138,8 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
             throw new IllegalArgumentException("Service: " + mService.toString()
                     + " does not exist.", nnfe);
         }
-        mIncludeEventData = includeEventData;
-        if (includeEventData) {
+        mEventDataPermission = eventDataPermission;
+        if (mEventDataPermission != DataAccessPermission.DENIED) {
             mEventsDao = mInjector.getEventsDao(mApplicationContext);
         } else {
             mEventsDao = null;
@@ -169,7 +169,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> remoteDataKeyset(callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_LOOKUP:
-                if (!mIncludeLocalData) {
+                if (mLocalDataPermission == DataAccessPermission.DENIED) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
                 lookupKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
@@ -181,15 +181,18 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                                 lookupKey, callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_KEYSET:
-                if (!mIncludeLocalData) {
+                if (mLocalDataPermission == DataAccessPermission.DENIED) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
                 }
                 mInjector.getExecutor().execute(
                         () -> localDataKeyset(callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT:
-                if (!mIncludeLocalData) {
+                if (mLocalDataPermission == DataAccessPermission.DENIED) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
+                }
+                if (mLocalDataPermission == DataAccessPermission.READ_ONLY) {
+                    throw new IllegalStateException("LocalData is read-only for this instance.");
                 }
                 String putKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
                 ByteArrayParceledSlice parceledValue = params.getParcelable(
@@ -202,8 +205,11 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> localDataPut(putKey, parceledValue, callback));
                 break;
             case Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE:
-                if (!mIncludeLocalData) {
+                if (mLocalDataPermission == DataAccessPermission.DENIED) {
                     throw new IllegalStateException("LocalData is not included for this instance.");
+                }
+                if (mLocalDataPermission == DataAccessPermission.READ_ONLY) {
+                    throw new IllegalStateException("LocalData is read-only for this instance.");
                 }
                 String deleteKey = params.getString(Constants.EXTRA_LOOKUP_KEYS);
                 if (deleteKey == null || deleteKey.isEmpty()) {
@@ -224,7 +230,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                 );
                 break;
             case Constants.DATA_ACCESS_OP_GET_REQUESTS:
-                if (!mIncludeEventData) {
+                if (mEventDataPermission == DataAccessPermission.DENIED) {
                     throw new IllegalStateException(
                             "request and event data are not included for this instance.");
                 }
@@ -237,7 +243,7 @@ public class DataAccessServiceImpl extends IDataAccessService.Stub {
                         () -> getRequests(requestTimes[0], requestTimes[1], callback));
                 break;
             case Constants.DATA_ACCESS_OP_GET_JOINED_EVENTS:
-                if (!mIncludeEventData) {
+                if (mEventDataPermission == DataAccessPermission.DENIED) {
                     throw new IllegalStateException(
                             "request and event data are not included for this instance.");
                 }

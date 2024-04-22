@@ -20,6 +20,7 @@ package com.android.ondevicepersonalization.services.serviceflow;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
@@ -116,15 +117,19 @@ public class AppRequestFlowTest {
 
     @Test
     public void testAppRequestFlow_MeasurementControlRevoked() throws InterruptedException {
+        int originalQueriesCount = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
+        int originalEventsCount = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         mSfo.schedule(ServiceFlowType.APP_REQUEST_FLOW, mContext.getPackageName(),
                 new ComponentName(mContext.getPackageName(), "com.test.TestPersonalizationService"),
                 createWrappedAppParams(), new TestExecuteCallback(), mContext, 100L);
         mLatch.await();
-
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
+        assertTrue(mCallbackSuccess);
+        assertFalse(mExecuteCallback.isEmpty());
+        // make sure no request or event records are written to the database
+        assertEquals(originalQueriesCount, getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME));
+        assertEquals(originalEventsCount, getDbTableSize(EventsContract.EventsEntry.TABLE_NAME));
     }
 
     @Test
