@@ -35,6 +35,7 @@ import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -249,8 +250,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 new DataAccessServiceImpl(
                         ComponentName.createRelative(packageName, serviceClass),
                         getContext(),
-                        /* includeLocalData= */ true,
-                        /* includeEventData= */ true);
+                        /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                        /* eventDataPermission */ DataAccessPermission.READ_ONLY);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
         UserData userData = userDataAccessor.getUserData();
