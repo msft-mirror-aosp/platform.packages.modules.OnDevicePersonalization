@@ -110,7 +110,6 @@ public class OdpExampleStoreServiceTests {
         initMocks(this);
         when(mMockContext.getApplicationContext()).thenReturn(mContext);
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
         mQueryCallbackOnSuccessCalled = false;
@@ -178,37 +177,6 @@ public class OdpExampleStoreServiceTests {
     @Test
     public void testWithStartQueryMeasurementControlRevoked() throws Exception {
         doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
-        mEventsDao.updateOrInsertEventState(
-                new EventState.Builder()
-                        .setTaskIdentifier("PopulationName")
-                        .setService(mIsolatedService)
-                        .setToken()
-                        .build());
-        mService.onCreate();
-        Intent intent = new Intent();
-        intent.setAction(EXAMPLE_STORE_ACTION).setPackage(mContext.getPackageName());
-        IExampleStoreService binder =
-                IExampleStoreService.Stub.asInterface(mService.onBind(intent));
-        assertNotNull(binder);
-        TestQueryCallback callback = new TestQueryCallback();
-        Bundle input = new Bundle();
-        ContextData contextData =
-                new ContextData(mIsolatedService.getPackageName(), mIsolatedService.getClassName());
-        input.putByteArray(
-                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
-        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
-        input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
-
-        binder.startQuery(input, callback);
-        mLatch.await(1000, TimeUnit.MILLISECONDS);
-
-        assertFalse(mQueryCallbackOnSuccessCalled);
-        assertTrue(mQueryCallbackOnFailureCalled);
-    }
-
-    @Test
-    public void testWithStartQueryPersonalizationBlocked() throws Exception {
-        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         mEventsDao.updateOrInsertEventState(
                 new EventState.Builder()
                         .setTaskIdentifier("PopulationName")

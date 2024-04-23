@@ -51,7 +51,6 @@ import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.data.events.Query;
-import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.FileUtils;
 import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
@@ -90,7 +89,6 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
 
     private EventsDao mEventsDao;
     private OnDevicePersonalizationMaintenanceJobService mSpyService;
-    private UserPrivacyStatus mPrivacyStatus = UserPrivacyStatus.getInstance();
 
     @Rule
     public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
@@ -116,10 +114,12 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
     }
 
     private void addEventData(ComponentName service, long timestamp) {
-        Query query = new Query.Builder()
-                .setTimeMillis(timestamp)
-                .setService(service)
-                .setQueryData("query".getBytes(StandardCharsets.UTF_8))
+        Query query = new Query.Builder(
+                timestamp,
+                "com.app",
+                service,
+                TEST_CERT_DIGEST,
+                "query".getBytes(StandardCharsets.UTF_8))
                 .build();
         long queryId = mEventsDao.insertQuery(query);
 
@@ -153,7 +153,6 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         FileUtils.deleteDirectory(vendorDir);
         FileUtils.deleteDirectory(localDir);
 
-        mPrivacyStatus.setPersonalizationStatusEnabled(true);
         mTestDao = OnDevicePersonalizationVendorDataDao.getInstanceForTest(mContext, TEST_OWNER,
                 TEST_CERT_DIGEST);
         mService = new ComponentName(mContext.getPackageName(),
@@ -202,15 +201,6 @@ public class OnDevicePersonalizationMaintenanceJobServiceTest {
         assertTrue(mJobScheduler.getPendingJob(
                 OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
                 == null);
-    }
-
-    @Test
-    public void onStartJobTestPersonalizationBlocked() {
-        mPrivacyStatus.setPersonalizationStatusEnabled(false);
-        doNothing().when(mSpyService).jobFinished(any(), anyBoolean());
-        boolean result = mSpyService.onStartJob(mock(JobParameters.class));
-        assertTrue(result);
-        verify(mSpyService, times(1)).jobFinished(any(), eq(false));
     }
 
     @Test

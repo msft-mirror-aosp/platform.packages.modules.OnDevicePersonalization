@@ -34,6 +34,7 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
@@ -45,6 +46,7 @@ import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.LogUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
+import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.FutureCallback;
@@ -126,12 +128,6 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
                 return false;
             }
 
-            if (!UserPrivacyStatus.getInstance().isPersonalizationStatusEnabled()) {
-                sLogger.d(TAG + ": Personalization is disabled.");
-                sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
-                return false;
-            }
-
             if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
                 sLogger.d(TAG + ": User control is not given for measurement.");
                 sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED);
@@ -202,8 +198,8 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
                 new DataAccessServiceImpl(
                     mServiceParcel.getIsolatedService(),
-                    mContext, /* includeLocalData */ true,
-                    /* includeEventData */ true));
+                    mContext, /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                    /* eventDataPermission */ DataAccessPermission.READ_ONLY));
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA,
                 new UserDataAccessor().getUserData());
 
@@ -215,7 +211,30 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
     }
 
     @Override
-    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {}
+    public void uploadServiceFlowMetrics(ListenableFuture<Bundle> runServiceFuture) {
+        var unused = FluentFuture.from(runServiceFuture)
+                .transform(
+                        val -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER,
+                                    val, mInjector.getClock(),
+                                    Constants.STATUS_SUCCESS, mStartServiceTimeMillis);
+                            return val;
+                        },
+                        mInjector.getExecutor()
+                )
+                .catchingAsync(
+                        Exception.class,
+                        e -> {
+                            StatsUtils.writeServiceRequestMetrics(
+                                    Constants.API_NAME_SERVICE_ON_WEB_TRIGGER, /* result= */ null,
+                                    mInjector.getClock(),
+                                    Constants.STATUS_INTERNAL_ERROR, mStartServiceTimeMillis);
+                            return Futures.immediateFailedFuture(e);
+                        },
+                        mInjector.getExecutor()
+                );
+    }
 
     @Override
     public ListenableFuture<WebTriggerOutputParcel> getServiceFlowResultFuture(
@@ -270,6 +289,7 @@ public class WebTriggerFlow implements ServiceFlow<WebTriggerOutputParcel> {
         var unused = FluentFuture.from(
                         LogUtils.writeLogRecords(
                                 mContext,
+                                mServiceParcel.getAppPackageName(),
                                 wtparams.getIsolatedService(),
                                 result.getRequestLogRecord(),
                                 result.getEventLogRecords()))

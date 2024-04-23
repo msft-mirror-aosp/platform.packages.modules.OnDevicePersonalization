@@ -154,6 +154,9 @@ public class OnDevicePersonalizationSystemService
         /** @hide */
         public Lifecycle(Context context) {
             super(context);
+            if (!isOdpSupported(context)) {
+                return;
+            }
             mService = new OnDevicePersonalizationSystemService(getContext());
         }
 
@@ -166,6 +169,21 @@ public class OnDevicePersonalizationSystemService
             }
             publishBinderService(ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE, mService);
             Log.i(TAG, "OnDevicePersonalizationSystemService started!");
+        }
+
+            /** Returns true if the device supports ODP. */
+        private static boolean isOdpSupported(Context context) {
+            final PackageManager pm = context.getPackageManager();
+            if (pm == null) {
+                Log.e(TAG, "PackageManager not found.");
+                return true;
+            }
+            return !pm.hasSystemFeature(PackageManager.FEATURE_WATCH)
+                    && !pm.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
+                    // Android TV
+                    && !pm.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+                    // Android Go
+                    && !pm.hasSystemFeature(PackageManager.FEATURE_RAM_LOW);
         }
     }
 }
