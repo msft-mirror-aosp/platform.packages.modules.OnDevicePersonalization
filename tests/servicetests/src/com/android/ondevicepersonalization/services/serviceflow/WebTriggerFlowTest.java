@@ -85,7 +85,6 @@ public class WebTriggerFlowTest {
         PhFlagsTestUtil.disableGlobalKillSwitch();
 
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         setUpTestData();
@@ -110,18 +109,6 @@ public class WebTriggerFlowTest {
 
         assertTrue(mCallbackError);
         assertEquals(Constants.STATUS_INTERNAL_ERROR, mCallbackErrorCode);
-    }
-
-    @Test
-    public void testWebTriggerFlow_PersonalizationDisabled() throws Exception {
-        doReturn(false).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
-
-        mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
-        mLatch.await();
-
-        assertTrue(mCallbackError);
-        assertEquals(Constants.STATUS_PERSONALIZATION_DISABLED, mCallbackErrorCode);
     }
 
     @Test
@@ -246,8 +233,8 @@ public class WebTriggerFlowTest {
                 DbUtils.toTableValue(service),
                 "AABBCCDD", rows);
         EventsDao.getInstanceForTest(mContext).insertQuery(
-                new Query.Builder().setService(service).setQueryData(
-                        queryDataBytes).build());
+                new Query.Builder(1L, "com.app", service, "AABBCCDD", queryDataBytes)
+                .build());
         EventsDao.getInstanceForTest(mContext);
     }
 

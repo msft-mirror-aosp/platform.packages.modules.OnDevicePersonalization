@@ -28,7 +28,9 @@ import static com.android.federatedcompute.services.common.FederatedComputeExecu
 import static com.android.federatedcompute.services.common.FederatedComputeExecutors.getLightweightExecutor;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFile;
 import static com.android.federatedcompute.services.common.FileUtils.createTempFileDescriptor;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_NOT_CONFIGURED;
+import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE;
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
@@ -205,11 +207,16 @@ public class FederatedComputeWorker {
             Trace.beginAsyncSection(TRACE_WORKER_START_TRAINING_RUN, jobId);
             TrainingRun run = new TrainingRun(jobId, trainingTask, trainingEventLogger, callback);
             mActiveRun = run;
+            long startTimeMs = SystemClock.elapsedRealtime();
             ListenableFuture<FLRunnerResult> runCompletedFuture = doTraining(run);
             var unused =
                     Futures.whenAllComplete(runCompletedFuture)
                             .call(
                                     () -> {
+                                        long duration = SystemClock.elapsedRealtime() - startTimeMs;
+                                        run.mTrainingEventLogger.logEventWithDuration(
+                                                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE,
+                                                duration);
                                         unBindServicesIfNecessary(run);
                                         Trace.endAsyncSection(
                                                 TRACE_WORKER_START_TRAINING_RUN, jobId);
@@ -232,6 +239,7 @@ public class FederatedComputeWorker {
             callback.callJobFinished(/* isSuccessful= */ false);
             return null;
         }
+        trainingEventLogger.setPopulationName(trainingTask.populationName());
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
             performFinishRoutines(
@@ -684,6 +692,7 @@ public class FederatedComputeWorker {
             mActiveRun = null;
         }
     }
+
     private void performFinishRoutines(
             FederatedJobService.OnJobFinishedCallback callback,
             ContributionResult contributionResult,
@@ -775,6 +784,7 @@ public class FederatedComputeWorker {
             String outputCheckpointFile,
             IExampleStoreIterator iterator) {
         Trace.beginAsyncSection(TRACE_WORKER_RUN_FL_COMPUTATION, 0);
+        long startTimeMs = SystemClock.elapsedRealtime();
         ParcelFileDescriptor outputCheckpointFd =
                 createTempFileDescriptor(
                         outputCheckpointFile, ParcelFileDescriptor.MODE_READ_WRITE);
@@ -831,7 +841,7 @@ public class FederatedComputeWorker {
                             result -> {
                                 ComputationResult computationResult =
                                         processIsolatedTrainingResult(
-                                                outputCheckpointFile, result, run);
+                                                outputCheckpointFile, result, run, startTimeMs);
                                 // Close opened file descriptor.
                                 try {
                                     if (outputCheckpointFd != null) {
@@ -904,7 +914,7 @@ public class FederatedComputeWorker {
     }
 
     private ComputationResult processIsolatedTrainingResult(
-            String outputCheckpoint, Bundle result, TrainingRun run) {
+            String outputCheckpoint, Bundle result, TrainingRun run, long startTimeMs) {
         byte[] resultBytes =
                 Objects.requireNonNull(result.getByteArray(Constants.EXTRA_FL_RUNNER_RESULT));
         FLRunnerResult flRunnerResult;
@@ -913,7 +923,7 @@ public class FederatedComputeWorker {
         } catch (InvalidProtocolBufferException e) {
             throw new IllegalArgumentException(e);
         }
-        logComputationResult(flRunnerResult, run);
+        logComputationResult(flRunnerResult, run, startTimeMs);
         if (flRunnerResult.getContributionResult() == ContributionResult.FAIL) {
             return new ComputationResult(outputCheckpoint, flRunnerResult, new ArrayList<>());
         }
@@ -927,12 +937,13 @@ public class FederatedComputeWorker {
         return new ComputationResult(outputCheckpoint, flRunnerResult, exampleList);
     }
 
-    private void logComputationResult(FLRunnerResult result, TrainingRun run) {
+    private void logComputationResult(FLRunnerResult result, TrainingRun run, long startTimeMs) {
         run.mExampleStats.mExampleCount.addAndGet(result.getExampleStats().getExampleCount());
         run.mExampleStats.mExampleSizeBytes.addAndGet(
                 result.getExampleStats().getExampleSizeBytes());
         if (result.getContributionResult() == ContributionResult.SUCCESS) {
-            run.mTrainingEventLogger.logComputationCompleted(run.mExampleStats);
+            run.mTrainingEventLogger.logComputationCompleted(
+                    run.mExampleStats, SystemClock.elapsedRealtime() - startTimeMs);
             return;
         }
         switch (result.getErrorStatus()) {
@@ -974,6 +985,8 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult, TrainingRun run, IExampleStoreIterator iterator) {
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         String outputCheckpointFile = createTempFile("output", ".ckp");
+        run.mTrainingEventLogger.logEventKind(
+                FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_COMPUTATION_STARTED);
 
         ListenableFuture<ComputationResult> computationResultFuture;
         switch (clientPlan.getPhase().getSpecCase()) {
@@ -1008,6 +1021,7 @@ public class FederatedComputeWorker {
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         // The federated analytic runs in main process which has permission to file system.
         ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
+        long startTimeMs = SystemClock.elapsedRealtime();
         FLRunnerResult runResult =
                 mComputationRunner.runTaskWithNativeRunner(
                         run.mTaskId,
@@ -1019,7 +1033,7 @@ public class FederatedComputeWorker {
                         recorder,
                         exampleStoreIterator,
                         mInterruptSupplier);
-        logComputationResult(runResult, run);
+        logComputationResult(runResult, run, SystemClock.elapsedRealtime() - startTimeMs);
         ArrayList<ExampleConsumption> exampleConsumptions = recorder.finishRecordingAndGet();
         return Futures.immediateFuture(
                 new ComputationResult(outputCheckpointFile, runResult, exampleConsumptions));

@@ -41,7 +41,9 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
 import com.android.ondevicepersonalization.services.util.Clock;
+import com.android.ondevicepersonalization.services.util.DebugUtils;
 import com.android.ondevicepersonalization.services.util.MonotonicClock;
 
 import com.google.common.util.concurrent.ListenableFuture;
@@ -58,7 +60,7 @@ public final class UserPrivacyStatus {
     static final int CONTROL_GIVEN_STATUS_CODE = 3;
     @VisibleForTesting
     static final int CONTROL_REVOKED_STATUS_CODE = 2;
-    static UserPrivacyStatus sUserPrivacyStatus = null;
+    static volatile UserPrivacyStatus sUserPrivacyStatus = null;
     private boolean mPersonalizationStatusEnabled;
     private boolean mProtectedAudienceEnabled;
     private boolean mMeasurementEnabled;
@@ -71,8 +73,8 @@ public final class UserPrivacyStatus {
         mPersonalizationStatusEnabled = false;
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
-        mProtectedAudienceReset = true;
-        mMeasurementReset = true;
+        mProtectedAudienceReset = false;
+        mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
     }
 
@@ -92,16 +94,36 @@ public final class UserPrivacyStatus {
         return sUserPrivacyStatus;
     }
 
+    /** Returns an instance of UserPrivacyStatus. */
+    @VisibleForTesting
+    public static UserPrivacyStatus getInstanceForTest() {
+        if (sUserPrivacyStatus == null) {
+            synchronized (UserPrivacyStatus.class) {
+                if (sUserPrivacyStatus == null) {
+                    sUserPrivacyStatus = new UserPrivacyStatus();
+                }
+            }
+        }
+        return sUserPrivacyStatus;
+    }
+
+    private static boolean isOverrideEnabled() {
+        Flags flags = FlagsFactory.getFlags();
+        return DebugUtils.isDeveloperModeEnabled(
+                OnDevicePersonalizationApplication.getAppContext())
+                && (boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE);
+    }
+
     public void setPersonalizationStatusEnabled(boolean personalizationStatusEnabled) {
         Flags flags = FlagsFactory.getFlags();
-        if (!(boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (!isOverrideEnabled()) {
             mPersonalizationStatusEnabled = personalizationStatusEnabled;
         }
     }
 
     public boolean isPersonalizationStatusEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if ((boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (isOverrideEnabled()) {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         return mPersonalizationStatusEnabled;
@@ -112,7 +134,7 @@ public final class UserPrivacyStatus {
      */
     public boolean isProtectedAudienceEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if ((boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (isOverrideEnabled()) {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
@@ -128,7 +150,7 @@ public final class UserPrivacyStatus {
      */
     public boolean isMeasurementEnabled() {
         Flags flags = FlagsFactory.getFlags();
-        if ((boolean) flags.getStableFlag(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE)) {
+        if (isOverrideEnabled()) {
             return (boolean) flags.getStableFlag(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE);
         }
         if (isUserControlCacheValid()) {
@@ -142,24 +164,14 @@ public final class UserPrivacyStatus {
     /**
      * Returns true if the user requests a reset on PA-related data.
      */
-    public boolean isProtectedAudienceReset() {
-        if (isUserControlCacheValid()) {
-            return mProtectedAudienceReset;
-        }
-        // make request to AdServices#getCommonStates API.
-        fetchStateFromAdServices();
+    private boolean isProtectedAudienceReset() {
         return mProtectedAudienceReset;
     }
 
     /**
      * Returns true if the user requests a reset on measurement-related data.
      */
-    public boolean isMeasurementReset() {
-        if (isUserControlCacheValid()) {
-            return mMeasurementReset;
-        }
-        // make request to AdServices#getCommonStates API.
-        fetchStateFromAdServices();
+    private boolean isMeasurementReset() {
         return mMeasurementReset;
     }
 
@@ -174,6 +186,7 @@ public final class UserPrivacyStatus {
         mProtectedAudienceReset = (protectedAudienceState != CONTROL_GIVEN_STATUS_CODE);
         mMeasurementReset = (measurementState != CONTROL_GIVEN_STATUS_CODE);
         mLastUserControlCacheUpdate = sClock.currentTimeMillis();
+        handleResetIfNeeded();
     }
 
     /**
@@ -197,8 +210,8 @@ public final class UserPrivacyStatus {
     void resetUserControlForTesting() {
         mProtectedAudienceEnabled = false;
         mMeasurementEnabled = false;
-        mProtectedAudienceReset = true;
-        mMeasurementReset = true;
+        mProtectedAudienceReset = false;
+        mMeasurementReset = false;
         mLastUserControlCacheUpdate = -1L;
     }
 
@@ -225,6 +238,12 @@ public final class UserPrivacyStatus {
             updateUserControlCache(updatedProtectedAudienceState, updatedMeasurementState);
         } catch (Exception e) {
             sLogger.e(TAG + ": fetchStateFromAdServices error", e);
+        }
+    }
+
+    private void handleResetIfNeeded() {
+        if (isMeasurementReset() || isProtectedAudienceReset()) {
+            ResetDataJobService.schedule();
         }
     }
 
@@ -284,6 +303,9 @@ public final class UserPrivacyStatus {
 
     // TODO (b/331684191): remove SecurityException after mocking all UserPrivacyStatus
     private void restorePersonalizationStatus() {
+        if (isOverrideEnabled()) {
+            return;
+        }
         Context odpContext = OnDevicePersonalizationApplication.getAppContext();
         OnDevicePersonalizationSystemServiceManager systemServiceManager =
                 odpContext.getSystemService(OnDevicePersonalizationSystemServiceManager.class);

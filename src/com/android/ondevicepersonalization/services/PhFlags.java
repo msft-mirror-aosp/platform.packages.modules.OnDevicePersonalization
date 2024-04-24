@@ -82,6 +82,12 @@ public final class PhFlags implements Flags {
     public static final String KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED =
             "isolated_service_debugging_enabled";
 
+    public static final String KEY_RESET_DATA_DELAY_SECONDS =
+            "reset_data_delay_seconds";
+
+    public static final String KEY_RESET_DATA_DEADLINE_SECONDS =
+            "reset_data_deadline_seconds";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -325,5 +331,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
                 /* defaultValue= */ IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+    }
+
+    @Override
+    public int getResetDataDelaySeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_DELAY_SECONDS,
+                /* defaultValue= */ DEFAULT_RESET_DATA_DELAY_SECONDS);
+    }
+
+    @Override
+    public int getResetDataDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_DEADLINE_SECONDS,
+                /* defaultValue= */ DEFAULT_RESET_DATA_DEADLINE_SECONDS);
     }
 }

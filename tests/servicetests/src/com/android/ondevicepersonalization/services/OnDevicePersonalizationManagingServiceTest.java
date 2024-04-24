@@ -89,7 +89,6 @@ public class OnDevicePersonalizationManagingServiceTest {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        doReturn(true).when(mUserPrivacyStatus).isPersonalizationStatusEnabled();
         //mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
         when(mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
