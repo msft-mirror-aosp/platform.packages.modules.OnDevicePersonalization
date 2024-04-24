@@ -25,10 +25,13 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 
+import com.google.common.annotations.VisibleForTesting;
+
 /** The helper class of JobScheduler. */
 public class JobSchedulerHelper {
     private static final String TAG = JobSchedulerHelper.class.getSimpleName();
-    private static final String TRAINING_JOB_SERVICE =
+    @VisibleForTesting
+    public static final String TRAINING_JOB_SERVICE =
             "com.android.federatedcompute.services.training.FederatedJobService";
     private Clock mClock;
 
