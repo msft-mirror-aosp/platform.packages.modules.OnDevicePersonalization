@@ -21,8 +21,8 @@ genrule {
     name: "statslog-ondevicepersonalization-java-gen",
     tools: ["stats-log-api-gen"],
     cmd: "$(location stats-log-api-gen) --java $(out) --module ondevicepersonalization" +
-         " --javaPackage com.android.ondevicepersonalization" +
-         " --javaClass OnDevicePersonalizationStatsLog",
+        " --javaPackage com.android.ondevicepersonalization" +
+        " --javaClass OnDevicePersonalizationStatsLog",
     out: ["com/android/ondevicepersonalization/OnDevicePersonalizationStatsLog.java"],
 }
 
@@ -50,7 +50,7 @@ filegroup {
     srcs: [
         "src/**/*.java",
         "src/**/*.aidl",
-        "src/com/android/ondevicepersonalization/services/policyengine/**/*.kt"
+        "src/com/android/ondevicepersonalization/services/policyengine/**/*.kt",
     ],
     path: "src",
 }
@@ -73,7 +73,7 @@ java_library {
     srcs: ["src/**/*.proto"],
     apex_available: [
         "com.android.ondevicepersonalization",
-    ]
+    ],
 }
 
 java_genrule {
@@ -96,6 +96,7 @@ android_app {
         ":chronicle-sources",
         ":ondevicepersonalization-fbs",
         ":statslog-ondevicepersonalization-java-gen",
+        ":common-ondevicepersonalization-sources",
     ],
     libs: [
         "framework-adservices", // For user consent

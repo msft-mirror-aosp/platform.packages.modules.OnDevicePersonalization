@@ -33,13 +33,13 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.Trace;
 
+import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.enrollment.PartnerEnrollmentChecker;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowOrchestrator;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlowType;
 import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
 import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
-import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import java.util.Objects;
 

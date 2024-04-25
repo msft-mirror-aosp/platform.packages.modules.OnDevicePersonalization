@@ -21,13 +21,13 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.DeviceUtils;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
 import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
+import com.android.odp.module.common.DeviceUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.util.concurrent.Futures;
@@ -61,7 +61,7 @@ public class FederatedComputeBroadcastReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (!DeviceUtils.isFcpSupported(context)) {
+        if (!DeviceUtils.isOdpSupported(context)) {
             LogUtil.d(TAG, "Unsupported device, skipped broadcast.");
             return;
         }

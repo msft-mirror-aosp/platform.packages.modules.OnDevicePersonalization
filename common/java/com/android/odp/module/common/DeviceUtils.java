@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package com.android.odp.module.common;
 
 import android.annotation.NonNull;
 import android.content.Context;
@@ -26,9 +26,8 @@ import android.content.pm.PackageManager;
  * @hide
  */
 public class DeviceUtils {
-
     /** Returns true if the device supports FCP. */
-    public static boolean isFcpSupported(@NonNull Context context) {
+    public static boolean isOdpSupported(@NonNull Context context) {
         final PackageManager pm = context.getPackageManager();
         return !pm.hasSystemFeature(PackageManager.FEATURE_WATCH)
                 && !pm.hasSystemFeature(PackageManager.FEATURE_AUTOMOTIVE)
