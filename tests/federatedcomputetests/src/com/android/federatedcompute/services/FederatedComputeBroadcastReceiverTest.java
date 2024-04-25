@@ -28,12 +28,12 @@ import android.content.Intent;
 import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
-import com.android.federatedcompute.services.common.DeviceUtils;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.odp.module.common.DeviceUtils;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -63,7 +63,7 @@ public class FederatedComputeBroadcastReceiverTest {
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
-        ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isFcpSupported(any()));
+        ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         ExtendedMockito.doReturn(mMockOrchestrator)
                 .when(() -> FederatedComputeLearningJobScheduleOrchestrator.getInstance(any()));
         doNothing().when(mMockOrchestrator).checkAndSchedule();
@@ -108,7 +108,7 @@ public class FederatedComputeBroadcastReceiverTest {
 
     @Test
     public void testOnReceiveDeviceNotSupported() {
-        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isFcpSupported(any()));
+        ExtendedMockito.doReturn(false).when(() -> DeviceUtils.isOdpSupported(any()));
         FederatedComputeBroadcastReceiver receiver = new FederatedComputeBroadcastReceiver();
 
         Intent intent = new Intent(Intent.ACTION_BOOT_COMPLETED);

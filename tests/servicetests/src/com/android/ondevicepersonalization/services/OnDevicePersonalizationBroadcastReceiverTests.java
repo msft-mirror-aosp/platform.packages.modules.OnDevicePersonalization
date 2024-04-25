@@ -33,8 +33,8 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.TestableDeviceConfig;
+import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
-import com.android.ondevicepersonalization.services.util.DeviceUtils;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
