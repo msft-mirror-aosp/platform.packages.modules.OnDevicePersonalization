@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 The Android Open Source Project
+ * Copyright (C) 2024 The Android Open Source Project
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,13 +14,13 @@
  * limitations under the License.
  */
 
-package com.android.ondevicepersonalization.services.data.user;
+package com.android.ondevicepersonalization.services.data;
 
-/** Application information on device. */
-public class AppInfo {
-    // Application package name.
-    public String packageName = null;
-
-    // Whether the application is installed or uninstalled.
-    public boolean installed = false;
+/**
+ * Access permission levels on ODP database tables.
+ */
+public enum DataAccessPermission {
+    DENIED,
+    READ_ONLY,
+    READ_WRITE
 }

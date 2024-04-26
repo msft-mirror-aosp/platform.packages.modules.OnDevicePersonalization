@@ -26,6 +26,7 @@ public final class ClientConstants {
     public static final int STATUS_SUCCESS = 0;
     public static final int STATUS_INTERNAL_ERROR = 1;
     public static final int STATUS_TRAINING_FAILED = 2;
+    public static final int STATUS_KILL_SWITCH_ENABLED = 3;
     public static final String EXTRA_POPULATION_NAME = "android.federatedcompute.population_name";
 
     public static final String EXTRA_TASK_ID = "android.federatedcompute.task_id";
