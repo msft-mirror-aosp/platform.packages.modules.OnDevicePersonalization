@@ -22,12 +22,12 @@ import android.os.PowerManager;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.BatteryInfo;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import java.util.EnumSet;
 import java.util.Set;
