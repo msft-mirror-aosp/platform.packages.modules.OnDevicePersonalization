@@ -36,6 +36,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.display.DisplayHelper;
@@ -194,8 +195,8 @@ public class RenderFlow implements ServiceFlow<SurfacePackage> {
                         .build());
         serviceParams.putBinder(
                 Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, new DataAccessServiceImpl(
-                        mService, mContext, /* includeLocalData */ false,
-                        /* includeEventData */ false));
+                        mService, mContext, /* includeLocalData */ DataAccessPermission.DENIED,
+                        /* includeEventData */ DataAccessPermission.DENIED));
 
         return serviceParams;
     }
