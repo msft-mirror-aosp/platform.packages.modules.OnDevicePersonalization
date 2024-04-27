@@ -117,7 +117,7 @@ public class DataAccessServiceImplTest {
 
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, null,
-                true, true, mInjector);
+                DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
 
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
     }
@@ -146,7 +146,7 @@ public class DataAccessServiceImplTest {
         overrideData.put("key2", "helloworld2".getBytes());
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, overrideData,
-                true, true, mInjector);
+                DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         addTestData();
         Bundle params = new Bundle();
@@ -187,7 +187,7 @@ public class DataAccessServiceImplTest {
         overrideData.put("key2", "helloworld2".getBytes());
         mServiceImpl = new DataAccessServiceImpl(
                 mService, mApplicationContext, overrideData,
-                true, true, mInjector);
+                DataAccessPermission.READ_WRITE, DataAccessPermission.READ_WRITE, mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         addTestData();
         Bundle params = new Bundle();
@@ -336,7 +336,9 @@ public class DataAccessServiceImplTest {
     @Test
     public void testLocalDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mService, mApplicationContext, null, false, true,
+                mService, mApplicationContext, null,
+                /* localDataPermission */ DataAccessPermission.DENIED,
+                /* eventDataPermission */ DataAccessPermission.READ_WRITE,
                 mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
@@ -358,7 +360,27 @@ public class DataAccessServiceImplTest {
                 Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
                 params,
                 new TestCallback()));
+    }
 
+    @Test
+    public void testLocalDataThrowsReadOnly() {
+        mServiceImpl = new DataAccessServiceImpl(
+                mService, mApplicationContext, null,
+                /* localDataPermission */ DataAccessPermission.READ_ONLY,
+                /* eventDataPermission */ DataAccessPermission.READ_WRITE,
+                mInjector);
+        mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
+        Bundle params = new Bundle();
+        params.putStringArray(Constants.EXTRA_LOOKUP_KEYS, new String[]{"localkey"});
+        params.putByteArray(Constants.EXTRA_VALUE, new byte[100]);
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_PUT,
+                params,
+                new TestCallback()));
+        assertThrows(IllegalStateException.class, () -> mServiceProxy.onRequest(
+                Constants.DATA_ACCESS_OP_LOCAL_DATA_REMOVE,
+                params,
+                new TestCallback()));
     }
 
     @Test
@@ -427,7 +449,9 @@ public class DataAccessServiceImplTest {
     @Test
     public void testEventDataThrowsNotIncluded() {
         mServiceImpl = new DataAccessServiceImpl(
-                mService, mApplicationContext, null, true, false,
+                mService, mApplicationContext, null,
+                /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                /* eventDataPermission */ DataAccessPermission.DENIED,
                 mInjector);
         mServiceProxy = IDataAccessService.Stub.asInterface(mServiceImpl);
         Bundle params = new Bundle();
