@@ -36,6 +36,7 @@ import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.user.UserPrivacyStatus;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
@@ -151,12 +152,6 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     public boolean isServiceFlowReady() {
         mStartServiceTimeMillis = mInjector.getClock().elapsedRealtime();
 
-        if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
-            sLogger.d(TAG + ": User control is not given for measurement.");
-            sendErrorResult(Constants.STATUS_PERSONALIZATION_DISABLED, 0);
-            return false;
-        }
-
         try {
             ByteArrayParceledSlice paramsBuffer = Objects.requireNonNull(
                     mWrappedParams.getParcelable(
@@ -195,8 +190,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     @Override
     public Bundle getServiceParams() {
+        DataAccessPermission localDataPermission = DataAccessPermission.READ_WRITE;
+        if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+            localDataPermission = DataAccessPermission.READ_ONLY;
+        }
         Bundle serviceParams = new Bundle();
-
         serviceParams.putParcelable(
                 Constants.EXTRA_INPUT,
                 new ExecuteInputParcel.Builder()
@@ -208,8 +206,8 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                 new DataAccessServiceImpl(
                         mService,
                         mContext,
-                        /* includeLocalData */ true,
-                        /* includeEventData */ true));
+                        /* localDataPermission */ localDataPermission,
+                        /* eventDataPermission */ DataAccessPermission.READ_ONLY));
         serviceParams.putBinder(
                 Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new FederatedComputeServiceImpl(mService, mContext));
@@ -334,6 +332,11 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     private ListenableFuture<Long> logQuery(ExecuteOutputParcel result) {
         sLogger.d(TAG + ": logQuery() started.");
+        if (!UserPrivacyStatus.getInstance().isMeasurementEnabled()) {
+            sLogger.d(TAG + ": User control is not given for measurement,"
+                            + "dropping request and event entries.");
+            return Futures.immediateFuture(-1L);
+        }
         return LogUtils.writeLogRecords(
                 mContext,
                 mCallingPackageName,
