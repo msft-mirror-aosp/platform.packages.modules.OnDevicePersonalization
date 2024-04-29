@@ -51,8 +51,6 @@ import android.net.Uri;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.federatedcompute.services.common.Clock;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.NetworkStats;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
@@ -67,6 +65,8 @@ import com.android.federatedcompute.services.security.KeyAttestation;
 import com.android.federatedcompute.services.testutils.TrainingTestUtil;
 import com.android.federatedcompute.services.training.util.ComputationResult;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.collect.BoundType;
 import com.google.common.collect.ImmutableList;

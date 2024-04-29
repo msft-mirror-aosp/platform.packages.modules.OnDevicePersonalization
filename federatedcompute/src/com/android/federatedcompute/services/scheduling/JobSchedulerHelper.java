@@ -22,8 +22,8 @@ import android.content.ComponentName;
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
+import com.android.odp.module.common.Clock;
 
 import com.google.common.annotations.VisibleForTesting;
 

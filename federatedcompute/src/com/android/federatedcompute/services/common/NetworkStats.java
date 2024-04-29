@@ -17,6 +17,8 @@
 package com.android.federatedcompute.services.common;
 
 import com.android.internal.util.Preconditions;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;

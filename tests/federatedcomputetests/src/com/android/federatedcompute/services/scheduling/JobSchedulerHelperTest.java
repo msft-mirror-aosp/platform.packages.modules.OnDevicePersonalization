@@ -30,12 +30,12 @@ import android.content.Context;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.odp.module.common.Clock;
 
 import com.google.common.collect.Iterables;
 import com.google.flatbuffers.FlatBufferBuilder;

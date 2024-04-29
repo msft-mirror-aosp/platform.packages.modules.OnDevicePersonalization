@@ -36,15 +36,16 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.reset.ResetDataJobService;
-import com.android.ondevicepersonalization.services.util.Clock;
 import com.android.ondevicepersonalization.services.util.DebugUtils;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
+
 
 import com.google.common.util.concurrent.ListenableFuture;
 

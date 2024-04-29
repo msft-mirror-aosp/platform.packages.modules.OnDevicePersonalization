@@ -26,9 +26,9 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyContract.FederatedComputeEncryptionColumns;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.annotations.VisibleForTesting;
 

@@ -34,14 +34,14 @@ import androidx.concurrent.futures.CallbackToFutureAdapter;
 
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.modules.utils.build.SdkLevel;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.FluentFuture;

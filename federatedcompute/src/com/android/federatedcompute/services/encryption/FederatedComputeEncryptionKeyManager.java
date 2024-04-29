@@ -19,17 +19,17 @@ package com.android.federatedcompute.services.encryption;
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
 import com.android.federatedcompute.services.http.FederatedComputeHttpRequest;
 import com.android.federatedcompute.services.http.FederatedComputeHttpResponse;
 import com.android.federatedcompute.services.http.HttpClient;
 import com.android.federatedcompute.services.http.HttpClientUtil;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.common.collect.ImmutableList;

@@ -21,10 +21,10 @@ import android.app.job.JobScheduler;
 import android.content.Context;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.annotations.VisibleForTesting;
 

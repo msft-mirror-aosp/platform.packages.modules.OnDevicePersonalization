@@ -26,10 +26,10 @@ import android.os.PowerManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import com.android.federatedcompute.services.common.BatteryInfo;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
+import com.android.odp.module.common.Clock;
 
 import com.google.flatbuffers.FlatBufferBuilder;
 

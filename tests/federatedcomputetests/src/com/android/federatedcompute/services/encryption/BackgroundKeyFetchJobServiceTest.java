@@ -45,12 +45,12 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
 import com.android.federatedcompute.services.http.HttpClient;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;

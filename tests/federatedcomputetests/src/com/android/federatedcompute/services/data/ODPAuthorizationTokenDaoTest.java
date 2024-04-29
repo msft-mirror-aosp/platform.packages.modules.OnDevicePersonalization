@@ -27,8 +27,8 @@ import android.database.sqlite.SQLiteDatabase;
 import androidx.test.core.app.ApplicationProvider;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import com.android.federatedcompute.services.common.Clock;
-import com.android.federatedcompute.services.common.MonotonicClock;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import org.junit.After;
 import org.junit.Before;

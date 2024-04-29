@@ -60,7 +60,6 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.federatedcompute.services.common.Constants;
 import com.android.federatedcompute.services.common.ExampleStats;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.TrainingEventLogger;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
@@ -92,6 +91,7 @@ import com.android.federatedcompute.services.training.util.TrainingConditionsChe
 import com.android.federatedcompute.services.training.util.TrainingConditionsChecker.Condition;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.ImmutableSet;

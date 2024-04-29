@@ -40,11 +40,11 @@ import android.federatedcompute.common.TrainingOptions;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.statsd.ApiCallStats;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
+import com.android.odp.module.common.Clock;
 
 import org.junit.Before;
 import org.junit.Test;

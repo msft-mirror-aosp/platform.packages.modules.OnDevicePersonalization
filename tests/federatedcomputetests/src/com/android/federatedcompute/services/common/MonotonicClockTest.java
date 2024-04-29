@@ -20,6 +20,9 @@ import static com.google.common.truth.Truth.assertThat;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
