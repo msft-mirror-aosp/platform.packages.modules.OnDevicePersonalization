@@ -20,22 +20,36 @@ import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 
+import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
+import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
 
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
+
 import java.util.Objects;
+import java.util.concurrent.Executor;
 
 /** Implementation of FederatedCompute Service */
 public class FederatedComputeManagingServiceImpl extends Service {
     private FederatedComputeManagingServiceDelegate mFcpServiceDelegate;
 
     private Flags mFlags;
+    private Executor mExecutor;
 
     public FederatedComputeManagingServiceImpl() {
         mFlags = FlagsFactory.getFlags();
+        mExecutor = FederatedComputeExecutors.getBackgroundExecutor();
+    }
+
+    @VisibleForTesting
+    public FederatedComputeManagingServiceImpl(Executor executor) {
+        mFlags = FlagsFactory.getFlags();
+        mExecutor = executor;
     }
 
     @Override
@@ -47,6 +61,9 @@ public class FederatedComputeManagingServiceImpl extends Service {
                             this, FederatedComputeStatsdLogger.getInstance());
             BackgroundKeyFetchJobService.scheduleJobIfNeeded(this, mFlags);
             DeleteExpiredJobService.scheduleJobIfNeeded(this, mFlags);
+            var unused = Futures.submit(() ->
+                    FederatedComputeLearningJobScheduleOrchestrator.getInstance(this)
+                            .checkAndSchedule(), mExecutor);
         }
     }
 
