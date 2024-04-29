@@ -30,6 +30,8 @@ import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.OutcomeReceiver;
 
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.OdpParceledListSlice;
 import com.android.ondevicepersonalization.services.Flags;
@@ -46,8 +48,6 @@ import com.android.ondevicepersonalization.services.process.IsolatedServiceInfo;
 import com.android.ondevicepersonalization.services.process.PluginProcessRunner;
 import com.android.ondevicepersonalization.services.process.ProcessRunner;
 import com.android.ondevicepersonalization.services.process.SharedIsolatedProcessRunner;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.common.util.concurrent.FluentFuture;

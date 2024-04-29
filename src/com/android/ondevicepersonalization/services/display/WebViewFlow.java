@@ -29,6 +29,8 @@ import android.content.Context;
 import android.os.Bundle;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
@@ -41,8 +43,6 @@ import com.android.ondevicepersonalization.services.data.events.EventsDao;
 import com.android.ondevicepersonalization.services.inference.IsolatedModelServiceProvider;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 

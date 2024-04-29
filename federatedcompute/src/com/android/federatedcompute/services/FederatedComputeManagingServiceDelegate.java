@@ -33,13 +33,13 @@ import android.os.Binder;
 import android.os.RemoteException;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.scheduling.FederatedComputeJobManager;
 import com.android.federatedcompute.services.statsd.ApiCallStats;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.annotations.VisibleForTesting;
 
