@@ -375,6 +375,7 @@ public class SampleHandler implements IsolatedWorker {
                 resultBuilder.addTrainingExampleRecord(record);
             }
         } else if (input.getPopulationName().contains("keras")) {
+            Boolean isBuiltByTaskBuilder = input.getPopulationName().contains("task_builder");
             Random rand = new Random();
             int numExample = rand.nextInt(400);
             for (int exampleCount = 0; exampleCount < numExample; exampleCount++) {
@@ -388,12 +389,12 @@ public class SampleHandler implements IsolatedWorker {
                             .build();
                 Feature outputsFeature =
                         Feature.newBuilder()
-                            .setInt64List(Int64List.newBuilder().addValue(rand.nextInt(2)))
+                             .setInt64List(Int64List.newBuilder().addValue(rand.nextInt(2)))
                             .build();
                 Example example = Example.newBuilder().setFeatures(
                         Features.newBuilder()
-                            .putFeature("inputs", inputsFeature)
-                            .putFeature("outputs", outputsFeature)
+                            .putFeature(isBuiltByTaskBuilder ? "x" : "inputs", inputsFeature)
+                            .putFeature(isBuiltByTaskBuilder ? "y" : "outputs", outputsFeature)
                             .build())
                         .build();
                 TrainingExampleRecord record =
