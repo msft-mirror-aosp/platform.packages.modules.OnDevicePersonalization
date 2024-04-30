@@ -28,6 +28,7 @@ import androidx.test.core.app.ApplicationProvider;
 import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
+import com.android.ondevicepersonalization.services.data.user.UserDataContract;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 
 import org.junit.After;
@@ -59,6 +60,15 @@ public class OnDevicePersonalizationDbHelperTest {
                 + QueriesContract.QueriesEntry.APP_PACKAGE_NAME + " TEXT NOT NULL,"
                 + QueriesContract.QueriesEntry.SERVICE_NAME + " TEXT NOT NULL,"
                 + QueriesContract.QueriesEntry.QUERY_DATA + " BLOB NOT NULL)";
+
+    public static final String CREATE_QUERIES_V3_STATEMENT =
+            "CREATE TABLE IF NOT EXISTS " + QueriesContract.QueriesEntry.TABLE_NAME + " ("
+                    + QueriesContract.QueriesEntry.QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + QueriesContract.QueriesEntry.TIME_MILLIS + " INTEGER NOT NULL,"
+                    + QueriesContract.QueriesEntry.APP_PACKAGE_NAME + " TEXT NOT NULL,"
+                    + QueriesContract.QueriesEntry.SERVICE_NAME + " TEXT NOT NULL,"
+                    + QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST + " TEXT NOT NULL,"
+                    + QueriesContract.QueriesEntry.QUERY_DATA + " BLOB NOT NULL)";
 
     @Before
     public void setup() {
@@ -95,6 +105,7 @@ public class OnDevicePersonalizationDbHelperTest {
             assertTrue(
                     "Column not found " + columns.toString(),
                     columns.contains(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
+            assertTrue(hasEntity(UserDataContract.AppInstall.TABLE_NAME, "table"));
         } finally {
             db.close();
         }
@@ -110,6 +121,23 @@ public class OnDevicePersonalizationDbHelperTest {
             assertTrue(
                     "Column not found " + columns.toString(),
                     columns.contains(QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST));
+            assertTrue(hasEntity(UserDataContract.AppInstall.TABLE_NAME, "table"));
+        } finally {
+            db.close();
+        }
+    }
+
+    @Test
+    public void testOnUpgradeFromV3() {
+        SQLiteDatabase db = SQLiteDatabase.create(null);
+        try {
+            createV3Tables(db);
+            mDbHelper.onUpgrade(db, 3, OnDevicePersonalizationDbHelper.DATABASE_VERSION);
+            assertTrue(hasEntity(UserDataContract.AppInstall.TABLE_NAME, "table"));
+            List<String> columns = getColumns(db, UserDataContract.AppInstall.TABLE_NAME);
+            assertTrue(
+                    "Column not found " + columns.toString(),
+                    columns.contains(UserDataContract.AppInstall.APP_LIST));
         } finally {
             db.close();
         }
@@ -138,6 +166,15 @@ public class OnDevicePersonalizationDbHelperTest {
 
         // Queries and events tables.
         db.execSQL(CREATE_QUERIES_V2_STATEMENT);
+        db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
+    }
+
+    private void createV3Tables(SQLiteDatabase db) {
+        db.execSQL(VendorSettingsContract.VendorSettingsEntry.CREATE_TABLE_STATEMENT);
+
+        // Queries and events tables.
+        db.execSQL(CREATE_QUERIES_V3_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
         db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
     }
