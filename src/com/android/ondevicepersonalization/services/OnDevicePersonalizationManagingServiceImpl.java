@@ -16,20 +16,41 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationBroadcastReceiver.restoreOdpJobs;
+
 import android.adservices.ondevicepersonalization.aidl.IOnDevicePersonalizationManagingService;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.os.Trace;
 
+
+import com.google.common.annotations.VisibleForTesting;
+
+import java.util.concurrent.Executor;
+
 /** Implementation of OnDevicePersonalization Service */
 public class OnDevicePersonalizationManagingServiceImpl extends Service {
     private IOnDevicePersonalizationManagingService.Stub mBinder;
 
+    private Executor mExecutor;
+
+    public OnDevicePersonalizationManagingServiceImpl() {
+        this.mExecutor = OnDevicePersonalizationExecutors.getBackgroundExecutor();
+    }
+
+    @VisibleForTesting
+    public OnDevicePersonalizationManagingServiceImpl(Executor executor) {
+        this.mExecutor = executor;
+    }
+
     @Override
     public void onCreate() {
         Trace.beginSection("OdpManagingService#Initialization");
-        mBinder = new OnDevicePersonalizationManagingServiceDelegate(this);
+        if (mBinder == null) {
+            mBinder = new OnDevicePersonalizationManagingServiceDelegate(this);
+            var unused = restoreOdpJobs(this, mExecutor);
+        }
         Trace.endSection();
     }
 
