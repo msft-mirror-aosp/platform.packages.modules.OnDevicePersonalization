@@ -21,11 +21,18 @@ import android.content.Context;
 import android.content.Intent;
 
 import com.android.federatedcompute.internal.util.LogUtil;
-import com.android.federatedcompute.services.common.DeviceUtils;
+import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
 import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
+import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
+import com.android.odp.module.common.DeviceUtils;
+
+import com.google.common.annotations.VisibleForTesting;
+import com.google.common.util.concurrent.Futures;
+
+import java.util.concurrent.Executor;
 
 /** BroadcastReceiver used to restore FederatedCompute training jobs. */
 public class FederatedComputeBroadcastReceiver extends BroadcastReceiver {
@@ -34,8 +41,17 @@ public class FederatedComputeBroadcastReceiver extends BroadcastReceiver {
 
     private Flags mFlags;
 
+    private final Executor mExecutor;
+
     public FederatedComputeBroadcastReceiver() {
         mFlags = FlagsFactory.getFlags();
+        mExecutor = FederatedComputeExecutors.getBackgroundExecutor();
+    }
+
+    @VisibleForTesting
+    public FederatedComputeBroadcastReceiver(Executor executor) {
+        mFlags = FlagsFactory.getFlags();
+        mExecutor = executor;
     }
 
     @Override
@@ -45,7 +61,7 @@ public class FederatedComputeBroadcastReceiver extends BroadcastReceiver {
             return;
         }
 
-        if (!DeviceUtils.isFcpSupported(context)) {
+        if (!DeviceUtils.isOdpSupported(context)) {
             LogUtil.d(TAG, "Unsupported device, skipped broadcast.");
             return;
         }
@@ -59,5 +75,9 @@ public class FederatedComputeBroadcastReceiver extends BroadcastReceiver {
 
         BackgroundKeyFetchJobService.scheduleJobIfNeeded(context, mFlags);
         DeleteExpiredJobService.scheduleJobIfNeeded(context, mFlags);
+
+        var unused = Futures.submit(() ->
+                FederatedComputeLearningJobScheduleOrchestrator.getInstance(context)
+                        .checkAndSchedule(), mExecutor);
     }
 }
