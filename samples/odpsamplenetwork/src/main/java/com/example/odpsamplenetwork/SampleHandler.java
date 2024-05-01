@@ -43,6 +43,8 @@ import android.adservices.ondevicepersonalization.TrainingExamplesInput;
 import android.adservices.ondevicepersonalization.TrainingExamplesOutput;
 import android.adservices.ondevicepersonalization.TrainingInterval;
 import android.adservices.ondevicepersonalization.UserData;
+import android.adservices.ondevicepersonalization.WebTriggerInput;
+import android.adservices.ondevicepersonalization.WebTriggerOutput;
 import android.content.ContentValues;
 import android.net.Uri;
 import android.os.OutcomeReceiver;
@@ -94,6 +96,7 @@ public class SampleHandler implements IsolatedWorker {
     public static final int EVENT_TYPE_IMPRESSION = 1;
     public static final int EVENT_TYPE_CLICK = 2;
     public static final int EVENT_TYPE_CONVERSION = 3;
+    public static final int EVENT_TYPE_WEB_CONVERSION = 4;
     public static final double COST_RAISING_FACTOR = 2.0;
     private static final String AD_ID_KEY = "adid";
     private static final String BID_PRICE_KEY = "price";
@@ -101,6 +104,8 @@ public class SampleHandler implements IsolatedWorker {
     private static final String CLICK_COST_KEY = "clkcost";
     private static final String EVENT_TYPE_KEY = "type";
     private static final String SOURCE_TYPE_KEY = "sourcetype";
+    private static final String LANDING_PAGE_KEY = "landingpage";
+    private static final String WEB_TRIGGER_EVENT_DATA_KEY = "webtriggerdata";
     private static final int BID_PRICE_OFFSET = 0;
     private static final String TRANSPARENT_PNG_BASE64 =
             "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAA"
@@ -198,6 +203,14 @@ public class SampleHandler implements IsolatedWorker {
             @NonNull OutcomeReceiver<EventOutput, IsolatedServiceException> receiver) {
         Log.d(TAG, "onEvent() started.");
         sBackgroundExecutor.execute(() -> handleOnWebViewEvent(input, receiver));
+    }
+
+    @Override
+    public void onWebTrigger(
+            @NonNull WebTriggerInput input,
+            @NonNull OutcomeReceiver<WebTriggerOutput, IsolatedServiceException> receiver) {
+        Log.d(TAG, "onWebTrigger() started.");
+        sBackgroundExecutor.execute(() -> handleOnWebTrigger(input, receiver));
     }
 
     private ListenableFuture<List<Ad>> readAds(KeyValueStore remoteData) {
@@ -298,22 +311,25 @@ public class SampleHandler implements IsolatedWorker {
         return winner;
     }
 
-    private ContentValues createLogRecord(String adId, double price, double score) {
+    private ContentValues createLogRecord(String adId, double price, double score,
+            String landingPage) {
         ContentValues result = new ContentValues();
         result.put(AD_ID_KEY, adId);
         result.put(BID_PRICE_KEY, price);
         result.put(AUCTION_SCORE_KEY, score);
+        result.put(LANDING_PAGE_KEY, landingPage);
         return result;
     }
 
     private ExecuteOutput buildResult(Ad ad) {
         Log.d(TAG, "buildResult() called.");
-        ContentValues logData = createLogRecord(ad.mId, ad.mMaxCpcPrice, ad.mBidPrice);
+        ContentValues logData = createLogRecord(ad.mId, ad.mMaxCpcPrice, ad.mBidPrice,
+                ad.mLandingPage);
         Log.i(
                 TAG,
                 String.format(
-                        "Log winning ad id %s max cpc price %.2f bid price %.2f",
-                        ad.mId, ad.mMaxCpcPrice, ad.mBidPrice));
+                        "Log winning ad id %s max cpc price %.2f bid price %.2f, landing page %s",
+                        ad.mId, ad.mMaxCpcPrice, ad.mBidPrice, ad.mLandingPage));
         return new ExecuteOutput.Builder()
                 .setRequestLogRecord(new RequestLogRecord.Builder().addRow(logData).build())
                 .setRenderingConfig(new RenderingConfig.Builder().addKey(ad.mId).build())
@@ -709,6 +725,72 @@ public class SampleHandler implements IsolatedWorker {
             Log.e(TAG, "handleOnEvent failed.", e);
             receiver.onResult(null);
         }
+    }
+
+    void handleOnWebTrigger(
+            @NonNull WebTriggerInput input,
+            @NonNull OutcomeReceiver<WebTriggerOutput, IsolatedServiceException> receiver) {
+        try {
+            Log.d(TAG, "handleOnWebTrigger() started.");
+            String destinationUrl = input.getDestinationUrl().toString();
+            String appPackageName = input.getAppPackageName();
+            Log.d(TAG, "WebTriggerInput dest url: " + destinationUrl
+                    + ", appPackageName: " + appPackageName);
+            byte[] data = input.getData();
+
+            long now = System.currentTimeMillis();
+            List<EventLogRecord> logRecords =
+                    mLogReader.getJoinedEvents(
+                            Instant.ofEpochMilli(now - 24 * 60 * 60 * 1000),
+                            Instant.ofEpochMilli(now));
+            EventLogRecord found = null;
+            // Attribute web conversion to most recent impression or click
+            // with matching landing page.
+            for (EventLogRecord ev : logRecords) {
+                RequestLogRecord req = ev.getRequestLogRecord();
+                if (req == null
+                        || req.getRows() == null
+                        || req.getRows().size() <= ev.getRowIndex()
+                        || req.getRows().get(ev.getRowIndex()) == null) {
+                    continue;
+                }
+                String landingPage = (String) req.getRows().get(ev.getRowIndex())
+                        .get(LANDING_PAGE_KEY);
+                if (isLandingPageMatch(landingPage, destinationUrl)) {
+                    if (found == null || found.getTime().compareTo(ev.getTime()) < 0) {
+                        found = ev;
+                    }
+                }
+            }
+
+            var builder = new WebTriggerOutput.Builder();
+            if (found != null) {
+                ContentValues values = new ContentValues();
+                values.put(SOURCE_TYPE_KEY, found.getType());
+                values.put(WEB_TRIGGER_EVENT_DATA_KEY, data);
+                EventLogRecord webConversion =
+                        new EventLogRecord.Builder()
+                                .setType(EVENT_TYPE_WEB_CONVERSION)
+                                .setData(values)
+                                .setRowIndex(found.getRowIndex())
+                                .setRequestLogRecord(found.getRequestLogRecord())
+                                .build();
+                builder.addEventLogRecord(webConversion);
+            }
+            var output = builder.build();
+            receiver.onResult(output);
+        } catch (Exception e) {
+            Log.e(TAG, "handleOnWebTrigger failed.", e);
+            receiver.onResult(null);
+        }
+    }
+
+    boolean isLandingPageMatch(String requestRecordLandingPage, String conversionDestUrl) {
+        Log.d(TAG, "requestRecordLandingPage: " + requestRecordLandingPage);
+        Log.d(TAG, "conversionDestUrl: " + conversionDestUrl);
+        return requestRecordLandingPage != null
+                && conversionDestUrl != null
+                && requestRecordLandingPage.equals(conversionDestUrl);
     }
 
     boolean isInstalledAppFound(CuckooFilter<String> filter) {
