@@ -1,0 +1,11 @@
+namespace com.android.ondevicepersonalization.services.fbs;
+
+table AppInfoList {
+    app_info_list:[AppInfo];
+    noise:float;
+}
+
+table AppInfo {
+    name:string;
+    update_time:long;
+}
