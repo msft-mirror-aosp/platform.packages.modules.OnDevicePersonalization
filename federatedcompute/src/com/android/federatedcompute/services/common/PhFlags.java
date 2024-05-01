@@ -73,6 +73,8 @@ public final class PhFlags implements Flags {
     static final String TASK_HISTORY_TTL_MILLIS = "task_history_ttl_millis";
 
     static final String FCP_RESCHEDULE_LIMIT_CONFIG_NAME = "reschedule_limit";
+
+    static final String FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME = "memory_size_limit";
     static final String FCP_ENABLE_CLIENT_ERROR_LOGGING = "fcp_enable_client_error_logging";
     static final String FCP_ENABLE_BACKGROUND_JOBS_LOGGING = "fcp_enable_background_jobs_logging";
     static final String FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE =
@@ -299,4 +301,13 @@ public final class PhFlags implements Flags {
                 /* name= */ EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC,
                 /* defaultValue= */ DEFAULT_EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC);
     }
+
+    @Override
+    public long getFcpMemorySizeLimit() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                /* defaultValue= */ FCP_DEFAULT_MEMORY_SIZE_LIMIT);
+    }
+
 }
