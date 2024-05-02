@@ -16,6 +16,8 @@
 
 package com.android.federatedcompute.services.examplestore;
 
+import static com.android.federatedcompute.services.common.Constants.TRACE_GET_EXAMPLE_STORE_ITERATOR;
+
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreIterator;
@@ -23,6 +25,7 @@ import android.federatedcompute.aidl.IExampleStoreService;
 import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.SystemClock;
+import android.os.Trace;
 
 import androidx.concurrent.futures.CallbackToFutureAdapter;
 
@@ -69,6 +72,7 @@ public class ExampleStoreServiceProvider {
             ExampleSelector exampleSelector,
             ExampleStats exampleStats) {
         try {
+            Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 0);
             long startTimeNanos = SystemClock.elapsedRealtimeNanos();
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
@@ -93,6 +97,7 @@ public class ExampleStoreServiceProvider {
     public IExampleStoreIterator getExampleIterator(
             IExampleStoreService exampleStoreService, FederatedTrainingTask task, String taskName) {
         try {
+            Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
             bundle.putString(ClientConstants.EXTRA_TASK_ID, taskName);
@@ -103,14 +108,16 @@ public class ExampleStoreServiceProvider {
                     new IExampleStoreCallback.Stub() {
                         @Override
                         public void onStartQuerySuccess(IExampleStoreIterator iterator) {
-                            LogUtil.d(TAG, "Acquire iterator");
+                            LogUtil.d(TAG, "Acquired iterator");
                             asyncResult.add(new CallbackResult(iterator, 0));
+                            Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
                         }
 
                         @Override
                         public void onStartQueryFailure(int errorCode) {
                             LogUtil.e(TAG, "Could not acquire iterator: " + errorCode);
                             asyncResult.add(new CallbackResult(null, errorCode));
+                            Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
                         }
                     });
             CallbackResult callbackResult =
@@ -152,11 +159,12 @@ public class ExampleStoreServiceProvider {
                                     @Override
                                     public void onStartQuerySuccess(
                                             IExampleStoreIterator iterator) {
-                                        LogUtil.d(TAG, "Acquire iterator");
+                                        LogUtil.d(TAG, "Acquired iterator");
                                         exampleStats.mStartQueryLatencyNanos.addAndGet(
                                                 SystemClock.elapsedRealtimeNanos()
                                                         - startCallTimeNanos);
                                         completer.set(iterator);
+                                        Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 0);
                                     }
 
                                     @Override
@@ -168,6 +176,7 @@ public class ExampleStoreServiceProvider {
                                         completer.setException(
                                                 new IllegalStateException(
                                                         "StartQuery failed: " + errorCode));
+                                        Trace.endAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 0);
                                     }
                                 });
                     } catch (Exception e) {

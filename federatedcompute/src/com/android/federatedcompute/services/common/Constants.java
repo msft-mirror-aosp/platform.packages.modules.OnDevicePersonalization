@@ -38,6 +38,7 @@ public class Constants {
 
     public static final String TRACE_HTTP_ISSUE_CHECKIN = "Http#issueCheckin";
     public static final String TRACE_HTTP_REPORT_RESULT = "Http#reportResult";
+    public static final String TRACE_GET_EXAMPLE_STORE_ITERATOR = "IsolatedProcess#getExampleIter";
     public static final String TRACE_ISOLATED_PROCESS_RUN_FL_TRAINING =
             "IsolatedProcess#runFlTraining";
     public static final String TRACE_NATIVE_RUN_FEDERATED_COMPUTATION =
