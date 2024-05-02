@@ -25,6 +25,7 @@ import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAININ
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAINING_MIN_BATTERY_LEVEL;
 import static com.android.federatedcompute.services.common.Flags.ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.Flags.ENCRYPTION_ENABLED;
+import static com.android.federatedcompute.services.common.Flags.FCP_DEFAULT_MEMORY_SIZE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FCP_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
 import static com.android.federatedcompute.services.common.Flags.HTTP_REQUEST_RETRY_LIMIT;
@@ -41,6 +42,7 @@ import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUN
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_BACKGROUND_JOBS_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
 import static com.android.federatedcompute.services.common.PhFlags.HTTP_REQUEST_RETRY_LIMIT_CONFIG_NAME;
@@ -156,6 +158,11 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
                 Integer.toString(DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                Long.toString(FCP_DEFAULT_MEMORY_SIZE_LIMIT),
                 /* makeDefault= */ false);
     }
 
@@ -584,5 +591,28 @@ public class PhFlagsTest {
                 /* makeDefault= */ false);
         assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
                 .isEqualTo(overrideRate);
+    }
+
+    @Test
+    public void testGetFcpMemorySizeLimit() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                Long.toString(FCP_DEFAULT_MEMORY_SIZE_LIMIT),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpMemorySizeLimit())
+                .isEqualTo(FCP_DEFAULT_MEMORY_SIZE_LIMIT);
+
+        // Now overriding the value from PH.
+        long overrideFcpMemLimit = 1000;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME,
+                Long.toString(overrideFcpMemLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpMemorySizeLimit()).isEqualTo(overrideFcpMemLimit);
     }
 }

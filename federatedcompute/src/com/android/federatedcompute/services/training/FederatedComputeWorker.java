@@ -772,6 +772,9 @@ public class FederatedComputeWorker {
                 case BATTERY_NOT_OK:
                     LogUtil.e(TAG, "training job service interrupt battery not ok");
                     break;
+                case MEM_NOT_OK:
+                    LogUtil.e(TAG, "training job service interrupt memory space not ok");
+                    break;
             }
         }
         return conditions.isEmpty();

@@ -240,4 +240,13 @@ public interface Flags extends ModuleSharedFlags {
     default long getFcpTfErrorRescheduleSeconds() {
         return FCP_TF_ERROR_RESCHEDULE_SECONDS;
     }
+
+    long FCP_DEFAULT_MEMORY_SIZE_LIMIT = 50000000L; // 50 MBs in bytes
+
+    /**
+     * Provides upper limit for FCP temp files.
+     */
+    default long getFcpMemorySizeLimit() {
+        return FCP_DEFAULT_MEMORY_SIZE_LIMIT;
+    }
 }
