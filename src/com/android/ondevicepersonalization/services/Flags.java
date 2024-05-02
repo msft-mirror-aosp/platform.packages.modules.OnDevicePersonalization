@@ -259,4 +259,17 @@ public interface Flags extends ModuleSharedFlags {
     default int getResetDataDeadlineSeconds() {
         return DEFAULT_RESET_DATA_DEADLINE_SECONDS;
     }
+
+    // Keep app install in last 30 days.
+    long DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS = 30 * 24 * 60 * 60 * 1000L;
+
+    default long getAppInstallHistoryTtlInMillis() {
+        return DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
+    }
+
+    float DEFAULT_NOISE_PER_USER_FEATURE = 10;
+
+    default float getTargetNoiseForUserFeature() {
+        return DEFAULT_NOISE_PER_USER_FEATURE;
+    }
 }
