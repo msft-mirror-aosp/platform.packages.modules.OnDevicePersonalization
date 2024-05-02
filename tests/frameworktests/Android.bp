@@ -38,8 +38,8 @@ android_test {
         "truth",
     ],
     libs: [
-        "android.test.runner",
-        "android.test.base",
+        "android.test.runner.stubs",
+        "android.test.base.stubs",
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
