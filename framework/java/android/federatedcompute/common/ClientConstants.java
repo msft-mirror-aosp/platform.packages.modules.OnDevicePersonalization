@@ -45,6 +45,9 @@ public final class ClientConstants {
             "android.federatedcompute.example_iterator_criteria";
     public static final String EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN =
             "android.federatedcompute.example_iterator_resumption_token";
+
+    public static final String EXTRA_COLLECTION_URI =
+            "android.federatedcompute.collection_uri";
     public static final String EXTRA_EXAMPLE_ITERATOR_RESULT =
             "android.federatedcompute.example_iterator_result";
 
