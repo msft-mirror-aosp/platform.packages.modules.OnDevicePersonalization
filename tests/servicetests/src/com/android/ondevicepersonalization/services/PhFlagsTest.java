@@ -16,12 +16,18 @@
 
 package com.android.ondevicepersonalization.services;
 
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_LOGGING_ENABLED;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
+import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ODP_MODULE_JOB_POLICY;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SHARED_ISOLATED_PROCESS_FEATURE_ENABLED;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_TRUSTED_PARTNER_APPS_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DOWNLOAD_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.ENABLE_PERSONALIZATION_STATUS_OVERRIDE;
@@ -44,6 +50,10 @@ import static com.android.ondevicepersonalization.services.PhFlags.KEY_IS_ART_IM
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_ENABLE_CLIENT_ERROR_LOGGING;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_MODULE_JOB_POLICY;
+import static com.android.ondevicepersonalization.services.PhFlags.KEY_ODP_SPE_PILOT_JOB_ENABLED;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_OUTPUT_DATA_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_RENDER_FLOW_DEADLINE_SECONDS;
@@ -56,18 +66,14 @@ import static com.google.common.truth.Truth.assertThat;
 
 import android.provider.DeviceConfig;
 
-import androidx.test.runner.AndroidJUnit4;
-
 import com.android.modules.utils.build.SdkLevel;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 
-/** Unit tests for {@link com.android.ondevicepersonalization.service.PhFlags} */
-@RunWith(AndroidJUnit4.class)
+/** Unit tests for {@link com.android.ondevicepersonalization.services.PhFlags} */
 public class PhFlagsTest {
     @Rule
     public final TestableDeviceConfig.TestableDeviceConfigRule mDeviceConfigRule =
@@ -505,8 +511,9 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobsLoggingEnabled() {
-        // read a stable flag value
+        // read a stable flag value and verify it's equal to the default value.
         boolean stableValue = FlagsFactory.getFlags().getBackgroundJobsLoggingEnabled();
+        assertThat(stableValue).isEqualTo(BACKGROUND_JOB_LOGGING_ENABLED);
 
         // override the value in device config.
         boolean overrideEnabled = !stableValue;
@@ -523,17 +530,12 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobSamplingLoggingRate() {
-        int currentValue = 10;
-        DeviceConfig.setProperty(
-                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
-                Integer.toString(currentValue),
-                /* makeDefault= */ false);
+        int defaultValue = BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
         assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
-                .isEqualTo(currentValue);
+                .isEqualTo(defaultValue);
 
         // Override the value in device config.
-        int overrideRate = 1;
+        int overrideRate = defaultValue + 1;
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
@@ -541,5 +543,73 @@ public class PhFlagsTest {
                 /* makeDefault= */ false);
         assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
                 .isEqualTo(overrideRate);
+    }
+
+    @Test
+    public void testGetJobSchedulingLoggingEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().getJobSchedulingLoggingEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED);
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingEnabled())
+                .isEqualTo(overrideEnabled);
+    }
+
+    @Test
+    public void testGetJobSchedulingLoggingSamplingRate() {
+        int defaultValue = DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
+        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingSamplingRate())
+                .isEqualTo(defaultValue);
+
+        // Override the value in device config.
+        int overrideRate = defaultValue + 1;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE,
+                Integer.toString(overrideRate),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getJobSchedulingLoggingSamplingRate())
+                .isEqualTo(overrideRate);
+    }
+
+    @Test
+    public void testGetOdpModuleJobPolicy() {
+        assertThat(FlagsFactory.getFlags().getOdpModuleJobPolicy())
+                .isEqualTo(DEFAULT_ODP_MODULE_JOB_POLICY);
+
+        String overrideValue = "Something";
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_MODULE_JOB_POLICY,
+                overrideValue,
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getOdpModuleJobPolicy()).isEqualTo(overrideValue);
+    }
+
+    @Test
+    public void testGetSpePilotJobEnabled() {
+        // read a stable flag value and verify it's equal to the default value.
+        boolean stableValue = FlagsFactory.getFlags().getSpePilotJobEnabled();
+        assertThat(stableValue).isEqualTo(DEFAULT_SPE_PILOT_JOB_ENABLED);
+
+        // override the value in device config.
+        boolean overrideEnabled = !stableValue;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                KEY_ODP_SPE_PILOT_JOB_ENABLED,
+                Boolean.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getSpePilotJobEnabled()).isEqualTo(overrideEnabled);
     }
 }

@@ -34,8 +34,8 @@ android_test {
         "ondevicepersonalization-testing-utils",
     ],
     libs: [
-        "android.test.base",
-        "android.test.runner",
+        "sdk_public_33_android.test.base",
+        "sdk_public_33_android.test.runner",
         "truth",
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],

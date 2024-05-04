@@ -23,8 +23,8 @@ android_test {
     ],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     libs: [
-        "android.test.base",
-        "android.test.runner",
+        "android.test.base.stubs",
+        "android.test.runner.stubs",
         "kotlin-annotations",
         "truth",
     ],
