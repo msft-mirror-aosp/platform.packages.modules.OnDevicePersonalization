@@ -16,11 +16,13 @@
  * limitations under the License.
  */
 -->
+
+<!-- versionCode is set to placeholder module version which will
+     be replaced during build. Do not change it!  -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.ondevicepersonalization.services"
-    android:versionCode="1"
-    android:versionName="T-initial">
+    android:versionCode="0">
     <uses-sdk android:minSdkVersion="33"/>
 
     <uses-permission android:name="android.permission.INTERNET"/>
