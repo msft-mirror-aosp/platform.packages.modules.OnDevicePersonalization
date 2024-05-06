@@ -20,6 +20,8 @@ import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 
+import android.content.ComponentName;
+
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
@@ -28,7 +30,7 @@ import org.junit.runners.JUnit4;
 public class JoinedEventTest {
     @Test
     public void testBuilderAndEquals() {
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long queryId = 1;
         long eventId = 1;
         int rowIndex = 1;
@@ -39,7 +41,7 @@ public class JoinedEventTest {
         byte[] queryData = "queryData".getBytes();
 
         JoinedEvent joinedEvent1 = new JoinedEvent.Builder()
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setQueryId(queryId)
                 .setEventId(eventId)
                 .setRowIndex(rowIndex)
@@ -58,10 +60,10 @@ public class JoinedEventTest {
         assertEquals(joinedEvent1.getQueryTimeMillis(), queryTimeMillis);
         assertArrayEquals(joinedEvent1.getEventData(), eventData);
         assertArrayEquals(joinedEvent1.getQueryData(), queryData);
-        assertEquals(joinedEvent1.getServicePackageName(), servicePackageName);
+        assertEquals(joinedEvent1.getService(), service);
 
         JoinedEvent joinedEvent2 = new JoinedEvent.Builder(
-                eventId, queryId, rowIndex, servicePackageName, type, eventTimeMillis, eventData,
+                eventId, queryId, rowIndex, service, type, eventTimeMillis, eventData,
                 queryTimeMillis, queryData)
                 .build();
         assertEquals(joinedEvent1, joinedEvent2);
@@ -70,7 +72,7 @@ public class JoinedEventTest {
 
     @Test
     public void testBuildTwiceThrows() {
-        String servicePackageName = "servicePackageName";
+        ComponentName service = new ComponentName("servicePkg", "cls");
         long queryId = 1;
         long eventId = 1;
         int rowIndex = 1;
@@ -81,7 +83,7 @@ public class JoinedEventTest {
         byte[] queryData = "queryData".getBytes();
 
         JoinedEvent.Builder builder = new JoinedEvent.Builder()
-                .setServicePackageName(servicePackageName)
+                .setService(service)
                 .setQueryId(queryId)
                 .setEventId(eventId)
                 .setRowIndex(rowIndex)

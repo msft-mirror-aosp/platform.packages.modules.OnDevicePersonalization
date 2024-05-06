@@ -98,6 +98,7 @@ android_app {
         ":statslog-ondevicepersonalization-java-gen",
     ],
     libs: [
+        "framework-adservices", // For user consent
         "framework-annotations-lib",
         "framework-configinfrastructure",
         "framework-connectivity.stubs.module_lib",
@@ -119,6 +120,9 @@ android_app {
         "flatbuffers-java",
         "apache-velocity-engine-core",
         "owasp-java-encoder",
+        "tensorflowlite_java",
+        "tensorflow_core_proto_java_lite",
+        "adservices-shared-spe",
     ],
     sdk_version: "module_current",
     min_sdk_version: "33",

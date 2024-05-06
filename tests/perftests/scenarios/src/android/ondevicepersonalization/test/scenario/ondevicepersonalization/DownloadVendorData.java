@@ -51,7 +51,6 @@ public class DownloadVendorData {
 
     @After
     public void tearDown() throws IOException {
-        mDownloadHelper.uninstallVendorApk();
         mDownloadHelper.cleanupDatabase();
         mDownloadHelper.cleanupDownloadedMetadata();
         mDownloadHelper.pressHome();

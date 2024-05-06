@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.util;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNull;
 
 import android.os.Bundle;
 
@@ -38,16 +39,34 @@ public final class ParcelWrapperTest {
         ParcelWrapper<Bundle> wrapper = new ParcelWrapper<>(bundle);
 
         try (ByteArrayOutputStream bstream = new ByteArrayOutputStream();
-            ObjectOutputStream ostream = new ObjectOutputStream(bstream)) {
+                ObjectOutputStream ostream = new ObjectOutputStream(bstream)) {
             ostream.writeObject(wrapper);
 
             byte[] serializedBytes = bstream.toByteArray();
 
             try (ByteArrayInputStream bStream2 = new ByteArrayInputStream(serializedBytes);
-                ObjectInputStream oStream2 = new ObjectInputStream(bStream2)) {
+                    ObjectInputStream oStream2 = new ObjectInputStream(bStream2)) {
                 ParcelWrapper<Bundle> wrapper2 = (ParcelWrapper<Bundle>) oStream2.readObject();
 
                 assertEquals(5, wrapper2.get(Bundle.CREATOR).getInt("x"));
+            }
+        }
+    }
+
+    @Test public void testNullInput() throws Exception {
+        ParcelWrapper<Bundle> wrapper = new ParcelWrapper<>((Bundle) null);
+
+        try (ByteArrayOutputStream bstream = new ByteArrayOutputStream();
+                ObjectOutputStream ostream = new ObjectOutputStream(bstream)) {
+            ostream.writeObject(wrapper);
+
+            byte[] serializedBytes = bstream.toByteArray();
+
+            try (ByteArrayInputStream bStream2 = new ByteArrayInputStream(serializedBytes);
+                    ObjectInputStream oStream2 = new ObjectInputStream(bStream2)) {
+                ParcelWrapper<Bundle> wrapper2 = (ParcelWrapper<Bundle>) oStream2.readObject();
+
+                assertNull(wrapper2.get(Bundle.CREATOR));
             }
         }
     }
