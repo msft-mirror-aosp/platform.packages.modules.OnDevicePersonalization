@@ -16,6 +16,10 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
+
 import android.annotation.Nullable;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
@@ -29,6 +33,7 @@ import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataContract;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
 /** Helper to manage the OnDevicePersonalization database. */
 public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
@@ -129,8 +134,12 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         try {
             return super.getWritableDatabase();
         } catch (SQLiteException e) {
-            // TODO(b/337481657): add CEL for database exception.
             sLogger.e(e, TAG + ": Failed to get a writeable database");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
             return null;
         }
     }
@@ -141,8 +150,12 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
         try {
             return super.getReadableDatabase();
         } catch (SQLiteException e) {
-            // TODO(b/337481657): add CEL for database exception.
             sLogger.e(e, TAG + ": Failed to get a readable database");
+            ClientErrorLogger.getInstance()
+                    .logErrorWithExceptionInfo(
+                            e,
+                            AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION,
+                            AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP);
             return null;
         }
     }
