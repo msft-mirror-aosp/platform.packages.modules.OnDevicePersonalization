@@ -143,6 +143,7 @@ public class OdpExampleStoreServiceTests {
                 ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
         input.putString(ClientConstants.EXTRA_POPULATION_NAME, "PopulationName");
         input.putString(ClientConstants.EXTRA_TASK_ID, "TaskName");
+        input.putString(ClientConstants.EXTRA_COLLECTION_URI, "CollectionUri");
 
         binder.startQuery(input, callback);
         assertTrue(

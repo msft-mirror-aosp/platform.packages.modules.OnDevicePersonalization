@@ -84,6 +84,8 @@ public class ExampleStoreServiceProvider {
                 bundle.putByteArray(
                         ClientConstants.EXTRA_EXAMPLE_ITERATOR_RESUMPTION_TOKEN, resumptionToken);
                 bundle.putByteArray(ClientConstants.EXTRA_EXAMPLE_ITERATOR_CRITERIA, criteria);
+                bundle.putString(
+                        ClientConstants.EXTRA_COLLECTION_URI, exampleSelector.getCollectionUri());
             }
             return runExampleStoreStartQuery(
                     exampleStoreService, bundle, exampleStats, startTimeNanos);

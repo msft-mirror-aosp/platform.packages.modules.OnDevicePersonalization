@@ -14,11 +14,13 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
+
+<!-- versionCode is set to placeholder module version which will
+     be replaced during build. Do not change it!  -->
 <manifest
     xmlns:android="http://schemas.android.com/apk/res/android"
     package="com.android.federatedcompute.services"
-    android:versionCode="1"
-    android:versionName="T-initial">
+    android:versionCode="0">
 
     <!-- Define the permission to call federated compute clients implemented ExampleStoreService -->
     <permission

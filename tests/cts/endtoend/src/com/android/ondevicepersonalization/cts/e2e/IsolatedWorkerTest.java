@@ -118,7 +118,8 @@ public class IsolatedWorkerTest {
     public void testOnTrainingExamples() throws Exception {
         IsolatedWorker worker = new TestWorker();
         WorkerResultReceiver<TrainingExamplesOutput> receiver = new WorkerResultReceiver<>();
-        TrainingExamplesInput input = new TrainingExamplesInput("pop", "task", new byte[]{1});
+        TrainingExamplesInput input =
+                new TrainingExamplesInput("pop", "task", new byte[] {1}, "collection_uri");
         worker.onTrainingExamples(input, receiver);
         assertNotNull(receiver.mResult);
         assertArrayEquals(new byte[]{'A'},

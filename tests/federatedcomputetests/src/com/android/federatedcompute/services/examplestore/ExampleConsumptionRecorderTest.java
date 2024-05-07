@@ -59,6 +59,29 @@ public final class ExampleConsumptionRecorderTest {
     }
 
     @Test
+    public void testIncrementWithCollectionUri() {
+        String taskName = "taskName";
+        String collectionUri = "collection";
+        byte[] selectionCriteria = new byte[] {10, 0, 1};
+        ExampleConsumptionRecorder recorder = new ExampleConsumptionRecorder();
+        byte[] token1 = "token1".getBytes(Charset.defaultCharset());
+        SingleQueryRecorder singleRecorder =
+                recorder.createRecorderForTracking(taskName, selectionCriteria, collectionUri);
+        singleRecorder.incrementAndUpdateResumptionToken(token1);
+        byte[] token2 = "token2".getBytes(Charset.defaultCharset());
+        singleRecorder.incrementAndUpdateResumptionToken(token2);
+        assertThat(recorder.finishRecordingAndGet())
+                .containsExactly(
+                        new ExampleConsumption.Builder()
+                                .setTaskId(taskName)
+                                .setExampleCount(2)
+                                .setSelectionCriteria(selectionCriteria)
+                                .setCollectionUri(collectionUri)
+                                .setResumptionToken(token2)
+                                .build());
+    }
+
+    @Test
     public void testIncrementDifferentTaskName() {
         String taskName = "taskName";
         byte[] criteria = new byte[] {10, 0, 1};

@@ -163,7 +163,7 @@ public class UserDataCollector {
                     TimeZone.getDefault().getOffset(System.currentTimeMillis())
                             / MILLISECONDS_IN_MINUTE;
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect timezone offset.");
+            sLogger.w(TAG + ": Failed to collect timezone offset.", e);
         }
     }
 
@@ -173,7 +173,7 @@ public class UserDataCollector {
         try {
             userData.orientation = mContext.getResources().getConfiguration().orientation;
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect device orientation.");
+            sLogger.w(TAG + ": Failed to collect device orientation.", e);
         }
     }
 
@@ -184,7 +184,7 @@ public class UserDataCollector {
             StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
             userData.availableStorageBytes = statFs.getAvailableBytes();
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect availableStorageBytes.");
+            sLogger.w(TAG + ": Failed to collect availableStorageBytes.", e);
         }
     }
 
@@ -201,7 +201,7 @@ public class UserDataCollector {
                 userData.batteryPercentage = Math.round(level * 100.0f / (float) scale);
             }
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect batteryPercentage.");
+            sLogger.w(TAG + ": Failed to collect batteryPercentage.", e);
         }
     }
 
@@ -242,7 +242,7 @@ public class UserDataCollector {
                 default -> userData.carrier = Carrier.UNKNOWN;
             }
         } catch (Exception e) {
-            sLogger.w(TAG + "Failed to collect carrier info.");
+            sLogger.w(TAG + "Failed to collect carrier info.", e);
         }
     }
 
@@ -255,7 +255,7 @@ public class UserDataCollector {
                             mConnectivityManager.getActiveNetwork());
             userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect networkCapabilities.");
+            sLogger.w(TAG + ": Failed to collect networkCapabilities.", e);
         }
     }
 
@@ -269,7 +269,7 @@ public class UserDataCollector {
                 userData.dataNetworkType = dataNetworkType;
             }
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect data network type.");
+            sLogger.w(TAG + ": Failed to collect data network type.", e);
         }
     }
 

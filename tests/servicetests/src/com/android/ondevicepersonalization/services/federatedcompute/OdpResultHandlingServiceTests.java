@@ -62,6 +62,22 @@ public class OdpResultHandlingServiceTests {
     private static final String SERVICE_CLASS = "com.test.TestPersonalizationService";
     private boolean mCallbackOnSuccessCalled = false;
     private boolean mCallbackOnFailureCalled = false;
+    private static final ExampleConsumption EXAMPLE_CONSUMPTION =
+            new ExampleConsumption.Builder()
+                    .setTaskId("task_name")
+                    .setExampleCount(100)
+                    .setSelectionCriteria(new byte[] {10, 0, 1})
+                    .setResumptionToken(new byte[] {10, 0, 1})
+                    .build();
+
+    private static final ExampleConsumption EXAMPLE_CONSUMPTION_WITH_COLLECTION_URI =
+            new ExampleConsumption.Builder()
+                    .setTaskId("task_name")
+                    .setExampleCount(100)
+                    .setSelectionCriteria(new byte[] {10, 0, 1})
+                    .setResumptionToken(new byte[] {10, 0, 1})
+                    .setCollectionUri("collection_uri")
+                    .build();
 
     private EventsDao mEventsDao;
 
@@ -94,13 +110,7 @@ public class OdpResultHandlingServiceTests {
         input.putString(ClientConstants.EXTRA_TASK_ID, "task_name");
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
         ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
-        exampleConsumptions.add(
-                new ExampleConsumption.Builder()
-                        .setTaskId("task_name")
-                        .setExampleCount(100)
-                        .setSelectionCriteria(new byte[] {10, 0, 1})
-                        .setResumptionToken(new byte[] {10, 0, 1})
-                        .build());
+        exampleConsumptions.add(EXAMPLE_CONSUMPTION);
         input.putParcelableArrayList(
                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
 
@@ -112,6 +122,38 @@ public class OdpResultHandlingServiceTests {
         EventState state1 =
                 mEventsDao.getEventState(
                         OdpExampleStoreService.getTaskIdentifier("population", "task_name"),
+                        new ComponentName(mContext.getPackageName(), SERVICE_CLASS));
+        assertArrayEquals(new byte[] {10, 0, 1}, state1.getToken());
+    }
+
+    @Test
+    public void testHandleResultWithCollectionUri() throws Exception {
+        Intent mIntent = new Intent();
+        mIntent.setAction(RESULT_HANDLING_SERVICE_ACTION).setPackage(mContext.getPackageName());
+        IBinder binder = serviceRule.bindService(mIntent);
+        assertNotNull(binder);
+
+        Bundle input = new Bundle();
+        ContextData contextData = new ContextData(mContext.getPackageName(), SERVICE_CLASS);
+        input.putByteArray(
+                ClientConstants.EXTRA_CONTEXT_DATA, ContextData.toByteArray(contextData));
+        input.putString(ClientConstants.EXTRA_POPULATION_NAME, "population");
+        input.putString(ClientConstants.EXTRA_TASK_ID, "task_name");
+        input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_SUCCESS);
+        ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
+        exampleConsumptions.add(EXAMPLE_CONSUMPTION_WITH_COLLECTION_URI);
+        input.putParcelableArrayList(
+                ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
+
+        ((IResultHandlingService.Stub) binder).handleResult(input, new TestCallback());
+        mLatch.await(1000, TimeUnit.MILLISECONDS);
+        assertTrue(mCallbackOnSuccessCalled);
+        assertFalse(mCallbackOnFailureCalled);
+
+        EventState state1 =
+                mEventsDao.getEventState(
+                        OdpExampleStoreService.getTaskIdentifier(
+                                "population", "task_name", "collection_uri"),
                         new ComponentName(mContext.getPackageName(), SERVICE_CLASS));
         assertArrayEquals(new byte[] {10, 0, 1}, state1.getToken());
     }
@@ -131,13 +173,8 @@ public class OdpResultHandlingServiceTests {
         input.putString(ClientConstants.EXTRA_TASK_ID, "task_name");
         input.putInt(ClientConstants.EXTRA_COMPUTATION_RESULT, STATUS_TRAINING_FAILED);
         ArrayList<ExampleConsumption> exampleConsumptions = new ArrayList<>();
-        exampleConsumptions.add(
-                new ExampleConsumption.Builder()
-                        .setTaskId("task")
-                        .setExampleCount(100)
-                        .setSelectionCriteria(new byte[] {10, 0, 1})
-                        .setResumptionToken(new byte[] {10, 0, 1})
-                        .build());
+        exampleConsumptions.add(EXAMPLE_CONSUMPTION);
+
         input.putParcelableArrayList(
                 ClientConstants.EXTRA_EXAMPLE_CONSUMPTION_LIST, exampleConsumptions);
 
