@@ -94,6 +94,16 @@ public final class OdpExampleStoreService extends ExampleStoreService {
         return populationName + "_" + taskId;
     }
 
+    /** Generates a unique task identifier from the given strings */
+    public static String getTaskIdentifier(
+            String populationName, String taskId, String collectionUri) {
+        return populationName + "_" + taskId + "_" + collectionUri;
+    }
+
+    private static boolean isCollectionUriPresent(String collectionUri) {
+        return collectionUri != null && !collectionUri.isEmpty();
+    }
+
     @Override
     public void startQuery(@NonNull Bundle params, @NonNull QueryCallback callback) {
         try {
@@ -106,6 +116,7 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             String populationName =
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
             String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
+            String collectionUri = params.getString(ClientConstants.EXTRA_COLLECTION_URI);
 
             EventsDao eventDao = EventsDao.getInstance(getContext());
 
@@ -154,18 +165,24 @@ public final class OdpExampleStoreService extends ExampleStoreService {
 
             // Get resumptionToken
             EventState eventState =
-                    eventDao.getEventState(getTaskIdentifier(populationName, taskId), owner);
+                    eventDao.getEventState(
+                            isCollectionUriPresent(collectionUri)
+                                    ? getTaskIdentifier(populationName, taskId, collectionUri)
+                                    : getTaskIdentifier(populationName, taskId),
+                            owner);
             byte[] resumptionToken = null;
             if (eventState != null) {
                 resumptionToken = eventState.getToken();
             }
 
-            TrainingExamplesInputParcel input =
+            TrainingExamplesInputParcel.Builder input =
                     new TrainingExamplesInputParcel.Builder()
                             .setResumptionToken(resumptionToken)
                             .setPopulationName(populationName)
-                            .setTaskName(taskId)
-                            .build();
+                            .setTaskName(taskId);
+            if (isCollectionUriPresent(collectionUri)) {
+                input.setCollectionUri(collectionUri);
+            }
 
             String className =
                     AppManifestConfigHelper.getServiceNameFromOdpSettings(
@@ -179,7 +196,9 @@ public final class OdpExampleStoreService extends ExampleStoreService {
             ListenableFuture<TrainingExamplesOutputParcel> resultFuture =
                     FluentFuture.from(loadFuture)
                             .transformAsync(
-                                    result -> executeOnTrainingExamples(result, input, packageName),
+                                    result ->
+                                            executeOnTrainingExamples(
+                                                    result, input.build(), packageName),
                                     OnDevicePersonalizationExecutors.getBackgroundExecutor())
                             .transform(
                                     result -> {
