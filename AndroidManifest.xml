@@ -60,35 +60,48 @@
                 <action android:name="android.OnDevicePersonalizationService" />
             </intent-filter>
         </service>
-        <service android:name=".OnDevicePersonalizationConfigServiceImpl" android:exported="true" >
+        <service android:name=".OnDevicePersonalizationConfigServiceImpl" android:exported="true">
             <intent-filter>
-                <action android:name="android.OnDevicePersonalizationConfigService" />
+                <action android:name="android.OnDevicePersonalizationConfigService"/>
             </intent-filter>
         </service>
-        <service android:name=".OnDevicePersonalizationDebugServiceImpl" android:exported="true" >
+        <service android:name=".OnDevicePersonalizationDebugServiceImpl" android:exported="true">
             <intent-filter>
-                <action android:name="android.OnDevicePersonalizationDebugService" />
+                <action android:name="android.OnDevicePersonalizationDebugService"/>
             </intent-filter>
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
+
+        <!-- The JobService schedules all jobs for ODP using SPE framework. -->
+        <service
+            android:name="com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
+
+        <service
+            android:name="com.android.ondevicepersonalization.services.download.OnDevicePersonalizationDownloadProcessingJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
+        <service
+            android:name="com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.download.mdd.MddJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
+        <service
+            android:name="com.android.ondevicepersonalization.services.data.user.UserDataCollectionJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.ondevicepersonalization.services.reset.ResetDataJobService"
-                 android:exported="false"
-                 android:permission="android.permission.BIND_JOB_SERVICE">
+        <service
+            android:name="com.android.ondevicepersonalization.services.download.mdd.MddJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+        <service
+            android:name="com.android.ondevicepersonalization.services.reset.ResetDataJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
         <service android:name="com.android.ondevicepersonalization.libraries.plugin.internal.PluginExecutorService"
                  android:isolatedProcess="true"
