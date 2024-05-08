@@ -28,11 +28,20 @@
     <application android:label="FederatedComputeServicesTests"
                  android:debuggable="true">
         <uses-library android:name="android.test.runner"/>
+
+        <!-- The JobService schedules all jobs for FederatedCompute using SPE framework. -->
+        <service
+            android:name="com.android.federatedcompute.services.sharedlibrary.spe.FederatedComputeJobService"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE">
+        </service>
+
         <service android:name="com.android.federatedcompute.services.training.FederatedJobService"
                  android:exported="false"
                  android:permission="android.permission.BIND_JOB_SERVICE">
         </service>
-        <service android:name="com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService"
+        <service
+            android:name="com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService"
             android:exported="false"
             android:permission="android.permission.BIND_JOB_SERVICE">
         </service>

@@ -16,36 +16,67 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION;
+import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP;
+
+import static com.google.common.truth.Truth.assertThat;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 
 import androidx.test.core.app.ApplicationProvider;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.data.events.EventStateContract;
 import com.android.ondevicepersonalization.services.data.events.EventsContract;
 import com.android.ondevicepersonalization.services.data.events.QueriesContract;
 import com.android.ondevicepersonalization.services.data.user.UserDataContract;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
+import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.junit.runners.JUnit4;
+import org.mockito.Mock;
+import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-@RunWith(JUnit4.class)
-public class OnDevicePersonalizationDbHelperTest {
-    private final Context mContext = ApplicationProvider.getApplicationContext();
+@RunWith(AndroidJUnit4.class)
+@MockStatic(FlagsFactory.class)
+@MockStatic(ClientErrorLogger.class)
+public final class OnDevicePersonalizationDbHelperTest {
+    private Context mContext;
     private OnDevicePersonalizationDbHelper mDbHelper;
     private SQLiteDatabase mDb;
+
+    @Rule
+    public final ExtendedMockitoRule mExtendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
+    @Mock private Flags mMockFlags;
+    @Mock private ClientErrorLogger mMockClientErrorLogger;
+
     private static final String CREATE_QUERIES_V1_STATEMENT =
             "CREATE TABLE IF NOT EXISTS " + QueriesContract.QueriesEntry.TABLE_NAME + " ("
                 + QueriesContract.QueriesEntry.QUERY_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
@@ -72,8 +103,11 @@ public class OnDevicePersonalizationDbHelperTest {
 
     @Before
     public void setup() {
+        mContext = ApplicationProvider.getApplicationContext();
         mDbHelper = OnDevicePersonalizationDbHelper.getInstanceForTest(mContext);
         mDb = mDbHelper.getWritableDatabase();
+        when(FlagsFactory.getFlags()).thenReturn(mMockFlags);
+        when(ClientErrorLogger.getInstance()).thenReturn(mMockClientErrorLogger);
     }
 
     @After
@@ -150,6 +184,40 @@ public class OnDevicePersonalizationDbHelperTest {
         OnDevicePersonalizationDbHelper instance2 =
                 OnDevicePersonalizationDbHelper.getInstance(mContext);
         assertEquals(instance1, instance2);
+    }
+
+    @Test
+    public void testSafeGetReadableDatabase_exceptionOccurs_validatesErrorLogging() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                spy(OnDevicePersonalizationDbHelper.getInstanceForTest(mContext));
+        Throwable tr = new SQLiteException();
+        doThrow(tr).when(dbHelper).getReadableDatabase();
+
+        SQLiteDatabase db = dbHelper.safeGetReadableDatabase();
+
+        assertThat(db).isNull();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_READ_EXCEPTION),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP));
+    }
+
+    @Test
+    public void testSafeGetWritableDatabase_exceptionOccurs_validatesErrorLogging() {
+        OnDevicePersonalizationDbHelper dbHelper =
+                spy(OnDevicePersonalizationDbHelper.getInstanceForTest(mContext));
+        Throwable tr = new SQLiteException();
+        doThrow(tr).when(dbHelper).getWritableDatabase();
+
+        SQLiteDatabase db = dbHelper.safeGetWritableDatabase();
+
+        assertThat(db).isNull();
+        verify(mMockClientErrorLogger)
+                .logErrorWithExceptionInfo(
+                        any(),
+                        eq(AD_SERVICES_ERROR_REPORTED__ERROR_CODE__DATABASE_WRITE_EXCEPTION),
+                        eq(AD_SERVICES_ERROR_REPORTED__PPAPI_NAME__ODP));
     }
 
     private void createV1Tables(SQLiteDatabase db) {
