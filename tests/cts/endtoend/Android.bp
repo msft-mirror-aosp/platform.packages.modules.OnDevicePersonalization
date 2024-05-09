@@ -49,6 +49,7 @@ android_test {
     ],
     test_mainline_modules: ["com.google.android.ondevicepersonalization.apex"],
     test_suites: [
+        "cts",
         "general-tests",
         "mts-ondevicepersonalization",
         "mcts-ondevicepersonalization",
