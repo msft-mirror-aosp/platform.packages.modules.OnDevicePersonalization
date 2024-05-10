@@ -16,11 +16,19 @@
 
 package android.ondevicepersonalization;
 
-import static android.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationConfigManager.ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE;
+import static android.adservices.ondevicepersonalization.OnDevicePersonalizationManager.ON_DEVICE_PERSONALIZATION_SERVICE;
+import static android.federatedcompute.FederatedComputeManager.FEDERATED_COMPUTE_SERVICE;
+import static android.ondevicepersonalization.OnDevicePersonalizationSystemServiceManager.ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE;
 
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationConfigManager;
+import android.adservices.ondevicepersonalization.OnDevicePersonalizationManager;
 import android.annotation.SystemApi;
 import android.app.SystemServiceRegistry;
 import android.content.Context;
+import android.federatedcompute.FederatedComputeManager;
+
+import com.android.modules.utils.build.SdkLevel;
 
 /**
  * Class holding initialization code for the OnDevicePersonalization module.
@@ -44,5 +52,19 @@ public class OnDevicePersonalizationFrameworkInitializer {
         SystemServiceRegistry.registerContextAwareService(
                 ON_DEVICE_PERSONALIZATION_SERVICE, OnDevicePersonalizationManager.class,
                 (c) -> new OnDevicePersonalizationManager(c));
+        SystemServiceRegistry.registerContextAwareService(
+                ON_DEVICE_PERSONALIZATION_CONFIG_SERVICE,
+                OnDevicePersonalizationConfigManager.class,
+                (c) -> new OnDevicePersonalizationConfigManager(c));
+        SystemServiceRegistry.registerContextAwareService(
+                FEDERATED_COMPUTE_SERVICE, FederatedComputeManager.class,
+                (c) -> new FederatedComputeManager(c));
+
+        if (SdkLevel.isAtLeastU()) {
+            SystemServiceRegistry.registerStaticService(
+                    ON_DEVICE_PERSONALIZATION_SYSTEM_SERVICE,
+                    OnDevicePersonalizationSystemServiceManager.class,
+                    (s) -> new OnDevicePersonalizationSystemServiceManager(s));
+        }
     }
 }

@@ -18,13 +18,13 @@ package {
 
 android_test_helper_app {
     name: "OdpClient",
-    defaults: ["platform_app_defaults"],
+    defaults: ["framework-ondevicepersonalization-test-defaults"],
     platform_apis: true,
     srcs: [
         "src/**/odpclient/*.java",
-        ":framework-ondevicepersonalization-sources",
-        ":framework-ondevicepersonalization-aidl",
-        ":ondevicepersonalization-sources",
+    ],
+    libs: [
+        "framework-ondevicepersonalization.impl",
     ],
     static_libs: [
         "androidx.annotation_annotation",
@@ -33,5 +33,8 @@ android_test_helper_app {
     resource_dirs: [
         "res",
     ],
+    target_sdk_version: "current",
+    min_sdk_version: "Tiramisu",
     manifest: "AndroidManifest.xml",
+    certificate: "platform",
 }
