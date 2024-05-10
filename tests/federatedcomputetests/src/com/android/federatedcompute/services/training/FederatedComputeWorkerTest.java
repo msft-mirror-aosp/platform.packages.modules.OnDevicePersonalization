@@ -183,6 +183,8 @@ public final class FederatedComputeWorkerTest {
             TaskAssignment.newBuilder()
                     .setTaskId(TASK_ID)
                     .setEligibilityTaskInfo(ELIGIBILITY_TASK_INFO)
+                    .setExampleSelector(
+                            ExampleSelector.newBuilder().setCollectionUri(COLLECTION_URI).build())
                     .build();
     private static final CheckinResult FL_CHECKIN_RESULT =
             new CheckinResult(
@@ -194,7 +196,13 @@ public final class FederatedComputeWorkerTest {
             new CheckinResult(
                     createTempFile("input", ".ckp"),
                     TrainingTestUtil.createFederatedAnalyticClientPlan(),
-                    TaskAssignment.newBuilder().setTaskId(TASK_ID).build());
+                    TaskAssignment.newBuilder()
+                            .setTaskId(TASK_ID)
+                            .setExampleSelector(
+                                    ExampleSelector.newBuilder()
+                                            .setCollectionUri(COLLECTION_URI)
+                                            .build())
+                            .build());
 
     public static final RejectionInfo RETRY_REJECTION_INFO =
             RejectionInfo.newBuilder()
@@ -879,10 +887,6 @@ public final class FederatedComputeWorkerTest {
                 TensorflowSpec.newBuilder()
                         .setDatasetTokenTensorName("dataset")
                         .addTargetNodeNames("target")
-                        .setExampleSelector(
-                                ExampleSelector.newBuilder()
-                                        .setCollectionUri(COLLECTION_URI)
-                                        .build())
                         .build();
         ClientOnlyPlan clientOnlyPlan =
                 ClientOnlyPlan.newBuilder()
@@ -893,7 +897,13 @@ public final class FederatedComputeWorkerTest {
                 new CheckinResult(
                         createTempFile("input", ".ckp"),
                         clientOnlyPlan,
-                        TaskAssignment.newBuilder().setTaskId(TASK_ID).build());
+                        TaskAssignment.newBuilder()
+                                .setTaskId(TASK_ID)
+                                .setExampleSelector(
+                                        ExampleSelector.newBuilder()
+                                                .setCollectionUri(COLLECTION_URI)
+                                                .build())
+                                .build());
         setUpHttpFederatedProtocol(checkinResultNoTfliteGraph);
 
         // Mock bind to IsolatedTrainingService.
