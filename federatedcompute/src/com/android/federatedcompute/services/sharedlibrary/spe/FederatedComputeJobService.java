@@ -16,11 +16,15 @@
 
 package com.android.federatedcompute.services.sharedlibrary.spe;
 
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+
 import android.app.job.JobParameters;
 
 import com.android.adservices.shared.spe.framework.AbstractJobService;
 import com.android.adservices.shared.spe.framework.JobServiceFactory;
 import com.android.federatedcompute.internal.util.LogUtil;
+import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.internal.annotations.VisibleForTesting;
 
 /** The FederatedCompute's implementation of {@link AbstractJobService}. */
@@ -47,9 +51,11 @@ public final class FederatedComputeJobService extends AbstractJobService {
                     "SPE is disabled. Reschedule SPE job instance of jobId=%d with its legacy"
                             + " JobService scheduling method.",
                     jobId);
+
             FederatedComputeJobServiceFactory factory =
                     (FederatedComputeJobServiceFactory) getJobServiceFactory();
-            factory.rescheduleJobWithLegacyMethod(jobId);
+            factory.rescheduleJobWithLegacyMethod(this, jobId);
+
             return false;
         }
 
@@ -58,8 +64,17 @@ public final class FederatedComputeJobService extends AbstractJobService {
 
     // Determine whether we should cancel and reschedule current job with the legacy JobService
     // class. It could happen when SPE has a production issue.
+    //
+    // The first batch job to migrate is,
+    // - DeleteExpiredJobService, job ID = 1001.
     @VisibleForTesting
     boolean shouldRescheduleWithLegacyMethod(int jobId) {
+        Flags flags = FlagsFactory.getFlags();
+
+        if (jobId == DELETE_EXPIRED_JOB_ID && !flags.getSpePilotJobEnabled()) {
+            return true;
+        }
+
         return false;
     }
 }
