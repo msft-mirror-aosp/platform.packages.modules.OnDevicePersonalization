@@ -55,6 +55,7 @@ android_test {
         "modules-utils-build",
         "ondevicepersonalization-protos",
         "ondevicepersonalization-plugin-lib",
+        "ondevicepersonalization-assets",
         "apache-velocity-engine-core",
         "flatbuffers-java",
         "owasp-java-encoder",

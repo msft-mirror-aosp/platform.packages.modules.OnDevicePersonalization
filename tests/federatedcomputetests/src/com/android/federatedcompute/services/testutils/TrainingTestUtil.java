@@ -86,10 +86,6 @@ public class TrainingTestUtil {
     public static ClientOnlyPlan createFakeFederatedLearningClientPlan() {
         TensorflowSpec tensorflowSpec =
                 TensorflowSpec.newBuilder()
-                        .setExampleSelector(
-                                ExampleSelector.newBuilder()
-                                        .setCollectionUri(COLLECTION_URI)
-                                        .build())
                         .setDatasetTokenTensorName("dataset")
                         .addTargetNodeNames("target")
                         .build();

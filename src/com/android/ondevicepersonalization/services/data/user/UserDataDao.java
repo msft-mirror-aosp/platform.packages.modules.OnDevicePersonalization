@@ -79,6 +79,19 @@ public class UserDataDao {
         }
     }
 
+    /** Returns an instance of the EventsDao given a context. This is used for testing only. */
+    @VisibleForTesting
+    public static UserDataDao getInstanceForTest(@NonNull Context context) {
+        synchronized (UserDataDao.class) {
+            if (sSingleton == null) {
+                OnDevicePersonalizationDbHelper dbHelper =
+                        OnDevicePersonalizationDbHelper.getInstanceForTest(context);
+                sSingleton = new UserDataDao(dbHelper, MonotonicClock.getInstance());
+            }
+            return sSingleton;
+        }
+    }
+
     /** Inserts or replaces an entry in AppInstall table. */
     public boolean insertAppInstall(Map<String, Long> appInstallList, float noise) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();

@@ -96,6 +96,9 @@ public final class PhFlags implements Flags {
 
     public static final String KEY_RESET_DATA_DEADLINE_SECONDS = "reset_data_deadline_seconds";
 
+    public static final String APP_INSTALL_HISTORY_TTL = "app_install_history_ttl";
+    public static final String TARGET_EPSILON_PER_USER_FEATURE = "target_epsilon_per_user_feature";
+
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
 
@@ -389,5 +392,21 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_RESET_DATA_DEADLINE_SECONDS,
                 /* defaultValue= */ DEFAULT_RESET_DATA_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public long getAppInstallHistoryTtlInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ APP_INSTALL_HISTORY_TTL,
+                /* defaultValue= */ DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS);
+    }
+
+    @Override
+    public float getTargetNoiseForUserFeature() {
+        return DeviceConfig.getFloat(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ TARGET_EPSILON_PER_USER_FEATURE,
+                /* defaultValue= */ DEFAULT_NOISE_PER_USER_FEATURE);
     }
 }

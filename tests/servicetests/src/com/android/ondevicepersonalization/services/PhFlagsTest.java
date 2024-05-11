@@ -21,6 +21,7 @@ import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKG
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.ondevicepersonalization.services.Flags.APP_REQUEST_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.Flags.DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_CLIENT_ERROR_LOGGING_ENABLED;
 import static com.android.ondevicepersonalization.services.Flags.DEFAULT_ISOLATED_SERVICE_ALLOW_LIST;
@@ -38,6 +39,7 @@ import static com.android.ondevicepersonalization.services.Flags.PERSONALIZATION
 import static com.android.ondevicepersonalization.services.Flags.RENDER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.WEB_TRIGGER_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.Flags.WEB_VIEW_FLOW_DEADLINE_SECONDS;
+import static com.android.ondevicepersonalization.services.PhFlags.APP_INSTALL_HISTORY_TTL;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_APP_REQUEST_FLOW_DEADLINE_SECONDS;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_CALLER_APP_ALLOW_LIST;
 import static com.android.ondevicepersonalization.services.PhFlags.KEY_DOWNLOAD_FLOW_DEADLINE_SECONDS;
@@ -611,5 +613,24 @@ public class PhFlagsTest {
 
         // the flag value remains stable
         assertThat(FlagsFactory.getFlags().getSpePilotJobEnabled()).isEqualTo(overrideEnabled);
+    }
+
+    @Test
+    public void testAppInstallHistoryTtl() {
+        // read a stable flag value and verify it's equal to the default value.
+        long stableValue = FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis();
+        assertThat(stableValue).isEqualTo(DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS);
+
+        // override the value in device config.
+        long overrideEnabled = 1000L;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                APP_INSTALL_HISTORY_TTL,
+                Long.toString(overrideEnabled),
+                /* makeDefault= */ false);
+
+        // the flag value remains stable
+        assertThat(FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis())
+                .isEqualTo(overrideEnabled);
     }
 }

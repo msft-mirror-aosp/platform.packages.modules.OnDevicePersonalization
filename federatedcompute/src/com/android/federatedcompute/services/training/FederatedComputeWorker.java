@@ -487,7 +487,8 @@ public class FederatedComputeWorker {
         // 4. Bind to client app implemented ExampleStoreService based on ExampleSelector.
         // Set active run's task name.
         ListenableFuture<IExampleStoreIterator> iteratorFuture =
-                getExampleStoreIterator(run, getExampleSelector(checkinResult));
+                getExampleStoreIterator(
+                        run, checkinResult.getTaskAssignment().getExampleSelector());
 
         // 5. Run federated learning or federated analytic depends on task type. Federated
         // learning job will start a new isolated process to run TFLite training.
@@ -741,26 +742,6 @@ public class FederatedComputeWorker {
         }
     }
 
-    private ExampleSelector getExampleSelector(CheckinResult checkinResult) {
-        ClientOnlyPlan clientPlan = checkinResult.getPlanData();
-        switch (clientPlan.getPhase().getSpecCase()) {
-            case EXAMPLE_QUERY_SPEC:
-                // Only support one FA query for now.
-                return clientPlan
-                        .getPhase()
-                        .getExampleQuerySpec()
-                        .getExampleQueries(0)
-                        .getExampleSelector();
-            case TENSORFLOW_SPEC:
-                return clientPlan.getPhase().getTensorflowSpec().getExampleSelector();
-            default:
-                throw new IllegalArgumentException(
-                        String.format(
-                                "Client plan spec is not supported %s",
-                                clientPlan.getPhase().getSpecCase().toString()));
-        }
-    }
-
     private boolean checkTrainingConditions(TrainingConstraints constraints) {
         Set<Condition> conditions =
                 mTrainingConditionsChecker.checkAllConditionsForFlTraining(constraints);
@@ -795,7 +776,7 @@ public class FederatedComputeWorker {
                 createTempFileDescriptor(
                         checkinResult.getInputCheckpointFile(),
                         ParcelFileDescriptor.MODE_READ_ONLY);
-        ExampleSelector exampleSelector = getExampleSelector(checkinResult);
+        ExampleSelector exampleSelector = checkinResult.getTaskAssignment().getExampleSelector();
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         if (clientPlan.getTfliteGraph().isEmpty()) {
             LogUtil.e(
@@ -1020,7 +1001,7 @@ public class FederatedComputeWorker {
             CheckinResult checkinResult,
             String outputCheckpointFile,
             IExampleStoreIterator exampleStoreIterator) {
-        ExampleSelector exampleSelector = getExampleSelector(checkinResult);
+        ExampleSelector exampleSelector = checkinResult.getTaskAssignment().getExampleSelector();
         ClientOnlyPlan clientPlan = checkinResult.getPlanData();
         // The federated analytic runs in main process which has permission to file system.
         ExampleConsumptionRecorder recorder = mInjector.getExampleConsumptionRecorder();
