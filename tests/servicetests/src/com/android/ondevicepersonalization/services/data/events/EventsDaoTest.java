@@ -573,6 +573,16 @@ public class EventsDaoTest {
         assertEquals(2, mDao.insertEvent(mTestEvent));
     }
 
+    @Test
+    public void testHasExistingEvent() {
+        assertEquals(1, mDao.insertQuery(mTestQuery));
+        assertEquals(1, mDao.insertEvent(mTestEvent));
+        assertTrue(mDao.hasEvent(
+                mTestEvent.getQueryId(),
+                mTestEvent.getType(),
+                mTestEvent.getRowIndex(),
+                mTestEvent.getService()));
+    }
 
     private JoinedEvent createExpectedJoinedEvent(Event event, Query query, long eventId,
             long queryId) {
