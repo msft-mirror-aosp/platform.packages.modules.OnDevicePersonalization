@@ -121,8 +121,23 @@ public class LogUtilsTest {
                         .setRequestId(queryId)
                         .setRows(requestLogRecord.getRows())
                         .build();
-        EventLogRecord eventLogRecord =
+        EventLogRecord eventLogRecord1 =
                 new EventLogRecord.Builder()
+                        .setType(1)
+                        .setRowIndex(1)
+                        .setData(new ContentValues())
+                        .setRequestLogRecord(requestLogRecord2)
+                        .build();
+        EventLogRecord eventLogRecord2 =
+                new EventLogRecord.Builder()
+                        .setType(2)
+                        .setRowIndex(1)
+                        .setData(new ContentValues())
+                        .setRequestLogRecord(requestLogRecord2)
+                        .build();
+        EventLogRecord eventLogRecord3 =
+                new EventLogRecord.Builder()
+                        .setType(1)  // Same as eventLogRecord1
                         .setRowIndex(1)
                         .setData(new ContentValues())
                         .setRequestLogRecord(requestLogRecord2)
@@ -132,11 +147,12 @@ public class LogUtilsTest {
                 APP,
                 mService,
                 null,
-                List.of(eventLogRecord)).get().longValue();
+                List.of(eventLogRecord1, eventLogRecord2, eventLogRecord3))
+                .get().longValue();
         long queriesSizeAfter = getDbTableSize(QueriesContract.QueriesEntry.TABLE_NAME);
         long eventsSizeAfter = getDbTableSize(EventsContract.EventsEntry.TABLE_NAME);
         assertEquals(1, queriesSizeAfter - queriesSizeBefore);
-        assertEquals(1, eventsSizeAfter - eventsSizeBefore);
+        assertEquals(3, eventsSizeAfter - eventsSizeBefore);
     }
 
     @Test
