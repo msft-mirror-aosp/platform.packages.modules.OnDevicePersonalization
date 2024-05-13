@@ -57,6 +57,9 @@ public class LogUtils {
             long queryId = -1;
             if (requestLogRecord != null) {
                 List<ContentValues> rows = requestLogRecord.getRows();
+                if (rows.isEmpty()) {
+                    rows = List.of(new ContentValues());
+                }
                 byte[] queryData = OnDevicePersonalizationFlatbufferUtils.createQueryData(
                         serviceName, certDigest, rows);
                 Query query = new Query.Builder(
@@ -75,14 +78,23 @@ public class LogUtils {
             // Insert events
             List<Event> events = new ArrayList<>();
             for (EventLogRecord eventLogRecord : eventLogRecords) {
-                RequestLogRecord parent = eventLogRecord.getRequestLogRecord();
+                RequestLogRecord parent;
+                long parentRequestId;
+                if (eventLogRecord.getRequestLogRecord() != null) {
+                    parent = eventLogRecord.getRequestLogRecord();
+                    parentRequestId = parent.getRequestId();
+                } else {
+                    parent = requestLogRecord;
+                    parentRequestId = queryId;
+                }
                 // Verify requestLogRecord exists and has the corresponding rowIndex
-                if (parent == null || parent.getRequestId() == 0
+                if (parent == null || parentRequestId <= 0
                         || eventLogRecord.getRowIndex() >= parent.getRows().size()) {
                     continue;
                 }
-                // Make sure query exists for package in QUERY table
-                Query queryRow = eventsDao.readSingleQueryRow(parent.getRequestId(), service);
+                // Make sure query exists for package in QUERY table and
+                // rowIndex <= written row count.
+                Query queryRow = eventsDao.readSingleQueryRow(parentRequestId, service);
                 if (queryRow == null || eventLogRecord.getRowIndex()
                         >= OnDevicePersonalizationFlatbufferUtils
                                 .getContentValuesLengthFromQueryData(
@@ -92,7 +104,7 @@ public class LogUtils {
                 Event event = new Event.Builder()
                         .setEventData(OnDevicePersonalizationFlatbufferUtils.createEventData(
                                 eventLogRecord.getData()))
-                        .setQueryId(parent.getRequestId())
+                        .setQueryId(parentRequestId)
                         .setRowIndex(eventLogRecord.getRowIndex())
                         .setService(service)
                         .setTimeMillis(System.currentTimeMillis())

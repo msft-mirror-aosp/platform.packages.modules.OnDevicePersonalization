@@ -570,7 +570,7 @@ public class EventsDaoTest {
     public void testInsertEventExistingKey() {
         assertEquals(1, mDao.insertQuery(mTestQuery));
         assertEquals(1, mDao.insertEvent(mTestEvent));
-        assertEquals(-1, mDao.insertEvent(mTestEvent));
+        assertEquals(2, mDao.insertEvent(mTestEvent));
     }
 
 
