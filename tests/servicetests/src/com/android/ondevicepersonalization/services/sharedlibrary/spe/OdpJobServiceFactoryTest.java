@@ -16,25 +16,49 @@
 
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+
 import static com.google.common.truth.Truth.assertThat;
+
+import android.content.Context;
+
+import androidx.test.core.app.ApplicationProvider;
 
 import com.android.adservices.shared.proto.ModuleJobPolicy;
 import com.android.adservices.shared.spe.logging.JobSchedulingLogger;
 import com.android.adservices.shared.spe.logging.JobServiceLogger;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
 import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
+import com.google.common.truth.Expect;
+
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.quality.Strictness;
 
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /** Unit tests for {@link OdpJobServiceFactory}. */
+@MockStatic(OnDevicePersonalizationMaintenanceJobService.class)
 public final class OdpJobServiceFactoryTest {
+    @Rule(order = 0)
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
+    @Rule(order = 1)
+    public final Expect expect = Expect.create();
+
+    private static final Context sContext = ApplicationProvider.getApplicationContext();
     private static final Executor sExecutor = Executors.newCachedThreadPool();
     private static final Map<Integer, String> sJobIdToNameMap = Map.of();
 
@@ -73,10 +97,28 @@ public final class OdpJobServiceFactoryTest {
     }
 
     @Test
-    public void testRescheduleJobWithLegacyMethod_notConfiguredJob() {
-        int notConfiguredJobId = 1000;
+    public void testGetJobInstance() {
+        expect.withMessage("getJobWorkerInstance() for OnDevicePersonalizationMaintenanceJob")
+                .that(mFactory.getJobWorkerInstance(MAINTENANCE_TASK_JOB_ID))
+                .isInstanceOf(OnDevicePersonalizationMaintenanceJob.class);
+    }
 
-        mFactory.rescheduleJobWithLegacyMethod(notConfiguredJobId);
+    @Test
+    public void testRescheduleJobWithLegacyMethod_notConfiguredJob() {
+        int notConfiguredJobId = -1;
+
+        mFactory.rescheduleJobWithLegacyMethod(sContext, notConfiguredJobId);
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod() {
+        boolean forceSchedule = true;
+
+        mFactory.rescheduleJobWithLegacyMethod(sContext, MAINTENANCE_TASK_JOB_ID);
+        verify(
+                () ->
+                        OnDevicePersonalizationMaintenanceJobService.schedule(
+                                sContext, forceSchedule));
     }
 
     @Test

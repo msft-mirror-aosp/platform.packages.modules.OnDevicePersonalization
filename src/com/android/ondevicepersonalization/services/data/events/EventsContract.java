@@ -18,6 +18,8 @@ package com.android.ondevicepersonalization.services.data.events;
 
 import android.provider.BaseColumns;
 
+import java.util.List;
+
 /** Contract for the events table. Defines the table. */
 public class EventsContract {
     private EventsContract() {
@@ -62,11 +64,29 @@ public class EventsContract {
                     + EVENT_DATA + " BLOB NOT NULL,"
                     + "FOREIGN KEY(" + QUERY_ID + ") REFERENCES "
                         + QueriesContract.QueriesEntry.TABLE_NAME + "("
-                        + QueriesContract.QueriesEntry.QUERY_ID + "),"
-                    + "UNIQUE(" + QUERY_ID + ","
-                        + ROW_INDEX + ","
-                        + SERVICE_NAME + ","
-                        + TYPE + "))";
+                        + QueriesContract.QueriesEntry.QUERY_ID + "))";
+
+        public static final List<String> UPGRADE_V4_TO_V5_STATEMENTS =
+                List.of(
+                    "CREATE TABLE IF NOT EXISTS " + TABLE_NAME + "_NEW ("
+                        + EVENT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                        + QUERY_ID + " INTEGER NOT NULL,"
+                        + ROW_INDEX + " INTEGER NOT NULL,"
+                        + SERVICE_NAME + " TEXT NOT NULL,"
+                        + TYPE + " INTEGER NOT NULL,"
+                        + TIME_MILLIS + " INTEGER NOT NULL,"
+                        + EVENT_DATA + " BLOB NOT NULL,"
+                        + "FOREIGN KEY(" + QUERY_ID + ") REFERENCES "
+                            + QueriesContract.QueriesEntry.TABLE_NAME + "("
+                            + QueriesContract.QueriesEntry.QUERY_ID + "))",
+                    "INSERT INTO " + TABLE_NAME + "_NEW "
+                        + "SELECT EVENT_ID, QUERY_ID, ROW_INDEX, "
+                        + "SERVICE_NAME, TYPE, TIME_MILLIS, EVENT_DATA "
+                        + "FROM " + TABLE_NAME,
+                    "DROP TABLE " + TABLE_NAME,
+                    "ALTER TABLE " + TABLE_NAME + "_NEW "
+                        + "RENAME TO " + TABLE_NAME
+                );
 
         private EventsEntry() {}
     }

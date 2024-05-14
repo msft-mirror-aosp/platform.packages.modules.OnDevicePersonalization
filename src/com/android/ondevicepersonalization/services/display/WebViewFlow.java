@@ -65,6 +65,8 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
 
     public static final String TASK_NAME = "ComputeEventMetrics";
 
+    private static final Object sDedupLock = new Object();
+
     @NonNull
     private final Context mContext;
     @NonNull
@@ -241,6 +243,7 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
                 sLogger.w(TAG + ": rowOffset out of range");
                 return Futures.immediateFuture(null);
             }
+
             byte[] data = OnDevicePersonalizationFlatbufferUtils.createEventData(
                     eventData.getData());
             Event event = new Event.Builder()
@@ -251,8 +254,16 @@ public class WebViewFlow implements ServiceFlow<EventOutputParcel> {
                     .setRowIndex(eventData.getRowIndex())
                     .setEventData(data)
                     .build();
-            if (-1 == EventsDao.getInstance(mContext).insertEvent(event)) {
-                sLogger.e(TAG + ": Failed to insert event: " + event);
+            EventsDao dao = EventsDao.getInstance(mContext);
+            synchronized (sDedupLock) {
+                // Do not insert duplicate event.
+                // TODO(b/340264727): Enforce this constraint in DB.
+                if (!dao.hasEvent(
+                        mQueryId, eventData.getType(), eventData.getRowIndex(), mService)) {
+                    if (-1 == dao.insertEvent(event)) {
+                        sLogger.e(TAG + ": Failed to insert event: " + event);
+                    }
+                }
             }
             return Futures.immediateFuture(null);
         } catch (Exception e) {

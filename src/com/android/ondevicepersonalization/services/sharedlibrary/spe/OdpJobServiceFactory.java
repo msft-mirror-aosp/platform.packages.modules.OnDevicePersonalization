@@ -17,6 +17,7 @@
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
 import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.JOB_ID_TO_NAME_MAP;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 
 import android.content.Context;
 
@@ -32,6 +33,8 @@ import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJobService;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpJobServiceLogger;
 import com.android.ondevicepersonalization.services.statsd.joblogging.OdpStatsdJobServiceLogger;
@@ -127,6 +130,8 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
     public JobWorker getJobWorkerInstance(int jobId) {
         try {
             switch (jobId) {
+                case MAINTENANCE_TASK_JOB_ID:
+                    return new OnDevicePersonalizationMaintenanceJob();
                 default:
                     throw new RuntimeException(
                             "The job is not configured for the instance creation.");
@@ -161,13 +166,17 @@ public final class OdpJobServiceFactory implements JobServiceFactory {
      *
      * @param jobId the unique job ID for the background job to reschedule.
      */
-    public void rescheduleJobWithLegacyMethod(int jobId) {
+    public void rescheduleJobWithLegacyMethod(Context context, int jobId) {
         // The legacy job generally only checks some constraints of the job, instead of the entire
         // JobInfo including service name as SPE. Therefore, it needs to force-schedule the job
         // because the constraint should remain the same for legacy job and SPE.
+        boolean forceSchedule = true;
 
         try {
             switch (jobId) {
+                case MAINTENANCE_TASK_JOB_ID:
+                    OnDevicePersonalizationMaintenanceJobService.schedule(context, forceSchedule);
+                    return;
                 default:
                     throw new RuntimeException(
                             "The job isn't configured for jobWorker creation. Requested Job ID: "

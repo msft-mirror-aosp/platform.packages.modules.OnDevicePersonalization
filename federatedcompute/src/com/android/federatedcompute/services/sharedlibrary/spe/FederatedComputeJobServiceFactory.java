@@ -16,6 +16,7 @@
 
 package com.android.federatedcompute.services.sharedlibrary.spe;
 
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
 import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.JOB_ID_TO_NAME_MAP;
 
 import android.content.Context;
@@ -30,6 +31,8 @@ import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
+import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
+import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.statsd.joblogging.FederatedComputeJobServiceLogger;
 import com.android.federatedcompute.services.statsd.joblogging.FederatedComputeStatsdJobServiceLogger;
@@ -128,6 +131,8 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
     public JobWorker getJobWorkerInstance(int jobId) {
         try {
             switch (jobId) {
+                case DELETE_EXPIRED_JOB_ID:
+                    return new DeleteExpiredJob();
                 default:
                     throw new RuntimeException(
                             "The job is not configured for the instance creation.");
@@ -138,9 +143,8 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
                     e,
                     "Creation of FederatedCompute's Job Instance is failed for jobId = %d.",
                     jobId);
+            return null;
         }
-
-        return null;
     }
 
     @Override
@@ -166,13 +170,17 @@ public class FederatedComputeJobServiceFactory implements JobServiceFactory {
      *
      * @param jobId the unique job ID for the background job to reschedule.
      */
-    public void rescheduleJobWithLegacyMethod(int jobId) {
+    public void rescheduleJobWithLegacyMethod(Context context, int jobId) {
         // The legacy job generally only checks some constraints of the job, instead of the entire
         // JobInfo including service name as SPE. Therefore, it needs to force-schedule the job
         // because the constraint should remain the same for legacy job and SPE.
+        boolean forceSchedule = true;
 
         try {
             switch (jobId) {
+                case DELETE_EXPIRED_JOB_ID:
+                    DeleteExpiredJobService.scheduleJobIfNeeded(context, mFlags, forceSchedule);
+                    return;
                 default:
                     throw new RuntimeException(
                             "The job isn't configured for jobWorker creation. Requested Job ID: "

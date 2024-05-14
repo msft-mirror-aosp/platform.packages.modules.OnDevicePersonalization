@@ -516,6 +516,42 @@ public class EventsDao {
         return idList;
     }
 
+    /**
+     * Returns whether an event with (queryId, type, rowIndex, service) exists.
+     */
+    public boolean hasEvent(long queryId, int type, int rowIndex, ComponentName service) {
+        try {
+            int count = 0;
+            SQLiteDatabase db = mDbHelper.getReadableDatabase();
+            String[] projection = {EventsContract.EventsEntry.EVENT_ID};
+            String selection = EventsContract.EventsEntry.QUERY_ID + " = ?"
+                    + " AND " + EventsContract.EventsEntry.TYPE + " = ?"
+                    + " AND " + EventsContract.EventsEntry.ROW_INDEX + " = ?"
+                    + " AND " + EventsContract.EventsEntry.SERVICE_NAME + " = ?";
+            String[] selectionArgs = {
+                    String.valueOf(queryId),
+                    String.valueOf(type),
+                    String.valueOf(rowIndex),
+                    DbUtils.toTableValue(service)
+            };
+            try (Cursor cursor = db.query(
+                    EventsContract.EventsEntry.TABLE_NAME,
+                    projection,
+                    selection,
+                    selectionArgs,
+                    /* groupBy= */ null,
+                    /* having= */ null,
+                    null
+            )) {
+                if (cursor.moveToNext()) {
+                    return true;
+                }
+            }
+        } catch (SQLiteException e) {
+            sLogger.e(TAG + ": Failed to read event ids for specified queryid", e);
+        }
+        return false;
+    }
 
     /**
      * Reads all ids in the event table associated with the specified queryId

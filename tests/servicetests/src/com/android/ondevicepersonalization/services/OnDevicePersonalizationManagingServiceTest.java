@@ -18,12 +18,15 @@ package com.android.ondevicepersonalization.services;
 
 import static android.adservices.ondevicepersonalization.OnDevicePersonalizationPermissions.NOTIFY_MEASUREMENT_EVENT;
 
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
+
 import static com.google.common.util.concurrent.Futures.immediateVoidFuture;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
@@ -102,18 +105,20 @@ public class OnDevicePersonalizationManagingServiceTest {
         ExtendedMockito.doReturn(mUserPrivacyStatus).when(UserPrivacyStatus::getInstance);
         doReturn(true).when(mUserPrivacyStatus).isMeasurementEnabled();
         doReturn(true).when(mUserPrivacyStatus).isProtectedAudienceEnabled();
-        //mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
+        // mService = new OnDevicePersonalizationManagingServiceDelegate(mContext);
         when(mContext.checkCallingPermission(NOTIFY_MEASUREMENT_EVENT))
                 .thenReturn(PackageManager.PERMISSION_GRANTED);
 
-        ExtendedMockito.doReturn(1)
-                .when(() -> OnDevicePersonalizationMaintenanceJobService.schedule(any()));
-        ExtendedMockito.doReturn(1)
-                .when(() -> UserDataCollectionJobService.schedule(any()));
-        ExtendedMockito.doReturn(mMockMdd)
-                .when(() -> MobileDataDownloadFactory.getMdd(any()));
+        ExtendedMockito.doReturn(SCHEDULING_RESULT_CODE_SUCCESSFUL)
+                .when(
+                        () ->
+                                OnDevicePersonalizationMaintenanceJobService.schedule(
+                                        any(), anyBoolean()));
+        ExtendedMockito.doReturn(1).when(() -> UserDataCollectionJobService.schedule(any()));
+        ExtendedMockito.doReturn(mMockMdd).when(() -> MobileDataDownloadFactory.getMdd(any()));
         doReturn(immediateVoidFuture()).when(mMockMdd).schedulePeriodicBackgroundTasks();
     }
+
     @Test
     public void testVersion() throws Exception {
         assertEquals(mService.getVersion(), "1.0");
@@ -573,14 +578,13 @@ public class OnDevicePersonalizationManagingServiceTest {
         OnDevicePersonalizationManagingServiceImpl service =
                 new OnDevicePersonalizationManagingServiceImpl(Runnable::run);
         service.onCreate();
-        Intent serviceIntent = new Intent(mContext,
-                OnDevicePersonalizationManagingServiceImpl.class);
+        Intent serviceIntent =
+                new Intent(mContext, OnDevicePersonalizationManagingServiceImpl.class);
         IBinder binder = service.onBind(serviceIntent);
         assertTrue(binder instanceof OnDevicePersonalizationManagingServiceDelegate);
         ExtendedMockito.verify(
-                () -> OnDevicePersonalizationMaintenanceJobService.schedule(any()), times(1));
-        ExtendedMockito.verify(
-                () -> UserDataCollectionJobService.schedule(any()), times(1));
+                () -> OnDevicePersonalizationMaintenanceJobService.schedule(any(), anyBoolean()));
+        ExtendedMockito.verify(() -> UserDataCollectionJobService.schedule(any()), times(1));
         verify(mMockMdd).schedulePeriodicBackgroundTasks();
     }
 
@@ -591,7 +595,6 @@ public class OnDevicePersonalizationManagingServiceTest {
         wrappedParams.putParcelable(Constants.EXTRA_APP_PARAMS_SERIALIZED, buffer);
         return wrappedParams;
     }
-
 
     static class ExecuteCallback extends IExecuteCallback.Stub {
         public boolean mWasInvoked = false;

@@ -35,13 +35,15 @@ import com.android.ondevicepersonalization.services.data.user.UserDataContract;
 import com.android.ondevicepersonalization.services.data.vendor.VendorSettingsContract;
 import com.android.ondevicepersonalization.services.statsd.errorlogging.ClientErrorLogger;
 
+import java.util.List;
+
 /** Helper to manage the OnDevicePersonalization database. */
 public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
 
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
     private static final String TAG = "OnDevicePersonalizationDbHelper";
 
-    public static final int DATABASE_VERSION = 4;
+    public static final int DATABASE_VERSION = 5;
     private static final String DATABASE_NAME = "ondevicepersonalization.db";
 
     private static volatile OnDevicePersonalizationDbHelper sSingleton = null;
@@ -97,11 +99,22 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
             execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V1_TO_V2_STATEMENT);
             execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V2_TO_V3_STATEMENT);
             execSqlIgnoreError(db, UserDataContract.AppInstall.CREATE_TABLE_STATEMENT);
+            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
         } else if (oldVersion == 2) {
             execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V2_TO_V3_STATEMENT);
             execSqlIgnoreError(db, UserDataContract.AppInstall.CREATE_TABLE_STATEMENT);
+            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
         } else if (oldVersion == 3) {
             execSqlIgnoreError(db, UserDataContract.AppInstall.CREATE_TABLE_STATEMENT);
+            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
+        } else if (oldVersion == 4) {
+            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
+        }
+    }
+
+    private void execSqlIgnoreError(SQLiteDatabase db, List<String> sqls) {
+        for (String sql : sqls) {
+            execSqlIgnoreError(db, sql);
         }
     }
 

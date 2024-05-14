@@ -16,12 +16,16 @@
 
 package com.android.ondevicepersonalization.services.sharedlibrary.spe;
 
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
+
 import android.app.job.JobParameters;
 
 import com.android.adservices.shared.spe.framework.AbstractJobService;
 import com.android.adservices.shared.spe.framework.JobServiceFactory;
 import com.android.internal.annotations.VisibleForTesting;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.Flags;
+import com.android.ondevicepersonalization.services.FlagsFactory;
 
 /** The ODP's implementation of {@link AbstractJobService}. */
 public final class OdpJobService extends AbstractJobService {
@@ -46,8 +50,10 @@ public final class OdpJobService extends AbstractJobService {
                     "SPE is disabled. Reschedule SPE job instance of jobId=%d with its legacy"
                             + " JobService scheduling method.",
                     jobId);
+
             OdpJobServiceFactory factory = (OdpJobServiceFactory) getJobServiceFactory();
-            factory.rescheduleJobWithLegacyMethod(jobId);
+            factory.rescheduleJobWithLegacyMethod(this, jobId);
+
             return false;
         }
 
@@ -55,9 +61,18 @@ public final class OdpJobService extends AbstractJobService {
     }
 
     // Determine whether we should cancel and reschedule current job with the legacy JobService
-    // class. It could happen when SPE has a production issue.
+    // class. It could happen when SPE has a production issue so SPE gets disabled.
+    //
+    // The first batch job to migrate is,
+    // - OnDevicePersonalizationMaintenanceJobService, job ID = 1005.
     @VisibleForTesting
     boolean shouldRescheduleWithLegacyMethod(int jobId) {
+        Flags flags = FlagsFactory.getFlags();
+
+        if (jobId == MAINTENANCE_TASK_JOB_ID && !flags.getSpePilotJobEnabled()) {
+            return true;
+        }
+
         return false;
     }
 }

@@ -20,6 +20,7 @@ import static com.android.adservices.shared.spe.JobServiceConstants.SKIP_REASON_
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.ondevicepersonalization.services.OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -136,7 +137,7 @@ public final class OdpJobServiceTest {
                             return null;
                         })
                 .when(mMockJobServiceFactory)
-                .rescheduleJobWithLegacyMethod(jobId);
+                .rescheduleJobWithLegacyMethod(mSpyOdpJobService, jobId);
 
         // Disable SPE and the job should be rescheduled by the legacy scheduling method.
         doReturn(true).when(mSpyOdpJobService).shouldRescheduleWithLegacyMethod(jobId);
@@ -151,5 +152,37 @@ public final class OdpJobServiceTest {
                 .that(actualJobInfo.getMinLatencyMillis())
                 .isEqualTo(minimumLatencyMs2);
         verify(mMockLogger, never()).recordOnStartJob(anyInt());
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_speDisabled() {
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+
+        assertWithMessage(
+                        "shouldRescheduleWithLegacyMethod() for"
+                                + " OnDevicePersonalizationMaintenanceJob")
+                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(MAINTENANCE_TASK_JOB_ID))
+                .isTrue();
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_speDisabled_notConfiguredJobId() {
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+        int invalidJobId = -1;
+
+        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " not configured job ID")
+                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(invalidJobId))
+                .isFalse();
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_speEnabled() {
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+
+        assertWithMessage(
+                        "shouldRescheduleWithLegacyMethod() for"
+                                + " OnDevicePersonalizationMaintenanceJob")
+                .that(mSpyOdpJobService.shouldRescheduleWithLegacyMethod(MAINTENANCE_TASK_JOB_ID))
+                .isFalse();
     }
 }

@@ -18,9 +18,12 @@ package com.android.ondevicepersonalization.services;
 
 import static android.content.pm.PackageManager.COMPONENT_ENABLED_STATE_ENABLED;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
 
 import android.app.job.JobScheduler;
 import android.content.ComponentName;
@@ -35,6 +38,7 @@ import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.TestableDeviceConfig;
 import com.android.odp.module.common.DeviceUtils;
 import com.android.ondevicepersonalization.services.download.mdd.MobileDataDownloadFactory;
+import com.android.ondevicepersonalization.services.maintenance.OnDevicePersonalizationMaintenanceJob;
 
 import com.google.common.util.concurrent.ListeningExecutorService;
 import com.google.common.util.concurrent.MoreExecutors;
@@ -51,16 +55,22 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
     private final Context mContext = ApplicationProvider.getApplicationContext();
 
     @Rule
-    public final ExtendedMockitoRule mExtendedMockitoRule = new ExtendedMockitoRule.Builder(this)
-            .addStaticMockFixtures(TestableDeviceConfig::new)
-            .spyStatic(DeviceUtils.class)
-            .setStrictness(Strictness.LENIENT)
-            .build();
+    public final ExtendedMockitoRule mExtendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this)
+                    .addStaticMockFixtures(TestableDeviceConfig::new)
+                    .spyStatic(DeviceUtils.class)
+                    .spyStatic(OnDevicePersonalizationMaintenanceJob.class)
+                    .setStrictness(Strictness.LENIENT)
+                    .build();
 
     @Before
     public void setup() throws Exception {
         PhFlagsTestUtil.setUpDeviceConfigPermissions();
         PhFlagsTestUtil.disableGlobalKillSwitch();
+
+        // By default, disable SPE.
+        PhFlagsTestUtil.setSpePilotJobEnabled(false);
+
         ExtendedMockito.doReturn(true).when(() -> DeviceUtils.isOdpSupported(any()));
         JobScheduler jobScheduler = mContext.getSystemService(JobScheduler.class);
         jobScheduler.cancel(OnDevicePersonalizationConfig.MDD_MAINTENANCE_PERIODIC_TASK_JOB_ID);
@@ -89,6 +99,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
                         != null);
+        verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext));
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
                         != null);
@@ -129,6 +140,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
                         == null);
+        verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
                         == null);
@@ -167,6 +179,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
                         == null);
+        verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
                         == null);
@@ -202,6 +215,7 @@ public class OnDevicePersonalizationBroadcastReceiverTests {
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.MAINTENANCE_TASK_JOB_ID)
                         == null);
+        verify(() -> OnDevicePersonalizationMaintenanceJob.schedule(mContext), never());
         assertTrue(
                 jobScheduler.getPendingJob(OnDevicePersonalizationConfig.USER_DATA_COLLECTION_ID)
                         == null);

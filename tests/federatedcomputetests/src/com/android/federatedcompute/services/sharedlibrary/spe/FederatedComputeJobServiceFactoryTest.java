@@ -16,25 +16,49 @@
 
 package com.android.federatedcompute.services.sharedlibrary.spe;
 
+import static com.android.dx.mockito.inline.extended.ExtendedMockito.verify;
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
+
 import static com.google.common.truth.Truth.assertThat;
+
+import android.content.Context;
+
+import androidx.test.core.app.ApplicationProvider;
 
 import com.android.adservices.shared.proto.ModuleJobPolicy;
 import com.android.adservices.shared.spe.logging.JobSchedulingLogger;
 import com.android.adservices.shared.spe.logging.JobServiceLogger;
 import com.android.federatedcompute.services.common.Flags;
+import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
+import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
+import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+
+import com.google.common.truth.Expect;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.mockito.quality.Strictness;
 
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /** Unit tests for {@link FederatedComputeJobServiceFactory}. */
+@MockStatic(DeleteExpiredJobService.class)
 public final class FederatedComputeJobServiceFactoryTest {
+    @Rule(order = 0)
+    public final ExtendedMockitoRule extendedMockitoRule =
+            new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
+
+    @Rule(order = 1)
+    public final Expect expect = Expect.create();
+
+    private static final Context sContext = ApplicationProvider.getApplicationContext();
     private static final Executor sExecutor = Executors.newCachedThreadPool();
     private static final Map<Integer, String> sJobIdToNameMap = Map.of();
 
@@ -67,16 +91,34 @@ public final class FederatedComputeJobServiceFactoryTest {
 
     @Test
     public void testGetJobInstance_notConfiguredJob() {
-        int notConfiguredJobId = 1000;
+        int notConfiguredJobId = -1;
 
         assertThat(mFactory.getJobWorkerInstance(notConfiguredJobId)).isNull();
     }
 
     @Test
-    public void testRescheduleJobWithLegacyMethod_notConfiguredJob() {
-        int notConfiguredJobId = 1000;
+    public void testGetJobInstance() {
+        expect.withMessage("getJobWorkerInstance() for DeleteExpiredJob")
+                .that(mFactory.getJobWorkerInstance(DELETE_EXPIRED_JOB_ID))
+                .isInstanceOf(DeleteExpiredJob.class);
+    }
 
-        mFactory.rescheduleJobWithLegacyMethod(notConfiguredJobId);
+    @Test
+    public void testRescheduleJobWithLegacyMethod_notConfiguredJob() {
+        int notConfiguredJobId = -1;
+
+        mFactory.rescheduleJobWithLegacyMethod(sContext, notConfiguredJobId);
+    }
+
+    @Test
+    public void testRescheduleJobWithLegacyMethod() {
+        boolean forceSchedule = true;
+
+        mFactory.rescheduleJobWithLegacyMethod(sContext, DELETE_EXPIRED_JOB_ID);
+        verify(
+                () ->
+                        DeleteExpiredJobService.scheduleJobIfNeeded(
+                                sContext, mMockFlags, forceSchedule));
     }
 
     @Test
