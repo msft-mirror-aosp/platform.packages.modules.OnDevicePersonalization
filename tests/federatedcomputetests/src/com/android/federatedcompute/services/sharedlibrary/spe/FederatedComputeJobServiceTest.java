@@ -20,6 +20,7 @@ import static com.android.adservices.shared.spe.JobServiceConstants.SKIP_REASON_
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doAnswer;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doNothing;
 import static com.android.dx.mockito.inline.extended.ExtendedMockito.doReturn;
+import static com.android.federatedcompute.services.common.FederatedComputeJobInfo.DELETE_EXPIRED_JOB_ID;
 
 import static com.google.common.truth.Truth.assertThat;
 import static com.google.common.truth.Truth.assertWithMessage;
@@ -62,7 +63,7 @@ public final class FederatedComputeJobServiceTest {
     private final Context mContext = ApplicationProvider.getApplicationContext();
     private final JobScheduler mJobScheduler = mContext.getSystemService(JobScheduler.class);
 
-    @Spy FederatedComputeJobService mSpyOdpJobService;
+    @Spy FederatedComputeJobService mSpyFederatedComputeJobService;
     @Mock JobServiceLogger mMockLogger;
     @Mock JobParameters mMockParameters;
     @Mock FederatedComputeJobServiceFactory mMockJobServiceFactory;
@@ -79,8 +80,10 @@ public final class FederatedComputeJobServiceTest {
 
         doReturn(mMockLogger).when(mMockJobServiceFactory).getJobServiceLogger();
 
-        doReturn(mMockJobServiceFactory).when(mSpyOdpJobService).getJobServiceFactory();
-        mSpyOdpJobService.onCreate();
+        doReturn(mMockJobServiceFactory)
+                .when(mSpyFederatedComputeJobService)
+                .getJobServiceFactory();
+        mSpyFederatedComputeJobService.onCreate();
     }
 
     @After
@@ -99,11 +102,13 @@ public final class FederatedComputeJobServiceTest {
         doNothing().when(mMockLogger).recordOnStartJob(anyInt());
 
         // The Parent class's onStartJob() returns at the beginning due to null idToNameMapping.
-        doNothing().when(mSpyOdpJobService).skipAndCancelBackgroundJob(any(), anyInt());
+        doNothing()
+                .when(mSpyFederatedComputeJobService)
+                .skipAndCancelBackgroundJob(any(), anyInt());
 
-        assertThat(mSpyOdpJobService.onStartJob(mMockParameters)).isFalse();
+        assertThat(mSpyFederatedComputeJobService.onStartJob(mMockParameters)).isFalse();
         verify(mMockLogger).recordOnStartJob(anyInt());
-        verify(mSpyOdpJobService)
+        verify(mSpyFederatedComputeJobService)
                 .skipAndCancelBackgroundJob(mMockParameters, SKIP_REASON_JOB_NOT_CONFIGURED);
     }
 
@@ -139,13 +144,13 @@ public final class FederatedComputeJobServiceTest {
                             return null;
                         })
                 .when(mMockJobServiceFactory)
-                .rescheduleJobWithLegacyMethod(jobId);
+                .rescheduleJobWithLegacyMethod(mSpyFederatedComputeJobService, jobId);
 
         // Disable SPE and the job should be rescheduled by the legacy scheduling method.
-        doReturn(true).when(mSpyOdpJobService).shouldRescheduleWithLegacyMethod(jobId);
+        doReturn(true).when(mSpyFederatedComputeJobService).shouldRescheduleWithLegacyMethod(jobId);
 
-        assertWithMessage("mSpyOdpJobService.onStartJob()")
-                .that(mSpyOdpJobService.onStartJob(mMockParameters))
+        assertWithMessage("mSpyFederatedComputeJobService.onStartJob()")
+                .that(mSpyFederatedComputeJobService.onStartJob(mMockParameters))
                 .isFalse();
 
         // Verify the job is rescheduled.
@@ -154,5 +159,37 @@ public final class FederatedComputeJobServiceTest {
                 .that(actualJobInfo.getMinLatencyMillis())
                 .isEqualTo(minimumLatencyMs2);
         verify(mMockLogger, never()).recordOnStartJob(anyInt());
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_speDisabled() {
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(false);
+
+        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " DeleteExpiredJob")
+                .that(
+                        mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(
+                                DELETE_EXPIRED_JOB_ID))
+                .isTrue();
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_speDisabled_notConfiguredJobId() {
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+        int invalidJobId = -1;
+
+        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " not configured job ID")
+                .that(mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(invalidJobId))
+                .isFalse();
+    }
+
+    @Test
+    public void testShouldRescheduleWithLegacyMethod_speEnabled() {
+        when(mMockFlags.getSpePilotJobEnabled()).thenReturn(true);
+
+        assertWithMessage("shouldRescheduleWithLegacyMethod() for" + " DeleteExpiredJob")
+                .that(
+                        mSpyFederatedComputeJobService.shouldRescheduleWithLegacyMethod(
+                                DELETE_EXPIRED_JOB_ID))
+                .isFalse();
     }
 }

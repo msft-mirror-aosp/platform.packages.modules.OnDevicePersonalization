@@ -101,6 +101,22 @@ public final class OnDevicePersonalizationDbHelperTest {
                     + QueriesContract.QueriesEntry.SERVICE_CERT_DIGEST + " TEXT NOT NULL,"
                     + QueriesContract.QueriesEntry.QUERY_DATA + " BLOB NOT NULL)";
 
+    public static final String CREATE_EVENTS_V4_STATEMENT =
+            "CREATE TABLE IF NOT EXISTS " + EventsContract.EventsEntry.TABLE_NAME + " ("
+                    + EventsContract.EventsEntry.EVENT_ID + " INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + EventsContract.EventsEntry.QUERY_ID + " INTEGER NOT NULL,"
+                    + EventsContract.EventsEntry.ROW_INDEX + " INTEGER NOT NULL,"
+                    + EventsContract.EventsEntry.SERVICE_NAME + " TEXT NOT NULL,"
+                    + EventsContract.EventsEntry.TYPE + " INTEGER NOT NULL,"
+                    + EventsContract.EventsEntry.TIME_MILLIS + " INTEGER NOT NULL,"
+                    + EventsContract.EventsEntry.EVENT_DATA + " BLOB NOT NULL,"
+                    + "FOREIGN KEY(" + EventsContract.EventsEntry.QUERY_ID + ") REFERENCES "
+                        + QueriesContract.QueriesEntry.TABLE_NAME + "("
+                        + QueriesContract.QueriesEntry.QUERY_ID + "),"
+                    + "UNIQUE(" + EventsContract.EventsEntry.QUERY_ID + ","
+                        + EventsContract.EventsEntry.ROW_INDEX + ","
+                        + EventsContract.EventsEntry.SERVICE_NAME + ","
+                        + EventsContract.EventsEntry.TYPE + "))";
     @Before
     public void setup() {
         mContext = ApplicationProvider.getApplicationContext();
@@ -178,6 +194,18 @@ public final class OnDevicePersonalizationDbHelperTest {
     }
 
     @Test
+    public void testOnUpgradeFromV4() {
+        SQLiteDatabase db = SQLiteDatabase.create(null);
+        try {
+            createV4Tables(db);
+            mDbHelper.onUpgrade(db, 4, OnDevicePersonalizationDbHelper.DATABASE_VERSION);
+            assertTrue(hasEntity(EventsContract.EventsEntry.TABLE_NAME, "table"));
+        } finally {
+            db.close();
+        }
+    }
+
+    @Test
     public void testGetInstance() {
         OnDevicePersonalizationDbHelper instance1 =
                 OnDevicePersonalizationDbHelper.getInstance(mContext);
@@ -244,6 +272,15 @@ public final class OnDevicePersonalizationDbHelperTest {
         // Queries and events tables.
         db.execSQL(CREATE_QUERIES_V3_STATEMENT);
         db.execSQL(EventsContract.EventsEntry.CREATE_TABLE_STATEMENT);
+        db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
+    }
+
+    private void createV4Tables(SQLiteDatabase db) {
+        db.execSQL(VendorSettingsContract.VendorSettingsEntry.CREATE_TABLE_STATEMENT);
+
+        // Queries and events tables.
+        db.execSQL(CREATE_QUERIES_V3_STATEMENT);
+        db.execSQL(CREATE_EVENTS_V4_STATEMENT);
         db.execSQL(EventStateContract.EventStateEntry.CREATE_TABLE_STATEMENT);
     }
 

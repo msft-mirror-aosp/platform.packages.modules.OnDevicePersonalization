@@ -25,7 +25,7 @@ import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.Flags;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.encryption.BackgroundKeyFetchJobService;
-import com.android.federatedcompute.services.scheduling.DeleteExpiredJobService;
+import com.android.federatedcompute.services.scheduling.DeleteExpiredJob;
 import com.android.federatedcompute.services.scheduling.FederatedComputeLearningJobScheduleOrchestrator;
 import com.android.odp.module.common.DeviceUtils;
 
@@ -74,7 +74,7 @@ public class FederatedComputeBroadcastReceiver extends BroadcastReceiver {
         }
 
         BackgroundKeyFetchJobService.scheduleJobIfNeeded(context, mFlags);
-        DeleteExpiredJobService.scheduleJobIfNeeded(context, mFlags);
+        DeleteExpiredJob.schedule(context, mFlags);
 
         var unused = Futures.submit(() ->
                 FederatedComputeLearningJobScheduleOrchestrator.getInstance(context)
