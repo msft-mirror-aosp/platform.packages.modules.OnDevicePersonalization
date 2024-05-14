@@ -25,6 +25,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.spy;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
 import android.content.ComponentName;
@@ -232,14 +233,15 @@ public class AppRequestFlowTest {
 
     class TestExecuteCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(Bundle bundle) {
+        public void onSuccess(Bundle bundle, CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mExecuteCallback = bundle;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;

@@ -188,7 +188,10 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
                 String sdkPackageName,
                 int apiName,
                 long latencyMillis,
-                int responseCode) {}
+                long rpcCallLatencyMillis,
+                long rpcReturnLatencyMillis,
+                int responseCode) {
+        }
     }
 
     class TestServiceBinder
