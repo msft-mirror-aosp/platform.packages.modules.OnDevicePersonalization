@@ -51,6 +51,7 @@ interface IOnDevicePersonalizationManagingService {
         in IRegisterMeasurementEventCallback callback);
 
     void logApiCallStats(
+        in String sdkPackageName,
         in int apiName,
         in long latencyMillis,
         in int responseCode

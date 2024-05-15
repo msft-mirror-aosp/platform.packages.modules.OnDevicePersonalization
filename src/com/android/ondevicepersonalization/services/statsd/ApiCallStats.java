@@ -18,7 +18,7 @@ package com.android.ondevicepersonalization.services.statsd;
 
 import static com.android.ondevicepersonalization.OnDevicePersonalizationStatsLog.ON_DEVICE_PERSONALIZATION_API_CALLED__API_CLASS__UNKNOWN;
 
-import android.annotation.NonNull;
+import android.annotation.Nullable;
 
 import com.android.ondevicepersonalization.internal.util.DataClass;
 
@@ -33,6 +33,9 @@ public class ApiCallStats {
     private int mLatencyMillis = 0;
     private int mResponseCode = 0;
     private int mOverheadLatencyMillis = 0;
+
+    private int mAppUid = 0;
+    @Nullable private String mSdkPackageName = "";
 
 
 
@@ -55,12 +58,16 @@ public class ApiCallStats {
             int apiName,
             int latencyMillis,
             int responseCode,
-            int overheadLatencyMillis) {
+            int overheadLatencyMillis,
+            int appUid,
+            @Nullable String sdkPackageName) {
         this.mApiClass = apiClass;
         this.mApiName = apiName;
         this.mLatencyMillis = latencyMillis;
         this.mResponseCode = responseCode;
         this.mOverheadLatencyMillis = overheadLatencyMillis;
+        this.mAppUid = appUid;
+        this.mSdkPackageName = sdkPackageName;
 
         // onConstructed(); // You can define this method to get a callback
     }
@@ -90,9 +97,19 @@ public class ApiCallStats {
         return mOverheadLatencyMillis;
     }
 
+    @DataClass.Generated.Member
+    public int getAppUid() {
+        return mAppUid;
+    }
+
+    @DataClass.Generated.Member
+    public @Nullable String getSdkPackageName() {
+        return mSdkPackageName;
+    }
+
     @Override
     @DataClass.Generated.Member
-    public boolean equals(@android.annotation.Nullable Object o) {
+    public boolean equals(@Nullable Object o) {
         // You can override field equality logic by defining either of the methods like:
         // boolean fieldNameEquals(ApiCallStats other) { ... }
         // boolean fieldNameEquals(FieldType otherValue) { ... }
@@ -107,7 +124,9 @@ public class ApiCallStats {
                 && mApiName == that.mApiName
                 && mLatencyMillis == that.mLatencyMillis
                 && mResponseCode == that.mResponseCode
-                && mOverheadLatencyMillis == that.mOverheadLatencyMillis;
+                && mOverheadLatencyMillis == that.mOverheadLatencyMillis
+                && mAppUid == that.mAppUid
+                && java.util.Objects.equals(mSdkPackageName, that.mSdkPackageName);
     }
 
     @Override
@@ -122,6 +141,8 @@ public class ApiCallStats {
         _hash = 31 * _hash + mLatencyMillis;
         _hash = 31 * _hash + mResponseCode;
         _hash = 31 * _hash + mOverheadLatencyMillis;
+        _hash = 31 * _hash + mAppUid;
+        _hash = 31 * _hash + java.util.Objects.hashCode(mSdkPackageName);
         return _hash;
     }
 
@@ -137,6 +158,8 @@ public class ApiCallStats {
         private int mLatencyMillis;
         private int mResponseCode;
         private int mOverheadLatencyMillis;
+        private int mAppUid;
+        private @Nullable String mSdkPackageName;
 
         private long mBuilderFieldsSet = 0L;
 
@@ -146,7 +169,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @NonNull Builder setApiClass(int value) {
+        public @android.annotation.NonNull Builder setApiClass(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x1;
             mApiClass = value;
@@ -154,7 +177,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @NonNull Builder setApiName(int value) {
+        public @android.annotation.NonNull Builder setApiName(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x2;
             mApiName = value;
@@ -162,7 +185,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @NonNull Builder setLatencyMillis(int value) {
+        public @android.annotation.NonNull Builder setLatencyMillis(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x4;
             mLatencyMillis = value;
@@ -170,7 +193,7 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @NonNull Builder setResponseCode(int value) {
+        public @android.annotation.NonNull Builder setResponseCode(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x8;
             mResponseCode = value;
@@ -178,17 +201,33 @@ public class ApiCallStats {
         }
 
         @DataClass.Generated.Member
-        public @NonNull Builder setOverheadLatencyMillis(int value) {
+        public @android.annotation.NonNull Builder setOverheadLatencyMillis(int value) {
             checkNotUsed();
             mBuilderFieldsSet |= 0x10;
             mOverheadLatencyMillis = value;
             return this;
         }
 
-        /** Builds the instance. This builder should not be touched after calling this! */
-        public @NonNull ApiCallStats build() {
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setAppUid(int value) {
             checkNotUsed();
-            mBuilderFieldsSet |= 0x20; // Mark builder used
+            mBuilderFieldsSet |= 0x20;
+            mAppUid = value;
+            return this;
+        }
+
+        @DataClass.Generated.Member
+        public @android.annotation.NonNull Builder setSdkPackageName(@android.annotation.NonNull String value) {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x40;
+            mSdkPackageName = value;
+            return this;
+        }
+
+        /** Builds the instance. This builder should not be touched after calling this! */
+        public @android.annotation.NonNull ApiCallStats build() {
+            checkNotUsed();
+            mBuilderFieldsSet |= 0x80; // Mark builder used
 
             if ((mBuilderFieldsSet & 0x1) == 0) {
                 mApiClass = ON_DEVICE_PERSONALIZATION_API_CALLED__API_CLASS__UNKNOWN;
@@ -202,17 +241,25 @@ public class ApiCallStats {
             if ((mBuilderFieldsSet & 0x10) == 0) {
                 mOverheadLatencyMillis = 0;
             }
+            if ((mBuilderFieldsSet & 0x20) == 0) {
+                mAppUid = 0;
+            }
+            if ((mBuilderFieldsSet & 0x40) == 0) {
+                mSdkPackageName = "";
+            }
             ApiCallStats o = new ApiCallStats(
                     mApiClass,
                     mApiName,
                     mLatencyMillis,
                     mResponseCode,
-                    mOverheadLatencyMillis);
+                    mOverheadLatencyMillis,
+                    mAppUid,
+                    mSdkPackageName);
             return o;
         }
 
         private void checkNotUsed() {
-            if ((mBuilderFieldsSet & 0x20) != 0) {
+            if ((mBuilderFieldsSet & 0x80) != 0) {
                 throw new IllegalStateException(
                         "This Builder should not be reused. Use a new Builder instance instead");
             }
@@ -220,10 +267,10 @@ public class ApiCallStats {
     }
 
     @DataClass.Generated(
-            time = 1709253538425L,
+            time = 1715709963307L,
             codegenVersion = "1.0.23",
             sourceFile = "packages/modules/OnDevicePersonalization/src/com/android/ondevicepersonalization/services/statsd/ApiCallStats.java",
-            inputSignatures = "private  int mApiClass\nprivate final  int mApiName\nprivate  int mLatencyMillis\nprivate  int mResponseCode\nprivate  int mOverheadLatencyMillis\nclass ApiCallStats extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
+            inputSignatures = "private  int mApiClass\nprivate final  int mApiName\nprivate  int mLatencyMillis\nprivate  int mResponseCode\nprivate  int mOverheadLatencyMillis\nprivate  int mAppUid\nprivate @android.annotation.Nullable java.lang.String mSdkPackageName\nclass ApiCallStats extends java.lang.Object implements []\n@com.android.ondevicepersonalization.internal.util.DataClass(genBuilder=true, genEqualsHashCode=true)")
     @Deprecated
     private void __metadata() {}
 
