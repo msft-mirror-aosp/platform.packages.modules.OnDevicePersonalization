@@ -36,7 +36,6 @@ import static org.mockito.Mockito.verify;
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreCallback;
 import android.federatedcompute.aidl.IExampleStoreService;
-import android.federatedcompute.common.ClientConstants;
 import android.os.Bundle;
 import android.os.RemoteException;
 
@@ -52,11 +51,9 @@ import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
 import com.android.federatedcompute.services.testutils.FakeExampleStoreIterator;
-import com.android.federatedcompute.services.training.util.EligibilityResult;
 
 import com.google.common.collect.ImmutableList;
 import com.google.flatbuffers.FlatBufferBuilder;
-import com.google.internal.federated.plan.ExampleSelector;
 import com.google.ondevicepersonalization.federatedcompute.proto.DataAvailabilityPolicy;
 import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityPolicyEvalSpec;
 import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityTaskInfo;
@@ -85,8 +82,6 @@ public class EligibilityDeciderTest {
                     .setMinimumSeparation(6)
                     .setCurrentIndex(10)
                     .build();
-    private static final ExampleSelector EXAMPLE_SELECTOR =
-            ExampleSelector.newBuilder().setCollectionUri("collection_uri").build();
     private static final EligibilityTaskInfo ELIGIBILITY_TASK_MIN_SEP_POLICY =
             EligibilityTaskInfo.newBuilder()
                     .addEligibilityPolicies(
@@ -132,15 +127,14 @@ public class EligibilityDeciderTest {
 
     @Test
     public void testMinSepPolicy_noRecord_eligible() {
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_MIN_SEP_POLICY,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
-        assertTrue(result.isEligible());
+                        mMockTrainingEventLogger);
+        assertTrue(eligible);
         ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
         verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
         assertThat(eventKindCaptor.getAllValues())
@@ -160,16 +154,15 @@ public class EligibilityDeciderTest {
                         .setContributionTime(120L)
                         .build());
 
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_MIN_SEP_POLICY,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertTrue(result.isEligible());
+        assertTrue(eligible);
         ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
         verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
         assertThat(eventKindCaptor.getAllValues())
@@ -203,16 +196,15 @@ public class EligibilityDeciderTest {
                         .build();
 
         // Device should not be able to join same round since min separate policy is 1.
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         eligibilityTaskInfo,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertFalse(result.isEligible());
+        assertFalse(eligible);
         verify(mMockTrainingEventLogger)
                 .logEventKind(
                         eq(
@@ -245,16 +237,15 @@ public class EligibilityDeciderTest {
                         .build();
 
         // Device should be able to join iteration 2.
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         eligibilityTaskInfo,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertTrue(result.isEligible());
+        assertTrue(eligible);
 
         ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
         verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
@@ -275,16 +266,15 @@ public class EligibilityDeciderTest {
                         .setContributionTime(120L)
                         .build());
 
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_MIN_SEP_POLICY,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertFalse(result.isEligible());
+        assertFalse(eligible);
         verify(mMockTrainingEventLogger)
                 .logEventKind(
                         eq(
@@ -297,21 +287,19 @@ public class EligibilityDeciderTest {
                 new TestExampleStoreService(new ArrayList<>());
         setUpExampleStoreService(exampleStoreService);
 
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_DATA_AVAILABILITY_POLICY,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertFalse(result.isEligible());
+        assertFalse(eligible);
         verify(mMockTrainingEventLogger)
                 .logEventKind(
                         eq(
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED));
-        verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
     }
 
     @Test
@@ -320,16 +308,15 @@ public class EligibilityDeciderTest {
                 new TestExampleStoreService(ImmutableList.of("example1".getBytes()));
         setUpExampleStoreService(exampleStoreService);
 
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_DATA_AVAILABILITY_POLICY,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertFalse(result.isEligible());
+        assertFalse(eligible);
         verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
         verify(mMockTrainingEventLogger)
                 .logEventKind(
@@ -344,16 +331,16 @@ public class EligibilityDeciderTest {
                         ImmutableList.of("example1".getBytes(), "example2".getBytes()));
         setUpExampleStoreService(exampleStoreService);
 
-        EligibilityResult result =
+        boolean eligible =
                 mEligibilityDecider.computeEligibility(
                         createDefaultFederatedTrainingTask(),
                         TASK_ID,
                         ELIGIBILITY_TASK_DATA_AVAILABILITY_POLICY,
                         mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
+                        mMockTrainingEventLogger);
 
-        assertTrue(result.isEligible());
+        assertTrue(eligible);
+        verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
 
         ArgumentCaptor<Integer> eventKindCaptor = ArgumentCaptor.forClass(Integer.class);
         verify(mMockTrainingEventLogger, times(2)).logEventKind(eventKindCaptor.capture());
@@ -369,45 +356,9 @@ public class EligibilityDeciderTest {
                                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED),
                         exampleStatsCaptor.capture());
         ExampleStats stats = exampleStatsCaptor.getValue();
+        assertThat(stats.mExampleCount.get()).isEqualTo(2);
         assertThat(stats.mStartQueryLatencyNanos.get()).isGreaterThan(0);
         assertThat(stats.mBindToExampleStoreLatencyNanos.get()).isGreaterThan(0);
-    }
-
-    @Test
-    public void dataAvailabilityPassMinSeparationFail_notEligible() {
-        mTrainingTaskDao.updateOrInsertTaskHistory(
-                new TaskHistory.Builder()
-                        .setJobId(JOB_ID)
-                        .setTaskId(TASK_ID)
-                        .setPopulationName(POPULATION_NAME)
-                        .setContributionRound(10)
-                        .setContributionTime(120L)
-                        .build());
-        TestExampleStoreService exampleStoreService =
-                new TestExampleStoreService(
-                        ImmutableList.of("example1".getBytes(), "example2".getBytes()));
-        setUpExampleStoreService(exampleStoreService);
-
-        EligibilityResult result =
-                mEligibilityDecider.computeEligibility(
-                        createDefaultFederatedTrainingTask(),
-                        TASK_ID,
-                        EligibilityTaskInfo.newBuilder()
-                                .addEligibilityPolicies(
-                                        EligibilityPolicyEvalSpec.newBuilder()
-                                                .setDataAvailabilityPolicy(
-                                                        DATA_AVAILABILITY_POLICY))
-                                .addEligibilityPolicies(
-                                        EligibilityPolicyEvalSpec.newBuilder()
-                                                .setMinSepPolicy(MIN_SEP_POLICY))
-                                .build(),
-                        mContext,
-                        mMockTrainingEventLogger,
-                        EXAMPLE_SELECTOR);
-
-        assertFalse(result.isEligible());
-        assertThat(result.getExampleStoreIterator()).isNull();
-        verify(mSpyExampleStoreProvider).unbindFromExampleStoreService();
     }
 
     private void setUpExampleStoreService(TestExampleStoreService exampleStoreService) {
@@ -427,11 +378,6 @@ public class EligibilityDeciderTest {
         @Override
         public void startQuery(Bundle params, IExampleStoreCallback callback)
                 throws RemoteException {
-            int minExample = params.getInt(ClientConstants.EXTRA_ELIGIBILITY_MIN_EXAMPLE);
-            if (mExamples.size() < minExample) {
-                callback.onStartQueryFailure(ClientConstants.STATUS_NOT_ENOUGH_DATA);
-                return;
-            }
             callback.onStartQuerySuccess(new FakeExampleStoreIterator(mExamples));
         }
     }
