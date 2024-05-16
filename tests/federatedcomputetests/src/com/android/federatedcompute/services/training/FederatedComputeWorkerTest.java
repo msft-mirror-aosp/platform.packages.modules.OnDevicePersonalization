@@ -116,6 +116,7 @@ import com.google.internal.federatedcompute.v1.KeyAttestationAuthMetadata;
 import com.google.internal.federatedcompute.v1.RejectionInfo;
 import com.google.internal.federatedcompute.v1.RetryWindow;
 import com.google.ondevicepersonalization.federatedcompute.proto.CreateTaskAssignmentResponse;
+import com.google.ondevicepersonalization.federatedcompute.proto.DataAvailabilityPolicy;
 import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityPolicyEvalSpec;
 import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityTaskInfo;
 import com.google.ondevicepersonalization.federatedcompute.proto.MinimumSeparationPolicy;
@@ -152,6 +153,7 @@ public final class FederatedComputeWorkerTest {
     public final ExtendedMockitoRule extendedMockitoRule =
             new ExtendedMockitoRule.Builder(this).setStrictness(Strictness.LENIENT).build();
 
+    private static final String TAG = FederatedComputeWorkerTest.class.getSimpleName();
     private static final int JOB_ID = 1234;
     private static final String POPULATION_NAME = "barPopulation";
     private static final String TASK_ID = "task-id";
@@ -172,11 +174,22 @@ public final class FederatedComputeWorkerTest {
                     .setMinimumSeparation(6)
                     .setCurrentIndex(10)
                     .build();
+    private static final int MIN_EXAMPLE_COUNT = 2;
+    private static final DataAvailabilityPolicy DATA_AVAILABILITY_POLICY =
+            DataAvailabilityPolicy.newBuilder().setMinExampleCount(MIN_EXAMPLE_COUNT).build();
     private static final EligibilityTaskInfo ELIGIBILITY_TASK_INFO =
             EligibilityTaskInfo.newBuilder()
                     .addEligibilityPolicies(
                             EligibilityPolicyEvalSpec.newBuilder()
                                     .setMinSepPolicy(MIN_SEP_POLICY)
+                                    .build())
+                    .build();
+
+    private static final EligibilityTaskInfo ELIGIBILITY_TASK_INFO_WITH_DATA_AVAILABILITY =
+            EligibilityTaskInfo.newBuilder()
+                    .addEligibilityPolicies(
+                            EligibilityPolicyEvalSpec.newBuilder()
+                                    .setDataAvailabilityPolicy(DATA_AVAILABILITY_POLICY)
                                     .build())
                     .build();
     private static final TaskAssignment TASK_ASSIGNMENT =
@@ -196,14 +209,7 @@ public final class FederatedComputeWorkerTest {
             new CheckinResult(
                     createTempFile("input", ".ckp"),
                     TrainingTestUtil.createFederatedAnalyticClientPlan(),
-                    TaskAssignment.newBuilder()
-                            .setTaskId(TASK_ID)
-                            .setExampleSelector(
-                                    ExampleSelector.newBuilder()
-                                            .setCollectionUri(COLLECTION_URI)
-                                            .build())
-                            .build());
-
+                    TASK_ASSIGNMENT);
     public static final RejectionInfo RETRY_REJECTION_INFO =
             RejectionInfo.newBuilder()
                     .setRetryWindow(
@@ -732,7 +738,7 @@ public final class FederatedComputeWorkerTest {
     public void testRunFAComputationThrows() throws Exception {
         setUpExampleStoreService();
         setUpHttpFederatedProtocol(FA_CHECKIN_RESULT);
-        setUpReportFailureToServerCallback();
+        //        setUpReportFailureToServerCallback();
         doReturn(FluentFuture.from(immediateFuture(null)))
                 .when(mSpyHttpFederatedProtocol)
                 .reportResult(any(), any(), any());
@@ -959,6 +965,52 @@ public final class FederatedComputeWorkerTest {
     }
 
     @Test
+    public void testRunFLComputation_withDataAvailability_returnsSuccess() throws Exception {
+        setUpExampleStoreService();
+        CheckinResult checkinResult =
+                new CheckinResult(
+                        createTempFile("input", ".ckp"),
+                        TrainingTestUtil.createFakeFederatedLearningClientPlan(),
+                        TaskAssignment.newBuilder()
+                                .setTaskId(TASK_ID)
+                                .setEligibilityTaskInfo(
+                                        ELIGIBILITY_TASK_INFO_WITH_DATA_AVAILABILITY)
+                                .setExampleSelector(
+                                        ExampleSelector.newBuilder()
+                                                .setCollectionUri(COLLECTION_URI)
+                                                .build())
+                                .build());
+        setUpHttpFederatedProtocol(checkinResult);
+
+        // Mock bind to IsolatedTrainingService.
+        doReturn(new FakeIsolatedTrainingService()).when(mSpyWorker).getIsolatedTrainingService();
+        doNothing().when(mSpyWorker).unbindFromIsolatedTrainingService();
+
+        FLRunnerResult result =
+                mSpyWorker.startTrainingRun(JOB_ID, mMockJobServiceOnFinishCallback).get();
+        assertThat(result.getContributionResult()).isEqualTo(ContributionResult.SUCCESS);
+
+        mSpyWorker.finish(result);
+        verify(mMockJobManager)
+                .onTrainingCompleted(
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.SUCCESS),
+                        eq(true));
+        verify(mSpyWorker).unbindFromIsolatedTrainingService();
+        ArgumentCaptor<Long> computationDurationCaptor = ArgumentCaptor.forClass(Long.class);
+        verify(mMockTrainingEventLogger)
+                .logComputationCompleted(any(), computationDurationCaptor.capture());
+        assertThat(computationDurationCaptor.getValue()).isGreaterThan(0);
+        verify(mMockTrainingEventLogger)
+                .logEventWithDuration(
+                        eq(FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_RUN_COMPLETE),
+                        anyLong());
+    }
+
+    @Test
     public void testRunFLComputationNotEligible_returnsFail() throws Exception {
         mTrainingTaskDao.updateOrInsertTaskHistory(
                 new TaskHistory.Builder()
@@ -1032,7 +1084,11 @@ public final class FederatedComputeWorkerTest {
     }
 
     private void setUpHttpFederatedProtocol(CheckinResult checkinResult) {
-        doReturn(FluentFuture.from(immediateFuture(CREATE_TASK_ASSIGNMENT_RESPONSE)))
+        CreateTaskAssignmentResponse taskAssignmentResponse =
+                CreateTaskAssignmentResponse.newBuilder()
+                        .setTaskAssignment(checkinResult.getTaskAssignment())
+                        .build();
+        doReturn(FluentFuture.from(immediateFuture(taskAssignmentResponse)))
                 .when(mSpyHttpFederatedProtocol)
                 .createTaskAssignment(any());
         doReturn(immediateFuture(checkinResult))
@@ -1051,8 +1107,10 @@ public final class FederatedComputeWorkerTest {
         @Override
         public void startQuery(Bundle params, IExampleStoreCallback callback)
                 throws RemoteException {
-            if (!params.getString(ClientConstants.EXTRA_COLLECTION_URI).equals(COLLECTION_URI)) {
+            String collectionUri = params.getString(ClientConstants.EXTRA_COLLECTION_URI);
+            if (!collectionUri.equals(COLLECTION_URI)) {
                 callback.onStartQueryFailure(STATUS_INTERNAL_ERROR);
+                return;
             }
             callback.onStartQuerySuccess(
                     new FakeExampleStoreIterator(ImmutableList.of(EXAMPLE_PROTO_1.toByteArray())));
@@ -1103,7 +1161,7 @@ public final class FederatedComputeWorkerTest {
 
         @Override
         EligibilityDecider getEligibilityDecider(Context context) {
-            return new EligibilityDecider(mTrainingTaskDao);
+            return new EligibilityDecider(mTrainingTaskDao, mSpyExampleStoreProvider);
         }
 
         @Override
