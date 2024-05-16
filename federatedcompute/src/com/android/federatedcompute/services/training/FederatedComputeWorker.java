@@ -414,7 +414,8 @@ public class FederatedComputeWorker {
                         run.mTask.jobId(),
                         run.mTask.populationName(),
                         run.mTask.getTrainingIntervalOptions(),
-                        /* taskRetry= */ null);
+                        /* taskRetry= */ null,
+                        /* enableFailuresTracking= */ false);
                 return Futures.immediateFuture(null);
             }
         } else {
@@ -562,7 +563,8 @@ public class FederatedComputeWorker {
                                         run.mTask.jobId(),
                                         run.mTask.populationName(),
                                         run.mTask.getTrainingIntervalOptions(),
-                                        buildTaskRetry(reportToServer));
+                                        buildTaskRetry(reportToServer),
+                                        /* enableFailuresTracking= */ false);
                                 return null;
                             }
 

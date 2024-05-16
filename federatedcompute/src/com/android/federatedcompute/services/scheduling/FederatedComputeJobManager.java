@@ -460,9 +460,10 @@ public class FederatedComputeJobManager {
                 trainingResult != ContributionResult.SUCCESS
                         ? SchedulingReason.SCHEDULING_REASON_FAILURE
                         : SchedulingReason.SCHEDULING_REASON_FEDERATED_COMPUTATION_RETRY);
-        if (trainingResult == ContributionResult.FAIL && enableFailuresTracking) {
+        if (trainingResult == ContributionResult.FAIL
+                && enableFailuresTracking) {
             int rescheduleCount = existingTask.rescheduleCount() + 1;
-            if (rescheduleCount > mFlags.getFcpRescheduleLimit()) {
+            if (checkRescheduleLimitsExceeded(intervalOptions, rescheduleCount)) {
                 LogUtil.i(
                         TAG,
                         "federated task (id: %d) was not rescheduled due to reschedule limit "
@@ -479,6 +480,20 @@ public class FederatedComputeJobManager {
         FederatedTrainingTask newTask = newTaskBuilder.build();
         mFederatedTrainingTaskDao.updateOrInsertFederatedTrainingTask(newTask);
         return mJobSchedulerHelper.scheduleTask(mContext, newTask);
+    }
+
+    private boolean checkRescheduleLimitsExceeded(
+            TrainingIntervalOptions intervalOptions, int rescheduleCount) {
+        // we treat  absence of interval option as it is one time job
+        if (intervalOptions == null) {
+            return rescheduleCount > mFlags.getFcpRescheduleLimit();
+        } else if (intervalOptions.schedulingMode() == SchedulingMode.RECURRENT) {
+            // recurrent jobs have way higher tolerance level
+            return rescheduleCount > mFlags.getFcpRecurrentRescheduleLimit();
+        } else {
+            // all other cases, basically treated as one time job.
+            return rescheduleCount > mFlags.getFcpRescheduleLimit();
+        }
     }
 
     private boolean detectKeyParametersChanged(

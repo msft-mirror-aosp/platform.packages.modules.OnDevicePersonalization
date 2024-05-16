@@ -30,6 +30,7 @@ import static com.android.federatedcompute.services.common.Flags.DEFAULT_TRAININ
 import static com.android.federatedcompute.services.common.Flags.ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.Flags.ENCRYPTION_ENABLED;
 import static com.android.federatedcompute.services.common.Flags.FCP_DEFAULT_MEMORY_SIZE_LIMIT;
+import static com.android.federatedcompute.services.common.Flags.FCP_RECURRENT_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FCP_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FEDERATED_COMPUTE_GLOBAL_KILL_SWITCH;
 import static com.android.federatedcompute.services.common.Flags.HTTP_REQUEST_RETRY_LIMIT;
@@ -50,6 +51,7 @@ import static com.android.federatedcompute.services.common.PhFlags.FCP_JOB_SCHED
 import static com.android.federatedcompute.services.common.PhFlags.FCP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_MEMORY_SIZE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_MODULE_JOB_POLICY;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_RESCHEDULE_LIMIT_CONFIG_NAME;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_SPE_PILOT_JOB_ENABLED;
 import static com.android.federatedcompute.services.common.PhFlags.FEDERATED_COMPUTATION_ENCRYPTION_KEY_DOWNLOAD_URL;
@@ -151,6 +153,11 @@ public class PhFlagsTest {
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_RESCHEDULE_LIMIT_CONFIG_NAME,
                 Integer.toString(FCP_RESCHEDULE_LIMIT),
+                /* makeDefault= */ false);
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                Integer.toString(FCP_RECURRENT_RESCHEDULE_LIMIT),
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -558,6 +565,29 @@ public class PhFlagsTest {
 
         Flags phFlags = FlagsFactory.getFlags();
         assertThat(phFlags.getFcpRescheduleLimit()).isEqualTo(overrideFcpRescheduleLimit);
+    }
+
+    @Test
+    public void testGetFcpRecurrentRescheduleLimit() {
+        // Without Overriding
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                Integer.toString(FCP_RECURRENT_RESCHEDULE_LIMIT),
+                /* makeDefault= */ false);
+        assertThat(FlagsFactory.getFlags().getFcpRecurrentRescheduleLimit())
+                .isEqualTo(FCP_RECURRENT_RESCHEDULE_LIMIT);
+
+        // Now overriding the value from PH.
+        int overrideFcpRescheduleLimit = 4;
+        DeviceConfig.setProperty(
+                DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                FCP_RECURRENT_RESCHEDULE_LIMIT_CONFIG_NAME,
+                Integer.toString(overrideFcpRescheduleLimit),
+                /* makeDefault= */ false);
+
+        Flags phFlags = FlagsFactory.getFlags();
+        assertThat(phFlags.getFcpRecurrentRescheduleLimit()).isEqualTo(overrideFcpRescheduleLimit);
     }
 
     @Test
