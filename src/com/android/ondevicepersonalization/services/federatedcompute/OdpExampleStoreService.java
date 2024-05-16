@@ -56,7 +56,6 @@ import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.common.util.concurrent.ListeningScheduledExecutorService;
 
-import java.util.ArrayList;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
@@ -117,6 +116,8 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                     Objects.requireNonNull(params.getString(ClientConstants.EXTRA_POPULATION_NAME));
             String taskId = Objects.requireNonNull(params.getString(ClientConstants.EXTRA_TASK_ID));
             String collectionUri = params.getString(ClientConstants.EXTRA_COLLECTION_URI);
+            int eligibilityMinExample =
+                    params.getInt(ClientConstants.EXTRA_ELIGIBILITY_MIN_EXAMPLE);
 
             EventsDao eventDao = EventsDao.getInstance(getContext());
 
@@ -222,10 +223,10 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                                     trainingExamplesOutputParcel.getTrainingExampleRecords();
 
                             if (trainingExampleRecordList == null
-                                    || trainingExampleRecordList.getList().isEmpty()) {
-                                callback.onStartQuerySuccess(
-                                        OdpExampleStoreIteratorFactory.getInstance()
-                                                .createIterator(new ArrayList<>()));
+                                    || trainingExampleRecordList.getList().size()
+                                            < eligibilityMinExample) {
+                                callback.onStartQueryFailure(
+                                        ClientConstants.STATUS_NOT_ENOUGH_DATA);
                             } else {
                                 callback.onStartQuerySuccess(
                                         OdpExampleStoreIteratorFactory.getInstance()

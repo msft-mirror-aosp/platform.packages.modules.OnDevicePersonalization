@@ -95,19 +95,20 @@ public class OnDevicePersonalizationDbHelper extends SQLiteOpenHelper {
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
         sLogger.d(TAG + ": DB upgrade from " + oldVersion + " to " + newVersion);
-        if (oldVersion == 1) {
+
+        if (oldVersion < 2) {
             execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V1_TO_V2_STATEMENT);
+        }
+
+        if (oldVersion < 3) {
             execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V2_TO_V3_STATEMENT);
+        }
+
+        if (oldVersion < 4) {
             execSqlIgnoreError(db, UserDataContract.AppInstall.CREATE_TABLE_STATEMENT);
-            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
-        } else if (oldVersion == 2) {
-            execSqlIgnoreError(db, QueriesContract.QueriesEntry.UPGRADE_V2_TO_V3_STATEMENT);
-            execSqlIgnoreError(db, UserDataContract.AppInstall.CREATE_TABLE_STATEMENT);
-            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
-        } else if (oldVersion == 3) {
-            execSqlIgnoreError(db, UserDataContract.AppInstall.CREATE_TABLE_STATEMENT);
-            execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
-        } else if (oldVersion == 4) {
+        }
+
+        if (oldVersion < 5) {
             execSqlIgnoreError(db, EventsContract.EventsEntry.UPGRADE_V4_TO_V5_STATEMENTS);
         }
     }

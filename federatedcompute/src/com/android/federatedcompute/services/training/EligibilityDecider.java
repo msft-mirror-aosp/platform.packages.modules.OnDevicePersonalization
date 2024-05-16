@@ -16,7 +16,6 @@
 
 package com.android.federatedcompute.services.training;
 
-import static com.android.federatedcompute.services.common.TrainingEventLogger.getTaskIdForLogging;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE;
 import static com.android.federatedcompute.services.stats.FederatedComputeStatsLog.FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR;
@@ -34,9 +33,10 @@ import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
 import com.android.federatedcompute.services.data.TaskHistory;
 import com.android.federatedcompute.services.examplestore.ExampleStoreServiceProvider;
-import com.android.federatedcompute.services.examplestore.FederatedExampleIterator;
+import com.android.federatedcompute.services.training.util.EligibilityResult;
 import com.android.internal.annotations.VisibleForTesting;
 
+import com.google.internal.federated.plan.ExampleSelector;
 import com.google.ondevicepersonalization.federatedcompute.proto.DataAvailabilityPolicy;
 import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityPolicyEvalSpec;
 import com.google.ondevicepersonalization.federatedcompute.proto.EligibilityTaskInfo;
@@ -64,16 +64,18 @@ public class EligibilityDecider {
      * Computes the eligibility of the client for the given tasks in the population eligibility
      * spec. Returns true if device is eligible to execute this task.
      */
-    public boolean computeEligibility(
+    public EligibilityResult computeEligibility(
             FederatedTrainingTask task,
             String taskId,
             EligibilityTaskInfo eligibilityTaskInfo,
             Context context,
-            TrainingEventLogger trainingEventLogger) {
+            TrainingEventLogger trainingEventLogger,
+            ExampleSelector exampleSelector) {
         boolean eligible = true;
         ExampleStats exampleStats = new ExampleStats();
         trainingEventLogger.logEventKind(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_STARTED);
+        EligibilityResult.Builder result = new EligibilityResult.Builder();
         for (EligibilityPolicyEvalSpec policyEvalSpec :
                 eligibilityTaskInfo.getEligibilityPoliciesList()) {
             switch (policyEvalSpec.getPolicyTypeCase()) {
@@ -93,7 +95,9 @@ public class EligibilityDecider {
                                     taskId,
                                     context,
                                     exampleStats,
-                                    trainingEventLogger);
+                                    trainingEventLogger,
+                                    result,
+                                    exampleSelector);
                     break;
                 default:
                     throw new IllegalStateException(
@@ -101,6 +105,7 @@ public class EligibilityDecider {
             }
             // Device has to meet all eligibility policies in order to execute task.
             if (!eligible) {
+                result.setEligible(false);
                 break;
             }
         }
@@ -109,11 +114,19 @@ public class EligibilityDecider {
         trainingEventLogger.logEventWithExampleStats(
                 FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_COMPLETED,
                 exampleStats);
+        EligibilityResult eligibilityResult = result.setEligible(eligible).build();
+
         if (eligible) {
             trainingEventLogger.logEventKind(
                     FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ELIGIBLE);
+            return eligibilityResult;
         }
-        return eligible;
+
+        // If device is not eligible, we should unbind from ExampleStore if needed.
+        if (eligibilityResult.getExampleStoreIterator() != null) {
+            mExampleStoreServiceProvider.unbindFromExampleStoreService();
+        }
+        return new EligibilityResult.Builder().setEligible(false).build();
     }
 
     private boolean computePerTaskMinSeparation(
@@ -129,12 +142,6 @@ public class EligibilityDecider {
                     jobId);
             return true;
         }
-        LogUtil.d(
-                TAG,
-                "Execute minimum separartion policy: min sep %d, current index %d, round %d",
-                minSepPolicy.getMinimumSeparation(),
-                minSepPolicy.getCurrentIndex(),
-                taskHistory.getContributionRound());
         return minSepPolicy.getMinimumSeparation()
                 <= minSepPolicy.getCurrentIndex() - taskHistory.getContributionRound();
     }
@@ -145,7 +152,9 @@ public class EligibilityDecider {
             String taskId,
             Context context,
             ExampleStats exampleStats,
-            TrainingEventLogger logger) {
+            TrainingEventLogger logger,
+            EligibilityResult.Builder result,
+            ExampleSelector exampleSelector) {
         try {
             long callStartTimeNanos = SystemClock.elapsedRealtimeNanos();
             IExampleStoreService exampleStoreService =
@@ -168,38 +177,32 @@ public class EligibilityDecider {
             callStartTimeNanos = SystemClock.elapsedRealtimeNanos();
             IExampleStoreIterator iterator =
                     mExampleStoreServiceProvider.getExampleIterator(
-                            exampleStoreService, task, taskId);
+                            exampleStoreService,
+                            task,
+                            taskId,
+                            dataAvailabilityPolicy.getMinExampleCount(),
+                            exampleSelector);
             if (iterator == null) {
+                LogUtil.d(
+                        TAG,
+                        "Failed to compute DataAvailabilityPolicy due to iterator is null "
+                                + "%s %s %s",
+                        task.appPackageName(),
+                        task.populationName(),
+                        taskId);
                 logger.logEventKind(
                         FEDERATED_COMPUTE_TRAINING_EVENT_REPORTED__KIND__TRAIN_ELIGIBILITY_EVAL_COMPUTATION_ERROR_EXAMPLE_ITERATOR);
+                mExampleStoreServiceProvider.unbindFromExampleStoreService();
                 return false;
             }
+            result.setExampleStoreIterator(iterator);
             exampleStats.mStartQueryLatencyNanos.addAndGet(
                     SystemClock.elapsedRealtimeNanos() - callStartTimeNanos);
-            FederatedExampleIterator federatedExampleIterator =
-                    new FederatedExampleIterator(
-                            iterator,
-                            null,
-                            null,
-                            getTaskIdForLogging(task.populationName(), taskId),
-                            context);
-            int totalExamples = 0;
-            while (federatedExampleIterator.hasNext()) {
-                totalExamples++;
-                federatedExampleIterator.next();
-            }
-            exampleStats.mExampleCount.addAndGet(totalExamples);
-            LogUtil.d(
-                    TAG,
-                    "total examples %d data availability policy count %d ",
-                    totalExamples,
-                    dataAvailabilityPolicy.getMinExampleCount());
-            return totalExamples >= dataAvailabilityPolicy.getMinExampleCount();
+            return true;
         } catch (Exception e) {
+            mExampleStoreServiceProvider.unbindFromExampleStoreService();
             LogUtil.e(TAG, e, "Failed to compute DataAvailabilityPolicy");
             return false;
-        } finally {
-            mExampleStoreServiceProvider.unbindFromExampleStoreService();
         }
     }
 }

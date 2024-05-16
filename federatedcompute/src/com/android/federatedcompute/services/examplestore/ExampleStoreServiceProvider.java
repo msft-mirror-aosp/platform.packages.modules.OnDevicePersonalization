@@ -35,7 +35,6 @@ import com.android.federatedcompute.services.common.ExampleStats;
 import com.android.federatedcompute.services.common.FlagsFactory;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 
-import com.google.common.util.concurrent.Futures;
 import com.google.common.util.concurrent.ListenableFuture;
 import com.google.internal.federated.plan.ExampleSelector;
 
@@ -64,20 +63,20 @@ public class ExampleStoreServiceProvider {
         mExampleStoreServiceBinder.unbindFromService();
     }
 
-    /** Returns an {@link IExampleStoreIterator} implemented by client app. */
-    public ListenableFuture<IExampleStoreIterator> getExampleStoreIterator(
+    /** Returns an {@link IExampleStoreIterator} implemented by client app in synchronized call. */
+    public IExampleStoreIterator getExampleIterator(
             IExampleStoreService exampleStoreService,
             FederatedTrainingTask task,
-            String taskId,
-            ExampleSelector exampleSelector,
-            ExampleStats exampleStats) {
+            String taskName,
+            int minExample,
+            ExampleSelector exampleSelector) {
         try {
-            Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 0);
-            long startTimeNanos = SystemClock.elapsedRealtimeNanos();
+            Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
             Bundle bundle = new Bundle();
             bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_ID, taskId);
+            bundle.putString(ClientConstants.EXTRA_TASK_ID, taskName);
             bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
+            bundle.putInt(ClientConstants.EXTRA_ELIGIBILITY_MIN_EXAMPLE, minExample);
             if (exampleSelector != null) {
                 byte[] criteria = exampleSelector.getCriteria().toByteArray();
                 byte[] resumptionToken = exampleSelector.getResumptionToken().toByteArray();
@@ -87,23 +86,6 @@ public class ExampleStoreServiceProvider {
                 bundle.putString(
                         ClientConstants.EXTRA_COLLECTION_URI, exampleSelector.getCollectionUri());
             }
-            return runExampleStoreStartQuery(
-                    exampleStoreService, bundle, exampleStats, startTimeNanos);
-        } catch (Exception e) {
-            LogUtil.e(TAG, e, "Got exception when StartQuery");
-            return Futures.immediateFailedFuture(e);
-        }
-    }
-
-    /** Returns an {@link IExampleStoreIterator} implemented by client app in synchronized call. */
-    public IExampleStoreIterator getExampleIterator(
-            IExampleStoreService exampleStoreService, FederatedTrainingTask task, String taskName) {
-        try {
-            Trace.beginAsyncSection(TRACE_GET_EXAMPLE_STORE_ITERATOR, 1);
-            Bundle bundle = new Bundle();
-            bundle.putString(ClientConstants.EXTRA_POPULATION_NAME, task.populationName());
-            bundle.putString(ClientConstants.EXTRA_TASK_ID, taskName);
-            bundle.putByteArray(ClientConstants.EXTRA_CONTEXT_DATA, task.contextData());
             BlockingQueue<CallbackResult> asyncResult = new ArrayBlockingQueue<>(1);
             exampleStoreService.startQuery(
                     bundle,
