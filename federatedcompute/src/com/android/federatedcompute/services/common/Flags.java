@@ -191,6 +191,17 @@ public interface Flags extends ModuleSharedFlags {
         return FCP_RESCHEDULE_LIMIT;
     }
 
+    int FCP_RECURRENT_RESCHEDULE_LIMIT = 100;
+
+    /**
+     * Limitation of how much times can FCP task job can be rescheduled if it failed, if federated
+     * compute job retry times exceeds this limit, the job will be canceled/abort.
+     * This one is for recurrent jobs.
+     */
+    default int getFcpRecurrentRescheduleLimit() {
+        return FCP_RECURRENT_RESCHEDULE_LIMIT;
+    }
+
     // 7 days in milliseconds
     long ODP_AUTHORIZATION_TOKEN_TTL = 7 * 24 * 60 * 60 * 1000L;
 

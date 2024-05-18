@@ -577,7 +577,12 @@ public final class FederatedComputeWorkerTest {
         assertNull(result);
         verify(mMockJobManager)
                 .onTrainingCompleted(
-                        anyInt(), anyString(), any(), any(), eq(ContributionResult.FAIL), eq(true));
+                        anyInt(),
+                        anyString(),
+                        any(),
+                        any(),
+                        eq(ContributionResult.FAIL),
+                        eq(false));
         verify(mSpyResultCallbackHelper)
                 .callHandleResult(any(), any(), computationResultCaptor.capture());
         ComputationResult computationResult = computationResultCaptor.getValue();
