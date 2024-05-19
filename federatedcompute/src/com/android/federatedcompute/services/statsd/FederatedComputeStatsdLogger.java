@@ -60,7 +60,7 @@ public class FederatedComputeStatsdLogger {
                     apiCallStats.getApiName(),
                     apiCallStats.getLatencyMillis(),
                     apiCallStats.getResponseCode(),
-                    "");
+                    apiCallStats.getSdkPackageName());
         }
     }
 
@@ -85,7 +85,7 @@ public class FederatedComputeStatsdLogger {
                     trainingEvent.getExampleStoreStartQueryLatencyNanos(),
                     trainingEvent.getPopulationId(),
                     trainingEvent.getExampleCount(),
-                    "");
+                    trainingEvent.getSdkPackageName());
         }
     }
 
