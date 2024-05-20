@@ -21,6 +21,7 @@ package {
 
 android_test {
     name: "CtsOnDevicePersonalizationConfigTests",
+    team: "trendy_team_android_rubidium",
     srcs: ["src/**/*.java"],
     defaults: ["framework-ondevicepersonalization-test-defaults"],
     min_sdk_version: "Tiramisu",
