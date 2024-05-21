@@ -181,19 +181,26 @@ public class OnDevicePersonalizationManagingServiceDelegate
 
     @Override
     public void logApiCallStats(
-            int apiName, long latencyMillis, int responseCode) {
-        OnDevicePersonalizationExecutors.getBackgroundExecutor().execute(
-                () -> handleLogApiCallStats(apiName, latencyMillis, responseCode));
+            String sdkPackageName, int apiName, long latencyMillis, int responseCode) {
+        final int uid = Binder.getCallingUid();
+        OnDevicePersonalizationExecutors.getBackgroundExecutor()
+                .execute(
+                        () ->
+                                handleLogApiCallStats(
+                                        uid, sdkPackageName, apiName, latencyMillis, responseCode));
     }
 
     private void handleLogApiCallStats(
-            int apiName, long latencyMillis, int responseCode) {
+            int appUid, String sdkPackageName, int apiName, long latencyMillis, int responseCode) {
         try {
-            OdpStatsdLogger.getInstance().logApiCallStats(
-                    new ApiCallStats.Builder(apiName)
-                        .setResponseCode(responseCode)
-                        .setLatencyMillis((int) latencyMillis)
-                        .build());
+            OdpStatsdLogger.getInstance()
+                    .logApiCallStats(
+                            new ApiCallStats.Builder(apiName)
+                                    .setResponseCode(responseCode)
+                                    .setAppUid(appUid)
+                                    .setSdkPackageName(sdkPackageName == null ? "" : sdkPackageName)
+                                    .setLatencyMillis((int) latencyMillis)
+                                    .build());
         } catch (Exception e) {
             sLogger.e(e, TAG + ": error logging api call stats");
         }

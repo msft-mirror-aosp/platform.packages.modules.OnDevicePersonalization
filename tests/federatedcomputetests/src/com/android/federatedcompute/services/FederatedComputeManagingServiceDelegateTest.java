@@ -93,7 +93,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
     @Test
     public void testScheduleMissingPackageName_throwsException() {
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
 
         assertThrows(
                 NullPointerException.class,
@@ -103,7 +106,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
     @Test
     public void testScheduleMissingCallback_throwsException() {
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         assertThrows(
                 NullPointerException.class,
                 () -> mFcpService.schedule(mContext.getPackageName(), trainingOptions, null));
@@ -114,7 +120,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
         when(mMockJobManager.onTrainerStartCalled(anyString(), any())).thenReturn(STATUS_SUCCESS);
 
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         invokeScheduleAndVerifyLogging(trainingOptions, STATUS_SUCCESS);
     }
 
@@ -124,7 +133,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 .thenReturn(STATUS_INTERNAL_ERROR);
 
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         invokeScheduleAndVerifyLogging(trainingOptions, STATUS_INTERNAL_ERROR);
     }
 
@@ -134,7 +146,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 .thenThrow(RuntimeException.class);
 
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         invokeScheduleAndVerifyLogging(trainingOptions, STATUS_INTERNAL_ERROR);
     }
 
@@ -144,7 +159,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
                 .thenThrow(NullPointerException.class);
 
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         invokeScheduleAndVerifyLogging(trainingOptions, STATUS_INTERNAL_ERROR);
     }
 
@@ -152,7 +170,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
     public void testScheduleClockThrowsRTE() throws Exception {
         when(mClock.elapsedRealtime()).thenThrow(RuntimeException.class);
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         FederatedComputeCallback callback = spy(new FederatedComputeCallback());
 
         mFcpService.schedule(mContext.getPackageName(), trainingOptions, callback);
@@ -167,7 +188,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
         when(mClock.elapsedRealtime()).thenThrow(IllegalArgumentException.class);
 
         TrainingOptions trainingOptions =
-                new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                new TrainingOptions.Builder()
+                        .setPopulationName("fake-population")
+                        .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                        .build();
         assertThrows(
                 IllegalArgumentException.class,
                 () ->
@@ -182,7 +206,10 @@ public final class FederatedComputeManagingServiceDelegateTest {
         PhFlagsTestUtil.enableGlobalKillSwitch();
         try {
             TrainingOptions trainingOptions =
-                    new TrainingOptions.Builder().setPopulationName("fake-population").build();
+                    new TrainingOptions.Builder()
+                            .setPopulationName("fake-population")
+                            .setOwnerComponentName(OWNER_COMPONENT_NAME)
+                            .build();
             invokeScheduleAndVerifyLogging(trainingOptions, STATUS_KILL_SWITCH_ENABLED, 0);
         } finally {
             PhFlagsTestUtil.disableGlobalKillSwitch();
