@@ -299,7 +299,14 @@ public final class OnDevicePersonalizationManagerTest {
         }
 
         @Override
-        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
+        public void logApiCallStats(
+                String sdkPackageName,
+                int apiName,
+                long latencyMillis,
+                int responseCode) {
+            if (!sdkPackageName.equals("com.example.service")) {
+                return;
+            }
             mLogApiStatsCalled = true;
         }
     }

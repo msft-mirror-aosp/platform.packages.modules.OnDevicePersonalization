@@ -47,6 +47,7 @@ public class TrainingEventLogger {
     private long mTaskId = 0;
     private long mVersion = 0;
     private long mPopulationId = 0;
+    private String mSdkPackageName = "";
 
     public void setTaskId(long taskId) {
         this.mTaskId = taskId;
@@ -58,6 +59,10 @@ public class TrainingEventLogger {
 
     public void setPopulationName(String populationName) {
         this.mPopulationId = populationName.hashCode();
+    }
+
+    public void setSdkPackageName(String sdkPackageName) {
+        this.mSdkPackageName = sdkPackageName;
     }
 
     /** Logs when device doesn't start federated task like not meet training constraints. */
@@ -281,14 +286,20 @@ public class TrainingEventLogger {
         if (mPopulationId != 0) {
             event.setPopulationId(mPopulationId);
         }
+        if (mSdkPackageName != null && !mSdkPackageName.isBlank()) {
+            event.setSdkPackageName(mSdkPackageName);
+        }
         TrainingEventReported trainingEvent = event.build();
         LogUtil.d(
                 TAG,
-                "Log population id %d event kind %d, network upload %d download %d data transfer time %d "
-                        + "example stats %d key attestation stats %d example store bind latency: %d"
+                "Log population id %d event kind %d, calling sdk package name: %s,"
+                        + " network upload %d download %d data transfer time %d"
+                        + " example stats %d key attestation stats %d"
+                        + " example store bind latency: %d"
                         + " start query latency: %d",
                 trainingEvent.getPopulationId(),
                 trainingEvent.getEventKind(),
+                trainingEvent.getSdkPackageName(),
                 trainingEvent.getBytesUploaded(),
                 trainingEvent.getBytesDownloaded(),
                 trainingEvent.getDataTransferDurationMillis(),

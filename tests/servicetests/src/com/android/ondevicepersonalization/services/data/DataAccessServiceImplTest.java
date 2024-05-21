@@ -16,6 +16,9 @@
 
 package com.android.ondevicepersonalization.services.data;
 
+import static android.adservices.ondevicepersonalization.Constants.API_NAME_LOCAL_DATA_GET;
+import static android.adservices.ondevicepersonalization.Constants.STATUS_SUCCESS;
+
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertArrayEquals;
@@ -25,6 +28,7 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertThrows;
 import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.verify;
 
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.EventLogRecord;
@@ -53,6 +57,8 @@ import com.android.ondevicepersonalization.services.data.vendor.LocalData;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationLocalDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
+import com.android.ondevicepersonalization.services.statsd.ApiCallStats;
+import com.android.ondevicepersonalization.services.statsd.OdpStatsdLogger;
 import com.android.ondevicepersonalization.services.util.IoUtils;
 import com.android.ondevicepersonalization.services.util.OnDevicePersonalizationFlatbufferUtils;
 import com.android.ondevicepersonalization.services.util.PackageUtils;
@@ -65,6 +71,9 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.JUnit4;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -98,8 +107,11 @@ public class DataAccessServiceImplTest {
     private IDataAccessService mServiceProxy;
     private ComponentName mService;
 
+    @Mock private OdpStatsdLogger mMockOdpStatsdLogger;
+
     @Before
     public void setup() throws Exception {
+        MockitoAnnotations.initMocks(this);
         mService = ComponentName.createRelative(mApplicationContext.getPackageName(),
                 "serviceClass");
         mInjector = new TestInjector();
@@ -550,6 +562,29 @@ public class DataAccessServiceImplTest {
         assertThat(mErrorCode).isEqualTo(Constants.STATUS_INTERNAL_ERROR);
     }
 
+    @Test
+    public void testLogApiCallStats() {
+        Map<String, byte[]> overrideData = new HashMap<>();
+        overrideData.put("key1", "helloworld1".getBytes());
+        overrideData.put("key2", "helloworld2".getBytes());
+        mServiceImpl =
+                new DataAccessServiceImpl(
+                        mService,
+                        mApplicationContext,
+                        overrideData,
+                        DataAccessPermission.READ_WRITE,
+                        DataAccessPermission.READ_WRITE,
+                        mInjector);
+        mServiceImpl.logApiCallStats(API_NAME_LOCAL_DATA_GET, 10, STATUS_SUCCESS);
+
+        ArgumentCaptor<ApiCallStats> captor = ArgumentCaptor.forClass(ApiCallStats.class);
+        verify(mMockOdpStatsdLogger).logApiCallStats(captor.capture());
+        ApiCallStats callStats = captor.getValue();
+        assertThat(callStats.getSdkPackageName()).isEqualTo(mService.getPackageName());
+        assertThat(callStats.getAppUid()).isEqualTo(0);
+        assertThat(callStats.getApiName()).isEqualTo(API_NAME_LOCAL_DATA_GET);
+    }
+
     private void addTestData() {
         List<VendorData> dataList = new ArrayList<>();
         dataList.add(new VendorData.Builder().setKey("key").setData(new byte[10]).build());
@@ -700,6 +735,11 @@ public class DataAccessServiceImplTest {
                 Context context
         ) {
             return EventsDao.getInstanceForTest(context);
+        }
+
+        @Override
+        OdpStatsdLogger getOdpStatsdLogger() {
+            return mMockOdpStatsdLogger;
         }
     }
 }

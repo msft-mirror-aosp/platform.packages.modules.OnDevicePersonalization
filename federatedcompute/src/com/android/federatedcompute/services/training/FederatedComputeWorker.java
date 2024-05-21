@@ -34,6 +34,7 @@ import static com.android.federatedcompute.services.stats.FederatedComputeStatsL
 
 import android.annotation.NonNull;
 import android.annotation.Nullable;
+import android.content.ComponentName;
 import android.content.Context;
 import android.federatedcompute.aidl.IExampleStoreIterator;
 import android.federatedcompute.aidl.IExampleStoreService;
@@ -241,6 +242,11 @@ public class FederatedComputeWorker {
             return null;
         }
         trainingEventLogger.setPopulationName(trainingTask.populationName());
+        ComponentName taskCallingComponentName =
+                ComponentName.unflattenFromString(trainingTask.ownerId());
+        if (taskCallingComponentName != null) {
+            trainingEventLogger.setSdkPackageName(taskCallingComponentName.getPackageName());
+        }
         if (!checkTrainingConditions(trainingTask.getTrainingConstraints())) {
             trainingEventLogger.logTaskNotStarted();
             performFinishRoutines(
