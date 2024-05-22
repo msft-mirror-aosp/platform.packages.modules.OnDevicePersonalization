@@ -20,6 +20,7 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.RenderingConfig;
 import android.adservices.ondevicepersonalization.RequestLogRecord;
@@ -183,12 +184,14 @@ public class RenderFlowTest {
     }
 
     class TestRenderFlowCallback extends IRequestSurfacePackageCallback.Stub {
-        @Override public void onSuccess(SurfacePackage surfacePackage) {
+        @Override public void onSuccess(SurfacePackage surfacePackage,
+                CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
         @Override public void onError(
-                int errorCode, int isolatedServiceErrorCode, String message) {
+                int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mIsolatedServiceErrorCode = isolatedServiceErrorCode;

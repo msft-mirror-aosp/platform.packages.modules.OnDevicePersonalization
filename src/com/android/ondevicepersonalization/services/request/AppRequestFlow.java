@@ -16,6 +16,7 @@
 
 package com.android.ondevicepersonalization.services.request;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.ExecuteInputParcel;
 import android.adservices.ondevicepersonalization.ExecuteOutputParcel;
@@ -27,6 +28,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.os.Bundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.provider.DeviceConfig;
 
 import com.android.internal.annotations.VisibleForTesting;
@@ -397,7 +399,10 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     private void sendSuccessResult(Bundle result) {
         int responseCode = Constants.STATUS_SUCCESS;
         try {
-            mCallback.onSuccess(result);
+            mCallback.onSuccess(
+                    result,
+                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                            SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
             sLogger.w(TAG + ": Callback error", e);
@@ -406,7 +411,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     private void sendErrorResult(int errorCode, int isolatedServiceErrorCode) {
         try {
-            mCallback.onError(errorCode, isolatedServiceErrorCode, null);
+            mCallback.onError(
+                    errorCode,
+                    isolatedServiceErrorCode,
+                    null,
+                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                            SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         }
@@ -414,7 +424,12 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
 
     private void sendErrorResult(int errorCode, Throwable t) {
         try {
-            mCallback.onError(errorCode, 0, DebugUtils.getErrorMessage(mContext, t));
+            mCallback.onError(
+                    errorCode,
+                    0,
+                    DebugUtils.getErrorMessage(mContext, t),
+                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                            SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         }

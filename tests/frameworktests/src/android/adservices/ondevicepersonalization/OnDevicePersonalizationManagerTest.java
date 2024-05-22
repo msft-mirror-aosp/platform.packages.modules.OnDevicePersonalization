@@ -33,6 +33,7 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.os.PersistableBundle;
 import android.os.RemoteException;
+import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.test.core.app.ApplicationProvider;
@@ -256,13 +257,17 @@ public final class OnDevicePersonalizationManagerTest {
                     Bundle bundle = new Bundle();
                     bundle.putString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING, "aaaa");
                     bundle.putByteArray(Constants.EXTRA_OUTPUT_DATA, new byte[]{1, 2, 3});
-                    callback.onSuccess(bundle);
+                    callback.onSuccess(bundle,
+                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                                    SystemClock.elapsedRealtime()).build());
                 } else if (op.equals("error")) {
                     int statusCode = params.getInt(KEY_STATUS_CODE,
                             Constants.STATUS_INTERNAL_ERROR);
                     int serviceErrorCode = params.getInt(KEY_SERVICE_ERROR_CODE, 0);
                     String errorMessage = params.getString(KEY_ERROR_MESSAGE);
-                    callback.onError(statusCode, serviceErrorCode, errorMessage);
+                    callback.onError(statusCode, serviceErrorCode, errorMessage,
+                            new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                                    SystemClock.elapsedRealtime()).build());
                 } else if (op.equals("iae")) {
                     throw new IllegalArgumentException();
                 } else if (op.equals("npe")) {
@@ -303,6 +308,8 @@ public final class OnDevicePersonalizationManagerTest {
                 String sdkPackageName,
                 int apiName,
                 long latencyMillis,
+                long rpcCallLatencyMillis,
+                long rpcReturnLatencyMillis,
                 int responseCode) {
             if (!sdkPackageName.equals("com.example.service")) {
                 return;
