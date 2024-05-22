@@ -184,8 +184,11 @@ public final class OnDevicePersonalizationSystemEventManagerTest {
         }
 
         @Override
-        public void logApiCallStats(int apiName, long latencyMillis, int responseCode) {
-        }
+        public void logApiCallStats(
+                String sdkPackageName,
+                int apiName,
+                long latencyMillis,
+                int responseCode) {}
     }
 
     class TestServiceBinder

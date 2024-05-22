@@ -16,9 +16,13 @@
 
 package com.android.ondevicepersonalization.services.data.user;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
+
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageManager;
 import android.content.res.Configuration;
 import android.net.ConnectivityManager;
 import android.net.NetworkCapabilities;
@@ -30,9 +34,15 @@ import android.telephony.TelephonyManager;
 import androidx.annotation.NonNull;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.noise.AppInstallNoiseHandler;
 
+import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.TimeZone;
 
@@ -48,7 +58,7 @@ public class UserDataCollector {
 
     private static volatile UserDataCollector sUserDataCollector = null;
     private static final LoggerFactory.Logger sLogger = LoggerFactory.getLogger();
-    private static final String TAG = "UserDataCollector";
+    private static final String TAG = UserDataCollector.class.getSimpleName();
 
     @VisibleForTesting
     public static final Set<Integer> ALLOWED_NETWORK_TYPE =
@@ -78,13 +88,19 @@ public class UserDataCollector {
     @NonNull final ConnectivityManager mConnectivityManager;
     // Metadata to track whether UserData has been initialized.
     @NonNull private boolean mInitialized;
+    private final UserDataDao mUserDataDao;
+    private final AppInstallNoiseHandler mAppInstallNoiseHandler;
 
-    private UserDataCollector(Context context) {
+    private UserDataCollector(
+            Context context,
+            UserDataDao userDataDao,
+            AppInstallNoiseHandler appInstallNoiseHandler) {
         mContext = context;
-
+        mUserDataDao = userDataDao;
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
         mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         mInitialized = false;
+        mAppInstallNoiseHandler = appInstallNoiseHandler;
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -92,7 +108,11 @@ public class UserDataCollector {
         if (sUserDataCollector == null) {
             synchronized (UserDataCollector.class) {
                 if (sUserDataCollector == null) {
-                    sUserDataCollector = new UserDataCollector(context.getApplicationContext());
+                    sUserDataCollector =
+                            new UserDataCollector(
+                                    context.getApplicationContext(),
+                                    UserDataDao.getInstance(context),
+                                    new AppInstallNoiseHandler(context));
                 }
             }
         }
@@ -100,13 +120,27 @@ public class UserDataCollector {
     }
 
     /**
-     * Returns an instance of the UserDataCollector given a context. This is used for testing only.
+     * Returns an instance of the UserDataCollector which is not a singleton instance. It's only for
+     * testing purpose.
      */
+    @VisibleForTesting
+    public static UserDataCollector getInstanceForTest(
+            Context context,
+            UserDataDao userDataDao,
+            AppInstallNoiseHandler appInstallNoiseHandler) {
+        return new UserDataCollector(context, userDataDao, appInstallNoiseHandler);
+    }
+
+    /** Returns a singleton instance of the UserDataCollector. It's only for testing purpose. */
     @VisibleForTesting
     public static UserDataCollector getInstanceForTest(Context context) {
         synchronized (UserDataCollector.class) {
             if (sUserDataCollector == null) {
-                sUserDataCollector = new UserDataCollector(context);
+                sUserDataCollector =
+                        new UserDataCollector(
+                                context,
+                                UserDataDao.getInstanceForTest(context),
+                                new AppInstallNoiseHandler(context));
             }
             return sUserDataCollector;
         }
@@ -137,6 +171,7 @@ public class UserDataCollector {
         getCarrier(userData);
         getNetworkCapabilities(userData);
         getDataNetworkType(userData);
+        updateInstalledApps(userData);
     }
 
     /**
@@ -151,6 +186,7 @@ public class UserDataCollector {
         getCarrier(userData);
         getNetworkCapabilities(userData);
         getDataNetworkType(userData);
+        initialInstalledApp(userData);
 
         mInitialized = true;
     }
@@ -163,7 +199,7 @@ public class UserDataCollector {
                     TimeZone.getDefault().getOffset(System.currentTimeMillis())
                             / MILLISECONDS_IN_MINUTE;
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect timezone offset.");
+            sLogger.w(TAG + ": Failed to collect timezone offset.", e);
         }
     }
 
@@ -173,7 +209,7 @@ public class UserDataCollector {
         try {
             userData.orientation = mContext.getResources().getConfiguration().orientation;
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect device orientation.");
+            sLogger.w(TAG + ": Failed to collect device orientation.", e);
         }
     }
 
@@ -184,7 +220,7 @@ public class UserDataCollector {
             StatFs statFs = new StatFs(Environment.getDataDirectory().getPath());
             userData.availableStorageBytes = statFs.getAvailableBytes();
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect availableStorageBytes.");
+            sLogger.w(TAG + ": Failed to collect availableStorageBytes.", e);
         }
     }
 
@@ -201,7 +237,7 @@ public class UserDataCollector {
                 userData.batteryPercentage = Math.round(level * 100.0f / (float) scale);
             }
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect batteryPercentage.");
+            sLogger.w(TAG + ": Failed to collect batteryPercentage.", e);
         }
     }
 
@@ -242,7 +278,7 @@ public class UserDataCollector {
                 default -> userData.carrier = Carrier.UNKNOWN;
             }
         } catch (Exception e) {
-            sLogger.w(TAG + "Failed to collect carrier info.");
+            sLogger.w(TAG + "Failed to collect carrier info.", e);
         }
     }
 
@@ -255,7 +291,7 @@ public class UserDataCollector {
                             mConnectivityManager.getActiveNetwork());
             userData.networkCapabilities = getFilteredNetworkCapabilities(networkCapabilities);
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect networkCapabilities.");
+            sLogger.w(TAG + ": Failed to collect networkCapabilities.", e);
         }
     }
 
@@ -269,7 +305,7 @@ public class UserDataCollector {
                 userData.dataNetworkType = dataNetworkType;
             }
         } catch (Exception e) {
-            sLogger.w(TAG + ": Failed to collect data network type.");
+            sLogger.w(TAG + ": Failed to collect data network type.", e);
         }
     }
 
@@ -281,6 +317,8 @@ public class UserDataCollector {
         userData.batteryPercentage = 0;
         userData.carrier = Carrier.UNKNOWN;
         userData.networkCapabilities = null;
+        userData.installedApps = null;
+        userData.installedAppsWithNoise = null;
     }
 
     /** Util to reset all in-memory metadata for testing purpose. */
@@ -306,5 +344,72 @@ public class UserDataCollector {
             builder.addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
         }
         return builder.build();
+    }
+
+    /** Initials the installed app list and noised installed list by reading from database. */
+    public void initialInstalledApp(RawUserData userData) {
+        Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap(true);
+        Map<String, Long> installAppWithNoise = mUserDataDao.getAppInstallMap(false);
+        userData.installedApps = existingInstallApps.keySet();
+        userData.installedAppsWithNoise = installAppWithNoise.keySet();
+    }
+
+    /** Updates app installed list and noised app installed list if necessary. */
+    @VisibleForTesting
+    public void updateInstalledApps(RawUserData userData) {
+        try {
+            Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap(true);
+            PackageManager packageManager = mContext.getPackageManager();
+
+            List<ApplicationInfo> installAppList =
+                    packageManager.getInstalledApplications(
+                            PackageManager.ApplicationInfoFlags.of(GET_META_DATA));
+            Map<String, Long> currentAppInstall =
+                    updateExistingAppInstall(installAppList, existingInstallApps);
+            userData.installedApps = currentAppInstall.keySet();
+            mUserDataDao.insertAppInstall(currentAppInstall, 0);
+            sLogger.d(TAG + ": Update RawUserData installAppList " + userData.installedApps);
+
+            if (!currentAppInstall.keySet().equals(existingInstallApps.keySet())) {
+                float noise = FlagsFactory.getFlags().getTargetNoiseForUserFeature();
+                Map<String, Long> appInstallWithNoise =
+                        mAppInstallNoiseHandler.generateAppInstallWithNoise(
+                                currentAppInstall, noise);
+                userData.installedAppsWithNoise = appInstallWithNoise.keySet();
+                mUserDataDao.insertAppInstall(appInstallWithNoise, noise);
+                sLogger.d(
+                        TAG
+                                + ": Update RawUserData noised installAppList "
+                                + userData.installedAppsWithNoise);
+            }
+        } catch (Exception e) {
+            sLogger.w(e, TAG + ": Failed to collect installed app list.");
+        }
+    }
+
+    @VisibleForTesting
+    Map<String, Long> updateExistingAppInstall(
+            List<ApplicationInfo> installAppList, Map<String, Long> existingInstallApps) {
+        Map<String, Long> currentAppInstallMap = new HashMap<>();
+        long currentTime = MonotonicClock.getInstance().currentTimeMillis();
+
+        // Get current install apps and update existing app list.
+        for (ApplicationInfo appInfo : installAppList) {
+            String packageName = appInfo.packageName;
+            currentAppInstallMap.put(packageName, currentTime);
+        }
+
+        // Iterator the new app install list and remove expired apps over 30 days (ttl).
+        long ttl = FlagsFactory.getFlags().getAppInstallHistoryTtlInMillis();
+        for (Map.Entry<String, Long> entry : existingInstallApps.entrySet()) {
+            String packageName = entry.getKey();
+            if (currentAppInstallMap.containsKey(packageName)) continue;
+
+            long lastUpdateTime = entry.getValue();
+            if (lastUpdateTime >= currentTime - ttl) {
+                currentAppInstallMap.put(packageName, lastUpdateTime);
+            }
+        }
+        return currentAppInstallMap;
     }
 }

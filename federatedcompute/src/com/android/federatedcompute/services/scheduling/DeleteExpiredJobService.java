@@ -17,6 +17,9 @@
 package com.android.federatedcompute.services.scheduling;
 
 import static com.android.adservices.service.stats.AdServicesStatsLog.AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_FAILED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SKIPPED;
+import static com.android.adservices.shared.spe.JobServiceConstants.SCHEDULING_RESULT_CODE_SUCCESSFUL;
 
 import android.app.job.JobInfo;
 import android.app.job.JobParameters;
@@ -25,6 +28,7 @@ import android.app.job.JobService;
 import android.content.ComponentName;
 import android.content.Context;
 
+import com.android.adservices.shared.spe.JobServiceConstants.JobSchedulingResultCode;
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
@@ -88,7 +92,9 @@ public class DeleteExpiredJobService extends JobService {
     public boolean onStartJob(JobParameters params) {
         LogUtil.d(TAG, "DeleteExpiredJobService.onStartJob %d", params.getJobId());
         FederatedComputeJobServiceLogger.getInstance(this).recordOnStartJob(DELETE_EXPIRED_JOB_ID);
-        if (FlagsFactory.getFlags().getGlobalKillSwitch()) {
+        Flags flags = mInjector.getFlags();
+
+        if (flags.getGlobalKillSwitch()) {
             LogUtil.d(TAG, "GlobalKillSwitch is enabled, finishing job.");
             return FederatedComputeJobUtil.cancelAndFinishJob(
                     this,
@@ -96,6 +102,21 @@ public class DeleteExpiredJobService extends JobService {
                     DELETE_EXPIRED_JOB_ID,
                     AD_SERVICES_BACKGROUND_JOBS_EXECUTION_REPORTED__EXECUTION_RESULT_CODE__SKIP_FOR_KILL_SWITCH_ON);
         }
+
+        // Reschedule jobs with SPE if it's enabled. Note scheduled jobs by this
+        // DeleteExpiredJobService will be cancelled for the same job ID.
+        //
+        // Note the job without a flex period will execute immediately after rescheduling with the
+        // same ID. Therefore, ending the execution here and let it run in the new SPE job.
+        if (flags.getSpePilotJobEnabled()) {
+            LogUtil.d(
+                    TAG,
+                    "SPE is enabled. Reschedule DeleteExpiredJobService with"
+                            + " DeleteExpiredJob.");
+            DeleteExpiredJob.schedule(this, flags);
+            return false;
+        }
+
         ListenableFuture<Integer> deleteExpiredAuthTokenFuture =
                 Futures.submit(
                         () ->
@@ -108,7 +129,7 @@ public class DeleteExpiredJobService extends JobService {
                         () -> {
                             long deleteTime =
                                     mInjector.getClock().currentTimeMillis()
-                                            - mInjector.getFlags().getTaskHistoryTtl();
+                                            - flags.getTaskHistoryTtl();
                             return mInjector
                                     .getTrainingTaskDao(this)
                                     .deleteExpiredTaskHistory(deleteTime);
@@ -157,11 +178,12 @@ public class DeleteExpiredJobService extends JobService {
     }
 
     /** Schedule the periodic deletion job if it is not scheduled. */
-    public static boolean scheduleJobIfNeeded(Context context, Flags flags) {
+    @JobSchedulingResultCode
+    public static int scheduleJobIfNeeded(Context context, Flags flags, boolean forceSchedule) {
         final JobScheduler jobScheduler = context.getSystemService(JobScheduler.class);
         if (jobScheduler == null) {
             LogUtil.e(TAG, "Failed to get job scheduler from system service.");
-            return false;
+            return SCHEDULING_RESULT_CODE_FAILED;
         }
 
         final JobInfo scheduledJob = jobScheduler.getPendingJob(DELETE_EXPIRED_JOB_ID);
@@ -177,16 +199,16 @@ public class DeleteExpiredJobService extends JobService {
                         .setPersisted(true)
                         .build();
 
-        if (!jobInfo.equals(scheduledJob)) {
+        if (forceSchedule || !jobInfo.equals(scheduledJob)) {
             jobScheduler.schedule(jobInfo);
             LogUtil.d(TAG, "Scheduled job DeleteExpiredJobService id %d", DELETE_EXPIRED_JOB_ID);
-            return true;
+            return SCHEDULING_RESULT_CODE_SUCCESSFUL;
         } else {
             LogUtil.d(
                     TAG,
                     "Already scheduled job DeleteExpiredJobService id %d",
                     DELETE_EXPIRED_JOB_ID);
-            return false;
+            return SCHEDULING_RESULT_CODE_SKIPPED;
         }
     }
 }
