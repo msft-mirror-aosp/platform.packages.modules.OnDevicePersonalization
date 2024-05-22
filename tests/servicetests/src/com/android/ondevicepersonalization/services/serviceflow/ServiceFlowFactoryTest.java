@@ -18,6 +18,7 @@ package com.android.ondevicepersonalization.services.serviceflow;
 
 import static com.google.common.truth.Truth.assertThat;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -98,15 +99,17 @@ public class ServiceFlowFactoryTest {
 
     class TestExecuteCallback extends IExecuteCallback.Stub {
         @Override
-        public void onSuccess(Bundle bundle) {}
+        public void onSuccess(Bundle bundle, CalleeMetadata calleeMetadata) {}
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {}
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {}
     }
 
     class TestRenderFlowCallback extends IRequestSurfacePackageCallback.Stub {
-        @Override public void onSuccess(SurfaceControlViewHost.SurfacePackage surfacePackage) {}
-        @Override public void onError(
-                int errorCode, int isolatedServiceErrorCode, String message) {}
+        @Override public void onSuccess(SurfaceControlViewHost.SurfacePackage surfacePackage,
+                CalleeMetadata calleeMetadata) {}
+        @Override public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {}
     }
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {

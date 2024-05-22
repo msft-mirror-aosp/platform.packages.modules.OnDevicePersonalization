@@ -33,6 +33,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.CallerMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.aidl.IExecuteCallback;
@@ -607,7 +608,7 @@ public class OnDevicePersonalizationManagingServiceTest {
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess(Bundle bundle) {
+        public void onSuccess(Bundle bundle, CalleeMetadata calleeMetadata) {
             if (bundle != null) {
                 mToken = bundle.getString(Constants.EXTRA_SURFACE_PACKAGE_TOKEN_STRING);
             }
@@ -617,7 +618,8 @@ public class OnDevicePersonalizationManagingServiceTest {
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;
@@ -641,14 +643,16 @@ public class OnDevicePersonalizationManagingServiceTest {
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess(SurfaceControlViewHost.SurfacePackage s) {
+        public void onSuccess(SurfaceControlViewHost.SurfacePackage s,
+                CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mSuccess = true;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode, int isolatedServiceErrorCode, String message) {
+        public void onError(int errorCode, int isolatedServiceErrorCode, String message,
+                CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;

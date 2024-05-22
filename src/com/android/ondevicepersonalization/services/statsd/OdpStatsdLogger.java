@@ -85,16 +85,16 @@ public class OdpStatsdLogger {
         if (!sApiNames.contains(apiCallStats.getApiName())) {
             return;
         }
-    OnDevicePersonalizationStatsLog.write(
-        ONDEVICEPERSONALIZATION_API_CALLED,
-        apiCallStats.getApiClass(),
-        apiCallStats.getApiName(),
-        apiCallStats.getLatencyMillis(),
-        apiCallStats.getResponseCode(),
-        apiCallStats.getOverheadLatencyMillis(),
-        0,
-        0,
-        apiCallStats.getAppUid(),
-        apiCallStats.getSdkPackageName());
+        OnDevicePersonalizationStatsLog.write(
+                ONDEVICEPERSONALIZATION_API_CALLED,
+                apiCallStats.getApiClass(),
+                apiCallStats.getApiName(),
+                apiCallStats.getLatencyMillis(),
+                apiCallStats.getResponseCode(),
+                apiCallStats.getOverheadLatencyMillis(),
+                apiCallStats.getRpcCallLatencyMillis(),
+                apiCallStats.getRpcReturnLatencyMillis(),
+                apiCallStats.getAppUid(),
+                apiCallStats.getSdkPackageName());
     }
 }

@@ -16,10 +16,12 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.view.SurfaceControlViewHost.SurfacePackage;
 
 /** @hide */
 oneway interface IRequestSurfacePackageCallback {
-    void onSuccess(in SurfacePackage surfacePackage);
-    void onError(int errorCode, int isolatedServiceErrorCode, String errorMessage);
+    void onSuccess(in SurfacePackage surfacePackage, in CalleeMetadata calleeMetadata);
+    void onError(int errorCode, int isolatedServiceErrorCode, String errorMessage,
+    in CalleeMetadata calleeMetadata);
 }

@@ -54,6 +54,8 @@ interface IOnDevicePersonalizationManagingService {
         in String sdkPackageName,
         in int apiName,
         in long latencyMillis,
+        in long rpcCallLatencyMillis,
+        in long rpcReturnLatencyMillis,
         in int responseCode
     );
 }

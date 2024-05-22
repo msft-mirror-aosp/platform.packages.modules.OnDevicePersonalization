@@ -33,6 +33,7 @@ import android.os.OutcomeReceiver;
 import android.os.PersistableBundle;
 import android.os.SystemClock;
 import android.view.SurfaceControlViewHost;
+
 import com.android.adservices.ondevicepersonalization.flags.Flags;
 import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.internal.annotations.VisibleForTesting;
@@ -40,6 +41,7 @@ import com.android.modules.utils.build.SdkLevel;
 import com.android.ondevicepersonalization.internal.util.ByteArrayParceledSlice;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.internal.util.PersistableBundleUtils;
+
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.Executor;
@@ -187,12 +189,14 @@ public class OnDevicePersonalizationManager {
         try {
             final IOnDevicePersonalizationManagingService odpService =
                     mServiceBinder.getService(executor);
+            long serviceInvokedTimeMillis = SystemClock.elapsedRealtime();
 
             try {
                 IExecuteCallback callbackWrapper =
                         new IExecuteCallback.Stub() {
                             @Override
-                            public void onSuccess(Bundle callbackResult) {
+                            public void onSuccess(
+                                    Bundle callbackResult, CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -228,13 +232,16 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
+                                            0,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
                                 }
                             }
 
                             @Override
-                            public void onError(
-                                    int errorCode, int isolatedServiceErrorCode, String message) {
+                            public void onError(int errorCode, int isolatedServiceErrorCode,
+                                    String message, CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -251,6 +258,9 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
+                                            0,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             errorCode);
                                 }
                             }
@@ -266,13 +276,22 @@ public class OnDevicePersonalizationManager {
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                         callbackWrapper);
-
+                logApiCallStats(
+                        odpService,
+                        service.getPackageName(),
+                        Constants.API_NAME_EXECUTE,
+                        SystemClock.elapsedRealtime() - startTimeMillis,
+                        SystemClock.elapsedRealtime() - serviceInvokedTimeMillis,
+                        0,
+                        Constants.STATUS_SUCCESS);
             } catch (Exception e) {
                 logApiCallStats(
                         odpService,
                         service.getPackageName(),
                         Constants.API_NAME_EXECUTE,
                         SystemClock.elapsedRealtime() - startTimeMillis,
+                        0,
+                        0,
                         Constants.STATUS_INTERNAL_ERROR);
                 receiver.onError(e);
             }
@@ -336,13 +355,15 @@ public class OnDevicePersonalizationManager {
         try {
             final IOnDevicePersonalizationManagingService service =
                     Objects.requireNonNull(mServiceBinder.getService(executor));
+            long serviceInvokedTimeMillis = SystemClock.elapsedRealtime();
 
             try {
                 IRequestSurfacePackageCallback callbackWrapper =
                         new IRequestSurfacePackageCallback.Stub() {
                             @Override
                             public void onSuccess(
-                                    SurfaceControlViewHost.SurfacePackage surfacePackage) {
+                                    SurfaceControlViewHost.SurfacePackage surfacePackage,
+                                    CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -356,13 +377,17 @@ public class OnDevicePersonalizationManager {
                                             "",
                                             Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
+                                            0,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
                                 }
+
                             }
 
                             @Override
-                            public void onError(
-                                    int errorCode, int isolatedServiceErrorCode, String message) {
+                            public void onError(int errorCode, int isolatedServiceErrorCode,
+                                    String message, CalleeMetadata calleeMetadata) {
                                 final long token = Binder.clearCallingIdentity();
                                 try {
                                     executor.execute(
@@ -378,6 +403,9 @@ public class OnDevicePersonalizationManager {
                                             service, "",
                                             Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
+                                            0,
+                                            SystemClock.elapsedRealtime()
+                                                    - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             errorCode);
                                 }
                             }
@@ -391,6 +419,14 @@ public class OnDevicePersonalizationManager {
                         height,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                         callbackWrapper);
+                logApiCallStats(
+                        service,
+                        "",
+                        Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
+                        SystemClock.elapsedRealtime() - startTimeMillis,
+                        SystemClock.elapsedRealtime() - serviceInvokedTimeMillis,
+                        0,
+                        Constants.STATUS_SUCCESS);
 
             } catch (Exception e) {
                 logApiCallStats(
@@ -398,6 +434,8 @@ public class OnDevicePersonalizationManager {
                         "",
                         Constants.API_NAME_REQUEST_SURFACE_PACKAGE,
                         SystemClock.elapsedRealtime() - startTimeMillis,
+                        0,
+                        0,
                         Constants.STATUS_INTERNAL_ERROR);
                 receiver.onError(e);
             }
@@ -440,10 +478,13 @@ public class OnDevicePersonalizationManager {
             String sdkPackageName,
             int apiName,
             long latencyMillis,
+            long rpcCallLatencyMillis,
+            long rpcReturnLatencyMillis,
             int responseCode) {
         try {
             if (service != null) {
-                service.logApiCallStats(sdkPackageName, apiName, latencyMillis, responseCode);
+                service.logApiCallStats(sdkPackageName, apiName, latencyMillis,
+                        rpcCallLatencyMillis, rpcReturnLatencyMillis, responseCode);
             }
         } catch (Exception e) {
             sLogger.e(e, TAG + ": Error logging API call stats");
