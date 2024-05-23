@@ -16,10 +16,11 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.os.Bundle;
 
 /** @hide */
 oneway interface IExecuteCallback {
-    void onSuccess(in Bundle result);
-    void onError(int errorCode, int isolatedServiceErrorCode, String errorMessage);
+    void onSuccess(in Bundle result, in CalleeMetadata calleeMetadata);
+    void onError(int errorCode, int isolatedServiceErrorCode, String errorMessage, in CalleeMetadata calleeMetadata);
 }
