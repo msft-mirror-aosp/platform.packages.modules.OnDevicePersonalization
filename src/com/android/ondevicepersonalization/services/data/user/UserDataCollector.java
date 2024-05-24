@@ -304,7 +304,7 @@ public class UserDataCollector {
         userData.batteryPercentage = 0;
         userData.carrier = Carrier.UNKNOWN;
         userData.networkCapabilities = null;
-        userData.installedApps = null;
+        userData.installedApps.clear();
     }
 
     /** Util to reset all in-memory metadata for testing purpose. */

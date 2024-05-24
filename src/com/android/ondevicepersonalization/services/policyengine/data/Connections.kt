@@ -23,4 +23,6 @@ import com.android.libraries.pcc.chronicle.api.ReadConnection
 /** Reader interface for reading the corresponding vendor table. */
 interface UserDataReader : ReadConnection {
     fun readUserData(): UserData?
+
+    fun readUserDataWithAppInstall(): UserData?
 }
