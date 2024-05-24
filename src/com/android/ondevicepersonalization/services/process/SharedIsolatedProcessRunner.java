@@ -36,13 +36,13 @@ import com.android.federatedcompute.internal.util.AbstractServiceBinder;
 import com.android.modules.utils.build.SdkLevel;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -199,7 +199,7 @@ public class SharedIsolatedProcessRunner implements ProcessRunner  {
                 (String) FlagsFactory.getFlags().getStableFlag(KEY_TRUSTED_PARTNER_APPS_LIST);
         String packageCertificate = null;
         try {
-            packageCertificate = PackageUtils.getCertDigest(packageName);
+            packageCertificate = PackageUtils.getCertDigest(mApplicationContext, packageName);
         } catch (Exception e) {
             sLogger.d(TAG + ": not able to find certificate for package " + packageName, e);
         }

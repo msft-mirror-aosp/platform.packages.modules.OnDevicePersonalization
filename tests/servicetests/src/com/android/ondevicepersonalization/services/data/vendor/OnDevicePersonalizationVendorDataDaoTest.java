@@ -34,11 +34,11 @@ import androidx.test.core.app.ApplicationProvider;
 
 import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventState;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import org.junit.After;
 import org.junit.Before;
@@ -270,7 +270,8 @@ public class OnDevicePersonalizationVendorDataDaoTest {
 
     @Test
     public void testDeleteVendorTables() throws Exception {
-        ExtendedMockito.doReturn(TEST_CERT_DIGEST).when(() -> PackageUtils.getCertDigest(any()));
+        ExtendedMockito.doReturn(TEST_CERT_DIGEST)
+                .when(() -> PackageUtils.getCertDigest(any(), any()));
         long timestamp = System.currentTimeMillis();
         addTestData(timestamp, mOtherDao);
         addTestData(timestamp, mDao);
