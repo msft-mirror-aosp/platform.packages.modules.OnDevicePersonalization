@@ -29,12 +29,6 @@ public class UserDataContract {
         /** The list of app information including app package name and last update time. */
         public static final String APP_LIST = "package_name";
 
-        /**
-         * Whether the app list is added noise or not. 1 means this app list is already added noise
-         * and 0 means it's raw installed app list.
-         */
-        public static final String IS_NOISED = "is_noised";
-
         /** The time when create the record. */
         public static final String CREATION_TIME = "creation_time";
 
@@ -46,8 +40,6 @@ public class UserDataContract {
                         + " INTEGER PRIMARY KEY, "
                         + APP_LIST
                         + " BLOB NOT NULL, "
-                        + IS_NOISED
-                        + " INTEGER NOT NULL, "
                         + CREATION_TIME
                         + " INTEGER NOT NULL)";
     }
