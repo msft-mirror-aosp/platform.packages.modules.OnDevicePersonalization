@@ -37,7 +37,6 @@ import com.android.internal.annotations.VisibleForTesting;
 import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
-import com.android.ondevicepersonalization.services.noise.AppInstallNoiseHandler;
 
 import java.util.HashMap;
 import java.util.List;
@@ -89,18 +88,13 @@ public class UserDataCollector {
     // Metadata to track whether UserData has been initialized.
     @NonNull private boolean mInitialized;
     private final UserDataDao mUserDataDao;
-    private final AppInstallNoiseHandler mAppInstallNoiseHandler;
 
-    private UserDataCollector(
-            Context context,
-            UserDataDao userDataDao,
-            AppInstallNoiseHandler appInstallNoiseHandler) {
+    private UserDataCollector(Context context, UserDataDao userDataDao) {
         mContext = context;
         mUserDataDao = userDataDao;
         mTelephonyManager = mContext.getSystemService(TelephonyManager.class);
         mConnectivityManager = mContext.getSystemService(ConnectivityManager.class);
         mInitialized = false;
-        mAppInstallNoiseHandler = appInstallNoiseHandler;
     }
 
     /** Returns an instance of UserDataCollector. */
@@ -111,8 +105,7 @@ public class UserDataCollector {
                     sUserDataCollector =
                             new UserDataCollector(
                                     context.getApplicationContext(),
-                                    UserDataDao.getInstance(context),
-                                    new AppInstallNoiseHandler(context));
+                                    UserDataDao.getInstance(context));
                 }
             }
         }
@@ -124,11 +117,8 @@ public class UserDataCollector {
      * testing purpose.
      */
     @VisibleForTesting
-    public static UserDataCollector getInstanceForTest(
-            Context context,
-            UserDataDao userDataDao,
-            AppInstallNoiseHandler appInstallNoiseHandler) {
-        return new UserDataCollector(context, userDataDao, appInstallNoiseHandler);
+    public static UserDataCollector getInstanceForTest(Context context, UserDataDao userDataDao) {
+        return new UserDataCollector(context, userDataDao);
     }
 
     /** Returns a singleton instance of the UserDataCollector. It's only for testing purpose. */
@@ -137,10 +127,7 @@ public class UserDataCollector {
         synchronized (UserDataCollector.class) {
             if (sUserDataCollector == null) {
                 sUserDataCollector =
-                        new UserDataCollector(
-                                context,
-                                UserDataDao.getInstanceForTest(context),
-                                new AppInstallNoiseHandler(context));
+                        new UserDataCollector(context, UserDataDao.getInstanceForTest(context));
             }
             return sUserDataCollector;
         }
@@ -317,8 +304,7 @@ public class UserDataCollector {
         userData.batteryPercentage = 0;
         userData.carrier = Carrier.UNKNOWN;
         userData.networkCapabilities = null;
-        userData.installedApps = null;
-        userData.installedAppsWithNoise = null;
+        userData.installedApps.clear();
     }
 
     /** Util to reset all in-memory metadata for testing purpose. */
@@ -346,19 +332,17 @@ public class UserDataCollector {
         return builder.build();
     }
 
-    /** Initials the installed app list and noised installed list by reading from database. */
+    /** Initials the installed app list by reading from database. */
     public void initialInstalledApp(RawUserData userData) {
-        Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap(true);
-        Map<String, Long> installAppWithNoise = mUserDataDao.getAppInstallMap(false);
+        Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap();
         userData.installedApps = existingInstallApps.keySet();
-        userData.installedAppsWithNoise = installAppWithNoise.keySet();
     }
 
-    /** Updates app installed list and noised app installed list if necessary. */
+    /** Updates app installed list if necessary. */
     @VisibleForTesting
     public void updateInstalledApps(RawUserData userData) {
         try {
-            Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap(true);
+            Map<String, Long> existingInstallApps = mUserDataDao.getAppInstallMap();
             PackageManager packageManager = mContext.getPackageManager();
 
             List<ApplicationInfo> installAppList =
@@ -367,21 +351,8 @@ public class UserDataCollector {
             Map<String, Long> currentAppInstall =
                     updateExistingAppInstall(installAppList, existingInstallApps);
             userData.installedApps = currentAppInstall.keySet();
-            mUserDataDao.insertAppInstall(currentAppInstall, 0);
+            mUserDataDao.insertAppInstall(currentAppInstall);
             sLogger.d(TAG + ": Update RawUserData installAppList " + userData.installedApps);
-
-            if (!currentAppInstall.keySet().equals(existingInstallApps.keySet())) {
-                float noise = FlagsFactory.getFlags().getTargetNoiseForUserFeature();
-                Map<String, Long> appInstallWithNoise =
-                        mAppInstallNoiseHandler.generateAppInstallWithNoise(
-                                currentAppInstall, noise);
-                userData.installedAppsWithNoise = appInstallWithNoise.keySet();
-                mUserDataDao.insertAppInstall(appInstallWithNoise, noise);
-                sLogger.d(
-                        TAG
-                                + ": Update RawUserData noised installAppList "
-                                + userData.installedAppsWithNoise);
-            }
         } catch (Exception e) {
             sLogger.w(e, TAG + ": Failed to collect installed app list.");
         }

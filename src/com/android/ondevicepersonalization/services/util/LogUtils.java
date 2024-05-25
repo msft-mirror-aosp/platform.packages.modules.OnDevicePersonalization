@@ -24,7 +24,9 @@ import android.content.ComponentName;
 import android.content.ContentValues;
 import android.content.Context;
 
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.events.Event;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
@@ -51,7 +53,10 @@ public class LogUtils {
         sLogger.d(TAG + ": writeLogRecords() started.");
         try {
             String serviceName = DbUtils.toTableValue(service);
-            String certDigest = PackageUtils.getCertDigest(service.getPackageName());
+            String certDigest =
+                    PackageUtils.getCertDigest(
+                            OnDevicePersonalizationApplication.getAppContext(),
+                            service.getPackageName());
             EventsDao eventsDao = EventsDao.getInstance(context);
             // Insert query
             long queryId = -1;

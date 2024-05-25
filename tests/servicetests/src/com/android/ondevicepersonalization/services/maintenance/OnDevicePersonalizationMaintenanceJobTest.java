@@ -51,6 +51,7 @@ import com.android.adservices.shared.spe.scheduling.BackoffPolicy;
 import com.android.adservices.shared.spe.scheduling.JobSpec;
 import com.android.modules.utils.testing.ExtendedMockitoRule;
 import com.android.modules.utils.testing.ExtendedMockitoRule.MockStatic;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.data.DbUtils;
@@ -66,7 +67,6 @@ import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonal
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
 import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobScheduler;
 import com.android.ondevicepersonalization.services.sharedlibrary.spe.OdpJobServiceFactory;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import com.google.common.util.concurrent.ListenableFuture;
 

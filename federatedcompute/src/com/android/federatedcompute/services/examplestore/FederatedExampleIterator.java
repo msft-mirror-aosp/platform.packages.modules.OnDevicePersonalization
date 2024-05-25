@@ -37,12 +37,12 @@ import android.util.Pair;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.ErrorStatusException;
-import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.examplestore.ExampleConsumptionRecorder.SingleQueryRecorder;
 import com.android.federatedcompute.services.statsd.ClientErrorLogger;
 import com.android.federatedcompute.services.statsd.ExampleIteratorLatency;
 import com.android.federatedcompute.services.statsd.FederatedComputeStatsdLogger;
 import com.android.internal.util.Preconditions;
+import com.android.odp.module.common.PackageUtils;
 
 import com.google.common.util.concurrent.SettableFuture;
 import com.google.internal.federatedcompute.v1.Code;
