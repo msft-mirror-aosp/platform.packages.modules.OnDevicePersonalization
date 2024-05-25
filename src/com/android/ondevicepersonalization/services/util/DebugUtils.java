@@ -24,6 +24,7 @@ import android.content.Context;
 import android.os.Build;
 import android.provider.Settings;
 
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.OdpServiceException;

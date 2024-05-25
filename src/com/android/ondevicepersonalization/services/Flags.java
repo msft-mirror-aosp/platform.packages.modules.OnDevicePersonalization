@@ -266,10 +266,4 @@ public interface Flags extends ModuleSharedFlags {
     default long getAppInstallHistoryTtlInMillis() {
         return DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS;
     }
-
-    float DEFAULT_NOISE_PER_USER_FEATURE = 10;
-
-    default float getTargetNoiseForUserFeature() {
-        return DEFAULT_NOISE_PER_USER_FEATURE;
-    }
 }

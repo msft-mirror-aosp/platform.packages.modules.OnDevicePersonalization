@@ -17,17 +17,14 @@
 package com.android.ondevicepersonalization.services.policyengine
 
 import android.adservices.ondevicepersonalization.UserData
-
+import com.android.libraries.pcc.chronicle.api.ConnectionRequest
+import com.android.libraries.pcc.chronicle.api.ProcessorNode
+import com.android.libraries.pcc.chronicle.api.error.ChronicleError
 import com.android.libraries.pcc.chronicle.util.MutableTypedMap
 import com.android.libraries.pcc.chronicle.util.TypedMap
-import com.android.libraries.pcc.chronicle.api.ConnectionRequest
-import com.android.libraries.pcc.chronicle.api.error.ChronicleError
-import com.android.libraries.pcc.chronicle.api.ProcessorNode
-
 import com.android.ondevicepersonalization.internal.util.LoggerFactory
 import com.android.ondevicepersonalization.services.policyengine.api.ChronicleManager
 import com.android.ondevicepersonalization.services.policyengine.data.UserDataReader
-import com.android.ondevicepersonalization.services.policyengine.data.impl.UserDataConnectionProvider
 import com.android.ondevicepersonalization.services.policyengine.policy.DataIngressPolicy
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.KidStatusEnabled
 import com.android.ondevicepersonalization.services.policyengine.policy.rules.LimitedAdsTrackingEnabled
@@ -57,6 +54,20 @@ class UserDataAccessor : ProcessorNode {
                                     DataIngressPolicy.NPA_DATA_POLICY)
                     )
             return userDataReader?.readUserData()
+        } catch (e: ChronicleError) {
+            sLogger.e(e, TAG + ": Expect success but connection failed with: ")
+            return null
+        }
+    }
+
+    fun getUserDataWithAppInstall(): UserData? {
+        try {
+            val userDataReader: UserDataReader? =
+                chronicleManager.chronicle.getConnectionOrThrow(
+                    ConnectionRequest(UserDataReader::class.java, this,
+                        DataIngressPolicy.NPA_DATA_POLICY)
+                )
+            return userDataReader?.readUserDataWithAppInstall()
         } catch (e: ChronicleError) {
             sLogger.e(e, TAG + ": Expect success but connection failed with: ")
             return null

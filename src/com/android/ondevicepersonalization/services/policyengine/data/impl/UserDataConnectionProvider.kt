@@ -16,7 +16,9 @@
 
 package com.android.ondevicepersonalization.services.policyengine.data.impl
 
+import android.adservices.ondevicepersonalization.AppInfo
 import android.adservices.ondevicepersonalization.UserData
+import android.util.ArrayMap
 import com.android.libraries.pcc.chronicle.api.Connection
 import com.android.libraries.pcc.chronicle.api.ConnectionProvider
 import com.android.libraries.pcc.chronicle.api.ConnectionRequest
@@ -44,10 +46,16 @@ class UserDataConnectionProvider() : ConnectionProvider {
 
     class UserDataReaderImpl : UserDataReader {
         override fun readUserData(): UserData? {
+            return getUserData(false);
+        }
+
+        override fun readUserDataWithAppInstall(): UserData? {
+            return getUserData(true);
+        }
+
+        private fun getUserData(appInstall: Boolean): UserData? {
             val rawUserData: RawUserData = RawUserData.getInstance() ?: return null
             // TODO(b/267013762): more privacy-preserving processing may be needed
-            // TODO(b/335448697): Not set app install info when return user data and will add it
-            //  back after label DP is added.
             val builder: UserData.Builder = UserData.Builder()
                     .setTimezoneUtcOffsetMins(rawUserData.utcOffset)
                     .setOrientation(rawUserData.orientation)
@@ -60,7 +68,20 @@ class UserDataConnectionProvider() : ConnectionProvider {
             if (rawUserData.networkCapabilities != null) {
                 builder.setNetworkCapabilities(rawUserData.networkCapabilities)
             }
+            if (appInstall) {
+                builder.setAppInfos(getInstallApps(rawUserData.installedApps))
+            }
             return builder.build()
+        }
+
+        private fun getInstallApps(installedApps: Set<String>): Map<String, AppInfo> {
+            var res = ArrayMap<String, AppInfo>()
+            for (appName in installedApps) {
+                res[appName] = AppInfo.Builder()
+                        .setInstalled(true)
+                        .build()
+            }
+            return res
         }
     }
 }

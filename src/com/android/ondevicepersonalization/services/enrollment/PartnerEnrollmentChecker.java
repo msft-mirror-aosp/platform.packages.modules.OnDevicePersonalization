@@ -16,10 +16,11 @@
 
 package com.android.ondevicepersonalization.services.enrollment;
 
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.FlagsFactory;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.util.AllowListUtils;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 /** Check if an entity is enrolled to call ODP */
 public class PartnerEnrollmentChecker {
@@ -35,7 +36,9 @@ public class PartnerEnrollmentChecker {
         final String callerAppAllowList = FlagsFactory.getFlags().getCallerAppAllowList();
         String packageCertificate = null;
         try {
-            packageCertificate = PackageUtils.getCertDigest(packageName);
+            packageCertificate =
+                    PackageUtils.getCertDigest(
+                            OnDevicePersonalizationApplication.getAppContext(), packageName);
         } catch (Exception e) {
             sLogger.d(TAG + ": not able to find certificate for package " + packageName, e);
         }
@@ -62,7 +65,9 @@ public class PartnerEnrollmentChecker {
                 FlagsFactory.getFlags().getIsolatedServiceAllowList();
         String packageCertificate = null;
         try {
-            packageCertificate = PackageUtils.getCertDigest(packageName);
+            packageCertificate =
+                    PackageUtils.getCertDigest(
+                            OnDevicePersonalizationApplication.getAppContext(), packageName);
         } catch (Exception e) {
             sLogger.d(TAG + ": not able to find certificate for package " + packageName, e);
         }

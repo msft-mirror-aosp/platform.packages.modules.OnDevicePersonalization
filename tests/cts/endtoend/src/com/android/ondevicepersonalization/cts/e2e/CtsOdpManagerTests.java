@@ -517,6 +517,8 @@ public class CtsOdpManagerTests {
             assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
 
+        Thread.sleep(DELAY_MILLIS);
+
         // Remove.
         {
             var receiver = new ResultReceiver<ExecuteResult>();
@@ -594,6 +596,8 @@ public class CtsOdpManagerTests {
                     receiver);
             assertTrue(receiver.getErrorMessage(), receiver.isSuccess());
         }
+
+        Thread.sleep(DELAY_MILLIS);
 
         // Remove.
         {

@@ -33,7 +33,6 @@ import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.List;
 import java.util.Map;
 
 public class UserDataDaoTest {
@@ -64,50 +63,18 @@ public class UserDataDaoTest {
 
     @Test
     public void readEmptyAppInstallTable_success() {
-        Map<String, Long> result = mUserDataDao.getAppInstallMap(false);
-        assertThat(result).isEmpty();
-
-        result = mUserDataDao.getAppInstallMap(true);
+        Map<String, Long> result = mUserDataDao.getAppInstallMap();
         assertThat(result).isEmpty();
     }
 
     @Test
     public void insertAndReadAppInstall_success() {
         Map<String, Long> appMap = Map.of(APP_NAME_1, 100L, APP_NAME_2, 100L);
-        mUserDataDao.insertAppInstall(appMap, 0);
+        mUserDataDao.insertAppInstall(appMap);
 
-        Map<String, Long> result = mUserDataDao.getAppInstallMap(false);
+        Map<String, Long> result = mUserDataDao.getAppInstallMap();
         assertThat(result).containsExactlyEntriesIn(appMap);
 
-        result = mUserDataDao.getAppInstallMap(true);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void insertAndReadAppInstallWithNoise_success() {
-        Map<String, Long> appMap = Map.of(APP_NAME_1, 100L, APP_NAME_2, 100L);
-        mUserDataDao.insertAppInstall(appMap, 10);
-
-        Map<String, Long> result = mUserDataDao.getAppInstallMap(true);
-        assertThat(result).containsExactlyEntriesIn(appMap);
-
-        result = mUserDataDao.getAppInstallMap(false);
-        assertThat(result).isEmpty();
-    }
-
-    @Test
-    public void insertAndReadMultipleAppInstallWithNoise_success() {
-        Map<String, Long> appMap = Map.of(APP_NAME_1, 100L, APP_NAME_2, 100L);
-        mUserDataDao.insertAppInstall(appMap, 10);
-
-        Map<String, Long> appMap2 = Map.of(APP_NAME_1, 100L, APP_NAME_3, 100L);
-        mUserDataDao.insertAppInstall(appMap2, 15);
-
-        List<Map<String, Long>> result = mUserDataDao.readAppInstall(null, null);
-        assertThat(result).containsExactly(appMap, appMap2);
-
-        Map<String, Long> appResult = mUserDataDao.getAppInstallMap(false);
-        assertThat(appResult).isEmpty();
     }
 
     @Test
@@ -119,17 +86,16 @@ public class UserDataDaoTest {
 
     @Test
     public void deleteAllAppInstallTable_success() {
-        boolean success =
-                mUserDataDao.insertAppInstall(Map.of(APP_NAME_1, 100L, APP_NAME_2, 100L), 0);
+        boolean success = mUserDataDao.insertAppInstall(Map.of(APP_NAME_1, 100L, APP_NAME_2, 100L));
         assertThat(success).isTrue();
-        success = mUserDataDao.insertAppInstall(Map.of(APP_NAME_1, 100L, APP_NAME_3, 100L), 10);
+        success = mUserDataDao.insertAppInstall(Map.of(APP_NAME_1, 100L, APP_NAME_3, 100L));
         assertThat(success).isTrue();
 
-        List<Map<String, Long>> appList = mUserDataDao.readAppInstall(null, null);
+        Map<String, Long> appList = mUserDataDao.getAppInstallMap();
         assertThat(appList).hasSize(2);
 
         mUserDataDao.deleteAllAppInstallTable();
-        appList = mUserDataDao.readAppInstall(null, null);
+        appList = mUserDataDao.getAppInstallMap();
         assertThat(appList).isEmpty();
     }
 }

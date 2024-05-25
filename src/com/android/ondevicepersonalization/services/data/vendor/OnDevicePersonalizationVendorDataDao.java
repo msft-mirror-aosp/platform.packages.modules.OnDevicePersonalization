@@ -25,11 +25,12 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteException;
 
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
+import com.android.ondevicepersonalization.services.OnDevicePersonalizationApplication;
 import com.android.ondevicepersonalization.services.data.DbUtils;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
 import com.android.ondevicepersonalization.services.data.events.EventsDao;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -454,7 +455,10 @@ public class OnDevicePersonalizationVendorDataDao {
 
         // Remove all valid packages from the set
         for (ComponentName service : excludedServices) {
-            String certDigest = PackageUtils.getCertDigest(service.getPackageName());
+            String certDigest =
+                    PackageUtils.getCertDigest(
+                            OnDevicePersonalizationApplication.getAppContext(),
+                            service.getPackageName());
             // Remove valid packages from set
             vendors.remove(new AbstractMap.SimpleImmutableEntry<>(
                     DbUtils.toTableValue(service), certDigest));

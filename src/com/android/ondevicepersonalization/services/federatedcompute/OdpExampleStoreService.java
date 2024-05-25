@@ -270,11 +270,13 @@ public final class OdpExampleStoreService extends ExampleStoreService {
                 new DataAccessServiceImpl(
                         ComponentName.createRelative(packageName, serviceClass),
                         getContext(),
-                        /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                        // ODP provides accurate user signal in training flow, so we disable write
+                        // access of databases to prevent leak.
+                        /* localDataPermission */ DataAccessPermission.READ_ONLY,
                         /* eventDataPermission */ DataAccessPermission.READ_ONLY);
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER, binder);
         UserDataAccessor userDataAccessor = new UserDataAccessor();
-        UserData userData = userDataAccessor.getUserData();
+        UserData userData = userDataAccessor.getUserDataWithAppInstall();
         serviceParams.putParcelable(Constants.EXTRA_USER_DATA, userData);
         ListenableFuture<Bundle> result =
                 mInjector

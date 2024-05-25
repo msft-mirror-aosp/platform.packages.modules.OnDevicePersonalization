@@ -50,9 +50,6 @@ public final class RawUserData {
     // The list of installed package names in last 30 days.
     public Set<String> installedApps = new HashSet<>();
 
-    // The list of installed package names with noise in last 30 days.
-    public Set<String> installedAppsWithNoise = new HashSet<>();
-
     private RawUserData() {}
 
     /** Returns an instance of UserData. */
