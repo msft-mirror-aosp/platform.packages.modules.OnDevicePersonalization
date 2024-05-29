@@ -394,7 +394,14 @@ public final class HttpFederatedProtocol {
             mTrainingEventLogger.logFailureResultUploadStarted();
         }
         ReportResultRequest startDataUploadRequest =
-                ReportResultRequest.newBuilder().setResult(result).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(result)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
         String startDataUploadUri =
                 String.format(
                         "/taskassignment/v1/population/%1$s/task/%2$s/aggregation"
