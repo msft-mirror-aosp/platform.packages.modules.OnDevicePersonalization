@@ -584,7 +584,14 @@ public final class HttpFederatedProtocolTest {
         assertThat(actualHttpRequests).hasSize(4);
         FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         ReportResultRequest reportResultRequest =
-                ReportResultRequest.newBuilder().setResult(Result.FAILED).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.FAILED)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
         assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
     }
@@ -612,7 +619,14 @@ public final class HttpFederatedProtocolTest {
         assertThat(actualHttpRequests).hasSize(4);
         FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         ReportResultRequest reportResultRequest =
-                ReportResultRequest.newBuilder().setResult(Result.NOT_ELIGIBLE).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.NOT_ELIGIBLE)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
         checkActualReportResultRequest(actualReportResultRequest);
         assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
@@ -622,7 +636,7 @@ public final class HttpFederatedProtocolTest {
         NetworkStats networkStats = mNetworkStatsArgumentCaptor.getValue();
         assertTrue(networkStats.getDataTransferDurationInMillis() > 0);
         assertThat(networkStats.getTotalBytesDownloaded()).isEqualTo(mSupportCompression ? 96 : 68);
-        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(226);
+        assertThat(networkStats.getTotalBytesUploaded()).isEqualTo(231);
     }
 
     @Test
@@ -648,7 +662,14 @@ public final class HttpFederatedProtocolTest {
 
         checkActualReportResultRequest(actualReportResultRequest);
         ReportResultRequest reportResultRequest =
-                ReportResultRequest.newBuilder().setResult(Result.COMPLETED).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.COMPLETED)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
         assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
 
@@ -747,7 +768,14 @@ public final class HttpFederatedProtocolTest {
         FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         checkActualReportResultRequest(actualReportResultRequest);
         ReportResultRequest reportResultRequest =
-                ReportResultRequest.newBuilder().setResult(Result.COMPLETED).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.COMPLETED)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
         assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
         assertThat(
@@ -784,7 +812,14 @@ public final class HttpFederatedProtocolTest {
         FederatedComputeHttpRequest actualReportResultRequest = actualHttpRequests.get(3);
         checkActualReportResultRequest(actualReportResultRequest);
         ReportResultRequest reportResultRequest =
-                ReportResultRequest.newBuilder().setResult(Result.COMPLETED).build();
+                ReportResultRequest.newBuilder()
+                        .setResult(Result.COMPLETED)
+                        .setResourceCapabilities(
+                                ResourceCapabilities.newBuilder()
+                                        .addSupportedCompressionFormats(
+                                                ResourceCompressionFormat
+                                                        .RESOURCE_COMPRESSION_FORMAT_GZIP))
+                        .build();
         assertThat(actualReportResultRequest.getBody())
                 .isEqualTo(reportResultRequest.toByteArray());
         assertThat(
@@ -1119,7 +1154,7 @@ public final class HttpFederatedProtocolTest {
         assertThat(actualReportResultRequest.getUri()).isEqualTo(REPORT_RESULT_URI);
         assertThat(actualReportResultRequest.getHttpMethod()).isEqualTo(HttpMethod.PUT);
         HashMap<String, String> expectedHeaders = new HashMap<>();
-        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(2));
+        expectedHeaders.put(CONTENT_LENGTH_HDR, String.valueOf(7));
         expectedHeaders.put(CONTENT_TYPE_HDR, PROTOBUF_CONTENT_TYPE);
         assertThat(actualReportResultRequest.getExtraHeaders())
                 .containsAtLeastEntriesIn(expectedHeaders);
