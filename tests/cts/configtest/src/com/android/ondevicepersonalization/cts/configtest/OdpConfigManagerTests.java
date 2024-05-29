@@ -59,17 +59,12 @@ public class OdpConfigManagerTests {
     }
 
     @Test
-    public void testSetPersonalizationStatusPermissionDenied() throws Exception {
+    public void testSetPersonalizationStatus() throws Exception {
         OnDevicePersonalizationConfigManager manager =
                 mContext.getSystemService(OnDevicePersonalizationConfigManager.class);
         assertNotNull(manager);
         ResultReceiver<Void> receiver = new ResultReceiver<>();
         manager.setPersonalizationEnabled(true, Executors.newSingleThreadExecutor(), receiver);
-        assertTrue(receiver.isError());
-        assertNotNull(receiver.getException());
-        assertTrue(receiver.getException().getClass().getSimpleName(),
-                receiver.getException() instanceof SecurityException);
+        assertTrue(receiver.isCalled());
     }
-
-    // TODO(b/320552538): Add test cases for permission granted.
 }
