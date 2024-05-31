@@ -17,7 +17,6 @@
 package com.android.federatedcompute.services.common;
 
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_LOGGING_ENABLED;
-import static com.android.adservices.shared.common.flags.ModuleSharedFlags.BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED;
 import static com.android.adservices.shared.common.flags.ModuleSharedFlags.DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE;
 import static com.android.federatedcompute.services.common.Flags.DEFAULT_ENABLE_ELIGIBILITY_TASK;
@@ -44,6 +43,7 @@ import static com.android.federatedcompute.services.common.PhFlags.DEFAULT_SCHED
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_BACKGROUND_ENCRYPTION_KEY_FETCH;
 import static com.android.federatedcompute.services.common.PhFlags.ENABLE_ELIGIBILITY_TASK;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE;
+import static com.android.federatedcompute.services.common.PhFlags.FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_BACKGROUND_JOBS_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_CLIENT_ERROR_LOGGING;
 import static com.android.federatedcompute.services.common.PhFlags.FCP_ENABLE_ENCRYPTION;
@@ -172,7 +172,7 @@ public class PhFlagsTest {
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
-                Integer.toString(BACKGROUND_JOB_SAMPLING_LOGGING_RATE),
+                Integer.toString(FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE),
                 /* makeDefault= */ false);
         DeviceConfig.setProperty(
                 DeviceConfig.NAMESPACE_ON_DEVICE_PERSONALIZATION,
@@ -632,7 +632,7 @@ public class PhFlagsTest {
 
     @Test
     public void testGetBackgroundJobSamplingLoggingRate() {
-        int defaultValue = BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
+        int defaultValue = FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE;
         assertThat(FlagsFactory.getFlags().getBackgroundJobSamplingLoggingRate())
                 .isEqualTo(defaultValue);
 
