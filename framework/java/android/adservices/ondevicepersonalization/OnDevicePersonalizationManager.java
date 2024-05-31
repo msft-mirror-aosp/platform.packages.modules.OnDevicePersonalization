@@ -189,7 +189,6 @@ public class OnDevicePersonalizationManager {
         try {
             final IOnDevicePersonalizationManagingService odpService =
                     mServiceBinder.getService(executor);
-            long serviceInvokedTimeMillis = SystemClock.elapsedRealtime();
 
             try {
                 IExecuteCallback callbackWrapper =
@@ -232,7 +231,7 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
-                                            0,
+                                            calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
                                             SystemClock.elapsedRealtime()
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             Constants.STATUS_SUCCESS);
@@ -258,7 +257,7 @@ public class OnDevicePersonalizationManager {
                                             service.getPackageName(),
                                             Constants.API_NAME_EXECUTE,
                                             SystemClock.elapsedRealtime() - startTimeMillis,
-                                            0,
+                                            calleeMetadata.getServiceEntryTimeMillis() - startTimeMillis,
                                             SystemClock.elapsedRealtime()
                                                     - calleeMetadata.getCallbackInvokeTimeMillis(),
                                             errorCode);
@@ -276,14 +275,6 @@ public class OnDevicePersonalizationManager {
                         wrappedParams,
                         new CallerMetadata.Builder().setStartTimeMillis(startTimeMillis).build(),
                         callbackWrapper);
-                logApiCallStats(
-                        odpService,
-                        service.getPackageName(),
-                        Constants.API_NAME_EXECUTE,
-                        SystemClock.elapsedRealtime() - startTimeMillis,
-                        SystemClock.elapsedRealtime() - serviceInvokedTimeMillis,
-                        0,
-                        Constants.STATUS_SUCCESS);
             } catch (Exception e) {
                 logApiCallStats(
                         odpService,
