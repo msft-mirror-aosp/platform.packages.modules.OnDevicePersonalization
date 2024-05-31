@@ -169,7 +169,8 @@ public class FederatedComputeJobManager {
         FederatedTrainingTask existingTask =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
                         trainingOptions.getPopulationName(),
-                        trainingOptions.getOwnerComponentName().flattenToString(),
+                        packageName,
+                        trainingOptions.getOwnerComponentName().getClassName(),
                         ownerCertDigest);
         Set<FederatedTrainingTask> trainingTasksToCancel = new HashSet<>();
         String populationName = trainingOptions.getPopulationName();
@@ -194,7 +195,8 @@ public class FederatedComputeJobManager {
                     FederatedTrainingTask.builder()
                             .appPackageName(callingPackageName)
                             .jobId(jobId)
-                            .ownerId(trainingOptions.getOwnerComponentName().flattenToString())
+                            .ownerPackageName(packageName)
+                            .ownerClassName(trainingOptions.getOwnerComponentName().getClassName())
                             .ownerIdCertDigest(ownerCertDigest)
                             .creationTime(nowMs)
                             .lastScheduledTime(nowMs)
@@ -322,7 +324,10 @@ public class FederatedComputeJobManager {
         }
         FederatedTrainingTask taskToCancel =
                 mFederatedTrainingTaskDao.findAndRemoveTaskByPopulationNameAndOwnerId(
-                        populationName, ownerComponent.flattenToString(), ownerCertDigest);
+                        populationName,
+                        ownerComponent.getPackageName(),
+                        ownerComponent.getClassName(),
+                        ownerCertDigest);
         // If no matching task exists then there's nothing for us to do. This is not an error
         // case though.
         if (taskToCancel == null) {

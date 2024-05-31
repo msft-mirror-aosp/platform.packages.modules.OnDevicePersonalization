@@ -1485,7 +1485,8 @@ public final class FederatedComputeJobManagerTest {
                         .lastRunEndTime(0L)
                         .constraints(DEFAULT_CONSTRAINTS)
                         .serverAddress(SERVER_ADDRESS)
-                        .ownerId(mOwnerComponentName.flattenToString())
+                        .ownerPackageName(mOwnerComponentName.getPackageName())
+                        .ownerClassName(mOwnerComponentName.getClassName())
                         .ownerIdCertDigest(
                                 PackageUtils.getCertDigest(mContext, mContext.getPackageName()))
                         .appPackageName(CALLING_PACKAGE_NAME)
