@@ -89,17 +89,6 @@ java_genrule {
         "&& $(location soong_zip) -o $(out) -C $(genDir) -D $(genDir)",
 }
 
-android_library {
-    name: "ondevicepersonalization-assets",
-    sdk_version: "module_current",
-    min_sdk_version: "33",
-    asset_dirs: [
-        "assets",
-    ],
-    manifest: "EmptyManifest.xml",
-    apex_available: ["com.android.ondevicepersonalization"],
-}
-
 android_app {
     name: "OnDevicePersonalization",
     srcs: [
@@ -126,7 +115,6 @@ android_app {
         "kotlinx_coroutines",
         "kotlinx-coroutines-android",
         "ondevicepersonalization-protos",
-        "ondevicepersonalization-assets",
         "mobile_data_downloader_lib",
         "modules-utils-build",
         "ondevicepersonalization-plugin-lib",

@@ -37,7 +37,6 @@ import com.google.flatbuffers.FlatBufferBuilder;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 public class UserDataDao {
@@ -93,20 +92,16 @@ public class UserDataDao {
     }
 
     /** Inserts or replaces an entry in AppInstall table. */
-    public boolean insertAppInstall(Map<String, Long> appInstallList, float noise) {
+    public boolean insertAppInstall(Map<String, Long> appInstallList) {
         SQLiteDatabase db = mDbHelper.safeGetWritableDatabase();
         if (db == null) {
             return false;
         }
-        if (noise < 0) {
-            return false;
-        }
-        byte[] appInfoList = convertAppInstallFromMapToBytes(appInstallList, noise);
+
+        byte[] appInfoList = convertAppInstallFromMapToBytes(appInstallList);
         ContentValues values = new ContentValues();
         values.put(UserDataContract.AppInstall.APP_LIST, appInfoList);
         values.put(UserDataContract.AppInstall.CREATION_TIME, mClock.currentTimeMillis());
-        int is_noised = noise > 0 ? 1 : 0;
-        values.put(UserDataContract.AppInstall.IS_NOISED, is_noised);
         long jobId =
                 db.insertWithOnConflict(
                         UserDataContract.AppInstall.TABLE_NAME,
@@ -116,50 +111,35 @@ public class UserDataDao {
         return jobId != -1;
     }
 
-    List<Map<String, Long>> readAppInstall(String[] selectionArgs, String selection) {
+    /** Gets the app installed map . */
+    @NonNull
+    public Map<String, Long> getAppInstallMap() {
+        Map<String, Long> appInstallMap = new HashMap<>();
+
         SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
         if (db == null) {
-            return null;
+            return appInstallMap;
         }
         String[] projection = {UserDataContract.AppInstall.APP_LIST};
         String orderBy = UserDataContract.AppInstall.CREATION_TIME + " DESC";
-        List<Map<String, Long>> appInstallList = new ArrayList<>();
         try (Cursor cursor =
                 db.query(
                         UserDataContract.AppInstall.TABLE_NAME,
                         projection,
-                        selection,
-                        selectionArgs,
+                        null,
+                        null,
                         /* groupBy= */ null,
                         /* having= */ null,
                         /* orderBy= */ orderBy)) {
-            while (cursor.moveToNext()) {
+            if (cursor.moveToNext()) {
                 byte[] blob =
                         cursor.getBlob(
                                 cursor.getColumnIndexOrThrow(UserDataContract.AppInstall.APP_LIST));
-                Map<String, Long> appInstall = convertAppInstallFromBytesToMap(blob);
-                appInstallList.add(appInstall);
+                cursor.close();
+                return convertAppInstallFromBytesToMap(blob);
             }
         }
-        return appInstallList;
-    }
-
-    /**
-     * Gets the app installed map .
-     *
-     * @param noise if true, return the app install list applied randomized response noise. If
-     *     false, return the accurate app install list.
-     */
-    @NonNull
-    public Map<String, Long> getAppInstallMap(boolean noise) {
-        String selection = UserDataContract.AppInstall.IS_NOISED + " = ?";
-        String[] selectionArgs = {String.valueOf(noise ? 1 : 0)};
-        List<Map<String, Long>> appInstallList = readAppInstall(selectionArgs, selection);
-        if (appInstallList.isEmpty()) {
-            sLogger.d(TAG + ": Can't find app install map for noise " + noise);
-            return new HashMap<>();
-        }
-        return appInstallList.get(0);
+        return appInstallMap;
     }
 
     /** Deletes all entries in AppInstall table. */
@@ -183,14 +163,7 @@ public class UserDataDao {
         return success;
     }
 
-    /**
-     * @return the training constraints that should apply to this task.
-     */
-    public final AppInfoList getAppInfoList(byte[] blob) {
-        return AppInfoList.getRootAsAppInfoList(ByteBuffer.wrap(blob));
-    }
-
-    private byte[] convertAppInstallFromMapToBytes(Map<String, Long> appInstallMap, float noise) {
+    private byte[] convertAppInstallFromMapToBytes(Map<String, Long> appInstallMap) {
         FlatBufferBuilder builder = new FlatBufferBuilder();
         ArrayList<Integer> entryOffsets = new ArrayList<>();
         int offset = 0;
@@ -203,7 +176,6 @@ public class UserDataDao {
         offset = AppInfoList.createAppInfoListVector(builder, Ints.toArray(entryOffsets));
         AppInfoList.startAppInfoList(builder);
         AppInfoList.addAppInfoList(builder, offset);
-        AppInfoList.addNoise(builder, noise);
         offset = AppInfoList.endAppInfoList(builder);
         builder.finish(offset);
         return builder.sizedByteArray();
@@ -211,7 +183,7 @@ public class UserDataDao {
 
     private Map<String, Long> convertAppInstallFromBytesToMap(byte[] blob) {
         HashMap<String, Long> appInstallMap = new HashMap<>();
-        AppInfoList appInfoList = getAppInfoList(blob);
+        AppInfoList appInfoList = AppInfoList.getRootAsAppInfoList(ByteBuffer.wrap(blob));
         for (int i = 0; i < appInfoList.appInfoListLength(); i++) {
             AppInfo appInfo = appInfoList.appInfoList(i);
             appInstallMap.put(appInfo.name(), appInfo.updateTime());

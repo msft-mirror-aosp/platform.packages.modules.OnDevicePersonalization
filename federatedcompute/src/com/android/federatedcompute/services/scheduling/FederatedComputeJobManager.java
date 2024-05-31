@@ -33,7 +33,6 @@ import android.federatedcompute.common.TrainingOptions;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
@@ -45,6 +44,7 @@ import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
 import com.android.internal.util.Preconditions;
 import com.android.odp.module.common.Clock;
 import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.PackageUtils;
 
 import com.google.common.annotations.VisibleForTesting;
 import com.google.flatbuffers.FlatBufferBuilder;

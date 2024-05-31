@@ -25,8 +25,6 @@ import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyFloat;
 import static org.mockito.Mockito.when;
 
 import android.content.Context;
@@ -43,7 +41,6 @@ import com.android.odp.module.common.MonotonicClock;
 import com.android.ondevicepersonalization.services.Flags;
 import com.android.ondevicepersonalization.services.FlagsFactory;
 import com.android.ondevicepersonalization.services.data.OnDevicePersonalizationDbHelper;
-import com.android.ondevicepersonalization.services.noise.AppInstallNoiseHandler;
 
 import org.junit.After;
 import org.junit.Before;
@@ -56,7 +53,6 @@ import org.mockito.MockitoAnnotations;
 import org.mockito.quality.Strictness;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -80,7 +76,6 @@ public class UserDataCollectorTest {
 
     @Mock private Clock mMockClock;
     @Mock private Flags mMockFlags;
-    @Mock private AppInstallNoiseHandler mMockAppInstallNoiseHandler;
     private UserDataDao mUserDataDao;
 
     @Before
@@ -91,9 +86,7 @@ public class UserDataCollectorTest {
         when(MonotonicClock.getInstance()).thenReturn(mMockClock);
         when(FlagsFactory.getFlags()).thenReturn(mMockFlags);
         mUserDataDao = UserDataDao.getInstanceForTest(mContext, mMockClock);
-        mCollector =
-                UserDataCollector.getInstanceForTest(
-                        mContext, mUserDataDao, mMockAppInstallNoiseHandler);
+        mCollector = UserDataCollector.getInstanceForTest(mContext, mUserDataDao);
         TimeZone pstTime = TimeZone.getTimeZone("GMT-08:00");
         TimeZone.setDefault(pstTime);
     }
@@ -130,22 +123,14 @@ public class UserDataCollectorTest {
     @Test
     public void updateInstalledAppsForUserData() {
         when(mMockFlags.getAppInstallHistoryTtlInMillis()).thenReturn(300L);
-        when(mMockFlags.getTargetNoiseForUserFeature()).thenReturn(10f);
         when(mMockClock.currentTimeMillis()).thenReturn(200L);
-        HashMap<String, Long> noisedAppMap = new HashMap<>();
-        noisedAppMap.put(APP_NAME_1, 100L);
-        noisedAppMap.put(APP_NAME_2, 100L);
 
-        when(mMockAppInstallNoiseHandler.generateAppInstallWithNoise(any(), anyFloat()))
-                .thenReturn(noisedAppMap);
 
         mCollector.updateInstalledApps(mUserData);
 
         Set<String> userDataInstallApp = mUserData.installedApps;
         assertTrue(userDataInstallApp.size() > 0);
-        assertThat(mUserData.installedAppsWithNoise).isEqualTo(noisedAppMap.keySet());
-        assertThat(mUserDataDao.getAppInstallMap(false).keySet()).isEqualTo(userDataInstallApp);
-        assertThat(mUserDataDao.getAppInstallMap(true).keySet()).isEqualTo(noisedAppMap.keySet());
+        assertThat(mUserDataDao.getAppInstallMap().keySet()).isEqualTo(userDataInstallApp);
     }
 
     @Test

@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.android.federatedcompute.services.common;
+package com.android.odp.module.common;
 
+import static android.content.pm.PackageManager.GET_META_DATA;
 import static android.content.pm.PackageManager.GET_SIGNING_CERTIFICATES;
 import static android.content.pm.PackageManager.MATCH_STATIC_SHARED_AND_SDK_LIBRARIES;
 import static android.federatedcompute.common.ClientConstants.ODP_APEX_KEYWORD;
@@ -23,6 +24,7 @@ import static android.federatedcompute.common.ClientConstants.ODP_APEX_KEYWORD;
 import android.annotation.NonNull;
 import android.annotation.Nullable;
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.Signature;
@@ -34,30 +36,13 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.List;
 
-/** PackageUtils for federated compute portion of OnDevicePersonalization module. */
+/**
+ * PackageUtils for OnDevicePersonalization module.
+ *
+ * @hide
+ */
 public class PackageUtils {
-    /**
-     * Retrieves the certDigest of the given packageName
-     *
-     * @param context Context of the calling service
-     * @param packageName Package name owning the certDigest
-     * @return certDigest of the given packageName
-     */
-    @Nullable
-    public static String getCertDigest(@NonNull Context context, @NonNull String packageName)
-            throws PackageManager.NameNotFoundException {
-        PackageInfo sdkPackageInfo =
-                context.getPackageManager()
-                        .getPackageInfo(
-                                packageName,
-                                PackageManager.PackageInfoFlags.of(
-                                        GET_SIGNING_CERTIFICATES
-                                                | MATCH_STATIC_SHARED_AND_SDK_LIBRARIES));
-        SigningInfo signingInfo = sdkPackageInfo.signingInfo;
-        Signature[] signatures =
-                signingInfo != null ? signingInfo.getSigningCertificateHistory() : null;
-        byte[] digest = computeSha256DigestBytes(signatures[0].toByteArray());
-        return new String(HexEncoding.encode(digest));
+    private PackageUtils() {
     }
 
     /**
@@ -79,6 +64,44 @@ public class PackageUtils {
         messageDigest.update(data);
 
         return messageDigest.digest();
+    }
+
+    /**
+     * Retrieves the certDigest of the given packageName
+     *
+     * @param context Context of the calling service
+     * @param packageName Package name owning the certDigest
+     * @return certDigest of the given packageName
+     */
+    @Nullable
+    public static String getCertDigest(@NonNull Context context, @NonNull String packageName)
+            throws PackageManager.NameNotFoundException {
+        PackageInfo sdkPackageInfo =
+                context.getPackageManager()
+                        .getPackageInfo(
+                                packageName,
+                                PackageManager.PackageInfoFlags.of(
+                                        GET_SIGNING_CERTIFICATES
+                                                | MATCH_STATIC_SHARED_AND_SDK_LIBRARIES));
+        SigningInfo signingInfo = sdkPackageInfo.signingInfo;
+        Signature[] signatures =
+                signingInfo != null ? signingInfo.getSigningCertificateHistory() : null;
+        byte[] digest = PackageUtils.computeSha256DigestBytes(signatures[0].toByteArray());
+        return new String(HexEncoding.encode(digest));
+    }
+
+    /**
+     * Determines if a package is debuggable
+     *
+     * @return true if the package is debuggable, false otherwise
+     */
+    public static boolean isPackageDebuggable(@NonNull Context context, @NonNull String packageName)
+            throws PackageManager.NameNotFoundException {
+        ApplicationInfo sdkApplicationInfo =
+                context.getPackageManager()
+                        .getApplicationInfo(
+                                packageName, PackageManager.ApplicationInfoFlags.of(GET_META_DATA));
+        return (sdkApplicationInfo.flags &= ApplicationInfo.FLAG_DEBUGGABLE) != 0;
     }
 
     /**
