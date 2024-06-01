@@ -375,14 +375,23 @@ public class SampleHandler implements IsolatedWorker {
         TrainingExamplesOutput.Builder resultBuilder = new TrainingExamplesOutput.Builder();
 
         if (input.getPopulationName().contains("criteo")) {
+            HashMap<Integer, String> exampleCache = new HashMap<>();
             Random rand = new Random();
             int numExample = rand.nextInt(10) + 1;
             Log.d(TAG, String.format("onTrainingExample() generates %d examples.", numExample));
             for (int count = 0; count < numExample; count++) {
-                Example example = convertToExample(
-                        new String(mRemoteData.get(
-                                String.format("example%d", rand.nextInt(100) + 1)),
-                        StandardCharsets.UTF_8));
+                int key = rand.nextInt(100) + 1;
+                Example example;
+                if (exampleCache.containsKey(key)) {
+                    example = convertToExample(exampleCache.get(key));
+                } else {
+                    String value =
+                            new String(
+                                    mRemoteData.get(String.format("example%d", key)),
+                                    StandardCharsets.UTF_8);
+                    exampleCache.put(key, value);
+                    example = convertToExample(value);
+                }
                 TrainingExampleRecord record =
                         new TrainingExampleRecord.Builder()
                                 .setTrainingExample(example.toByteArray())
