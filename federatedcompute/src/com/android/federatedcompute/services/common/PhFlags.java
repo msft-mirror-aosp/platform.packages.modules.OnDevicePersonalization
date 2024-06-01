@@ -90,6 +90,7 @@ public final class PhFlags implements Flags {
             "example_store_service_timeout_sec";
     static final String FCP_TF_ERROR_RESCHEDULE_SECONDS_CONFIG_NAME = "tf_error_reschedule_seconds";
     static final String EXAMPLE_ITERATOR_NEXT_TIMEOUT_SEC = "example_iterator_next_timeout_sec";
+    static final int FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE = 10;
 
     private static final PhFlags sSingleton = new PhFlags();
 
@@ -290,7 +291,7 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ FCP_BACKGROUND_JOB_LOGGING_SAMPLING_RATE,
-                /* defaultValue= */ BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+                /* defaultValue= */ FCP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
     }
 
     @Override
