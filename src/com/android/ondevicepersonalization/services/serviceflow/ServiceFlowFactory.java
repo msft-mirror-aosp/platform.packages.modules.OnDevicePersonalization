@@ -43,16 +43,17 @@ public class ServiceFlowFactory {
     public static ServiceFlow createInstance(ServiceFlowType serviceFlowType, Object... args) {
         return switch (serviceFlowType) {
             case APP_REQUEST_FLOW ->
-                    new AppRequestFlow(
-                        (String) args[0], (ComponentName) args[1], (Bundle) args[2],
-                        (IExecuteCallback) args[3], (Context) args[4], (long) args[5]);
+                    new AppRequestFlow((String) args[0], (ComponentName) args[1], (Bundle) args[2],
+                            (IExecuteCallback) args[3], (Context) args[4], (long) args[5],
+                            (long) args[6]);
             case RENDER_FLOW ->
                     new RenderFlow((String) args[0], (IBinder) args[1], (int) args[2],
-                        (int) args[3], (int) args[4], (IRequestSurfacePackageCallback) args[5],
-                        (Context) args[6], (long) args[7]);
+                            (int) args[3], (int) args[4], (IRequestSurfacePackageCallback) args[5],
+                            (Context) args[6], (long) args[7], (long) args[8]);
             case WEB_TRIGGER_FLOW ->
                     new WebTriggerFlow((Bundle) args[0], (Context) args[1],
-                            (IRegisterMeasurementEventCallback) args[2], (long) args[3]);
+                            (IRegisterMeasurementEventCallback) args[2], (long) args[3],
+                            (long) args[4]);
             case WEB_VIEW_FLOW ->
                     new WebViewFlow((Context) args[0], (ComponentName) args[1], (long) args[2],
                             (RequestLogRecord) args[3], (FutureCallback<EventOutputParcel>) args[4],

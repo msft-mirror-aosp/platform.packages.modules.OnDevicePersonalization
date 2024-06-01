@@ -85,6 +85,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
     @NonNull
     private final Context mContext;
     private final long mStartTimeMillis;
+    private final long mServiceEntryTimeMillis;
     @NonNull
     private IsolatedModelServiceProvider mModelServiceProvider;
     private long mStartServiceTimeMillis;
@@ -125,10 +126,10 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             @NonNull Bundle wrappedParams,
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
-            long startTimeMillis) {
+            long startTimeMillis,
+            long serviceEntryTimeMillis) {
         this(callingPackageName, service, wrappedParams,
-                callback, context, startTimeMillis,
-                new Injector());
+                callback, context, startTimeMillis, serviceEntryTimeMillis, new Injector());
     }
 
     @VisibleForTesting
@@ -139,6 +140,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
             @NonNull IExecuteCallback callback,
             @NonNull Context context,
             long startTimeMillis,
+            long serviceEntryTimeMillis,
             @NonNull Injector injector) {
         sLogger.d(TAG + ": AppRequestFlow created.");
         mCallingPackageName = Objects.requireNonNull(callingPackageName);
@@ -147,6 +149,7 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         mCallback = Objects.requireNonNull(callback);
         mContext = Objects.requireNonNull(context);
         mStartTimeMillis = startTimeMillis;
+        mServiceEntryTimeMillis =  serviceEntryTimeMillis;
         mInjector = Objects.requireNonNull(injector);
     }
 
@@ -401,7 +404,9 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
         try {
             mCallback.onSuccess(
                     result,
-                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(
                             SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             responseCode = Constants.STATUS_INTERNAL_ERROR;
@@ -415,8 +420,9 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     errorCode,
                     isolatedServiceErrorCode,
                     null,
-                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                            SystemClock.elapsedRealtime()).build());
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         }
@@ -428,8 +434,9 @@ public class AppRequestFlow implements ServiceFlow<Bundle> {
                     errorCode,
                     0,
                     DebugUtils.getErrorMessage(mContext, t),
-                    new CalleeMetadata.Builder().setCallbackInvokeTimeMillis(
-                            SystemClock.elapsedRealtime()).build());
+                    new CalleeMetadata.Builder()
+                            .setServiceEntryTimeMillis(mServiceEntryTimeMillis)
+                            .setCallbackInvokeTimeMillis(SystemClock.elapsedRealtime()).build());
         } catch (RemoteException e) {
             sLogger.w(TAG + ": Callback error", e);
         }

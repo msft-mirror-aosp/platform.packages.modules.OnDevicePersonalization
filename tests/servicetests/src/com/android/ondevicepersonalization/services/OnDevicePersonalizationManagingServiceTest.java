@@ -674,14 +674,14 @@ public class OnDevicePersonalizationManagingServiceTest {
         private final CountDownLatch mLatch = new CountDownLatch(1);
 
         @Override
-        public void onSuccess() {
+        public void onSuccess(CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mSuccess = true;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, CalleeMetadata calleeMetadata) {
             mWasInvoked = true;
             mError = true;
             mErrorCode = errorCode;

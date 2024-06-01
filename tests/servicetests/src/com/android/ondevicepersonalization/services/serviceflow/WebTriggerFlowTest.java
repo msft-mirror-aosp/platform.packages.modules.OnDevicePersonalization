@@ -21,6 +21,7 @@ import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.doReturn;
 //import static org.mockito.Mockito.spy;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
 import android.adservices.ondevicepersonalization.Constants;
 import android.adservices.ondevicepersonalization.MeasurementWebTriggerEventParamsParcel;
 import android.adservices.ondevicepersonalization.aidl.IRegisterMeasurementEventCallback;
@@ -104,7 +105,7 @@ public class WebTriggerFlowTest {
         PhFlagsTestUtil.enableGlobalKillSwitch();
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -116,7 +117,7 @@ public class WebTriggerFlowTest {
         doReturn(false).when(mUserPrivacyStatus).isMeasurementEnabled();
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -131,7 +132,7 @@ public class WebTriggerFlowTest {
                 null);
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyWebTriggerParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -151,7 +152,7 @@ public class WebTriggerFlowTest {
                         null, new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, emptyClassParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -171,7 +172,7 @@ public class WebTriggerFlowTest {
                         "randomTestCertDigest", new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidCertDigestParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -191,7 +192,7 @@ public class WebTriggerFlowTest {
                         null, new byte[] {1, 2, 3}));
 
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, invalidPackageNameParams, mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackError);
@@ -201,7 +202,7 @@ public class WebTriggerFlowTest {
     @Test
     public void testWebTriggerFlow_Success() throws Exception {
         mSfo.schedule(ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 100L);
+                new TestWebCallback(), 100L, 110L);
         mLatch.await();
 
         assertTrue(mCallbackSuccess);
@@ -240,13 +241,13 @@ public class WebTriggerFlowTest {
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {
         @Override
-        public void onSuccess() {
+        public void onSuccess(CalleeMetadata calleeMetadata) {
             mCallbackSuccess = true;
             mLatch.countDown();
         }
 
         @Override
-        public void onError(int errorCode) {
+        public void onError(int errorCode, CalleeMetadata calleeMetadata) {
             mCallbackError = true;
             mCallbackErrorCode = errorCode;
             mLatch.countDown();

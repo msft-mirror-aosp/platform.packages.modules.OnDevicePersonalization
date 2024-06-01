@@ -16,8 +16,10 @@
 
 package android.adservices.ondevicepersonalization.aidl;
 
+import android.adservices.ondevicepersonalization.CalleeMetadata;
+
 /** @hide */
 oneway interface IRegisterMeasurementEventCallback {
-    void onSuccess();
-    void onError(int errorCode);
+    void onSuccess(in CalleeMetadata calleeMetadata);
+    void onError(int errorCode, in CalleeMetadata calleeMetadata);
 }
