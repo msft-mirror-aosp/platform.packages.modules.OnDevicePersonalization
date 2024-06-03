@@ -21,6 +21,7 @@ import static com.android.federatedcompute.services.data.FederatedComputeEncrypt
 import static com.google.common.truth.Truth.assertThat;
 
 import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
@@ -44,12 +45,12 @@ import com.android.dx.mockito.inline.extended.ExtendedMockito;
 import com.android.federatedcompute.services.common.FederatedComputeExecutors;
 import com.android.federatedcompute.services.common.FederatedComputeJobInfo;
 import com.android.federatedcompute.services.common.FlagsFactory;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlagsTestUtil;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKey;
 import com.android.federatedcompute.services.data.FederatedComputeEncryptionKeyDao;
 import com.android.federatedcompute.services.http.HttpClient;
+import com.android.odp.module.common.MonotonicClock;
 
 import com.google.common.util.concurrent.FluentFuture;
 import com.google.common.util.concurrent.Futures;
@@ -128,6 +129,12 @@ public class BackgroundKeyFetchJobServiceTest {
         dbHelper.getWritableDatabase().close();
         dbHelper.getReadableDatabase().close();
         dbHelper.close();
+    }
+
+    @Test
+    public void testDefaultNoArgConstructor() {
+        BackgroundKeyFetchJobService instance = new BackgroundKeyFetchJobService();
+        assertNotNull("default no-arg constructor is required by JobService", instance);
     }
 
     @Test

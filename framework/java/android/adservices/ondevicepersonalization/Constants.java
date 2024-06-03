@@ -31,6 +31,7 @@ public class Constants {
     public static final int STATUS_CLASS_NOT_FOUND = 102;
     public static final int STATUS_SERVICE_FAILED = 103;
     public static final int STATUS_PERSONALIZATION_DISABLED = 104;
+    public static final int STATUS_KEY_NOT_FOUND = 105;
 
     // Operations implemented by IsolatedService.
     public static final int OP_EXECUTE = 1;
@@ -102,6 +103,8 @@ public class Constants {
     public static final int API_NAME_LOG_READER_GET_JOINED_EVENTS = 18;
     public static final int API_NAME_FEDERATED_COMPUTE_SCHEDULE = 19;
     public static final int API_NAME_MODEL_MANAGER_RUN = 20;
+    public static final int API_NAME_FEDERATED_COMPUTE_CANCEL = 21;
+    public static final int API_NAME_NOTIFY_MEASUREMENT_EVENT = 22;
 
     // Data Access Service operations.
     public static final int DATA_ACCESS_OP_REMOTE_DATA_LOOKUP = 1;

@@ -31,12 +31,14 @@ android_test {
         "androidx.test.ext.truth",
         "androidx.test.rules",
         "compatibility-device-util-axt",
+        "hamcrest-library",
         "ondevicepersonalization-testing-sample-service-api",
         "ondevicepersonalization-testing-utils",
+        "platform-test-rules",
     ],
     libs: [
-        "android.test.base",
-        "android.test.runner",
+        "sdk_public_33_android.test.base",
+        "sdk_public_33_android.test.runner",
         "truth",
     ],
     data: [

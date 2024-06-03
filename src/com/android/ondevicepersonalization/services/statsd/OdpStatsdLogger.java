@@ -92,7 +92,9 @@ public class OdpStatsdLogger {
                 apiCallStats.getLatencyMillis(),
                 apiCallStats.getResponseCode(),
                 apiCallStats.getOverheadLatencyMillis(),
-                0,
-                0);
+                apiCallStats.getRpcCallLatencyMillis(),
+                apiCallStats.getRpcReturnLatencyMillis(),
+                apiCallStats.getAppUid(),
+                apiCallStats.getSdkPackageName());
     }
 }

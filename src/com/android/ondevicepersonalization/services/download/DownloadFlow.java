@@ -27,8 +27,12 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.util.JsonReader;
 
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
+import com.android.odp.module.common.PackageUtils;
 import com.android.ondevicepersonalization.internal.util.LoggerFactory;
 import com.android.ondevicepersonalization.services.OnDevicePersonalizationExecutors;
+import com.android.ondevicepersonalization.services.data.DataAccessPermission;
 import com.android.ondevicepersonalization.services.data.DataAccessServiceImpl;
 import com.android.ondevicepersonalization.services.data.vendor.OnDevicePersonalizationVendorDataDao;
 import com.android.ondevicepersonalization.services.data.vendor.VendorData;
@@ -39,9 +43,6 @@ import com.android.ondevicepersonalization.services.inference.IsolatedModelServi
 import com.android.ondevicepersonalization.services.manifest.AppManifestConfigHelper;
 import com.android.ondevicepersonalization.services.policyengine.UserDataAccessor;
 import com.android.ondevicepersonalization.services.serviceflow.ServiceFlow;
-import com.android.ondevicepersonalization.services.util.Clock;
-import com.android.ondevicepersonalization.services.util.MonotonicClock;
-import com.android.ondevicepersonalization.services.util.PackageUtils;
 import com.android.ondevicepersonalization.services.util.StatsUtils;
 
 import com.google.android.libraries.mobiledatadownload.GetFileGroupRequest;
@@ -183,8 +184,9 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
         Bundle serviceParams = new Bundle();
 
         serviceParams.putBinder(Constants.EXTRA_DATA_ACCESS_SERVICE_BINDER,
-                new DataAccessServiceImpl(getService(), mContext, /* includeLocalData */ true,
-                        /* includeEventData */ true));
+                new DataAccessServiceImpl(getService(), mContext,
+                        /* localDataPermission */ DataAccessPermission.READ_WRITE,
+                        /* eventDataPermission */ DataAccessPermission.READ_ONLY));
 
         serviceParams.putBinder(Constants.EXTRA_FEDERATED_COMPUTE_SERVICE_BINDER,
                 new FederatedComputeServiceImpl(getService(), mContext));
@@ -196,7 +198,8 @@ public class DownloadFlow implements ServiceFlow<DownloadCompletedOutputParcel> 
 
         DataAccessServiceImpl downloadedContentBinder = new DataAccessServiceImpl(
                 getService(), mContext, /* remoteData */ downloadedContent,
-                /* includeLocalData */ false, /* includeEventData */ false);
+                /* localDataPermission */ DataAccessPermission.DENIED,
+                /* eventDataPermission */ DataAccessPermission.DENIED);
 
         serviceParams.putParcelable(Constants.EXTRA_INPUT,
                 new DownloadInputParcel.Builder()

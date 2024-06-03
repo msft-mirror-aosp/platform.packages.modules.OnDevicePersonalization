@@ -18,16 +18,18 @@ package com.android.federatedcompute.services.training.util;
 
 import android.annotation.NonNull;
 import android.content.Context;
+import android.os.Environment;
 import android.os.PowerManager;
+import android.os.StatFs;
 
 import com.android.federatedcompute.internal.util.LogUtil;
 import com.android.federatedcompute.services.common.BatteryInfo;
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.MonotonicClock;
 import com.android.federatedcompute.services.common.PhFlags;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.internal.annotations.VisibleForTesting;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.MonotonicClock;
 
 import java.util.EnumSet;
 import java.util.Set;
@@ -56,6 +58,8 @@ public class TrainingConditionsChecker {
         BATTERY_NOT_OK,
         /** Device is thermally throttled, and hence not ready to train. */
         THERMALS_NOT_OK,
+        /** Memory space is too low to train. */
+        MEM_NOT_OK
     }
 
     @VisibleForTesting
@@ -97,6 +101,20 @@ public class TrainingConditionsChecker {
         return mPowerManager.getCurrentThermalStatus() < mFlags.getThermalStatusToThrottle();
     }
 
+    private boolean checkEnoughMemory() {
+        // Get temp file available space.
+        StatFs statFs =
+                new StatFs(
+                        System.getProperty(
+                                "java.io.tmpdir", Environment.getDataDirectory().getPath()));
+        // Check if we have enough space and cancel training if not.
+        if (statFs.getAvailableBytes() < mFlags.getFcpMemorySizeLimit()) {
+            LogUtil.i(TAG, "Not enough free space to proceed with Federated Learning!");
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Checks whether conditions allow for federated training. Returns a set of conditions if
      * insufficient, or an empty set if training should be allowed.
@@ -126,6 +144,10 @@ public class TrainingConditionsChecker {
 
         if (!deviceThermalsOkForTraining()) {
             conditions.add(Condition.THERMALS_NOT_OK);
+        }
+
+        if (!checkEnoughMemory()) {
+            conditions.add(Condition.MEM_NOT_OK);
         }
         return conditions;
     }

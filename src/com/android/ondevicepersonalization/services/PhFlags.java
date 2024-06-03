@@ -18,9 +18,7 @@ package com.android.ondevicepersonalization.services;
 
 import android.annotation.NonNull;
 import android.provider.DeviceConfig;
-
 import com.android.modules.utils.build.SdkLevel;
-
 import java.util.HashMap;
 import java.util.Map;
 
@@ -76,11 +74,27 @@ public final class PhFlags implements Flags {
     public static final String KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE =
             "odp_background_job_sampling_logging_rate";
 
+    public static final String KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED =
+            "odp_job_scheduling_logging_enabled";
+
+    public static final String KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE =
+            "odp_job_scheduling_logging_sampling_rate";
+
+    public static final String KEY_ODP_MODULE_JOB_POLICY = "odp_module_job_policy";
+
+    public static final String KEY_ODP_SPE_PILOT_JOB_ENABLED = "odp_spe_pilot_job_enabled";
+
     public static final String KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED =
             "is_art_image_loading_optimization_enabled";
 
     public static final String KEY_ISOLATED_SERVICE_DEBUGGING_ENABLED =
             "isolated_service_debugging_enabled";
+
+    public static final String KEY_RESET_DATA_DELAY_SECONDS = "reset_data_delay_seconds";
+
+    public static final String KEY_RESET_DATA_DEADLINE_SECONDS = "reset_data_deadline_seconds";
+
+    public static final String APP_INSTALL_HISTORY_TTL = "app_install_history_ttl";
 
     // OnDevicePersonalization Namespace String from DeviceConfig class
     public static final String NAMESPACE_ON_DEVICE_PERSONALIZATION = "on_device_personalization";
@@ -122,6 +136,12 @@ public final class PhFlags implements Flags {
                 getTrustedPartnerAppsList());
         mStableFlags.put(KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
                 isArtImageLoadingOptimizationEnabled());
+        mStableFlags.put(KEY_ENABLE_PERSONALIZATION_STATUS_OVERRIDE,
+                isPersonalizationStatusOverrideEnabled());
+        mStableFlags.put(KEY_PERSONALIZATION_STATUS_OVERRIDE_VALUE,
+                getPersonalizationStatusOverrideValue());
+        mStableFlags.put(KEY_USER_CONTROL_CACHE_IN_MILLIS,
+                getUserControlCacheInMillis());
     }
 
     /** Gets a stable flag value based on flag name. */
@@ -296,13 +316,15 @@ public final class PhFlags implements Flags {
     @Override
     public boolean getBackgroundJobsLoggingEnabled() {
         // needs stable: execution stats may be less accurate if flag changed during job execution
-        return (boolean) mStableFlags.computeIfAbsent(KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                key -> {
-                    return DeviceConfig.getBoolean(
-                            /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
-                            /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
-                            /* defaultValue= */ DEFAULT_BACKGROUND_JOBS_LOGGING_ENABLED);
-                });
+        return (boolean)
+                mStableFlags.computeIfAbsent(
+                        KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                        key -> {
+                            return DeviceConfig.getBoolean(
+                                    /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                                    /* name= */ KEY_ODP_BACKGROUND_JOBS_LOGGING_ENABLED,
+                                    /* defaultValue= */ BACKGROUND_JOB_LOGGING_ENABLED);
+                        });
     }
 
     @Override
@@ -310,7 +332,39 @@ public final class PhFlags implements Flags {
         return DeviceConfig.getInt(
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_ODP_BACKGROUND_JOB_SAMPLING_LOGGING_RATE,
-                /* defaultValue= */ DEFAULT_BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+                /* defaultValue= */ BACKGROUND_JOB_SAMPLING_LOGGING_RATE);
+    }
+
+    @Override
+    public boolean getJobSchedulingLoggingEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_JOB_SCHEDULING_LOGGING_ENABLED,
+                /* defaultValue= */ DEFAULT_JOB_SCHEDULING_LOGGING_ENABLED);
+    }
+
+    @Override
+    public int getJobSchedulingLoggingSamplingRate() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_JOB_SCHEDULING_LOGGING_SAMPLING_RATE,
+                /* defaultValue= */ DEFAULT_JOB_SCHEDULING_LOGGING_SAMPLING_RATE);
+    }
+
+    @Override
+    public String getOdpModuleJobPolicy() {
+        return DeviceConfig.getString(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name */ KEY_ODP_MODULE_JOB_POLICY,
+                /* defaultValue */ DEFAULT_ODP_MODULE_JOB_POLICY);
+    }
+
+    @Override
+    public boolean getSpePilotJobEnabled() {
+        return DeviceConfig.getBoolean(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_ODP_SPE_PILOT_JOB_ENABLED,
+                /* defaultValue= */ DEFAULT_SPE_PILOT_JOB_ENABLED);
     }
 
     @Override
@@ -319,5 +373,29 @@ public final class PhFlags implements Flags {
                 /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
                 /* name= */ KEY_IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED,
                 /* defaultValue= */ IS_ART_IMAGE_LOADING_OPTIMIZATION_ENABLED);
+    }
+
+    @Override
+    public int getResetDataDelaySeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_DELAY_SECONDS,
+                /* defaultValue= */ DEFAULT_RESET_DATA_DELAY_SECONDS);
+    }
+
+    @Override
+    public int getResetDataDeadlineSeconds() {
+        return DeviceConfig.getInt(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ KEY_RESET_DATA_DEADLINE_SECONDS,
+                /* defaultValue= */ DEFAULT_RESET_DATA_DEADLINE_SECONDS);
+    }
+
+    @Override
+    public long getAppInstallHistoryTtlInMillis() {
+        return DeviceConfig.getLong(
+                /* namespace= */ NAMESPACE_ON_DEVICE_PERSONALIZATION,
+                /* name= */ APP_INSTALL_HISTORY_TTL,
+                /* defaultValue= */ DEFAULT_APP_INSTALL_HISTORY_TTL_MILLIS);
     }
 }

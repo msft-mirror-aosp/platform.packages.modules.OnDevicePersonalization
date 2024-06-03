@@ -19,6 +19,7 @@ package com.android.federatedcompute.services.scheduling;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
+import static com.android.federatedcompute.services.common.Flags.FCP_RECURRENT_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FCP_RESCHEDULE_LIMIT;
 
 import static com.google.common.truth.Truth.assertThat;
@@ -39,9 +40,7 @@ import android.federatedcompute.common.TrainingOptions;
 
 import androidx.test.core.app.ApplicationProvider;
 
-import com.android.federatedcompute.services.common.Clock;
 import com.android.federatedcompute.services.common.Flags;
-import com.android.federatedcompute.services.common.PackageUtils;
 import com.android.federatedcompute.services.data.FederatedComputeDbHelper;
 import com.android.federatedcompute.services.data.FederatedTrainingTask;
 import com.android.federatedcompute.services.data.FederatedTrainingTaskDao;
@@ -50,7 +49,10 @@ import com.android.federatedcompute.services.data.fbs.SchedulingMode;
 import com.android.federatedcompute.services.data.fbs.SchedulingReason;
 import com.android.federatedcompute.services.data.fbs.TrainingConstraints;
 import com.android.federatedcompute.services.data.fbs.TrainingIntervalOptions;
+import com.android.odp.module.common.Clock;
+import com.android.odp.module.common.PackageUtils;
 
+import com.google.common.collect.Iterables;
 import com.google.flatbuffers.FlatBufferBuilder;
 import com.google.intelligence.fcp.client.FLRunnerResult.ContributionResult;
 import com.google.intelligence.fcp.client.engine.TaskRetry;
@@ -163,6 +165,8 @@ public final class FederatedComputeJobManagerTest {
                 .thenReturn(JOB_ID1)
                 .thenReturn(JOB_ID2);
         when(mMockFlags.getFcpRescheduleLimit()).thenReturn(FCP_RESCHEDULE_LIMIT);
+        when(mMockFlags.getFcpRecurrentRescheduleLimit())
+                .thenReturn(FCP_RECURRENT_RESCHEDULE_LIMIT);
     }
 
     @After
@@ -682,6 +686,50 @@ public final class FederatedComputeJobManagerTest {
     }
 
     @Test
+    public void testOnTrainerStartCalled_existingTask_rescheduleCountClear() throws Exception {
+        long serverRetryDelayMillis = 5000_000;
+        // customer schedule the task which doesn't exist before.
+        long nowMillis = 1000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        TrainingOptions options1 =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME1)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(mOwnerComponentName)
+                        .build();
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
+
+        // Execute the task and get failure result.
+        nowMillis = 2000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainingStarted(JOB_ID1);
+        mJobManager.onTrainingCompleted(
+                JOB_ID1,
+                POPULATION_NAME1,
+                TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
+                        ByteBuffer.wrap(createTrainingIntervalOptions(SchedulingMode.ONE_TIME, 0))),
+                TaskRetry.newBuilder()
+                        .setDelayMin(serverRetryDelayMillis)
+                        .setDelayMax(serverRetryDelayMillis)
+                        .build(),
+                ContributionResult.FAIL,
+                true);
+
+        FederatedTrainingTask taskInDb =
+                Iterables.getOnlyElement(mTrainingTaskDao.getFederatedTrainingTask(null, null));
+        assertThat(taskInDb.rescheduleCount()).isEqualTo(1);
+
+        // Customer schedule the same task.
+        nowMillis = 3000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
+
+        // Verify reschedule count of task is reset to 0.
+        taskInDb = Iterables.getOnlyElement(mTrainingTaskDao.getFederatedTrainingTask(null, null));
+        assertThat(taskInDb.rescheduleCount()).isEqualTo(0);
+    }
+
+    @Test
     public void testOnTrainingStarted_doesNotExist() throws Exception {
         when(mClock.currentTimeMillis()).thenReturn(1000L);
         FederatedTrainingTask taskToRun = mJobManager.onTrainingStarted(JOB_ID1);
@@ -757,7 +805,8 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 createTrainingIntervalOptionsAsRoot(SchedulingMode.RECURRENT, 0),
                 TASK_RETRY,
-                ContributionResult.SUCCESS);
+                ContributionResult.SUCCESS,
+                true);
 
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNotNull();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).hasSize(1);
@@ -780,7 +829,8 @@ public final class FederatedComputeJobManagerTest {
                 POPULATION_NAME1,
                 createTrainingIntervalOptionsAsRoot(SchedulingMode.ONE_TIME, 0),
                 TASK_RETRY,
-                ContributionResult.SUCCESS);
+                ContributionResult.SUCCESS,
+                true);
 
         assertThat(mJobManager.onTrainingStarted(JOB_ID1)).isNull();
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
@@ -818,7 +868,8 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverRetryDelayMillis)
                         .setDelayMax(serverRetryDelayMillis)
                         .build(),
-                ContributionResult.FAIL);
+                ContributionResult.FAIL,
+                true);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -828,8 +879,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastScheduledTime(1000L)
                         .lastRunStartTime(2000L)
                         .lastRunEndTime(3000L)
-                        .schedulingReason(
-                                SchedulingReason.SCHEDULING_REASON_FAILURE)
+                        .schedulingReason(SchedulingReason.SCHEDULING_REASON_FAILURE)
                         .earliestNextRunTime(3000 + serverRetryDelayMillis)
                         .rescheduleCount(1)
                         .build();
@@ -878,7 +928,8 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(minRetryDelayMillis)
                         .setDelayMax(maxRetryDelayMillis)
                         .build(),
-                ContributionResult.SUCCESS);
+                ContributionResult.SUCCESS,
+                true);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -932,7 +983,8 @@ public final class FederatedComputeJobManagerTest {
                         ByteBuffer.wrap(intervalOptions)),
                 // no retry info from server or TF run
                 null,
-                ContributionResult.SUCCESS);
+                ContributionResult.SUCCESS,
+                true);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -993,7 +1045,8 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverDefinedIntervalMillis)
                         .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                ContributionResult.SUCCESS);
+                ContributionResult.SUCCESS,
+                true);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -1052,7 +1105,8 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverDefinedIntervalMillis)
                         .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                ContributionResult.FAIL);
+                ContributionResult.FAIL,
+                true);
 
         List<FederatedTrainingTask> taskList =
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
@@ -1062,8 +1116,7 @@ public final class FederatedComputeJobManagerTest {
                         .lastScheduledTime(1000L)
                         .lastRunStartTime(2000L) // Match the time of calling onTrainingStarted()
                         .lastRunEndTime(3000L) // Match the time of calling onTrainingCompleted()
-                        .schedulingReason(
-                                SchedulingReason.SCHEDULING_REASON_FAILURE)
+                        .schedulingReason(SchedulingReason.SCHEDULING_REASON_FAILURE)
                         .earliestNextRunTime(3000 + serverDefinedIntervalMillis)
                         .rescheduleCount(1)
                         .build();
@@ -1078,6 +1131,54 @@ public final class FederatedComputeJobManagerTest {
     @Test
     public void testRescheduleFLTask_didnotRescheduleDueToScheduleLimit() throws Exception {
         when(mMockFlags.getFcpRescheduleLimit()).thenReturn(1);
+        long userDefinedIntervalMillis = 3000_000;
+        TrainingOptions trainerOptions =
+                basicFLOptionsBuilder(POPULATION_NAME1)
+                        .setTrainingInterval(
+                                new TrainingInterval.Builder()
+                                        .setSchedulingMode(
+                                                TrainingInterval.SCHEDULING_MODE_ONE_TIME)
+                                        .setMinimumIntervalMillis(userDefinedIntervalMillis)
+                                        .build())
+                        .build();
+        long nowMillis = 1000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, trainerOptions);
+        nowMillis = 2000;
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+        mJobManager.onTrainingStarted(JOB_ID1);
+        nowMillis = 3000;
+        byte[] intervalOptions =
+                createTrainingIntervalOptions(SchedulingMode.ONE_TIME, userDefinedIntervalMillis);
+        when(mClock.currentTimeMillis()).thenReturn(nowMillis);
+
+        mJobManager.onTrainingCompleted(
+                JOB_ID1,
+                POPULATION_NAME1,
+                TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
+                        ByteBuffer.wrap(intervalOptions)),
+                null,
+                ContributionResult.FAIL,
+                true);
+        // "complete" FCP task 2nd time so the reschedule limit of "1" will trigger.
+        mJobManager.onTrainingCompleted(
+                JOB_ID1,
+                POPULATION_NAME1,
+                TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
+                        ByteBuffer.wrap(intervalOptions)),
+                null,
+                ContributionResult.FAIL,
+                true);
+
+        assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
+        assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
+    @Test
+    public void testRescheduleFLTask_recurrent_didnotRescheduleDueToScheduleLimit()
+            throws Exception {
+        when(mMockFlags.getFcpRescheduleLimit()).thenReturn(2);
+        when(mMockFlags.getFcpRecurrentRescheduleLimit()).thenReturn(1);
         long userDefinedIntervalMillis = 3000_000;
         TrainingOptions trainerOptions =
                 basicFLOptionsBuilder(POPULATION_NAME1)
@@ -1105,7 +1206,8 @@ public final class FederatedComputeJobManagerTest {
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalOptions)),
                 null,
-                ContributionResult.FAIL);
+                ContributionResult.FAIL,
+                true);
         // "complete" FCP task 2nd time so the reschedule limit of "1" will trigger.
         mJobManager.onTrainingCompleted(
                 JOB_ID1,
@@ -1113,7 +1215,8 @@ public final class FederatedComputeJobManagerTest {
                 TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
                         ByteBuffer.wrap(intervalOptions)),
                 null,
-                ContributionResult.FAIL);
+                ContributionResult.FAIL,
+                true);
 
         assertThat(mTrainingTaskDao.getFederatedTrainingTask(null, null)).isEmpty();
         assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
@@ -1156,7 +1259,8 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverDefinedIntervalMillis)
                         .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                ContributionResult.FAIL);
+                ContributionResult.FAIL,
+                true);
 
         // check that intermediate task rescheduled with reschedule counter incremented
         List<FederatedTrainingTask> taskList =
@@ -1167,11 +1271,28 @@ public final class FederatedComputeJobManagerTest {
                         .lastScheduledTime(1000L)
                         .lastRunStartTime(2000L) // Match the time of calling onTrainingStarted()
                         .lastRunEndTime(3000L) // Match the time of calling onTrainingCompleted()
-                        .schedulingReason(
-                                SchedulingReason.SCHEDULING_REASON_FAILURE)
+                        .schedulingReason(SchedulingReason.SCHEDULING_REASON_FAILURE)
                         .earliestNextRunTime(3000 + serverDefinedIntervalMillis)
                         .rescheduleCount(1)
                         .build();
+        assertThat(taskList).containsExactly(expectedTask);
+
+        // call training complete without tracking failures, for less critical failures like
+        // conditions not met
+        mJobManager.onTrainingCompleted(
+                JOB_ID1,
+                POPULATION_NAME1,
+                TrainingIntervalOptions.getRootAsTrainingIntervalOptions(
+                        ByteBuffer.wrap(intervalOptions)),
+                TaskRetry.newBuilder()
+                        .setDelayMin(serverDefinedIntervalMillis)
+                        .setDelayMax(serverDefinedIntervalMillis)
+                        .build(),
+                ContributionResult.FAIL,
+                false);
+        // fetch task list from DB again
+        taskList = mTrainingTaskDao.getFederatedTrainingTask(null, null);
+        // ensure that task in DB still the same, mainly failures count were not incremented
         assertThat(taskList).containsExactly(expectedTask);
 
         mJobManager.onTrainingCompleted(
@@ -1183,7 +1304,8 @@ public final class FederatedComputeJobManagerTest {
                         .setDelayMin(serverDefinedIntervalMillis)
                         .setDelayMax(serverDefinedIntervalMillis)
                         .build(),
-                ContributionResult.SUCCESS);
+                ContributionResult.SUCCESS,
+                true);
 
         taskList = mTrainingTaskDao.getFederatedTrainingTask(null, null);
         expectedTask =
