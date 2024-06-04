@@ -51,8 +51,6 @@ public final class TrainingExamplesInput {
 
     /**
      * The data collection name to use to create training examples.
-     *
-     * @hide
      */
     @Nullable private String mCollectionName;
 
@@ -140,12 +138,9 @@ public final class TrainingExamplesInput {
         return mResumptionToken;
     }
 
-    /**
-     * The data collection name to use to create training examples.
-     *
-     * @hide
-     */
+    /** The data collection name to use to create training examples. */
     @DataClass.Generated.Member
+    @FlaggedApi(Flags.FLAG_FCP_MODEL_VERSION_ENABLED)
     public @Nullable String getCollectionName() {
         return mCollectionName;
     }
@@ -184,7 +179,7 @@ public final class TrainingExamplesInput {
     }
 
     @DataClass.Generated(
-            time = 1717540178065L,
+            time = 1717540629847L,
             codegenVersion = "1.0.23",
             sourceFile =
                     "packages/modules/OnDevicePersonalization/framework/java/android/adservices/ondevicepersonalization/TrainingExamplesInput.java",
