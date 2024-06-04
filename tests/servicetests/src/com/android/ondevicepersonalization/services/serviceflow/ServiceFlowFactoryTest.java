@@ -58,7 +58,7 @@ public class ServiceFlowFactoryTest {
         ServiceFlow serviceFlow = ServiceFlowFactory.createInstance(
                 ServiceFlowType.APP_REQUEST_FLOW, "testCallingPackage",
                 new ComponentName("testPackage", "testClass"), new Bundle(),
-                new TestExecuteCallback(), mContext, 0L);
+                new TestExecuteCallback(), mContext, 0L, 100L);
 
         assertThat(serviceFlow).isNotNull();
         assertThat(serviceFlow).isInstanceOf(AppRequestFlow.class);
@@ -68,7 +68,7 @@ public class ServiceFlowFactoryTest {
     public void testCreateRenderFlowInstance() throws Exception {
         ServiceFlow serviceFlow = ServiceFlowFactory.createInstance(
                 ServiceFlowType.RENDER_FLOW, "testToken", new Binder(), 0,
-                100, 50, new TestRenderFlowCallback(), mContext, 0L);
+                100, 50, new TestRenderFlowCallback(), mContext, 0L, 100L);
 
         assertThat(serviceFlow).isNotNull();
         assertThat(serviceFlow).isInstanceOf(RenderFlow.class);
@@ -91,7 +91,7 @@ public class ServiceFlowFactoryTest {
     public void testCreateWebTriggerFlowInstance() throws Exception {
         ServiceFlow serviceFlow = ServiceFlowFactory.createInstance(
                 ServiceFlowType.WEB_TRIGGER_FLOW, getWebTriggerParams(), mContext,
-                new TestWebCallback(), 0L);
+                new TestWebCallback(), 0L, 100L);
 
         assertThat(serviceFlow).isNotNull();
         assertThat(serviceFlow).isInstanceOf(WebTriggerFlow.class);
@@ -114,10 +114,10 @@ public class ServiceFlowFactoryTest {
 
     class TestWebCallback extends IRegisterMeasurementEventCallback.Stub {
         @Override
-        public void onSuccess() {}
+        public void onSuccess(CalleeMetadata calleeMetadata) {}
 
         @Override
-        public void onError(int errorCode) {}
+        public void onError(int errorCode, CalleeMetadata calleeMetadata) {}
     }
 
     private Bundle getWebTriggerParams() {
