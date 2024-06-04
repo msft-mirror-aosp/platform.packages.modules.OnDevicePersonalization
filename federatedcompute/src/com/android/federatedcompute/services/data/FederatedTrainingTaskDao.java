@@ -272,6 +272,27 @@ public class FederatedTrainingTaskDao {
         }
     }
 
+    /** Returns number of tasks already belongs to given owners package. */
+    public int getTotalTrainingTaskPerOwnerPackage(String packageName) {
+        SQLiteDatabase db = mDbHelper.safeGetReadableDatabase();
+        if (db == null) {
+            return 0;
+        }
+        final String query =
+                "SELECT COUNT(*) FROM "
+                        + FEDERATED_TRAINING_TASKS_TABLE
+                        + " WHERE "
+                        + FederatedTrainingTaskColumns.OWNER_PACKAGE
+                        + " = ?";
+        try (Cursor cursor = db.rawQuery(query, new String[] {packageName})) {
+            if (cursor.moveToFirst()) {
+                return cursor.getInt(0);
+            } else {
+                return 0; // No matching tasks found
+            }
+        }
+    }
+
     /** Insert a training task history record or update it if task already exists. */
     public boolean updateOrInsertTaskHistory(TaskHistory taskHistory) {
         try {

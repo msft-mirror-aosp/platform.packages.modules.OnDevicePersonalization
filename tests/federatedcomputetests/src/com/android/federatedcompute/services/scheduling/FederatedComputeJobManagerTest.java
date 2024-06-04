@@ -19,6 +19,7 @@ package com.android.federatedcompute.services.scheduling;
 import static android.federatedcompute.common.ClientConstants.STATUS_INTERNAL_ERROR;
 import static android.federatedcompute.common.ClientConstants.STATUS_SUCCESS;
 
+import static com.android.federatedcompute.services.common.Flags.DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE;
 import static com.android.federatedcompute.services.common.Flags.FCP_RECURRENT_RESCHEDULE_LIMIT;
 import static com.android.federatedcompute.services.common.Flags.FCP_RESCHEDULE_LIMIT;
 
@@ -167,6 +168,7 @@ public final class FederatedComputeJobManagerTest {
         when(mMockFlags.getFcpRescheduleLimit()).thenReturn(FCP_RESCHEDULE_LIMIT);
         when(mMockFlags.getFcpRecurrentRescheduleLimit())
                 .thenReturn(FCP_RECURRENT_RESCHEDULE_LIMIT);
+        when(mMockFlags.getFcpTaskLimitPerPackage()).thenReturn(DEFAULT_FCP_TASK_LIMIT_PER_PACKAGE);
     }
 
     @After
@@ -217,6 +219,49 @@ public final class FederatedComputeJobManagerTest {
                 mTrainingTaskDao.getFederatedTrainingTask(null, null);
         assertThat(taskList).isEmpty();
         assertThat(mJobScheduler.getAllPendingJobs()).isEmpty();
+    }
+
+    @Test
+    public void testOnTrainerStartCalledFailureDueToTaskLimit() throws Exception {
+        when(mMockFlags.getFcpTaskLimitPerPackage()).thenReturn(1);
+        when(mClock.currentTimeMillis()).thenReturn(1000L);
+        TrainingOptions options1 =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME1)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(mOwnerComponentName)
+                        .build();
+        int resultCode1 = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options1);
+
+        // Pass in a new population name and We will assign new job id since population name
+        // changes.
+        when(mClock.currentTimeMillis()).thenReturn(2000L);
+        TrainingOptions options2 =
+                new TrainingOptions.Builder()
+                        .setPopulationName(POPULATION_NAME2)
+                        .setServerAddress(SERVER_ADDRESS)
+                        .setOwnerComponentName(mOwnerComponentName)
+                        .build();
+        int resultCode2 = mJobManager.onTrainerStartCalled(CALLING_PACKAGE_NAME, options2);
+
+        assertThat(resultCode1).isEqualTo(STATUS_SUCCESS);
+        assertThat(resultCode2).isEqualTo(STATUS_INTERNAL_ERROR);
+        // Verify only one training task in database.
+        List<FederatedTrainingTask> taskList =
+                mTrainingTaskDao.getFederatedTrainingTask(null, null);
+        assertThat(taskList)
+                .containsExactly(
+                        basicFLTrainingTaskBuilder(JOB_ID1, POPULATION_NAME1, null)
+                                .creationTime(1000L)
+                                .lastScheduledTime(1000L)
+                                .schedulingReason(SchedulingReason.SCHEDULING_REASON_NEW_TASK)
+                                .earliestNextRunTime(1000 + DEFAULT_SCHEDULING_PERIOD_MILLIS)
+                                .intervalOptions(createDefaultTrainingInterval())
+                                .build());
+        assertThat(mJobScheduler.getAllPendingJobs()).hasSize(1);
+        assertJobInfosMatch(
+                mJobScheduler.getPendingJob(JOB_ID1),
+                buildExpectedJobInfo(JOB_ID1, DEFAULT_SCHEDULING_PERIOD_MILLIS));
     }
 
     @Test
