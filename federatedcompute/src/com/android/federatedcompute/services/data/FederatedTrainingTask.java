@@ -50,9 +50,14 @@ public abstract class FederatedTrainingTask {
     public abstract int jobId();
 
     /**
-     * @return owner identifier package and class name
+     * @return owner identifier package name
      */
-    public abstract String ownerId();
+    public abstract String ownerPackageName();
+
+    /**
+     * @return owner identifier class name
+     */
+    public abstract String ownerClassName();
 
     /**
      * @return owner identifier cert digest
@@ -167,8 +172,10 @@ public abstract class FederatedTrainingTask {
         /** Set job scheduler Id. */
         public abstract Builder jobId(int jobId);
 
-        /** Set owner ID which consists of a package name and class name. */
-        public abstract Builder ownerId(String ownerId);
+        /** Set owner package name. */
+        public abstract Builder ownerPackageName(String ownerPackageName);
+        /** Set owner class name. */
+        public abstract Builder ownerClassName(String ownerClassName);
 
         /** Set owner identifier cert digest. */
         public abstract Builder ownerIdCertDigest(String ownerIdCertDigest);
@@ -234,7 +241,10 @@ public abstract class FederatedTrainingTask {
         ContentValues values = new ContentValues();
         values.put(FederatedTrainingTaskColumns.APP_PACKAGE_NAME, appPackageName());
         values.put(FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID, jobId());
-        values.put(FederatedTrainingTaskColumns.OWNER_ID, ownerId());
+        values.put(FederatedTrainingTaskColumns.OWNER_PACKAGE, ownerPackageName());
+        values.put(FederatedTrainingTaskColumns.OWNER_CLASS, ownerClassName());
+        values.put(
+                FederatedTrainingTaskColumns.OWNER_ID, ownerPackageName() + "/" + ownerClassName());
         values.put(FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST, ownerIdCertDigest());
 
         values.put(FederatedTrainingTaskColumns.POPULATION_NAME, populationName());
@@ -274,7 +284,8 @@ public abstract class FederatedTrainingTask {
         String[] selectColumns = {
             FederatedTrainingTaskColumns.APP_PACKAGE_NAME,
             FederatedTrainingTaskColumns.JOB_SCHEDULER_JOB_ID,
-            FederatedTrainingTaskColumns.OWNER_ID,
+            FederatedTrainingTaskColumns.OWNER_PACKAGE,
+            FederatedTrainingTaskColumns.OWNER_CLASS,
             FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST,
             FederatedTrainingTaskColumns.POPULATION_NAME,
             FederatedTrainingTaskColumns.SERVER_ADDRESS,
@@ -317,14 +328,20 @@ public abstract class FederatedTrainingTask {
                                                 cursor.getColumnIndexOrThrow(
                                                         FederatedTrainingTaskColumns
                                                                 .JOB_SCHEDULER_JOB_ID)))
-                                .ownerId(cursor.getString(
-                                        cursor.getColumnIndexOrThrow(
-                                                FederatedTrainingTaskColumns
-                                                        .OWNER_ID)))
-                                .ownerIdCertDigest(cursor.getString(
-                                        cursor.getColumnIndexOrThrow(
-                                                FederatedTrainingTaskColumns
-                                                        .OWNER_ID_CERT_DIGEST)))
+                                .ownerPackageName(
+                                        cursor.getString(
+                                                cursor.getColumnIndexOrThrow(
+                                                        FederatedTrainingTaskColumns
+                                                                .OWNER_PACKAGE)))
+                                .ownerClassName(
+                                        cursor.getString(
+                                                cursor.getColumnIndexOrThrow(
+                                                        FederatedTrainingTaskColumns.OWNER_CLASS)))
+                                .ownerIdCertDigest(
+                                        cursor.getString(
+                                                cursor.getColumnIndexOrThrow(
+                                                        FederatedTrainingTaskColumns
+                                                                .OWNER_ID_CERT_DIGEST)))
                                 .populationName(
                                         cursor.getString(
                                                 cursor.getColumnIndexOrThrow(
@@ -360,9 +377,11 @@ public abstract class FederatedTrainingTask {
                                                 cursor.getColumnIndexOrThrow(
                                                         FederatedTrainingTaskColumns
                                                                 .EARLIEST_NEXT_RUN_TIME)))
-                                .rescheduleCount(cursor.getInt(
-                                        cursor.getColumnIndexOrThrow(
-                                                FederatedTrainingTaskColumns.RESCHEDULE_COUNT)));
+                                .rescheduleCount(
+                                        cursor.getInt(
+                                                cursor.getColumnIndexOrThrow(
+                                                        FederatedTrainingTaskColumns
+                                                                .RESCHEDULE_COUNT)));
                 int schedulingReason =
                         cursor.getInt(
                                 cursor.getColumnIndexOrThrow(

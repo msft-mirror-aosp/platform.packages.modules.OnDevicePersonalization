@@ -205,15 +205,17 @@ public class FederatedTrainingTaskDao {
 
     /** Delete a task from table based on population name and owner Id (package and class name). */
     public FederatedTrainingTask findAndRemoveTaskByPopulationNameAndOwnerId(
-            String populationName, String ownerId, String ownerCertDigest) {
+            String populationName, String ownerPackage, String ownerClass, String ownerCertDigest) {
         String selection =
                 FederatedTrainingTaskColumns.POPULATION_NAME
                         + " = ? AND "
-                        + FederatedTrainingTaskColumns.OWNER_ID
+                        + FederatedTrainingTaskColumns.OWNER_PACKAGE
+                        + " = ? AND "
+                        + FederatedTrainingTaskColumns.OWNER_CLASS
                         + " = ? AND "
                         + FederatedTrainingTaskColumns.OWNER_ID_CERT_DIGEST
                         + " = ?";
-        String[] selectionArgs = {populationName, ownerId, ownerCertDigest};
+        String[] selectionArgs = {populationName, ownerPackage, ownerClass, ownerCertDigest};
         FederatedTrainingTask task =
                 Iterables.getOnlyElement(getFederatedTrainingTask(selection, selectionArgs), null);
         try {
@@ -225,9 +227,10 @@ public class FederatedTrainingTaskDao {
             LogUtil.e(
                     TAG,
                     e,
-                    "Failed to delete federated training task by population name %s and ATP: %s",
+                    "Failed to delete federated training task by population name %s and ATP: %s/%s",
                     populationName,
-                    ownerId);
+                    ownerPackage,
+                    ownerClass);
             ClientErrorLogger.getInstance()
                     .logErrorWithExceptionInfo(
                             e,

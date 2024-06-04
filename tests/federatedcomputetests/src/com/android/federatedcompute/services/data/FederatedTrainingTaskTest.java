@@ -48,8 +48,8 @@ public final class FederatedTrainingTaskTest {
     private static final String PACKAGE_NAME = "app_package_name";
     private static final String POPULATION_NAME = "population_name";
     private static final String SERVER_ADDRESS = "https://server.uri/";
-    private static final String OWNER_ID =
-            "com.android.pckg.name/com.android.class.name";
+    private static final String OWNER_PACKAGE = "com.android.pckg.name";
+    private static final String OWNER_CLASS = "com.android.class.name";
     private static final String OWNER_ID_CERT_DIGEST = "123SOME45DIGEST78";
     private static final int JOB_ID = 123;
     private static final Long CREATION_TIME = 1233L;
@@ -176,7 +176,8 @@ public final class FederatedTrainingTaskTest {
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
                 .populationName(POPULATION_NAME)
-                .ownerId(OWNER_ID)
+                .ownerPackageName(OWNER_PACKAGE)
+                .ownerClassName(OWNER_CLASS)
                 .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                 .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)
@@ -196,7 +197,8 @@ public final class FederatedTrainingTaskTest {
                 .appPackageName(PACKAGE_NAME)
                 .jobId(JOB_ID)
                 .populationName(POPULATION_NAME)
-                .ownerId(OWNER_ID)
+                .ownerPackageName(OWNER_PACKAGE)
+                .ownerClassName(OWNER_CLASS)
                 .ownerIdCertDigest(OWNER_ID_CERT_DIGEST)
                 .serverAddress(SERVER_ADDRESS)
                 .intervalOptions(INTERVAL_OPTIONS)

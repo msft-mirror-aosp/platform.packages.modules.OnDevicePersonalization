@@ -37,9 +37,15 @@ public final class FederatedTraningTaskContract {
         // non-zero.
         public static final String JOB_SCHEDULER_JOB_ID = "jobscheduler_job_id";
 
-        // The package name and class name  of the application this task belongs to. Must be
-        // non-empty.
+        // The package name and class name  of the application this task belongs to.
+        // This is legacy field kept for migration purposes.
         public static final String OWNER_ID = "owner_id";
+
+        // The package name of the application this task belongs to. Must be non-empty.
+        public static final String OWNER_PACKAGE = "owner_package";
+
+        // The class name of the application this task belongs to. Must be non-empty.
+        public static final String OWNER_CLASS = "owner_class";
 
         // The package cert digest of the application this task belongs to. Must be
         // non-empty.
